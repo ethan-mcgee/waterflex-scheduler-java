@@ -65,19 +65,21 @@ public class BookingService {
         var existingHolds = jdbc.query("SELECT id, \"expiresAt\" FROM slot_hold WHERE \"jobId\"=? AND \"offerToken\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP ORDER BY \"createdAt\" LIMIT 1",
                 (rs, n) -> new Selection(rs.getString(1), rs.getTimestamp(2).toInstant()), jobId, offerId);
         if (!existingHolds.isEmpty()) return existingHolds.getFirst();
+        List<Candidate> feasible = new ArrayList<>();
         for (Tech tech : technicians(job.serviceId(), day)) {
             lockDay(tech.id(), day);
             Candidate candidate = evaluateCandidate(job, tech, day, start, end);
-            if (candidate == null) continue;
-            String id = UUID.randomUUID().toString();
-            Instant expires = Instant.now().plus(Duration.ofMinutes(10));
-            jdbc.update("INSERT INTO slot_hold (id, \"offerToken\", \"jobId\", \"technicianId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"plannedStart\", \"plannedEnd\", \"insertPosition\", \"locationLat\", \"locationLng\", \"expiresAt\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    id, offerId, jobId, tech.id(), dayStamp(day), stamp(start), stamp(end), stamp(candidate.arrival()),
-                    stamp(candidate.arrival().plus(Duration.ofMinutes(job.duration()))), candidate.position(), job.point().lat(), job.point().lng(), stamp(expires));
-            jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND id<>? AND \"releasedAt\" IS NULL", jobId, id);
-            return new Selection(id, expires);
+            if (candidate != null) feasible.add(candidate);
         }
-        throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
+        Candidate chosen = feasible.stream().min(Comparator.comparingDouble(Candidate::cost).thenComparing(Candidate::techId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available"));
+        String id = UUID.randomUUID().toString();
+        Instant expires = Instant.now().plus(Duration.ofMinutes(10));
+        jdbc.update("INSERT INTO slot_hold (id, \"offerToken\", \"jobId\", \"technicianId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"plannedStart\", \"plannedEnd\", \"insertPosition\", \"locationLat\", \"locationLng\", \"expiresAt\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                id, offerId, jobId, chosen.techId(), dayStamp(day), stamp(start), stamp(end), stamp(chosen.arrival()),
+                stamp(chosen.arrival().plus(Duration.ofMinutes(job.duration()))), chosen.position(), job.point().lat(), job.point().lng(), stamp(expires));
+        jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND id<>? AND \"releasedAt\" IS NULL", jobId, id);
+        return new Selection(id, expires);
     }
 
     @Transactional
