@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { OptimizationSimulationReport, SimulationMetrics } from "./engineClient";
+import type { OptimizationSimulationReport, SimulationMetrics } from "./optimizationSimulationTypes";
 import { aggregateValidation } from "./optimizationAnalysis";
 import { EXPORT_METRIC_KEYS, serializeOptimizationCsv, serializeOptimizationJson, serializeValidationCsv, serializeValidationJson } from "./optimizationExport";
 

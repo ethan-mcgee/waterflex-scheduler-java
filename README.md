@@ -42,10 +42,11 @@ npm ci
 npm run typecheck
 npm run test:geocode
 npm run test:schema-contract
+npm run test:optimization
 npm run build
 ```
 
-The small Monaco fixture smoke scripts are `web/scripts/smoke-java-booking.ts` and `web/scripts/smoke-optimizer.ts`. They require a fixture routing service on port 18001 and the scheduler on 18000, pointed at the isolated local database. Do not run them against a real customer database. The booking smoke checks idempotent confirmation and competing holds. The optimizer smoke checks preview, apply, and preservation of the stored promised window.
+The small Monaco fixture smoke scripts are `npm run test:booking:integration` and `npm run test:optimizer:integration`. They require a fixture routing service on port 18001 and the scheduler on 18000, pointed at the isolated local database. Do not run them against a real customer database. The booking smoke checks idempotent confirmation and competing holds. The optimizer smoke checks preview, apply, and preservation of the stored promised window. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
 
 ## Local cutover and rollback
 
@@ -53,7 +54,7 @@ The included Compose database is isolated. Before connecting to a copy of an exi
 
 ## Current limitations
 
-- The historical fake-data and optimization-test tools copied from the old portal still call Python-only routes. They are not part of this Java MVP.
-- Manual reassignment is not exposed in the Java dispatch UI. Dispatch optimization preview and guarded apply are the supported route-change path. A legacy API route remains in the copied source and should not be used.
+- The old fake-data and optimization-test portal pages and APIs have been removed. Their offline fixture and analysis libraries remain available for local tests.
+- Manual reassignment is not exposed in the Java dispatch UI. Dispatch optimization preview and guarded apply are the supported route-change path.
 - The Nominatim refresh is a manual import and volume swap. The map preparation script does not automate that database swap.
 - Offer p95 latency and savings are targets to measure on the intended localhost hardware; no threshold is claimed from the fixture tests.

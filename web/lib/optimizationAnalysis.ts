@@ -1,4 +1,4 @@
-import type { OptimizationSimulationReport, SimulationMetrics } from "./engineClient";
+import type { OptimizationSimulationReport, SimulationMetrics } from "./optimizationSimulationTypes";
 
 export const VALIDATION_RUNS = 20;
 export const MAX_SEED = 4_294_967_295;

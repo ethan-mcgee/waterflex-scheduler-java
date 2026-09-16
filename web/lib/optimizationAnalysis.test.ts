@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { OptimizationSimulationReport, SimulationMetrics } from "./engineClient";
+import type { OptimizationSimulationReport, SimulationMetrics } from "./optimizationSimulationTypes";
 import { aggregateValidation, analyzeQuickRun, incrementSeed, paidMinutesPerBookedAppointment, runValidationSequence, validationSeeds } from "./optimizationAnalysis";
 
 const baseMetrics: SimulationMetrics = {

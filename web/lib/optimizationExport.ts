@@ -1,4 +1,4 @@
-import type { OptimizationSimulationReport, SimulationMetrics } from "./engineClient";
+import type { OptimizationSimulationReport, SimulationMetrics } from "./optimizationSimulationTypes";
 import type { ValidationAggregate } from "./optimizationAnalysis";
 
 export const EXPORT_METRIC_KEYS: Array<keyof SimulationMetrics> = [
