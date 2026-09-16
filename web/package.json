@@ -1,0 +1,47 @@
+{
+  "name": "waterflex-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:schema-contract": "tsx scripts/check-java-schema-contract.ts",
+    "test:geocode": "tsx --test lib/geocode.test.ts",
+    "test:fake-data": "tsx --test lib/fakeDataCore.test.ts",
+    "test:optimization": "tsx --test lib/optimizationAnalysis.test.ts lib/optimizationExport.test.ts",
+    "test:fake-data:integration": "tsx scripts/smoke-fake-data.ts",
+    "test:e2e": "playwright test",
+    "addresses:regeocode": "tsx scripts/regeocode-approximate-addresses.ts",
+    "dispatch:seed-demo": "tsx scripts/seed-dispatch-demo.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "leaflet": "^1.9.4",
+    "maplibre-gl": "^5.18.0",
+    "next": "^14.2.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^20.16.9",
+    "@types/react": "^18.3.9",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.13",
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  }
+}
