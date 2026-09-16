@@ -46,7 +46,9 @@ npm run test:optimization
 npm run build
 ```
 
-The small Monaco fixture smoke scripts are `npm run test:booking:integration` and `npm run test:optimizer:integration`. They require a fixture routing service on port 18001 and the scheduler on 18000, pointed at the isolated local database. Do not run them against a real customer database. The booking smoke checks idempotent confirmation and competing holds. The optimizer smoke checks preview, apply, and preservation of the stored promised window. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
+Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates used by the smoke scripts.
+
+The small Monaco fixture smoke scripts are `npm run test:booking:integration` and `npm run test:optimizer:integration`. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks idempotent confirmation and competing holds. The optimizer smoke checks preview, apply, and preservation of the stored promised window on a future weekday. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
 
 ## Local cutover and rollback
 

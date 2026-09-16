@@ -16,8 +16,9 @@ async function post(path: string, body: unknown) {
 }
 
 async function main() {
-  const service = await prisma.serviceCatalog.findUniqueOrThrow({ where: { code: "FILTER_SWAP" } });
-  const metro = await prisma.metro.findFirstOrThrow();
+  // Only the fixture technician can qualify, so seeded Omaha routes cannot affect offers.
+  const metro = await prisma.metro.create({ data: { id: `smoke-metro-${suffix}`, name: "Booking fixture", timezone: "America/Chicago" } });
+  const service = await prisma.serviceCatalog.create({ data: { code: `BOOK_${suffix}`, name: "Booking fixture", estDurationMin: 50 } });
   const techId = `smoke-tech-${suffix}`;
   const customerId = `smoke-customer-${suffix}`;
   const addressId = `smoke-address-${suffix}`;
@@ -75,6 +76,8 @@ async function main() {
     await prisma.technicianQualification.deleteMany({ where: { technicianId: techId } });
     await prisma.scheduleDay.deleteMany({ where: { technicianId: techId } });
     await prisma.technician.deleteMany({ where: { id: techId } });
+    await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.$disconnect();
   }
 }

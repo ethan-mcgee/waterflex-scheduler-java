@@ -5,9 +5,13 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const suffix = randomUUID();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
-const day = "2026-09-21";
-const windowStart = new Date(`${day}T13:00:00Z`);
-const windowEnd = new Date(`${day}T15:00:00Z`);
+// Choose a Monday at least a week out so preview and apply never hit the freeze window.
+const future = new Date();
+future.setUTCDate(future.getUTCDate() + 7);
+future.setUTCDate(future.getUTCDate() + ((8 - future.getUTCDay()) % 7));
+const day = future.toISOString().slice(0, 10);
+const windowStart = new Date(`${day}T16:00:00Z`);
+const windowEnd = new Date(`${day}T18:00:00Z`);
 const serviceDate = new Date(`${day}T00:00:00Z`);
 
 async function post(path: string, body: unknown) {
@@ -18,8 +22,8 @@ async function post(path: string, body: unknown) {
 }
 
 async function main() {
-  const service = await prisma.serviceCatalog.findUniqueOrThrow({ where: { code: "FILTER_SWAP" } });
-  const metro = await prisma.metro.findFirstOrThrow();
+  const metro = await prisma.metro.create({ data: { id: `opt-metro-${suffix}`, name: "Optimizer fixture", timezone: "America/Chicago" } });
+  const service = await prisma.serviceCatalog.create({ data: { code: `OPT_${suffix}`, name: "Optimizer fixture", estDurationMin: 50 } });
   const techIds = [`opt-a-${suffix}`, `opt-b-${suffix}`] as const;
   const customerIds = [`opt-c1-${suffix}`, `opt-c2-${suffix}`] as const;
   const addressIds = [`opt-ad1-${suffix}`, `opt-ad2-${suffix}`] as const;
@@ -68,6 +72,8 @@ async function main() {
     await prisma.technicianQualification.deleteMany({ where: { technicianId: { in: [...techIds] } } });
     await prisma.scheduleDay.deleteMany({ where: { technicianId: { in: [...techIds] } } });
     await prisma.technician.deleteMany({ where: { id: { in: [...techIds] } } });
+    await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.$disconnect();
   }
 }
