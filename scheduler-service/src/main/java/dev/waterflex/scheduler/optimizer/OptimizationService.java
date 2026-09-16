@@ -136,12 +136,12 @@ public class OptimizationService {
                 route.getVisits().add(visit.visit());
             }
             for (TechRoute route : current.plan().getRoutes()) route.getVisits().sort(Comparator.comparingInt(v -> proposed.get(v.getId()).path("sequence").asInt()));
-            // Apply uses a fresh road matrix and independent route calculation after locking current state.
-            var evaluated = DayScoreCalculator.evaluate(current.plan());
-            if (evaluated.hardPenalty() != 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal infeasible");
+            // A separate evaluator checks fresh road legs after the locked version check.
+            var evaluated = RouteEvaluator.evaluate(current.plan());
+            if (!evaluated.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal infeasible");
             Problem baseline = build(run[0], day);
-            var baselineMetrics = DayScoreCalculator.evaluate(baseline.plan());
-            if (baselineMetrics.hardPenalty() != 0 || evaluated.costCents() >= baselineMetrics.costCents())
+            var baselineMetrics = RouteEvaluator.evaluate(baseline.plan());
+            if (!baselineMetrics.feasible() || evaluated.costCents() >= baselineMetrics.costCents())
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "No cost improvement");
             for (TechRoute route : current.plan().getRoutes()) {
                 for (int index = 0; index < route.getVisits().size(); index++) {
