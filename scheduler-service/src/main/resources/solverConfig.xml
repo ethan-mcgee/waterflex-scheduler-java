@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<solver xmlns="https://timefold.ai/xsd/solver">
+  <environmentMode>NO_ASSERT</environmentMode>
+  <solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass>
+  <entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass>
+  <entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>
+  <scoreDirectorFactory>
+    <easyScoreCalculatorClass>dev.waterflex.scheduler.optimizer.DayScoreCalculator</easyScoreCalculatorClass>
+  </scoreDirectorFactory>
+  <termination><spentLimit>15s</spentLimit><stepCountLimit>1000</stepCountLimit></termination>
+  <localSearch>
+    <unionMoveSelector>
+      <selectedCountLimit>100</selectedCountLimit>
+      <listChangeMoveSelector/>
+      <listSwapMoveSelector/>
+    </unionMoveSelector>
+    <forager><acceptedCountLimit>100</acceptedCountLimit></forager>
+  </localSearch>
+</solver>

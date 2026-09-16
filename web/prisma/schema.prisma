@@ -1,0 +1,425 @@
+// Prisma owns all migrations. The Java scheduler reads these tables via JDBC.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Reference / org data
+// ---------------------------------------------------------------------------
+
+model Metro {
+  id              String   @id @default(cuid())
+  name            String
+  timezone        String // IANA tz, e.g. "America/Chicago"
+  serviceRadiusMi Float    @default(65) // customer coverage radius from the nearest metro depot
+  createdAt       DateTime @default(now())
+
+  depots           Depot[]
+  technicians      Technician[]
+  optimizationRuns OptimizationRun[]
+
+  @@map("metro")
+}
+
+model Depot {
+  id        String   @id @default(cuid())
+  metroId   String
+  metro     Metro    @relation(fields: [metroId], references: [id])
+  name      String
+  lat       Float
+  lng       Float
+  createdAt DateTime @default(now())
+
+  technicians Technician[]
+
+  @@map("depot")
+}
+
+enum RouteAnchor {
+  HOME
+  DEPOT
+}
+
+model Technician {
+  id                 String      @id @default(cuid())
+  metroId            String
+  metro              Metro       @relation(fields: [metroId], references: [id])
+  depotId            String?
+  depot              Depot?      @relation(fields: [depotId], references: [id])
+  name               String
+  homeLat            Float
+  homeLng            Float
+  startLocation      RouteAnchor @default(HOME)
+  endLocation        RouteAnchor @default(HOME)
+  shiftStartMin      Int // minutes from local midnight, e.g. 480 = 8:00am
+  shiftEndMin        Int
+  maxDailyMinutes    Int         @default(540)
+  maxOvertimeMinutes Int         @default(60)
+  active             Boolean     @default(true)
+  externalId         String?     @unique // integration seam
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  appointments Appointment[]
+  slotHolds    SlotHold[]
+  scheduleDays ScheduleDay[]
+  qualifications TechnicianQualification[]
+  shiftOverrides TechnicianShiftOverride[]
+
+  @@index([metroId, active])
+  @@map("technician")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model ServiceCatalog {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String // customer-facing dropdown label
+  description    String?
+  estDurationMin Int
+  bufferPct      Float    @default(0.15) // confidence buffer, e.g. 0.15 = +15%
+  startsAtDepot  Boolean  @default(false) // needs parts pickup before first stop
+  active         Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  jobs Job[]
+  qualifications TechnicianQualification[]
+
+  @@map("service_catalog")
+}
+
+// ---------------------------------------------------------------------------
+// Customers / jobs / appointments
+// ---------------------------------------------------------------------------
+
+model Customer {
+  id         String   @id @default(cuid())
+  firstName  String
+  lastName   String
+  email      String
+  phone      String
+  externalId String?  @unique
+  createdAt  DateTime @default(now())
+
+  addresses Address[]
+  jobs      Job[]
+
+  @@map("customer")
+}
+
+model Address {
+  id               String    @id @default(cuid())
+  customerId       String
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  line1            String
+  line2            String?
+  city             String
+  state            String
+  postalCode       String
+  lat              Float?
+  lng              Float?
+  geocodePrecision String? // ROOFTOP | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE | SYNTHETIC
+  geocodedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  jobs Job[]
+
+  @@map("address")
+}
+
+enum JobStatus {
+  PENDING // slot generation in progress / not yet booked
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model Job {
+  id               String         @id @default(cuid())
+  customerId       String
+  customer         Customer       @relation(fields: [customerId], references: [id])
+  addressId        String
+  address          Address        @relation(fields: [addressId], references: [id])
+  serviceId        String
+  service          ServiceCatalog @relation(fields: [serviceId], references: [id])
+  durationMin      Int // snapshot of service.estDurationMin * (1 + bufferPct) at booking time
+  status           JobStatus      @default(PENDING)
+  priority         Int            @default(0)
+  externalId       String?        @unique
+  bookingRequestId String?        @unique // client retry key for the slot-search attempt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  appointment          Appointment?
+  slotHolds            SlotHold[]
+  bookingOptimizations BookingOptimization[]
+  bookingOffers BookingOffer[]
+  manualFollowUpStatus String?
+  manualFollowUpReason String?
+
+  @@map("job")
+}
+
+model Appointment {
+  id           String     @id @default(cuid())
+  jobId        String     @unique
+  job          Job        @relation(fields: [jobId], references: [id])
+  technicianId String
+  technician   Technician @relation(fields: [technicianId], references: [id])
+
+  serviceDate DateTime // date-only, stored at midnight UTC of the metro's local day
+  windowStart DateTime // customer promise — must not move without contact
+  windowEnd   DateTime // customer promise — must not move without contact
+
+  plannedStart DateTime // internal — freely re-orderable by the optimizer
+  plannedEnd   DateTime
+  sequence     Int // internal position in the technician's route for serviceDate
+
+  externalId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([technicianId, serviceDate])
+  @@map("appointment")
+}
+
+// ---------------------------------------------------------------------------
+// Booking concurrency
+// ---------------------------------------------------------------------------
+
+model ScheduleDay {
+  id           String     @id @default(cuid())
+  technicianId String
+  technician   Technician @relation(fields: [technicianId], references: [id])
+  serviceDate  DateTime
+  version      Int        @default(0) // bumped on every committed change; the lock row
+
+  @@unique([technicianId, serviceDate])
+  @@map("schedule_day")
+}
+
+model SlotHold {
+  id                    String               @id @default(cuid())
+  offerToken            String // groups the 3-4 offers shown together; confirming one releases siblings
+  jobId                 String // the job this hold would become an Appointment for, if confirmed
+  job                   Job                  @relation(fields: [jobId], references: [id])
+  technicianId          String
+  technician            Technician           @relation(fields: [technicianId], references: [id])
+  serviceDate           DateTime
+  windowStart           DateTime // customer-facing promise, copied onto Appointment on confirm
+  windowEnd             DateTime
+  plannedStart          DateTime // internal arrival estimate at offer time; re-validated on confirm
+  plannedEnd            DateTime
+  insertPosition        Int // position among the tech's existing stops at offer time; re-validated on confirm
+  locationLat           Float? // snapshot used to account for active holds during offer generation
+  locationLng           Float?
+  expiresAt             DateTime
+  releasedAt            DateTime?
+  createdAt             DateTime             @default(now())
+  bookingOptimizationId String?
+  bookingOptimization   BookingOptimization? @relation(fields: [bookingOptimizationId], references: [id])
+
+  @@index([technicianId, serviceDate])
+  @@index([expiresAt])
+  @@index([jobId])
+  @@index([bookingOptimizationId])
+  @@map("slot_hold")
+}
+
+model BookingOffer {
+  id String @id @default(cuid())
+  jobId String
+  job Job @relation(fields: [jobId], references: [id])
+  serviceDate DateTime
+  windowStart DateTime
+  windowEnd DateTime
+  expiresAt DateTime
+  incrementalRegularMinutes Int?
+  incrementalOvertimeMinutes Int?
+  incrementalRoadMeters Int?
+  incrementalCostDollars Float?
+  createdAt DateTime @default(now())
+
+  @@index([jobId, expiresAt])
+  @@map("booking_offer")
+}
+
+model TechnicianQualification {
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id])
+  serviceId String
+  service ServiceCatalog @relation(fields: [serviceId], references: [id])
+
+  @@id([technicianId, serviceId])
+  @@map("technician_qualification")
+}
+
+model TechnicianShiftOverride {
+  id String @id @default(cuid())
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id])
+  serviceDate DateTime
+  available Boolean @default(true)
+  shiftStartMin Int?
+  shiftEndMin Int?
+
+  @@unique([technicianId, serviceDate])
+  @@map("technician_shift_override")
+}
+
+model RoadRouteCache {
+  id String @id @default(cuid())
+  originKey String
+  destinationKey String
+  profile String
+  mapVersion String
+  seconds Int?
+  meters Int?
+  routable Boolean
+  fetchedAt DateTime @default(now())
+
+  @@unique([originKey, destinationKey, profile, mapVersion])
+  @@map("road_route_cache")
+}
+
+model OmahaSetting {
+  key String @id
+  value Float
+  updatedAt DateTime @updatedAt
+
+  @@map("omaha_setting")
+}
+
+model BookingOptimization {
+  id                   String     @id @default(cuid())
+  jobId                String
+  job                  Job        @relation(fields: [jobId], references: [id])
+  offerToken           String     @unique
+  algorithmVersion     String
+  strategy             String
+  candidateCount       Int
+  qualifyingOfferCount Int
+  returnedOffers       Json
+  solverMs             Int        @default(0)
+  fallbackStatus       String?
+  travelWarnings       Json
+  confirmedHoldId      String?
+  createdAt            DateTime   @default(now())
+  slotHolds            SlotHold[]
+
+  @@index([jobId, createdAt])
+  @@map("booking_optimization")
+}
+
+model OptimizationRun {
+  id                   String               @id @default(cuid())
+  metroId              String
+  metro                Metro                @relation(fields: [metroId], references: [id])
+  serviceDate          DateTime
+  scheduleVersions     Json
+  weights              Json
+  solverStatus         String
+  solveMs              Int
+  routeSummaryBefore   Json
+  routeSummaryAfter    Json
+  warnings             Json
+  proposedAssignments  Json
+  objectiveImprovement Int
+  churnCost            Int
+  status               String
+  reason               String?
+  createdAt            DateTime             @default(now())
+  appliedAt            DateTime?
+  changes              OptimizationChange[]
+
+  @@index([metroId, serviceDate, createdAt])
+  @@map("optimization_run")
+}
+
+model OptimizationChange {
+  id                    String          @id @default(cuid())
+  runId                 String
+  run                   OptimizationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  appointmentId         String
+  fromTechnicianId      String
+  toTechnicianId        String
+  fromSequence          Int
+  toSequence            Int
+  fromPlannedArrivalMin Int
+  toPlannedArrivalMin   Int
+
+  @@index([runId])
+  @@map("optimization_change")
+}
+
+// ---------------------------------------------------------------------------
+// Travel time cache
+// ---------------------------------------------------------------------------
+
+enum TimeBucket {
+  AM_PEAK
+  MIDDAY
+  PM_PEAK
+}
+
+enum DayType {
+  WEEKDAY
+  WEEKEND
+}
+
+model TravelTime {
+  id            String     @id @default(cuid())
+  originGeohash String // geohash precision 7 (~150m cells)
+  destGeohash   String
+  timeBucket    TimeBucket
+  dayType       DayType
+  seconds       Int
+  meters        Int
+  source        String     @default("google_distance_matrix") // or "haversine_fallback"
+  fetchedAt     DateTime   @default(now())
+
+  @@unique([originGeohash, destGeohash, timeBucket, dayType])
+  @@index([fetchedAt])
+  @@map("travel_time")
+}
+
+// ---------------------------------------------------------------------------
+// Scoring config (ops-tunable, no deploy required)
+// ---------------------------------------------------------------------------
+
+model ScoringWeight {
+  id        String   @id @default(cuid())
+  key       String   @unique // "w_drive" | "w_days" | "w_util" | "w_window"
+  value     Float
+  updatedAt DateTime @updatedAt
+
+  @@map("scoring_weight")
+}
+
+// ---------------------------------------------------------------------------
+// Integration seam
+// ---------------------------------------------------------------------------
+
+model OutboundEvent {
+  id          String    @id @default(cuid())
+  aggregate   String // "job" | "appointment" | "customer" | "technician"
+  aggregateId String
+  eventType   String // "created" | "updated" | "cancelled"
+  payload     Json
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  @@index([deliveredAt])
+  @@map("outbound_event")
+}

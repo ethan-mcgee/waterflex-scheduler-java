@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: waterflex
+      POSTGRES_PASSWORD: waterflex
+      POSTGRES_DB: waterflex
+    ports: ["127.0.0.1:5433:5432"]
+    volumes: ["app-db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U waterflex"]
+      interval: 5s
+      retries: 10
+  routing-service:
+    build:
+      context: .
+      dockerfile: routing-service/Dockerfile
+    environment:
+      ROUTING_OSM_FILE: /maps/omaha.osm.pbf
+      ROUTING_GRAPH_DIR: /maps/graph
+    volumes: ["map-data:/maps"]
+    ports: ["127.0.0.1:8001:8001"]
+  scheduler-service:
+    build:
+      context: .
+      dockerfile: scheduler-service/Dockerfile
+    environment:
+      JDBC_DATABASE_URL: jdbc:postgresql://db:5432/waterflex
+      DATABASE_USER: waterflex
+      DATABASE_PASSWORD: waterflex
+      ROUTING_URL: http://routing-service:8001
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["127.0.0.1:8000:8000"]
+  nominatim:
+    image: mediagis/nominatim:5.3
+    environment:
+      PBF_PATH: /maps/omaha.osm.pbf
+      IMPORT_STYLE: address
+      IMPORT_WIKIPEDIA: "false"
+      UPDATE_MODE: none
+      THREADS: "4"
+    shm_size: 1g
+    volumes:
+      - map-data:/maps:ro
+      - nominatim-db:/var/lib/postgresql/16/main
+    ports: ["127.0.0.1:8082:8080"]
+  tiles:
+    image: protomaps/go-pmtiles:v1.22.1
+    command: ["serve", "/maps", "--public-url=http://localhost:8083", "--cors=http://localhost:3001"]
+    volumes: ["map-data:/maps:ro"]
+    ports: ["127.0.0.1:8083:8080"]
+  web:
+    build: ./web
+    environment:
+      DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
+      ENGINE_URL: http://scheduler-service:8000
+      NOMINATIM_URL: http://nominatim:8080
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["127.0.0.1:3001:3000"]
+  map-import:
+    profiles: ["map-import"]
+    build: ./infra/map-import
+    volumes: ["map-data:/maps"]
+  tile-import:
+    profiles: ["map-import"]
+    image: ghcr.io/onthegomap/planetiler:0.9.0
+    volumes: ["map-data:/maps"]
+volumes:
+  app-db:
+  map-data:
+  nominatim-db:

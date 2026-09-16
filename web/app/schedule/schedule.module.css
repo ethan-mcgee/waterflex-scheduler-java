@@ -1,0 +1,412 @@
+.wrap {
+  min-height: 100vh;
+  padding: 1.25rem;
+  color: #1a1a1a;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f8fafc;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 1500px;
+  margin: 0 auto 1rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0 auto 0 0;
+  font-size: 1.4rem;
+}
+
+.subtle {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.button,
+.select {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: #2563eb;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 170px repeat(7, minmax(145px, 1fr));
+  max-width: 1500px;
+  margin: 0 auto;
+  overflow-x: auto;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  max-width: 1500px;
+  margin: 0 auto 0.6rem;
+  color: #475569;
+  font-size: 0.75rem;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend i {
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+}
+
+.openSwatch,
+.shiftBand {
+  background: #f0fdf4;
+}
+
+.scheduledSwatch {
+  background: #dbeafe;
+  border-color: #93c5fd !important;
+}
+
+.closedSwatch {
+  background: #f1f5f9;
+}
+
+.corner,
+.dayHeader,
+.techHeader,
+.cell {
+  min-height: 7rem;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.corner,
+.dayHeader,
+.techHeader {
+  min-height: auto;
+  padding: 0.65rem;
+  background: #f1f5f9;
+  font-weight: 700;
+}
+
+.dayHeader {
+  text-align: center;
+}
+
+.closedDayHeader {
+  background: #e2e8f0;
+}
+
+.dayName {
+  display: block;
+  color: #475569;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.dayDate {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.dayStatus {
+  display: block;
+  margin-top: 0.15rem;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.techHeader {
+  grid-column: 1;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.techIdentity {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  max-width: 96px;
+  z-index: 2;
+}
+
+.techName,
+.techShift {
+  display: block;
+}
+
+.techShift {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.timeLabel {
+  position: absolute;
+  right: 0.55rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 600;
+  transform: translateY(-50%);
+}
+
+.cell {
+  position: relative;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.shiftBand {
+  position: absolute;
+  right: 0;
+  left: 0;
+}
+
+.hourLine {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px solid #dbe3ee;
+  z-index: 1;
+}
+
+.closedCell {
+  background: repeating-linear-gradient(-45deg, #f1f5f9, #f1f5f9 8px, #e8edf3 8px, #e8edf3 16px);
+}
+
+.closedLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+.card {
+  width: 100%;
+  margin: 0 0 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid #bfdbfe;
+  border-left: 3px solid #2563eb;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #172554;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: #1d4ed8;
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.cardTime,
+.cardCustomer,
+.cardService {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timelineCard {
+  position: absolute;
+  right: 0.35rem;
+  left: 0.35rem;
+  width: auto;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.cardTime {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cardCustomer {
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.cardService {
+  margin-top: 0.1rem;
+  color: #475569;
+  font-size: 0.72rem;
+}
+
+.empty {
+  padding: 1.5rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.panelBackdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(15 23 42 / 35%);
+  z-index: 10;
+}
+
+.panel {
+  width: min(440px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: #fff;
+  box-shadow: -8px 0 24px rgb(15 23 42 / 15%);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.close {
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.detailList {
+  margin: 1.25rem 0;
+}
+
+.detailList dt {
+  margin-top: 0.8rem;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detailList dd {
+  margin: 0.15rem 0 0;
+}
+
+.dispatchLink {
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.panelActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.deleteButton {
+  border: 1px solid #b91c1c;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  background: #b91c1c;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.deleteButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.deleteError {
+  margin: 0.75rem 0 0;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.agenda {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .grid {
+    display: none;
+  }
+
+  .agenda {
+    display: block;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .legend {
+    display: none;
+  }
+
+  .agendaDay {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 1px solid #dbe3ee;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .agendaDay h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1rem;
+  }
+}

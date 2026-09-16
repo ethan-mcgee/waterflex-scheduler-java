@@ -1,0 +1,186 @@
+.wrap {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e2e2;
+  background: #fff;
+}
+
+.toolbar h1 {
+  font-size: 1.1rem;
+  margin: 0;
+  margin-right: auto;
+}
+
+.dateInput {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 6px;
+}
+
+.button {
+  padding: 0.5rem 0.9rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.button:disabled {
+  background: #a8b8dd;
+  cursor: not-allowed;
+}
+
+.status {
+  font-size: 0.8rem;
+  color: #444;
+}
+
+.optimizationPanel,
+.history {
+  margin: 0.75rem 1rem 0;
+  padding: 0.85rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 10px;
+  background: #f8fafc;
+  font-size: 0.8rem;
+}
+
+.optimizationHeader,
+.fleetTotals,
+.comparisonGrid {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.optimizationHeader { justify-content: space-between; }
+.optimizationHeader div,
+.routeComparison,
+.changeList { display: flex; flex-direction: column; gap: 0.2rem; }
+.fleetTotals { margin-top: 0.75rem; padding: 0.6rem; background: #fff; border-radius: 6px; }
+.comparisonGrid { margin-top: 0.75rem; align-items: stretch; }
+.routeComparison { min-width: 170px; padding: 0.6rem; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; }
+.changeList { margin-top: 0.75rem; }
+.applyButton { padding: 0.5rem 0.9rem; border: 0; border-radius: 6px; background: #15803d; color: #fff; font-weight: 700; }
+.history summary { cursor: pointer; font-weight: 700; }
+.history button { display: block; width: 100%; padding: 0.4rem 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+
+.body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.columns {
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  gap: 0;
+  border-right: 1px solid #e2e2e2;
+}
+
+.column {
+  min-width: 260px;
+  border-right: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.columnHeader {
+  padding: 0.6rem 0.75rem;
+  font-weight: 700;
+  border-bottom: 2px solid;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  font-size: 0.875rem;
+}
+
+.columnMeta {
+  font-weight: 400;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.card {
+  margin: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.cardTime {
+  font-weight: 700;
+}
+
+.cardCustomer {
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.cardMeta {
+  color: #666;
+  margin-top: 0.1rem;
+}
+
+.reassignRow {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.reassignSelect {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 0.25rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 4px;
+}
+
+.reassignButton {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #2563eb;
+  color: #2563eb;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reassignButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #991b1b;
+  font-size: 0.72rem;
+  margin-top: 0.3rem;
+}
+
+.mapPane {
+  min-height: 0;
+}
+
+.empty {
+  padding: 2rem;
+  color: #666;
+  font-size: 0.875rem;
+}
