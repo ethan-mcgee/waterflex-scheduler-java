@@ -1,0 +1,11 @@
+web/node_modules/
+web/.next/
+web/.env
+web/.data/
+web/test-results/
+web/tsconfig.tsbuildinfo
+**/target/
+infra/map-data/
+infra/fixtures/
+optimizer-start.log
+.env
