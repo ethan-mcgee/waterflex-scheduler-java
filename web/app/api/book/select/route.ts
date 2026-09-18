@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof EngineError) {
       if (error.status === 409) {
-        const refreshed = await requestSlots(body.jobId).catch(() => ({ offers: [] }));
+        const refreshed = await requestSlots(body.jobId, true).catch(() => ({ offers: [] }));
         return NextResponse.json({ error: error.message, offers: refreshed.offers }, { status: 409 });
       }
       if (error.status === 503) {

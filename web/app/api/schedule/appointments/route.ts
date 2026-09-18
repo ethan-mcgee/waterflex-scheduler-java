@@ -13,12 +13,15 @@ export async function DELETE(request: NextRequest) {
     body && typeof body === "object" && "appointmentId" in body
       ? (body as { appointmentId?: unknown }).appointmentId
       : undefined;
+  const reason = body && typeof body === "object" && "reason" in body
+    ? (body as { reason?: unknown }).reason : undefined;
   if (typeof appointmentId !== "string" || !appointmentId) {
     return NextResponse.json({ error: "Missing appointmentId." }, { status: 400 });
   }
+  if (typeof reason !== "string" || !reason.trim()) return NextResponse.json({ error: "Cancellation reason required." }, { status: 400 });
 
   try {
-    return NextResponse.json(await cancelAppointment({ appointment_id: appointmentId }));
+    return NextResponse.json(await cancelAppointment({ appointment_id: appointmentId, reason }));
   } catch (error) {
     if (error instanceof EngineError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

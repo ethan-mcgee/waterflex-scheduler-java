@@ -23,7 +23,6 @@ async function main() {
   const customerId = `smoke-customer-${suffix}`;
   const addressId = `smoke-address-${suffix}`;
   const jobId = `smoke-job-${suffix}`;
-  const collisionJobs = [`smoke-collision-a-${suffix}`, `smoke-collision-b-${suffix}`];
   try {
     await prisma.technician.create({ data: {
       id: techId, metroId: metro.id, name: "Monaco fixture technician",
@@ -38,38 +37,43 @@ async function main() {
     const offered = await post("/v1/offers", { jobId });
     assert.equal(offered.jobId, jobId);
     assert.ok(offered.offers.length > 0 && offered.offers.length <= 4);
-    assert.equal(await prisma.slotHold.count({ where: { jobId } }), 0, "Offers must not reserve capacity");
-    const selected = await post("/v1/offers/select", { jobId, offerId: offered.offers[0].offerId });
+    assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), offered.offers.length, "Every offer reserves capacity");
+    const reused = await post("/v1/offers", { jobId });
+    assert.deepEqual(reused.offers.map((offer: { offerId: string }) => offer.offerId).sort(), offered.offers.map((offer: { offerId: string }) => offer.offerId).sort());
+    const refreshed = await post("/v1/offers", { jobId, refresh: true });
+    assert.ok(refreshed.offers.length > 0);
+    assert.notEqual(refreshed.offers[0].offerId, offered.offers[0].offerId);
+    assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), refreshed.offers.length);
+    const staleSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: offered.offers[0].offerId }) });
+    assert.equal(staleSelection.status, 409);
+    const selected = await post("/v1/offers/select", { jobId, offerId: refreshed.offers[0].offerId });
     assert.ok(selected.holdId);
-    assert.equal(await prisma.slotHold.count({ where: { jobId } }), 1);
+    assert.ok(selected.appointmentId, "Selection commits the appointment");
+    assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), 0);
     const confirmed = await post("/v1/holds/confirm", { holdId: selected.holdId });
-    assert.ok(confirmed.appointmentId);
-    assert.equal(confirmed.windowStart, offered.offers[0].windowStart);
-    assert.equal(confirmed.windowEnd, offered.offers[0].windowEnd);
+    assert.equal(confirmed.appointmentId, selected.appointmentId);
+    assert.equal(confirmed.windowStart, refreshed.offers[0].windowStart);
+    assert.equal(confirmed.windowEnd, refreshed.offers[0].windowEnd);
     const retry = await post("/v1/holds/confirm", { holdId: selected.holdId });
     assert.equal(retry.appointmentId, confirmed.appointmentId);
     assert.equal(await prisma.appointment.count({ where: { jobId } }), 1);
-    for (const [index, collisionJob] of collisionJobs.entries()) {
-      await prisma.job.create({ data: { id: collisionJob, customerId, addressId, serviceId: service.id,
-        durationMin: 350, bookingRequestId: `${suffix}-${index}` } });
+    const repeatedSelection = await post("/v1/offers/select", { jobId, offerId: refreshed.offers[0].offerId });
+    assert.equal(repeatedSelection.appointmentId, selected.appointmentId);
+    if (refreshed.offers.length > 1) {
+      const differentSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: refreshed.offers[1].offerId }) });
+      assert.equal(differentSelection.status, 409);
     }
-    const [first, second] = await Promise.all(collisionJobs.map((id) => post("/v1/offers", { jobId: id })));
-    assert.ok(first.offers.length > 0 && second.offers.length > 0);
-    assert.equal(first.offers[0].windowStart, second.offers[0].windowStart);
-    const selections = await Promise.all([first, second].map((offer, index) => fetch(`${base}/v1/offers/select`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jobId: collisionJobs[index], offerId: offer.offers[0].offerId }),
-    })));
-    assert.deepEqual(selections.map((r) => r.status).sort(), [200, 409], "Concurrent selections must reserve capacity once");
-    console.log("Java offer, select, confirm, and idempotent retry passed");
-    console.log("Concurrent competing selections passed");
+    const cancelled = await post("/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
+    assert.equal(cancelled.success, true);
+    const cancelledAgain = await post("/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
+    assert.equal(cancelledAgain.alreadyCancelled, true);
+    assert.ok((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt);
+    console.log("Java reservations, refresh, selection, legacy confirmation, and cancellation passed");
   } finally {
-    await prisma.slotHold.deleteMany({ where: { jobId: { in: collisionJobs } } });
-    await prisma.bookingOffer.deleteMany({ where: { jobId: { in: collisionJobs } } });
-    await prisma.job.deleteMany({ where: { id: { in: collisionJobs } } });
     await prisma.appointment.deleteMany({ where: { jobId } });
     await prisma.slotHold.deleteMany({ where: { jobId } });
     await prisma.bookingOffer.deleteMany({ where: { jobId } });
+    await prisma.bookingOfferSet.deleteMany({ where: { jobId } });
     await prisma.job.deleteMany({ where: { id: jobId } });
     await prisma.address.deleteMany({ where: { id: addressId } });
     await prisma.customer.deleteMany({ where: { id: customerId } });

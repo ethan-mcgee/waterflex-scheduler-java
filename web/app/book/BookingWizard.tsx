@@ -141,9 +141,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         return;
       }
       if (!data.offers || data.offers.length === 0) {
-        setError(
-          "We don't have any availability in the next couple of weeks. Please call us to schedule."
-        );
+        setStep("pending");
         return;
       }
       setOffers(data.offers);
@@ -171,25 +169,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         if (selection.status === 409) setOffers(selected.offers ?? []);
         return;
       }
-      const res = await fetch("/api/book/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ holdId: selected.holdId }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.pendingReference) { setJobId(data.pendingReference); setStep("pending"); return; }
-        setError(
-          data.error === "hold expired" || res.status === 409
-            ? "That time is no longer available. Please choose another, or go back to see fresh options."
-            : data.error ?? "Something went wrong confirming that slot."
-        );
-        // Drop the slot that failed so the customer doesn't retry a dead option.
-        setOffers((prev) => prev.filter((o) => o.offerId !== offerId));
-        return;
-      }
       setConfirmedOffer(offers.find((o) => o.offerId === offerId) ?? null);
-      setAppointmentId(data.appointmentId);
+      setAppointmentId(selected.appointmentId);
       setStep("confirmed");
     } catch {
       setError("Network error. Please try again.");
@@ -206,6 +187,21 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     setJobId(null);
   }
 
+  async function refreshOffers() {
+    if (!jobId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Could not refresh times.");
+      setOffers(data.offers);
+      setNow(Date.now());
+      if (!data.offers.length) setStep("pending");
+    } catch (error) { setError(error instanceof Error ? error.message : "Could not refresh times."); }
+    finally { setSubmitting(false); }
+  }
+
   async function handlePinConfirmation() {
     const pin = pinCandidates[selectedPinIndex];
     if (!pin) return;
@@ -219,7 +215,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       const data = await response.json();
       if (!response.ok) { setError(data.error ?? "Could not confirm that location."); return; }
       if (data.pendingReference) { setStep("pending"); return; }
-      if (!data.offers?.length) { setError("No available time was found. Please call us to schedule."); return; }
+      if (!data.offers?.length) { setStep("pending"); return; }
       setOffers(data.offers);
       setStep("slots");
     } catch { setError("Network error. Please try again."); }
@@ -309,6 +305,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
             );
           })}
         </div>
+        <button className={styles.linkButton} onClick={refreshOffers} disabled={submitting || confirmingHoldId !== null}>Refresh times</button>
         <button className={styles.linkButton} onClick={handleBackToForm}>
           &larr; Start over
         </button>

@@ -91,8 +91,8 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         return;
       }
       setPreview(data);
-      setStatus(data.status === "PREVIEW_READY"
-        ? `Preview ready. Net improvement: ${data.objective_improvement} points.`
+      setStatus(data.status === "PREVIEW"
+        ? `Preview ready. Modeled cost improvement: $${(data.objective_improvement / 100).toFixed(2)}.`
         : `No applicable proposal: ${data.reason ?? data.status}.`);
       await loadHistory();
     } catch {
@@ -103,7 +103,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
   }
 
   async function handleApply() {
-    if (!preview || preview.status !== "PREVIEW_READY") return;
+    if (!preview || preview.status !== "PREVIEW") return;
     if (!window.confirm("Apply this exact optimization proposal?")) return;
     setBusy(true);
     setStatus(null);
@@ -130,7 +130,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
     }
   }
 
-  const total = (routes: OptimizationRun["route_summary_before"], field: "drive_minutes" | "route_minutes" | "overtime_minutes") =>
+  const total = (routes: OptimizationRun["route_summary_before"], field: "drive_minutes" | "route_minutes" | "overtime_minutes" | "waiting_minutes" | "distance_meters" | "modeled_cost_cents") =>
     routes.reduce((sum, route) => sum + route[field], 0);
 
   return (
@@ -150,13 +150,15 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         <section className={styles.optimizationPanel}>
           <div className={styles.optimizationHeader}>
             <div><strong>{preview.status.replaceAll("_", " ")}</strong><span>Run {preview.run_id.slice(0, 8)} · {preview.solve_ms} ms</span></div>
-            {preview.status === "PREVIEW_READY" && <button className={styles.applyButton} disabled={busy} onClick={handleApply}>Apply proposal</button>}
+            {preview.status === "PREVIEW" && <button className={styles.applyButton} disabled={busy} onClick={handleApply}>Apply proposal</button>}
           </div>
           <div className={styles.fleetTotals}>
             <span>Drive: {total(preview.route_summary_before, "drive_minutes")} to {total(preview.route_summary_after, "drive_minutes")} min</span>
             <span>Paid route: {total(preview.route_summary_before, "route_minutes")} to {total(preview.route_summary_after, "route_minutes")} min</span>
             <span>Overtime: {total(preview.route_summary_before, "overtime_minutes")} to {total(preview.route_summary_after, "overtime_minutes")} min</span>
-            <span>Churn cost: {preview.churn_penalty_minutes} points</span>
+            <span>Waiting: {total(preview.route_summary_before, "waiting_minutes")} to {total(preview.route_summary_after, "waiting_minutes")} min</span>
+            <span>Distance: {(total(preview.route_summary_before, "distance_meters") / 1000).toFixed(1)} to {(total(preview.route_summary_after, "distance_meters") / 1000).toFixed(1)} km</span>
+            <span>Modeled cost: ${(total(preview.route_summary_before, "modeled_cost_cents") / 100).toFixed(2)} to ${(total(preview.route_summary_after, "modeled_cost_cents") / 100).toFixed(2)}</span>
           </div>
           <div className={styles.comparisonGrid}>
             {preview.route_summary_before.map((before) => {
@@ -183,7 +185,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
       {history.length > 0 && <details className={styles.history}>
         <summary>Optimization history ({history.length})</summary>
         {history.map((run) => <button key={run.run_id} onClick={() => setPreview(run)}>
-          {new Date(run.created_at).toLocaleString()} · {run.status.replaceAll("_", " ")} · {run.objective_improvement} points
+          {new Date(run.created_at).toLocaleString()} · {run.status.replaceAll("_", " ")} · ${(run.objective_improvement / 100).toFixed(2)} modeled cost change
         </button>)}
       </details>}
 

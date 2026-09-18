@@ -50,11 +50,11 @@ export interface SlotOffer {
   expiresAt: string;
 }
 
-export function requestSlots(jobId: string): Promise<{ jobId: string; offers: SlotOffer[] }> {
-  return engineFetch("/v1/offers", { jobId });
+export function requestSlots(jobId: string, refresh = false): Promise<{ jobId: string; offers: SlotOffer[] }> {
+  return engineFetch("/v1/offers", { jobId, refresh });
 }
 
-export function selectOffer(jobId: string, offerId: string): Promise<{ holdId: string; expiresAt: string }> {
+export function selectOffer(jobId: string, offerId: string): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {
   return engineFetch("/v1/offers/select", { jobId, offerId });
 }
 
@@ -82,6 +82,9 @@ export interface OptimizationRun {
     stop_count: number;
     route_minutes: number;
     drive_minutes: number;
+    waiting_minutes: number;
+    distance_meters: number;
+    modeled_cost_cents: number;
     workload_minutes: number;
     overtime_minutes: number;
     appointment_ids: string[];
@@ -91,6 +94,9 @@ export interface OptimizationRun {
     stop_count: number;
     route_minutes: number;
     drive_minutes: number;
+    waiting_minutes: number;
+    distance_meters: number;
+    modeled_cost_cents: number;
     workload_minutes: number;
     overtime_minutes: number;
     appointment_ids: string[];
@@ -122,6 +128,22 @@ export function optimizationHistory(metroId: string, date: string): Promise<{ ru
   return engineGet(`/v1/optimize/runs?${query}`);
 }
 
-export function cancelAppointment(params: { appointment_id: string }): Promise<{ success: boolean }> {
+export function cancelAppointment(params: { appointment_id: string; reason: string }): Promise<{ success: boolean }> {
   return engineFetch("/v1/appointments/cancel", params);
+}
+
+export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; reason: string }): Promise<{ requestId: string; status: string }> {
+  return engineFetch("/v1/time-off/request", request);
+}
+
+export function approveTimeOff(id: string): Promise<{ requestId: string; status: string }> {
+  return engineFetch(`/v1/time-off/${encodeURIComponent(id)}/approve`, {});
+}
+
+export function updateAvailability(request: { technicianId: string; date: string; available: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null }): Promise<{ success: boolean }> {
+  return engineFetch("/v1/dispatch/availability", request);
+}
+
+export function updateQualification(request: { technicianId: string; serviceId: string; qualified: boolean }): Promise<{ success: boolean }> {
+  return engineFetch("/v1/dispatch/qualification", request);
 }

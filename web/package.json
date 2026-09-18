@@ -15,6 +15,7 @@
     "test:fake-data:integration": "tsx scripts/smoke-fake-data.ts",
     "test:booking:integration": "tsx scripts/smoke-java-booking.ts",
     "test:optimizer:integration": "tsx scripts/smoke-optimizer.ts",
+    "test:time-off:integration": "tsx scripts/smoke-time-off.ts",
     "addresses:regeocode": "tsx scripts/regeocode-approximate-addresses.ts",
     "dispatch:seed-demo": "tsx scripts/seed-dispatch-demo.ts",
     "prisma:generate": "prisma generate",
