@@ -1,19 +1,37 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { localMapStyle } from "@/lib/localMapStyle";
 import { TECH_COLORS } from "@/app/dispatch/colors";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 
-export default function DispatchMap({ technicians, appointments, timezone }: {
+type RoadFeature = {
+  type: "Feature";
+  properties: { technicianId: string; interval: string; legIndex: number; seconds: number; meters: number };
+  geometry: { type: "LineString"; coordinates: [number, number][] };
+};
+type GeometryResponse = {
+  type: "FeatureCollection";
+  routingIdentity: string;
+  features: RoadFeature[];
+  stops: Array<{ id: string; technicianId: string; sequence: number; plannedStart: string; lat: number; lng: number }>;
+};
+
+export default function DispatchMap({ technicians, appointments, timezone, metroId, date, runId, phase }: {
   technicians: BoardTechnician[];
   appointments: BoardAppointment[];
   timezone: string;
+  metroId: string;
+  date: string;
+  runId?: string;
+  phase: "current" | "before" | "after";
 }) {
   const element = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!element.current) return;
+    setError(null);
     const points = [
       ...technicians.map((tech) => [tech.homeLng, tech.homeLat] as [number, number]),
       ...appointments.map((appointment) => [appointment.lng, appointment.lat] as [number, number]),
@@ -24,36 +42,60 @@ export default function DispatchMap({ technicians, appointments, timezone }: {
     ] : [-95.9345, 41.2565];
     const map = new maplibregl.Map({ container: element.current, style: localMapStyle, center, zoom: 10 });
     map.addControl(new maplibregl.NavigationControl());
-    const markers: maplibregl.Marker[] = [];
+    let cancelled = false;
+    const homeMarkers: maplibregl.Marker[] = [];
+    let stopMarkers: maplibregl.Marker[] = [];
+    const appointmentById = new Map(appointments.map((appointment) => [appointment.id, appointment]));
+    const colorByTech = new Map(technicians.map((tech, index) => [tech.id, TECH_COLORS[index % TECH_COLORS.length]]));
+    const markerForStop = (stop: { id: string; technicianId: string; plannedStart: string; lat: number; lng: number }) => {
+      const appointment = appointmentById.get(stop.id);
+      const tech = technicians.find((item) => item.id === stop.technicianId);
+      const arrival = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone, hour: "numeric", minute: "2-digit",
+      }).format(new Date(stop.plannedStart));
+      return new maplibregl.Marker({ color: colorByTech.get(stop.technicianId) ?? "#666" })
+        .setLngLat([stop.lng, stop.lat])
+        .setPopup(new maplibregl.Popup().setText(`${tech?.name ?? "Technician"}: ${appointment?.customerName ?? stop.id}, ${appointment?.serviceName ?? "visit"}, planned ${arrival}`))
+        .addTo(map);
+    };
     map.on("load", () => {
-      technicians.forEach((tech, index) => {
-        const color = TECH_COLORS[index % TECH_COLORS.length];
-        const stops = appointments.filter((appointment) => appointment.technicianId === tech.id)
-          .sort((left, right) => left.sequence - right.sequence);
-        markers.push(new maplibregl.Marker({ color })
-          .setLngLat([tech.homeLng, tech.homeLat])
-          .setPopup(new maplibregl.Popup().setText(`${tech.name}: home base`))
-          .addTo(map));
-        const route = [[tech.homeLng, tech.homeLat], ...stops.map((stop) => [stop.lng, stop.lat])];
-        if (stops.length > 0) {
-          const id = `route-${index}`;
-          map.addSource(id, { type: "geojson", data: {
-            type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: route },
-          } });
-          map.addLayer({ id, source: id, type: "line", paint: { "line-color": color, "line-width": 3 } });
-        }
-        stops.forEach((stop) => {
-          const arrival = new Intl.DateTimeFormat("en-US", {
-            timeZone: timezone, hour: "numeric", minute: "2-digit",
-          }).format(new Date(stop.plannedStart));
-          markers.push(new maplibregl.Marker({ color })
-            .setLngLat([stop.lng, stop.lat])
-            .setPopup(new maplibregl.Popup().setText(`${tech.name}: ${stop.customerName}, ${stop.serviceName}, ${arrival}`))
-            .addTo(map));
-        });
-      });
+      technicians.forEach((tech) => homeMarkers.push(new maplibregl.Marker({ color: colorByTech.get(tech.id) })
+        .setLngLat([tech.homeLng, tech.homeLat])
+        .setPopup(new maplibregl.Popup().setText(`${tech.name}: home base`))
+        .addTo(map)));
+      stopMarkers = appointments.map(markerForStop);
+      const query = new URLSearchParams({ metroId, date, phase });
+      if (runId) query.set("runId", runId);
+      void fetch(`/api/dispatch/geometry?${query}`, { cache: "no-store" })
+        .then(async (response) => {
+          if (!response.ok) throw new Error("Road geometry unavailable");
+          return response.json() as Promise<GeometryResponse>;
+        })
+        .then((geometry) => {
+          if (cancelled) return;
+          if (geometry.type !== "FeatureCollection" || !Array.isArray(geometry.features) || !Array.isArray(geometry.stops))
+            throw new Error("Invalid road geometry");
+          technicians.forEach((tech, index) => {
+            const features = geometry.features.filter((feature) => feature.properties.technicianId === tech.id);
+            if (features.length === 0) return;
+            const id = `road-route-${index}`;
+            map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features } });
+            map.addLayer({ id, source: id, type: "line", paint: { "line-color": TECH_COLORS[index % TECH_COLORS.length], "line-width": 3 } });
+          });
+          stopMarkers.forEach((marker) => marker.remove());
+          stopMarkers = geometry.stops.map(markerForStop);
+        })
+        .catch(() => { if (!cancelled) setError("Road routes are unavailable. Stop markers remain visible."); });
     });
-    return () => { markers.forEach((marker) => marker.remove()); map.remove(); };
-  }, [technicians, appointments, timezone]);
-  return <div ref={element} style={{ width: "100%", height: "100%" }} />;
+    return () => {
+      cancelled = true;
+      stopMarkers.forEach((marker) => marker.remove());
+      homeMarkers.forEach((marker) => marker.remove());
+      map.remove();
+    };
+  }, [technicians, appointments, timezone, metroId, date, runId, phase]);
+  return <div style={{ width: "100%", height: "100%", position: "relative" }}>
+    <div ref={element} style={{ width: "100%", height: "100%" }} />
+    {error && <div role="status" style={{ position: "absolute", bottom: 12, left: 12, padding: 8, background: "white", color: "#8a1f11" }}>{error}</div>}
+  </div>;
 }
