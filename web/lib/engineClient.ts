@@ -132,6 +132,12 @@ export function cancelAppointment(params: { appointment_id: string; reason: stri
   return engineFetch("/v1/appointments/cancel", params);
 }
 
+export function dispatchGeometry(metroId: string, date: string, runId?: string, phase = "current") {
+  const query = new URLSearchParams({ metro_id: metroId, date, phase });
+  if (runId) query.set("run_id", runId);
+  return engineGet(`/v1/dispatch/geometry?${query}`);
+}
+
 export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; reason: string }): Promise<{ requestId: string; status: string }> {
   return engineFetch("/v1/time-off/request", request);
 }

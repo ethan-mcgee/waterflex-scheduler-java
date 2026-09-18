@@ -18,15 +18,18 @@ public class DayScoreCalculator implements EasyScoreCalculator<DayPlan, HardSoft
     }
 
     public static Evaluation evaluate(DayPlan plan) {
-        long hard = 0, cents = 0, paid = 0, overtime = 0, meters = 0, drive = 0, waiting = 0;
+        long hard = 0, paid = 0, overtime = 0, meters = 0, drive = 0, waiting = 0;
         Map<String, Instant> arrivals = new HashMap<>();
         for (TechRoute route : plan.getRoutes()) {
             var result = RouteTimeline.evaluate(plan, route);
-            hard += result.hardPenalty(); cents += result.costCents();
+            hard += result.hardPenalty();
             paid += result.paidMinutes(); overtime += result.overtimeMinutes();
             meters += result.meters(); drive += result.driveMinutes(); waiting += result.waitingMinutes();
             arrivals.putAll(result.arrivals());
         }
+        long cents = Math.round((paid - overtime) * plan.getRegularHourly() * 100 / 60.0
+                + overtime * plan.getOvertimeHourly() * 100 / 60.0
+                + meters / 1609.344 * plan.getMileagePerMile() * 100);
         return new Evaluation(hard, cents, arrivals, paid, overtime, meters, drive, waiting);
     }
 }
