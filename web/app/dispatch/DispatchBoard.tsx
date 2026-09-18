@@ -157,6 +157,8 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
             {preview.status === "PREVIEW" && <button className={styles.applyButton} disabled={busy} onClick={handleApply}>Apply proposal</button>}
           </div>
           <div className={styles.fleetTotals}>
+            <span title={preview.routing_identity}>Routing graph: {preview.routing_identity.slice(0, 12)}</span>
+            <span title={preview.configuration_version}>Configuration: {preview.configuration_version.slice(0, 12)}</span>
             <span>Drive: {total(preview.route_summary_before, "drive_minutes")} to {total(preview.route_summary_after, "drive_minutes")} min</span>
             <span>Paid route: {total(preview.route_summary_before, "route_minutes")} to {total(preview.route_summary_after, "route_minutes")} min</span>
             <span>Overtime: {total(preview.route_summary_before, "overtime_minutes")} to {total(preview.route_summary_after, "overtime_minutes")} min</span>
