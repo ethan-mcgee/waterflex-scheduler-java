@@ -1,7 +1,7 @@
 package dev.waterflex.scheduler;
 
 import dev.waterflex.scheduler.optimizer.DayPlan;
-import dev.waterflex.scheduler.optimizer.DayScoreCalculator;
+import dev.waterflex.scheduler.optimizer.RouteEvaluator;
 import dev.waterflex.scheduler.optimizer.PlanVisit;
 import dev.waterflex.scheduler.optimizer.TechRoute;
 import org.springframework.http.HttpStatus;
@@ -30,7 +30,7 @@ public class BookingService {
     private record Tech(String id, RoadClient.Point home, int shiftStart, int shiftEnd, int maxDaily, int maxOvertime) { }
     private record Visit(String id, RoadClient.Point point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
     private record Metrics(boolean feasible, Instant newArrival, long paidMinutes, long overtimeMinutes,
-                           long meters, Map<String, Instant> arrivals) { }
+                           long meters, long costCents, Map<String, Instant> arrivals) { }
 
     public BookingService(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
 
@@ -46,10 +46,11 @@ public class BookingService {
             jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", active.getFirst());
             jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL", active.getFirst());
         }
-        roads.leg(job.point(), job.point());
+        roads.matrix(Map.of("job", job.point()));
         List<Candidate> candidates = candidates(job, null, null);
         LinkedHashMap<String, Candidate> windows = new LinkedHashMap<>();
-        candidates.stream().sorted(Comparator.comparingDouble(Candidate::cost).thenComparing(Candidate::start))
+        candidates.stream().sorted(Comparator.comparingDouble(Candidate::cost).thenComparing(Candidate::start)
+                        .thenComparing(Candidate::techId).thenComparingInt(Candidate::position))
                 .forEach(c -> windows.putIfAbsent(c.start().toString(), c));
         List<Offer> result = new ArrayList<>();
         Instant expiry = Instant.now().plus(Duration.ofMinutes(10));
@@ -64,7 +65,7 @@ public class BookingService {
             String id = UUID.randomUUID().toString();
             jdbc.update("INSERT INTO booking_offer (id, \"jobId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"expiresAt\", \"incrementalRegularMinutes\", \"incrementalOvertimeMinutes\", \"incrementalRoadMeters\", \"incrementalCostDollars\", \"offerSetId\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     id, jobId, dayStamp(c.day()), stamp(c.start()), stamp(c.end()), stamp(expiry),
-                    reserved.regularDeltaMinutes(), reserved.overtimeDeltaMinutes(), reserved.roadDeltaMeters(), reserved.cost(), setId);
+                    c.regularDeltaMinutes(), c.overtimeDeltaMinutes(), c.roadDeltaMeters(), c.cost(), setId);
             jdbc.update("INSERT INTO slot_hold (id, \"offerToken\", \"jobId\", \"technicianId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"plannedStart\", \"plannedEnd\", \"insertPosition\", \"locationLat\", \"locationLng\", \"expiresAt\", \"offerSetId\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     UUID.randomUUID().toString(), id, jobId, reserved.techId(), dayStamp(c.day()), stamp(c.start()), stamp(c.end()),
                     stamp(reserved.arrival()), stamp(reserved.arrival().plus(Duration.ofMinutes(job.duration()))), reserved.position(),
@@ -95,7 +96,7 @@ public class BookingService {
         }
         if (!job.status().equals("PENDING") || selectedRow[3] != null || !((Instant) selectedRow[2]).isAfter(Instant.now()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer expired");
-        roads.leg(job.point(), job.point());
+        roads.matrix(Map.of("job", job.point()));
         var rows = jdbc.query("SELECT o.\"serviceDate\", o.\"windowStart\", o.\"windowEnd\", o.\"offerSetId\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"jobId\"=? AND s.\"supersededAt\" IS NULL AND s.\"expiresAt\">CURRENT_TIMESTAMP",
                 (rs, n) -> new Object[]{rs.getTimestamp(1).toInstant(), rs.getTimestamp(2).toInstant(), rs.getTimestamp(3).toInstant(), rs.getString(4)}, offerId, jobId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer expired");
@@ -135,7 +136,7 @@ public class BookingService {
         if (h[6] != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold released");
         if (!((Instant) h[5]).isAfter(Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold expired");
         Job job = job(jobId);
-        roads.leg(job.point(), job.point());
+        roads.matrix(Map.of("job", job.point()));
         Tech tech = technicians(job.serviceId(), day).stream().filter(t -> t.id().equals(techId)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable"));
         Candidate candidate = evaluateCandidate(job, tech, day, start, end);
@@ -226,7 +227,6 @@ public class BookingService {
         List<Visit> visits = visits(tech.id(), day, job.id());
         Metrics baseline = evaluate(tech, day, visits);
         if (!baseline.feasible()) return null;
-        Map<String, Double> settings = settings();
         Candidate best = null;
         for (int position = 0; position <= visits.size(); position++) {
             List<Visit> proposal = new ArrayList<>(visits);
@@ -235,11 +235,7 @@ public class BookingService {
             if (!m.feasible() || m.newArrival() == null) continue;
             double paidDelta = m.paidMinutes() - baseline.paidMinutes();
             double overtimeDelta = m.overtimeMinutes() - baseline.overtimeMinutes();
-            double regularRate = settings.getOrDefault("regular_hourly_dollars", 30.0);
-            double overtimeRate = settings.getOrDefault("overtime_hourly_dollars", 45.0);
-            double mileageRate = settings.getOrDefault("mileage_dollars_per_mile", 0.67);
-            double cost = (paidDelta - overtimeDelta) * regularRate / 60.0 + overtimeDelta * overtimeRate / 60.0
-                    + (m.meters() - baseline.meters()) / 1609.344 * mileageRate;
+            double cost = (m.costCents() - baseline.costCents()) / 100.0;
             Candidate c = new Candidate(tech.id(), day, start, end, m.newArrival(), position, cost,
                     (long) (paidDelta - overtimeDelta), (long) overtimeDelta, m.meters() - baseline.meters());
             if (best == null || c.cost() < best.cost()) best = c;
@@ -248,7 +244,7 @@ public class BookingService {
     }
 
     private Metrics evaluate(Tech tech, LocalDate day, List<Visit> visits) {
-        if (visits.isEmpty()) return new Metrics(true, null, 0, 0, 0, Map.of());
+        if (visits.isEmpty()) return new Metrics(true, null, 0, 0, 0, 0, Map.of());
         Map<String, Double> settings = settings();
         Instant shiftStart = ScheduleCutoff.localMinute(day, tech.shiftStart(), false);
         Instant shiftEnd = ScheduleCutoff.localMinute(day, tech.shiftEnd(), true);
@@ -264,18 +260,15 @@ public class BookingService {
             points.put(visit.id(), visit.point());
         }
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
-        for (var origin : points.entrySet()) for (var destination : points.entrySet()) {
-            if (origin.getKey().equals(destination.getKey())) continue;
-            RoadClient.Leg leg = roads.leg(origin.getValue(), destination.getValue());
-            matrix.put(origin.getKey() + ">" + destination.getKey(), new DayPlan.RoadLeg(leg.seconds(), leg.meters()));
-        }
+        roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
         DayPlan plan = new DayPlan(List.of(route), route.getVisits(), matrix,
                 settings.getOrDefault("regular_hourly_dollars", 30.0), settings.getOrDefault("overtime_hourly_dollars", 45.0),
                 settings.getOrDefault("mileage_dollars_per_mile", 0.67), settings.getOrDefault("travel_buffer_pct", 0.2),
                 Math.round(settings.getOrDefault("travel_buffer_minutes_per_leg", 5.0)));
-        var result = DayScoreCalculator.evaluate(plan);
+        var result = RouteEvaluator.evaluate(plan);
         Instant newArrival = visits.stream().filter(Visit::newJob).findFirst().map(v -> result.arrivals().get(v.id())).orElse(null);
-        return new Metrics(result.hardPenalty() == 0, newArrival, result.paidMinutes(), result.overtimeMinutes(), result.meters(), result.arrivals());
+        return new Metrics(result.feasible(), newArrival, result.paidMinutes(), result.overtimeMinutes(),
+                result.meters(), result.costCents(), result.arrivals());
     }
 
     private Job job(String id) {

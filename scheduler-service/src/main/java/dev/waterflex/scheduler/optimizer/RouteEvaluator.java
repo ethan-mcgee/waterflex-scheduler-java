@@ -13,18 +13,21 @@ public final class RouteEvaluator {
     private RouteEvaluator() { }
 
     public static Result evaluate(DayPlan plan) {
+        Set<String> expected = new HashSet<>();
+        boolean feasible = true;
+        for (PlanVisit visit : plan.getVisits()) if (!expected.add(visit.getId())) feasible = false;
         Set<String> seen = new HashSet<>();
         Map<String, Instant> arrivals = new HashMap<>();
         long paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;
-        boolean feasible = true;
         for (TechRoute route : plan.getRoutes()) {
-            for (PlanVisit visit : route.getVisits()) if (!seen.add(visit.getId())) feasible = false;
+            for (PlanVisit visit : route.getVisits())
+                if (!seen.add(visit.getId()) || !expected.contains(visit.getId())) feasible = false;
             RouteResult result = validateRoute(plan, route, arrivals);
             feasible &= result.feasible();
             paid += result.paid(); overtime += result.overtime(); drive += result.drive();
             waiting += result.waiting(); meters += result.meters();
         }
-        feasible &= seen.size() == plan.getVisits().size() && arrivals.size() == seen.size();
+        feasible &= seen.equals(expected) && arrivals.keySet().equals(expected);
         long cents = Math.round((paid - overtime) * plan.getRegularHourly() * 100 / 60.0
                 + overtime * plan.getOvertimeHourly() * 100 / 60.0
                 + meters / 1609.344 * plan.getMileagePerMile() * 100);
