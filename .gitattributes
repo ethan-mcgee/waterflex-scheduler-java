@@ -1,3 +1,1 @@
-*.sh text eol=lf
-mvnw text eol=lf
-**/Dockerfile text eol=lf
+routing-service/src/test/resources/fixture-roads.osm text eol=lf
