@@ -22,13 +22,16 @@ Normal `docker compose up -d` uses existing named volumes and does not repeat im
 
 ## Views and API
 
-- `/book`: customer address resolution, local pin confirmation, offers, hold, and confirmation.
-- `/schedule`: day routes and promises.
+- `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
+- `/schedule`: weekly routes, approved time-off blocks, promises, and reasoned cancellation.
 - `/dispatch`: route review and overnight optimization preview and apply.
 - `/dispatch/availability`: qualifications and date-specific shifts.
-- `/dispatch/follow-up`: pending requests without a promised window.
+- `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.
+- `/time-off`: local demo technician selector, request history, and staff approval queue. The selector does not authenticate a technician.
 
-`POST /api/book` takes an idempotent `requestId` with customer, address, and service details. It returns `{jobId, offers}` or a pending follow-up reference. `POST /api/book/select` takes `{jobId, offerId}` and creates one ten-minute hold. `POST /api/book/confirm` takes `{holdId}` and returns an appointment reference and promised window. Offers are not reservations. No email or SMS is sent. These are local views without enforced permissions.
+`POST /api/book` takes an idempotent `requestId` with customer, address, and service details. It returns `{jobId, offers}` or a pending follow-up reference. Each offered window has a sibling hold in one ten-minute offer set. `/api/book/refresh` atomically replaces that set. `/api/book/select` commits the selected appointment and returns its reference and promised window; the legacy `/api/book/confirm` returns the same appointment for a selected hold. `/api/schedule/appointments` requires a cancellation reason and retains the cancelled record. No email or SMS is sent. These are local views without enforced permissions.
+
+Time-off requests are analyzed in a durable background report. A feasible request whose first date is at least 14 local calendar days away applies automatically. Short-notice feasible requests wait for staff approval. Frozen dates and active reservations block automated approval. Dispatch shift and qualification edits pass through the Java scheduling guard, which rejects edits that would invalidate existing appointments or active holds.
 
 ## Verification
 
@@ -48,7 +51,7 @@ npm run build
 
 Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates used by the smoke scripts.
 
-The small Monaco fixture smoke scripts are `npm run test:booking:integration` and `npm run test:optimizer:integration`. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks idempotent confirmation and competing holds. The optimizer smoke checks preview, apply, and preservation of the stored promised window on a future weekday. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
+The Monaco fixture smoke scripts are `npm run test:booking:integration`, `npm run test:optimizer:integration`, and `npm run test:time-off:integration`. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks reservations, refresh, selection, legacy confirmation, and cancellation. The time-off smoke checks automatic repair and short-notice staff approval. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
 
 ## Local cutover and rollback
 

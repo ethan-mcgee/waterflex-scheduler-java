@@ -200,6 +200,28 @@
   left: 0;
 }
 
+.absenceBand {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  padding: 0.2rem;
+  background: repeating-linear-gradient(45deg, #fde8df, #fde8df 8px, #fbd5c5 8px, #fbd5c5 16px);
+  color: #7c2d12;
+  font-size: 0.7rem;
+  overflow: hidden;
+}
+
+.absenceSwatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+  background: #fbd5c5;
+  border: 1px solid #c2410c;
+}
+
 .hourLine {
   position: absolute;
   right: 0;
@@ -260,7 +282,7 @@
   margin: 0;
   padding: 0.35rem 0.45rem;
   overflow: hidden;
-  z-index: 2;
+  z-index: 3;
 }
 
 .cardTime {

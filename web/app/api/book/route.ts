@@ -142,6 +142,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const { offers } = await requestSlots(job.id);
+    if (offers.length === 0) await prisma.job.update({ where: { id: job.id }, data: {
+      manualFollowUpStatus: "PENDING", manualFollowUpReason: "NO_CAPACITY",
+    } });
     return NextResponse.json({ jobId: job.id, offers });
   } catch (err) {
     if (err instanceof EngineError) {
