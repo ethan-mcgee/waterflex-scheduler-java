@@ -30,7 +30,8 @@ public class OptimizationService {
     private record TechData(String id, RoadClient.Point point, TechRoute route) { }
     private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
                              Instant windowStart, Instant windowEnd) { }
-    private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits) { }
+    private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
+                           String configurationVersion, String routingIdentity) { }
 
     public OptimizationService(JdbcTemplate jdbc, RoadClient roads, SolverFactory<DayPlan> solverFactory) {
         this.jdbc = jdbc; this.roads = roads; this.solverFactory = solverFactory;
@@ -46,14 +47,21 @@ public class OptimizationService {
                 new DayScoreCalculator.Evaluation(0, 0, Map.of(), 0, 0, 0, 0, 0), 0, "SKIPPED", "No appointments");
         if (hasHolds(baseline.versions().keySet(), day)) return skipped(request.metro_id(), day, baseline, "Active hold");
         var before = DayScoreCalculator.evaluate(baseline.plan());
-        if (before.hardPenalty() != 0) return skipped(request.metro_id(), day, baseline, "Baseline infeasible");
+        var validatedBefore = RouteEvaluator.evaluate(baseline.plan());
+        if (before.hardPenalty() != 0 || !validatedBefore.feasible() || before.costCents() != validatedBefore.costCents())
+            return skipped(request.metro_id(), day, baseline, "Baseline infeasible or scoring mismatch");
         long started = System.nanoTime();
         DayPlan solved = solverFactory.buildSolver().solve(baseline.plan());
         int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
         var after = DayScoreCalculator.evaluate(solved);
-        String status = after.hardPenalty() == 0 && after.costCents() < before.costCents() ? "PREVIEW" : "SKIPPED";
-        return persist(request.metro_id(), day, baseline, solved, before, after, solveMs, status,
-                status.equals("PREVIEW") ? null : "No feasible cost improvement");
+        var validatedAfter = RouteEvaluator.evaluate(solved);
+        boolean acceptable = after.hardPenalty() == 0 && validatedAfter.feasible()
+                && after.costCents() == validatedAfter.costCents()
+                && validatedAfter.costCents() < validatedBefore.costCents();
+        String status = acceptable ? "PREVIEW" : "SKIPPED";
+        return persist(request.metro_id(), day, baseline, acceptable ? solved : baseline.plan(),
+                before, acceptable ? after : before, solveMs, status,
+                acceptable ? null : "No independently validated cost improvement");
     }
 
     public Map<String, Object> previewRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
@@ -105,24 +113,31 @@ public class OptimizationService {
                                         int solveMs, String status, String reason) {
         String id = UUID.randomUUID().toString();
         List<Map<String, Object>> assignments = new ArrayList<>();
+        Map<String, VisitData> original = new HashMap<>();
+        baseline.visits().forEach(visit -> original.put(visit.visit().getId(), visit));
         for (TechRoute route : proposal.getRoutes()) {
             for (int i = 0; i < route.getVisits().size(); i++) {
                 PlanVisit visit = route.getVisits().get(i);
                 Instant arrival = after.arrivals().get(visit.getId());
-                if (arrival != null) assignments.add(Map.of("appointmentId", visit.getId(), "technicianId", route.getId(),
+                VisitData source = original.get(visit.getId());
+                if (arrival != null && source != null) assignments.add(Map.of("appointmentId", visit.getId(), "technicianId", route.getId(),
                         "sequence", i, "plannedStart", arrival.toString(), "windowStart", visit.getWindowStart().toString(),
-                        "windowEnd", visit.getWindowEnd().toString()));
+                        "windowEnd", visit.getWindowEnd().toString(), "locationLat", source.point().lat(),
+                        "locationLng", source.point().lng()));
             }
         }
         int improvement = (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, before.costCents() - after.costCents()));
+        List<Map<String, Object>> originalAssignments = baseline.visits().stream().map(visit -> Map.<String, Object>of(
+                "appointmentId", visit.visit().getId(), "technicianId", visit.technicianId(),
+                "sequence", visit.sequence(), "plannedStart", visit.visit().getOriginalPlannedStart().toString(),
+                "windowStart", visit.windowStart().toString(), "windowEnd", visit.windowEnd().toString(),
+                "locationLat", visit.point().lat(), "locationLng", visit.point().lng())).toList();
         try {
-            jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
+            jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"baselineAssignments\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
                     id, metroId, dayStamp(day), mapper.writeValueAsString(baseline.versions()),
-                    mapper.writeValueAsString(Map.of("mapVersion", roads.currentVersion(), "configVersion", configurationVersion(metroId, day))), status, solveMs,
+                    mapper.writeValueAsString(Map.of("mapVersion", baseline.routingIdentity(), "configVersion", baseline.configurationVersion())), status, solveMs,
                     mapper.writeValueAsString(summary(baseline.plan(), before)), mapper.writeValueAsString(summary(proposal, after)),
-                    "[]", mapper.writeValueAsString(assignments), improvement, status, reason);
-            Map<String, VisitData> original = new HashMap<>();
-            baseline.visits().forEach(visit -> original.put(visit.visit().getId(), visit));
+                    "[]", mapper.writeValueAsString(assignments), mapper.writeValueAsString(originalAssignments), improvement, status, reason);
             for (Map<String, Object> assignment : assignments) {
                 String appointmentId = (String) assignment.get("appointmentId");
                 VisitData source = original.get(appointmentId);
@@ -221,8 +236,8 @@ public class OptimizationService {
     }
 
     public Map<String, Object> response(String id) {
-        var rows = jdbc.query("SELECT \"metroId\", \"serviceDate\", status, reason, \"solverStatus\", \"solveMs\", \"objectiveImprovement\", \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text, \"createdAt\", \"appliedAt\" FROM optimization_run WHERE id=?",
-                (rs, n) -> new Object[]{rs.getString(1), rs.getTimestamp(2).toInstant(), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getString(8), rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11) == null ? null : rs.getTimestamp(11).toInstant()}, id);
+        var rows = jdbc.query("SELECT \"metroId\", \"serviceDate\", status, reason, \"solverStatus\", \"solveMs\", \"objectiveImprovement\", \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text, \"createdAt\", \"appliedAt\", weights::text FROM optimization_run WHERE id=?",
+                (rs, n) -> new Object[]{rs.getString(1), rs.getTimestamp(2).toInstant(), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getString(8), rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11) == null ? null : rs.getTimestamp(11).toInstant(), rs.getString(12)}, id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
         Object[] row = rows.getFirst();
         try {
@@ -238,6 +253,9 @@ public class OptimizationService {
             value.put("route_summary_before", mapper.readValue((String) row[7], Object.class)); value.put("route_summary_after", mapper.readValue((String) row[8], Object.class));
             value.put("changes", changes); value.put("warnings", List.of());
             value.put("created_at", row[9]); value.put("applied_at", row[10]);
+            JsonNode provenance = mapper.readTree((String) row[11]);
+            value.put("routing_identity", provenance.path("mapVersion").asText(""));
+            value.put("configuration_version", provenance.path("configVersion").asText(""));
             return value;
         } catch (Exception e) { throw new IllegalStateException(e); }
     }
@@ -294,13 +312,7 @@ public class OptimizationService {
         techs.forEach(tech -> points.put(tech.id(), tech.point()));
         visits.forEach(visit -> points.put(visit.visit().getId(), visit.point()));
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
-        for (var origin : points.entrySet()) for (var destination : points.entrySet()) {
-            if (origin.getKey().equals(destination.getKey())) continue;
-            try {
-                RoadClient.Leg leg = roads.leg(origin.getValue(), destination.getValue());
-                matrix.put(origin.getKey() + ">" + destination.getKey(), new DayPlan.RoadLeg(leg.seconds(), leg.meters()));
-            } catch (RoadClient.RoadUnavailable e) { if (e.getMessage().contains("unavailable")) throw e; }
-        }
+        roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
         Map<String, Double> settings = new HashMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(rs.getString(1), rs.getDouble(2)));
         DayPlan plan = new DayPlan(techs.stream().map(TechData::route).toList(), visits.stream().map(VisitData::visit).toList(), matrix,
@@ -313,7 +325,7 @@ public class OptimizationService {
                     UUID.randomUUID().toString(), tech.id(), dayStamp(day));
             versions.put(tech.id(), jdbc.queryForObject("SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, tech.id(), dayStamp(day)));
         }
-        return new Problem(plan, versions, visits);
+        return new Problem(plan, versions, visits, configurationVersion(metroId, day), roads.currentVersion());
     }
 
     private List<Map<String, Object>> summary(DayPlan plan, DayScoreCalculator.Evaluation metrics) {

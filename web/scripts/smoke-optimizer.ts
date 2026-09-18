@@ -21,6 +21,17 @@ async function post(path: string, body: unknown) {
   return data;
 }
 
+async function geometry(path: string) {
+  const response = await fetch(base + path, { signal: AbortSignal.timeout(30_000) });
+  const data = await response.json();
+  assert.equal(response.status, 200, `${path}: ${JSON.stringify(data)}`);
+  assert.equal(data.type, "FeatureCollection");
+  assert.equal(data.routingIdentity, "ci-monaco-car-v1");
+  assert.ok(data.features.length >= 2);
+  assert.equal(data.stops.length, 1);
+  return data;
+}
+
 async function main() {
   const metro = await prisma.metro.create({ data: { id: `opt-metro-${suffix}`, name: "Optimizer fixture", timezone: "America/Chicago" } });
   const service = await prisma.serviceCatalog.create({ data: { code: `OPT_${suffix}`, name: "Optimizer fixture", estDurationMin: 50 } });
@@ -54,6 +65,9 @@ async function main() {
     runId = preview.run_id;
     assert.equal(preview.status, "PREVIEW", JSON.stringify(preview));
     assert.ok(preview.objective_improvement > 0);
+    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}`);
+    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=before`);
+    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=after`);
     const applied = await post(`/v1/optimize/runs/${runId}/apply`, {});
     assert.equal(applied.status, "APPLIED");
     const appointments = await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } } });

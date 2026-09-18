@@ -353,6 +353,7 @@ model RoadRouteCache {
   fetchedAt DateTime @default(now())
 
   @@unique([originKey, destinationKey, profile, mapVersion])
+  @@index([fetchedAt])
   @@map("road_route_cache")
 }
 
@@ -398,6 +399,7 @@ model OptimizationRun {
   routeSummaryAfter    Json
   warnings             Json
   proposedAssignments  Json
+  baselineAssignments  Json                 @default("[]")
   objectiveImprovement Int
   churnCost            Int
   status               String

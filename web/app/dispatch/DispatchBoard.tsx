@@ -51,6 +51,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
   const [status, setStatus] = useState<string | null>(null);
   const [preview, setPreview] = useState<OptimizationRun | null>(null);
   const [history, setHistory] = useState<OptimizationRun[]>([]);
+  const [mapPhase, setMapPhase] = useState<"current" | "before" | "after">("current");
 
   const loadHistory = useCallback(async () => {
     const response = await fetch(
@@ -67,6 +68,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
 
   function goToDate(nextDate: string) {
     setPreview(null);
+    setMapPhase("current");
     router.push(`/dispatch?date=${nextDate}`);
   }
 
@@ -91,6 +93,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         return;
       }
       setPreview(data);
+      setMapPhase(data.status === "PREVIEW" ? "after" : "current");
       setStatus(data.status === "PREVIEW"
         ? `Preview ready. Modeled cost improvement: $${(data.objective_improvement / 100).toFixed(2)}.`
         : `No applicable proposal: ${data.reason ?? data.status}.`);
@@ -120,6 +123,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         return;
       }
       setPreview(data);
+      setMapPhase("current");
       setStatus(`Applied ${data.appointments_moved} appointment change(s).`);
       await loadHistory();
       router.refresh();
@@ -153,6 +157,8 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
             {preview.status === "PREVIEW" && <button className={styles.applyButton} disabled={busy} onClick={handleApply}>Apply proposal</button>}
           </div>
           <div className={styles.fleetTotals}>
+            <span title={preview.routing_identity}>Routing graph: {preview.routing_identity.slice(0, 12)}</span>
+            <span title={preview.configuration_version}>Configuration: {preview.configuration_version.slice(0, 12)}</span>
             <span>Drive: {total(preview.route_summary_before, "drive_minutes")} to {total(preview.route_summary_after, "drive_minutes")} min</span>
             <span>Paid route: {total(preview.route_summary_before, "route_minutes")} to {total(preview.route_summary_after, "route_minutes")} min</span>
             <span>Overtime: {total(preview.route_summary_before, "overtime_minutes")} to {total(preview.route_summary_after, "overtime_minutes")} min</span>
@@ -184,7 +190,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
 
       {history.length > 0 && <details className={styles.history}>
         <summary>Optimization history ({history.length})</summary>
-        {history.map((run) => <button key={run.run_id} onClick={() => setPreview(run)}>
+        {history.map((run) => <button key={run.run_id} onClick={() => { setPreview(run); setMapPhase("current"); }}>
           {new Date(run.created_at).toLocaleString()} · {run.status.replaceAll("_", " ")} · ${(run.objective_improvement / 100).toFixed(2)} modeled cost change
         </button>)}
       </details>}
@@ -202,7 +208,15 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
             </div>;
           })}
         </div>
-        <div className={styles.mapPane}><DispatchMap technicians={technicians} appointments={appointments} timezone={timezone} /></div>
+        <div className={styles.mapPane}>
+          {preview && <div style={{ padding: 8, display: "flex", gap: 8 }}>
+            <button onClick={() => setMapPhase("current")}>Current roads</button>
+            <button onClick={() => setMapPhase("before")}>Before preview</button>
+            <button onClick={() => setMapPhase("after")}>Proposed roads</button>
+          </div>}
+          <DispatchMap technicians={technicians} appointments={appointments} timezone={timezone}
+            metroId={metroId} date={date} runId={mapPhase === "current" ? undefined : preview?.run_id} phase={mapPhase} />
+        </div>
       </div>
     </div>
   );

@@ -70,6 +70,8 @@ export interface OptimizationRun {
   reason: string | null;
   solver_status: string;
   solve_ms: number;
+  routing_identity: string;
+  configuration_version: string;
   objective_improvement: number;
   churn_penalty_minutes: number;
   optimized: boolean;
@@ -130,6 +132,12 @@ export function optimizationHistory(metroId: string, date: string): Promise<{ ru
 
 export function cancelAppointment(params: { appointment_id: string; reason: string }): Promise<{ success: boolean }> {
   return engineFetch("/v1/appointments/cancel", params);
+}
+
+export function dispatchGeometry(metroId: string, date: string, runId?: string, phase = "current") {
+  const query = new URLSearchParams({ metro_id: metroId, date, phase });
+  if (runId) query.set("run_id", runId);
+  return engineGet(`/v1/dispatch/geometry?${query}`);
 }
 
 export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; reason: string }): Promise<{ requestId: string; status: string }> {

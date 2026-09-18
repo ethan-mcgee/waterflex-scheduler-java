@@ -43,6 +43,16 @@ The report records daily and total before/after paid route minutes, overtime min
 
 Dispatch shift and qualification edits pass through the Java scheduling guard. If an edit affects an existing appointment or active hold, it returns a conflict for staff coordination. No email or SMS is sent.
 
+### Scheduling quality foundation
+
+The independent `RouteEvaluator` now checks exact appointment ID coverage, including unknown IDs with the same count as the expected list. Booking feasibility and ordinary optimization previews use that validator. A preview is available for approval only when the scorer and validator agree on modeled cents and the validated cost improves. Booking ranks windows by incremental modeled cents from its initial search snapshot, then window start, technician ID, and route position. Cost is rounded once to integer cents after summing regular paid minutes, overtime minutes, and road mileage; it is not a customer price.
+
+The routing service `/health` and `/internal/matrix` responses include `routingIdentity`, a SHA-256 fingerprint of the prepared merged OSM checksum, car profile settings, GraphHopper version, and snap limit. Matrix requests can pass `expectedRoutingIdentity`; a mismatch returns HTTP 409. The scheduler checks health before accepting a matrix, normalizes coordinates to five decimal places for both requests and cache keys, retrieves missing directed legs in blocks of at most 64 by 64, and rejects malformed response dimensions or values. Memory caches have configurable entry and expiry limits. A weekly cleanup removes persistent route cache entries older than 30 days and trims excess entries. Proven unreachable legs are cached; routing outages are not.
+
+The internal `/internal/route` endpoint returns road geometry for ordered points under the same identity. `/v1/dispatch/geometry` returns GeoJSON features for a current day or the before and after routes of an optimization run. Each absence-separated working interval starts and ends at home. The dispatch map renders those road features and keeps stop markers with a clear error when geometry is unavailable. Run details show the routing and scheduling configuration fingerprints. New optimization runs save baseline visit order, location, and planned arrival alongside the proposed assignments so the comparison reflects that run. Older runs created before this migration do not have a baseline route snapshot.
+
+See [scheduling quality notes](docs/scheduling-quality-foundations.md) for API examples, verification, and remaining release gates.
+
 ## Verification
 
 With the services and a seeded database available:
@@ -74,3 +84,4 @@ The included Compose database is isolated. Before connecting to a copy of an exi
 - Manual reassignment is not exposed in the Java dispatch UI. Dispatch optimization preview and guarded apply are the supported route-change path.
 - The Nominatim refresh is a manual import and volume swap. The map preparation script does not automate that database swap.
 - Offer p95 latency and savings are targets to measure on the intended localhost hardware; no threshold is claimed from the fixture tests.
+- Booking reordering, reservation route witnesses, immutable database snapshots, exact oracle fixtures, verification against the active Omaha road graph, and the 5 to 20 technician performance gate are still pending. Keep the baseline search configuration in place until those gates pass.
