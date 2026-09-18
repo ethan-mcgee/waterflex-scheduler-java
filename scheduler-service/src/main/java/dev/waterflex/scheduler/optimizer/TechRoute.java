@@ -18,6 +18,7 @@ public class TechRoute {
     private int maxDailyMinutes;
     private int maxOvertimeMinutes;
     private Set<String> qualifiedServiceIds;
+    private List<Unavailable> unavailable = new ArrayList<>();
     @PlanningListVariable(valueRangeProviderRefs = "visits")
     private List<PlanVisit> visits = new ArrayList<>();
 
@@ -35,6 +36,9 @@ public class TechRoute {
     public int getMaxDailyMinutes() { return maxDailyMinutes; }
     public int getMaxOvertimeMinutes() { return maxOvertimeMinutes; }
     public Set<String> getQualifiedServiceIds() { return qualifiedServiceIds; }
+    public record Unavailable(Instant start, Instant end) { }
+    public List<Unavailable> getUnavailable() { return unavailable; }
+    public void setUnavailable(List<Unavailable> unavailable) { this.unavailable = unavailable; }
     public List<PlanVisit> getVisits() { return visits; }
     public void setVisits(List<PlanVisit> visits) { this.visits = visits; }
 }

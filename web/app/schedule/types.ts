@@ -18,3 +18,10 @@ export interface ScheduleAppointment {
   plannedStart: string;
   plannedEnd: string;
 }
+
+export interface ScheduleAbsence {
+  technicianId: string;
+  date: string;
+  startMin: number;
+  endMin: number;
+}

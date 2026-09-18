@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { confirmHold, selectOffer, EngineError, requestSlots, type SlotOffer } from "./engineClient";
-import { addCalendarDays, localMidnightUtc } from "./date";
+import { addCalendarDays } from "./date";
 import {
   buildCallPlans,
   candidateDates,
@@ -77,8 +77,8 @@ function inRange(date: string, startDate: string, endDate: string): boolean {
 }
 
 async function cleanupFakeDataValidated(startDate: string, endDate: string): Promise<number> {
-  const dayStart = localMidnightUtc(startDate, OMAHA_TIMEZONE);
-  const dayAfterEnd = localMidnightUtc(addCalendarDays(endDate, 1), OMAHA_TIMEZONE);
+  const dayStart = new Date(`${startDate}T00:00:00.000Z`);
+  const dayAfterEnd = new Date(`${addCalendarDays(endDate, 1)}T00:00:00.000Z`);
   const candidates = await prisma.job.findMany({
     where: { externalId: { startsWith: FAKE_DATA_PREFIX } },
     select: {
@@ -119,6 +119,8 @@ async function cleanupFakeDataValidated(startDate: string, endDate: string): Pro
   await prisma.$transaction(async (tx) => {
     await tx.outboundEvent.deleteMany({ where: { aggregateId: { in: aggregateIds } } });
     await tx.slotHold.deleteMany({ where: { jobId: { in: jobIds } } });
+    await tx.bookingOffer.deleteMany({ where: { jobId: { in: jobIds } } });
+    await tx.bookingOfferSet.deleteMany({ where: { jobId: { in: jobIds } } });
     await tx.bookingOptimization.deleteMany({ where: { jobId: { in: jobIds } } });
     await tx.appointment.deleteMany({ where: { jobId: { in: jobIds } } });
     await tx.job.deleteMany({ where: { id: { in: jobIds } } });
@@ -127,7 +129,7 @@ async function cleanupFakeDataValidated(startDate: string, endDate: string): Pro
 
     for (const { technicianId, serviceDate } of affectedDays.values()) {
       const survivors = await tx.appointment.findMany({
-        where: { technicianId, serviceDate },
+        where: { technicianId, serviceDate, cancelledAt: null },
         orderBy: [{ plannedStart: "asc" }, { id: "asc" }],
         select: { id: true },
       });

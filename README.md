@@ -22,13 +22,26 @@ Normal `docker compose up -d` uses existing named volumes and does not repeat im
 
 ## Views and API
 
-- `/book`: customer address resolution, local pin confirmation, offers, hold, and confirmation.
-- `/schedule`: day routes and promises.
+- `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
+- `/schedule`: weekly routes, approved time-off blocks, promises, and reasoned cancellation.
 - `/dispatch`: route review and overnight optimization preview and apply.
 - `/dispatch/availability`: qualifications and date-specific shifts.
-- `/dispatch/follow-up`: pending requests without a promised window.
+- `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.
+- `/time-off`: local demo technician selector, request history, and staff approval queue. The selector does not authenticate a technician.
 
-`POST /api/book` takes an idempotent `requestId` with customer, address, and service details. It returns `{jobId, offers}` or a pending follow-up reference. `POST /api/book/select` takes `{jobId, offerId}` and creates one ten-minute hold. `POST /api/book/confirm` takes `{holdId}` and returns an appointment reference and promised window. Offers are not reservations. No email or SMS is sent. These are local views without enforced permissions.
+`POST /api/book` takes an idempotent `requestId` with customer, address, and service details. It returns `{jobId, offers}` or a pending follow-up reference. Empty capacity results are recorded as `NO_CAPACITY`. Up to four offered windows share one ten-minute expiry. The scheduler validates overlapping sibling holds as a set, reuses an unexpired set on retry, and returns fewer choices if all four cannot be reserved. `POST /api/book/refresh` supersedes that set and releases its holds in one transaction. `POST /api/book/select` rechecks the chosen option, creates the appointment, releases its siblings, and returns the appointment reference and promised window. A retry of the same selection or the legacy `POST /api/book/confirm` returns that appointment; a different selection conflicts. A successful booking clears pending follow-up.
+
+`POST /api/schedule/appointments` requires an appointment ID and a reason. Cancellation is idempotent, keeps the appointment and reason as history, and frees its capacity. Before the scheduling cutoff, the scheduler recalculates the remaining technician route while preserving promised windows. At or after the cutoff, it leaves the other visits' technician, order, and planned times intact. The cutoff is **6 a.m. America/Chicago on the calendar day before service**. It also applies to automated optimization and time-off repair, including the final commit check. Service dates stored as midnight UTC are calendar keys; the portal displays their UTC date component and interprets shift and absence minutes in America/Chicago, including daylight-saving transitions.
+
+### Technician time off and repair
+
+The `/time-off` form applies the same local start and end times to every date in its inclusive range. Requests must have a reason, a future start, a valid interval, and at most 31 selected dates. Overlapping pending, ready, analyzing, or approved intervals for the same technician are rejected. Pending requests do not reduce booking capacity. The page includes request history, analysis progress, and a staff queue. Its technician selector and staff controls are local demo controls without authentication or role enforcement.
+
+The background analyzer stores a report across all requested dates. It can repair an initially infeasible schedule by reassigning and reordering visits, subject to existing promises, qualifications, working limits, approved absences, and routing validation. Approved partial-day absences split a shift into separate working intervals, with travel home before each absence and a new departure from home afterward. Paid route time and overtime are summed across those intervals. A feasible request whose **first affected date is at least 14 local calendar days away** is applied automatically, even when modeled service-delivery cost rises. A feasible request closer than 14 days remains `READY` for staff approval. Any frozen date keeps the whole request pending for CSR coordination, without partial approval. Active booking reservations defer analysis or approval until a stable proposal can be made.
+
+The report records daily and total before/after paid route minutes, overtime minutes, drive minutes, waiting minutes, distance meters, modeled service-delivery cost in cents, and reassigned job counts. The cost is a scheduling model, not a customer price or payroll calculation. Routing failures, constraint conflicts, active reservations, and search-budget exhaustion are reported separately. Approval locks affected days, checks the report against current schedule and configuration versions, reservations, routing assumptions, independent feasibility validation, and the cutoff, then commits the whole request atomically. A changed schedule requires another analysis. Ordinary dispatch optimization still requires dispatch approval and a modeled cost improvement; overnight previews cover the next ten unfrozen weekdays.
+
+Dispatch shift and qualification edits pass through the Java scheduling guard. If an edit affects an existing appointment or active hold, it returns a conflict for staff coordination. No email or SMS is sent.
 
 ## Verification
 
@@ -39,6 +52,7 @@ $env:JAVA_HOME='C:\Program Files\Java\jdk-25'
 ./mvnw.cmd verify
 cd web
 npm ci
+npm run lint
 npm run typecheck
 npm run test:geocode
 npm run test:schema-contract
@@ -48,7 +62,7 @@ npm run build
 
 Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates used by the smoke scripts.
 
-The small Monaco fixture smoke scripts are `npm run test:booking:integration` and `npm run test:optimizer:integration`. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks idempotent confirmation and competing holds. The optimizer smoke checks preview, apply, and preservation of the stored promised window on a future weekday. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
+The Monaco fixture smoke scripts are `npm run test:booking:integration`, `npm run test:optimizer:integration`, and `npm run test:time-off:integration`. CI runs all three. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks reservations, refresh, selection, legacy confirmation, and cancellation. The time-off smoke checks automatic repair, short-notice staff approval, and active-reservation deferral. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
 
 ## Local cutover and rollback
 
