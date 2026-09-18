@@ -70,6 +70,8 @@ export interface OptimizationRun {
   reason: string | null;
   solver_status: string;
   solve_ms: number;
+  routing_identity: string;
+  configuration_version: string;
   objective_improvement: number;
   churn_penalty_minutes: number;
   optimized: boolean;

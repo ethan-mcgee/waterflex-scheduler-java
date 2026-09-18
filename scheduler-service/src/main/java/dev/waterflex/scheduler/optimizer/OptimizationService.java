@@ -236,8 +236,8 @@ public class OptimizationService {
     }
 
     public Map<String, Object> response(String id) {
-        var rows = jdbc.query("SELECT \"metroId\", \"serviceDate\", status, reason, \"solverStatus\", \"solveMs\", \"objectiveImprovement\", \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text, \"createdAt\", \"appliedAt\" FROM optimization_run WHERE id=?",
-                (rs, n) -> new Object[]{rs.getString(1), rs.getTimestamp(2).toInstant(), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getString(8), rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11) == null ? null : rs.getTimestamp(11).toInstant()}, id);
+        var rows = jdbc.query("SELECT \"metroId\", \"serviceDate\", status, reason, \"solverStatus\", \"solveMs\", \"objectiveImprovement\", \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text, \"createdAt\", \"appliedAt\", weights::text FROM optimization_run WHERE id=?",
+                (rs, n) -> new Object[]{rs.getString(1), rs.getTimestamp(2).toInstant(), rs.getString(3), rs.getString(4), rs.getString(5), rs.getInt(6), rs.getInt(7), rs.getString(8), rs.getString(9), rs.getTimestamp(10).toInstant(), rs.getTimestamp(11) == null ? null : rs.getTimestamp(11).toInstant(), rs.getString(12)}, id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
         Object[] row = rows.getFirst();
         try {
@@ -253,6 +253,9 @@ public class OptimizationService {
             value.put("route_summary_before", mapper.readValue((String) row[7], Object.class)); value.put("route_summary_after", mapper.readValue((String) row[8], Object.class));
             value.put("changes", changes); value.put("warnings", List.of());
             value.put("created_at", row[9]); value.put("applied_at", row[10]);
+            JsonNode provenance = mapper.readTree((String) row[11]);
+            value.put("routing_identity", provenance.path("mapVersion").asText(""));
+            value.put("configuration_version", provenance.path("configVersion").asText(""));
             return value;
         } catch (Exception e) { throw new IllegalStateException(e); }
     }
