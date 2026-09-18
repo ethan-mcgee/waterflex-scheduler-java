@@ -84,4 +84,4 @@ The included Compose database is isolated. Before connecting to a copy of an exi
 - Manual reassignment is not exposed in the Java dispatch UI. Dispatch optimization preview and guarded apply are the supported route-change path.
 - The Nominatim refresh is a manual import and volume swap. The map preparation script does not automate that database swap.
 - Offer p95 latency and savings are targets to measure on the intended localhost hardware; no threshold is claimed from the fixture tests.
-- Booking reordering, reservation route witnesses, immutable database snapshots, exact oracle fixtures, a pinned real road graph, and the 5 to 20 technician performance gate are still pending. Keep the baseline search configuration in place until those gates pass.
+- Booking reordering, reservation route witnesses, immutable database snapshots, exact oracle fixtures, verification against the active Omaha road graph, and the 5 to 20 technician performance gate are still pending. Keep the baseline search configuration in place until those gates pass.
