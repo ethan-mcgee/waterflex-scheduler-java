@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import styles from "./schedule.module.css";
 import { addCalendarDays, weekDates } from "@/lib/date";
-import type { ScheduleAppointment, ScheduleTechnician } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
 
 const DAY_FORMAT = new Intl.DateTimeFormat(undefined, { weekday: "short" });
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
@@ -96,6 +96,7 @@ function TimelineCell({
   day,
   technician,
   entries,
+  absences,
   timelineStart,
   timelineEnd,
   timezone,
@@ -104,6 +105,7 @@ function TimelineCell({
   day: string;
   technician: ScheduleTechnician;
   entries: ScheduleAppointment[];
+  absences: ScheduleAbsence[];
   timelineStart: number;
   timelineEnd: number;
   timezone: string;
@@ -136,6 +138,12 @@ function TimelineCell({
           key={index}
         />
       ))}
+      {absences.map((absence) => <div key={`${absence.date}-${absence.startMin}`} className={styles.absenceBand}
+        style={{ top: ((absence.startMin - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX,
+          height: ((absence.endMin - absence.startMin) / 60) * TIMELINE_HOUR_HEIGHT_PX }}
+        aria-label={`Approved time off ${formatMinuteOfDay(absence.startMin)} to ${formatMinuteOfDay(absence.endMin)}`}>
+        Time off {formatMinuteOfDay(absence.startMin)} to {formatMinuteOfDay(absence.endMin)}
+      </div>)}
       {closed && entries.length === 0 && <span className={styles.closedLabel}>No service</span>}
       {entries.map((appointment) => {
         const plannedStart = minuteOfDay(appointment.plannedStart, timezone);
@@ -181,7 +189,8 @@ function AppointmentPanel({
   }, [onClose]);
 
   async function deleteAppointment() {
-    if (!window.confirm(`Delete ${appointment.customerName}'s appointment? This cannot be undone.`)) return;
+    const reason = window.prompt(`Reason for cancelling ${appointment.customerName}'s appointment:`);
+    if (!reason?.trim()) return;
 
     setDeleting(true);
     setDeleteError(null);
@@ -189,7 +198,7 @@ function AppointmentPanel({
       const response = await fetch("/api/schedule/appointments", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId: appointment.id }),
+        body: JSON.stringify({ appointmentId: appointment.id, reason: reason.trim() }),
       });
       const result = (await response.json().catch(() => ({}))) as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Unable to delete appointment.");
@@ -252,11 +261,13 @@ export default function ScheduleView({
   timezone,
   technicians,
   appointments,
+  absences,
 }: {
   monday: string;
   timezone: string;
   technicians: ScheduleTechnician[];
   appointments: ScheduleAppointment[];
+  absences: ScheduleAbsence[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
@@ -341,6 +352,7 @@ export default function ScheduleView({
             <span>
               <i className={styles.closedSwatch} />Off shift or no service
             </span>
+            <span><i className={styles.absenceSwatch} />Approved time off splits the working shift</span>
           </div>
           <div className={styles.grid} aria-label="Weekly technician schedule">
             <div className={styles.corner}>Technician</div>
@@ -382,6 +394,7 @@ export default function ScheduleView({
                       day={day}
                       technician={technician}
                       entries={entries}
+                      absences={absences.filter((absence) => absence.technicianId === technician.id && absence.date === day)}
                       timelineStart={timelineStart}
                       timelineEnd={timelineEnd}
                       timezone={timezone}
@@ -397,9 +410,13 @@ export default function ScheduleView({
               const entries = visibleTechnicians.flatMap(
                 (technician) => byCell.get(`${technician.id}:${day}`) ?? []
               );
+              const dayAbsences = absences.filter((absence) => absence.date === day && visibleTechnicians.some((tech) => tech.id === absence.technicianId));
               return (
                 <section className={styles.agendaDay} key={day}>
                   <h2>{localDate(day).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</h2>
+                  {dayAbsences.map((absence) => <div key={`${absence.technicianId}-${absence.startMin}`} className={styles.subtle}>
+                    {technicians.find((tech) => tech.id === absence.technicianId)?.name}: approved time off {formatMinuteOfDay(absence.startMin)} to {formatMinuteOfDay(absence.endMin)}. Working intervals are split around this block.
+                  </div>)}
                   {entries.length === 0 ? (
                     <div className={styles.subtle}>{isWeekend(day) ? "No service." : "No visits scheduled."}</div>
                   ) : (

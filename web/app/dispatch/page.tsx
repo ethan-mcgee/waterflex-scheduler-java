@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { localMidnightUtc, tomorrowInTz } from "@/lib/date";
+import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function DispatchPage({
   }
 
   const date = searchParams.date ?? tomorrowInTz(metro.timezone);
-  const dayStart = localMidnightUtc(date, metro.timezone);
+  const dayStart = new Date(`${date}T00:00:00.000Z`);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const technicians = await prisma.technician.findMany({
@@ -31,6 +31,7 @@ export default async function DispatchPage({
     where: {
       technicianId: { in: technicians.map((t) => t.id) },
       serviceDate: { gte: dayStart, lt: dayEnd },
+      cancelledAt: null,
     },
     include: {
       job: {
@@ -79,6 +80,7 @@ export default async function DispatchPage({
     <><nav style={{ padding: "0.75rem 2rem", display: "flex", gap: "1rem" }}>
       <a href="/dispatch/availability">Shifts and qualifications</a>
       <a href="/dispatch/follow-up">Manual follow-up</a>
+      <a href="/time-off">Technician time off</a>
     </nav><DispatchBoard
       metroId={metro.id}
       timezone={metro.timezone}

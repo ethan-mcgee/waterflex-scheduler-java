@@ -109,6 +109,9 @@ jobs:
       - name: Optimizer smoke
         working-directory: web
         run: npm run test:optimizer:integration
+      - name: Time-off repair smoke
+        working-directory: web
+        run: npm run test:time-off:integration
       - name: Print service logs on failure
         if: failure()
         run: |

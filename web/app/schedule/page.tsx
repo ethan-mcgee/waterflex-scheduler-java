@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { addCalendarDays, calendarDateInTz, localMidnightUtc, mondayOfWeek, tomorrowInTz } from "@/lib/date";
+import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import ScheduleView from "./ScheduleView";
-import type { ScheduleAppointment, ScheduleTechnician } from "./types";
+import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +30,8 @@ export default async function SchedulePage({
     : tomorrowInTz(metro.timezone);
   const monday = mondayOfWeek(requestedDate);
   const nextMonday = addCalendarDays(monday, 7);
-  const weekStart = localMidnightUtc(monday, metro.timezone);
-  const weekEnd = localMidnightUtc(nextMonday, metro.timezone);
+  const weekStart = new Date(`${monday}T00:00:00.000Z`);
+  const weekEnd = new Date(`${nextMonday}T00:00:00.000Z`);
 
   const technicians = await prisma.technician.findMany({
     where: { metroId: metro.id, active: true },
@@ -44,6 +44,7 @@ export default async function SchedulePage({
     where: {
       technicianId: { in: technicianIds },
       serviceDate: { gte: weekStart, lt: weekEnd },
+      cancelledAt: null,
     },
     include: {
       technician: { select: { name: true } },
@@ -57,12 +58,20 @@ export default async function SchedulePage({
     },
     orderBy: [{ technicianId: "asc" }, { serviceDate: "asc" }, { plannedStart: "asc" }, { sequence: "asc" }],
   });
+  const absenceIntervals = await prisma.timeOffInterval.findMany({
+    where: { serviceDate: { gte: weekStart, lt: weekEnd }, request: { status: "APPROVED", technicianId: { in: technicianIds } } },
+    include: { request: { select: { technicianId: true } } },
+  });
+  const absences: ScheduleAbsence[] = absenceIntervals.map((interval) => ({
+    technicianId: interval.request.technicianId, date: interval.serviceDate.toISOString().slice(0, 10),
+    startMin: interval.startMin, endMin: interval.endMin,
+  }));
 
   const scheduleAppointments: ScheduleAppointment[] = appointments.map((appointment) => ({
     id: appointment.id,
     technicianId: appointment.technicianId,
     technicianName: appointment.technician.name,
-    date: calendarDateInTz(appointment.serviceDate, metro.timezone),
+    date: appointment.serviceDate.toISOString().slice(0, 10),
     customerName: `${appointment.job.customer.firstName} ${appointment.job.customer.lastName}`,
     serviceName: appointment.job.service.name,
     addressLine: [
@@ -86,6 +95,7 @@ export default async function SchedulePage({
       timezone={metro.timezone}
       technicians={technicians satisfies ScheduleTechnician[]}
       appointments={scheduleAppointments}
+      absences={absences}
     />
   );
 }

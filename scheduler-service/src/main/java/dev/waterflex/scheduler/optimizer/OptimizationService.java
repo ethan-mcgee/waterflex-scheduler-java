@@ -4,6 +4,7 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.RoadClient;
+import dev.waterflex.scheduler.ScheduleCutoff;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -12,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.Timestamp;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.*;
 import java.util.*;
 
@@ -35,12 +38,12 @@ public class OptimizationService {
 
     public Map<String, Object> preview(Request request) {
         LocalDate day = parseDay(request.date());
-        if (day.isBefore(LocalDate.now(CHICAGO).plusDays(2)))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tomorrow's routes are frozen");
+        if (ScheduleCutoff.frozen(day, Instant.now()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Route is frozen after 6 a.m. local time");
         Problem baseline = build(request.metro_id(), day);
         if (baseline.visits().isEmpty()) return persist(request.metro_id(), day, baseline, baseline.plan(),
-                new DayScoreCalculator.Evaluation(0, 0, Map.of(), 0, 0, 0),
-                new DayScoreCalculator.Evaluation(0, 0, Map.of(), 0, 0, 0), 0, "SKIPPED", "No appointments");
+                new DayScoreCalculator.Evaluation(0, 0, Map.of(), 0, 0, 0, 0, 0),
+                new DayScoreCalculator.Evaluation(0, 0, Map.of(), 0, 0, 0, 0, 0), 0, "SKIPPED", "No appointments");
         if (hasHolds(baseline.versions().keySet(), day)) return skipped(request.metro_id(), day, baseline, "Active hold");
         var before = DayScoreCalculator.evaluate(baseline.plan());
         if (before.hardPenalty() != 0) return skipped(request.metro_id(), day, baseline, "Baseline infeasible");
@@ -51,6 +54,45 @@ public class OptimizationService {
         String status = after.hardPenalty() == 0 && after.costCents() < before.costCents() ? "PREVIEW" : "SKIPPED";
         return persist(request.metro_id(), day, baseline, solved, before, after, solveMs, status,
                 status.equals("PREVIEW") ? null : "No feasible cost improvement");
+    }
+
+    public Map<String, Object> previewRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
+        if (ScheduleCutoff.frozen(day, Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination");
+        Problem baseline = build(metroId, day);
+        if (hasHolds(baseline.versions().keySet(), day)) return skipped(metroId, day, baseline, "ACTIVE_RESERVATIONS");
+        var before = DayScoreCalculator.evaluate(baseline.plan());
+        TechRoute absent = baseline.plan().getRoutes().stream().filter(route -> route.getId().equals(absentTechnicianId)).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Technician not in metro"));
+        absent.getUnavailable().add(new TechRoute.Unavailable(localInstant(day, startMin, false), localInstant(day, endMin, true)));
+        long started = System.nanoTime();
+        DayPlan solved = solverFactory.buildSolver().solve(baseline.plan());
+        int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
+        var after = DayScoreCalculator.evaluate(solved);
+        String status = after.hardPenalty() == 0 && RouteEvaluator.evaluate(solved).feasible() ? "REPAIR_PREVIEW" : "SKIPPED";
+        String reason = null;
+        if (!status.equals("REPAIR_PREVIEW"))
+            reason = after.hardPenalty() == 0 ? "VALIDATED_CONSTRAINT_CONFLICT"
+                    : individuallyImpossible(baseline.plan()) ? "VALIDATED_CONSTRAINT_CONFLICT" : "SEARCH_BUDGET_EXHAUSTED";
+        return persist(metroId, day, baseline, solved, before, after, solveMs, status,
+                reason);
+    }
+
+    private boolean individuallyImpossible(DayPlan plan) {
+        for (PlanVisit visit : plan.getVisits()) {
+            boolean possible = false;
+            for (TechRoute route : plan.getRoutes()) {
+                if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) continue;
+                TechRoute single = new TechRoute(route.getId(), route.getShiftStart(), route.getShiftEnd(),
+                        route.getMaxDailyMinutes(), route.getMaxOvertimeMinutes(), route.getQualifiedServiceIds());
+                single.setUnavailable(new ArrayList<>(route.getUnavailable()));
+                single.getVisits().add(visit);
+                DayPlan trial = new DayPlan(List.of(single), List.of(visit), plan.getMatrix(), plan.getRegularHourly(),
+                        plan.getOvertimeHourly(), plan.getMileagePerMile(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes());
+                if (DayScoreCalculator.evaluate(trial).hardPenalty() == 0) { possible = true; break; }
+            }
+            if (!possible) return true;
+        }
+        return false;
     }
 
     private Map<String, Object> skipped(String metroId, LocalDate day, Problem baseline, String reason) {
@@ -76,7 +118,7 @@ public class OptimizationService {
         try {
             jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
                     id, metroId, dayStamp(day), mapper.writeValueAsString(baseline.versions()),
-                    mapper.writeValueAsString(Map.of("mapVersion", roads.currentVersion())), status, solveMs,
+                    mapper.writeValueAsString(Map.of("mapVersion", roads.currentVersion(), "configVersion", configurationVersion(metroId, day))), status, solveMs,
                     mapper.writeValueAsString(summary(baseline.plan(), before)), mapper.writeValueAsString(summary(proposal, after)),
                     "[]", mapper.writeValueAsString(assignments), improvement, status, reason);
             Map<String, VisitData> original = new HashMap<>();
@@ -100,13 +142,26 @@ public class OptimizationService {
 
     @Transactional
     public Map<String, Object> apply(String runId) {
+        return applyInternal(runId, null);
+    }
+
+    @Transactional
+    public Map<String, Object> applyRepair(String runId, String absentTechnicianId, LocalDate day, int startMin, int endMin) {
+        return applyInternal(runId, absentTechnicianId, day, startMin, endMin);
+    }
+
+    private Map<String, Object> applyInternal(String runId, String absentTechnicianId) {
+        return applyInternal(runId, absentTechnicianId, null, 0, 0);
+    }
+
+    private Map<String, Object> applyInternal(String runId, String absentTechnicianId, LocalDate repairDay, int startMin, int endMin) {
         var runRows = jdbc.query("SELECT \"metroId\", \"serviceDate\", \"scheduleVersions\"::text, \"proposedAssignments\"::text, weights::text, status FROM optimization_run WHERE id=? FOR UPDATE",
                 (rs, n) -> new String[]{rs.getString(1), rs.getTimestamp(2).toInstant().toString(), rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6)}, runId);
         if (runRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
         String[] run = runRows.getFirst();
-        if (!run[5].equals("PREVIEW")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Preview cannot be applied");
+        if (!run[5].equals(absentTechnicianId == null ? "PREVIEW" : "REPAIR_PREVIEW")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Preview cannot be applied");
         LocalDate day = Instant.parse(run[1]).atZone(ZoneOffset.UTC).toLocalDate();
-        if (day.isBefore(LocalDate.now(CHICAGO).plusDays(2))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Tomorrow's routes are frozen");
+        if (ScheduleCutoff.frozen(day, Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
         try {
             JsonNode versionNode = mapper.readTree(run[2]);
             List<String> techIds = new ArrayList<>();
@@ -117,8 +172,15 @@ public class OptimizationService {
                 int current = jdbc.queryForObject("SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, techId, dayStamp(day));
                 if (current != versionNode.path(techId).asInt()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Schedule changed");
             }
+            if (ScheduleCutoff.frozen(day, Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
             if (hasHolds(new HashSet<>(techIds), day)) throw new ResponseStatusException(HttpStatus.CONFLICT, "Active hold");
             Problem current = build(run[0], day);
+            if (!Objects.equals(mapper.readTree(run[4]).path("mapVersion").asText(), roads.currentVersion()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing map changed");
+            if (!Objects.equals(mapper.readTree(run[4]).path("configVersion").asText(), configurationVersion(run[0], day)))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Scheduling configuration changed");
+            if (absentTechnicianId != null) current.plan().getRoutes().stream().filter(route -> route.getId().equals(absentTechnicianId))
+                    .forEach(route -> route.getUnavailable().add(new TechRoute.Unavailable(localInstant(repairDay, startMin, false), localInstant(repairDay, endMin, true))));
             JsonNode assignments = mapper.readTree(run[3]);
             Map<String, JsonNode> proposed = new HashMap<>();
             for (JsonNode node : assignments) proposed.put(node.path("appointmentId").asText(), node);
@@ -141,7 +203,7 @@ public class OptimizationService {
             if (!evaluated.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal infeasible");
             Problem baseline = build(run[0], day);
             var baselineMetrics = RouteEvaluator.evaluate(baseline.plan());
-            if (!baselineMetrics.feasible() || evaluated.costCents() >= baselineMetrics.costCents())
+            if (absentTechnicianId == null && (!baselineMetrics.feasible() || evaluated.costCents() >= baselineMetrics.costCents()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "No cost improvement");
             for (TechRoute route : current.plan().getRoutes()) {
                 for (int index = 0; index < route.getVisits().size(); index++) {
@@ -190,8 +252,11 @@ public class OptimizationService {
     @Scheduled(cron = "0 0 2 * * *", zone = "America/Chicago")
     public void overnight() {
         var metros = jdbc.query("SELECT id FROM metro", (rs, n) -> rs.getString(1));
-        for (String metro : metros) for (int offset = 2; offset <= 10; offset++) {
-            try { preview(new Request(metro, LocalDate.now(CHICAGO).plusDays(offset).toString())); }
+        for (String metro : metros) for (int offset = 1, weekdays = 0; weekdays < 10; offset++) {
+            LocalDate day = LocalDate.now(CHICAGO).plusDays(offset);
+            if (day.getDayOfWeek().getValue() > 5 || ScheduleCutoff.frozen(day, Instant.now())) continue;
+            weekdays++;
+            try { preview(new Request(metro, day.toString())); }
             catch (Exception ignored) { /* A failed day remains unchanged and can be retried by dispatch. */ }
         }
     }
@@ -201,14 +266,19 @@ public class OptimizationService {
                 (rs, n) -> {
                     String id = rs.getString(1);
                     Set<String> qualifications = new HashSet<>(jdbc.query("SELECT \"serviceId\" FROM technician_qualification WHERE \"technicianId\"=?", (r, i) -> r.getString(1), id));
-                    Instant start = day.atStartOfDay(CHICAGO).plusMinutes(rs.getInt(4)).toInstant();
-                    Instant end = day.atStartOfDay(CHICAGO).plusMinutes(rs.getInt(5)).toInstant();
+                    Instant start = ScheduleCutoff.localMinute(day, rs.getInt(4), false);
+                    Instant end = ScheduleCutoff.localMinute(day, rs.getInt(5), true);
                     return new TechData(id, new RoadClient.Point(rs.getDouble(2), rs.getDouble(3)),
                             new TechRoute(id, start, end, rs.getInt(6), rs.getInt(7), qualifications));
                 }, dayStamp(day), metroId);
         Map<String, TechData> byId = new HashMap<>();
         for (TechData tech : techs) byId.put(tech.id(), tech);
-        List<VisitData> visits = jdbc.query("SELECT a.id, a.\"technicianId\",a.sequence,a.\"windowStart\",a.\"windowEnd\",a.\"plannedStart\",j.\"serviceId\",j.\"durationMin\",ad.lat,ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? ORDER BY a.\"technicianId\",a.sequence",
+        jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id WHERE r.status='APPROVED' AND i.\"serviceDate\"=?",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                    TechData tech = byId.get(rs.getString(1));
+                    if (tech != null) tech.route().getUnavailable().add(new TechRoute.Unavailable(localInstant(day, rs.getInt(2), false), localInstant(day, rs.getInt(3), true)));
+                }, dayStamp(day));
+        List<VisitData> visits = jdbc.query("SELECT a.id, a.\"technicianId\",a.sequence,a.\"windowStart\",a.\"windowEnd\",a.\"plannedStart\",j.\"serviceId\",j.\"durationMin\",ad.lat,ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\",a.sequence",
                 (rs, n) -> {
                     String id = rs.getString(1), techId = rs.getString(2);
                     Instant start = rs.getTimestamp(4).toInstant(), end = rs.getTimestamp(5).toInstant();
@@ -255,7 +325,9 @@ public class OptimizationService {
             var routeMetrics = DayScoreCalculator.evaluate(new DayPlan(List.of(route), route.getVisits(), plan.getMatrix(),
                     plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(),
                     plan.getTravelBufferPct(), plan.getTravelBufferMinutes()));
-            item.put("route_minutes", routeMetrics.paidMinutes()); item.put("drive_minutes", 0);
+            item.put("route_minutes", routeMetrics.paidMinutes()); item.put("drive_minutes", routeMetrics.driveMinutes());
+            item.put("waiting_minutes", routeMetrics.waitingMinutes()); item.put("distance_meters", routeMetrics.meters());
+            item.put("modeled_cost_cents", routeMetrics.costCents());
             item.put("workload_minutes", routeMetrics.paidMinutes()); item.put("overtime_minutes", routeMetrics.overtimeMinutes());
             result.add(item);
         }
@@ -269,6 +341,24 @@ public class OptimizationService {
         return jdbc.queryForObject("SELECT count(*) FROM slot_hold WHERE \"serviceDate\"=? AND \"technicianId\" IN (" + placeholders + ") AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
                 Integer.class, args.toArray()) > 0;
     }
+    private String configurationVersion(String metroId, LocalDate day) {
+        StringBuilder raw = new StringBuilder();
+        jdbc.query("SELECT key, value, \"updatedAt\" FROM omaha_setting ORDER BY key",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(rs.getString(1)).append(':').append(rs.getString(2)).append(':').append(rs.getString(3)).append(';'));
+        jdbc.query("SELECT id, active, \"homeLat\", \"homeLng\", \"shiftStartMin\", \"shiftEndMin\", \"maxDailyMinutes\", \"maxOvertimeMinutes\" FROM technician WHERE \"metroId\"=? ORDER BY id",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                    for (int i = 1; i <= 8; i++) raw.append(rs.getString(i)).append(':');
+                    raw.append(';');
+                }, metroId);
+        jdbc.query("SELECT q.\"technicianId\", q.\"serviceId\" FROM technician_qualification q JOIN technician t ON t.id=q.\"technicianId\" WHERE t.\"metroId\"=? ORDER BY q.\"technicianId\", q.\"serviceId\"",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(rs.getString(1)).append(':').append(rs.getString(2)).append(';'), metroId);
+        jdbc.query("SELECT o.\"technicianId\", o.available, o.\"shiftStartMin\", o.\"shiftEndMin\" FROM technician_shift_override o JOIN technician t ON t.id=o.\"technicianId\" WHERE t.\"metroId\"=? AND o.\"serviceDate\"=? ORDER BY o.\"technicianId\"",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(rs.getString(1)).append(':').append(rs.getString(2)).append(':').append(rs.getString(3)).append(':').append(rs.getString(4)).append(';'), metroId, dayStamp(day));
+        jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id JOIN technician t ON t.id=r.\"technicianId\" WHERE t.\"metroId\"=? AND r.status='APPROVED' AND i.\"serviceDate\"=? ORDER BY r.\"technicianId\", i.\"startMin\"",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(rs.getString(1)).append(':').append(rs.getString(2)).append(':').append(rs.getString(3)).append(';'), metroId, dayStamp(day));
+        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw.toString().getBytes(StandardCharsets.UTF_8))); }
+        catch (Exception e) { throw new IllegalStateException(e); }
+    }
     private void lockDay(String techId, LocalDate day) {
         jdbc.queryForObject("SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
     }
@@ -279,4 +369,5 @@ public class OptimizationService {
     private static Timestamp stamp(Instant time) { return Timestamp.from(time); }
     private static int localMinute(Instant time) { LocalTime local = time.atZone(CHICAGO).toLocalTime(); return local.getHour() * 60 + local.getMinute(); }
     private static Timestamp dayStamp(LocalDate day) { return stamp(day.atStartOfDay(ZoneOffset.UTC).toInstant()); }
+    private static Instant localInstant(LocalDate day, int minute, boolean endBoundary) { return ScheduleCutoff.localMinute(day, minute, endBoundary); }
 }

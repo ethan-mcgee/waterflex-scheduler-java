@@ -23,14 +23,16 @@ export default function AvailabilityEditor({ technicians, services }: { technici
       body: JSON.stringify({ technicianId: techId, date, available,
         shiftStartMin: available ? toMinutes(start) : null, shiftEndMin: available ? toMinutes(end) : null }),
     });
-    setMessage(response.ok ? "Saved. Reload to see the new override." : "Could not save shift.");
+    const result = await response.json();
+    setMessage(response.ok ? "Saved. Reload to see the new override." : result.error ?? "Could not save shift.");
   }
   async function toggleQualification(serviceId: string, qualified: boolean) {
     const response = await fetch("/api/dispatch/qualification", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ technicianId: techId, serviceId, qualified }),
     });
-    setMessage(response.ok ? "Saved. Reload to see the change." : "Could not save qualification.");
+    const result = await response.json();
+    setMessage(response.ok ? "Saved. Reload to see the change." : result.error ?? "Could not save qualification.");
   }
   return <div>
     <label>Technician <select value={techId} onChange={(event) => setTechId(event.target.value)}>

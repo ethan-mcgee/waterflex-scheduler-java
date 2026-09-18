@@ -71,6 +71,7 @@ model Technician {
   scheduleDays ScheduleDay[]
   qualifications TechnicianQualification[]
   shiftOverrides TechnicianShiftOverride[]
+  timeOffRequests TimeOffRequest[]
 
   @@index([metroId, active])
   @@map("technician")
@@ -165,6 +166,7 @@ model Job {
   slotHolds            SlotHold[]
   bookingOptimizations BookingOptimization[]
   bookingOffers BookingOffer[]
+  offerSets BookingOfferSet[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
 
@@ -189,6 +191,8 @@ model Appointment {
   externalId String?  @unique
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  cancelledAt DateTime?
+  cancellationReason String?
 
   @@index([technicianId, serviceDate])
   @@map("appointment")
@@ -229,6 +233,8 @@ model SlotHold {
   createdAt             DateTime             @default(now())
   bookingOptimizationId String?
   bookingOptimization   BookingOptimization? @relation(fields: [bookingOptimizationId], references: [id])
+  offerSetId String?
+  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
 
   @@index([technicianId, serviceDate])
   @@index([expiresAt])
@@ -250,9 +256,66 @@ model BookingOffer {
   incrementalRoadMeters Int?
   incrementalCostDollars Float?
   createdAt DateTime @default(now())
+  offerSetId String?
+  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
 
   @@index([jobId, expiresAt])
   @@map("booking_offer")
+}
+
+model BookingOfferSet {
+  id String @id @default(cuid())
+  jobId String
+  job Job @relation(fields: [jobId], references: [id])
+  expiresAt DateTime
+  supersededAt DateTime?
+  selectedOfferId String?
+  createdAt DateTime @default(now())
+  offers BookingOffer[]
+  holds SlotHold[]
+
+  @@index([jobId, expiresAt])
+  @@map("booking_offer_set")
+}
+
+model TimeOffRequest {
+  id String @id @default(cuid())
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id])
+  reason String
+  status String @default("PENDING")
+  createdAt DateTime @default(now())
+  decidedAt DateTime?
+  intervals TimeOffInterval[]
+  report TimeOffReport?
+
+  @@index([technicianId, status])
+  @@map("time_off_request")
+}
+
+model TimeOffInterval {
+  id String @id @default(cuid())
+  requestId String
+  request TimeOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  serviceDate DateTime
+  startMin Int
+  endMin Int
+
+  @@index([serviceDate])
+  @@map("time_off_interval")
+}
+
+model TimeOffReport {
+  id String @id @default(cuid())
+  requestId String @unique
+  request TimeOffRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status String @default("QUEUED")
+  progress Int @default(0)
+  data Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("time_off_report")
 }
 
 model TechnicianQualification {

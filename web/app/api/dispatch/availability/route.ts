@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { EngineError, updateAvailability } from "@/lib/engineClient";
 
 export async function POST(req: NextRequest) {
   const body = await req.json() as { technicianId?: string; date?: string; available?: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null };
@@ -8,12 +8,9 @@ export async function POST(req: NextRequest) {
   if (body.available && (!Number.isInteger(body.shiftStartMin) || !Number.isInteger(body.shiftEndMin)
       || body.shiftStartMin! < 0 || body.shiftEndMin! > 1440 || body.shiftStartMin! >= body.shiftEndMin!))
     return NextResponse.json({ error: "Invalid shift hours" }, { status: 400 });
-  const serviceDate = new Date(`${body.date}T00:00:00.000Z`);
-  const data = { available: body.available, shiftStartMin: body.available ? body.shiftStartMin : null,
-    shiftEndMin: body.available ? body.shiftEndMin : null };
-  const saved = await prisma.technicianShiftOverride.upsert({
-    where: { technicianId_serviceDate: { technicianId: body.technicianId, serviceDate } },
-    update: data, create: { technicianId: body.technicianId, serviceDate, ...data },
-  });
-  return NextResponse.json({ id: saved.id });
+  try { return NextResponse.json(await updateAvailability(body as { technicianId: string; date: string; available: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null })); }
+  catch (error) {
+    if (error instanceof EngineError) return NextResponse.json({ error: error.message }, { status: error.status });
+    throw error;
+  }
 }
