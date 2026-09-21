@@ -87,6 +87,8 @@ The Monaco fixture smoke scripts are `npm run test:booking:integration`, `npm ru
 
 The dispatch HTTP regression test exercises Spring MVC serialization and checks actual road coordinate arrays, home departure/return, empty schedules, malformed coordinates, and routing failures. The optimizer smoke checks current, before, and proposed geometry, including route endpoints and technician identity. Portal geometry tests reject malformed payloads and stale date/phase responses. For a local visual check, open a scheduled dispatch day, confirm road-following outbound and return legs, switch to an empty day and back, and inspect an existing run's before/proposed views.
 
+The required nullability gates, warning inventory, intentional-null contracts, and regression commands are documented in [Nullability remediation](docs/nullability-remediation.md).
+
 ## Local cutover and rollback
 
 The included Compose database is isolated. Before connecting to a copy of an existing scheduler database, back it up, run Prisma migrations against the copy, and verify Java reads all existing appointments and promised windows. For a local cutover, pause booking, wait for existing Python holds to expire, run the additive migration, and switch the portal engine URL and writes to Java together. Check a fresh booking and existing routes before reopening booking. To roll back, pause booking again, drain Java holds, restore the previous portal engine URL, and keep the additive tables for history. Do not point both engines at the same writable booking database at once.
