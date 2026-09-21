@@ -12,7 +12,7 @@ public final class ScheduleCutoff {
     private ScheduleCutoff() { }
 
     public static boolean frozen(LocalDate serviceDate, Instant now) {
-        return !now.isBefore(serviceDate.minusDays(1).atTime(6, 0).atZone(LOCAL).toInstant());
+        return !now.isBefore(serviceDate.atTime(6, 0).atZone(LOCAL).toInstant());
     }
 
     public static Instant localMinute(LocalDate day, int minute, boolean endBoundary) {

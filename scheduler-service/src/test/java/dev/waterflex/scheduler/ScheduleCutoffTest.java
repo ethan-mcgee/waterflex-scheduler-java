@@ -8,17 +8,30 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ScheduleCutoffTest {
     @Test
-    void freezesAtSixAmChicagoBeforeServiceDay() {
+    void precedingDayIsNotFrozen() {
         LocalDate monday = LocalDate.parse("2026-09-21");
-        assertFalse(ScheduleCutoff.frozen(monday, Instant.parse("2026-09-20T10:59:59Z")));
-        assertTrue(ScheduleCutoff.frozen(monday, Instant.parse("2026-09-20T11:00:00Z")));
+        assertFalse(ScheduleCutoff.frozen(monday, Instant.parse("2026-09-20T11:00:00Z")));
     }
 
     @Test
-    void daylightSavingUsesLocalSixAm() {
-        LocalDate fallBack = LocalDate.parse("2026-11-02");
+    void freezesAtSixAmChicagoOnServiceDay() {
+        LocalDate monday = LocalDate.parse("2026-09-21");
+        assertFalse(ScheduleCutoff.frozen(monday, Instant.parse("2026-09-21T10:59:59Z")));
+        assertTrue(ScheduleCutoff.frozen(monday, Instant.parse("2026-09-21T11:00:00Z")));
+    }
+
+    @Test
+    void daylightSavingFallBackUsesLocalSixAm() {
+        LocalDate fallBack = LocalDate.parse("2026-11-01");
         assertFalse(ScheduleCutoff.frozen(fallBack, Instant.parse("2026-11-01T11:59:59Z")));
         assertTrue(ScheduleCutoff.frozen(fallBack, Instant.parse("2026-11-01T12:00:00Z")));
+    }
+
+    @Test
+    void daylightSavingSpringForwardUsesLocalSixAm() {
+        LocalDate springForward = LocalDate.parse("2026-03-08");
+        assertFalse(ScheduleCutoff.frozen(springForward, Instant.parse("2026-03-08T10:59:59Z")));
+        assertTrue(ScheduleCutoff.frozen(springForward, Instant.parse("2026-03-08T11:00:00Z")));
     }
 
     @Test
