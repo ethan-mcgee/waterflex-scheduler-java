@@ -31,7 +31,7 @@ Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` v
 - `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
 - `/schedule`: weekly routes, approved time-off blocks, promises, and reasoned cancellation.
 - `/dispatch`: route review and overnight optimization preview and apply.
-- `/dispatch/testing`: opt-in local sequential booking runs and automatic day previews. Enable with `LOCAL_BOOKING_TESTS=true`; see [operation, recovery, and verification](docs/sequential-booking-tests.md).
+- `/dispatch/testing`: local Compose sequential booking runs and automatic day previews. Compose enables the route by default; set `LOCAL_BOOKING_TESTS=false` to opt out. Non-Compose and production environments remain disabled unless they explicitly set `LOCAL_BOOKING_TESTS=true`. See [operation, recovery, and verification](docs/sequential-booking-tests.md).
 - `/dispatch/availability`: qualifications and date-specific shifts.
 - `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.
 - `/time-off`: local demo technician selector, request history, and staff approval queue. The selector does not authenticate a technician.
