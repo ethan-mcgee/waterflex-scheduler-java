@@ -358,7 +358,7 @@ public class OptimizationService {
         roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
         Map<String, Double> settings = new HashMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(Required.string(rs, 1), Required.number(rs, 2)));
-        DayPlan plan = new DayPlan(Required.value(techs.stream().<TechRoute>map(TechData::route).toList()), Required.value(visits.stream().<PlanVisit>map(VisitData::visit).toList()), matrix,
+        DayPlan plan = new DayPlan(Required.value(techs.stream().<TechRoute>map((TechData tech) -> tech.route()).toList()), Required.value(visits.stream().<PlanVisit>map((VisitData visit) -> visit.visit()).toList()), matrix,
                 settings.getOrDefault("regular_hourly_dollars", 30.0), settings.getOrDefault("overtime_hourly_dollars", 45.0),
                 settings.getOrDefault("mileage_dollars_per_mile", 0.67), settings.getOrDefault("travel_buffer_pct", 0.2),
                 Math.round(settings.getOrDefault("travel_buffer_minutes_per_leg", 5.0)));
@@ -376,7 +376,7 @@ public class OptimizationService {
         for (TechRoute route : plan.getRoutes()) {
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("technician_id", route.getId()); item.put("stop_count", route.getVisits().size());
-            item.put("appointment_ids", route.getVisits().stream().map(PlanVisit::getId).toList());
+            item.put("appointment_ids", route.getVisits().stream().map((PlanVisit visit) -> visit.getId()).toList());
             var routeMetrics = DayScoreCalculator.evaluate(new DayPlan(Required.value(List.of(route)), route.getVisits(), plan.getMatrix(),
                     plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(),
                     plan.getTravelBufferPct(), plan.getTravelBufferMinutes()));

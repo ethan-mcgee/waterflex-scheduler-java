@@ -101,7 +101,7 @@ public final class RouteEvaluator {
         Instant end = route.getShiftEnd().plus(Duration.ofMinutes(route.getMaxOvertimeMinutes()));
         Instant cursor = route.getShiftStart();
         List<TechRoute.Unavailable> absences = new ArrayList<>(route.getUnavailable());
-        absences.sort(Comparator.comparing(TechRoute.Unavailable::start));
+        absences.sort(Comparator.comparing((TechRoute.Unavailable absence) -> absence.start()));
         for (TechRoute.Unavailable absence : absences) {
             Instant beforeEnd = absence.start().isBefore(end) ? absence.start() : end;
             if (cursor.isBefore(beforeEnd)) work.add(new Work(cursor, Required.value(beforeEnd)));
