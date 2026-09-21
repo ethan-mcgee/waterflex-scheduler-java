@@ -42,6 +42,7 @@ public class ScheduleGuardService {
     public void availability(String technicianId, LocalDate day, boolean available, Integer start, Integer end) {
         if (available && (start == null || end == null || start < 0 || end > 1440 || start >= end))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid shift hours");
+        unfrozen(day);
         lockTechnician(technicianId);
         lockDay(technicianId, day);
         noHolds(technicianId, day);

@@ -40,7 +40,7 @@ public class OptimizationService {
     public Map<String, Object> preview(Request request) {
         LocalDate day = parseDay(request.date());
         if (ScheduleCutoff.frozen(day, Instant.now()))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Route is frozen after 6 a.m. local time");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
         Problem baseline = build(request.metro_id(), day);
         if (baseline.visits().isEmpty()) return persist(request.metro_id(), day, baseline, baseline.plan(),
                 new DayScoreCalculator.Evaluation(0, 0, Map.of(), 0, 0, 0, 0, 0),
@@ -270,13 +270,20 @@ public class OptimizationService {
     @Scheduled(cron = "0 0 2 * * *", zone = "America/Chicago")
     public void overnight() {
         var metros = jdbc.query("SELECT id FROM metro", (rs, n) -> rs.getString(1));
-        for (String metro : metros) for (int offset = 1, weekdays = 0; weekdays < 10; offset++) {
-            LocalDate day = LocalDate.now(CHICAGO).plusDays(offset);
-            if (day.getDayOfWeek().getValue() > 5 || ScheduleCutoff.frozen(day, Instant.now())) continue;
-            weekdays++;
+        for (String metro : metros) for (LocalDate day : overnightDates(Instant.now())) {
             try { preview(new Request(metro, day.toString())); }
             catch (Exception ignored) { /* A failed day remains unchanged and can be retried by dispatch. */ }
         }
+    }
+
+    static List<LocalDate> overnightDates(Instant now) {
+        List<LocalDate> days = new ArrayList<>();
+        LocalDate day = now.atZone(CHICAGO).toLocalDate();
+        while (days.size() < 10) {
+            if (day.getDayOfWeek().getValue() <= 5 && !ScheduleCutoff.frozen(day, now)) days.add(day);
+            day = day.plusDays(1);
+        }
+        return days;
     }
 
     private Problem build(String metroId, LocalDate day) {
