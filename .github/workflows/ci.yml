@@ -26,6 +26,8 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Validate Compose configuration
+        run: docker compose --profile map-import config --quiet
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
       - name: Install portal dependencies and generate Prisma client
