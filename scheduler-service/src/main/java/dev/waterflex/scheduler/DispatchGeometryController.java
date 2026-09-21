@@ -1,5 +1,7 @@
 package dev.waterflex.scheduler;
 
+import org.jspecify.annotations.Nullable;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
@@ -22,6 +24,7 @@ public class DispatchGeometryController {
     public record LineString(String type, List<List<Double>> coordinates) { }
     public record RoadProperties(String technicianId, String interval, int legIndex, long seconds, long meters) { }
     public record RoadFeature(String type, LineString geometry, RoadProperties properties) { }
+    private record SavedGeometry(String before, String after, String weights) { }
     private record Stop(String id, String technicianId, int sequence, Instant plannedStart, RoadClient.Point point) { }
     private record Absence(Instant start, Instant end) { }
     private final JdbcTemplate jdbc;
@@ -36,7 +39,7 @@ public class DispatchGeometryController {
     @ExceptionHandler(RoadClient.RoadUnavailable.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public Map<String, String> roadUnavailable(RoadClient.RoadUnavailable error) {
-        return Map.of("detail", error.getMessage());
+        return Required.value(Map.of("detail", error.getMessage()));
     }
 
     private static LineString lineString(JsonNode geometry) {
@@ -57,7 +60,7 @@ public class DispatchGeometryController {
 
     @GetMapping("/v1/dispatch/geometry")
     public Map<String, Object> geometry(@RequestParam("metro_id") String metroId, @RequestParam String date,
-                                         @RequestParam(value = "run_id", required = false) String runId,
+                                         @RequestParam(value = "run_id", required = false) @Nullable String runId,
                                          @RequestParam(value = "phase", defaultValue = "current") String phase) {
         LocalDate day;
         try { day = LocalDate.parse(date); }
@@ -69,21 +72,21 @@ public class DispatchGeometryController {
         Timestamp serviceDate = Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant());
         Map<String, RoadClient.Point> homes = new LinkedHashMap<>();
         jdbc.query("SELECT id, \"homeLat\", \"homeLng\" FROM technician WHERE \"metroId\"=? ORDER BY id",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> homes.put(rs.getString(1),
-                        new RoadClient.Point(rs.getDouble(2), rs.getDouble(3))), metroId);
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> homes.put(Required.string(rs, 1),
+                        Required.location(rs, 2, 3, HttpStatus.CONFLICT)), metroId);
         List<Stop> stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
-                (rs, n) -> new Stop(rs.getString(1), rs.getString(2), rs.getInt(3), rs.getTimestamp(4).toInstant(),
-                        new RoadClient.Point(rs.getDouble(5), rs.getDouble(6))), metroId, serviceDate);
+                (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()),
+                        Required.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
         if (runId != null && !runId.isBlank()) {
             var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
-                    (rs, n) -> new String[]{rs.getString(1), rs.getString(2), rs.getString(3)}, runId, metroId, serviceDate);
+                    (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)), runId, metroId, serviceDate);
             if (runs.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Optimization run not found");
             if (!phase.equals("current")) {
                 try {
-                    if (!mapper.readTree(runs.getFirst()[2]).path("mapVersion").asText().equals(roads.activeIdentity()))
+                    if (!SavedJson.provenance(Required.value(mapper.readTree(runs.getFirst().weights()))).path("mapVersion").asText().equals(roads.activeIdentity()))
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; generate a new preview");
                     Map<String, JsonNode> assignments = new HashMap<>();
-                    for (JsonNode node : mapper.readTree(runs.getFirst()[phase.equals("before") ? 0 : 1])) {
+                    for (JsonNode node : SavedJson.assignments(Required.value(mapper.readTree(phase.equals("before") ? runs.getFirst().before() : runs.getFirst().after())))) {
                         String id = node.path("appointmentId").asText("");
                         if (id.isBlank() || assignments.put(id, node) != null)
                             throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignments");
@@ -98,8 +101,8 @@ public class DispatchGeometryController {
                         RoadClient.Point location = assignment.path("locationLat").isNumber() && assignment.path("locationLng").isNumber()
                                 ? new RoadClient.Point(assignment.path("locationLat").asDouble(), assignment.path("locationLng").asDouble())
                                 : stop.point();
-                        proposed.add(new Stop(stop.id(), assignment.path("technicianId").asText(),
-                                assignment.path("sequence").asInt(), Instant.parse(assignment.path("plannedStart").asText()), location));
+                        proposed.add(new Stop(stop.id(), Required.value(assignment.path("technicianId").asText()),
+                                assignment.path("sequence").asInt(), Required.value(Instant.parse(assignment.path("plannedStart").asText())), location));
                     }
                     stops = proposed;
                 } catch (ResponseStatusException e) { throw e; }
@@ -108,9 +111,9 @@ public class DispatchGeometryController {
         }
         Map<String, List<Absence>> absences = new HashMap<>();
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id WHERE r.status='APPROVED' AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> absences.computeIfAbsent(rs.getString(1), unused -> new ArrayList<>())
-                        .add(new Absence(ScheduleCutoff.localMinute(day, rs.getInt(2), false),
-                                ScheduleCutoff.localMinute(day, rs.getInt(3), true))), serviceDate);
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> absences.computeIfAbsent(Required.string(rs, 1), _ -> new ArrayList<>())
+                        .add(new Absence(ScheduleCutoff.localMinute(day, Required.integer(rs, 2), false),
+                                ScheduleCutoff.localMinute(day, Required.integer(rs, 3), true))), serviceDate);
         Map<String, List<Stop>> groups = new LinkedHashMap<>();
         for (Stop stop : stops) {
             int interval = 0;
@@ -119,7 +122,7 @@ public class DispatchGeometryController {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Visit overlaps approved absence");
                 if (!stop.plannedStart().isBefore(absence.end())) interval++;
             }
-            groups.computeIfAbsent(stop.technicianId() + ":" + interval, unused -> new ArrayList<>()).add(stop);
+            groups.computeIfAbsent(stop.technicianId() + ":" + interval, _ -> new ArrayList<>()).add(stop);
         }
         String identity = roads.activeIdentity();
         List<RoadFeature> features = new ArrayList<>();
@@ -134,11 +137,11 @@ public class DispatchGeometryController {
             route.forEach(stop -> points.add(stop.point()));
             points.add(home);
             for (int offset = 0; offset < points.size() - 1; offset += 64) {
-                JsonNode legs = roads.routeGeometry(points.subList(offset, Math.min(points.size(), offset + 65)), identity).path("legs");
+                JsonNode legs = roads.routeGeometry(Required.value(points.subList(offset, Math.min(points.size(), offset + 65))), identity).path("legs");
                 for (int i = 0; i < legs.size(); i++) {
                     JsonNode leg = legs.get(i);
-                    features.add(new RoadFeature("Feature", lineString(leg.path("geometry")),
-                            new RoadProperties(techId, group.getKey(), offset + i,
+                    features.add(new RoadFeature("Feature", lineString(Required.value(leg.path("geometry"))),
+                            new RoadProperties(techId, Required.value(group.getKey()), offset + i,
                                     leg.path("seconds").asLong(), leg.path("meters").asLong())));
                 }
             }
@@ -146,7 +149,7 @@ public class DispatchGeometryController {
         List<Map<String, Object>> displayedStops = stops.stream().map(stop -> Map.<String, Object>of(
                 "id", stop.id(), "technicianId", stop.technicianId(), "sequence", stop.sequence(),
                 "plannedStart", stop.plannedStart().toString(), "lat", stop.point().lat(), "lng", stop.point().lng())).toList();
-        return Map.of("type", "FeatureCollection", "features", features, "stops", displayedStops,
-                "routingIdentity", identity, "serviceDate", day.toString(), "phase", phase);
+        return Required.value(Map.of("type", "FeatureCollection", "features", features, "stops", Required.value(displayedStops),
+                "routingIdentity", identity, "serviceDate", Required.value(day.toString()), "phase", phase));
     }
 }

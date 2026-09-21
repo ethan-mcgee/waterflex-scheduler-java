@@ -1,55 +1,22 @@
+import { Prisma } from "@prisma/client";
+import { readBody, bookingRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { searchAddress } from "@/lib/geocode";
 import { resolveMetroForLocation } from "@/lib/serviceArea";
 import { requestSlots, EngineError } from "@/lib/engineClient";
 
-interface BookingRequestBody {
-  requestId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  serviceCode: string;
-  confirmedPin?: { lat: number; lng: number };
-}
-
-const REQUIRED_FIELDS: (keyof BookingRequestBody)[] = [
-  "requestId",
-  "firstName",
-  "lastName",
-  "email",
-  "phone",
-  "line1",
-  "city",
-  "state",
-  "postalCode",
-  "serviceCode",
-];
-
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as Partial<BookingRequestBody>;
-
-  const missing = REQUIRED_FIELDS.filter((f) => !body[f]);
-  if (missing.length > 0) {
-    return NextResponse.json({ error: `Missing required fields: ${missing.join(", ")}` }, { status: 400 });
-  }
-  const input = body as BookingRequestBody;
-
-  if (typeof input.requestId !== "string" || input.requestId.trim().length < 16) {
-    return NextResponse.json({ error: "Missing or invalid booking request ID." }, { status: 400 });
-  }
+  const parsed = await readBody(req, bookingRequest);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid booking request" }, { status: 400 });
+  const input = parsed.data;
+  const pin = input.confirmedPin;
 
   const candidates = await searchAddress(input);
   const geocode = candidates[0] ?? null;
-  const selected = input.confirmedPin
-    ? candidates.find((candidate) => Math.abs(candidate.lat - input.confirmedPin!.lat) < 0.0001
-      && Math.abs(candidate.lng - input.confirmedPin!.lng) < 0.0001)
+  const selected = pin
+    ? candidates.find((candidate) => Math.abs(candidate.lat - pin.lat) < 0.0001
+      && Math.abs(candidate.lng - pin.lng) < 0.0001)
     : geocode?.precision === "ROOFTOP" ? geocode : null;
   if (input.confirmedPin && !selected) return NextResponse.json({ error: "Please choose a verified address pin." }, { status: 422 });
   if (selected && !(await resolveMetroForLocation(selected.lat, selected.lng))) {
@@ -116,7 +83,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       // Another request with the same id may have won the unique-key race.
-      if ((err as { code?: string }).code !== "P2002") throw err;
+      if ((err instanceof Prisma.PrismaClientKnownRequestError ? err.code : undefined) !== "P2002") throw err;
       job = await prisma.job.findUnique({ where: { bookingRequestId: input.requestId } });
       if (!job) throw err;
     }

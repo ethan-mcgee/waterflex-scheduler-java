@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { required } from "./contracts";
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { confirmHold, selectOffer, EngineError, requestSlots, type SlotOffer } from "./engineClient";
@@ -59,7 +61,7 @@ async function loadOmahaConfiguration(): Promise<OmahaConfiguration> {
   }
   const byCode = new Map(
     services.map((service) => [
-      service.code as FakeServiceCode,
+      z.enum(FAKE_SERVICE_CODES).parse(service.code),
       {
         id: service.id,
         name: service.name,
@@ -159,7 +161,7 @@ function selectLocation(date: string, usedByDate: Map<string, Set<string>>, rand
   }
   if (used.size >= OMAHA_FAKE_LOCATIONS.length) used.clear();
   const available = OMAHA_FAKE_LOCATIONS.filter((location) => !used?.has(location.slug));
-  return available[Math.floor(random() * available.length)] as FakeLocation;
+  return required(available[Math.floor(random() * available.length)], "Available location");
 }
 
 type AddressKeyParts = Pick<FakeLocation, "line1" | "city" | "state" | "postalCode"> & {
@@ -282,7 +284,7 @@ async function tryBookDate(args: {
         await cleanupPendingJob(ids);
         return false;
       }
-      const selected = candidates[Math.floor(args.random() * candidates.length)] as SlotOffer;
+      const selected = required(candidates[Math.floor(args.random() * candidates.length)], "Candidate offer");
       try {
         const hold = await selectOffer(ids.jobId, selected.offerId);
         const confirmation = await confirmHold(hold.holdId);
@@ -356,7 +358,7 @@ export async function generateFakeData(rawInput: FakeDataInput): Promise<FakeDat
       const uniqueLocation = selectUniqueLocation(location, usedAddresses, usedCoordinates, random);
       booked = await tryBookDate({ date, seed, plan, dateAttempt, location: uniqueLocation, service, random });
       if (booked) {
-        const used = usedLocations.get(date) as Set<string>;
+        const used = required(usedLocations.get(date), "Used locations for date");
         used.add(location.slug);
         usedAddresses.add(addressKey(uniqueLocation));
         usedCoordinates.add(coordinateKey(uniqueLocation));

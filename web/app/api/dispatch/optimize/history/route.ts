@@ -1,10 +1,11 @@
+import { date as dateContract, text } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { EngineError, optimizationHistory, optimizationRun } from "@/lib/engineClient";
 
 export async function GET(req: NextRequest) {
   const metroId = req.nextUrl.searchParams.get("metroId");
   const date = req.nextUrl.searchParams.get("date");
-  if (!metroId || !date) {
+  if (!metroId || !date || !text.safeParse(metroId).success || !dateContract.safeParse(date).success) {
     return NextResponse.json({ error: "Missing metroId or date" }, { status: 400 });
   }
   try {

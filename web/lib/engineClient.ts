@@ -1,3 +1,6 @@
+import { z } from "zod";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage } from "./contracts";
+import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
 
@@ -12,35 +15,20 @@ export class EngineError extends Error {
   }
 }
 
-async function engineFetch<T>(path: string, body: unknown, timeoutMs?: number): Promise<T> {
-  const res = await fetch(`${ENGINE_URL}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-internal-secret": INTERNAL_API_SECRET,
-    },
-    body: JSON.stringify(body),
-    cache: "no-store",
-    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
-  });
-
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new EngineError(res.status, detail.detail ?? "engine request failed");
-  }
-  return res.json() as Promise<T>;
-}
-
-async function engineGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${ENGINE_URL}${path}`, {
-    headers: { "x-internal-secret": INTERNAL_API_SECRET },
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new EngineError(res.status, detail.detail ?? "engine request failed");
-  }
-  return res.json() as Promise<T>;
+async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`${ENGINE_URL}${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers: { "Content-Type": "application/json", "x-internal-secret": INTERNAL_API_SECRET },
+      body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store", signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch { throw new EngineError(503, "Scheduling service unavailable"); }
+  const value: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) throw new EngineError(res.status, errorMessage(value, res.statusText || "Scheduling request failed"));
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) throw new EngineError(502, "Malformed scheduling response");
+  return parsed.data;
 }
 
 export interface SlotOffer {
@@ -52,15 +40,15 @@ export interface SlotOffer {
 }
 
 export function requestSlots(jobId: string, refresh = false, timeoutMs?: number): Promise<{ jobId: string; offers: SlotOffer[] }> {
-  return engineFetch("/v1/offers", { jobId, refresh }, timeoutMs);
+  return request("/v1/offers", offersResponse, { jobId, refresh }, timeoutMs);
 }
 
 export function selectOffer(jobId: string, offerId: string, timeoutMs?: number): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {
-  return engineFetch("/v1/offers/select", { jobId, offerId }, timeoutMs);
+  return request("/v1/offers/select", selection, { jobId, offerId }, timeoutMs);
 }
 
 export function confirmHold(holdId: string): Promise<{ appointmentId: string; windowStart: string; windowEnd: string }> {
-  return engineFetch("/v1/holds/confirm", { holdId });
+  return request("/v1/holds/confirm", confirmation, { holdId });
 }
 
 export interface OptimizationRun {
@@ -120,44 +108,46 @@ export function previewOptimization(params: {
   date: string;
   request_key?: string;
 }, timeoutMs?: number): Promise<OptimizationRun> {
-  return engineFetch("/v1/optimize/day/preview", params, timeoutMs);
+  return request("/v1/optimize/day/preview", optimization, params, timeoutMs);
 }
 
 export function applyOptimization(runId: string): Promise<OptimizationRun> {
-  return engineFetch(`/v1/optimize/runs/${encodeURIComponent(runId)}/apply`, {});
+  return request(`/v1/optimize/runs/${encodeURIComponent(runId)}/apply`, optimization, {});
 }
 
 export function optimizationHistory(metroId: string, date: string): Promise<{ runs: OptimizationRun[] }> {
   const query = new URLSearchParams({ metro_id: metroId, date });
-  return engineGet(`/v1/optimize/runs?${query}`);
+  return request(`/v1/optimize/runs?${query}`, optimizationRuns);
 }
 
 export function optimizationRun(runId: string): Promise<OptimizationRun> {
-  return engineGet(`/v1/optimize/runs/${encodeURIComponent(runId)}`);
+  return request(`/v1/optimize/runs/${encodeURIComponent(runId)}`, optimization);
 }
 
 export function cancelAppointment(params: { appointment_id: string; reason: string }): Promise<{ success: boolean }> {
-  return engineFetch("/v1/appointments/cancel", params);
+  return request("/v1/appointments/cancel", success, params);
 }
 
 export function dispatchGeometry(metroId: string, date: string, runId?: string, phase = "current") {
   const query = new URLSearchParams({ metro_id: metroId, date, phase });
   if (runId) query.set("run_id", runId);
-  return engineGet(`/v1/dispatch/geometry?${query}`);
+  return request(`/v1/dispatch/geometry?${query}`, z.custom<GeometryResponse>(v => isDispatchGeometry(v, date, phase)));
 }
 
 export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; reason: string }): Promise<{ requestId: string; status: string }> {
-  return engineFetch("/v1/time-off/request", request);
+  return requestEngine("/v1/time-off/request", timeOffResult, request);
 }
 
 export function approveTimeOff(id: string): Promise<{ requestId: string; status: string }> {
-  return engineFetch(`/v1/time-off/${encodeURIComponent(id)}/approve`, {});
+  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, {});
 }
 
 export function updateAvailability(request: { technicianId: string; date: string; available: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null }): Promise<{ success: boolean }> {
-  return engineFetch("/v1/dispatch/availability", request);
+  return requestEngine("/v1/dispatch/availability", success, request);
 }
 
 export function updateQualification(request: { technicianId: string; serviceId: string; qualified: boolean }): Promise<{ success: boolean }> {
-  return engineFetch("/v1/dispatch/qualification", request);
+  return requestEngine("/v1/dispatch/qualification", success, request);
 }
+
+const requestEngine = request;

@@ -1,11 +1,13 @@
+import { z } from "zod";
+import { required } from "./contracts";
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { OptimizationSimulationReport, SimulationMetrics } from "./optimizationSimulationTypes";
-import { aggregateValidation } from "./optimizationAnalysis";
+import type { OptimizationSimulationReport } from "./optimizationSimulationTypes";
+import { metricMap, aggregateValidation } from "./optimizationAnalysis";
 import { EXPORT_METRIC_KEYS, serializeOptimizationCsv, serializeOptimizationJson, serializeValidationCsv, serializeValidationJson } from "./optimizationExport";
 
-const metrics = Object.fromEntries(EXPORT_METRIC_KEYS.map((key, index) => [key, index])) as unknown as SimulationMetrics;
-const deltas = Object.fromEntries(EXPORT_METRIC_KEYS.map((key) => [key, { absolute: 0, percent: null }])) as OptimizationSimulationReport["results"][number]["deltas_from_legacy"];
+const metrics = metricMap(key => EXPORT_METRIC_KEYS.indexOf(key));
+const deltas = metricMap(() => ({ absolute: 0, percent: null }));
 const report: OptimizationSimulationReport = {
   algorithm_version: "test-v1",
   config: { seed: 42, job_count: 10, technician_count: 2, horizon_days: 3 },
@@ -13,10 +15,10 @@ const report: OptimizationSimulationReport = {
 };
 
 test("JSON export retains reproducibility metadata and raw metrics", () => {
-  const value = JSON.parse(serializeOptimizationJson(report));
+  const value = z.object({ algorithm_version: z.string(), config: z.object({ seed: z.number() }), results: z.array(z.object({ metrics: z.object({ booked_jobs: z.number() }) })) }).parse(JSON.parse(serializeOptimizationJson(report)));
   assert.equal(value.algorithm_version, "test-v1");
   assert.equal(value.config.seed, 42);
-  assert.equal(value.results[0].metrics.booked_jobs, metrics.booked_jobs);
+  assert.equal(required(value.results[0]).metrics.booked_jobs, metrics.booked_jobs);
 });
 
 test("CSV export includes configuration, metrics, and both delta forms", () => {
@@ -31,12 +33,12 @@ test("validation JSON includes aggregate conclusions and every raw run", () => {
     ...report,
     results: (["soonest", "route_friendly", "mixed"] as const).flatMap((customer_profile) =>
       (["legacy", "enhanced_scoring", "lookahead"] as const).map((strategy) => ({
-        ...report.results[0]!, customer_profile, strategy,
+        ...required(report.results[0]), customer_profile, strategy,
       }))),
   };
   const runs = Array.from({ length: 20 }, (_, seed) => ({ ...completeReport, config: { ...completeReport.config, seed } }));
   const aggregate = aggregateValidation(runs);
-  const value = JSON.parse(serializeValidationJson(aggregate, runs));
+  const value = z.object({ aggregate: z.object({ run_count: z.number(), recommendation: z.object({ label: z.string() }) }), raw_runs: z.array(z.unknown()) }).parse(JSON.parse(serializeValidationJson(aggregate, runs)));
   assert.equal(value.aggregate.run_count, 20);
   assert.equal(value.raw_runs.length, 20);
   assert.ok(value.aggregate.recommendation);
@@ -47,13 +49,13 @@ test("validation CSV has one complete row per seed, profile, and strategy", () =
     ...report,
     results: (["soonest", "route_friendly", "mixed"] as const).flatMap((customer_profile) =>
       (["legacy", "enhanced_scoring", "lookahead"] as const).map((strategy) => ({
-        ...report.results[0]!, customer_profile, strategy,
+        ...required(report.results[0]), customer_profile, strategy,
       }))),
   };
   const runs = Array.from({ length: 20 }, (_, seed) => ({ ...completeReport, config: { ...completeReport.config, seed } }));
   const aggregate = aggregateValidation(runs);
   const lines = serializeValidationCsv(aggregate, runs).split("\n");
   assert.equal(lines.length, 181);
-  assert.match(lines[0]!, /"validation_recommendation"/);
-  assert.match(lines[0]!, /"booked_jobs_delta_percent"/);
+  assert.match(required(lines[0]), /"validation_recommendation"/);
+  assert.match(required(lines[0]), /"booked_jobs_delta_percent"/);
 });

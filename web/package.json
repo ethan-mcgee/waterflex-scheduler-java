@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app lib scripts prisma tests playwright.config.ts --ext .ts,.tsx --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test:schema-contract": "tsx scripts/check-java-schema-contract.ts",
     "test:geocode": "tsx --test lib/geocode.test.ts",
@@ -23,7 +23,9 @@
     "dispatch:seed-demo": "tsx scripts/seed-dispatch-demo.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "test:nullability": "tsx --test lib/nullability.test.ts",
+    "test:ui": "playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -35,13 +37,17 @@
     "next": "^14.2.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-leaflet": "^4.2.1"
+    "react-leaflet": "^4.2.1",
+    "zod": "4.1.12"
   },
   "devDependencies": {
+    "@playwright/test": "1.55.1",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^20.16.9",
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "8.70.0",
+    "@typescript-eslint/parser": "8.70.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.13",
     "prisma": "^5.20.0",
