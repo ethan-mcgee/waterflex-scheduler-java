@@ -37,8 +37,20 @@ test("test APIs require explicit enablement and local same-origin requests", () 
     assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing")), false);
     process.env.LOCAL_BOOKING_TESTS = "true";
     assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing")), true);
+    for (const externalOrigin of ["http://localhost:3001", "http://127.0.0.1:3001"]) {
+      const host = new URL(externalOrigin).host;
+      assert.equal(localTestRequestAllowed(new Request("http://localhost:3000/api/dispatch/testing", {
+        headers: { host, origin: externalOrigin, "sec-fetch-site": "same-origin" },
+      })), true);
+    }
     assert.equal(localTestRequestAllowed(new Request("http://example.com/api/dispatch/testing")), false);
+    assert.equal(localTestRequestAllowed(new Request("http://localhost:3000/api/dispatch/testing", {
+      headers: { host: "example.com", origin: "http://example.com" },
+    })), false);
     assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing", { headers: { origin: "https://example.com" } })), false);
+    assert.equal(localTestRequestAllowed(new Request("http://localhost:3000/api/dispatch/testing", {
+      headers: { host: "localhost:3001", origin: "http://localhost:3000" },
+    })), false);
     assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing", { headers: { "sec-fetch-site": "cross-site" } })), false);
   } finally { if (before === undefined) delete process.env.LOCAL_BOOKING_TESTS; else process.env.LOCAL_BOOKING_TESTS = before; }
 });
