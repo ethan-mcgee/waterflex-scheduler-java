@@ -17,6 +17,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class NullabilityTest {
+    @Test void missingRequiredQueryRowsReturnConflict() {
+        var jdbc = mock(org.springframework.jdbc.core.JdbcTemplate.class);
+        when(jdbc.queryForObject("required", Integer.class)).thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
+        assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
+                () -> Required.query(jdbc, "required", Integer.class)).getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
+                () -> Required.query(jdbc, "null-result", Integer.class)).getStatusCode());
+    }
     @Test void malformedDispatchAndAbsenceRequestsNeverReachServices() throws Exception {
         OptimizationService optimization = mock(OptimizationService.class);
         TimeOffService timeOff = mock(TimeOffService.class);
