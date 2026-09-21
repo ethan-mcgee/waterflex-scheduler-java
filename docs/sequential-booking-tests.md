@@ -1,12 +1,12 @@
 # Sequential booking and optimization tests
 
-`/dispatch/testing` is an opt-in local workload runner. It adds synthetic requests to the current Omaha schedule through real booking offers and selection, then creates review-only optimization previews. It never invokes the old generator's configuration changes or cleanup, inserts appointments directly, or applies an optimization.
+`/dispatch/testing` is a local workload runner. It adds synthetic requests to the current Omaha schedule through real booking offers and selection, then creates review-only optimization previews. It never invokes the old generator's configuration changes or cleanup, inserts appointments directly, or applies an optimization.
 
 ## Enable locally
 
-Set `LOCAL_BOOKING_TESTS=true` in the root ignored `.env` and run `docker compose up -d`. Compose forwards the flag to the portal, runs the additive migration, and rebuilds the application images. Open `http://localhost:3001/dispatch/testing`. To disable, set the flag to `false` and recreate the web container. The default is disabled, including production builds.
+Run `docker compose up -d`. Local Compose enables the route by default, forwards the flag to the portal, runs the additive migration, and rebuilds the application images. Open `http://localhost:3001/dispatch/testing`. To opt out, set `LOCAL_BOOKING_TESTS=false` in the root ignored `.env` and recreate the web container. Remove that override or set it to `true` to enable the route again.
 
-For a host-run portal, set `LOCAL_BOOKING_TESTS=true`, `DATABASE_URL`, and `ENGINE_URL` in its environment, apply `npx prisma migrate deploy`, and start Next normally. Use the updated Java scheduler because preview retry keys require the new migration and implementation. The page and APIs require a localhost or loopback host; API requests also reject cross-origin browser calls. Keep the local Compose ports bound to loopback. This is a local test tool, not a staff authentication system.
+The Compose default does not change a host-run portal or production deployment. Those environments remain disabled unless they explicitly set `LOCAL_BOOKING_TESTS=true`. For a host-run portal, also set `DATABASE_URL` and `ENGINE_URL`, apply `npx prisma migrate deploy`, and start Next normally. Use the updated Java scheduler because preview retry keys require the new migration and implementation. The page and APIs require a localhost or loopback host; API requests also reject cross-origin browser calls. Keep the local Compose ports bound to loopback. This is a local test tool, not a staff authentication system.
 
 ## Run and review
 
