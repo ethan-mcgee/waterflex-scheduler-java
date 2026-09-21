@@ -5,6 +5,7 @@ import dev.waterflex.scheduler.Required;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import dev.waterflex.scheduler.RoadClient;
 import org.junit.jupiter.api.Test;
+import org.jspecify.annotations.NonNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,6 +16,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class OptimizationServiceTest {
@@ -32,7 +34,7 @@ class OptimizationServiceTest {
 
     @Test
     void overnightRunIncludesTodayAndNextNineEligibleWeekdays() {
-        assertEquals(Required.value(List.of(
+        List<@NonNull LocalDate> expected = Required.value(List.of(
                 Required.value(LocalDate.parse("2026-09-21")),
                 Required.value(LocalDate.parse("2026-09-22")),
                 Required.value(LocalDate.parse("2026-09-23")),
@@ -43,6 +45,8 @@ class OptimizationServiceTest {
                 Required.value(LocalDate.parse("2026-09-30")),
                 Required.value(LocalDate.parse("2026-10-01")),
                 Required.value(LocalDate.parse("2026-10-02"))
-        )), OptimizationService.overnightDates(Required.value(Instant.parse("2026-09-21T07:00:00Z"))));
+        ));
+        assertTrue(expected.equals(OptimizationService.overnightDates(
+                Required.value(Instant.parse("2026-09-21T07:00:00Z")))));
     }
 }
