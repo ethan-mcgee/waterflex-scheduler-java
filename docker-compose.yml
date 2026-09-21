@@ -63,7 +63,7 @@ services:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
       ENGINE_URL: http://scheduler-service:8000
       NOMINATIM_URL: http://nominatim:8080
-      LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-false}
+      LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-true}
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
