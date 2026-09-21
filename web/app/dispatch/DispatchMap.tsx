@@ -66,12 +66,14 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
           if (cancelled) return;
           if (!isDispatchGeometry(geometry, date, phase))
             throw new Error("Invalid road geometry");
-          technicians.forEach((tech, index) => {
-            const features = geometry.features.filter((feature) => feature.properties.technicianId === tech.id);
+          const routedTechnicians = [...new Set(geometry.features.map(feature => feature.properties.technicianId))];
+          routedTechnicians.forEach((id, index) => { if (!colorByTech.has(id)) colorByTech.set(id, TECH_COLORS[index % TECH_COLORS.length]); });
+          routedTechnicians.forEach((technicianId, index) => {
+            const features = geometry.features.filter((feature) => feature.properties.technicianId === technicianId);
             if (features.length === 0) return;
             const id = `road-route-${index}`;
             map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features } });
-            map.addLayer({ id, source: id, type: "line", paint: { "line-color": TECH_COLORS[index % TECH_COLORS.length], "line-width": 3 } });
+            map.addLayer({ id, source: id, type: "line", paint: { "line-color": colorByTech.get(technicianId) ?? "#666", "line-width": 3 } });
           });
           stopMarkers.forEach((marker) => marker.remove());
           stopMarkers = geometry.stops.map(markerForStop);

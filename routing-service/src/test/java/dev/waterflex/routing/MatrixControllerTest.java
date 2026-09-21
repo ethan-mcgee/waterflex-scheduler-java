@@ -58,6 +58,11 @@ class MatrixControllerTest {
             assertEquals(identity, geometry.routingIdentity());
             assertTrue(geometry.legs().getFirst().geometry().coordinates().size() >= 2);
             assertEquals(matrix.legs().get(0).get(1).meters(), geometry.legs().getFirst().meters());
+            var coincident = routing.routeGeometry(new MatrixController.RouteRequest(Required.value(List.of(FIRST, FIRST)), identity)).legs().getFirst();
+            assertEquals(0, coincident.meters());
+            assertEquals(0, coincident.seconds());
+            assertEquals(2, coincident.geometry().coordinates().size());
+            assertEquals(coincident.geometry().coordinates().getFirst(), coincident.geometry().coordinates().getLast());
             assertFalse(routing.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)),
                     Required.value(List.<MatrixController.Point>of(new MatrixController.Point(0, 0))), identity)).legs().getFirst().getFirst().routable());
             assertEquals(400, assertThrows(ResponseStatusException.class, () -> routing.matrix(

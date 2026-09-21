@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage } from "./contracts";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
@@ -15,13 +15,14 @@ export class EngineError extends Error {
   }
 }
 
-async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000): Promise<T> {
+async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000, externalSignal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${ENGINE_URL}${path}`, {
       method: body === undefined ? "GET" : "POST",
       headers: { "Content-Type": "application/json", "x-internal-secret": INTERNAL_API_SECRET },
-      body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store", signal: AbortSignal.timeout(timeoutMs),
+      body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store",
+      signal: externalSignal ? AbortSignal.any([externalSignal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
   } catch { throw new EngineError(503, "Scheduling service unavailable"); }
   const value: unknown = await res.json().catch(() => undefined);
@@ -122,6 +123,11 @@ export function optimizationHistory(metroId: string, date: string): Promise<{ ru
 
 export function optimizationRun(runId: string): Promise<OptimizationRun> {
   return request(`/v1/optimize/runs/${encodeURIComponent(runId)}`, optimization);
+}
+
+export async function checkTestAddressRoutability(candidates: Array<{ id: string; serviceCode: string; lat: number; lng: number }>, timeoutMs?: number, signal?: AbortSignal): Promise<Set<string>> {
+  const response = await request("/internal/test-address-routability", routabilityResponse, { candidates }, timeoutMs, signal);
+  return new Set(response.results.filter(result => result.routable).map(result => result.id));
 }
 
 export function cancelAppointment(params: { appointment_id: string; reason: string }): Promise<{ success: boolean }> {
