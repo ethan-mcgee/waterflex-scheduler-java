@@ -2,14 +2,15 @@ import { PrismaClient } from "@prisma/client";
 
 // Standard Next.js dev-mode singleton to avoid exhausting connections
 // across hot reloads.
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+declare global { var waterflexPrisma: PrismaClient | undefined; }
+const globalForPrisma = globalThis;
 
 export const prisma =
-  globalForPrisma.prisma ??
+  globalForPrisma.waterflexPrisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+  globalForPrisma.waterflexPrisma = prisma;
 }

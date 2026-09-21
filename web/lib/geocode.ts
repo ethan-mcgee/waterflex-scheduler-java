@@ -1,13 +1,11 @@
+import { z } from "zod";
 export type GeocodePrecision = "ROOFTOP" | "APPROXIMATE";
 
 export interface GeocodeResult { lat: number; lng: number; precision: GeocodePrecision }
 export interface AddressInput { line1: string; city: string; state: string; postalCode: string }
 
-interface NominatimResult {
-  lat: string;
-  lon: string;
-  address?: { house_number?: string };
-}
+const coordinateString = (limit: number) => z.string().trim().regex(/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/).refine(v => Number.isFinite(Number(v)) && Math.abs(Number(v)) <= limit).transform(Number);
+const nominatimResult = z.object({ lat: coordinateString(90), lon: coordinateString(180), address: z.object({ house_number: z.string().optional() }).optional() });
 
 export async function searchAddress(address: AddressInput): Promise<GeocodeResult[]> {
   const url = new URL("/search", process.env.NOMINATIM_URL ?? "http://localhost:8082");
@@ -22,11 +20,13 @@ export async function searchAddress(address: AddressInput): Promise<GeocodeResul
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(8000), cache: "no-store" });
     if (!response.ok) return [];
-    const results = (await response.json()) as NominatimResult[];
+    const raw: unknown = await response.json();
+    if (!Array.isArray(raw)) return [];
+    const results = raw.flatMap((value: unknown) => { const parsed = nominatimResult.safeParse(value); return parsed.success ? [parsed.data] : []; });
     const first = results[0];
     if (!first) return [];
     const requestedNumber = address.line1.match(/^\s*(\d+[A-Za-z]?)\b/)?.[1]?.toLowerCase();
-    const exact = results.length === 1 && requestedNumber && first.address?.house_number?.toLowerCase() === requestedNumber;
+    const exact = raw.length === 1 && results.length === 1 && requestedNumber && first.address?.house_number?.toLowerCase() === requestedNumber;
     return results.map((result, index) => ({
       lat: Number(result.lat), lng: Number(result.lon),
       precision: index === 0 && exact ? "ROOFTOP" as const : "APPROXIMATE" as const,

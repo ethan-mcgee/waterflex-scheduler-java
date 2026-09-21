@@ -1,5 +1,6 @@
 "use client";
 
+import { readResponse, success, errorMessage } from "@/lib/contracts";
 import { useState } from "react";
 
 interface Tech {
@@ -18,21 +19,25 @@ export default function AvailabilityEditor({ technicians, services }: { technici
   const tech = technicians.find((item) => item.id === techId);
   async function saveShift(event: React.FormEvent) {
     event.preventDefault();
+    try {
     const response = await fetch("/api/dispatch/availability", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ technicianId: techId, date, available,
         shiftStartMin: available ? toMinutes(start) : null, shiftEndMin: available ? toMinutes(end) : null }),
     });
-    const result = await response.json();
-    setMessage(response.ok ? "Saved. Reload to see the new override." : result.error ?? "Could not save shift.");
+    await readResponse(response, success);
+    setMessage("Saved. Reload to see the new override.");
+    } catch (error) { setMessage(errorMessage(error)); }
   }
   async function toggleQualification(serviceId: string, qualified: boolean) {
+    try {
     const response = await fetch("/api/dispatch/qualification", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ technicianId: techId, serviceId, qualified }),
     });
-    const result = await response.json();
-    setMessage(response.ok ? "Saved. Reload to see the change." : result.error ?? "Could not save qualification.");
+    await readResponse(response, success);
+    setMessage("Saved. Reload to see the change.");
+    } catch (error) { setMessage(errorMessage(error)); }
   }
   return <div>
     <label>Technician <select value={techId} onChange={(event) => setTechId(event.target.value)}>
@@ -40,7 +45,7 @@ export default function AvailabilityEditor({ technicians, services }: { technici
     </select></label>
     <h2>Services</h2>
     {services.map((service) => <label key={`${techId}-${service.id}`} style={{ display: "block", marginBottom: 8 }}>
-      <input type="checkbox" defaultChecked={tech?.qualifications.includes(service.id)}
+      <input disabled={!tech} type="checkbox" defaultChecked={tech?.qualifications.includes(service.id)}
         onChange={(event) => toggleQualification(service.id, event.target.checked)} /> {service.name}
     </label>)}
     <h2>Day override</h2>
@@ -49,7 +54,7 @@ export default function AvailabilityEditor({ technicians, services }: { technici
       <label><input type="checkbox" checked={available} onChange={(event) => setAvailable(event.target.checked)} /> Available</label>
       {available && <><label>Start <input type="time" value={start} onChange={(event) => setStart(event.target.value)} /></label>
         <label>End <input type="time" value={end} onChange={(event) => setEnd(event.target.value)} /></label></>}
-      <button type="submit">Save day</button>
+      <button disabled={!tech} type="submit">Save day</button>
     </form>
     {message && <p role="status">{message}</p>}
     <h2>Upcoming overrides</h2>

@@ -1,5 +1,8 @@
 package dev.waterflex.scheduler.optimizer;
 
+import org.jspecify.annotations.Nullable;
+import dev.waterflex.scheduler.Required;
+
 import ai.timefold.solver.core.api.domain.solution.PlanningEntityCollectionProperty;
 import ai.timefold.solver.core.api.domain.solution.PlanningScore;
 import ai.timefold.solver.core.api.domain.solution.PlanningSolution;
@@ -12,18 +15,18 @@ import java.util.Map;
 @PlanningSolution
 public class DayPlan {
     @PlanningEntityCollectionProperty
-    private List<TechRoute> routes;
+    private @Nullable List<TechRoute> routes;
     @PlanningEntityCollectionProperty
     @ValueRangeProvider(id = "visits")
-    private List<PlanVisit> visits;
-    private Map<String, RoadLeg> matrix;
-    private double regularHourly;
-    private double overtimeHourly;
-    private double mileagePerMile;
-    private double travelBufferPct;
-    private long travelBufferMinutes;
+    private @Nullable List<PlanVisit> visits;
+    private @Nullable Map<String, RoadLeg> matrix;
+    private @Nullable Double regularHourly;
+    private @Nullable Double overtimeHourly;
+    private @Nullable Double mileagePerMile;
+    private @Nullable Double travelBufferPct;
+    private @Nullable Long travelBufferMinutes;
     @PlanningScore
-    private HardSoftScore score;
+    private @Nullable HardSoftScore score;
 
     public record RoadLeg(long seconds, long meters) { }
     public DayPlan() { }
@@ -35,17 +38,17 @@ public class DayPlan {
         this.mileagePerMile = mileagePerMile; this.travelBufferPct = travelBufferPct;
         this.travelBufferMinutes = travelBufferMinutes;
     }
-    public List<TechRoute> getRoutes() { return routes; }
+    public List<TechRoute> getRoutes() { return Required.value(routes, "DayPlan.routes before initialization"); }
     public void setRoutes(List<TechRoute> routes) { this.routes = routes; }
-    public List<PlanVisit> getVisits() { return visits; }
+    public List<PlanVisit> getVisits() { return Required.value(visits, "DayPlan.visits before initialization"); }
     public void setVisits(List<PlanVisit> visits) { this.visits = visits; }
-    public Map<String, RoadLeg> getMatrix() { return matrix; }
+    public Map<String, RoadLeg> getMatrix() { return Required.value(matrix, "DayPlan.matrix before initialization"); }
     public void setMatrix(Map<String, RoadLeg> matrix) { this.matrix = matrix; }
-    public double getRegularHourly() { return regularHourly; }
-    public double getOvertimeHourly() { return overtimeHourly; }
-    public double getMileagePerMile() { return mileagePerMile; }
-    public double getTravelBufferPct() { return travelBufferPct; }
-    public long getTravelBufferMinutes() { return travelBufferMinutes; }
-    public HardSoftScore getScore() { return score; }
-    public void setScore(HardSoftScore score) { this.score = score; }
+    public double getRegularHourly() { return Required.value(regularHourly, "DayPlan.regularHourly before initialization"); }
+    public double getOvertimeHourly() { return Required.value(overtimeHourly, "DayPlan.overtimeHourly before initialization"); }
+    public double getMileagePerMile() { return Required.value(mileagePerMile, "DayPlan.mileagePerMile before initialization"); }
+    public double getTravelBufferPct() { return Required.value(travelBufferPct, "DayPlan.travelBufferPct before initialization"); }
+    public long getTravelBufferMinutes() { return Required.value(travelBufferMinutes, "DayPlan.travelBufferMinutes before initialization"); }
+    public @Nullable HardSoftScore getScore() { return score; }
+    public void setScore(@Nullable HardSoftScore score) { this.score = score; }
 }

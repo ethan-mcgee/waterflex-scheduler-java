@@ -1,5 +1,6 @@
 "use client";
 
+import { readResponse, timeOffResult } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -28,8 +29,7 @@ export default function TimeOffDemo({ technicians, requests }: { technicians: Ar
     try {
       const response = await fetch("/api/time-off", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ technicianId, firstDate, lastDate: lastDate || firstDate, startMin: minutes(start), endMin: minutes(end), reason }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Could not submit request");
+      const data = await readResponse(response, timeOffResult);
       setMessage(`Request ${data.requestId} submitted for review.`); setReason(""); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not submit request"); }
     finally { setBusy(false); }
@@ -39,8 +39,7 @@ export default function TimeOffDemo({ technicians, requests }: { technicians: Ar
     setBusy(true); setMessage("");
     try {
       const response = await fetch("/api/time-off/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Could not approve request");
+      await readResponse(response, timeOffResult);
       setMessage(`Request ${id} approved.`); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not approve request"); }
     finally { setBusy(false); }

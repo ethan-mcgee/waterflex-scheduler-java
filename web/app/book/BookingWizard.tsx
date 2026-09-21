@@ -1,5 +1,6 @@
 "use client";
 
+import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { useEffect, useMemo, useState } from "react";
 import styles from "@/app/book/booking.module.css";
 import AddressPinMap, { type PinCandidate } from "@/app/book/AddressPinMap";
@@ -57,8 +58,8 @@ function formatDay(dateOnly: string): string {
   // which toLocaleDateString then renders in the browser's local
   // timezone — rolling back to the *previous* calendar day for anyone
   // west of UTC. Parse the components directly as a local date instead.
-  const parts = dateOnly.split("-").map(Number);
-  const [year, month, day] = [parts[0] ?? 1970, parts[1] ?? 1, parts[2] ?? 1];
+  const parts = dateContract.parse(dateOnly).split("-").map(Number);
+  const [year, month, day] = [required(parts[0]), required(parts[1]), required(parts[2])];
   return new Date(year, month - 1, day).toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -90,6 +91,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [invalidOffers, setInvalidOffers] = useState(false);
   const [offers, setOffers] = useState<SlotOffer[]>([]);
   const [confirmingHoldId, setConfirmingHoldId] = useState<string | null>(null);
   const [confirmedOffer, setConfirmedOffer] = useState<SlotOffer | null>(null);
@@ -124,14 +126,10 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, requestId }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Something went wrong. Please try again.");
-        return;
-      }
+      const data = await readResponse(res, bookingResponse);
       setJobId(data.jobId);
       if (data.pinRequired) {
-        setPinCandidates(data.candidates);
+        setPinCandidates(required(data.candidates, "Address candidates"));
         setSelectedPinIndex(0);
         setStep("pin");
         return;
@@ -145,10 +143,12 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         return;
       }
       setOffers(data.offers);
+      setInvalidOffers(false);
       setNow(Date.now());
       setStep("slots");
-    } catch {
-      setError("Network error. Please check your connection and try again.");
+    } catch (error) {
+      setError(errorMessage(error));
+      setInvalidOffers(true);
     } finally {
       setSubmitting(false);
     }
@@ -162,18 +162,21 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId, offerId }),
       });
-      const selected = await selection.json();
+      const raw: unknown = await selection.json();
       if (!selection.ok) {
+        const selected = bookingFailure.parse(raw);
         if (selected.pendingReference) { setJobId(selected.pendingReference); setStep("pending"); return; }
         setError(selected.error ?? "That window is no longer available. Please refresh your options.");
-        if (selection.status === 409) setOffers(selected.offers ?? []);
+        if (selection.status === 409 && selected.offers) setOffers(selected.offers);
         return;
       }
+      const selected = selectionSchema.parse(raw);
       setConfirmedOffer(offers.find((o) => o.offerId === offerId) ?? null);
       setAppointmentId(selected.appointmentId);
       setStep("confirmed");
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (error) {
+      setError(errorMessage(error));
+      setInvalidOffers(true);
     } finally {
       setConfirmingHoldId(null);
     }
@@ -193,12 +196,12 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     setError(null);
     try {
       const response = await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Could not refresh times.");
+      const data = await readResponse(response, offersResponse);
       setOffers(data.offers);
+      setInvalidOffers(false);
       setNow(Date.now());
       if (!data.offers.length) setStep("pending");
-    } catch (error) { setError(error instanceof Error ? error.message : "Could not refresh times."); }
+    } catch (error) { setInvalidOffers(true); setError(error instanceof Error ? error.message : "Could not refresh times."); }
     finally { setSubmitting(false); }
   }
 
@@ -212,13 +215,13 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, requestId, confirmedPin: { lat: pin.lat, lng: pin.lng } }),
       });
-      const data = await response.json();
-      if (!response.ok) { setError(data.error ?? "Could not confirm that location."); return; }
+      const data = await readResponse(response, bookingResponse);
       if (data.pendingReference) { setStep("pending"); return; }
       if (!data.offers?.length) { setStep("pending"); return; }
       setOffers(data.offers);
+      setInvalidOffers(false);
       setStep("slots");
-    } catch { setError("Network error. Please try again."); }
+    } catch (error) { setError(errorMessage(error)); }
     finally { setSubmitting(false); }
   }
 
@@ -296,7 +299,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
                 </div>
                 <button
                   className={styles.selectButton}
-                  disabled={expired || confirmingHoldId !== null}
+                  disabled={invalidOffers || expired || confirmingHoldId !== null}
                   onClick={() => handleSelectSlot(offer.offerId)}
                 >
                   {confirmingHoldId === offer.offerId ? "Booking..." : expired ? "Expired" : "Select"}

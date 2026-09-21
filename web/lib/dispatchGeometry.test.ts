@@ -1,3 +1,4 @@
+import { required } from "./contracts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { isDispatchGeometry } from "./dispatchGeometry";
@@ -33,6 +34,6 @@ test("rejects stale dates, phases, missing routes, and invalid stop times", () =
   assert.equal(isDispatchGeometry(payload(), "2026-09-22", "after"), false);
   assert.equal(isDispatchGeometry({ ...payload(), features: [] }, "2026-09-22", "current"), false);
   const data = payload();
-  data.stops[0]!.plannedStart = "invalid";
+  required(data.stops[0]).plannedStart = "invalid";
   assert.equal(isDispatchGeometry(data, "2026-09-22", "current"), false);
 });

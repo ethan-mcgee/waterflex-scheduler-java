@@ -1,3 +1,4 @@
+import { required } from "./contracts";
 import { addCalendarDays } from "./date";
 
 export const FAKE_DATA_PREFIX = "fake-data:";
@@ -153,15 +154,15 @@ export function shuffleSeeded<T>(values: readonly T[], random: () => number): T[
   const result = [...values];
   for (let index = result.length - 1; index > 0; index--) {
     const swapIndex = Math.floor(random() * (index + 1));
-    [result[index], result[swapIndex]] = [result[swapIndex] as T, result[index] as T];
+    [result[index], result[swapIndex]] = [required(result[swapIndex], "shuffle index"), required(result[index], "shuffle index")];
   }
   return result;
 }
 
 export function randomLocationForCall(location: FakeLocation, random: () => number): FakeLocation {
   const houseNumber = 100 + Math.floor(random() * 19_900);
-  const streetName = OMAHA_STREET_NAMES[Math.floor(random() * OMAHA_STREET_NAMES.length)] as string;
-  const streetSuffix = OMAHA_STREET_SUFFIXES[Math.floor(random() * OMAHA_STREET_SUFFIXES.length)] as string;
+  const streetName = required(OMAHA_STREET_NAMES[Math.floor(random() * OMAHA_STREET_NAMES.length)], "random selection");
+  const streetSuffix = required(OMAHA_STREET_SUFFIXES[Math.floor(random() * OMAHA_STREET_SUFFIXES.length)], "random selection");
   const angle = random() * Math.PI * 2;
   const radiusMiles = Math.sqrt(random()) * MAX_FAKE_LOCATION_OFFSET_MI;
   const latitudeOffset = (radiusMiles * Math.cos(angle)) / MILES_PER_LATITUDE_DEGREE;
@@ -191,12 +192,12 @@ export function buildCallPlans(
   random: () => number
 ): PlannedFakeCall[] {
   const plans = Array.from({ length: input.totalCalls }, (_, index) => {
-    const firstName = FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)] as string;
-    const lastName = LAST_NAMES[Math.floor(random() * LAST_NAMES.length)] as string;
+    const firstName = required(FIRST_NAMES[Math.floor(random() * FIRST_NAMES.length)], "random selection");
+    const lastName = required(LAST_NAMES[Math.floor(random() * LAST_NAMES.length)], "random selection");
     const serial = (index + 1).toString().padStart(3, "0");
     return {
       ordinal: index + 1,
-      preferredDate: input.weekdays[Math.floor(random() * input.weekdays.length)] as string,
+      preferredDate: required(input.weekdays[Math.floor(random() * input.weekdays.length)], "random selection"),
       firstName,
       lastName,
       email: `${firstName}.${lastName}.${serial}@fake.waterflex.invalid`.toLowerCase(),

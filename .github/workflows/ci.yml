@@ -30,6 +30,8 @@ jobs:
         run: docker compose --profile map-import config --quiet
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
+      - name: Verify Java nullability contracts
+        run: ./mvnw -Pnullability clean verify --batch-mode --no-transfer-progress
       - name: Install portal dependencies and generate Prisma client
         working-directory: web
         run: npm ci && npm run prisma:generate
@@ -41,7 +43,7 @@ jobs:
         run: npm run typecheck
       - name: Portal unit tests
         working-directory: web
-        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests
+        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests && npm run test:nullability
       - name: Build portal
         working-directory: web
         run: npm run build
@@ -93,6 +95,11 @@ jobs:
       - name: Migrate, seed, and check schema
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+      - name: Browser nullability regressions in an isolated schema
+        working-directory: web
+        env:
+          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=nullability_ui
+        run: npx prisma migrate deploy && npx playwright install --with-deps chromium && npm run test:ui
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &

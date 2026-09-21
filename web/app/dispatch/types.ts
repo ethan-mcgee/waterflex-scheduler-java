@@ -18,6 +18,6 @@ export interface BoardAppointment {
   customerName: string;
   serviceName: string;
   addressLine: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
 }

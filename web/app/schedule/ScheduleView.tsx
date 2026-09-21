@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { errorMessage } from "@/lib/contracts";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import styles from "./schedule.module.css";
@@ -200,8 +201,8 @@ function AppointmentPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appointmentId: appointment.id, reason: reason.trim() }),
       });
-      const result = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(result.error ?? "Unable to delete appointment.");
+      const result: unknown = await response.json().catch(() => undefined);
+      if (!response.ok) throw new Error(errorMessage(result) || "Unable to delete appointment.");
       onDeleted();
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : "Unable to delete appointment.");
