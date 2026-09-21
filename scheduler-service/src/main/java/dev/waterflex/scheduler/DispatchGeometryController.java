@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,6 +19,9 @@ import java.util.*;
 
 @RestController
 public class DispatchGeometryController {
+    public record LineString(String type, List<List<Double>> coordinates) { }
+    public record RoadProperties(String technicianId, String interval, int legIndex, long seconds, long meters) { }
+    public record RoadFeature(String type, LineString geometry, RoadProperties properties) { }
     private record Stop(String id, String technicianId, int sequence, Instant plannedStart, RoadClient.Point point) { }
     private record Absence(Instant start, Instant end) { }
     private final JdbcTemplate jdbc;
@@ -26,6 +31,28 @@ public class DispatchGeometryController {
     public DispatchGeometryController(JdbcTemplate jdbc, RoadClient roads) {
         this.jdbc = jdbc;
         this.roads = roads;
+    }
+
+    @ExceptionHandler(RoadClient.RoadUnavailable.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public Map<String, String> roadUnavailable(RoadClient.RoadUnavailable error) {
+        return Map.of("detail", error.getMessage());
+    }
+
+    private static LineString lineString(JsonNode geometry) {
+        JsonNode positions = geometry.path("coordinates");
+        if (!"LineString".equals(geometry.path("type").asText()) || !positions.isArray() || positions.size() < 2)
+            throw new RoadClient.RoadUnavailable("Malformed road geometry");
+        List<List<Double>> coordinates = new ArrayList<>();
+        for (JsonNode position : positions) {
+            if (!position.isArray() || position.size() != 2 || !position.get(0).isNumber() || !position.get(1).isNumber())
+                throw new RoadClient.RoadUnavailable("Malformed road geometry");
+            double lng = position.get(0).asDouble(), lat = position.get(1).asDouble();
+            if (!Double.isFinite(lng) || !Double.isFinite(lat) || Math.abs(lng) > 180 || Math.abs(lat) > 90)
+                throw new RoadClient.RoadUnavailable("Malformed road geometry");
+            coordinates.add(List.of(lng, lat));
+        }
+        return new LineString("LineString", coordinates);
     }
 
     @GetMapping("/v1/dispatch/geometry")
@@ -95,7 +122,7 @@ public class DispatchGeometryController {
             groups.computeIfAbsent(stop.technicianId() + ":" + interval, unused -> new ArrayList<>()).add(stop);
         }
         String identity = roads.activeIdentity();
-        List<Map<String, Object>> features = new ArrayList<>();
+        List<RoadFeature> features = new ArrayList<>();
         for (var group : groups.entrySet()) {
             List<Stop> route = group.getValue();
             route.sort(Comparator.comparingInt(Stop::sequence).thenComparing(Stop::id));
@@ -110,10 +137,9 @@ public class DispatchGeometryController {
                 JsonNode legs = roads.routeGeometry(points.subList(offset, Math.min(points.size(), offset + 65)), identity).path("legs");
                 for (int i = 0; i < legs.size(); i++) {
                     JsonNode leg = legs.get(i);
-                    features.add(Map.of("type", "Feature", "geometry", leg.path("geometry"),
-                            "properties", Map.of("technicianId", techId, "interval", group.getKey(),
-                                    "legIndex", offset + i, "seconds", leg.path("seconds").asLong(),
-                                    "meters", leg.path("meters").asLong())));
+                    features.add(new RoadFeature("Feature", lineString(leg.path("geometry")),
+                            new RoadProperties(techId, group.getKey(), offset + i,
+                                    leg.path("seconds").asLong(), leg.path("meters").asLong())));
                 }
             }
         }

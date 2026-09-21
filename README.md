@@ -57,6 +57,8 @@ The routing service `/health` and `/internal/matrix` responses include `routingI
 
 The internal `/internal/route` endpoint returns road geometry for ordered points under the same identity. `/v1/dispatch/geometry` returns GeoJSON features for a current day or the before and after routes of an optimization run. Each absence-separated working interval starts and ends at home. The dispatch map renders those road features and keeps stop markers with a clear error when geometry is unavailable. Run details show the routing and scheduling configuration fingerprints. New optimization runs save baseline visit order, location, and planned arrival alongside the proposed assignments so the comparison reflects that run. Older runs created before this migration do not have a baseline route snapshot.
 
+Dispatch geometry is serialized as plain response records containing `LineString` coordinates in longitude/latitude order. Jackson tree objects must not cross this HTTP boundary: the routing parser uses Jackson 2 while Spring MVC uses Jackson 3, which otherwise serializes tree metadata instead of GeoJSON. The controller rejects malformed positions with HTTP 503. The map validates the full response before rendering, fits the road geometry and markers, and cancels obsolete requests when the date or preview changes. Invalid or unavailable geometry leaves stop markers visible with an explicit message; it never substitutes straight lines. These are planned routes from the existing self-hosted GraphHopper graph, without GPS tracking or live traffic.
+
 See [scheduling quality notes](docs/scheduling-quality-foundations.md) for API examples, verification, and remaining release gates.
 
 ## Verification
@@ -73,12 +75,15 @@ npm run typecheck
 npm run test:geocode
 npm run test:schema-contract
 npm run test:optimization
+npm run test:dispatch-geometry
 npm run build
 ```
 
 Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates used by the smoke scripts.
 
 The Monaco fixture smoke scripts are `npm run test:booking:integration`, `npm run test:optimizer:integration`, and `npm run test:time-off:integration`. CI runs all three. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks reservations, refresh, selection, legacy confirmation, and cancellation. The time-off smoke checks automatic repair, short-notice staff approval, and active-reservation deferral. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
+
+The dispatch HTTP regression test exercises Spring MVC serialization and checks actual road coordinate arrays, home departure/return, empty schedules, malformed coordinates, and routing failures. The optimizer smoke checks current, before, and proposed geometry, including route endpoints and technician identity. Portal geometry tests reject malformed payloads and stale date/phase responses. For a local visual check, open a scheduled dispatch day, confirm road-following outbound and return legs, switch to an empty day and back, and inspect an existing run's before/proposed views.
 
 ## Local cutover and rollback
 
