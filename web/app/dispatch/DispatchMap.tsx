@@ -6,6 +6,7 @@ import { localMapStyle } from "@/lib/localMapStyle";
 import { TECH_COLORS } from "@/app/dispatch/colors";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import { isDispatchGeometry } from "@/lib/dispatchGeometry";
+import { errorMessage } from "@/lib/contracts";
 
 export default function DispatchMap({ technicians, appointments, timezone, metroId, date, runId, phase }: {
   technicians: BoardTechnician[];
@@ -59,8 +60,9 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
       if (runId) query.set("runId", runId);
       void fetch(`/api/dispatch/geometry?${query}`, { cache: "no-store", signal: request.signal })
         .then(async (response) => {
-          if (!response.ok) throw new Error("Road geometry unavailable");
-          const raw: unknown = await response.json(); return raw;
+          const raw: unknown = await response.json().catch(() => undefined);
+          if (!response.ok) throw new Error(errorMessage(raw, `Road geometry unavailable (${response.status})`));
+          return raw;
         })
         .then((geometry) => {
           if (cancelled) return;
@@ -82,7 +84,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
           geometry.features.forEach((feature) => feature.geometry.coordinates.forEach((point) => bounds.extend(point)));
           if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
         })
-        .catch(() => { if (!cancelled) setError("Road routes are unavailable. Stop markers remain visible."); });
+        .catch((cause: unknown) => { if (!cancelled) setError(`${errorMessage(cause, "Road routes are unavailable")} Stop markers remain visible.`); });
     });
     return () => {
       cancelled = true;

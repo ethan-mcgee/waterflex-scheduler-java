@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +44,13 @@ public class DispatchGeometryController {
         return Required.value(Map.of("detail", error.getMessage()));
     }
 
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> requestFailure(ResponseStatusException error) {
+        @Nullable String reason = error.getReason();
+        String detail = reason == null || reason.isBlank() ? "Dispatch geometry request failed" : reason;
+        return ResponseEntity.status(error.getStatusCode()).body(Required.value(Map.of("detail", detail)));
+    }
+
     private static LineString lineString(JsonNode geometry) {
         JsonNode positions = geometry.path("coordinates");
         if (!"LineString".equals(geometry.path("type").asText()) || !positions.isArray() || positions.size() < 2)
@@ -75,40 +83,33 @@ public class DispatchGeometryController {
         jdbc.query("SELECT id, \"homeLat\", \"homeLng\" FROM technician WHERE \"metroId\"=? ORDER BY id",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> homes.put(Required.string(rs, 1),
                         Required.location(rs, 2, 3, HttpStatus.CONFLICT)), metroId);
-        List<Stop> stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
-                (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()),
-                        Required.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
-        if (runId != null && !runId.isBlank()) {
+        List<Stop> stops;
+        if (phase.equals("current")) {
+            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
+                    (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()),
+                            Required.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
+        } else {
+            if (runId == null || runId.isBlank())
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
             var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
                     (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)), runId, metroId, serviceDate);
             if (runs.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Optimization run not found");
-            if (!phase.equals("current")) {
-                try {
-                    if (!SavedJson.provenance(Required.value(mapper.readTree(runs.getFirst().weights()))).path("mapVersion").asText().equals(roads.activeIdentity()))
-                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; generate a new preview");
-                    Map<String, JsonNode> assignments = new HashMap<>();
-                    for (JsonNode node : SavedJson.assignments(Required.value(mapper.readTree(phase.equals("before") ? runs.getFirst().before() : runs.getFirst().after())))) {
-                        String id = node.path("appointmentId").asText("");
-                        if (id.isBlank() || assignments.put(id, node) != null)
-                            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignments");
-                    }
-                    if (assignments.size() != stops.size())
-                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Optimization assignments changed");
-                    List<Stop> proposed = new ArrayList<>();
-                    for (Stop stop : stops) {
-                        JsonNode assignment = assignments.get(stop.id());
-                        if (assignment == null || !homes.containsKey(assignment.path("technicianId").asText()))
-                            throw new ResponseStatusException(HttpStatus.CONFLICT, "Optimization assignments changed");
-                        RoadClient.Point location = assignment.path("locationLat").isNumber() && assignment.path("locationLng").isNumber()
-                                ? new RoadClient.Point(assignment.path("locationLat").asDouble(), assignment.path("locationLng").asDouble())
-                                : stop.point();
-                        proposed.add(new Stop(stop.id(), Required.value(assignment.path("technicianId").asText()),
-                                assignment.path("sequence").asInt(), Required.value(Instant.parse(assignment.path("plannedStart").asText())), location));
-                    }
-                    stops = proposed;
-                } catch (ResponseStatusException e) { throw e; }
-                  catch (Exception e) { throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignments"); }
-            }
+            try {
+                if (!SavedJson.provenance(Required.value(mapper.readTree(runs.getFirst().weights()))).path("mapVersion").asText().equals(roads.activeIdentity()))
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; generate a new preview");
+                List<Stop> savedStops = new ArrayList<>();
+                for (JsonNode assignment : SavedJson.assignments(Required.value(mapper.readTree(phase.equals("before") ? runs.getFirst().before() : runs.getFirst().after())))) {
+                    String technicianId = SavedJson.text(Required.value(assignment), "technicianId");
+                    if (!homes.containsKey(technicianId))
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Saved route technician is unavailable");
+                    savedStops.add(new Stop(SavedJson.text(Required.value(assignment), "appointmentId"), technicianId,
+                            Math.toIntExact(SavedJson.integer(Required.value(assignment), "sequence")),
+                            Required.value(Instant.parse(SavedJson.text(Required.value(assignment), "plannedStart"))),
+                            new RoadClient.Point(assignment.path("locationLat").asDouble(), assignment.path("locationLng").asDouble())));
+                }
+                stops = savedStops;
+            } catch (ResponseStatusException e) { throw e; }
+              catch (Exception e) { throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignments"); }
         }
         Map<String, List<Absence>> absences = new HashMap<>();
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id WHERE r.status='APPROVED' AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",

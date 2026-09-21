@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
 import { advanceTestRun, controlTestRun, createTestRun, purgeTestRun, readTestRun, testEngine } from "../lib/bookingTestRunner";
-import { EngineError } from "../lib/engineClient";
+import { dispatchGeometry, EngineError } from "../lib/engineClient";
 import type { SlotOffer } from "../lib/engineClient";
 import { generateTestInputPlans, validateTestConfig, type TestConfig } from "../lib/bookingTestCore";
 import { OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
@@ -111,6 +111,8 @@ async function main() {
   assert.ok(run.previews.some(p => p.serviceDate === priorAppointment.serviceDate.toISOString().slice(0, 10)), "Preview includes the pre-existing appointment's day");
   const dayPreview = await prisma.optimizationRun.findUniqueOrThrow({ where: { id: required(required(run.previews.find(p => p.serviceDate === priorAppointment.serviceDate.toISOString().slice(0, 10))).optimizationId) } });
   assert.ok(JSON.stringify(dayPreview.baselineAssignments).includes(priorAppointment.id), "Entire-day preview contains appointments from earlier runs");
+  const generatedPreview = required(run.previews.find(p => p.serviceDate === first.serviceDate.toISOString().slice(0, 10)));
+  const generatedPreviewId = required(generatedPreview.optimizationId);
 
   const errors = await createRun(randomUUID(), { ...config, count: 2 });
   run = await resumed(errors.id);
@@ -174,6 +176,8 @@ async function main() {
   assert.ok(await prisma.appointment.findUnique({ where: { id: priorAppointment.id } }), "Another run survives purge");
   assert.ok(await prisma.appointment.findUnique({ where: { id: manualAppointment.id } }), "Manual appointment survives purge");
   assert.equal(await prisma.optimizationRun.count(), optimizationCount, "Optimization history survives purge");
+  const retainedGeometry = await dispatchGeometry("metro-omaha", generatedPreview.serviceDate, generatedPreviewId, "before");
+  assert.ok(retainedGeometry.stops.some(stop => stop.id === first.id), "Saved geometry retains a purged appointment snapshot");
   const survivors = await prisma.appointment.findMany({ where: { technicianId: first.technicianId, serviceDate: first.serviceDate, cancelledAt: null }, orderBy: [{ plannedStart: "asc" }, { id: "asc" }] });
   assert.deepEqual(survivors.map(item => item.sequence), survivors.map((_, index) => index), "Surviving appointments are resequenced");
   const purgedAgain = await purgeTestRun(id);
