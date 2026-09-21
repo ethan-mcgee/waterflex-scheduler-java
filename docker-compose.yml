@@ -12,6 +12,8 @@ services:
       interval: 5s
       retries: 10
   routing-service:
+    image: waterflex-scheduler-routing:local
+    pull_policy: build
     build:
       context: .
       dockerfile: routing-service/Dockerfile
@@ -21,6 +23,8 @@ services:
     volumes: ["map-data:/maps"]
     ports: ["127.0.0.1:8001:8001"]
   scheduler-service:
+    image: waterflex-scheduler-engine:local
+    pull_policy: build
     build:
       context: .
       dockerfile: scheduler-service/Dockerfile
@@ -31,6 +35,7 @@ services:
       ROUTING_URL: http://routing-service:8001
     depends_on:
       db: { condition: service_healthy }
+      schema-migrate: { condition: service_completed_successfully }
     ports: ["127.0.0.1:8000:8000"]
   nominatim:
     image: mediagis/nominatim:5.3
@@ -51,6 +56,8 @@ services:
     volumes: ["map-data:/maps:ro"]
     ports: ["127.0.0.1:8083:8080"]
   web:
+    image: waterflex-scheduler-web:local
+    pull_policy: build
     build: ./web
     environment:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
@@ -58,9 +65,22 @@ services:
       NOMINATIM_URL: http://nominatim:8080
     depends_on:
       db: { condition: service_healthy }
+      schema-migrate: { condition: service_completed_successfully }
     ports: ["127.0.0.1:3001:3000"]
+  schema-migrate:
+    image: waterflex-scheduler-schema-migrate:local
+    pull_policy: build
+    build: ./web
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
   map-import:
     profiles: ["map-import"]
+    image: waterflex-scheduler-map-import:local
+    pull_policy: build
     build: ./infra/map-import
     volumes: ["map-data:/maps"]
   tile-import:

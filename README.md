@@ -12,13 +12,19 @@ All published Compose ports bind to `127.0.0.1`. The portal is at `http://localh
 
 ## First local setup
 
-1. Start the database: `docker compose up -d db`.
-2. Install portal dependencies with `cd web; npm ci; npx prisma generate`. Set `DATABASE_URL=postgresql://waterflex:waterflex@localhost:5433/waterflex`, then run `npx prisma migrate deploy` and `npx prisma db seed`. The included migrations are additive to the copied Prisma schema.
-3. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, merges them, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
-4. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space.
-5. Activate the prepared map with `docker compose --profile map-import run --rm map-import activate <version>`. Start the application with `docker compose up -d --build db routing-service scheduler-service nominatim tiles web`.
+1. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, merges them, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
+2. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space.
+3. Activate the prepared map with `docker compose --profile map-import run --rm map-import activate <version>`.
+4. Start the application with `docker compose up -d`. Compose builds the local application images, waits for PostgreSQL, applies all tracked Prisma migrations, and starts the portal and scheduler only after migration succeeds.
+5. For a new demo database only, seed sample data explicitly with `docker compose exec web npx prisma db seed`. Normal startup never runs seed commands.
 
-Normal `docker compose up -d` uses existing named volumes and does not repeat imports. A refresh must prepare a new version first, rebuild the Nominatim database separately, pause booking, activate the matching graph and tiles, and restart the map services. The Nominatim volume is currently a single active database, so back it up before a refresh. Do not activate a new map version while an old Nominatim import is serving bookings.
+## Normal local updates and restarts
+
+Use `docker compose up -d` for normal updates and startup. The local images are checked and rebuilt with Docker's layer cache, outdated containers are recreated, and the idempotent `schema-migrate` job runs `prisma migrate deploy` before `web` or `scheduler-service` starts. If migration fails, those application services remain stopped. Inspect the failure with `docker compose ps -a` and `docker compose logs schema-migrate`.
+
+Use `docker compose up --no-build` only when intentionally restarting with the existing local images. For a restart that neither rebuilds nor runs migrations, use `docker compose restart db routing-service scheduler-service nominatim tiles web`. Do not use an unqualified `docker compose restart`: Compose restarts stopped one-shot services too, so it would rerun `schema-migrate` without startup dependency checks. `docker compose down` removes containers and networks but preserves the named data volumes. `docker compose down -v` deletes the PostgreSQL, map, and Nominatim named volumes and is destructive, so it is not part of the normal workflow.
+
+Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh must prepare a new version first, rebuild the Nominatim database separately, pause booking, activate the matching graph and tiles, and restart the map services. The Nominatim volume is currently a single active database, so back it up before a refresh. Do not activate a new map version while an old Nominatim import is serving bookings.
 
 ## Views and API
 
