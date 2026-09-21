@@ -5,18 +5,7 @@ import maplibregl from "maplibre-gl";
 import { localMapStyle } from "@/lib/localMapStyle";
 import { TECH_COLORS } from "@/app/dispatch/colors";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
-
-type RoadFeature = {
-  type: "Feature";
-  properties: { technicianId: string; interval: string; legIndex: number; seconds: number; meters: number };
-  geometry: { type: "LineString"; coordinates: [number, number][] };
-};
-type GeometryResponse = {
-  type: "FeatureCollection";
-  routingIdentity: string;
-  features: RoadFeature[];
-  stops: Array<{ id: string; technicianId: string; sequence: number; plannedStart: string; lat: number; lng: number }>;
-};
+import { isDispatchGeometry } from "@/lib/dispatchGeometry";
 
 export default function DispatchMap({ technicians, appointments, timezone, metroId, date, runId, phase }: {
   technicians: BoardTechnician[];
@@ -43,6 +32,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
     const map = new maplibregl.Map({ container: element.current, style: localMapStyle, center, zoom: 10 });
     map.addControl(new maplibregl.NavigationControl());
     let cancelled = false;
+    const request = new AbortController();
     const homeMarkers: maplibregl.Marker[] = [];
     let stopMarkers: maplibregl.Marker[] = [];
     const appointmentById = new Map(appointments.map((appointment) => [appointment.id, appointment]));
@@ -66,14 +56,14 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
       stopMarkers = appointments.map(markerForStop);
       const query = new URLSearchParams({ metroId, date, phase });
       if (runId) query.set("runId", runId);
-      void fetch(`/api/dispatch/geometry?${query}`, { cache: "no-store" })
+      void fetch(`/api/dispatch/geometry?${query}`, { cache: "no-store", signal: request.signal })
         .then(async (response) => {
           if (!response.ok) throw new Error("Road geometry unavailable");
-          return response.json() as Promise<GeometryResponse>;
+          return response.json() as Promise<unknown>;
         })
         .then((geometry) => {
           if (cancelled) return;
-          if (geometry.type !== "FeatureCollection" || !Array.isArray(geometry.features) || !Array.isArray(geometry.stops))
+          if (!isDispatchGeometry(geometry, date, phase))
             throw new Error("Invalid road geometry");
           technicians.forEach((tech, index) => {
             const features = geometry.features.filter((feature) => feature.properties.technicianId === tech.id);
@@ -84,11 +74,16 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
           });
           stopMarkers.forEach((marker) => marker.remove());
           stopMarkers = geometry.stops.map(markerForStop);
+          const bounds = new maplibregl.LngLatBounds();
+          points.forEach((point) => bounds.extend(point));
+          geometry.features.forEach((feature) => feature.geometry.coordinates.forEach((point) => bounds.extend(point)));
+          if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 0 });
         })
         .catch(() => { if (!cancelled) setError("Road routes are unavailable. Stop markers remain visible."); });
     });
     return () => {
       cancelled = true;
+      request.abort();
       stopMarkers.forEach((marker) => marker.remove());
       homeMarkers.forEach((marker) => marker.remove());
       map.remove();
