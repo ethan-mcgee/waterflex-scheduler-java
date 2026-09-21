@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+import { isDispatchGeometry } from "../lib/dispatchGeometry";
 
 const prisma = new PrismaClient();
 const suffix = randomUUID();
@@ -21,14 +22,24 @@ async function post(path: string, body: unknown) {
   return data;
 }
 
-async function geometry(path: string) {
+async function geometry(path: string, phase: string, expectedHome: [number, number]) {
   const response = await fetch(base + path, { signal: AbortSignal.timeout(30_000) });
   const data = await response.json();
   assert.equal(response.status, 200, `${path}: ${JSON.stringify(data)}`);
   assert.equal(data.type, "FeatureCollection");
   assert.equal(data.routingIdentity, "ci-monaco-car-v1");
-  assert.ok(data.features.length >= 2);
+  assert.ok(isDispatchGeometry(data, day, phase), JSON.stringify(data));
+  assert.equal(data.features.length, 2);
   assert.equal(data.stops.length, 1);
+  assert.deepEqual(data.features[0]!.geometry.coordinates[0], expectedHome);
+  assert.deepEqual(data.features[0]!.geometry.coordinates.at(-1), [7.438, 43.748]);
+  assert.deepEqual(data.features[1]!.geometry.coordinates[0], [7.438, 43.748]);
+  assert.deepEqual(data.features[1]!.geometry.coordinates.at(-1), expectedHome);
+  for (const [index, feature] of data.features.entries()) {
+    assert.equal(feature.properties.technicianId, data.stops[0]!.technicianId);
+    assert.equal(feature.properties.legIndex, index);
+    assert.equal(feature.geometry.coordinates.length, phase === "after" ? 2 : 3);
+  }
   return data;
 }
 
@@ -65,9 +76,9 @@ async function main() {
     runId = preview.run_id;
     assert.equal(preview.status, "PREVIEW", JSON.stringify(preview));
     assert.ok(preview.objective_improvement > 0);
-    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}`);
-    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=before`);
-    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=after`);
+    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}`, "current", [7.420, 43.735]);
+    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=before`, "before", [7.420, 43.735]);
+    await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=after`, "after", [7.438, 43.748]);
     const applied = await post(`/v1/optimize/runs/${runId}/apply`, {});
     assert.equal(applied.status, "APPLIED");
     const appointments = await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } } });
@@ -76,7 +87,7 @@ async function main() {
       assert.equal(appointment.windowStart.toISOString(), windowStart.toISOString());
       assert.equal(appointment.windowEnd.toISOString(), windowEnd.toISOString());
     }
-    console.log("Timefold preview, guarded apply, and promised windows passed");
+    console.log("Timefold preview, current/before/proposed GeoJSON road routes, guarded apply, and promised windows passed");
   } finally {
     if (runId) await prisma.optimizationRun.deleteMany({ where: { id: runId } });
     await prisma.appointment.deleteMany({ where: { id: { in: [...appointmentIds] } } });
