@@ -388,6 +388,7 @@ model BookingOptimization {
 
 model OptimizationRun {
   id                   String               @id @default(cuid())
+  requestKey           String?              @unique
   metroId              String
   metro                Metro                @relation(fields: [metroId], references: [id])
   serviceDate          DateTime
@@ -410,6 +411,53 @@ model OptimizationRun {
 
   @@index([metroId, serviceDate, createdAt])
   @@map("optimization_run")
+}
+
+// Local sequential booking harness. Jobs use stable IDs derived from request IDs.
+model BookingTestRun {
+  id String @id
+  config Json
+  horizon Json
+  status String @default("PAUSED")
+  revision Int @default(0)
+  error String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  requests BookingTestRequest[]
+  previews BookingTestPreview[]
+  @@map("booking_test_run")
+}
+
+model BookingTestRequest {
+  id String @id
+  runId String
+  run BookingTestRun @relation(fields: [runId], references: [id])
+  ordinal Int
+  input Json
+  status String @default("PENDING")
+  offers Json @default("[]")
+  selected Json?
+  attempts Json @default("[]")
+  appointmentId String?
+  serviceDate String?
+  error String?
+  elapsedMs Int @default(0)
+  startedAt DateTime?
+  completedAt DateTime?
+  @@unique([runId, ordinal])
+  @@map("booking_test_request")
+}
+
+model BookingTestPreview {
+  id String @id
+  runId String
+  run BookingTestRun @relation(fields: [runId], references: [id])
+  serviceDate String
+  optimizationId String?
+  result Json?
+  error String?
+  @@unique([runId, serviceDate])
+  @@map("booking_test_preview")
 }
 
 model OptimizationChange {

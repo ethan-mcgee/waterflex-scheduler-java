@@ -13,6 +13,8 @@
     "test:fake-data": "tsx --test lib/fakeDataCore.test.ts",
     "test:optimization": "tsx --test lib/optimizationAnalysis.test.ts lib/optimizationExport.test.ts",
     "test:dispatch-geometry": "tsx --test lib/dispatchGeometry.test.ts",
+    "test:booking-tests": "tsx --test lib/bookingTestCore.test.ts",
+    "test:booking-tests:integration": "tsx scripts/smoke-booking-tests.ts",
     "test:fake-data:integration": "tsx scripts/smoke-fake-data.ts",
     "test:booking:integration": "tsx scripts/smoke-java-booking.ts",
     "test:optimizer:integration": "tsx scripts/smoke-optimizer.ts",

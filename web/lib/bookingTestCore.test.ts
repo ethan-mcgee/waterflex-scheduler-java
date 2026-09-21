@@ -1,0 +1,44 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { bookingHorizon, chooseTestOffer, generateTestInputs, validateTestConfig } from "./bookingTestCore";
+import { localTestRequestAllowed } from "./bookingTestAccess";
+import { OMAHA_FAKE_LOCATIONS } from "./fakeDataCore";
+
+const config = { count: 20, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] };
+test("seeded generation uses known locations, weights, and stable order", () => {
+  const validated = validateTestConfig(config);
+  const first = generateTestInputs(validated);
+  assert.deepEqual(first, generateTestInputs(validated));
+  assert.notDeepEqual(first, generateTestInputs({ ...validated, seed: 43 }));
+  assert.deepEqual(first.map(r => r.ordinal), Array.from({ length: 20 }, (_, i) => i));
+  assert.ok(first.every(r => OMAHA_FAKE_LOCATIONS.includes(r.location)));
+  assert.ok(generateTestInputs({ ...validated, weights: [0, 0, 1, 0] }).every(r => r.serviceCode === "REPAIR_DIAGNOSTIC"));
+  for (const patch of [{ count: 0 }, { count: 101 }, { seed: -1 }, { policy: "invalid" }, { weights: [0, 0, 0, 0] }, { weights: [NaN, 1, 1, 1] }]) assert.throws(() => validateTestConfig({ ...config, ...patch }));
+});
+test("offer policies choose only returned windows without mutating scheduler order", () => {
+  const offers = ["2026-09-24T15:00:00Z", "2026-09-23T16:00:00Z", "2026-09-23T14:00:00Z"].map((windowStart, i) => ({ offerId: String(i), date: windowStart.slice(0, 10), windowStart, windowEnd: windowStart, expiresAt: windowStart }));
+  assert.equal(chooseTestOffer(offers, "first", .5)?.offerId, "0");
+  assert.equal(chooseTestOffer(offers, "earliest", .5)?.offerId, "2");
+  assert.equal(chooseTestOffer(offers, "random", .5)?.offerId, "1");
+  assert.equal(chooseTestOffer(offers, "random", .999)?.offerId, "2");
+  assert.equal(offers[0]?.offerId, "0");
+  assert.equal(chooseTestOffer([], "earliest", 0), null);
+});
+test("horizon follows Chicago tomorrow plus ten weekdays across weekends and DST", () => {
+  const horizon = bookingHorizon(new Date("2026-10-31T02:00:00Z"));
+  assert.equal(horizon[0], "2026-11-02");
+  assert.equal(horizon[9], "2026-11-13");
+  assert.equal(bookingHorizon(new Date("2026-09-22T03:00:00Z"))[0], "2026-09-22");
+});
+test("test APIs require explicit enablement and local same-origin requests", () => {
+  const before = process.env.LOCAL_BOOKING_TESTS;
+  try {
+    process.env.LOCAL_BOOKING_TESTS = "false";
+    assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing")), false);
+    process.env.LOCAL_BOOKING_TESTS = "true";
+    assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing")), true);
+    assert.equal(localTestRequestAllowed(new Request("http://example.com/api/dispatch/testing")), false);
+    assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing", { headers: { origin: "https://example.com" } })), false);
+    assert.equal(localTestRequestAllowed(new Request("http://localhost:3001/api/dispatch/testing", { headers: { "sec-fetch-site": "cross-site" } })), false);
+  } finally { if (before === undefined) delete process.env.LOCAL_BOOKING_TESTS; else process.env.LOCAL_BOOKING_TESTS = before; }
+});
