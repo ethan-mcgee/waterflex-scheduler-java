@@ -55,8 +55,10 @@ public class BookingService {
         roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
         List<Candidate> candidates = candidates(job, null, null);
         LinkedHashMap<String, Candidate> windows = new LinkedHashMap<>();
-        candidates.stream().sorted(Comparator.comparingDouble(Candidate::cost).thenComparing(Candidate::start)
-                        .thenComparing(Candidate::techId).thenComparingInt(Candidate::position))
+        candidates.stream().sorted(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
+                        .thenComparing((Candidate candidate) -> candidate.start())
+                        .thenComparing((Candidate candidate) -> candidate.techId())
+                        .thenComparingInt((Candidate candidate) -> candidate.position()))
                 .forEach(c -> windows.putIfAbsent(c.start().toString(), c));
         List<Offer> result = new ArrayList<>();
         Instant expiry = Instant.now().plus(Duration.ofMinutes(10));
@@ -115,7 +117,8 @@ public class BookingService {
             Candidate candidate = evaluateCandidate(job, tech, Required.value(day), start, end);
             if (candidate != null) feasible.add(candidate);
         }
-        Candidate chosen = feasible.stream().min(Comparator.comparingDouble(Candidate::cost).thenComparing(Candidate::techId))
+        Candidate chosen = feasible.stream().min(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
+                        .thenComparing((Candidate candidate) -> candidate.techId()))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available"));
         jdbc.update("UPDATE slot_hold SET \"technicianId\"=?, \"plannedStart\"=?, \"plannedEnd\"=?, \"insertPosition\"=? WHERE id=?",
                 chosen.techId(), stamp(chosen.arrival()), stamp(Required.value(chosen.arrival().plus(Duration.ofMinutes(job.duration())))), chosen.position(), holdId);
@@ -272,7 +275,7 @@ public class BookingService {
                 settings.getOrDefault("mileage_dollars_per_mile", 0.67), settings.getOrDefault("travel_buffer_pct", 0.2),
                 Math.round(settings.getOrDefault("travel_buffer_minutes_per_leg", 5.0)));
         var result = RouteEvaluator.evaluate(plan);
-        Instant newArrival = visits.stream().filter(Visit::newJob).findFirst().map(v -> result.arrivals().get(v.id())).orElse(null);
+        Instant newArrival = visits.stream().filter((Visit visit) -> visit.newJob()).findFirst().map(v -> result.arrivals().get(v.id())).orElse(null);
         return new Metrics(result.feasible(), newArrival, result.paidMinutes(), result.overtimeMinutes(),
                 result.meters(), result.costCents(), result.arrivals());
     }
@@ -296,7 +299,7 @@ public class BookingService {
                 (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId, excludeJobId)));
         result.addAll(jdbc.query("SELECT h.id, h.\"locationLat\", h.\"locationLng\", h.\"windowStart\", h.\"windowEnd\", h.\"plannedStart\", j.\"durationMin\" FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" WHERE h.\"technicianId\"=? AND h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP ORDER BY h.\"plannedStart\"",
                 (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId));
-        result.sort(Comparator.comparing(Visit::planned));
+        result.sort(Comparator.comparing((Visit visit) -> visit.planned()));
         return result;
     }
 
