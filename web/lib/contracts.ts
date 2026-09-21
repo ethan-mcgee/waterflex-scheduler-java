@@ -13,6 +13,7 @@ export const confirmation = z.object({ appointmentId: text, windowStart: instant
 export const selection = confirmation.extend({ holdId: text, expiresAt: instant });
 export const success = z.object({ success: z.boolean() });
 export const timeOffResult = z.object({ requestId: text, status: text });
+export const routabilityResponse = z.object({ results: z.array(z.object({ id: text, routable: z.boolean() })) });
 const routeSummary = z.object({
   technician_id: text, stop_count: z.int().nonnegative(), route_minutes: finite, drive_minutes: finite,
   waiting_minutes: finite, distance_meters: finite, modeled_cost_cents: finite, workload_minutes: finite,
@@ -44,9 +45,11 @@ export const timeOffRequest = z.object({ technicianId: text, firstDate: date, la
   startMin: minute, endMin: minute, reason: text }).refine(v => v.firstDate <= v.lastDate && v.startMin < v.endMin, "Invalid absence interval");
 export const testConfig = z.object({ count: z.int().min(1).max(100), seed: z.int().min(0).max(0xffffffff),
   policy: z.enum(["earliest", "first", "random"]), weights: z.array(finite.min(0).max(100)).length(4).refine(v => v.some(w => w > 0)) });
+export const testConfigInput = testConfig.extend({ seed: z.int().min(0).max(0xffffffff).nullish() });
 export const testOperation = z.discriminatedUnion("action", [
-  z.object({ id: text, action: z.literal("create"), config: testConfig }),
+  z.object({ id: text, action: z.literal("create"), config: testConfigInput }),
   z.object({ id: text, action: z.enum(["resume", "pause", "stop"]) }),
+  z.object({ id: text, action: z.literal("purge") }),
   z.object({ id: text, action: z.literal("advance"), revision: z.int().nonnegative() }),
 ]);
 export const testInput = z.object({ ordinal: z.int().nonnegative(), serviceCode: text, selectionUnit: finite.min(0).lt(1),
@@ -71,7 +74,8 @@ export const bookingResponse = z.object({ jobId: text, offers: z.array(offer).op
 export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional() });
 export const testAttempt = z.object({ at: instant, horizon: z.array(date), elapsedMs: finite.nonnegative(), offers: z.array(offer),
   selected: offer.nullable(), outcome: text, error: z.string().nullable() });
-export const runSummary = z.object({ id: text, status: text, createdAt: instant, config: testConfig });
+export const runSummary = z.object({ id: text, status: text, createdAt: instant, config: testConfig,
+  purgedAt: instant.nullable(), purgedCount: z.int().nonnegative().nullable() });
 export const testRun = runSummary.extend({ revision: z.int().nonnegative(), error: z.string().nullable(), horizon: z.array(date), currentHorizon: z.array(date),
   requests: z.array(z.object({ id: text, ordinal: z.int().nonnegative(), input: testInput, status: text, offers: z.array(offer),
     selected: offer.nullable(), elapsedMs: finite.nonnegative(), serviceDate: date.nullable(), startedAt: instant.nullable(),

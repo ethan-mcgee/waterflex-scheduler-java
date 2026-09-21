@@ -64,12 +64,14 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
     update: {
       name: "Omaha Metro Area",
       timezone: OMAHA_TIMEZONE,
+      stateCode: "NE",
       serviceRadiusMi: 65,
     },
     create: {
       id: OMAHA_METRO_ID,
       name: "Omaha Metro Area",
       timezone: OMAHA_TIMEZONE,
+      stateCode: "NE",
       serviceRadiusMi: 65,
     },
   });
