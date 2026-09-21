@@ -37,7 +37,10 @@ public final class Required {
         return new RoadClient.Point(latitude, longitude);
     }
     public static <T> T query(JdbcTemplate jdbc, String sql, Class<T> type, @Nullable Object... args) {
-        return value(jdbc.queryForObject(sql, type, args), "query result");
+        try { return value(jdbc.queryForObject(sql, type, args), "query result"); }
+        catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Incomplete scheduling data: required query row missing", e);
+        }
     }
     private static ResponseStatusException missing(int column) {
         return new ResponseStatusException(HttpStatus.CONFLICT, "Missing or invalid scheduling column " + column);
