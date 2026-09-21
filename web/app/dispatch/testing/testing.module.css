@@ -1,0 +1,24 @@
+.page { max-width: 1500px; margin: 0 auto; padding: 2rem; color: #183044; font-family: system-ui, sans-serif; background: #f5f8fa; min-height: 100vh; }
+.page nav { display: flex; gap: 1.5rem; }
+.page h1 { margin-bottom: .5rem; }
+.page p { line-height: 1.6; }
+.page a { color: #075985; }
+.panel { background: white; padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #ccdbe3; border-radius: 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; border: 0; padding: 0; }
+.page label { display: flex; flex-direction: column; gap: .4rem; font-size: .85rem; font-weight: 600; }
+.page input, .page select, .page button { padding: .65rem; border: 1px solid #9aafbd; border-radius: 6px; font: inherit; }
+.page input { width: 150px; }
+.page select { max-width: 100%; }
+.page button { background: #0c4a6e; color: white; cursor: pointer; }
+.page button:disabled { opacity: .5; cursor: default; }
+.stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; }
+.stats span { background: #eaf3f7; padding: .8rem; border-radius: 6px; }
+.stats strong { display: block; font-size: 1.4rem; }
+.scroll { overflow-x: auto; }
+.page table { width: 100%; border-collapse: collapse; font-size: .85rem; text-align: left; }
+.page th, .page td { padding: .7rem; border-bottom: 1px solid #dce5ec; vertical-align: top; }
+.page th { background: #edf4f7; }
+.page pre { max-width: 380px; max-height: 220px; overflow: auto; }
+.error { color: #9b1c1c; overflow-wrap: anywhere; }
+.preview { border-top: 1px solid #ccdbe3; margin-top: 1.5rem; padding-top: .5rem; }
+@media (max-width: 650px) { .page { padding: 1rem; } .panel { padding: 1rem; } }

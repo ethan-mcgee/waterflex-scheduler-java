@@ -39,12 +39,13 @@ function AppointmentCard({ appointment, timezone }: {
   );
 }
 
-export default function DispatchBoard({ metroId, timezone, date, technicians, appointments }: {
+export default function DispatchBoard({ metroId, timezone, date, technicians, appointments, initialRunId }: {
   metroId: string;
   timezone: string;
   date: string;
   technicians: BoardTechnician[];
   appointments: BoardAppointment[];
+  initialRunId?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -55,14 +56,18 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
 
   const loadHistory = useCallback(async () => {
     const response = await fetch(
-      `/api/dispatch/optimize/history?metroId=${encodeURIComponent(metroId)}&date=${encodeURIComponent(date)}`,
+      `/api/dispatch/optimize/history?metroId=${encodeURIComponent(metroId)}&date=${encodeURIComponent(date)}${initialRunId ? `&runId=${encodeURIComponent(initialRunId)}` : ""}`,
       { cache: "no-store" }
     );
     if (response.ok) {
       const data = (await response.json()) as { runs: OptimizationRun[] };
       setHistory(data.runs);
+      if (initialRunId) {
+        const selected = data.runs.find(run => run.run_id === initialRunId);
+        if (selected) setPreview(current => current ?? selected);
+      }
     }
-  }, [metroId, date]);
+  }, [metroId, date, initialRunId]);
 
   useEffect(() => { void loadHistory(); }, [loadHistory]);
 

@@ -26,7 +26,9 @@ public class OptimizationService {
     private final SolverFactory<DayPlan> solverFactory;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public record Request(String metro_id, String date) { }
+    public record Request(String metro_id, String date, String request_key) {
+        public Request(String metro_id, String date) { this(metro_id, date, null); }
+    }
     private record TechData(String id, RoadClient.Point point, TechRoute route) { }
     private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
                              Instant windowStart, Instant windowEnd) { }
@@ -37,7 +39,26 @@ public class OptimizationService {
         this.jdbc = jdbc; this.roads = roads; this.solverFactory = solverFactory;
     }
 
+    @Transactional
     public Map<String, Object> preview(Request request) {
+        if (request.request_key() == null) return createPreview(request);
+        if (request.request_key().isBlank() || request.request_key().length() > 160)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid preview request key");
+        jdbc.queryForList("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", "preview:" + request.request_key());
+        var existing = jdbc.queryForList("SELECT id, \"metroId\", \"serviceDate\" FROM optimization_run WHERE \"requestKey\"=?", request.request_key());
+        if (!existing.isEmpty()) {
+            var row = existing.getFirst();
+            if (!request.metro_id().equals(row.get("metroId")) ||
+                    !parseDay(request.date()).equals(((Timestamp) row.get("serviceDate")).toLocalDateTime().toLocalDate()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Preview key belongs to another day");
+            return response((String) row.get("id"));
+        }
+        var result = createPreview(request);
+        jdbc.update("UPDATE optimization_run SET \"requestKey\"=? WHERE id=?", request.request_key(), result.get("run_id"));
+        return result;
+    }
+
+    private Map<String, Object> createPreview(Request request) {
         LocalDate day = parseDay(request.date());
         if (ScheduleCutoff.frozen(day, Instant.now()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
