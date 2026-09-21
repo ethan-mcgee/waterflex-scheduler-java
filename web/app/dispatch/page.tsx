@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
+import { bookingTestsEnabled } from "@/lib/bookingTestAccess";
 
 export const dynamic = "force-dynamic";
 
 export default async function DispatchPage({
   searchParams,
 }: {
-  searchParams: { date?: string };
+  searchParams: { date?: string; run?: string };
 }) {
   const metro = await prisma.metro.findFirst();
   if (!metro) {
@@ -81,12 +82,14 @@ export default async function DispatchPage({
       <a href="/dispatch/availability">Shifts and qualifications</a>
       <a href="/dispatch/follow-up">Manual follow-up</a>
       <a href="/time-off">Technician time off</a>
+      {bookingTestsEnabled() && <a href="/dispatch/testing">Sequential booking test</a>}
     </nav><DispatchBoard
       metroId={metro.id}
       timezone={metro.timezone}
       date={date}
       technicians={boardTechnicians}
       appointments={boardAppointments}
+      initialRunId={searchParams.run}
     /></>
   );
 }

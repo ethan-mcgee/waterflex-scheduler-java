@@ -4,8 +4,16 @@ import { createServer } from "node:http";
 const points = new Map([
   ["43.73500,7.42000", 0],
   ["43.74800,7.43800", 1],
+  // Known Omaha sample locations and seeded technician homes, never a general road fallback.
+  ["41.25855,-95.92929", 2], ["41.26088,-96.18435", 3],
+  ["41.17933,-95.91875", 4], ["41.31755,-95.95176", 5],
+  ["41.23891,-96.01473", 6], ["41.27959,-96.23327", 7],
+  ["41.21095,-95.94185", 8], ["41.29995,-96.02809", 9],
+  ["41.25246,-95.96034", 10], ["41.15062,-96.10707", 11],
+  ["41.23851,-95.89048", 12], ["41.15440,-96.04220", 13],
+  ["41.26190,-95.86080", 14], ["41.28640,-96.23450", 15],
 ]);
-const routingIdentity = "ci-monaco-car-v1";
+const routingIdentity = "ci-monaco-omaha-car-v2";
 
 function index(point) {
   if (!point || typeof point.lat !== "number" || typeof point.lng !== "number") return undefined;

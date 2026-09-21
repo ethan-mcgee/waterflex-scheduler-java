@@ -12,7 +12,7 @@ export class EngineError extends Error {
   }
 }
 
-async function engineFetch<T>(path: string, body: unknown): Promise<T> {
+async function engineFetch<T>(path: string, body: unknown, timeoutMs?: number): Promise<T> {
   const res = await fetch(`${ENGINE_URL}${path}`, {
     method: "POST",
     headers: {
@@ -21,6 +21,7 @@ async function engineFetch<T>(path: string, body: unknown): Promise<T> {
     },
     body: JSON.stringify(body),
     cache: "no-store",
+    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined,
   });
 
   if (!res.ok) {
@@ -50,12 +51,12 @@ export interface SlotOffer {
   expiresAt: string;
 }
 
-export function requestSlots(jobId: string, refresh = false): Promise<{ jobId: string; offers: SlotOffer[] }> {
-  return engineFetch("/v1/offers", { jobId, refresh });
+export function requestSlots(jobId: string, refresh = false, timeoutMs?: number): Promise<{ jobId: string; offers: SlotOffer[] }> {
+  return engineFetch("/v1/offers", { jobId, refresh }, timeoutMs);
 }
 
-export function selectOffer(jobId: string, offerId: string): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {
-  return engineFetch("/v1/offers/select", { jobId, offerId });
+export function selectOffer(jobId: string, offerId: string, timeoutMs?: number): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {
+  return engineFetch("/v1/offers/select", { jobId, offerId }, timeoutMs);
 }
 
 export function confirmHold(holdId: string): Promise<{ appointmentId: string; windowStart: string; windowEnd: string }> {
@@ -117,8 +118,9 @@ export interface OptimizationRun {
 export function previewOptimization(params: {
   metro_id: string;
   date: string;
-}): Promise<OptimizationRun> {
-  return engineFetch("/v1/optimize/day/preview", params);
+  request_key?: string;
+}, timeoutMs?: number): Promise<OptimizationRun> {
+  return engineFetch("/v1/optimize/day/preview", params, timeoutMs);
 }
 
 export function applyOptimization(runId: string): Promise<OptimizationRun> {
@@ -128,6 +130,10 @@ export function applyOptimization(runId: string): Promise<OptimizationRun> {
 export function optimizationHistory(metroId: string, date: string): Promise<{ runs: OptimizationRun[] }> {
   const query = new URLSearchParams({ metro_id: metroId, date });
   return engineGet(`/v1/optimize/runs?${query}`);
+}
+
+export function optimizationRun(runId: string): Promise<OptimizationRun> {
+  return engineGet(`/v1/optimize/runs/${encodeURIComponent(runId)}`);
 }
 
 export function cancelAppointment(params: { appointment_id: string; reason: string }): Promise<{ success: boolean }> {
