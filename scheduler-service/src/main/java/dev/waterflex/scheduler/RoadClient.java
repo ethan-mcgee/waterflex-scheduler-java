@@ -1,5 +1,7 @@
 package dev.waterflex.scheduler;
 
+import org.jspecify.annotations.Nullable;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,14 +22,15 @@ public class RoadClient {
     public record Point(double lat, double lng) { }
     public record Leg(long seconds, long meters) { }
     public static class RoadUnavailable extends RuntimeException {
+        private static final long serialVersionUID = 1L;
         public RoadUnavailable(String message) { super(message); }
     }
-    private record Cached(Leg leg, Instant expiresAt) { }
+    private record Cached(@Nullable Leg leg, Instant expiresAt) { }
     private static final int MAX_MATRIX_SIDE = 64;
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper = new ObjectMapper();
     private final String url;
-    private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+    private final HttpClient http = Required.value(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
     private final Map<String, Cached> memory;
     private final Duration cacheTtl;
     private volatile String routingIdentity = "";
@@ -37,11 +40,11 @@ public class RoadClient {
                       @Value("${routing.cache.ttl-minutes:60}") int ttlMinutes) {
         this.jdbc = jdbc;
         this.url = url;
-        this.cacheTtl = Duration.ofMinutes(Math.max(1, ttlMinutes));
+        this.cacheTtl = Required.value(Duration.ofMinutes(Math.max(1, ttlMinutes)));
         int limit = Math.max(1, maxEntries);
-        this.memory = Collections.synchronizedMap(new LinkedHashMap<>(limit, .75f, true) {
-            @Override protected boolean removeEldestEntry(Map.Entry<String, Cached> eldest) { return size() > limit; }
-        });
+        this.memory = Required.value(Collections.synchronizedMap(new LinkedHashMap<>(limit, .75f, true) {
+            @Override protected boolean removeEldestEntry(Map.@Nullable Entry<String, Cached> eldest) { return size() > limit; }
+        }));
     }
 
     public String currentVersion() { return routingIdentity; }
@@ -63,7 +66,8 @@ public class RoadClient {
                     || data.path("legs").size() != points.size() - 1)
                 throw new RoadUnavailable("Malformed road geometry");
             for (JsonNode leg : data.path("legs")) if (!leg.path("seconds").isIntegralNumber()
-                    || !leg.path("meters").isIntegralNumber() || !"LineString".equals(leg.path("geometry").path("type").asText())
+                    || !leg.path("seconds").canConvertToLong() || leg.path("seconds").asLong() < 0
+                    || !leg.path("meters").isIntegralNumber() || !leg.path("meters").canConvertToLong() || leg.path("meters").asLong() < 0 || !"LineString".equals(leg.path("geometry").path("type").asText())
                     || !leg.path("geometry").path("coordinates").isArray())
                 throw new RoadUnavailable("Malformed road geometry");
             return data;
@@ -72,7 +76,7 @@ public class RoadClient {
     }
 
     public Leg leg(Point origin, Point destination) {
-        Map<String, Leg> result = matrix(Map.of("origin", origin, "destination", destination));
+        Map<String, Leg> result = matrix(Required.value(Map.<String, Point>of("origin", origin, "destination", destination)));
         Leg leg = result.get("origin>destination");
         if (leg == null) throw new RoadUnavailable("No road route");
         return leg;
@@ -80,12 +84,12 @@ public class RoadClient {
 
     /** Returns directed legs by caller ID; missing entries are proven unreachable. */
     public Map<String, Leg> matrix(Map<String, Point> locations) {
-        if (locations.isEmpty()) return Map.of();
+        if (locations.isEmpty()) return Required.value(Map.of());
         String identity = healthIdentity();
         Map<String, Point> unique = new LinkedHashMap<>();
         Map<String, String> locationKeys = new LinkedHashMap<>();
         for (var entry : locations.entrySet()) {
-            String key = key(entry.getValue());
+            String key = key(Required.value(entry.getValue()));
             locationKeys.put(entry.getKey(), key);
             unique.putIfAbsent(key, normalized(key));
         }
@@ -113,12 +117,16 @@ public class RoadClient {
                 args.add(identity); args.addAll(origins); args.addAll(destinations);
                 jdbc.query("SELECT \"originKey\", \"destinationKey\", seconds, meters, routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND \"originKey\" IN (" + originSlots + ") AND \"destinationKey\" IN (" + destinationSlots + ")",
                         (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                            String from = rs.getString(1), to = rs.getString(2), pair = from + ">" + to;
-                            if (!missing.remove(pair)) return;
-                            Leg leg = rs.getBoolean(5) ? new Leg(rs.getLong(3), rs.getLong(4)) : null;
-                            memory.put(pair + ":" + identity, new Cached(leg, Instant.now().plus(cacheTtl)));
+                            String from = Required.string(rs, 1), to = Required.string(rs, 2), pair = from + ">" + to;
+                            if (!missing.contains(pair)) return;
+                            boolean routable = Required.bool(rs, 5);
+                            Long seconds = Required.nullableLong(rs, 3), meters = Required.nullableLong(rs, 4);
+                            if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0)) return;
+                            Leg leg = routable ? new Leg(Required.value(seconds), Required.value(meters)) : null;
+                            missing.remove(pair);
+                            memory.put(pair + ":" + identity, new Cached(leg, Required.value(Instant.now().plus(cacheTtl))));
                             if (leg != null) byCoordinate.put(pair, leg);
-                        }, args.toArray());
+                        }, Required.value(args.toArray(new @Nullable Object[0])));
                 needed = origins.stream().anyMatch(from -> destinations.stream().anyMatch(to -> missing.contains(from + ">" + to)));
                 if (!needed) continue;
                 JsonNode rows = requestMatrix(origins, destinations, unique, identity);
@@ -129,15 +137,15 @@ public class RoadClient {
                     if (cell == null || !cell.path("routable").isBoolean()) throw new RoadUnavailable("Malformed road matrix");
                     Leg leg = null;
                     if (cell.path("routable").asBoolean()) {
-                        if (!cell.path("seconds").isIntegralNumber() || !cell.path("meters").isIntegralNumber())
+                        if (!cell.path("seconds").isIntegralNumber() || !cell.path("seconds").canConvertToLong() || !cell.path("meters").isIntegralNumber() || !cell.path("meters").canConvertToLong())
                             throw new RoadUnavailable("Malformed road matrix");
                         long seconds = cell.path("seconds").asLong(), meters = cell.path("meters").asLong();
                         if (seconds < 0 || meters < 0) throw new RoadUnavailable("Malformed road matrix");
                         leg = new Leg(seconds, meters);
                         byCoordinate.put(pair, leg);
                     }
-                    memory.put(pair + ":" + identity, new Cached(leg, Instant.now().plus(cacheTtl)));
-                    jdbc.update("INSERT INTO road_route_cache (id, \"originKey\", \"destinationKey\", profile, \"mapVersion\", seconds, meters, routable) VALUES (?, ?, ?, 'car', ?, ?, ?, ?) ON CONFLICT (\"originKey\", \"destinationKey\", profile, \"mapVersion\") DO NOTHING",
+                    memory.put(pair + ":" + identity, new Cached(leg, Required.value(Instant.now().plus(cacheTtl))));
+                    jdbc.update("INSERT INTO road_route_cache (id, \"originKey\", \"destinationKey\", profile, \"mapVersion\", seconds, meters, routable) VALUES (?, ?, ?, 'car', ?, ?, ?, ?) ON CONFLICT (\"originKey\", \"destinationKey\", profile, \"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds, meters=EXCLUDED.meters, routable=EXCLUDED.routable, \"fetchedAt\"=CURRENT_TIMESTAMP",
                             UUID.randomUUID().toString(), from, to, identity,
                             leg == null ? null : leg.seconds(), leg == null ? null : leg.meters(), leg != null);
                 }
@@ -153,8 +161,11 @@ public class RoadClient {
 
     private JsonNode requestMatrix(List<String> origins, List<String> destinations, Map<String, Point> unique, String identity) {
         try {
-            byte[] body = mapper.writeValueAsBytes(Map.of("origins", origins.stream().map(unique::get).toList(),
-                    "destinations", destinations.stream().map(unique::get).toList(), "expectedRoutingIdentity", identity));
+            Map<String, Object> matrixRequest = new LinkedHashMap<>();
+            matrixRequest.put("origins", origins.stream().map(id -> Required.value(unique.get(id), "origin point")).toList());
+            matrixRequest.put("destinations", destinations.stream().map(id -> Required.value(unique.get(id), "destination point")).toList());
+            matrixRequest.put("expectedRoutingIdentity", identity);
+            byte[] body = mapper.writeValueAsBytes(matrixRequest);
             var request = HttpRequest.newBuilder(URI.create(url + "/internal/matrix"))
                     .timeout(Duration.ofSeconds(10)).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
@@ -178,7 +189,8 @@ public class RoadClient {
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) throw new RoadUnavailable("Road routing unavailable");
             JsonNode health = mapper.readTree(response.body());
-            if (!health.path("ready").asBoolean(false)) throw new RoadUnavailable("Road graph not ready");
+            if (!health.path("ready").isBoolean() || !health.path("ready").asBoolean()) throw new RoadUnavailable("Road graph not ready");
+            if (!health.path("routingIdentity").isTextual()) throw new RoadUnavailable("Malformed road routing identity");
             String identity = health.path("routingIdentity").asText("");
             if (identity.isBlank()) throw new RoadUnavailable("Road routing identity unavailable");
             if (!identity.equals(routingIdentity)) { memory.clear(); routingIdentity = identity; }
@@ -187,10 +199,10 @@ public class RoadClient {
           catch (Exception e) { throw new RoadUnavailable("Road routing unavailable: " + e.getClass().getSimpleName()); }
     }
 
-    private static String key(Point point) {
+    private static String key(@Nullable Point point) {
         if (point == null || !Double.isFinite(point.lat()) || !Double.isFinite(point.lng()) ||
                 Math.abs(point.lat()) > 90 || Math.abs(point.lng()) > 180) throw new IllegalArgumentException("Invalid coordinate");
-        return String.format(Locale.ROOT, "%.5f,%.5f", point.lat(), point.lng());
+        return Required.value(String.format(Locale.ROOT, "%.5f,%.5f", point.lat(), point.lng()));
     }
     private static Point normalized(String key) {
         String[] parts = key.split(",");

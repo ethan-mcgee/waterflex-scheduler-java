@@ -1,3 +1,4 @@
+import { timeOffResult, required } from "../lib/contracts";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
@@ -14,7 +15,7 @@ function localToday(): Date {
 
 async function post(path: string, body: unknown) {
   const response = await fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const payload = await response.json();
+  const payload = timeOffResult.parse(await response.json());
   assert.equal(response.status, 200, `${path}: ${JSON.stringify(payload)}`);
   return payload;
 }
@@ -70,6 +71,17 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
     assert.equal(shortStatus, "READY", `Short-notice status: ${shortStatus}`);
+    const readyReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: short.requestId } });
+    const preservedAppointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId } });
+    await prisma.timeOffReport.update({ where: { requestId: short.requestId }, data: { data: { technician_id: techA, days: [] } } });
+    const invalidReport = await fetch(`${base}/v1/time-off/${short.requestId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(invalidReport.status, 409);
+    assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { jobId } }), preservedAppointment);
+    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: short.requestId } })).status, "PENDING");
+    await prisma.$transaction([
+      prisma.timeOffReport.update({ where: { requestId: short.requestId }, data: { status: "READY", data: required(readyReport.data) } }),
+      prisma.timeOffRequest.update({ where: { id: short.requestId }, data: { status: "READY" } }),
+    ]);
     await post(`/v1/time-off/${short.requestId}/approve`, {});
     assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: short.requestId } })).status, "APPROVED");
     await prisma.job.create({ data: { id: heldJobId, customerId, addressId, serviceId: service.id, durationMin: 60 } });
@@ -87,7 +99,7 @@ async function main() {
     }
     assert.equal(blockedReport.status, "NEEDS_COORDINATION");
     assert.match(JSON.stringify(blockedReport.data), /ACTIVE_RESERVATIONS/);
-    console.log("Automatic repair, staff review, and active-reservation deferral passed");
+    console.log("Automatic repair, invalid-report rollback, staff review, and active-reservation deferral passed");
   } finally {
     await prisma.slotHold.deleteMany({ where: { jobId: heldJobId } });
     await prisma.job.deleteMany({ where: { id: heldJobId } });

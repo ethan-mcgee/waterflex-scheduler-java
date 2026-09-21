@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler.optimizer;
 
+
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
@@ -10,7 +11,7 @@ public class OptimizationController {
     @PostMapping("/v1/optimize/day/preview")
     public Map<String, Object> preview(@RequestBody OptimizationService.Request request) { return service.preview(request); }
     @PostMapping("/v1/optimize/runs/{id}/apply")
-    public Map<String, Object> apply(@PathVariable String id) { return service.apply(id); }
+    public Map<String, Object> apply(@PathVariable String id, @RequestBody dev.waterflex.scheduler.RequestChecks.Empty request) { return service.apply(id); }
     @GetMapping("/v1/optimize/runs/{id}")
     public Map<String, Object> get(@PathVariable String id) { return service.response(id); }
     @GetMapping("/v1/optimize/runs")

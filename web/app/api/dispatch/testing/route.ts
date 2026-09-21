@@ -1,3 +1,4 @@
+import { readBody, testOperation } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { localTestRequestAllowed } from "@/lib/bookingTestAccess";
 import { advanceTestRun, controlTestRun, createTestRun, listTestRuns, readTestRun, TestRunError } from "@/lib/bookingTestRunner";
@@ -18,10 +19,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   if (!localTestRequestAllowed(request)) return new NextResponse(null, { status: 404 });
   try {
-    const body = await request.json();
+    const parsed = await readBody(request, testOperation);
+    if (!parsed.success) throw new TestRunError("Invalid test operation.", 400);
+    const body = parsed.data;
     if (!body || typeof body.id !== "string") throw new TestRunError("Run ID required.", 400);
     if (body.action === "create") return NextResponse.json(await createTestRun(body.id, body.config));
-    if (["resume", "pause", "stop"].includes(body.action)) return NextResponse.json(await controlTestRun(body.id, body.action));
+    if ((body.action === "resume" || body.action === "pause" || body.action === "stop")) return NextResponse.json(await controlTestRun(body.id, body.action));
     if (body.action === "advance" && Number.isInteger(body.revision)) return NextResponse.json(await advanceTestRun(body.id, body.revision));
     throw new TestRunError("Invalid test operation.", 400);
   } catch (error) { return failure(error); }

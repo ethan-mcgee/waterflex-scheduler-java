@@ -1,10 +1,12 @@
+import { date as dateContract, required } from "./contracts";
 // Mirrors engine/app/scheduling/timeutil.py's local_midnight_utc /
 // tomorrow_in_tz: converts a metro's local calendar day to the UTC instant
 // the engine uses as `appointment.serviceDate`, without a date library.
 
 export function localMidnightUtc(dateStr: string, tz: string): Date {
+  dateContract.parse(dateStr);
   const parts = dateStr.split("-").map(Number);
-  const [y, m, d] = [parts[0] ?? 1970, parts[1] ?? 1, parts[2] ?? 1];
+  const [y, m, d] = [required(parts[0]), required(parts[1]), required(parts[2])];
   // The target, encoded naively as if it were already a UTC instant —
   // this is what we compare each guess's local wall-clock reading
   // against. It must stay fixed across iterations (not be re-derived from
@@ -28,7 +30,7 @@ export function localMidnightUtc(dateStr: string, tz: string): Date {
       minute: "2-digit",
       second: "2-digit",
     }).formatToParts(guess);
-    const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+    const get = (type: string) => Number(required(parts.find((p) => p.type === type)?.value, `Calendar ${type}`));
     const shownAsUtc = Date.UTC(
       get("year"),
       get("month") - 1,
@@ -51,7 +53,7 @@ export function tomorrowInTz(tz: string): string {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(now);
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const get = (type: string) => Number(required(parts.find((p) => p.type === type)?.value, `Calendar ${type}`));
   const todayUtcMidnight = Date.UTC(get("year"), get("month") - 1, get("day"));
   const tomorrow = new Date(todayUtcMidnight + 24 * 60 * 60 * 1000);
   return tomorrow.toISOString().slice(0, 10);
@@ -59,16 +61,15 @@ export function tomorrowInTz(tz: string): string {
 
 /** Add calendar days to a YYYY-MM-DD value without applying a timezone offset. */
 export function addCalendarDays(dateStr: string, days: number): string {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const value = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1));
+  if (!Number.isInteger(days)) throw new Error("Calendar day offset must be an integer");
+  const value = new Date(`${dateContract.parse(dateStr)}T00:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
   return value.toISOString().slice(0, 10);
 }
 
 /** Return the Monday that contains the supplied local calendar date. */
 export function mondayOfWeek(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const value = new Date(Date.UTC(year || 1970, (month || 1) - 1, day || 1));
+  const value = new Date(`${dateContract.parse(dateStr)}T00:00:00Z`);
   const daysSinceMonday = (value.getUTCDay() + 6) % 7;
   value.setUTCDate(value.getUTCDate() - daysSinceMonday);
   return value.toISOString().slice(0, 10);
@@ -85,6 +86,6 @@ export function calendarDateInTz(value: Date, tz: string): string {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(value);
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+  const get = (type: string) => required(parts.find((part) => part.type === type)?.value, `Calendar ${type}`);
   return `${get("year")}-${get("month")}-${get("day")}`;
 }

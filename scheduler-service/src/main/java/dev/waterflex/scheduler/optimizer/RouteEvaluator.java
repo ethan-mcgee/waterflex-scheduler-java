@@ -1,5 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
+import dev.waterflex.scheduler.Required;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -8,6 +10,7 @@ import java.util.*;
 public final class RouteEvaluator {
     public record Result(boolean feasible, long costCents, Map<String, Instant> arrivals,
                          long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) { }
+    private record Segment(String previous, Instant departure, Instant done) { }
     private record Work(Instant start, Instant end) { }
     private record RouteResult(boolean feasible, long paid, long overtime, long drive, long waiting, long meters) { }
     private RouteEvaluator() { }
@@ -39,55 +42,53 @@ public final class RouteEvaluator {
         long paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;
         long segmentDrive = 0, segmentWaiting = 0, segmentMeters = 0;
         int interval = 0;
-        String previous = null;
-        Instant departure = null, serviceDone = null;
+        Segment segment = null;
         boolean feasible = true;
         for (PlanVisit visit : route.getVisits()) {
             if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) feasible = false;
             boolean placed = false;
             while (interval < work.size()) {
                 Work shift = work.get(interval);
-                String from = previous == null ? route.getId() : previous;
+                String from = segment == null ? route.getId() : segment.previous();
                 DayPlan.RoadLeg road = plan.getMatrix().get(from + ">" + visit.getId());
                 DayPlan.RoadLeg returnHome = plan.getMatrix().get(visit.getId() + ">" + route.getId());
                 if (road == null || returnHome == null) { feasible = false; break; }
                 long travel = travel(plan, road);
-                Instant depart = previous == null ? latest(shift.start(), visit.getWindowStart().minus(Duration.ofMinutes(travel))) : departure;
-                Instant fromTime = previous == null ? depart : serviceDone;
-                Instant arrival = latest(fromTime.plus(Duration.ofMinutes(travel)), visit.getWindowStart());
+                Instant depart = segment == null ? latest(shift.start(), Required.value(visit.getWindowStart().minus(Duration.ofMinutes(travel)))) : segment.departure();
+                Instant fromTime = segment == null ? depart : segment.done();
+                Instant arrival = latest(Required.value(fromTime.plus(Duration.ofMinutes(travel))), visit.getWindowStart());
                 Instant doneAtHome = arrival.plus(Duration.ofMinutes(visit.getDurationMinutes() + travel(plan, returnHome)));
                 if (arrival.isBefore(visit.getWindowEnd()) && !doneAtHome.isAfter(shift.end())) {
-                    if (previous == null) departure = depart;
+
                     segmentWaiting += Math.max(0, Duration.between(fromTime.plus(Duration.ofMinutes(travel)), arrival).toMinutes());
                     segmentDrive += travel; segmentMeters += road.meters();
-                    serviceDone = arrival.plus(Duration.ofMinutes(visit.getDurationMinutes()));
-                    previous = visit.getId(); arrivals.put(visit.getId(), arrival);
+                    segment = new Segment(visit.getId(), depart, Required.value(arrival.plus(Duration.ofMinutes(visit.getDurationMinutes())))); arrivals.put(visit.getId(), arrival);
                     placed = true;
                     break;
                 }
-                if (previous != null) {
-                    DayPlan.RoadLeg home = plan.getMatrix().get(previous + ">" + route.getId());
+                if (segment != null) {
+                    DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId());
                     if (home == null) { feasible = false; break; }
-                    Instant back = serviceDone.plus(Duration.ofMinutes(travel(plan, home)));
+                    Instant back = segment.done().plus(Duration.ofMinutes(travel(plan, home)));
                     if (back.isAfter(shift.end())) feasible = false;
-                    paid += Duration.between(departure, back).toMinutes();
-                    overtime += Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes());
+                    paid += Duration.between(segment.departure(), back).toMinutes();
+                    overtime += Math.max(0, Duration.between(latest(segment.departure(), route.getShiftEnd()), back).toMinutes());
                     drive += segmentDrive + travel(plan, home); waiting += segmentWaiting; meters += segmentMeters + home.meters();
-                    previous = null; departure = null; serviceDone = null;
+                    segment = null;
                     segmentDrive = segmentWaiting = segmentMeters = 0;
                 }
                 interval++;
             }
             if (!placed) feasible = false;
         }
-        if (previous != null) {
-            DayPlan.RoadLeg home = plan.getMatrix().get(previous + ">" + route.getId());
+        if (segment != null) {
+            DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId());
             if (home == null || interval >= work.size()) feasible = false;
             else {
-                Instant back = serviceDone.plus(Duration.ofMinutes(travel(plan, home)));
+                Instant back = segment.done().plus(Duration.ofMinutes(travel(plan, home)));
                 if (back.isAfter(work.get(interval).end())) feasible = false;
-                paid += Duration.between(departure, back).toMinutes();
-                overtime += Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes());
+                paid += Duration.between(segment.departure(), back).toMinutes();
+                overtime += Math.max(0, Duration.between(latest(segment.departure(), route.getShiftEnd()), back).toMinutes());
                 drive += segmentDrive + travel(plan, home); waiting += segmentWaiting; meters += segmentMeters + home.meters();
             }
         }
@@ -103,11 +104,11 @@ public final class RouteEvaluator {
         absences.sort(Comparator.comparing(TechRoute.Unavailable::start));
         for (TechRoute.Unavailable absence : absences) {
             Instant beforeEnd = absence.start().isBefore(end) ? absence.start() : end;
-            if (cursor.isBefore(beforeEnd)) work.add(new Work(cursor, beforeEnd));
+            if (cursor.isBefore(beforeEnd)) work.add(new Work(cursor, Required.value(beforeEnd)));
             if (cursor.isBefore(absence.end())) cursor = absence.end();
             if (!cursor.isBefore(end)) break;
         }
-        if (cursor.isBefore(end)) work.add(new Work(cursor, end));
+        if (cursor.isBefore(end)) work.add(new Work(cursor, Required.value(end)));
         return work;
     }
 

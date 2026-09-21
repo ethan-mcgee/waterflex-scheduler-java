@@ -20,10 +20,11 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!element.current) return;
+    const located = appointments.flatMap(a => a.lat !== null && a.lng !== null ? [{ ...a, lat: a.lat, lng: a.lng }] : []);
     setError(null);
     const points = [
-      ...technicians.map((tech) => [tech.homeLng, tech.homeLat] as [number, number]),
-      ...appointments.map((appointment) => [appointment.lng, appointment.lat] as [number, number]),
+      ...technicians.map((tech) => [tech.homeLng, tech.homeLat] satisfies [number, number]),
+      ...located.map((appointment) => [appointment.lng, appointment.lat] satisfies [number, number]),
     ];
     const center: [number, number] = points.length ? [
       points.reduce((sum, point) => sum + point[0], 0) / points.length,
@@ -53,13 +54,13 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
         .setLngLat([tech.homeLng, tech.homeLat])
         .setPopup(new maplibregl.Popup().setText(`${tech.name}: home base`))
         .addTo(map)));
-      stopMarkers = appointments.map(markerForStop);
+      stopMarkers = located.map(markerForStop);
       const query = new URLSearchParams({ metroId, date, phase });
       if (runId) query.set("runId", runId);
       void fetch(`/api/dispatch/geometry?${query}`, { cache: "no-store", signal: request.signal })
         .then(async (response) => {
           if (!response.ok) throw new Error("Road geometry unavailable");
-          return response.json() as Promise<unknown>;
+          const raw: unknown = await response.json(); return raw;
         })
         .then((geometry) => {
           if (cancelled) return;

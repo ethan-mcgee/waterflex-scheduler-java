@@ -379,7 +379,7 @@ model BookingOptimization {
   fallbackStatus       String?
   travelWarnings       Json
   confirmedHoldId      String?
-  createdAt            DateTime   @default(now())
+  createdAt            DateTime   @default(now()) @db.Timestamptz(6)
   slotHolds            SlotHold[]
 
   @@index([jobId, createdAt])
@@ -391,7 +391,7 @@ model OptimizationRun {
   requestKey           String?              @unique
   metroId              String
   metro                Metro                @relation(fields: [metroId], references: [id])
-  serviceDate          DateTime
+  serviceDate          DateTime @db.Timestamptz(6)
   scheduleVersions     Json
   weights              Json
   solverStatus         String
@@ -405,8 +405,8 @@ model OptimizationRun {
   churnCost            Int
   status               String
   reason               String?
-  createdAt            DateTime             @default(now())
-  appliedAt            DateTime?
+  createdAt            DateTime             @default(now()) @db.Timestamptz(6)
+  appliedAt            DateTime? @db.Timestamptz(6)
   changes              OptimizationChange[]
 
   @@index([metroId, serviceDate, createdAt])
