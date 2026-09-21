@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class DispatchGeometryControllerTest {
@@ -93,6 +94,46 @@ class DispatchGeometryControllerTest {
     }
 
     @Test
+    void savedBeforeGeometryRendersWithoutLiveAppointments() throws Exception {
+        when(jdbc.query(MockArguments.startsText("SELECT a.id"), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(), MockArguments.equalText("metro"), any(Timestamp.class)))
+                .thenReturn(Required.value(List.of()));
+        stubSavedGeometry(savedAssignment("saved-before", "tech", 41.28, -95.97), savedAssignment("saved-after", "tech", 41.29, -95.98), "test-roads");
+
+        JsonNode body = savedGeometry("before");
+
+        assertEquals("saved-before", body.at("/stops/0/id").asText());
+        assertEquals(41.28, body.at("/stops/0/lat").asDouble());
+        verify(jdbc, never()).query(MockArguments.startsText("SELECT a.id"), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(), MockArguments.equalText("metro"), any(Timestamp.class));
+        verify(roads).routeGeometry(Required.value(List.<RoadClient.Point>of(new RoadClient.Point(41.25, -95.93),
+                new RoadClient.Point(41.28, -95.97), new RoadClient.Point(41.25, -95.93))), "test-roads");
+    }
+
+    @Test
+    void savedAfterGeometryDoesNotDependOnChangedLiveAppointments() throws Exception {
+        stubSavedGeometry(savedAssignment("saved-before", "tech", 41.28, -95.97), savedAssignment("saved-after", "tech", 41.29, -95.98), "test-roads");
+
+        JsonNode body = savedGeometry("after");
+
+        assertEquals("saved-after", body.at("/stops/0/id").asText());
+        assertEquals(-95.98, body.at("/stops/0/lng").asDouble());
+        verify(jdbc, never()).query(MockArguments.startsText("SELECT a.id"), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(), MockArguments.equalText("metro"), any(Timestamp.class));
+    }
+
+    @Test
+    void savedGeometryRejectsMalformedAssignmentsMissingTechniciansAndChangedRoutingIdentity() throws Exception {
+        stubSavedGeometry("[{\"appointmentId\":\"visit\"}]", savedAssignment("visit", "tech", 41.27, -95.95), "test-roads");
+        Required.value(http).perform(Required.value(savedGeometryRequest("before"))).andExpect(status().isConflict());
+
+        stubSavedGeometry(savedAssignment("visit", "missing-tech", 41.27, -95.95), savedAssignment("visit", "tech", 41.27, -95.95), "test-roads");
+        Required.value(http).perform(Required.value(savedGeometryRequest("before"))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Saved route technician is unavailable"));
+
+        stubSavedGeometry(savedAssignment("visit", "tech", 41.27, -95.95), savedAssignment("visit", "tech", 41.27, -95.95), "old-roads");
+        Required.value(http).perform(Required.value(savedGeometryRequest("before"))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Routing graph changed; generate a new preview"));
+    }
+
+    @Test
     void routingFailureReturnsUnavailableWithoutInventingGeometry() throws Exception {
         when(roads.routeGeometry(Required.value(anyList()), Required.value(anyString()))).thenThrow(new RoadClient.RoadUnavailable("Routing offline"));
         Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-22")))
@@ -107,5 +148,33 @@ class DispatchGeometryControllerTest {
             Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-22")))
                     .andExpect(status().isServiceUnavailable());
         }
+    }
+
+    private JsonNode savedGeometry(String phase) throws Exception {
+        return Required.value(json.readTree(Required.value(http).perform(Required.value(savedGeometryRequest(phase)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()));
+    }
+
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder savedGeometryRequest(String phase) {
+        return Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-22")
+                .param("run_id", "saved-run").param("phase", phase));
+    }
+
+    private static String savedAssignment(String appointmentId, String technicianId, double lat, double lng) {
+        return "[{\"appointmentId\":\"" + appointmentId + "\",\"technicianId\":\"" + technicianId
+                + "\",\"sequence\":0,\"plannedStart\":\"2026-09-22T15:00:00Z\",\"windowStart\":\"2026-09-22T14:00:00Z\","
+                + "\"windowEnd\":\"2026-09-22T18:00:00Z\",\"locationLat\":" + lat + ",\"locationLng\":" + lng + "}]";
+    }
+
+    private void stubSavedGeometry(String before, String after, String mapVersion) {
+        when(jdbc.query(MockArguments.startsText("SELECT \"baselineAssignments\""), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(),
+                MockArguments.equalText("saved-run"), MockArguments.equalText("metro"), any(Timestamp.class))).thenAnswer(call -> {
+                    ResultSet row = mock(ResultSet.class);
+                    when(row.getString(1)).thenReturn(before);
+                    when(row.getString(2)).thenReturn(after);
+                    when(row.getString(3)).thenReturn("{\"mapVersion\":\"" + mapVersion + "\",\"configVersion\":\"test-config\"}");
+                    RowMapper<Object> mapper = call.getArgument(1);
+                    return Required.value(List.of(Required.value(mapper.mapRow(row, 0))));
+                });
     }
 }

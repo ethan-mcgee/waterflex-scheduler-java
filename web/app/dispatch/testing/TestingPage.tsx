@@ -9,9 +9,12 @@ import { DEFAULT_TEST_CONFIG, type TestConfig, type TestConfigInput } from "@/li
 import { FAKE_SERVICE_CODES, OMAHA_TIMEZONE, type FakeLocation } from "@/lib/fakeDataCore";
 import type { OptimizationRun, SlotOffer } from "@/lib/engineClient";
 import OptimizationReview from "@/app/dispatch/OptimizationReview";
+import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import styles from "./testing.module.css";
 
 const DispatchMap = dynamic(() => import("@/app/dispatch/DispatchMap"), { ssr: false, loading: () => <p>Loading road routes...</p> });
+const NO_TECHNICIANS: BoardTechnician[] = [];
+const NO_APPOINTMENTS: BoardAppointment[] = [];
 interface RunSummary { id: string; status: string; createdAt: string; config: TestConfig; purgedAt: string | null; purgedCount: number | null }
 interface Run extends RunSummary {
   revision: number; error: string | null; horizon: string[]; currentHorizon: string[];
@@ -40,6 +43,7 @@ export default function TestingPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [driving, setDriving] = useState(false);
   const continueRef = useRef(false), mounted = useRef(true), newId = useRef<string | null>(null);
+  const pollingRunId = run?.status === "RUNNING" ? run.id : null;
   const refreshHistory = useCallback(async () => { const data = await api(testHistory); setRuns(data.runs); setHorizon(data.horizon); }, []);
   useEffect(() => {
     mounted.current = true;
@@ -48,10 +52,10 @@ export default function TestingPage() {
     return () => { mounted.current = false; halt(); window.removeEventListener("pagehide", halt); };
   }, [refreshHistory]);
   useEffect(() => {
-    if (!run) return;
-    const timer = setInterval(() => { void api(testRun, undefined, run.id).then(data => { if (mounted.current) setRun(data); }).catch(e => setError(errorMessage(e))); }, 2000);
+    if (!pollingRunId) return;
+    const timer = setInterval(() => { void api(testRun, undefined, pollingRunId).then(data => { if (mounted.current) setRun(data); }).catch(e => setError(errorMessage(e))); }, 2000);
     return () => clearInterval(timer);
-  }, [run?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pollingRunId]);
   async function drive(initial: Run) {
     continueRef.current = true; setDriving(true); let current = initial;
     try { while (continueRef.current && mounted.current && current.status === "RUNNING") { current = await api(testRun, { id: current.id, action: "advance", revision: current.revision }); if (mounted.current) setRun(current); } }
@@ -121,7 +125,7 @@ export default function TestingPage() {
           const result = preview.result && actual ? { ...preview.result, status: actual.status, applied_at: actual.appliedAt } : preview.result;
           return <article key={preview.id} className={styles.preview}><h3>{preview.serviceDate}</h3>{preview.error && <p className={styles.error}>{preview.error}</p>}
             {result && <OptimizationReview run={result} onApplied={async () => setRun(await api(testRun, undefined, run.id))}
-              routes={phase => <div className={styles.testMap}><DispatchMap technicians={[]} appointments={[]} timezone={OMAHA_TIMEZONE} metroId="metro-omaha"
+              routes={phase => <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha"
                 date={preview.serviceDate} runId={phase === "current" ? undefined : result.run_id} phase={phase} /></div>} />}
             <a href={`/schedule?week=${preview.serviceDate}`}>View schedule</a>{" | "}<a href={`/dispatch?date=${preview.serviceDate}&run=${preview.optimizationId ?? ""}`}>Open exact run in Dispatch</a>
           </article>;
