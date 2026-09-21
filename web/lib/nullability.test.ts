@@ -57,6 +57,9 @@ test("browser and journal decoders reject incomplete state while permitting unav
   assert.equal(testInput.safeParse({ location: null }).success, false);
   assert.equal(testAttempt.safeParse({ offers: null }).success, false);
   await assert.rejects(readResponse(Response.json({ offers: null }), offersResponse), /Invalid response/);
+  await assert.rejects(readResponse(new Response(null, { status: 404 }), offersResponse), /Request failed \(404\)/);
+  await assert.rejects(readResponse(new Response("not json", { status: 200 }), offersResponse), /Invalid response\. Reload before continuing\./);
+  assert.deepEqual(await readResponse(Response.json({ jobId: "job-1", offers: [] }), offersResponse), { jobId: "job-1", offers: [] });
 });
 
 test("calendar utilities reject missing or invalid calendar values", () => {

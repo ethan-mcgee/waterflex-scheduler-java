@@ -81,7 +81,12 @@ export const testRun = runSummary.extend({ revision: z.int().nonnegative(), erro
 });
 export const testHistory = z.object({ runs: z.array(runSummary), horizon: z.array(date) });
 export async function readResponse<T>(response: Response, schema: z.ZodType<T>): Promise<T> {
-  const raw: unknown = await response.json();
+  let raw: unknown;
+  try {
+    raw = await response.json();
+  } catch {
+    throw new Error(response.ok ? "Invalid response. Reload before continuing." : `Request failed (${response.status})`);
+  }
   if (!response.ok) throw new Error(errorMessage(raw, `Request failed (${response.status})`));
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw new Error("Invalid response. Reload before continuing.");
