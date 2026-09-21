@@ -41,7 +41,7 @@ jobs:
         run: npm run typecheck
       - name: Portal unit tests
         working-directory: web
-        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry
+        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests
       - name: Build portal
         working-directory: web
         run: npm run build
@@ -71,6 +71,7 @@ jobs:
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://127.0.0.1:18001
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
+      ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
     steps:
       - uses: actions/checkout@v5
@@ -114,6 +115,9 @@ jobs:
       - name: Time-off repair smoke
         working-directory: web
         run: npm run test:time-off:integration
+      - name: Sequential booking and preview smoke
+        working-directory: web
+        run: npm run test:booking-tests:integration
       - name: Print service logs on failure
         if: failure()
         run: |

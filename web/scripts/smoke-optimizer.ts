@@ -27,7 +27,7 @@ async function geometry(path: string, phase: string, expectedHome: [number, numb
   const data = await response.json();
   assert.equal(response.status, 200, `${path}: ${JSON.stringify(data)}`);
   assert.equal(data.type, "FeatureCollection");
-  assert.equal(data.routingIdentity, "ci-monaco-car-v1");
+  assert.equal(data.routingIdentity, "ci-monaco-omaha-car-v2");
   assert.ok(isDispatchGeometry(data, day, phase), JSON.stringify(data));
   assert.equal(data.features.length, 2);
   assert.equal(data.stops.length, 1);

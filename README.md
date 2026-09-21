@@ -31,6 +31,7 @@ Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` v
 - `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
 - `/schedule`: weekly routes, approved time-off blocks, promises, and reasoned cancellation.
 - `/dispatch`: route review and overnight optimization preview and apply.
+- `/dispatch/testing`: opt-in local sequential booking runs and automatic day previews. Enable with `LOCAL_BOOKING_TESTS=true`; see [operation, recovery, and verification](docs/sequential-booking-tests.md).
 - `/dispatch/availability`: qualifications and date-specific shifts.
 - `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.
 - `/time-off`: local demo technician selector, request history, and staff approval queue. The selector does not authenticate a technician.
@@ -76,10 +77,11 @@ npm run test:geocode
 npm run test:schema-contract
 npm run test:optimization
 npm run test:dispatch-geometry
+npm run test:booking-tests
 npm run build
 ```
 
-Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates used by the smoke scripts.
+Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates and fixed Omaha sample/home coordinates used by the smoke scripts. CI also runs `npm run test:booking-tests:integration` to verify sequential booking and preview recovery against this isolated database.
 
 The Monaco fixture smoke scripts are `npm run test:booking:integration`, `npm run test:optimizer:integration`, and `npm run test:time-off:integration`. CI runs all three. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks reservations, refresh, selection, legacy confirmation, and cancellation. The time-off smoke checks automatic repair, short-notice staff approval, and active-reservation deferral. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
 
@@ -91,7 +93,7 @@ The included Compose database is isolated. Before connecting to a copy of an exi
 
 ## Current limitations
 
-- The old fake-data and optimization-test portal pages and APIs have been removed. Their offline fixture and analysis libraries remain available for local tests.
+- The old fake-data and optimization-test portal pages and APIs have been removed. Their offline libraries remain available; the opt-in sequential test page reuses only pure generation utilities and known locations.
 - Manual reassignment is not exposed in the Java dispatch UI. Dispatch optimization preview and guarded apply are the supported route-change path.
 - The Nominatim refresh is a manual import and volume swap. The map preparation script does not automate that database swap.
 - Offer p95 latency and savings are targets to measure on the intended localhost hardware; no threshold is claimed from the fixture tests.
