@@ -15,7 +15,7 @@ The supplied pre-implementation audit reported 60 scheduler and one routing ECJ 
 | Positional query arrays, unchecked report casts, nullable lookups | Named records, SQL-null readers, persisted JSON decoders, checked arrivals and versions | Unit and transactional integration regressions |
 | Legacy method references and generic inference | Explicit types and contracts, checked library results | Actual pinned ECJ checker, with warnings fatal |
 
-The final clean ECJ run has zero unsuppressed source nullability, raw-type, or unchecked-conversion diagnostics. `.vscode/settings.json` and both Maven child modules use `.settings/org.eclipse.jdt.core.prefs` and the same JSpecify annotation names. The VS Code settings were checked against the installed Java extension's setting definitions. The warning inventory is reconciled through clean compiler output using that configuration; an IDE Problems-panel refresh was not automated.
+The final clean ECJ run has zero unsuppressed source nullability, raw-type, or unchecked-conversion diagnostics. `.vscode/settings.json` and both Maven child modules use `.settings/org.eclipse.jdt.core.prefs` and the same JSpecify annotation names. The Maven nullability profile uses ECJ 3.46.100, matching the compiler embedded in VS Code Java 1.56.0. The remaining editor diagnostics involved method references passed through unannotated Java functional interfaces; explicitly typed lambdas preserve the same comparator, predicate, and mapping behavior while giving ECJ the application null contracts at those boundaries.
 
 ## Confirmed failures and behavior changes
 
@@ -45,7 +45,7 @@ Mockito matcher methods return null sentinels that Mockito consumes while config
 
 ## Required gates
 
-Both child modules inherit Spring Boot, so each explicitly configures the `nullability` profile: Maven Compiler 3.15.0, Plexus Eclipse compiler 2.16.2, ECJ 3.46.0, Java 25, and JSpecify 1.0.0. The profile compiles main and test sources with null contracts, raw types, and unchecked conversions enforced. Normal javac verification remains a separate gate.
+Both child modules inherit Spring Boot, so each explicitly configures the `nullability` profile: Maven Compiler 3.15.0, Plexus Eclipse compiler 2.16.2, ECJ 3.46.100, Java 25, and JSpecify 1.0.0. The profile compiles main and test sources with null contracts, raw types, and unchecked conversions enforced. The normal `clean verify` command validates the javac build and tests. The `-Pnullability clean verify` command is the strict ECJ gate that must report zero source nullability, raw-type, and unchecked-conversion diagnostics.
 
 TypeScript retains `strict` and `noUncheckedIndexedAccess`. ESLint explicitly pins parser/plugin 8.70.0 and enforces typed unsafe assignment/call/member-access/return/argument/type-assertion rules and non-null assertions. Application code, libraries, scripts, seeds, browser tests, and test configuration are covered. Generated output and dependencies are excluded.
 
@@ -66,6 +66,16 @@ npm run test:booking-tests
 npm run test:nullability
 npm run build
 ```
+
+After the command-line gates pass, refresh VS Code Java 1.56.0 so its Problems panel reflects the same compiler state:
+
+1. Run `Java: Clean Java Language Server Workspace`.
+2. Select `Restart and delete`.
+3. Run `Java: Reload Projects`.
+4. Close any stale `nullability.log` editor.
+5. Confirm that the Problems panel contains no application nullability or type-safety errors.
+
+A missing log tab or a prior `package-info.java` event is stale local editor state unless it recurs after this clean import.
 
 Integration verification uses PostgreSQL 16 with an isolated `waterflex_test` database and `infra/fixture-routing.mjs`. Local verification used PostgreSQL on port 15432, the scheduler on 18000, and fixture routing on 18001. Set `DATABASE_URL`, `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `ROUTING_URL`, `SERVER_PORT`, `SCHEDULER_TEST_URL`, and `ENGINE_URL` to that isolated stack, apply migrations, seed it, and start the services before running:
 

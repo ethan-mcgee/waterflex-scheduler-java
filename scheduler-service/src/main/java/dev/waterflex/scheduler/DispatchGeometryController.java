@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler;
 
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -59,7 +60,7 @@ public class DispatchGeometryController {
     }
 
     @GetMapping("/v1/dispatch/geometry")
-    public Map<String, Object> geometry(@RequestParam("metro_id") String metroId, @RequestParam String date,
+    public Map<String, @NonNull Object> geometry(@RequestParam("metro_id") String metroId, @RequestParam String date,
                                          @RequestParam(value = "run_id", required = false) @Nullable String runId,
                                          @RequestParam(value = "phase", defaultValue = "current") String phase) {
         LocalDate day;
@@ -128,7 +129,8 @@ public class DispatchGeometryController {
         List<RoadFeature> features = new ArrayList<>();
         for (var group : groups.entrySet()) {
             List<Stop> route = group.getValue();
-            route.sort(Comparator.comparingInt(Stop::sequence).thenComparing(Stop::id));
+            route.sort(Comparator.comparingInt((Stop stop) -> stop.sequence())
+                    .thenComparing((Stop stop) -> stop.id()));
             String techId = route.getFirst().technicianId();
             RoadClient.Point home = homes.get(techId);
             if (home == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable");

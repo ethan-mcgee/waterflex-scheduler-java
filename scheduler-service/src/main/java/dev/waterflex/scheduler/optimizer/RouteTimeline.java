@@ -90,7 +90,7 @@ final class RouteTimeline {
         List<Block> blocks = new ArrayList<>();
         Instant cursor = route.getShiftStart();
         List<TechRoute.Unavailable> unavailable = new ArrayList<>(route.getUnavailable());
-        unavailable.sort(Comparator.comparing(TechRoute.Unavailable::start));
+        unavailable.sort(Comparator.comparing((TechRoute.Unavailable absence) -> absence.start()));
         for (TechRoute.Unavailable absence : unavailable) {
             if (absence.start().isAfter(cursor)) blocks.add(new Block(cursor, min(absence.start(), Required.value(end))));
             if (absence.end().isAfter(cursor)) cursor = absence.end();
