@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -48,4 +49,47 @@ test("dispatch retains missing-location appointments and shows malformed-history
     await prisma.address.delete({ where: { id: address.id } }); await prisma.customer.delete({ where: { id: customer.id } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } }); await prisma.technician.delete({ where: { id: tech.id } }); await prisma.metro.delete({ where: { id: metro.id } });
   }
+});
+
+test("sequential review confirms guarded apply, reports conflicts, refreshes routes, and confirms purge", async ({ page }) => {
+  const id = "11111111-1111-4111-8111-111111111111", optimizationId = "preview-ui-test";
+  const preview = { run_id: optimizationId, metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
+    solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 100,
+    churn_penalty_minutes: 0, optimized: false, appointments_moved: 1, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
+    route_summary_before: [], route_summary_after: [], changes: [] };
+  const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] },
+    purgedAt: null, purgedCount: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
+    previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }],
+    applied: [{ id: optimizationId, status: "PREVIEW", appliedAt: null }] };
+  let applied = false, purged = false, applyCalls = 0;
+  await page.route("**/api/dispatch/geometry**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase: new URL(route.request().url()).searchParams.get("phase"), features: [], stops: [],
+  }) }));
+  await page.route("**/api/dispatch/optimize/apply", async route => {
+    applyCalls++;
+    if (applyCalls === 1) return route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Schedule version changed" }) });
+    applied = true; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...preview, status: "APPLIED", optimized: true, applied_at: "2026-09-21T13:00:00Z" }) });
+  });
+  await page.route("**/api/dispatch/testing**", async route => {
+    if (route.request().method() === "POST") {
+      const body = z.object({ action: z.string() }).safeParse(route.request().postDataJSON() as unknown);
+      if (body.success && body.data.action === "purge") purged = true;
+    }
+    const run = { ...baseRun, status: purged ? "PURGED" : "COMPLETED", purgedAt: purged ? "2026-09-21T14:00:00Z" : null, purgedCount: purged ? 1 : null,
+      applied: [{ id: optimizationId, status: applied ? "APPLIED" : "PREVIEW", appliedAt: applied ? "2026-09-21T13:00:00Z" : null }] };
+    const url = new URL(route.request().url());
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(route.request().method() === "GET" && !url.searchParams.has("id") ? { runs: [run], horizon: ["2026-10-05"] } : run) });
+  });
+  await page.goto(`/dispatch/testing?run=${id}`);
+  await expect(page.getByRole("button", { name: "Apply proposal" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Proposed roads" })).toHaveAttribute("aria-pressed", "true");
+  page.once("dialog", dialog => dialog.dismiss()); await page.getByRole("button", { name: "Apply proposal" }).click(); expect(applyCalls).toBe(0);
+  page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Apply proposal" }).click();
+  await expect(page.getByText("Schedule version changed", { exact: true })).toBeVisible();
+  page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Apply proposal" }).click();
+  await expect(page.getByRole("button", { name: "Apply proposal" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Current roads" })).toHaveAttribute("aria-pressed", "true");
+  page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Delete generated appointments" }).click();
+  await expect(page.getByText(/Purged 1 generated appointment/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete generated appointments" })).toBeDisabled();
 });
