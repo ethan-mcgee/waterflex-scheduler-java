@@ -1,19 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bookingHorizon, chooseTestOffer, generateTestInputs, validateTestConfig } from "./bookingTestCore";
+import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestConfig, validateTestConfigInput } from "./bookingTestCore";
 import { localTestRequestAllowed } from "./bookingTestAccess";
-import { OMAHA_FAKE_LOCATIONS } from "./fakeDataCore";
 
 const config = { count: 20, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] };
-test("seeded generation uses known locations, weights, and stable order", () => {
+test("seeded generation uses weights and stable order", () => {
   const validated = validateTestConfig(config);
-  const first = generateTestInputs(validated);
-  assert.deepEqual(first, generateTestInputs(validated));
-  assert.notDeepEqual(first, generateTestInputs({ ...validated, seed: 43 }));
+  const first = generateTestInputPlans(validated);
+  assert.deepEqual(first, generateTestInputPlans(validated));
+  assert.notDeepEqual(first, generateTestInputPlans({ ...validated, seed: 43 }));
   assert.deepEqual(first.map(r => r.ordinal), Array.from({ length: 20 }, (_, i) => i));
-  assert.ok(first.every(r => OMAHA_FAKE_LOCATIONS.includes(r.location)));
-  assert.ok(generateTestInputs({ ...validated, weights: [0, 0, 1, 0] }).every(r => r.serviceCode === "REPAIR_DIAGNOSTIC"));
+  assert.ok(generateTestInputPlans({ ...validated, weights: [0, 0, 1, 0] }).every(r => r.serviceCode === "REPAIR_DIAGNOSTIC"));
   for (const patch of [{ count: 0 }, { count: 101 }, { seed: -1 }, { policy: "invalid" }, { weights: [0, 0, 0, 0] }, { weights: [NaN, 1, 1, 1] }]) assert.throws(() => validateTestConfig({ ...config, ...patch }));
+  assert.equal(validateTestConfigInput({ ...config, seed: null }).seed, null);
+  assert.equal(validateTestConfigInput({ ...config, seed: undefined }).seed, undefined);
 });
 test("offer policies choose only returned windows without mutating scheduler order", () => {
   const offers = ["2026-09-24T15:00:00Z", "2026-09-23T16:00:00Z", "2026-09-23T14:00:00Z"].map((windowStart, i) => ({ offerId: String(i), date: windowStart.slice(0, 10), windowStart, windowEnd: windowStart, expiresAt: windowStart }));

@@ -122,7 +122,10 @@ public class MatrixController {
             List<List<Double>> coordinates = new ArrayList<>();
             var points = path.getPoints();
             for (int n = 0; n < points.size(); n++) coordinates.add(List.of(points.getLon(n), points.getLat(n)));
-            legs.add(new RouteLeg(Math.max(1, (path.getTime() + 999) / 1000), Math.round(path.getDistance()),
+            if (coordinates.isEmpty() && path.getWaypoints().size() >= 1)
+                coordinates.add(List.of(path.getWaypoints().getLon(0), path.getWaypoints().getLat(0)));
+            if (coordinates.size() == 1) coordinates.add(List.copyOf(coordinates.getFirst()));
+            legs.add(new RouteLeg(Math.max(0, (path.getTime() + 999) / 1000), Math.round(path.getDistance()),
                     new Geometry("LineString", Required.value(coordinates))));
         }
         return new RouteResponse(routingIdentity, Required.value(legs));
@@ -149,7 +152,7 @@ public class MatrixController {
     private static GHPoint toGh(Point point) { return new GHPoint(point.lat(), point.lng()); }
 
     private static boolean snapped(Point origin, Point destination, com.graphhopper.util.PointList snapped) {
-        return snapped.size() >= 2 &&
+        return snapped.size() >= 1 && (snapped.size() >= 2 || (Double.compare(origin.lat(), destination.lat()) == 0 && Double.compare(origin.lng(), destination.lng()) == 0)) &&
                 DistanceCalcEarth.DIST_EARTH.calcDist(origin.lat(), origin.lng(), snapped.getLat(0), snapped.getLon(0)) <= 1000 &&
                 DistanceCalcEarth.DIST_EARTH.calcDist(destination.lat(), destination.lng(), snapped.getLat(snapped.size() - 1), snapped.getLon(snapped.size() - 1)) <= 1000;
     }
@@ -172,7 +175,7 @@ public class MatrixController {
         var path = response.getBest();
         if (!snapped(origin, destination, Required.value(path.getWaypoints())))
             return new Leg(false, null, null);
-        return new Leg(true, Math.max(1, (path.getTime() + 999) / 1000), Math.round(path.getDistance()));
+        return new Leg(true, Math.max(0, (path.getTime() + 999) / 1000), Math.round(path.getDistance()));
     }
 
     @GetMapping("/health")
