@@ -1,10 +1,17 @@
+import { z } from "zod";
+import { testInput, offer, testAttempt, errorMessage, optimization, date } from "./contracts";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { bookingHorizon, chooseTestOffer, generateTestInputs, validateTestConfig, type TestConfig } from "./bookingTestCore";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
-import { EngineError, previewOptimization, requestSlots, selectOffer, type SlotOffer } from "./engineClient";
+import { EngineError, previewOptimization, requestSlots, selectOffer } from "./engineClient";
 
-const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+function json(value: unknown): Prisma.InputJsonValue {
+  const raw: unknown = JSON.parse(JSON.stringify(value));
+  const result = z.json().parse(raw);
+  if (result === null) throw new Error("Expected a non-null JSON journal value");
+  return result;
+}
 const include = { requests: { orderBy: { ordinal: "asc" as const } }, previews: { orderBy: { serviceDate: "asc" as const } } };
 export class TestRunError extends Error {
   constructor(message: string, public status = 409) { super(message); }
@@ -17,11 +24,11 @@ export const testEngine = {
 export async function createTestRun(id: string, value: unknown) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new TestRunError("A UUID run identity is required.", 400);
   let config: TestConfig;
-  try { config = validateTestConfig(value); } catch (error) { throw new TestRunError((error as Error).message, 400); }
+  try { config = validateTestConfig(value); } catch (error) { throw new TestRunError(errorMessage(error), 400); }
   const existing = await prisma.bookingTestRun.findUnique({ where: { id }, include });
   if (existing) {
     if (JSON.stringify(validateTestConfig(existing.config)) !== JSON.stringify(config)) throw new TestRunError("Run identity already used with different settings.");
-    return existing;
+    return readTestRun(id);
   }
   const metro = await prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID } });
   if (metro?.timezone !== OMAHA_TIMEZONE) throw new TestRunError("Configure the existing Omaha metro first.", 422);
@@ -35,7 +42,7 @@ export async function createTestRun(id: string, value: unknown) {
     return prisma.bookingTestRun.findUniqueOrThrow({ where: { id }, include });
   });
   if (JSON.stringify(validateTestConfig(saved.config)) !== JSON.stringify(config)) throw new TestRunError("Run identity already used with different settings.");
-  return saved;
+  return readTestRun(id);
 }
 export async function readTestRun(id: string) {
   const run = await prisma.bookingTestRun.findUnique({ where: { id }, include });
@@ -67,7 +74,7 @@ export async function controlTestRun(id: string, action: "resume" | "pause" | "s
 }
 
 async function ensureJob(request: Awaited<ReturnType<typeof readTestRun>>["requests"][number]) {
-  const input = request.input as unknown as ReturnType<typeof generateTestInputs>[number];
+  const input = testInput.parse(request.input);
   return prisma.$transaction(async tx => {
     const existing = await tx.job.findUnique({ where: { id: request.id } });
     if (existing) return existing;
@@ -95,13 +102,26 @@ export async function advanceTestRun(id: string, revision: number, engine = test
   return exclusively(async () => {
     const run = await readTestRun(id);
     if (run.status !== "RUNNING" || run.revision !== revision) return run;
+    try {
+      validateTestConfig(run.config);
+      z.array(date).parse(run.horizon);
+      for (const preview of run.previews) optimization.nullable().parse(preview.result);
+      for (const request of run.requests) {
+        testInput.parse(request.input); z.array(offer).parse(request.offers);
+        offer.nullable().parse(request.selected); z.array(testAttempt).parse(request.attempts);
+      }
+    } catch {
+      await prisma.bookingTestRun.updateMany({ where: { id, revision, status: "RUNNING" },
+        data: { status: "PAUSED", error: "Malformed booking-test journal. Raw journal and selected offer retained for reconciliation.", revision: { increment: 1 } } });
+      return readTestRun(id);
+    }
     const claim = await prisma.bookingTestRun.updateMany({ where: { id, revision, status: "RUNNING" }, data: { revision: { increment: 1 }, error: null } });
     if (!claim.count) return readTestRun(id);
     const request = run.requests.find(r => !["BOOKED", "NO_OFFER"].includes(r.status));
     if (request) {
       const started = Date.now();
-      let offers = request.offers as unknown as SlotOffer[];
-      let selected = request.selected as unknown as SlotOffer | null;
+      let offers = z.array(offer).parse(request.offers);
+      let selected = offer.nullable().parse(request.selected);
       let errorMessage: string | null = null;
       let outcome = "ERROR";
       try {
@@ -112,8 +132,8 @@ export async function advanceTestRun(id: string, revision: number, engine = test
         if (!appointment) {
           if (!selected) {
             offers = (await engine.offers(request.id)).offers;
-            const input = request.input as unknown as ReturnType<typeof generateTestInputs>[number];
-            selected = chooseTestOffer(offers, (run.config as unknown as TestConfig).policy, input.selectionUnit);
+            const input = testInput.parse(request.input);
+            selected = chooseTestOffer(offers, validateTestConfig(run.config).policy, input.selectionUnit);
             await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { offers: json(offers), selected: selected ? json(selected) : Prisma.DbNull } });
           }
           if (selected) {
@@ -134,7 +154,7 @@ export async function advanceTestRun(id: string, revision: number, engine = test
       } finally {
         const elapsedMs = Date.now() - started;
         await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { elapsedMs: { increment: elapsedMs },
-          attempts: json([...(request.attempts as Prisma.JsonArray), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage }]) } });
+          attempts: json([...z.array(testAttempt).parse(request.attempts), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage }]) } });
       }
     } else {
       const dates = [...new Set(run.requests.flatMap(r => r.serviceDate ? [r.serviceDate] : []))].sort();

@@ -1,3 +1,4 @@
+import { required } from "./contracts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -42,7 +43,7 @@ test("service weighting boundaries match the requested mix", () => {
 test("each fake call gets a random street address and geocode in the Omaha metro", () => {
   const random = createSeededRandom(987654321);
   const locations = Array.from({ length: 100 }, (_, index) =>
-    randomLocationForCall(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]!, random)
+    randomLocationForCall(required(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]), random)
   );
 
   assert.equal(new Set(locations.map((location) => location.line1)).size, locations.length);
@@ -51,7 +52,7 @@ test("each fake call gets a random street address and geocode in the Omaha metro
   assert.ok(locations.every((location) => /^\d{3,5} .+ (Ave|Blvd|Cir|Ct|Dr|Ln|Rd|St|Way)$/.test(location.line1)));
   assert.ok(
     locations.every((location, index) => {
-      const base = OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]!;
+      const base = required(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]);
       const latitudeMiles = (location.lat - base.lat) * 69;
       const longitudeMiles =
         (location.lng - base.lng) * 69 * Math.cos((base.lat * Math.PI) / 180);
@@ -65,10 +66,10 @@ test("different generated seeds produce different Omaha addresses", () => {
   const firstRandom = createSeededRandom(111);
   const secondRandom = createSeededRandom(222);
   const first = Array.from({ length: 20 }, (_, index) =>
-    randomLocationForCall(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]!, firstRandom)
+    randomLocationForCall(required(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]), firstRandom)
   );
   const second = Array.from({ length: 20 }, (_, index) =>
-    randomLocationForCall(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]!, secondRandom)
+    randomLocationForCall(required(OMAHA_FAKE_LOCATIONS[index % OMAHA_FAKE_LOCATIONS.length]), secondRandom)
   );
 
   assert.notDeepEqual(first.map((location) => location.line1), second.map((location) => location.line1));

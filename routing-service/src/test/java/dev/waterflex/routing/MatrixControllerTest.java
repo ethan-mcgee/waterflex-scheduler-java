@@ -13,49 +13,66 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MatrixControllerTest {
-    @TempDir Path temp;
+    @TempDir @org.jspecify.annotations.Nullable Path temp;
     private static final MatrixController.Point FIRST = new MatrixController.Point(43.7350, 7.4200);
     private static final MatrixController.Point SECOND = new MatrixController.Point(43.7350, 7.4220);
     private static final String CHECKSUM = "3ffcd8c6989bf9371df3959caaf2a721367dd8bc2f3a37d80835409ad614a4a2";
 
     @Test
+    void missingOrIncorrectCoordinateTypesFailBeforeGraphAccess() throws Exception {
+        MatrixController controller = new MatrixController("missing.osm", "missing-graph", "test", 10, 10);
+        var http = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(controller)
+                .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
+        try {
+            for (String body : List.of("null", "{}", "{", "{\"origins\":[{}],\"destinations\":[{}]}",
+                    "{\"origins\":[null],\"destinations\":[null]}",
+                    "{\"origins\":[{\"lat\":null,\"lng\":0}],\"destinations\":[{\"lat\":0,\"lng\":0}]}",
+                    "{\"origins\":[{\"lat\":\"0\",\"lng\":0}],\"destinations\":[{\"lat\":0,\"lng\":0}]}")) {
+                http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/internal/matrix")
+                        .contentType("application/json").content(Required.value(body))))
+                        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
+            }
+        } finally { controller.close(); }
+    }
+
+    @Test
     void pinnedGraphPreservesDirectionGeometryAndIdentity() throws Exception {
-        Path osm = temp.resolve("fixture-roads.osm");
+        Path osm = Required.value(temp).resolve("fixture-roads.osm");
         try (var source = getClass().getResourceAsStream("/fixture-roads.osm")) {
             assertNotNull(source);
             Files.copy(source, osm);
         }
         assertEquals(CHECKSUM, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(osm))));
-        Files.writeString(temp.resolve("manifest.json"), "{\"mergedSha256\":\"" + CHECKSUM + "\"}");
-        Path graph = temp.resolve("graph");
-        MatrixController routing = new MatrixController(osm.toString(), graph.toString(), "fixture-v1", 100, 60);
+        Files.writeString(Required.value(temp).resolve("manifest.json"), "{\"mergedSha256\":\"" + CHECKSUM + "\"}");
+        Path graph = Required.value(temp).resolve("graph");
+        MatrixController routing = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60);
         String identity = (String) routing.health().get("routingIdentity");
         assertEquals(64, identity.length());
         try {
-            var matrix = routing.matrix(new MatrixController.Request(List.of(FIRST, SECOND), List.of(FIRST, SECOND), identity));
+            var matrix = routing.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), identity));
             assertEquals(identity, matrix.routingIdentity());
             assertTrue(matrix.legs().get(0).get(1).routable());
             assertTrue(matrix.legs().get(1).get(0).routable());
-            assertTrue(matrix.legs().get(1).get(0).meters() > matrix.legs().get(0).get(1).meters());
-            var geometry = routing.routeGeometry(new MatrixController.RouteRequest(List.of(FIRST, SECOND), identity));
+            assertTrue(Required.value(matrix.legs().get(1).get(0).meters()) > Required.value(matrix.legs().get(0).get(1).meters()));
+            var geometry = routing.routeGeometry(new MatrixController.RouteRequest(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), identity));
             assertEquals(identity, geometry.routingIdentity());
             assertTrue(geometry.legs().getFirst().geometry().coordinates().size() >= 2);
             assertEquals(matrix.legs().get(0).get(1).meters(), geometry.legs().getFirst().meters());
-            assertFalse(routing.matrix(new MatrixController.Request(List.of(FIRST),
-                    List.of(new MatrixController.Point(0, 0)), identity)).legs().getFirst().getFirst().routable());
+            assertFalse(routing.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)),
+                    Required.value(List.<MatrixController.Point>of(new MatrixController.Point(0, 0))), identity)).legs().getFirst().getFirst().routable());
             assertEquals(400, assertThrows(ResponseStatusException.class, () -> routing.matrix(
-                    new MatrixController.Request(List.of(new MatrixController.Point(100, 0)), List.of(FIRST), identity)))
+                    new MatrixController.Request(Required.value(List.<MatrixController.Point>of(new MatrixController.Point(100, 0))), Required.value(List.<MatrixController.Point>of(FIRST)), identity)))
                     .getStatusCode().value());
             assertEquals(409, assertThrows(ResponseStatusException.class, () -> routing.matrix(
-                    new MatrixController.Request(List.of(FIRST), List.of(SECOND), "old-graph")))
+                    new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)), Required.value(List.<MatrixController.Point>of(SECOND)), "old-graph")))
                     .getStatusCode().value());
         } finally { routing.close(); }
-        Files.writeString(temp.resolve("manifest.json"), "{\"mergedSha256\":\"replacement-map\"}");
-        MatrixController replacement = new MatrixController(osm.toString(), graph.toString(), "fixture-v1", 100, 60);
+        Files.writeString(Required.value(temp).resolve("manifest.json"), "{\"mergedSha256\":\"replacement-map\"}");
+        MatrixController replacement = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60);
         try {
             assertNotEquals(identity, replacement.health().get("routingIdentity"));
             assertEquals(409, assertThrows(ResponseStatusException.class, () -> replacement.matrix(
-                    new MatrixController.Request(List.of(FIRST), List.of(SECOND), identity)))
+                    new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)), Required.value(List.<MatrixController.Point>of(SECOND)), identity)))
                     .getStatusCode().value());
         } finally { replacement.close(); }
     }

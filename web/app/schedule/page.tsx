@@ -1,3 +1,4 @@
+import { date as dateContract } from "@/lib/contracts";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
@@ -7,7 +8,7 @@ import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from ".
 export const dynamic = "force-dynamic";
 
 function validDateKey(value: string | undefined): value is string {
-  return value !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  return value !== undefined && dateContract.safeParse(value).success;
 }
 
 export default async function SchedulePage({

@@ -1,5 +1,7 @@
 "use client";
 
+import { z } from "zod";
+import { readResponse, testRun, testHistory, testConfig, errorMessage } from "@/lib/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { calendarDateInTz } from "@/lib/date";
 import { DEFAULT_TEST_CONFIG, type TestConfig } from "@/lib/bookingTestCore";
@@ -16,13 +18,11 @@ interface Run extends RunSummary {
   previews: Array<{ id: string; serviceDate: string; optimizationId: string | null; result: OptimizationRun | null; error: string | null }>;
   applied: Array<{ id: string; status: string; appliedAt: string | null }>;
 }
-async function api(body?: object, id?: string) {
+async function api<T>(schema: z.ZodType<T>, body?: object, id?: string) {
   const response = await fetch(`/api/dispatch/testing${id ? `?id=${encodeURIComponent(id)}` : ""}`, body ? {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(170_000),
   } : { cache: "no-store", signal: AbortSignal.timeout(15_000) });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error ?? `Request failed (${response.status})`);
-  return result;
+  return readResponse(response, schema);
 }
 function windowLabel(offer: SlotOffer) {
   const format = (value: string) => new Intl.DateTimeFormat("en-US", { timeZone: OMAHA_TIMEZONE, hour: "numeric", minute: "2-digit" }).format(new Date(value));
@@ -41,14 +41,14 @@ export default function TestingPage() {
   const mounted = useRef(true);
   const newId = useRef<string | null>(null);
   const refreshHistory = useCallback(async () => {
-    const data = await api(); setRuns(data.runs); setHorizon(data.horizon);
+    const data = await api(testHistory); setRuns(data.runs); setHorizon(data.horizon);
   }, []);
   useEffect(() => {
     mounted.current = true;
     void refreshHistory().then(async () => {
       const id = new URLSearchParams(window.location.search).get("run");
-      if (id) setRun(await api(undefined, id));
-    }).catch(e => setError(e.message));
+      if (id) setRun(await api(testRun, undefined, id));
+    }).catch(e => setError(errorMessage(e)));
     const halt = () => { continueRef.current = false; };
     window.addEventListener("pagehide", halt);
     return () => { mounted.current = false; halt(); window.removeEventListener("pagehide", halt); };
@@ -56,7 +56,7 @@ export default function TestingPage() {
   useEffect(() => {
     if (!run) return;
     // Read-only polling shows the in-flight row and remote Pause/Stop actions.
-    const timer = setInterval(() => { void api(undefined, run.id).then(data => { if (mounted.current) setRun(data); }).catch(e => setError(e.message)); }, 2000);
+    const timer = setInterval(() => { void api(testRun, undefined, run.id).then(data => { if (mounted.current) setRun(data); }).catch(e => setError(errorMessage(e))); }, 2000);
     return () => clearInterval(timer);
   }, [run?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -65,11 +65,11 @@ export default function TestingPage() {
     let current = initial;
     try {
       while (continueRef.current && mounted.current && current.status === "RUNNING") {
-        current = await api({ id: current.id, action: "advance", revision: current.revision });
+        current = await api(testRun, { id: current.id, action: "advance", revision: current.revision });
         if (mounted.current) setRun(current);
       }
     } catch (e) {
-      setError(`${(e as Error).message} Progression halted. Reload progress and explicitly Resume to reconcile before retrying.`);
+      setError(`${errorMessage(e)} Progression halted. Reload progress and explicitly Resume to reconcile before retrying.`);
       // Do not retry an ambiguous network outcome automatically.
       continueRef.current = false;
     } finally { if (mounted.current) { setDriving(false); void refreshHistory(); } }
@@ -78,27 +78,27 @@ export default function TestingPage() {
     setBusy(true); setError(null);
     try {
       newId.current ??= crypto.randomUUID();
-      const created = await api({ id: newId.current, action: "create", config });
+      const created = await api(testRun, { id: newId.current, action: "create", config });
       setRun(created); window.history.replaceState(null, "", `?run=${created.id}`);
       void refreshHistory();
       newId.current = null;
-      const current = await api({ id: created.id, action: "resume" }); setRun(current);
+      const current = await api(testRun, { id: created.id, action: "resume" }); setRun(current);
       void drive(current);
-    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
   }
   async function control(action: "resume" | "pause" | "stop") {
     if (!run) return;
     if (action !== "resume") continueRef.current = false;
     setBusy(true); setError(null);
     try {
-      const current = await api({ id: run.id, action }); setRun(current);
+      const current = await api(testRun, { id: run.id, action }); setRun(current);
       if (action === "resume") void drive(current);
-    } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
   }
   async function load(id: string) {
     setError(null);
-    try { setRun(await api(undefined, id)); window.history.replaceState(null, "", `?run=${id}`); }
-    catch (e) { setError((e as Error).message); }
+    try { setRun(await api(testRun, undefined, id)); window.history.replaceState(null, "", `?run=${id}`); }
+    catch (e) { setError(errorMessage(e)); }
   }
   const booked = run?.requests.filter(r => r.status === "BOOKED") ?? [];
   const noOffer = run?.requests.filter(r => r.status === "NO_OFFER") ?? [];
@@ -114,7 +114,7 @@ export default function TestingPage() {
       <fieldset disabled={busy || driving} className={styles.controls}>
         <label>Requests<input type="number" min="1" max="100" value={config.count} onChange={e => setConfig({ ...config, count: Number(e.target.value) })} /></label>
         <label>Random seed<input type="number" min="0" max="4294967295" value={config.seed} onChange={e => setConfig({ ...config, seed: Number(e.target.value) })} /></label>
-        <label>Offer selection<select value={config.policy} onChange={e => setConfig({ ...config, policy: e.target.value as TestConfig["policy"] })}>
+        <label>Offer selection<select value={config.policy} onChange={e => setConfig({ ...config, policy: testConfig.shape.policy.parse(e.target.value) })}>
           <option value="earliest">Earliest offered window</option><option value="first">Scheduler&apos;s first offer</option><option value="random">Seeded random</option>
         </select></label>
         {FAKE_SERVICE_CODES.map((code, index) => <label key={code}>{code.replaceAll("_", " ")} weight<input type="number" min="0" max="100" value={config.weights[index]} onChange={e => setConfig({ ...config, weights: config.weights.map((w, i) => i === index ? Number(e.target.value) : w) })} /></label>)}

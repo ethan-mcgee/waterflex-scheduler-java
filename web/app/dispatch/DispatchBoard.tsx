@@ -1,5 +1,6 @@
 "use client";
 
+import { readResponse, optimization, optimizationRuns, errorMessage } from "@/lib/contracts";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -35,6 +36,7 @@ function AppointmentCard({ appointment, timezone }: {
       <div className={styles.cardCustomer}>{appointment.customerName}</div>
       <div className={styles.cardMeta}>{appointment.serviceName}</div>
       <div className={styles.cardMeta}>{appointment.addressLine}</div>
+      {(appointment.lat === null || appointment.lng === null) && <p role="alert">Location data missing. Routing is blocked.</p>}
     </div>
   );
 }
@@ -48,6 +50,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
   initialRunId?: string;
 }) {
   const router = useRouter();
+  const [invalidResponse, setInvalidResponse] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [preview, setPreview] = useState<OptimizationRun | null>(null);
@@ -60,16 +63,17 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
       { cache: "no-store" }
     );
     if (response.ok) {
-      const data = (await response.json()) as { runs: OptimizationRun[] };
+      const data = await readResponse(response, optimizationRuns);
       setHistory(data.runs);
+      setInvalidResponse(false);
       if (initialRunId) {
         const selected = data.runs.find(run => run.run_id === initialRunId);
         if (selected) setPreview(current => current ?? selected);
       }
-    }
+    } else throw new Error("Could not load dispatch history");
   }, [metroId, date, initialRunId]);
 
-  useEffect(() => { void loadHistory(); }, [loadHistory]);
+  useEffect(() => { void loadHistory().catch(error => { setStatus(errorMessage(error)); setInvalidResponse(true); }); }, [loadHistory]);
 
   function goToDate(nextDate: string) {
     setPreview(null);
@@ -92,26 +96,24 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ metroId, date }),
       });
-      const data = (await response.json()) as OptimizationRun & { error?: string };
-      if (!response.ok) {
-        setStatus(`Error: ${data.error ?? "optimization failed"}`);
-        return;
-      }
+      const data = await readResponse(response, optimization);
       setPreview(data);
+      setInvalidResponse(false);
       setMapPhase(data.status === "PREVIEW" ? "after" : "current");
       setStatus(data.status === "PREVIEW"
         ? `Preview ready. Modeled cost improvement: $${(data.objective_improvement / 100).toFixed(2)}.`
         : `No applicable proposal: ${data.reason ?? data.status}.`);
       await loadHistory();
-    } catch {
-      setStatus("Network error.");
+    } catch (error) {
+      setStatus(errorMessage(error));
+      setInvalidResponse(true);
     } finally {
       setBusy(false);
     }
   }
 
   async function handleApply() {
-    if (!preview || preview.status !== "PREVIEW") return;
+    if (invalidResponse || !preview || preview.status !== "PREVIEW") return;
     if (!window.confirm("Apply this exact optimization proposal?")) return;
     setBusy(true);
     setStatus(null);
@@ -121,19 +123,16 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ runId: preview.run_id }),
       });
-      const data = (await response.json()) as OptimizationRun & { error?: string };
-      if (!response.ok) {
-        setStatus(`Apply failed: ${data.error ?? "optimization failed"}`);
-        await loadHistory();
-        return;
-      }
+      const data = await readResponse(response, optimization);
       setPreview(data);
+      setInvalidResponse(false);
       setMapPhase("current");
       setStatus(`Applied ${data.appointments_moved} appointment change(s).`);
       await loadHistory();
       router.refresh();
-    } catch {
-      setStatus("Network error.");
+    } catch (error) {
+      setStatus(errorMessage(error));
+      setInvalidResponse(true);
     } finally {
       setBusy(false);
     }
@@ -149,7 +148,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         <button className={styles.button} onClick={() => shiftDate(-1)}>Previous day</button>
         <input className={styles.dateInput} type="date" value={date} onChange={(event) => goToDate(event.target.value)} />
         <button className={styles.button} onClick={() => shiftDate(1)}>Next day</button>
-        <button className={styles.button} disabled={busy} onClick={handlePreview}>
+        <button className={styles.button} disabled={busy || appointments.some(a => a.lat === null || a.lng === null)} onClick={handlePreview}>
           {busy ? "Working..." : "Preview optimization"}
         </button>
         {status && <span className={styles.status}>{status}</span>}
@@ -159,7 +158,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
         <section className={styles.optimizationPanel}>
           <div className={styles.optimizationHeader}>
             <div><strong>{preview.status.replaceAll("_", " ")}</strong><span>Run {preview.run_id.slice(0, 8)} · {preview.solve_ms} ms</span></div>
-            {preview.status === "PREVIEW" && <button className={styles.applyButton} disabled={busy} onClick={handleApply}>Apply proposal</button>}
+            {preview.status === "PREVIEW" && <button className={styles.applyButton} disabled={invalidResponse || busy || appointments.some(a => a.lat === null || a.lng === null)} onClick={handleApply}>Apply proposal</button>}
           </div>
           <div className={styles.fleetTotals}>
             <span title={preview.routing_identity}>Routing graph: {preview.routing_identity.slice(0, 12)}</span>

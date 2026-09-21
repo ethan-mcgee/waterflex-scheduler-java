@@ -1,11 +1,11 @@
+import { readBody, applyRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { applyOptimization, EngineError } from "@/lib/engineClient";
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { runId?: string };
-  if (!body.runId) {
-    return NextResponse.json({ error: "Missing runId" }, { status: 400 });
-  }
+  const parsed = await readBody(req, applyRequest);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  const body = parsed.data;
   try {
     return NextResponse.json(await applyOptimization(body.runId));
   } catch (error) {

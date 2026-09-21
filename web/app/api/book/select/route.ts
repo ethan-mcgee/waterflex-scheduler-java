@@ -1,10 +1,12 @@
+import { readBody, selectRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { selectOffer, requestSlots, EngineError } from "@/lib/engineClient";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { jobId?: string; offerId?: string };
-  if (!body.jobId || !body.offerId) return NextResponse.json({ error: "Missing jobId or offerId" }, { status: 400 });
+  const parsed = await readBody(req, selectRequest);
+  if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  const body = parsed.data;
   try {
     return NextResponse.json(await selectOffer(body.jobId, body.offerId));
   } catch (error) {

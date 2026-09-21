@@ -9,7 +9,6 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -22,7 +21,7 @@ class ScheduleGuardServiceTest {
     void availabilityUsesSharedDateCutoffBeforeWriting() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         ScheduleGuardService service = spy(new ScheduleGuardService(jdbc));
-        LocalDate day = LocalDate.parse("2026-09-21");
+        LocalDate day = Required.value(LocalDate.parse("2026-09-21"));
         doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination"))
                 .when(service).unfrozen(day);
 
@@ -42,6 +41,6 @@ class ScheduleGuardServiceTest {
 
         assertEquals(stopped, assertThrows(ResponseStatusException.class,
                 () -> service.qualification("tech", "service", true)));
-        verify(service, never()).unfrozen(any());
+        verify(service, never()).unfrozen(MockArguments.day());
     }
 }

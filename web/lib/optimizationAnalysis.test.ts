@@ -1,7 +1,8 @@
+import { required } from "./contracts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { OptimizationSimulationReport, SimulationMetrics } from "./optimizationSimulationTypes";
-import { aggregateValidation, analyzeQuickRun, incrementSeed, paidMinutesPerBookedAppointment, runValidationSequence, validationSeeds } from "./optimizationAnalysis";
+import { metricMap, aggregateValidation, analyzeQuickRun, incrementSeed, paidMinutesPerBookedAppointment, runValidationSequence, validationSeeds } from "./optimizationAnalysis";
 
 const baseMetrics: SimulationMetrics = {
   requested_jobs: 100, booked_jobs: 90, rejected_jobs: 10, acceptance_rate: 0.9,
@@ -17,7 +18,7 @@ function report(seed: number, overrides: Partial<Record<string, Partial<Simulati
   for (const profile of ["soonest", "route_friendly", "mixed"] as const) {
     for (const strategy of ["legacy", "enhanced_scoring", "lookahead"] as const) {
       const metrics = { ...baseMetrics, ...(strategy === "enhanced_scoring" ? { total_paid_route_minutes: 1620, drive_minutes_per_appointment: 9 } : {}), ...(strategy === "lookahead" ? { total_paid_route_minutes: 1710, drive_minutes_per_appointment: 8 } : {}), ...overrides[`${profile}:${strategy}`] };
-      const deltas = Object.fromEntries(Object.keys(metrics).map((key) => [key, { absolute: 0, percent: 0 }])) as OptimizationSimulationReport["results"][number]["deltas_from_legacy"];
+      const deltas = metricMap(() => ({ absolute: 0, percent: 0 }));
       results.push({ customer_profile: profile, strategy, metrics, deltas_from_legacy: deltas, warnings: [] });
     }
   }
@@ -37,9 +38,9 @@ test("customer tolerances and safety violations disqualify candidates", () => {
     "route_friendly:lookahead": { window_violations: 1 },
     "mixed:lookahead": { window_violations: 1 },
   }));
-  assert.equal(analysis.profileConclusions[0]!.gates.enhanced_scoring.acceptancePassed, false);
-  assert.equal(analysis.profileConclusions[1]!.gates.enhanced_scoring.serviceDelayPassed, false);
-  assert.equal(analysis.profileConclusions[2]!.gates.enhanced_scoring.safetyPassed, false);
+  assert.equal(required(analysis.profileConclusions[0]).gates.enhanced_scoring.acceptancePassed, false);
+  assert.equal(required(analysis.profileConclusions[1]).gates.enhanced_scoring.serviceDelayPassed, false);
+  assert.equal(required(analysis.profileConclusions[2]).gates.enhanced_scoring.safetyPassed, false);
   assert.equal(analysis.recommendation.strategy, null);
 });
 
@@ -96,4 +97,12 @@ test("one unsafe validation run makes the outcome inconclusive", () => {
   const aggregate = aggregateValidation(runs);
   assert.equal(aggregate.safety_gates.soonest.enhanced_scoring, false);
   assert.equal(aggregate.recommendation.strategy, null);
+});
+
+test("incomplete simulation results cannot produce recommendations", () => {
+  const incomplete = report(42);
+  incomplete.results.pop();
+  assert.throws(() => analyzeQuickRun(incomplete), /simulation result/);
+  assert.throws(() => aggregateValidation([incomplete]), /simulation result/);
+  assert.throws(() => analyzeQuickRun(report(42, { "soonest:legacy": { drive_minutes: NaN } })), /Invalid simulation metric/);
 });

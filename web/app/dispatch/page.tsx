@@ -1,3 +1,4 @@
+import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
 import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
@@ -20,6 +21,7 @@ export default async function DispatchPage({
   }
 
   const date = searchParams.date ?? tomorrowInTz(metro.timezone);
+  if (!dateContract.safeParse(date).success) return <main><p role="alert">Invalid dispatch date.</p></main>;
   const dayStart = new Date(`${date}T00:00:00.000Z`);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
@@ -55,13 +57,7 @@ export default async function DispatchPage({
     shiftEndMin: t.shiftEndMin,
   }));
 
-  // address.lat/lng are nullable at the schema level (ungeocoded
-  // addresses), but booking always geocodes before creating a job — so an
-  // appointment with a null coordinate here would indicate a data
-  // integrity problem upstream. Drop it from map rendering rather than
-  // crash the board over it.
   const boardAppointments = appointments
-    .filter((a) => a.job.address.lat !== null && a.job.address.lng !== null)
     .map((a) => ({
       id: a.id,
       technicianId: a.technicianId,
@@ -73,8 +69,8 @@ export default async function DispatchPage({
       customerName: `${a.job.customer.firstName} ${a.job.customer.lastName}`,
       serviceName: a.job.service.name,
       addressLine: [a.job.address.line1, a.job.address.line2, a.job.address.city].filter(Boolean).join(", "),
-      lat: a.job.address.lat as number,
-      lng: a.job.address.lng as number,
+      lat: a.job.address.lat,
+      lng: a.job.address.lng,
     }));
 
   return (

@@ -1,5 +1,7 @@
 package dev.waterflex.routing;
 
+import org.jspecify.annotations.Nullable;
+import java.util.Objects;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.config.Profile;
@@ -29,16 +31,26 @@ import java.util.Map;
 
 @RestController
 public class MatrixController {
-    public record Point(double lat, double lng) { }
-    public record Request(List<Point> origins, List<Point> destinations, String expectedRoutingIdentity) { }
-    public record Leg(boolean routable, Long seconds, Long meters) { }
+    public record Point(Double lat, Double lng) {
+        public Point {
+            if (lat == null || lng == null || !Double.isFinite(lat) || !Double.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing or invalid coordinate");
+        }
+        public Point(double lat, double lng) { this(Required.value(Double.valueOf(lat)), Required.value(Double.valueOf(lng))); }
+    }
+    public record Request(List<Point> origins, List<Point> destinations, @Nullable String expectedRoutingIdentity) {
+        public Request { origins = validPoints(origins, 1, 64); destinations = validPoints(destinations, 1, 64); }
+    }
+    public record Leg(boolean routable, @Nullable Long seconds, @Nullable Long meters) { }
     public record Matrix(String mapVersion, String routingIdentity, List<List<Leg>> legs) { }
     public record Geometry(String type, List<List<Double>> coordinates) { }
     public record RouteLeg(long seconds, long meters, Geometry geometry) { }
     public record RouteResponse(String routingIdentity, List<RouteLeg> legs) { }
-    public record RouteRequest(List<Point> points, String expectedRoutingIdentity) { }
+    public record RouteRequest(List<Point> points, @Nullable String expectedRoutingIdentity) {
+        public RouteRequest { points = validPoints(points, 2, 65); }
+    }
 
-    private final GraphHopper hopper;
+    private final @Nullable GraphHopper hopper;
     private final String mapVersion;
     private final String routingIdentity;
     private record Cached(Leg leg, Instant expiresAt) { }
@@ -51,38 +63,34 @@ public class MatrixController {
                             @Value("${routing.cache.max-entries:100000}") int cacheEntries,
                             @Value("${routing.cache.ttl-minutes:60}") int cacheMinutes) {
         int limit = Math.max(1, cacheEntries);
-        this.cacheTtl = Duration.ofMinutes(Math.max(1, cacheMinutes));
-        this.cache = Collections.synchronizedMap(new LinkedHashMap<>(limit, .75f, true) {
-            @Override protected boolean removeEldestEntry(Map.Entry<String, Cached> eldest) { return size() > limit; }
-        });
+        this.cacheTtl = Required.value(Duration.ofMinutes(Math.max(1, cacheMinutes)));
+        this.cache = Required.value(Collections.synchronizedMap(new LinkedHashMap<>(limit, .75f, true) {
+            @Override protected boolean removeEldestEntry(Map.@Nullable Entry<String, Cached> eldest) { return size() > limit; }
+        }));
         String activeVersion = mapVersion;
         if (activeVersion.equals("unprepared")) {
-            try { activeVersion = Files.readString(Path.of(graphDir).getParent().resolve("map-version")).trim(); }
+            try { activeVersion = Files.readString(Required.value(Path.of(graphDir).toAbsolutePath().getParent()).resolve("map-version")).trim(); }
             catch (Exception ignored) { }
         }
-        this.mapVersion = activeVersion;
-        this.routingIdentity = identity(graphDir, activeVersion);
+        this.mapVersion = Required.value(activeVersion);
+        this.routingIdentity = identity(graphDir, Required.value(activeVersion));
         if (!new File(osmFile).isFile() && !new File(graphDir, "properties").isFile()) {
             this.hopper = null;
             return;
         }
-        this.hopper = new GraphHopper();
-        hopper.setOSMFile(osmFile);
-        hopper.setGraphHopperLocation(graphDir);
-        hopper.setEncodedValuesString("car_access, car_average_speed, road_access, road_environment, max_speed, ferry_speed");
-        hopper.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
-        hopper.importOrLoad();
+        GraphHopper active = new GraphHopper();
+        this.hopper = active;
+        active.setOSMFile(osmFile);
+        active.setGraphHopperLocation(graphDir);
+        active.setEncodedValuesString("car_access, car_average_speed, road_access, road_environment, max_speed, ferry_speed");
+        active.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
+        active.importOrLoad();
     }
 
     @PostMapping("/internal/matrix")
     public Matrix matrix(@RequestBody Request request) {
-        if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
         checkIdentity(request.expectedRoutingIdentity());
-        if (request.origins() == null || request.destinations() == null || request.origins().isEmpty() ||
-            request.destinations().isEmpty() || request.origins().size() > 64 || request.destinations().size() > 64)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid matrix dimensions");
-        request.origins().forEach(this::validatePoint);
-        request.destinations().forEach(this::validatePoint);
+        if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
         List<List<Leg>> rows = new ArrayList<>();
         for (Point origin : request.origins()) {
             List<Leg> row = new ArrayList<>();
@@ -90,45 +98,49 @@ public class MatrixController {
                 String key = origin.lat() + "," + origin.lng() + ">" + destination.lat() + "," + destination.lng();
                 Cached hit = cache.get(key);
                 if (hit == null || !hit.expiresAt().isAfter(Instant.now())) {
-                    hit = new Cached(route(origin, destination), Instant.now().plus(cacheTtl));
+                    hit = new Cached(route(Required.value(origin), Required.value(destination)), Required.value(Instant.now().plus(cacheTtl)));
                     cache.put(key, hit);
                 }
                 row.add(hit.leg());
             }
             rows.add(row);
         }
-        return new Matrix(mapVersion, routingIdentity, rows);
+        return new Matrix(mapVersion, routingIdentity, Required.value(rows));
     }
 
     @PostMapping("/internal/route")
     public RouteResponse routeGeometry(@RequestBody RouteRequest request) {
-        if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
         checkIdentity(request.expectedRoutingIdentity());
-        if (request.points() == null || request.points().size() < 2 || request.points().size() > 65)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid route point count");
-        request.points().forEach(this::validatePoint);
+        if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
         List<RouteLeg> legs = new ArrayList<>();
         for (int i = 1; i < request.points().size(); i++) {
-            var response = hopper.route(new GHRequest(toGh(request.points().get(i - 1)), toGh(request.points().get(i))).setProfile("car"));
+            var response = Objects.requireNonNull(hopper, "Road graph not imported").route(new GHRequest(toGh(Required.value(request.points().get(i - 1))), toGh(Required.value(request.points().get(i)))).setProfile("car"));
             if (response.hasErrors()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "No road route");
             var path = response.getBest();
-            if (!snapped(request.points().get(i - 1), request.points().get(i), path.getWaypoints()))
+            if (!snapped(Required.value(request.points().get(i - 1)), Required.value(request.points().get(i)), Required.value(path.getWaypoints())))
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Endpoint outside road graph");
             List<List<Double>> coordinates = new ArrayList<>();
             var points = path.getPoints();
             for (int n = 0; n < points.size(); n++) coordinates.add(List.of(points.getLon(n), points.getLat(n)));
             legs.add(new RouteLeg(Math.max(1, (path.getTime() + 999) / 1000), Math.round(path.getDistance()),
-                    new Geometry("LineString", coordinates)));
+                    new Geometry("LineString", Required.value(coordinates))));
         }
-        return new RouteResponse(routingIdentity, legs);
+        return new RouteResponse(routingIdentity, Required.value(legs));
     }
 
-    private void checkIdentity(String expected) {
+    private void checkIdentity(@Nullable String expected) {
         if (expected != null && !expected.isBlank() && !expected.equals(routingIdentity))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing identity changed");
     }
 
-    private void validatePoint(Point point) {
+    private static List<Point> validPoints(@Nullable List<Point> points, int min, int max) {
+        if (points == null || points.size() < min || points.size() > max)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid routing point count");
+        points.forEach(MatrixController::validatePoint);
+        return points;
+    }
+
+    private static void validatePoint(@Nullable Point point) {
         if (point == null || !Double.isFinite(point.lat()) || !Double.isFinite(point.lng()) ||
                 Math.abs(point.lat()) > 90 || Math.abs(point.lng()) > 180)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid coordinate");
@@ -144,29 +156,29 @@ public class MatrixController {
 
     private static String identity(String graphDir, String mapVersion) {
         try {
-            Path graph = Path.of(graphDir);
+            Path graph = Path.of(graphDir).toAbsolutePath();
             Path manifest = (Files.exists(graph) ? graph.toRealPath() : graph).getParent().resolve("manifest.json");
             String checksum = Files.isRegularFile(manifest)
                     ? new ObjectMapper().readTree(Files.readString(manifest)).path("mergedSha256").asText("") : "";
             if (checksum.isBlank()) checksum = mapVersion;
             String settings = checksum + "|car|car_access,car_average_speed,road_access,road_environment,max_speed,ferry_speed|car.json|GraphHopper-11.0|snap-1000m";
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(settings.getBytes(StandardCharsets.UTF_8)));
+            return Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(settings.getBytes(StandardCharsets.UTF_8))));
         } catch (Exception e) { throw new IllegalStateException("Cannot identify routing graph", e); }
     }
 
     private Leg route(Point origin, Point destination) {
-        var response = hopper.route(new GHRequest(toGh(origin), toGh(destination)).setProfile("car"));
+        var response = Objects.requireNonNull(hopper, "Road graph not imported").route(new GHRequest(toGh(origin), toGh(destination)).setProfile("car"));
         if (response.hasErrors()) return new Leg(false, null, null);
         var path = response.getBest();
-        if (!snapped(origin, destination, path.getWaypoints()))
+        if (!snapped(origin, destination, Required.value(path.getWaypoints())))
             return new Leg(false, null, null);
         return new Leg(true, Math.max(1, (path.getTime() + 999) / 1000), Math.round(path.getDistance()));
     }
 
     @GetMapping("/health")
-    public Map<String, Object> health() { return Map.of("ready", hopper != null, "mapVersion", mapVersion,
-            "routingIdentity", routingIdentity, "profile", "car", "engineVersion", "11.0"); }
+    public Map<String, Object> health() { return Required.value(Map.<String, Object>of("ready", hopper != null, "mapVersion", mapVersion,
+            "routingIdentity", routingIdentity, "profile", "car", "engineVersion", "11.0")); }
 
     @PreDestroy
-    public void close() { if (hopper != null) hopper.close(); }
+    public void close() { GraphHopper active = hopper; if (active != null) active.close(); }
 }

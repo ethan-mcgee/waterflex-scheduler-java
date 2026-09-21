@@ -1,5 +1,8 @@
 package dev.waterflex.scheduler.optimizer;
 
+import org.jspecify.annotations.Nullable;
+import dev.waterflex.scheduler.Required;
+
 import ai.timefold.solver.core.api.score.HardSoftScore;
 import ai.timefold.solver.core.api.score.calculator.EasyScoreCalculator;
 
@@ -12,8 +15,8 @@ public class DayScoreCalculator implements EasyScoreCalculator<DayPlan, HardSoft
                              long overtimeMinutes, long meters, long driveMinutes, long waitingMinutes) { }
 
     @Override
-    public HardSoftScore calculateScore(DayPlan plan) {
-        Evaluation result = evaluate(plan);
+    public HardSoftScore calculateScore(@Nullable DayPlan plan) {
+        Evaluation result = evaluate(Required.value(plan, "solver plan"));
         return HardSoftScore.of(-result.hardPenalty(), -result.costCents());
     }
 
@@ -21,7 +24,7 @@ public class DayScoreCalculator implements EasyScoreCalculator<DayPlan, HardSoft
         long hard = 0, paid = 0, overtime = 0, meters = 0, drive = 0, waiting = 0;
         Map<String, Instant> arrivals = new HashMap<>();
         for (TechRoute route : plan.getRoutes()) {
-            var result = RouteTimeline.evaluate(plan, route);
+            var result = RouteTimeline.evaluate(plan, Required.value(route));
             hard += result.hardPenalty();
             paid += result.paidMinutes(); overtime += result.overtimeMinutes();
             meters += result.meters(); drive += result.driveMinutes(); waiting += result.waitingMinutes();

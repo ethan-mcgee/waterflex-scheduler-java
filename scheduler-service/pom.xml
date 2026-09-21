@@ -1,9 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion><parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version></parent>
+  <modelVersion>4.0.0</modelVersion><parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version><relativePath/></parent>
   <groupId>dev.waterflex</groupId><artifactId>scheduler-service</artifactId><version>0.1.0-SNAPSHOT</version>
   <properties><java.version>25</java.version><maven.compiler.release>25</maven.compiler.release><timefold.version>2.6.0</timefold.version></properties>
   <dependencyManagement><dependencies><dependency><groupId>ai.timefold.solver</groupId><artifactId>timefold-solver-bom</artifactId><version>${timefold.version}</version><type>pom</type><scope>import</scope></dependency></dependencies></dependencyManagement>
   <dependencies>
+    <dependency><groupId>org.jspecify</groupId><artifactId>jspecify</artifactId><version>1.0.0</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
     <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
@@ -12,4 +13,15 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
   </dependencies>
   <build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin></plugins></build>
+
+  <profiles><profile><id>nullability</id><build><plugins><plugin>
+    <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.15.0</version>
+    <configuration><compilerId>eclipse</compilerId><showWarnings>true</showWarnings><failOnWarning>true</failOnWarning>
+      <compilerArgs><arg>-properties</arg><arg>${project.basedir}/../.settings/org.eclipse.jdt.core.prefs</arg></compilerArgs>
+    </configuration>
+    <dependencies>
+      <dependency><groupId>org.codehaus.plexus</groupId><artifactId>plexus-compiler-eclipse</artifactId><version>2.16.2</version></dependency>
+      <dependency><groupId>org.eclipse.jdt</groupId><artifactId>ecj</artifactId><version>3.46.0</version></dependency>
+    </dependencies>
+  </plugin></plugins></build></profile></profiles>
 </project>

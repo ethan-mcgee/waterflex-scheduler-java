@@ -1,5 +1,8 @@
 package dev.waterflex.scheduler.optimizer;
 
+import org.jspecify.annotations.Nullable;
+import dev.waterflex.scheduler.Required;
+
 import ai.timefold.solver.core.api.domain.common.PlanningId;
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 import ai.timefold.solver.core.api.domain.variable.PlanningListVariable;
@@ -12,12 +15,12 @@ import java.util.Set;
 @PlanningEntity
 public class TechRoute {
     @PlanningId
-    private String id;
-    private Instant shiftStart;
-    private Instant shiftEnd;
-    private int maxDailyMinutes;
-    private int maxOvertimeMinutes;
-    private Set<String> qualifiedServiceIds;
+    private @Nullable String id;
+    private @Nullable Instant shiftStart;
+    private @Nullable Instant shiftEnd;
+    private @Nullable Integer maxDailyMinutes;
+    private @Nullable Integer maxOvertimeMinutes;
+    private @Nullable Set<String> qualifiedServiceIds;
     private List<Unavailable> unavailable = new ArrayList<>();
     @PlanningListVariable(valueRangeProviderRefs = "visits")
     private List<PlanVisit> visits = new ArrayList<>();
@@ -29,13 +32,13 @@ public class TechRoute {
         this.maxDailyMinutes = maxDailyMinutes; this.maxOvertimeMinutes = maxOvertimeMinutes;
         this.qualifiedServiceIds = qualifiedServiceIds;
     }
-    public String getId() { return id; }
+    public String getId() { return Required.value(id, "TechRoute.id before initialization"); }
     public void setId(String id) { this.id = id; }
-    public Instant getShiftStart() { return shiftStart; }
-    public Instant getShiftEnd() { return shiftEnd; }
-    public int getMaxDailyMinutes() { return maxDailyMinutes; }
-    public int getMaxOvertimeMinutes() { return maxOvertimeMinutes; }
-    public Set<String> getQualifiedServiceIds() { return qualifiedServiceIds; }
+    public Instant getShiftStart() { return Required.value(shiftStart, "TechRoute.shiftStart before initialization"); }
+    public Instant getShiftEnd() { return Required.value(shiftEnd, "TechRoute.shiftEnd before initialization"); }
+    public int getMaxDailyMinutes() { return Required.value(maxDailyMinutes, "TechRoute.maxDailyMinutes before initialization"); }
+    public int getMaxOvertimeMinutes() { return Required.value(maxOvertimeMinutes, "TechRoute.maxOvertimeMinutes before initialization"); }
+    public Set<String> getQualifiedServiceIds() { return Required.value(qualifiedServiceIds, "TechRoute.qualifiedServiceIds before initialization"); }
     public record Unavailable(Instant start, Instant end) { }
     public List<Unavailable> getUnavailable() { return unavailable; }
     public void setUnavailable(List<Unavailable> unavailable) { this.unavailable = unavailable; }

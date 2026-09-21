@@ -1,3 +1,4 @@
+import { offer, required } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
@@ -20,7 +21,7 @@ async function main() {
   const prior = await createTestRun(randomUUID(), { ...config, count: 1 });
   const priorStarted = await resumed(prior.id);
   const priorBooked = await advanceTestRun(prior.id, priorStarted.revision);
-  assert.equal(priorBooked.requests[0]!.status, "BOOKED");
+  assert.equal(required(priorBooked.requests[0]).status, "BOOKED");
   await controlTestRun(prior.id, "stop");
   const id = randomUUID();
   const created = await createTestRun(id, config);
@@ -28,7 +29,7 @@ async function main() {
   assert.equal((await createTestRun(id, config)).id, id);
   const duplicateId = randomUUID();
   const duplicates = await Promise.all([createTestRun(duplicateId, config), createTestRun(duplicateId, config)]);
-  assert.equal(duplicates[0]!.id, duplicates[1]!.id);
+  assert.equal(required(duplicates[0]).id, required(duplicates[1]).id);
   assert.equal(await prisma.bookingTestRequest.count({ where: { runId: duplicateId } }), config.count);
   await assert.rejects(createTestRun(id, { ...config, seed: 43 }));
   assert.equal(await prisma.job.count({ where: { id: { in: created.requests.map(r => r.id) } } }), 0);
@@ -36,25 +37,35 @@ async function main() {
   const revision = run.revision;
   run = await advanceTestRun(id, revision);
   assert.deepEqual(run.requests.map(r => r.status), ["BOOKED", "PENDING", "PENDING"]);
-  const first = await prisma.appointment.findUniqueOrThrow({ where: { jobId: run.requests[0]!.id } });
-  const selection = run.requests[0]!.selected as unknown as SlotOffer;
+  const corrupt = await createTestRun(randomUUID(), { ...config, count: 1 });
+  const corruptRequest = required(corrupt.requests[0]);
+  const retainedSelection = offer.parse(required(run.requests[0]).selected);
+  await prisma.bookingTestRequest.update({ where: { id: corruptRequest.id }, data: { selected: retainedSelection, attempts: { malformed: true } } });
+  const corruptRunning = await resumed(corrupt.id);
+  const halted = await advanceTestRun(corrupt.id, corruptRunning.revision, { ...testEngine, offers: async () => { throw new Error("Invalid journal must not request offers"); } });
+  assert.equal(halted.status, "PAUSED"); assert.match(required(halted.error), /Malformed booking-test journal/);
+  assert.deepEqual(required(halted.requests[0]).selected, retainedSelection);
+  assert.deepEqual(required(halted.requests[0]).attempts, { malformed: true });
+  assert.equal(await prisma.job.count({ where: { id: corruptRequest.id } }), 0);
+  const first = await prisma.appointment.findUniqueOrThrow({ where: { jobId: required(run.requests[0]).id } });
+  const selection = offer.parse(required(run.requests[0]).selected);
   assert.equal(first.windowStart.toISOString(), new Date(selection.windowStart).toISOString());
   assert.ok(await prisma.bookingOfferSet.findFirst({ where: { jobId: first.jobId, selectedOfferId: selection.offerId } }), "Appointment came through scheduler selection");
   assert.deepEqual((await advanceTestRun(id, revision)).requests.map(r => r.status), run.requests.map(r => r.status), "Duplicate advance does not move to the next job");
   await controlTestRun(id, "pause");
   run = await readTestRun(id);
-  assert.equal((await advanceTestRun(id, run.revision)).requests[1]!.status, "PENDING");
+  assert.equal(required((await advanceTestRun(id, run.revision)).requests[1]).status, "PENDING");
   run = await resumed(id);
   // A response lost after the booking commit must pause and later reconcile the same appointment.
   run = await advanceTestRun(id, run.revision, { ...testEngine, select: async (job, offer) => {
     await testEngine.select(job, offer); throw new Error("Injected lost confirmation response");
   } });
-  assert.equal(run.status, "PAUSED"); assert.equal(run.requests[1]!.status, "ERROR");
-  const recoveredJob = run.requests[1]!.id;
+  assert.equal(run.status, "PAUSED"); assert.equal(required(run.requests[1]).status, "ERROR");
+  const recoveredJob = required(run.requests[1]).id;
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
   run = await resumed(id);
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async () => { throw new Error("Must reconcile before offers"); } });
-  assert.equal(run.requests[1]!.status, "BOOKED");
+  assert.equal(required(run.requests[1]).status, "BOOKED");
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
   // No capacity is a completed outcome and does not stop progression.
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async jobId => {
@@ -62,7 +73,7 @@ async function main() {
     await prisma.job.update({ where: { id: jobId }, data: { durationMin: 10000 } });
     return testEngine.offers(jobId);
   } });
-  assert.equal(run.requests[2]!.status, "NO_OFFER"); assert.equal(run.status, "RUNNING");
+  assert.equal(required(run.requests[2]).status, "NO_OFFER"); assert.equal(run.status, "RUNNING");
   const appointments = () => prisma.appointment.findMany({ orderBy: { id: "asc" } });
   const before = await appointments();
   const nextPreview = await advanceTestRun(id, run.revision, { ...testEngine, preview: async (date, key) => {
@@ -77,19 +88,19 @@ async function main() {
     assert.ok(p.optimizationId);
     assert.equal(await prisma.optimizationRun.count({ where: { requestKey: p.id } }), 1, "Ambiguous preview retry is idempotent");
   }
-  const priorAppointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId: priorBooked.requests[0]!.id } });
+  const priorAppointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId: required(priorBooked.requests[0]).id } });
   assert.ok(run.previews.some(p => p.serviceDate === priorAppointment.serviceDate.toISOString().slice(0, 10)), "Preview includes the pre-existing appointment's day");
-  const dayPreview = await prisma.optimizationRun.findUniqueOrThrow({ where: { id: run.previews.find(p => p.serviceDate === priorAppointment.serviceDate.toISOString().slice(0, 10))!.optimizationId! } });
+  const dayPreview = await prisma.optimizationRun.findUniqueOrThrow({ where: { id: required(required(run.previews.find(p => p.serviceDate === priorAppointment.serviceDate.toISOString().slice(0, 10))).optimizationId) } });
   assert.ok(JSON.stringify(dayPreview.baselineAssignments).includes(priorAppointment.id), "Entire-day preview contains appointments from earlier runs");
 
   const errors = await createTestRun(randomUUID(), { ...config, count: 2 });
   run = await resumed(errors.id);
   run = await advanceTestRun(run.id, run.revision, { ...testEngine, offers: async () => { throw new EngineError(503, "Routing unavailable"); } });
-  assert.equal(run.status, "PAUSED"); assert.equal(run.requests[0]!.status, "ERROR");
+  assert.equal(run.status, "PAUSED"); assert.equal(required(run.requests[0]).status, "ERROR");
   assert.equal(run.requests.filter(r => r.status === "NO_OFFER").length, 0);
   run = await resumed(errors.id);
   run = await advanceTestRun(run.id, run.revision, { ...testEngine, select: async () => { throw new EngineError(409, "Injected confirmation conflict"); } });
-  assert.equal(run.status, "PAUSED"); assert.equal(run.requests[0]!.selected, null);
+  assert.equal(run.status, "PAUSED"); assert.equal(required(run.requests[0]).selected, null);
   run = await resumed(errors.id);
   // Hold an operation while a second caller attempts to advance or resume.
   let entered!: () => void; let release!: () => void;
@@ -103,7 +114,7 @@ async function main() {
     const paused = await controlTestRun(run.id, "pause"); assert.equal(paused.status, "PAUSED");
   } finally { release(); }
   run = await operation;
-  assert.equal(run.status, "PAUSED"); assert.equal(run.requests[1]!.status, "PENDING");
+  assert.equal(run.status, "PAUSED"); assert.equal(required(run.requests[1]).status, "PENDING");
   run = await resumed(run.id);
   let stopping!: () => void; let finish!: () => void;
   const inFlight = new Promise<void>(resolve => { stopping = resolve; });
@@ -118,7 +129,7 @@ async function main() {
   await prisma.bookingTestRequest.update({ where: { id: recoveredJob }, data: { status: "PROCESSING", appointmentId: null } });
   await prisma.bookingTestRun.update({ where: { id }, data: { status: "RUNNING" } });
   run = await resumed(id); run = await advanceTestRun(id, run.revision);
-  assert.equal(run.requests[1]!.status, "BOOKED");
+  assert.equal(required(run.requests[1]).status, "BOOKED");
   assert.equal(await prisma.job.count({ where: { id: recoveredJob } }), 1);
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
   assert.deepEqual(await configuration(), configurationBefore, "Runs never rewrite Omaha configuration");
