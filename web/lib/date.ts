@@ -89,3 +89,7 @@ export function calendarDateInTz(value: Date, tz: string): string {
   const get = (type: string) => required(parts.find((part) => part.type === type)?.value, `Calendar ${type}`);
   return `${get("year")}-${get("month")}-${get("day")}`;
 }
+
+export function todayInTz(tz: string, now = new Date()): string {
+  return calendarDateInTz(now, tz);
+}

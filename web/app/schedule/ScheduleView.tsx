@@ -307,12 +307,6 @@ export default function ScheduleView({
       <div className={styles.toolbar}>
         <h1 className={styles.title}>Weekly schedule</h1>
         <span className={styles.subtle}>Week of {formatWeekLabel(monday)}</span>
-        <Link className={styles.button} href="/">
-          Home
-        </Link>
-        <Link className={styles.button} href="/dispatch">
-          Dispatch
-        </Link>
         <button className={styles.button} type="button" onClick={() => goToWeek(addCalendarDays(monday, -7))}>
           Previous
         </button>

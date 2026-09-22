@@ -1,23 +1,40 @@
 import { prisma } from "@/lib/prisma";
+import { parseTimeOffReport, timeOffIntervalView } from "@/lib/timeOffView";
 import TimeOffDemo from "./TimeOffDemo";
 
 export const dynamic = "force-dynamic";
+const FILTERS = {
+  all: undefined,
+  pending: ["PENDING"],
+  ready: ["READY"],
+  approved: ["APPROVED"],
+} as const;
+type FilterKey = keyof typeof FILTERS;
+function isFilterKey(value: string | undefined): value is FilterKey { return value != null && Object.hasOwn(FILTERS, value); }
 
-export default async function TimeOffPage() {
-  const technicians = await prisma.technician.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } });
-  const requests = await prisma.timeOffRequest.findMany({
-    include: { technician: { select: { name: true } }, intervals: { orderBy: { serviceDate: "asc" } }, report: true },
-    orderBy: { createdAt: "desc" }, take: 100,
-  });
-  return <main style={{ maxWidth: 1050 }}>
-    <h1>Technician time off</h1>
-    <p><strong>Local demo selector:</strong> choose a technician to submit a request. This selector does not authenticate the technician.</p>
-    <TimeOffDemo technicians={technicians} requests={requests.map((request) => ({
+export default async function TimeOffPage({ searchParams }: { searchParams: { status?: string } }) {
+  const selectedFilter: FilterKey = isFilterKey(searchParams.status) ? searchParams.status : "all";
+  const statuses = FILTERS[selectedFilter];
+  const [technicians, loadedRequests] = await Promise.all([
+    prisma.technician.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.timeOffRequest.findMany({
+      where: statuses ? { status: { in: [...statuses] } } : undefined,
+      include: { technician: { select: { name: true } }, intervals: { orderBy: { serviceDate: "asc" } }, report: true },
+      orderBy: { createdAt: "desc" }, take: 101,
+    }),
+  ]);
+  const truncated = loadedRequests.length > 100;
+  const requests = loadedRequests.slice(0, 100).map(request => {
+    const rawIntervals = request.intervals.map(interval => ({ date: interval.serviceDate.toISOString().slice(0, 10), startMin: interval.startMin, endMin: interval.endMin }));
+    const parsedIntervals = timeOffIntervalView.array().nonempty().safeParse(rawIntervals);
+    const intervalsValid = parsedIntervals.success;
+    return {
       id: request.id, technicianId: request.technicianId, technicianName: request.technician.name,
-      reason: request.reason, status: request.status, createdAt: request.createdAt.toISOString(),
-      intervals: request.intervals.map((interval) => ({ date: interval.serviceDate.toISOString().slice(0, 10), startMin: interval.startMin, endMin: interval.endMin })),
+      category: request.category, reason: request.reason, status: request.status, createdAt: request.createdAt.toISOString(),
+      intervals: parsedIntervals.success ? parsedIntervals.data : [], intervalsValid,
       reportStatus: request.report?.status ?? null, reportProgress: request.report?.progress ?? null,
-      report: request.report?.data ?? null,
-    }))} />
-  </main>;
+      report: parseTimeOffReport(request.report?.data),
+    };
+  });
+  return <TimeOffDemo technicians={technicians} requests={requests} selectedFilter={selectedFilter} truncated={truncated} />;
 }
