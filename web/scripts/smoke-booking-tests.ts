@@ -11,7 +11,7 @@ import type { AddressGenerationDependencies } from "../lib/bookingTestAddresses"
 
 // Intentionally retains run history in the disposable test database for inspection.
 if (!new URL(process.env.DATABASE_URL ?? "").pathname.endsWith("/waterflex_test")) throw new Error("Use isolated waterflex_test database only.");
-const config = { count: 3, seed: 42, policy: "earliest", weights: [1, 0, 0, 0] };
+const config = { count: 3, seed: 42, policy: "earliest", weights: [1, 0, 0, 0], radiusMi: 30 as const };
 let fixtureLocation = 0;
 const fixtureGeneration: AddressGenerationDependencies = {
   reverse: async () => required(OMAHA_FAKE_LOCATIONS.filter(location => location.state === "NE")[fixtureLocation++ % 10]),
@@ -38,11 +38,25 @@ async function main() {
   ]);
   const configurationBefore = await configuration();
   const legacyId = randomUUID();
-  await prisma.bookingTestRun.create({ data: { id: legacyId, config, horizon: [] } });
+  const legacyConfig = { count: config.count, seed: config.seed, policy: config.policy, weights: config.weights };
+  await prisma.bookingTestRun.create({ data: { id: legacyId, config: legacyConfig, horizon: [] } });
   let legacy = await readTestRun(legacyId);
+  assert.equal(legacy.config.radiusMi, 65, "A legacy saved run is normalized to the original 65-mile radius");
   assert.equal(legacy.generation, null, "A run without a generation journal remains legacy-complete");
   legacy = await resumed(legacyId); legacy = await advanceTestRun(legacyId, legacy.revision);
   assert.equal(legacy.status, "COMPLETED");
+  for (const radiusMi of [10, 20, 30, 45, 65] as const) {
+    const preset = await createTestRun(randomUUID(), { ...config, count: 1, radiusMi });
+    assert.equal(preset.config.radiusMi, radiusMi);
+  }
+  await assert.rejects(createTestRun(randomUUID(), { ...config, radiusMi: 31 }), /Invalid input/);
+  const metro = await prisma.metro.findUniqueOrThrow({ where: { id: "metro-omaha" }, select: { serviceRadiusMi: true } });
+  try {
+    await prisma.metro.update({ where: { id: "metro-omaha" }, data: { serviceRadiusMi: 45 } });
+    await assert.rejects(createTestRun(randomUUID(), { ...config, radiusMi: 65 }), /cannot exceed/);
+  } finally {
+    await prisma.metro.update({ where: { id: "metro-omaha" }, data: { serviceRadiusMi: metro.serviceRadiusMi } });
+  }
   const randomSeedRun = await createRun(randomUUID(), { ...config, count: 1, seed: null });
   const randomSeedConfig = validateTestConfig(randomSeedRun.config);
   assert.ok(Number.isInteger(randomSeedConfig.seed) && randomSeedConfig.seed >= 0 && randomSeedConfig.seed <= 0xffffffff);

@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createAddressCandidateBatch, evaluateAddressCandidateBatch, generateRealTestInputs, initialAddressRandomState,
   reverseTestAddress, type GeneratedTestLocation } from "./bookingTestAddresses";
+import { haversineMiles } from "./geo";
 
-const config = { count: 3, seed: 42, policy: "earliest" as const, weights: [1, 1, 1, 1] };
+const config = { count: 3, seed: 42, policy: "earliest" as const, weights: [1, 1, 1, 1], radiusMi: 30 as const };
 const area = { radiusMi: 65, stateCode: "NE", depots: [{ lat: 41.2565, lng: -95.9345 }] };
 const location = (lat: number, lng: number): GeneratedTestLocation => ({ slug: `${lat}:${lng}`, neighborhood: "Omaha", line1: `${Math.abs(Math.round(lat * 100000))} Test Road`, city: "Omaha", state: "Nebraska", postalCode: "68102", lat, lng });
 
@@ -15,6 +16,29 @@ test("candidate batches persist deterministic random state and rotate fairly acr
   assert.deepEqual(first.candidates.map(candidate => candidate.ordinal), [0, 1]);
   const second = createAddressCandidateBatch(config, area, new Set([0, 1]), first.randomState, first.roundRobinCursor, 2);
   assert.deepEqual(second.candidates.map(candidate => candidate.ordinal), [2]);
+});
+
+test("candidate sampling is deterministic and remains inside the selected run radius", () => {
+  for (const radiusMi of [10, 20, 30, 45, 65] as const) {
+    const selectedArea = { ...area, radiusMi };
+    const first = createAddressCandidateBatch(config, selectedArea, new Set(), initialAddressRandomState(config), 0, 3);
+    const replay = createAddressCandidateBatch(config, selectedArea, new Set(), initialAddressRandomState(config), 0, 3);
+    assert.deepEqual(first, replay);
+    assert.ok(first.candidates.every(candidate => selectedArea.depots.some(depot =>
+      haversineMiles(candidate.lat, candidate.lng, depot.lat, depot.lng) <= radiusMi)));
+  }
+});
+
+test("reverse-geocoded locations outside the selected run radius are rejected", async () => {
+  const selectedArea = { ...area, radiusMi: 10 };
+  const depot = selectedArea.depots[0];
+  assert.ok(depot);
+  const pending = createAddressCandidateBatch(config, selectedArea, new Set(), initialAddressRandomState(config), 0, 1).candidates;
+  const accepted = await evaluateAddressCandidateBatch(pending, selectedArea, { addresses: new Set(), coordinates: new Set() }, {
+    reverse: async () => location(depot.lat + 20 / 69, depot.lng),
+    routable: async candidates => new Set(candidates.map(candidate => candidate.id)),
+  });
+  assert.deepEqual(accepted, []);
 });
 
 test("a recovered pending batch rejects duplicate and unroutable results without changing its candidates", async () => {

@@ -1,11 +1,11 @@
 "use client";
 
 import { z } from "zod";
-import { readResponse, testRun, testHistory, testConfig, errorMessage } from "@/lib/contracts";
+import { readResponse, testRun, testHistory, testConfig, testRadiusMi, errorMessage } from "@/lib/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { calendarDateInTz } from "@/lib/date";
-import { DEFAULT_TEST_CONFIG, type TestConfig, type TestConfigInput } from "@/lib/bookingTestCore";
+import { DEFAULT_TEST_CONFIG, TEST_RADIUS_PRESETS, type TestConfig, type TestConfigInput } from "@/lib/bookingTestCore";
 import { FAKE_SERVICE_CODES, OMAHA_TIMEZONE, type FakeLocation } from "@/lib/fakeDataCore";
 import type { OptimizationRun, SlotOffer } from "@/lib/engineClient";
 import OptimizationReview from "@/app/dispatch/OptimizationReview";
@@ -108,15 +108,17 @@ export default function TestingPage() {
     <section className={styles.panel}><h2>New run</h2><fieldset disabled={busy || driving} className={styles.controls}>
       <label>Requests<input type="number" min="1" max="100" value={config.count} onChange={event => setConfig({ ...config, count: Number(event.target.value) })} /></label>
       <label>Random seed (optional)<input type="number" min="0" max="4294967295" value={config.seed ?? ""} placeholder="Generated securely" onChange={event => setConfig({ ...config, seed: event.target.value === "" ? null : Number(event.target.value) })} /></label>
+      <label>Generation radius<select value={config.radiusMi} onChange={event => setConfig({ ...config, radiusMi: testRadiusMi.parse(Number(event.target.value)) })}>
+        {TEST_RADIUS_PRESETS.map(radius => <option key={radius} value={radius}>{radius} miles</option>)}</select></label>
       <label>Offer selection<select value={config.policy} onChange={event => setConfig({ ...config, policy: testConfig.shape.policy.parse(event.target.value) })}>
         <option value="earliest">Earliest offered window</option><option value="first">Scheduler&apos;s first offer</option><option value="random">Seeded random</option></select></label>
       {FAKE_SERVICE_CODES.map((code, index) => <label key={code}>{code.replaceAll("_", " ")} weight<input type="number" min="0" max="100" value={config.weights[index]} onChange={event => setConfig({ ...config, weights: config.weights.map((weight, item) => item === index ? Number(event.target.value) : weight) })} /></label>)}
       <button onClick={() => void start()}>Start new run</button>
     </fieldset><p>A blank seed generates and saves a cryptographically random unsigned seed. An explicit seed reproduces candidate order when the map, Nominatim data, and database state are unchanged.</p></section>
     <section className={styles.panel}><label>Run history<select aria-label="Run history" value={run?.id ?? ""} disabled={busy || driving} onChange={event => { if (event.target.value) void load(event.target.value); }}>
-      <option value="">Choose a saved run</option>{runs.map(item => <option key={item.id} value={item.id}>{new Date(item.createdAt).toLocaleString()} | {item.status} | {item.generation && !item.generation.completedAt ? `${item.generation.acceptedCount}/${item.generation.targetCount} addresses | ` : ""}seed {item.config.seed} | {item.id.slice(0, 8)}</option>)}</select></label>
+      <option value="">Choose a saved run</option>{runs.map(item => <option key={item.id} value={item.id}>{new Date(item.createdAt).toLocaleString()} | {item.status} | {item.config.radiusMi} mi | {item.generation && !item.generation.completedAt ? `${item.generation.acceptedCount}/${item.generation.targetCount} addresses | ` : ""}seed {item.config.seed} | {item.id.slice(0, 8)}</option>)}</select></label>
       {run && <><h2>{run.status} {driving ? "(progressing in this tab)" : ["COMPLETED", "STOPPED", "PURGED"].includes(run.status) ? "(saved history)" : "(read-only until Resume)"}</h2>
-        <p>Run {run.id} | {run.config.policy} | seed {run.config.seed}</p>
+        <p>Run {run.id} | {run.config.policy} | {run.config.radiusMi}-mile generation radius | seed {run.config.seed}</p>
         <div className={styles.controls}>
           <button disabled={busy || driving || ["COMPLETED", "STOPPED", "PURGED"].includes(run.status)} onClick={() => void control("resume")}>Resume</button>
           <button disabled={busy || run.status !== "RUNNING"} onClick={() => void control("pause")}>Pause</button>
