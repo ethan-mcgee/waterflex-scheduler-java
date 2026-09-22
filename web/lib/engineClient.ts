@@ -48,6 +48,10 @@ export function selectOffer(jobId: string, offerId: string, timeoutMs?: number):
   return request("/v1/offers/select", selection, { jobId, offerId }, timeoutMs);
 }
 
+export function releaseOffers(jobId: string, offerId: string): Promise<{ success: boolean }> {
+  return request("/v1/offers/release", success, { jobId, offerId });
+}
+
 export function confirmHold(holdId: string): Promise<{ appointmentId: string; windowStart: string; windowEnd: string }> {
   return request("/v1/holds/confirm", confirmation, { holdId });
 }

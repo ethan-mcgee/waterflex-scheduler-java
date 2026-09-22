@@ -25,6 +25,7 @@ async function main() {
   const customerId = `smoke-customer-${suffix}`;
   const addressId = `smoke-address-${suffix}`;
   const jobId = `smoke-job-${suffix}`;
+  const otherJobId = `smoke-other-job-${suffix}`;
   try {
     await prisma.technician.create({ data: {
       id: techId, metroId: metro.id, name: "Monaco fixture technician",
@@ -35,6 +36,7 @@ async function main() {
     await prisma.customer.create({ data: { id: customerId, firstName: "Smoke", lastName: "Test", email: "smoke@example.invalid", phone: "0000000000" } });
     await prisma.address.create({ data: { id: addressId, customerId, line1: "Fixture address", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
     await prisma.job.create({ data: { id: jobId, customerId, addressId, serviceId: service.id, durationMin: 50, bookingRequestId: suffix } });
+    await prisma.job.create({ data: { id: otherJobId, customerId, addressId, serviceId: service.id, durationMin: 50, bookingRequestId: `other-${suffix}` } });
 
     await prisma.address.update({ where: { id: addressId }, data: { lat: null } });
     const missingLocation = await fetch(`${base}/v1/offers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
@@ -59,10 +61,18 @@ async function main() {
     assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), offered.offers.length, "Every offer reserves capacity");
     const reused = await post(offersResponse, "/v1/offers", { jobId });
     assert.deepEqual(reused.offers.map((offer: { offerId: string }) => offer.offerId).sort(), offered.offers.map((offer: { offerId: string }) => offer.offerId).sort());
+    const foreignRelease = await fetch(`${base}/v1/offers/release`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId: otherJobId, offerId: required(offered.offers[0]).offerId }) });
+    assert.equal(foreignRelease.status, 409);
+    assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), offered.offers.length);
+    assert.equal((await post(success, "/v1/offers/release", { jobId, offerId: required(offered.offers[0]).offerId })).success, true);
+    assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), 0, "Start over releases every sibling immediately");
+    assert.equal((await post(success, "/v1/offers/release", { jobId, offerId: required(offered.offers[0]).offerId })).success, true);
     const refreshed = await post(offersResponse, "/v1/offers", { jobId, refresh: true });
     assert.ok(refreshed.offers.length > 0);
     assert.notEqual(required(refreshed.offers[0]).offerId, required(offered.offers[0]).offerId);
     assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), refreshed.offers.length);
+    assert.equal((await post(success, "/v1/offers/release", { jobId, offerId: required(offered.offers[0]).offerId })).success, true);
+    assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), refreshed.offers.length, "Stale release preserves the newer set");
     const staleSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: required(offered.offers[0]).offerId }) });
     assert.equal(staleSelection.status, 409);
     const selected = await post(selection, "/v1/offers/select", { jobId, offerId: required(refreshed.offers[0]).offerId });
@@ -78,6 +88,9 @@ async function main() {
     assert.equal(await prisma.appointment.count({ where: { jobId } }), 1);
     const repeatedSelection = await post(selection, "/v1/offers/select", { jobId, offerId: required(refreshed.offers[0]).offerId });
     assert.equal(repeatedSelection.appointmentId, selected.appointmentId);
+    const scheduledRelease = await fetch(`${base}/v1/offers/release`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: required(refreshed.offers[0]).offerId }) });
+    assert.equal(scheduledRelease.status, 409);
+    assert.equal(await prisma.appointment.count({ where: { jobId, cancelledAt: null } }), 1);
     if (refreshed.offers.length > 1) {
       const differentSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: required(refreshed.offers[1]).offerId }) });
       assert.equal(differentSelection.status, 409);
@@ -87,13 +100,14 @@ async function main() {
     const cancelledAgain = await post(success.extend({ alreadyCancelled: z.boolean() }), "/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
     assert.equal(cancelledAgain.alreadyCancelled, true);
     assert.ok((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt);
-    console.log("Java reservations, refresh, selection, legacy confirmation, and cancellation passed");
+    console.log("Java reservations, release, selection, legacy confirmation, and cancellation passed");
   } finally {
     await prisma.appointment.deleteMany({ where: { jobId } });
     await prisma.slotHold.deleteMany({ where: { jobId } });
     await prisma.bookingOffer.deleteMany({ where: { jobId } });
     await prisma.bookingOfferSet.deleteMany({ where: { jobId } });
     await prisma.job.deleteMany({ where: { id: jobId } });
+    await prisma.job.deleteMany({ where: { id: otherJobId } });
     await prisma.address.deleteMany({ where: { id: addressId } });
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await prisma.technicianQualification.deleteMany({ where: { technicianId: techId } });

@@ -29,6 +29,7 @@ public class BookingService {
     public record Candidate(String techId, LocalDate day, Instant start, Instant end, Instant arrival,
                             int position, double cost, long regularDeltaMinutes, long overtimeDeltaMinutes, long roadDeltaMeters) { }
     private record SelectedOffer(@Nullable String selectedOfferId, String holdId, Instant expiresAt, @Nullable Timestamp releasedAt) { }
+    private record ReleasableSet(String id, @Nullable Timestamp supersededAt) { }
     private record OfferWindow(Instant day, Instant start, Instant end, String setId) { }
     private record Hold(String jobId, String techId, Instant day, Instant start, Instant end, Instant expiresAt, @Nullable Timestamp releasedAt, String offerToken, @Nullable String selectedOfferId, @Nullable Timestamp supersededAt, @Nullable String offerSetId) { }
     private record Cancellation(String jobId, String techId, Instant day, @Nullable Timestamp cancelledAt) { }
@@ -87,6 +88,22 @@ public class BookingService {
         return new Offers(jobId, jdbc.query("SELECT id, \"serviceDate\", \"windowStart\", \"windowEnd\", \"expiresAt\" FROM booking_offer WHERE \"offerSetId\"=? ORDER BY \"createdAt\", id",
                 (rs, _) -> new Offer(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate().toString()),
                         Required.value(Required.timestamp(rs, 3).toInstant()), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant())), setId));
+    }
+
+    @Transactional
+    public Map<String, Boolean> release(String jobId, String offerId) {
+        lockJob(jobId);
+        String status = Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, jobId);
+        if (!status.equals("PENDING")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job already booked");
+        var sets = jdbc.query("SELECT s.id, s.\"supersededAt\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"jobId\"=? AND s.\"jobId\"=?",
+                (rs, _) -> new ReleasableSet(Required.string(rs, 1), rs.getTimestamp(2)), offerId, jobId, jobId);
+        if (sets.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer does not belong to job");
+        ReleasableSet set = sets.getFirst();
+        if (set.supersededAt() == null) {
+            jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", set.id());
+            jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL", set.id());
+        }
+        return Required.value(Map.of("success", true));
     }
 
     @Transactional
