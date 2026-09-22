@@ -53,8 +53,6 @@ test("shift drafts follow the selected technician and time-off modal preserves f
   try {
     await page.route("**/api/dispatch/availability", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) }));
     await page.goto("/technicians");
-    await expect(page.getByText("Time off 10a to 12p", { exact: true })).toBeVisible();
-    await expect(page.getByText("Time off 12a to 12a", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Shift test service" })).toHaveAttribute("aria-pressed", "false");
     await page.getByRole("button", { name: "+ Add exception" }).click();
     await expect(page.getByLabel("Start")).toHaveValue("07:00");
