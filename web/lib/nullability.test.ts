@@ -9,9 +9,10 @@ import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
 import { POST as qualification } from "../app/api/dispatch/qualification/route";
 import { EngineError, requestSlots } from "./engineClient";
-import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt } from "./contracts";
-import { addCalendarDays, mondayOfWeek } from "./date";
+import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest } from "./contracts";
+import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
+import { parseTimeOffReport, timeOffIntervalView } from "./timeOffView";
 
 test("invalid request bodies fail before downstream requests or writes", async () => {
   const original = globalThis.fetch;
@@ -69,4 +70,19 @@ test("calendar utilities reject missing or invalid calendar values", () => {
   }
   assert.throws(() => addCalendarDays("2026-09-21", NaN));
   assert.equal(addCalendarDays("2026-09-30", 1), "2026-10-01");
+  assert.equal(todayInTz("America/Chicago", new Date("2026-03-08T05:30:00Z")), "2026-03-07");
+  assert.equal(todayInTz("America/Chicago", new Date("2026-03-08T07:30:00Z")), "2026-03-08");
+});
+
+test("time-off contracts reject invalid categories, intervals, and persisted reports", () => {
+  const request = { technicianId: "tech", firstDate: "2026-10-01", lastDate: "2026-10-01", startMin: 480, endMin: 1020, reason: "Planned leave" };
+  assert.equal(timeOffRequest.safeParse({ ...request, category: "Other" }).success, true);
+  assert.equal(timeOffRequest.safeParse({ ...request, category: "Unvalidated" }).success, false);
+  assert.equal(timeOffRequest.safeParse({ ...request, category: "Other", startMin: 1020, endMin: 480 }).success, false);
+  assert.equal(timeOffIntervalView.safeParse({ date: "2026-10-01", startMin: 0, endMin: 0 }).success, false);
+  assert.deepEqual(parseTimeOffReport(null), { kind: "missing" });
+  assert.deepEqual(parseTimeOffReport({ days: null }), { kind: "malformed" });
+  assert.deepEqual(parseTimeOffReport({ reason: "ROUTING_FAILURE" }), { kind: "failure", reason: "ROUTING_FAILURE" });
+  const complete = parseTimeOffReport({ technician_id: "tech", days: [{ service_date: "2026-10-01", start_min: 480, end_min: 1020, status: "REPAIR_PREVIEW" }] });
+  assert.equal(complete.kind, "complete");
 });

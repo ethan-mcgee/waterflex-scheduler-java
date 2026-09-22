@@ -46,6 +46,7 @@ export const timeOffCategories = [
   "Vacation / personal travel", "Medical appointment", "Illness", "Family emergency",
   "Bereavement", "Jury duty / civic obligation", "Other",
 ] as const;
+export type TimeOffCategory = (typeof timeOffCategories)[number];
 export const timeOffRequest = z.object({ technicianId: text, firstDate: date, lastDate: date,
   startMin: minute, endMin: minute, category: z.enum(timeOffCategories), reason: text }).refine(v => v.firstDate <= v.lastDate && v.startMin < v.endMin, "Invalid absence interval");
 export const testRadiusMi = z.union([z.literal(10), z.literal(20), z.literal(30), z.literal(45), z.literal(65)]);

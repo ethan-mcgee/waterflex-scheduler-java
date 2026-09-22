@@ -29,21 +29,6 @@
   margin: 4px 0 0;
 }
 
-.statRow {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.statWarn .n {
-  color: var(--warning);
-}
-
-.statGood .n {
-  color: var(--success);
-}
-
 .toolbar {
   display: flex;
   align-items: center;
@@ -117,7 +102,7 @@
   gap: 10px;
 }
 
-.who .sub {
+.sub {
   font-size: 11.5px;
   color: var(--muted);
 }
@@ -201,7 +186,7 @@
   border-bottom: 1px solid var(--line);
 }
 
-.kvRow .k {
+.key {
   color: var(--muted);
   font-weight: 650;
 }
@@ -314,4 +299,76 @@
 .message {
   font-size: 12.5px;
   color: var(--ink-soft);
+}
+
+.limitNotice {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.emptyState {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--quiet);
+  font-size: 13px;
+}
+
+.invalid,
+.formError {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.progressUnknown {
+  color: var(--quiet);
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+.refreshBtn {
+  border: 0;
+  background: none;
+  color: var(--brand);
+  padding: 5px 0 0;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.requestForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.report {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.reportDay {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-top: 1px solid var(--line);
+  padding: 8px 0;
+}
+
+.metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+@media (max-width: 760px) {
+  .tableCard { overflow-x: auto; }
+  .table { min-width: 820px; }
+  .detailBody { grid-template-columns: 1fr; }
+  .slideover { inset: 0; width: auto; border-radius: 0; }
+}
+
+@media (max-width: 480px) {
+  .fieldRow { grid-template-columns: 1fr; }
+  .seg { width: 100%; overflow-x: auto; }
+  .seg button { white-space: nowrap; }
 }
