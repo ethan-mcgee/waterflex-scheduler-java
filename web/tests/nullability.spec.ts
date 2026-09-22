@@ -5,14 +5,19 @@ import { z } from "zod";
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
-test("empty lists disable actions; malformed booking responses stay on the form", async ({ page }) => {
+test("empty datasets expose no shift mutations and disable time-off submission", async ({ page }) => {
   expect(await prisma.serviceCatalog.count()).toBe(0);
   await page.goto("/book");
   await expect(page.getByRole("button", { name: /see available/i })).toBeDisabled();
   await page.goto("/dispatch/availability");
-  await expect(page.getByRole("button", { name: "Save day" })).toBeDisabled();
+  await expect(page.getByText("No technicians found", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /add override|save day|edit .*override|delete .*override/i })).toHaveCount(0);
   await page.goto("/time-off");
-  await expect(page.getByRole("button", { name: "Submit time-off request" })).toBeDisabled();
+  await page.getByRole("button", { name: /new request/i }).click();
+  await expect(page.getByRole("button", { name: "Submit request" })).toBeDisabled();
+});
+
+test("malformed booking responses retain entered form data and create no job", async ({ page }) => {
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_NULL_TEST", name: "UI test service", estDurationMin: 60 } });
   try {
     await page.route("**/api/book", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
@@ -26,6 +31,72 @@ test("empty lists disable actions; malformed booking responses stay on the form"
     await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
     expect(await prisma.job.count()).toBe(0);
   } finally { await prisma.serviceCatalog.delete({ where: { id: service.id } }); }
+});
+
+test("shift drafts follow the selected technician and time-off modal preserves failed input", async ({ page }) => {
+  const metro = await prisma.metro.create({ data: { name: "UI controls metro", timezone: "America/Chicago" } });
+  const first = await prisma.technician.create({ data: { metroId: metro.id, name: "Ada Shift", homeLat: 41.2, homeLng: -95.9, shiftStartMin: 420, shiftEndMin: 900 } });
+  const second = await prisma.technician.create({ data: { metroId: metro.id, name: "Ben Shift", homeLat: 41.3, homeLng: -96.0, shiftStartMin: 540, shiftEndMin: 1080, active: false } });
+  const service = await prisma.serviceCatalog.create({ data: { code: "UI_SHIFT_TEST", name: "Shift test service", estDurationMin: 60 } });
+  const override = await prisma.technicianShiftOverride.create({ data: { technicianId: first.id, serviceDate: new Date("2099-10-05T00:00:00Z"), available: true, shiftStartMin: 480, shiftEndMin: 960 } });
+  const dateParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const part = (type: string) => dateParts.find(item => item.type === type)?.value ?? "";
+  const currentDate = `${part("year")}-${part("month")}-${part("day")}`;
+  const partial = await prisma.timeOffRequest.create({ data: { technicianId: first.id, category: "Other", reason: "Partial absence", status: "APPROVED",
+    intervals: { create: { serviceDate: new Date(`${currentDate}T00:00:00Z`), startMin: 600, endMin: 720 } } } });
+  const full = await prisma.timeOffRequest.create({ data: { technicianId: first.id, category: "Other", reason: "Full absence", status: "APPROVED",
+    intervals: { create: { serviceDate: new Date(`${currentDate}T00:00:00Z`), startMin: 0, endMin: 1440 } } } });
+  const malformed = await prisma.timeOffRequest.create({ data: { technicianId: first.id, category: "Other", reason: "Malformed analysis", status: "PENDING",
+    intervals: { create: { serviceDate: new Date("2099-10-06T00:00:00Z"), startMin: 480, endMin: 1020 } },
+    report: { create: { status: "ANALYZING", data: { days: null } } } } });
+  try {
+    await page.route("**/api/dispatch/availability", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) }));
+    await page.goto("/dispatch/availability");
+    await expect(page.getByText("Time off 10a to 12p", { exact: true })).toBeVisible();
+    await expect(page.getByText("Time off 12a to 12a", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Shift test service" })).toHaveAttribute("aria-pressed", "false");
+    await page.getByRole("button", { name: "+ Add override" }).click();
+    await expect(page.getByLabel("Start")).toHaveValue("07:00");
+    await page.getByRole("button", { name: /Ben Shift/ }).click();
+    await expect(page.getByText("Inactive technician", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "+ Add override" }).click();
+    await expect(page.getByLabel("Start")).toHaveValue("09:00");
+    await page.getByRole("button", { name: /Ada Shift/ }).click();
+    await page.getByRole("button", { name: `Edit Ada Shift's override for 2099-10-05` }).click();
+    await expect(page.getByLabel("Date")).toBeDisabled();
+    page.once("dialog", async dialog => { expect(dialog.message()).toContain("default shift hours will be restored"); await dialog.dismiss(); });
+    await page.getByRole("button", { name: `Delete Ada Shift's override for 2099-10-05` }).click();
+
+    await page.route("**/api/time-off", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Overlapping time-off request" }) }));
+    await page.goto("/time-off");
+    await expect(page.getByText("Progress unknown", { exact: true }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Pending" }).click();
+    await expect(page.getByRole("button", { name: "Pending" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByLabel("Analysis 0% complete")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Refresh analysis" })).toBeVisible();
+    await page.getByRole("button", { name: "Ada Shift" }).click();
+    await expect(page.getByText("The saved analysis report is malformed.", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Ready for review" }).click();
+    await expect(page.getByText(/No requests match the ready for review filter/)).toBeVisible();
+    const opener = page.getByRole("button", { name: /new request/i });
+    await opener.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByLabel("Technician")).toBeFocused();
+    await page.getByLabel("First date").fill("2099-10-06");
+    await page.getByLabel("Explain the planned absence").fill("Keep this explanation after failure");
+    await page.getByRole("button", { name: "Submit request" }).click();
+    await expect(page.locator("p[role=alert]")).toHaveText("Overlapping time-off request");
+    await expect(page.getByLabel("Explain the planned absence")).toHaveValue("Keep this explanation after failure");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(opener).toBeFocused();
+  } finally {
+    await prisma.timeOffRequest.deleteMany({ where: { id: { in: [partial.id, full.id, malformed.id] } } });
+    await prisma.technicianShiftOverride.delete({ where: { id: override.id } });
+    await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await prisma.technician.deleteMany({ where: { id: { in: [first.id, second.id] } } });
+    await prisma.metro.delete({ where: { id: metro.id } });
+  }
 });
 
 test("dispatch retains missing-location appointments and shows malformed-history errors", async ({ page }) => {

@@ -21,13 +21,16 @@ import java.util.*;
 @Service
 public class TimeOffService {
     private static final ZoneId LOCAL = Required.value(ZoneId.of("America/Chicago"));
+    private static final Set<String> CATEGORIES = Required.value(Set.of(
+            "Vacation / personal travel", "Medical appointment", "Illness", "Family emergency",
+            "Bereavement", "Jury duty / civic obligation", "Other"));
     private final JdbcTemplate jdbc;
     private final OptimizationService optimizer;
     private final ScheduleGuardService guard;
     private final ObjectMapper mapper = new ObjectMapper();
     private final TransactionTemplate transactions;
 
-    public record Request(String technicianId, String firstDate, String lastDate, Integer startMin, Integer endMin, String category, String reason) { public Request { technicianId = RequestChecks.text(technicianId, "technicianId"); firstDate = RequestChecks.date(firstDate); lastDate = RequestChecks.date(lastDate); category = RequestChecks.text(category, "category"); reason = RequestChecks.text(reason, "reason"); if (startMin == null || endMin == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing absence hours"); } }
+    public record Request(String technicianId, String firstDate, String lastDate, Integer startMin, Integer endMin, String category, String reason) { public Request { technicianId = RequestChecks.text(technicianId, "technicianId"); firstDate = RequestChecks.date(firstDate); lastDate = RequestChecks.date(lastDate); category = RequestChecks.text(category, "category"); reason = RequestChecks.text(reason, "reason"); if (startMin == null || endMin == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing absence hours"); if (!allowedCategory(category)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid time-off category"); } }
     private record Owner(String technicianId, String metroId) { }
     private record ApprovalOwner(String technicianId, String status) { }
     private record Report(String data, String status) { }
@@ -216,4 +219,5 @@ public class TimeOffService {
 
     private static Timestamp stamp(LocalDate day) { return Required.value(Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant())); }
     static boolean automaticEligible(LocalDate firstDate, LocalDate today) { return !firstDate.isBefore(today.plusDays(14)); }
+    static boolean allowedCategory(String category) { return CATEGORIES.contains(category); }
 }
