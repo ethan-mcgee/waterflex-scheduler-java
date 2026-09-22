@@ -13,6 +13,18 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     availabilityVersions: initialAvailability(480, 1020) } });
   try {
     await page.goto("/technicians");
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(page.getByText("Current weekly availability", { exact: true })).toBeVisible();
+      await expect(page.getByText("Upcoming schedule exceptions", { exact: true })).toBeVisible();
+      await expect(page.getByText("This week", { exact: true })).toHaveCount(0);
+      const qualifications = await page.locator('[class*="profileQualifications"]').boundingBox();
+      const availability = await page.getByText("Current weekly availability", { exact: true }).boundingBox();
+      expect(qualifications).not.toBeNull();
+      expect(availability).not.toBeNull();
+      if (qualifications && availability) expect(availability.y - (qualifications.y + qualifications.height)).toBeGreaterThanOrEqual(24);
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.getByText("No email on file")).toBeVisible();
     await page.getByRole("button", { name: "Edit profile" }).click();
     await page.locator("#profile-name").fill("Updated Fixture");
