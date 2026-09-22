@@ -283,6 +283,7 @@ model TimeOffRequest {
   id String @id @default(cuid())
   technicianId String
   technician Technician @relation(fields: [technicianId], references: [id])
+  category String
   reason String
   status String @default("PENDING")
   createdAt DateTime @default(now())
