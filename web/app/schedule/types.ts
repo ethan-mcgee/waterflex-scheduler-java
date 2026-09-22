@@ -1,8 +1,10 @@
 export interface ScheduleTechnician {
   id: string;
   name: string;
+  color: string;
   shiftStartMin: number;
   shiftEndMin: number;
+  days: Record<string, { available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }>;
 }
 
 export interface ScheduleAppointment {

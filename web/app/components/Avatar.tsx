@@ -13,11 +13,11 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "")).toUpperCase();
 }
 
-export default function Avatar({ name, size = 34 }: { name: string; size?: number }) {
+export default function Avatar({ name, size = 34, color }: { name: string; size?: number; color?: string }) {
   return (
     <span
       className={styles.avatar}
-      style={{ width: size, height: size, fontSize: size * 0.36, background: colorFor(name) }}
+      style={{ width: size, height: size, fontSize: size * 0.36, background: color ?? colorFor(name) }}
     >
       {initials(name)}
     </span>

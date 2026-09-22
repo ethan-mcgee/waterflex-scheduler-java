@@ -54,6 +54,14 @@ model Technician {
   depotId            String?
   depot              Depot?      @relation(fields: [depotId], references: [id])
   name               String
+  email              String?
+  phone              String?
+  bio                String?
+  color              String
+  homeAddressLine1   String?
+  homeAddressCity    String?
+  homeAddressState   String?
+  homeAddressPostalCode String?
   homeLat            Float
   homeLng            Float
   startLocation      RouteAnchor @default(HOME)
@@ -72,10 +80,34 @@ model Technician {
   scheduleDays ScheduleDay[]
   qualifications TechnicianQualification[]
   shiftOverrides TechnicianShiftOverride[]
+  availabilityVersions TechnicianAvailabilityVersion[]
   timeOffRequests TimeOffRequest[]
 
   @@index([metroId, active])
   @@map("technician")
+}
+
+model TechnicianAvailabilityVersion {
+  id String @id @default(cuid())
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  effectiveDate DateTime
+  days TechnicianAvailabilityDay[]
+
+  @@unique([technicianId, effectiveDate])
+  @@map("technician_availability_version")
+}
+
+model TechnicianAvailabilityDay {
+  versionId String
+  version TechnicianAvailabilityVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  available Boolean
+  shiftStartMin Int?
+  shiftEndMin Int?
+
+  @@id([versionId, dayOfWeek])
+  @@map("technician_availability_day")
 }
 
 // ---------------------------------------------------------------------------

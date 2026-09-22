@@ -3,6 +3,8 @@ import { offersResponse, confirmation, selection, success, required } from "../l
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
+import { initialAvailability } from "../lib/technicianAvailability";
+import { technicianColor } from "../lib/technicianColor";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -28,7 +30,7 @@ async function main() {
   const otherJobId = `smoke-other-job-${suffix}`;
   try {
     await prisma.technician.create({ data: {
-      id: techId, metroId: metro.id, name: "Monaco fixture technician",
+      id: techId, metroId: metro.id, name: "Monaco fixture technician", color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
       homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
       maxDailyMinutes: 600, maxOvertimeMinutes: 60,
       qualifications: { create: { serviceId: service.id } },
