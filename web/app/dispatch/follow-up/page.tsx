@@ -9,8 +9,7 @@ export default async function FollowUpPage() {
     include: { customer: true, address: true, service: true },
     orderBy: { createdAt: "asc" },
   });
-  return <main style={{ padding: "2rem", fontFamily: "system-ui", maxWidth: 1000 }}>
-    <a href="/dispatch">Back to dispatch</a>
+  return <main style={{ maxWidth: 1000 }}>
     <h1>Manual follow-up</h1>
     {jobs.length === 0 ? <p>No requests are waiting.</p> : <table cellPadding={10}>
       <thead><tr><th>Reference</th><th>Customer</th><th>Contact</th><th>Service</th><th>Address</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>

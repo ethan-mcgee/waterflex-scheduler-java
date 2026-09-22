@@ -9,8 +9,7 @@ export default async function TimeOffPage() {
     include: { technician: { select: { name: true } }, intervals: { orderBy: { serviceDate: "asc" } }, report: true },
     orderBy: { createdAt: "desc" }, take: 100,
   });
-  return <main style={{ maxWidth: 1050, margin: "2rem auto", padding: "0 1rem", fontFamily: "system-ui" }}>
-    <a href="/dispatch">Back to dispatch</a>
+  return <main style={{ maxWidth: 1050 }}>
     <h1>Technician time off</h1>
     <p><strong>Local demo selector:</strong> choose a technician to submit a request. This selector does not authenticate the technician.</p>
     <TimeOffDemo technicians={technicians} requests={requests.map((request) => ({
