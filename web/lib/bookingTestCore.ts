@@ -3,9 +3,11 @@ import { addCalendarDays, calendarDateInTz } from "./date";
 import { createSeededRandom, FAKE_SERVICE_CODES, isWeekday, OMAHA_TIMEZONE } from "./fakeDataCore";
 import type { SlotOffer } from "./engineClient";
 
-export const DEFAULT_TEST_CONFIG = { count: 20, seed: null, policy: "earliest", weights: [1, 1, 1, 1] } as const;
-export interface TestConfig { count: number; seed: number; policy: "earliest" | "first" | "random"; weights: number[] }
-export interface TestConfigInput { count: number; seed?: number | null; policy: "earliest" | "first" | "random"; weights: number[] }
+export const TEST_RADIUS_PRESETS = [10, 20, 30, 45, 65] as const;
+export type TestRadiusMi = typeof TEST_RADIUS_PRESETS[number];
+export const DEFAULT_TEST_CONFIG = { count: 20, seed: null, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 } as const;
+export interface TestConfig { count: number; seed: number; policy: "earliest" | "first" | "random"; weights: number[]; radiusMi: TestRadiusMi }
+export interface TestConfigInput { count: number; seed?: number | null; policy: "earliest" | "first" | "random"; weights: number[]; radiusMi: TestRadiusMi }
 export function validateTestConfig(value: unknown): TestConfig {
   return testConfig.parse(value);
 }

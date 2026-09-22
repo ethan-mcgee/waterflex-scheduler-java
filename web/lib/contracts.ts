@@ -43,9 +43,12 @@ export const availabilityRequest = z.object({ technicianId: text, date, availabl
     (v.shiftStartMin != null && v.shiftEndMin != null && v.shiftStartMin < v.shiftEndMin), "Invalid shift hours");
 export const timeOffRequest = z.object({ technicianId: text, firstDate: date, lastDate: date,
   startMin: minute, endMin: minute, reason: text }).refine(v => v.firstDate <= v.lastDate && v.startMin < v.endMin, "Invalid absence interval");
-export const testConfig = z.object({ count: z.int().min(1).max(100), seed: z.int().min(0).max(0xffffffff),
-  policy: z.enum(["earliest", "first", "random"]), weights: z.array(finite.min(0).max(100)).length(4).refine(v => v.some(w => w > 0)) });
-export const testConfigInput = testConfig.extend({ seed: z.int().min(0).max(0xffffffff).nullish() });
+export const testRadiusMi = z.union([z.literal(10), z.literal(20), z.literal(30), z.literal(45), z.literal(65)]);
+const testConfigFields = { count: z.int().min(1).max(100), policy: z.enum(["earliest", "first", "random"]),
+  weights: z.array(finite.min(0).max(100)).length(4).refine(v => v.some(w => w > 0)), radiusMi: testRadiusMi } as const;
+// Runs saved before radius selection existed used the full 65-mile metro service area.
+export const testConfig = z.object({ ...testConfigFields, seed: z.int().min(0).max(0xffffffff), radiusMi: testRadiusMi.default(65) });
+export const testConfigInput = z.object({ ...testConfigFields, seed: z.int().min(0).max(0xffffffff).nullish() });
 export const testOperation = z.discriminatedUnion("action", [
   z.object({ id: text, action: z.literal("create"), config: testConfigInput }),
   z.object({ id: text, action: z.enum(["resume", "pause", "stop"]) }),

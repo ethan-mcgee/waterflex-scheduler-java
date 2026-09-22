@@ -31,7 +31,7 @@ const generationDependencies: AddressGenerationDependencies = {
 function resolvedSeed(): number { return randomBytes(4).readUInt32BE(0); }
 function sameRequestedConfig(saved: TestConfig, requested: TestConfigInput): boolean {
   return saved.count === requested.count && saved.policy === requested.policy && JSON.stringify(saved.weights) === JSON.stringify(requested.weights)
-    && (requested.seed == null || saved.seed === requested.seed);
+    && saved.radiusMi === requested.radiusMi && (requested.seed == null || saved.seed === requested.seed);
 }
 export async function createTestRun(id: string, value: unknown) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new TestRunError("A UUID run identity is required.", 400);
@@ -46,6 +46,7 @@ export async function createTestRun(id: string, value: unknown) {
   const metro = await prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID }, include: { depots: { select: { lat: true, lng: true } } } });
   if (metro?.timezone !== OMAHA_TIMEZONE) throw new TestRunError("Configure the existing Omaha metro first.", 422);
   if (!Number.isFinite(metro.serviceRadiusMi) || metro.serviceRadiusMi <= 0 || !metro.depots.length || !metro.stateCode) throw new TestRunError("Configure the Omaha service area and state code first.", 422);
+  if (config.radiusMi > metro.serviceRadiusMi) throw new TestRunError("Test radius cannot exceed the configured Omaha service radius.", 422);
   const saved = await prisma.bookingTestRun.upsert({ where: { id }, update: {}, create: {
     id, config: json(config), horizon: bookingHorizon(),
     generation: { create: { acceptedInputs: [], randomState: BigInt(initialAddressRandomState(config)) } },
@@ -63,13 +64,15 @@ export async function readTestRun(id: string) {
   // Report current applied status separately from the saved proposal metrics.
   const applied = await prisma.optimizationRun.findMany({ where: { id: { in: run.previews.flatMap(p => p.optimizationId ? [p.optimizationId] : []) } }, select: { id: true, status: true, appliedAt: true } });
   const { generation, ...visible } = run;
-  return { ...visible, generation: publicGeneration(generation, run.config), applied, currentHorizon: bookingHorizon() };
+  return { ...visible, config: validateTestConfig(run.config), generation: publicGeneration(generation, run.config), applied, currentHorizon: bookingHorizon() };
 }
 export async function listTestRuns() {
   const runs = await prisma.bookingTestRun.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, status: true, config: true, createdAt: true,
     purgedAt: true, purgedCount: true, generation: { select: { acceptedInputs: true, candidatesTried: true, batches: true, elapsedMs: true,
       completedAt: true, consecutiveNoProgressBatches: true } } } });
-  return runs.map(run => { const { generation, ...visible } = run; return { ...visible, generation: publicGeneration(generation, run.config) }; });
+  return runs.map(run => { const { generation, ...visible } = run;
+    return { ...visible, config: validateTestConfig(run.config), generation: publicGeneration(generation, run.config) };
+  });
 }
 
 function publicGeneration(generation: { acceptedInputs: Prisma.JsonValue; candidatesTried: bigint; batches: bigint; elapsedMs: bigint;
@@ -213,7 +216,7 @@ type AdvanceDependencies = typeof testEngine & { generation?: AddressGenerationD
 async function advanceGeneration(id: string, config: TestConfig, generation: ReturnType<typeof parseGeneration>, dependencies: AddressGenerationDependencies) {
   const metro = await prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID }, include: { depots: { select: { lat: true, lng: true } } } });
   if (metro?.timezone !== OMAHA_TIMEZONE || !metro.stateCode) throw new Error("Configure the existing Omaha metro first.");
-  const area: TestServiceArea = { radiusMi: metro.serviceRadiusMi, stateCode: metro.stateCode, depots: metro.depots };
+  const area: TestServiceArea = { radiusMi: config.radiusMi, stateCode: metro.stateCode, depots: metro.depots };
   let pending: PendingAddressCandidate[];
   if (generation.pending) pending = generation.pending;
   else if (generation.accepted.length < config.count) {
