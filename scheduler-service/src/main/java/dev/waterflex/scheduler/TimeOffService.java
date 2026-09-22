@@ -27,7 +27,7 @@ public class TimeOffService {
     private final ObjectMapper mapper = new ObjectMapper();
     private final TransactionTemplate transactions;
 
-    public record Request(String technicianId, String firstDate, String lastDate, Integer startMin, Integer endMin, String reason) { public Request { technicianId = RequestChecks.text(technicianId, "technicianId"); firstDate = RequestChecks.date(firstDate); lastDate = RequestChecks.date(lastDate); reason = RequestChecks.text(reason, "reason"); if (startMin == null || endMin == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing absence hours"); } }
+    public record Request(String technicianId, String firstDate, String lastDate, Integer startMin, Integer endMin, String category, String reason) { public Request { technicianId = RequestChecks.text(technicianId, "technicianId"); firstDate = RequestChecks.date(firstDate); lastDate = RequestChecks.date(lastDate); category = RequestChecks.text(category, "category"); reason = RequestChecks.text(reason, "reason"); if (startMin == null || endMin == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing absence hours"); } }
     private record Owner(String technicianId, String metroId) { }
     private record ApprovalOwner(String technicianId, String status) { }
     private record Report(String data, String status) { }
@@ -56,7 +56,7 @@ public class TimeOffService {
             if (overlaps > 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Overlapping time-off request");
         }
         String id = UUID.randomUUID().toString();
-        jdbc.update("INSERT INTO time_off_request (id, \"technicianId\", reason, status) VALUES (?, ?, ?, 'PENDING')", id, request.technicianId(), request.reason().trim());
+        jdbc.update("INSERT INTO time_off_request (id, \"technicianId\", category, reason, status) VALUES (?, ?, ?, ?, 'PENDING')", id, request.technicianId(), request.category(), request.reason().trim());
         for (LocalDate day = first; !day.isAfter(last); day = day.plusDays(1))
             jdbc.update("INSERT INTO time_off_interval (id, \"requestId\", \"serviceDate\", \"startMin\", \"endMin\") VALUES (?, ?, ?, ?, ?)",
                     UUID.randomUUID().toString(), id, stamp(Required.value(day)), request.startMin(), request.endMin());

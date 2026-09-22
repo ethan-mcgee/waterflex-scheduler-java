@@ -1,0 +1,129 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.button {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.buttonBrand {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.iconButton {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.chip {
+  font-size: 12px;
+  font-weight: 650;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+}
+
+.chipOn {
+  background: var(--success-wash);
+  border-color: #a9d7c1;
+  color: var(--success);
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.pillNeutral {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.pillBrand {
+  background: var(--brand-wash);
+  color: var(--brand-dark);
+}
+
+.pillSuccess {
+  background: var(--success-wash);
+  color: var(--success);
+}
+
+.pillWarning {
+  background: var(--warning-wash);
+  color: var(--warning);
+}
+
+.pillDanger {
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.avatar {
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.statTile {
+  padding: 16px 18px;
+}
+
+.statTile .n {
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.statTile .l {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 650;
+  margin-top: 2px;
+}
