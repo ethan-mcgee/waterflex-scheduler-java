@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
-import { testInput, offer, testAttempt, errorMessage, optimization, date } from "./contracts";
-import { Prisma } from "@prisma/client";
+import { testInput, testConfig, offer, testAttempt, errorMessage, optimization, date } from "./contracts";
+import { Prisma, type BookingTestGeneration } from "@prisma/client";
 import { prisma } from "./prisma";
-import { bookingHorizon, chooseTestOffer, validateTestConfig, validateTestConfigInput, type TestConfig, type TestConfigInput } from "./bookingTestCore";
+import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestConfig, validateTestConfigInput, type TestConfig, type TestConfigInput } from "./bookingTestCore";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
 import { EngineError, previewOptimization, requestSlots, selectOffer, checkTestAddressRoutability } from "./engineClient";
-import { addressKey, coordinateKey, generateRealTestInputs, reverseTestAddress } from "./bookingTestAddresses";
+import { addressKey, coordinateKey, createAddressCandidateBatch, evaluateAddressCandidateBatch, initialAddressRandomState,
+  reverseTestAddress, type AddressGenerationDependencies, type PendingAddressCandidate, type TestServiceArea } from "./bookingTestAddresses";
 
 function json(value: unknown): Prisma.InputJsonValue {
   const raw: unknown = JSON.parse(JSON.stringify(value));
@@ -14,7 +15,7 @@ function json(value: unknown): Prisma.InputJsonValue {
   if (result === null) throw new Error("Expected a non-null JSON journal value");
   return result;
 }
-const include = { requests: { orderBy: { ordinal: "asc" as const } }, previews: { orderBy: { serviceDate: "asc" as const } } };
+const include = { requests: { orderBy: { ordinal: "asc" as const } }, previews: { orderBy: { serviceDate: "asc" as const } }, generation: true };
 export class TestRunError extends Error {
   constructor(message: string, public status = 409) { super(message); }
 }
@@ -23,18 +24,16 @@ export const testEngine = {
   select: (jobId: string, offerId: string) => selectOffer(jobId, offerId, 45_000),
   preview: (date: string, key: string) => previewOptimization({ metro_id: OMAHA_METRO_ID, date, request_key: key }, 45_000),
 };
-type GeneratedInput = Awaited<ReturnType<typeof generateRealTestInputs>>[number];
-interface CreationDependencies { generate(config: TestConfig, area: { radiusMi: number; stateCode: string; depots: Array<{ lat: number; lng: number }> }, collisions: { addresses: Set<string>; coordinates: Set<string> }): Promise<GeneratedInput[]> }
-const creationDependencies: CreationDependencies = { generate: (config, area, collisions) => generateRealTestInputs(config, area, collisions, {
+const generationDependencies: AddressGenerationDependencies = {
   reverse: reverseTestAddress,
   routable: (candidates, signal) => checkTestAddressRoutability(candidates, 30_000, signal),
-}) };
+};
 function resolvedSeed(): number { return randomBytes(4).readUInt32BE(0); }
 function sameRequestedConfig(saved: TestConfig, requested: TestConfigInput): boolean {
   return saved.count === requested.count && saved.policy === requested.policy && JSON.stringify(saved.weights) === JSON.stringify(requested.weights)
     && (requested.seed == null || saved.seed === requested.seed);
 }
-export async function createTestRun(id: string, value: unknown, dependencies = creationDependencies) {
+export async function createTestRun(id: string, value: unknown) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new TestRunError("A UUID run identity is required.", 400);
   let requested: TestConfigInput;
   try { requested = validateTestConfigInput(value); } catch (error) { throw new TestRunError(errorMessage(error), 400); }
@@ -47,28 +46,9 @@ export async function createTestRun(id: string, value: unknown, dependencies = c
   const metro = await prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID }, include: { depots: { select: { lat: true, lng: true } } } });
   if (metro?.timezone !== OMAHA_TIMEZONE) throw new TestRunError("Configure the existing Omaha metro first.", 422);
   if (!Number.isFinite(metro.serviceRadiusMi) || metro.serviceRadiusMi <= 0 || !metro.depots.length || !metro.stateCode) throw new TestRunError("Configure the Omaha service area and state code first.", 422);
-  const activeAddresses = await prisma.address.findMany({
-    where: { jobs: { some: { appointment: { is: { cancelledAt: null } } } } },
-    select: { line1: true, city: true, state: true, postalCode: true, lat: true, lng: true },
-  });
-  const collisions = {
-    addresses: new Set(activeAddresses.map(addressKey)),
-    coordinates: new Set(activeAddresses.flatMap(address => address.lat == null || address.lng == null ? [] : [coordinateKey({ lat: address.lat, lng: address.lng })])),
-  };
-  let inputs: GeneratedInput[];
-  try { inputs = await dependencies.generate(config, { radiusMi: metro.serviceRadiusMi, stateCode: metro.stateCode, depots: metro.depots }, collisions); }
-  catch (error) { throw new TestRunError(errorMessage(error), 422); }
-  const currentAddresses = await prisma.address.findMany({
-    where: { jobs: { some: { appointment: { is: { cancelledAt: null } } } } },
-    select: { line1: true, city: true, state: true, postalCode: true, lat: true, lng: true },
-  });
-  const currentAddressKeys = new Set(currentAddresses.map(addressKey));
-  const currentCoordinateKeys = new Set(currentAddresses.flatMap(address => address.lat == null || address.lng == null ? [] : [coordinateKey({ lat: address.lat, lng: address.lng })]));
-  if (inputs.some(input => currentAddressKeys.has(addressKey(input.location)) || currentCoordinateKeys.has(coordinateKey(input.location))))
-    throw new TestRunError("An active appointment claimed a generated address while the run was being created. No run was saved.", 409);
   const saved = await prisma.bookingTestRun.upsert({ where: { id }, update: {}, create: {
     id, config: json(config), horizon: bookingHorizon(),
-    requests: { create: inputs.map(input => ({ id: `booking-test:${id}:${input.ordinal}`, ordinal: input.ordinal, input: json(input) })) },
+    generation: { create: { acceptedInputs: [], randomState: BigInt(initialAddressRandomState(config)) } },
   }, include }).catch(async error => {
     // Prisma's nested upsert may lose a concurrent create race; read its winner.
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
@@ -82,10 +62,25 @@ export async function readTestRun(id: string) {
   if (!run) throw new TestRunError("Test run not found.", 404);
   // Report current applied status separately from the saved proposal metrics.
   const applied = await prisma.optimizationRun.findMany({ where: { id: { in: run.previews.flatMap(p => p.optimizationId ? [p.optimizationId] : []) } }, select: { id: true, status: true, appliedAt: true } });
-  return { ...run, applied, currentHorizon: bookingHorizon() };
+  const { generation, ...visible } = run;
+  return { ...visible, generation: publicGeneration(generation, run.config), applied, currentHorizon: bookingHorizon() };
 }
 export async function listTestRuns() {
-  return prisma.bookingTestRun.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, status: true, config: true, createdAt: true, purgedAt: true, purgedCount: true } });
+  const runs = await prisma.bookingTestRun.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, status: true, config: true, createdAt: true,
+    purgedAt: true, purgedCount: true, generation: { select: { acceptedInputs: true, candidatesTried: true, batches: true, elapsedMs: true,
+      completedAt: true, consecutiveNoProgressBatches: true } } } });
+  return runs.map(run => { const { generation, ...visible } = run; return { ...visible, generation: publicGeneration(generation, run.config) }; });
+}
+
+function publicGeneration(generation: { acceptedInputs: Prisma.JsonValue; candidatesTried: bigint; batches: bigint; elapsedMs: bigint;
+  completedAt: Date | null; consecutiveNoProgressBatches: bigint } | null, configValue: Prisma.JsonValue) {
+  if (!generation) return null;
+  const config = testConfig.safeParse(configValue);
+  const counters = [generation.candidatesTried, generation.batches, generation.elapsedMs, generation.consecutiveNoProgressBatches].map(Number);
+  if (!config.success || !Array.isArray(generation.acceptedInputs) || counters.some(value => !Number.isSafeInteger(value) || value < 0)) return null;
+  return { acceptedCount: Array.isArray(generation.acceptedInputs) ? generation.acceptedInputs.length : 0,
+    targetCount: config.data.count, candidatesTried: counters[0], batches: counters[1],
+    elapsedMs: counters[2], completedAt: generation.completedAt, consecutiveNoProgressBatches: counters[3] };
 }
 
 // The transaction owns only the advisory lock. Journal writes commit independently,
@@ -177,12 +172,110 @@ async function reconcile(jobId: string) {
   }, { timeout: 55_000 });
 }
 
-export async function advanceTestRun(id: string, revision: number, engine = testEngine) {
+const pendingCandidate = z.object({ id: z.string().min(1), ordinal: z.int().nonnegative(), serviceCode: z.string().min(1),
+  selectionUnit: z.number().finite().min(0).lt(1), lat: z.number().finite().min(-90).max(90), lng: z.number().finite().min(-180).max(180) });
+
+async function activeAddressCollisions() {
+  const active = await prisma.address.findMany({ where: { jobs: { some: { appointment: { is: { cancelledAt: null } } } } },
+    select: { line1: true, city: true, state: true, postalCode: true, lat: true, lng: true } });
+  return { addresses: new Set(active.map(addressKey)), coordinates: new Set(active.flatMap(address =>
+    address.lat == null || address.lng == null ? [] : [coordinateKey({ lat: address.lat, lng: address.lng })])) };
+}
+
+function parseGeneration(generation: BookingTestGeneration, config: TestConfig) {
+  const accepted = z.array(testInput).max(config.count).parse(generation.acceptedInputs);
+  const plans = generateTestInputPlans(config);
+  if (new Set(accepted.map(input => input.ordinal)).size !== accepted.length || accepted.some(input => input.ordinal >= config.count))
+    throw new Error("Invalid accepted address ordinals.");
+  const pending = generation.pendingCandidates == null ? null : z.array(pendingCandidate).min(1).max(12).parse(generation.pendingCandidates);
+  const validPlan = (value: { ordinal: number; serviceCode: string; selectionUnit: number }) => {
+    const plan = plans[value.ordinal];
+    return plan?.serviceCode === value.serviceCode && Math.abs(plan.selectionUnit - value.selectionUnit) <= Number.EPSILON;
+  };
+  if (accepted.some(input => !validPlan(input))) throw new Error("Invalid accepted address plan.");
+  if (pending?.some(candidate => !validPlan(candidate) || accepted.some(input => input.ordinal === candidate.ordinal)))
+    throw new Error("Invalid pending address plan.");
+  if (new Set(pending?.map(candidate => candidate.ordinal)).size !== (pending?.length ?? 0)) throw new Error("Duplicate pending address ordinal.");
+  if (new Set(accepted.map(input => addressKey(input.location))).size !== accepted.length) throw new Error("Duplicate accepted address.");
+  if (new Set(accepted.map(input => coordinateKey(input.location))).size !== accepted.length) throw new Error("Duplicate accepted coordinate.");
+  const state = Number(generation.randomState);
+  const counters = [generation.candidatesTried, generation.batches, generation.elapsedMs, generation.consecutiveNoProgressBatches].map(Number);
+  if (!Number.isSafeInteger(state) || state < 0 || state > 0xffffffff || !Number.isInteger(generation.roundRobinCursor) ||
+      generation.roundRobinCursor < 0 || generation.roundRobinCursor >= config.count ||
+      counters.some(value => !Number.isSafeInteger(value) || value < 0))
+    throw new Error("Invalid address generation counters.");
+  if (generation.completedAt && (accepted.length !== config.count || pending)) throw new Error("Invalid completed address generation journal.");
+  return { accepted, pending, state, cursor: generation.roundRobinCursor };
+}
+
+type AdvanceDependencies = typeof testEngine & { generation?: AddressGenerationDependencies };
+
+async function advanceGeneration(id: string, config: TestConfig, generation: ReturnType<typeof parseGeneration>, dependencies: AddressGenerationDependencies) {
+  const metro = await prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID }, include: { depots: { select: { lat: true, lng: true } } } });
+  if (metro?.timezone !== OMAHA_TIMEZONE || !metro.stateCode) throw new Error("Configure the existing Omaha metro first.");
+  const area: TestServiceArea = { radiusMi: metro.serviceRadiusMi, stateCode: metro.stateCode, depots: metro.depots };
+  let pending: PendingAddressCandidate[];
+  if (generation.pending) pending = generation.pending;
+  else if (generation.accepted.length < config.count) {
+    const batch = createAddressCandidateBatch(config, area, new Set(generation.accepted.map(input => input.ordinal)), generation.state, generation.cursor);
+    pending = batch.candidates;
+    await prisma.bookingTestGeneration.update({ where: { runId: id }, data: { randomState: BigInt(batch.randomState),
+      roundRobinCursor: batch.roundRobinCursor, pendingCandidates: json(pending) } });
+  } else pending = [];
+
+  const started = Date.now();
+  let found: z.infer<typeof testInput>[] = [];
+  try {
+    if (pending.length) {
+      const active = await activeAddressCollisions();
+      for (const input of generation.accepted) { active.addresses.add(addressKey(input.location)); active.coordinates.add(coordinateKey(input.location)); }
+      found = await evaluateAddressCandidateBatch(pending, area, active, dependencies);
+    }
+  } catch (error) {
+    const elapsedMs = Date.now() - started;
+    await prisma.bookingTestGeneration.update({ where: { runId: id }, data: { elapsedMs: { increment: BigInt(elapsedMs) } } });
+    await prisma.bookingTestRun.updateMany({ where: { id, status: "RUNNING" }, data: { status: "PAUSED", error: errorMessage(error) } });
+    return;
+  }
+  const elapsedMs = Date.now() - started;
+  await prisma.$transaction(async tx => {
+    const currentRun = await tx.bookingTestRun.findUniqueOrThrow({ where: { id }, include: { generation: true } });
+    if (!currentRun.generation) throw new Error("Address generation journal disappeared.");
+    const current = parseGeneration(currentRun.generation, config);
+    const accepted = new Map(current.accepted.map(input => [input.ordinal, input]));
+    for (const input of found) if (!accepted.has(input.ordinal)) accepted.set(input.ordinal, input);
+    let values = [...accepted.values()].sort((left, right) => left.ordinal - right.ordinal);
+    if (values.length === config.count) {
+      const active = await tx.address.findMany({ where: { jobs: { some: { appointment: { is: { cancelledAt: null } } } } },
+        select: { line1: true, city: true, state: true, postalCode: true, lat: true, lng: true } });
+      const addresses = new Set(active.map(addressKey));
+      const coordinates = new Set(active.flatMap(address => address.lat == null || address.lng == null ? [] : [coordinateKey({ lat: address.lat, lng: address.lng })]));
+      values = values.filter(input => !addresses.has(addressKey(input.location)) && !coordinates.has(coordinateKey(input.location)));
+    }
+    const processedBatch = pending.length > 0;
+    const newlyAccepted = Math.max(0, values.length - current.accepted.length);
+    const complete = values.length === config.count && currentRun.status === "RUNNING";
+    if (complete) await tx.bookingTestRequest.createMany({ data: values.map(input => ({ id: `booking-test:${id}:${input.ordinal}`,
+      runId: id, ordinal: input.ordinal, input: json(input) })) });
+    await tx.bookingTestGeneration.update({ where: { runId: id }, data: { acceptedInputs: json(values), pendingCandidates: Prisma.DbNull,
+      candidatesTried: { increment: BigInt(processedBatch ? pending.length : 0) }, batches: { increment: BigInt(processedBatch ? 1 : 0) }, elapsedMs: { increment: BigInt(elapsedMs) },
+      consecutiveNoProgressBatches: processedBatch ? (newlyAccepted ? 0n : currentRun.generation.consecutiveNoProgressBatches + 1n) : currentRun.generation.consecutiveNoProgressBatches,
+      completedAt: complete ? new Date() : null } });
+  });
+}
+
+export async function advanceTestRun(id: string, revision: number, engine: AdvanceDependencies = testEngine) {
   return exclusively(async () => {
     const run = await readTestRun(id);
     if (run.status !== "RUNNING" || run.revision !== revision) return run;
+    const raw = await prisma.bookingTestRun.findUnique({ where: { id }, include });
+    if (!raw) throw new TestRunError("Test run not found.", 404);
+    let generation: ReturnType<typeof parseGeneration> | null = null;
     try {
-      validateTestConfig(run.config);
+      const config = validateTestConfig(run.config);
+      if (raw.generation) generation = parseGeneration(raw.generation, config);
+      if (raw.generation && ((raw.generation.completedAt == null && raw.requests.length !== 0) ||
+          (raw.generation.completedAt != null && raw.requests.length !== config.count))) throw new Error("Invalid generated request journal.");
       z.array(date).parse(run.horizon);
       for (const preview of run.previews) optimization.nullable().parse(preview.result);
       for (const request of run.requests) {
@@ -196,6 +289,11 @@ export async function advanceTestRun(id: string, revision: number, engine = test
     }
     const claim = await prisma.bookingTestRun.updateMany({ where: { id, revision, status: "RUNNING" }, data: { revision: { increment: 1 }, error: null } });
     if (!claim.count) return readTestRun(id);
+    if (raw.generation && !raw.generation.completedAt) {
+      if (!generation) throw new Error("Validated generation journal is missing.");
+      await advanceGeneration(id, validateTestConfig(run.config), generation, engine.generation ?? generationDependencies);
+      return readTestRun(id);
+    }
     const request = run.requests.find(r => !["BOOKED", "NO_OFFER"].includes(r.status));
     if (request) {
       const started = Date.now();

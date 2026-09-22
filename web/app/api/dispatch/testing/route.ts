@@ -5,7 +5,7 @@ import { advanceTestRun, controlTestRun, createTestRun, listTestRuns, purgeTestR
 import { bookingHorizon } from "@/lib/bookingTestCore";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 180;
+export const maxDuration = 60;
 function failure(error: unknown) {
   return NextResponse.json({ error: error instanceof Error ? error.message : "Test operation failed" }, { status: error instanceof TestRunError ? error.status : 500 });
 }
