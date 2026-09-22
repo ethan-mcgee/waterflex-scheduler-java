@@ -1,6 +1,7 @@
 export interface BoardTechnician {
   id: string;
   name: string;
+  color: string;
   homeLat: number;
   homeLng: number;
   shiftStartMin: number;

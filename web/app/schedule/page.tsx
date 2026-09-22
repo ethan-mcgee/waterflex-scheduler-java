@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import ScheduleView from "./ScheduleView";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
+import { resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
+import { weekDates } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +37,8 @@ export default async function SchedulePage({
   const technicians = await prisma.technician.findMany({
     where: { metroId: metro.id, active: true },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, shiftStartMin: true, shiftEndMin: true },
+    include: { availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } },
+      shiftOverrides: { where: { serviceDate: { gte: weekStart, lt: weekEnd } } } },
   });
 
   const technicianIds = technicians.map((technician) => technician.id);
@@ -92,7 +95,17 @@ export default async function SchedulePage({
     <ScheduleView
       monday={monday}
       timezone={metro.timezone}
-      technicians={technicians satisfies ScheduleTechnician[]}
+      technicians={technicians.map(technician => {
+        const versions = validateVersions(technician.availabilityVersions.map(version => ({ effectiveDate: version.effectiveDate, days: version.days })));
+        const days = Object.fromEntries(weekDates(monday).map(date => {
+          const override = technician.shiftOverrides.find(item => item.serviceDate.toISOString().slice(0, 10) === date);
+          const standard = resolveWeeklyDay(versions, date);
+          return [date, override ? { available: override.available, shiftStartMin: override.shiftStartMin, shiftEndMin: override.shiftEndMin }
+            : { available: standard.available, shiftStartMin: standard.shiftStartMin, shiftEndMin: standard.shiftEndMin }];
+        }));
+        return { id: technician.id, name: technician.name, color: technician.color,
+          shiftStartMin: technician.shiftStartMin, shiftEndMin: technician.shiftEndMin, days } satisfies ScheduleTechnician;
+      })}
       appointments={scheduleAppointments}
       absences={absences}
     />

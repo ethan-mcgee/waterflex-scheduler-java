@@ -44,9 +44,12 @@ function minuteOfDay(value: string, timezone: string): number {
   return get("hour") * 60 + get("minute");
 }
 
-function isWeekend(dateKey: string): boolean {
-  const day = localDate(dateKey).getDay();
-  return day === 0 || day === 6;
+function scheduleDay(technician: ScheduleTechnician, dateKey: string) {
+  const day = technician.days[dateKey];
+  if (!day) throw new Error(`Missing technician availability for ${dateKey}`);
+  if (day.available && (day.shiftStartMin == null || day.shiftEndMin == null || day.shiftStartMin >= day.shiftEndMin))
+    throw new Error(`Invalid technician availability for ${dateKey}`);
+  return day;
 }
 
 function formatWindow(appointment: ScheduleAppointment, timezone: string): string {
@@ -112,10 +115,11 @@ function TimelineCell({
   timezone: string;
   onSelect: (appointment: ScheduleAppointment) => void;
 }) {
-  const closed = isWeekend(day);
+  const daily = scheduleDay(technician, day);
+  const closed = !daily.available;
   const timelineHeight = ((timelineEnd - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX;
-  const shiftStart = Math.max(technician.shiftStartMin, timelineStart);
-  const shiftEnd = Math.min(technician.shiftEndMin, timelineEnd);
+  const shiftStart = Math.max(daily.shiftStartMin ?? timelineStart, timelineStart);
+  const shiftEnd = Math.min(daily.shiftEndMin ?? timelineStart, timelineEnd);
   const shiftTop = ((shiftStart - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX;
   const shiftHeight = Math.max(0, ((shiftEnd - shiftStart) / 60) * TIMELINE_HOUR_HEIGHT_PX);
   const hourCount = (timelineEnd - timelineStart) / 60;
@@ -126,8 +130,8 @@ function TimelineCell({
         <div
           className={styles.shiftBand}
           style={{ top: shiftTop, height: shiftHeight }}
-          aria-label={`${technician.name} shift ${formatMinuteOfDay(technician.shiftStartMin)} to ${formatMinuteOfDay(
-            technician.shiftEndMin
+          aria-label={`${technician.name} shift ${formatMinuteOfDay(shiftStart)} to ${formatMinuteOfDay(
+            shiftEnd
           )}`}
         />
       )}
@@ -277,11 +281,13 @@ export default function ScheduleView({
   const visibleTechnicians = technicians.filter(
     (technician) => technicianFilter === "all" || technician.id === technicianFilter
   );
-  const timelineStart = technicians.length
-    ? Math.floor(Math.min(...technicians.map((technician) => technician.shiftStartMin)) / 60) * 60
+  const shiftHours = technicians.flatMap(technician => Object.values(technician.days).flatMap(day =>
+    day.available && day.shiftStartMin != null && day.shiftEndMin != null ? [{ start: day.shiftStartMin, end: day.shiftEndMin }] : []));
+  const timelineStart = shiftHours.length
+    ? Math.floor(Math.min(...shiftHours.map(shift => shift.start)) / 60) * 60
     : 8 * 60;
-  const timelineEnd = technicians.length
-    ? Math.ceil(Math.max(...technicians.map((technician) => technician.shiftEndMin)) / 60) * 60
+  const timelineEnd = shiftHours.length
+    ? Math.ceil(Math.max(...shiftHours.map(shift => shift.end)) / 60) * 60
     : 17 * 60;
   const timelineHours = Array.from(
     { length: Math.max(1, (timelineEnd - timelineStart) / 60) },
@@ -352,23 +358,23 @@ export default function ScheduleView({
           <div className={styles.grid} aria-label="Weekly technician schedule">
             <div className={styles.corner}>Technician</div>
             {days.map((day) => (
-              <div className={`${styles.dayHeader} ${isWeekend(day) ? styles.closedDayHeader : ""}`} key={day}>
+              <div className={`${styles.dayHeader} ${technicians.every(technician => !scheduleDay(technician, day).available) ? styles.closedDayHeader : ""}`} key={day}>
                 <span className={styles.dayName}>{DAY_FORMAT.format(localDate(day))}</span>
                 <span className={styles.dayDate}>{DATE_FORMAT.format(localDate(day))}</span>
-                {isWeekend(day) && <span className={styles.dayStatus}>No service</span>}
+                {technicians.every(technician => !scheduleDay(technician, day).available) && <span className={styles.dayStatus}>Off</span>}
               </div>
             ))}
             {visibleTechnicians.flatMap((technician) =>
               [
                 <div
                   className={styles.techHeader}
-                  style={{ height: timelineHours.length * TIMELINE_HOUR_HEIGHT_PX }}
+                  style={{ height: timelineHours.length * TIMELINE_HOUR_HEIGHT_PX, borderLeftColor: technician.color }}
                   key={`${technician.id}-header`}
                 >
                   <div className={styles.techIdentity}>
                     <span className={styles.techName}>{technician.name}</span>
                     <span className={styles.techShift}>
-                      {formatMinuteOfDay(technician.shiftStartMin)} - {formatMinuteOfDay(technician.shiftEndMin)}
+                      Hours shown by day
                     </span>
                   </div>
                   {timelineHours.map((hour, index) => (
@@ -413,7 +419,7 @@ export default function ScheduleView({
                     {technicians.find((tech) => tech.id === absence.technicianId)?.name}: approved time off {formatMinuteOfDay(absence.startMin)} to {formatMinuteOfDay(absence.endMin)}. Working intervals are split around this block.
                   </div>)}
                   {entries.length === 0 ? (
-                    <div className={styles.subtle}>{isWeekend(day) ? "No service." : "No visits scheduled."}</div>
+                    <div className={styles.subtle}>{visibleTechnicians.every(technician => !scheduleDay(technician, day).available) ? "Off shift." : "No visits scheduled."}</div>
                   ) : (
                     entries.map((appointment) => (
                       <AppointmentCard

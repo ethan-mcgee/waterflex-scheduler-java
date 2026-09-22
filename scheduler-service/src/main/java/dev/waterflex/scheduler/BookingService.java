@@ -35,6 +35,7 @@ public class BookingService {
     private record Cancellation(String jobId, String techId, Instant day, @Nullable Timestamp cancelledAt) { }
     private record Job(String id, String serviceId, int duration, RoadClient.Point point, String status) { }
     private record Tech(String id, RoadClient.Point home, int shiftStart, int shiftEnd, int maxDaily, int maxOvertime) { }
+    private record TechBase(String id, RoadClient.Point home, int maxDaily, int maxOvertime) { }
     private record Visit(String id, RoadClient.Point point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
                            long meters, long costCents, Map<String, Instant> arrivals) { }
@@ -212,8 +213,9 @@ public class BookingService {
         jdbc.update("UPDATE job SET status='CANCELLED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", jobId);
         if (!ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) {
             List<Visit> remaining = visits(Required.value(techId), Required.value(day), Required.value(jobId));
-            var techs = jdbc.query("SELECT \"homeLat\", \"homeLng\", COALESCE(o.\"shiftStartMin\",t.\"shiftStartMin\"), COALESCE(o.\"shiftEndMin\",t.\"shiftEndMin\"), \"maxDailyMinutes\", \"maxOvertimeMinutes\" FROM technician t LEFT JOIN technician_shift_override o ON o.\"technicianId\"=t.id AND o.\"serviceDate\"=? WHERE t.id=?",
-                    (rs, _) -> new Tech(Required.value(techId), Required.location(rs, 1, 2, HttpStatus.CONFLICT), Required.integer(rs, 3), Required.integer(rs, 4), Required.integer(rs, 5), Required.integer(rs, 6)), dayStamp(Required.value(day)), techId);
+            WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, Required.value(day));
+            var techs = shift == null ? List.<Tech>of() : jdbc.query("SELECT \"homeLat\", \"homeLng\", \"maxDailyMinutes\", \"maxOvertimeMinutes\" FROM technician WHERE id=?",
+                    (rs, _) -> new Tech(techId, Required.location(rs, 1, 2, HttpStatus.CONFLICT), shift.start(), shift.end(), Required.integer(rs, 3), Required.integer(rs, 4)), techId);
             if (!techs.isEmpty()) {
                 Metrics recalculated = evaluate(Required.value(techs.getFirst()), Required.value(day), Required.value(remaining));
                 if (recalculated.feasible()) for (int i = 0; i < remaining.size(); i++) {
@@ -230,23 +232,39 @@ public class BookingService {
 
     private List<Candidate> candidates(Job job, @Nullable LocalDate onlyDay, @Nullable Instant onlyStart) {
         List<Candidate> result = new ArrayList<>();
-        LocalDate day = onlyDay == null ? LocalDate.now(CHICAGO).plusDays(1) : onlyDay;
-        int weekdays = 0;
-        while (weekdays < (onlyDay == null ? 10 : 1)) {
-            if (day.getDayOfWeek().getValue() <= 5) {
-                weekdays++;
-                for (Tech tech : technicians(job.serviceId(), day)) {
-                    for (int hour = 8; hour <= 15; hour++) {
-                        Instant start = day.atTime(hour, 0).atZone(CHICAGO).toInstant();
+        List<LocalDate> days = onlyDay == null ? bookingDates(Required.value(Instant.now())) : Required.value(List.of(Required.value(onlyDay)));
+        for (LocalDate day : days) {
+            LocalDate serviceDay = Required.value(day);
+            for (Tech tech : technicians(job.serviceId(), serviceDay)) {
+                    for (int minute : windowStartMinutes(tech.shiftStart(), tech.shiftEnd())) {
+                        Instant start = ScheduleCutoff.localMinute(serviceDay, minute, false);
                         if (onlyStart != null && !start.equals(onlyStart)) continue;
-                        Candidate c = evaluateCandidate(job, Required.value(tech), day, start, Required.value(start.plus(Duration.ofHours(2))));
+                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(2))));
                         if (c != null) result.add(c);
                     }
-                }
             }
-            day = day.plusDays(1);
         }
         return result;
+    }
+
+    static List<LocalDate> bookingDates(Instant now) {
+        List<LocalDate> days = new ArrayList<>();
+        LocalDate day = now.atZone(CHICAGO).toLocalDate().plusDays(1);
+        int weekdays = 0;
+        while (weekdays < 10) {
+            days.add(day);
+            if (day.getDayOfWeek().getValue() <= 5) weekdays++;
+            day = day.plusDays(1);
+        }
+        return days;
+    }
+
+    static List<Integer> windowStartMinutes(int shiftStart, int shiftEnd) {
+        if (shiftStart < 0 || shiftEnd > 1440 || shiftStart >= shiftEnd)
+            throw new IllegalArgumentException("Invalid shift hours");
+        List<Integer> starts = new ArrayList<>();
+        for (int minute = shiftStart; minute + 120 <= shiftEnd; minute += 60) starts.add(minute);
+        return starts;
     }
 
     private @Nullable Candidate evaluateCandidate(Job job, Tech tech, LocalDate day, Instant start, Instant end) {
@@ -307,8 +325,15 @@ public class BookingService {
     }
 
     private List<Tech> technicians(String serviceId, LocalDate day) {
-        return jdbc.query("SELECT t.id, t.\"homeLat\", t.\"homeLng\", COALESCE(o.\"shiftStartMin\",t.\"shiftStartMin\"), COALESCE(o.\"shiftEndMin\",t.\"shiftEndMin\"), t.\"maxDailyMinutes\", t.\"maxOvertimeMinutes\" FROM technician t JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? LEFT JOIN technician_shift_override o ON o.\"technicianId\"=t.id AND o.\"serviceDate\"=? WHERE t.active=true AND COALESCE(o.available,true)=true ORDER BY t.id FOR SHARE OF t",
-                (rs, _) -> new Tech(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.integer(rs, 4), Required.integer(rs, 5), Required.integer(rs, 6), Required.integer(rs, 7)), serviceId, dayStamp(day));
+        List<TechBase> rows = jdbc.query("SELECT t.id, t.\"homeLat\", t.\"homeLng\", t.\"maxDailyMinutes\", t.\"maxOvertimeMinutes\" FROM technician t JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? WHERE t.active=true ORDER BY t.id FOR SHARE OF t",
+                (rs, _) -> new TechBase(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.integer(rs, 4), Required.integer(rs, 5)), serviceId);
+        List<Tech> result = new ArrayList<>();
+        for (TechBase row : rows) {
+            TechBase technician = Required.value(row);
+            WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician.id(), day);
+            if (shift != null) result.add(new Tech(technician.id(), technician.home(), shift.start(), shift.end(), technician.maxDaily(), technician.maxOvertime()));
+        }
+        return result;
     }
 
     private List<Visit> visits(String techId, LocalDate day, String excludeJobId) {
