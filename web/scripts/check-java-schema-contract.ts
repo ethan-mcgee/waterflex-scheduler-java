@@ -9,6 +9,8 @@ const expected: Record<string, string[]> = {
   technician: ["id", "metroId", "homeLat", "homeLng", "shiftStartMin", "shiftEndMin", "maxDailyMinutes", "maxOvertimeMinutes", "active"],
   technician_qualification: ["technicianId", "serviceId"],
   technician_shift_override: ["technicianId", "serviceDate", "available", "shiftStartMin", "shiftEndMin"],
+  technician_availability_version: ["id", "technicianId", "effectiveDate"],
+  technician_availability_day: ["versionId", "dayOfWeek", "available", "shiftStartMin", "shiftEndMin"],
   booking_offer: ["id", "jobId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "incrementalRegularMinutes", "incrementalOvertimeMinutes", "incrementalRoadMeters", "incrementalCostDollars"],
   slot_hold: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "releasedAt"],
   schedule_day: ["technicianId", "serviceDate", "version"],

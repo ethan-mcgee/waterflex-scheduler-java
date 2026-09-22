@@ -3,6 +3,8 @@ import { required } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+import { initialAvailability } from "../lib/technicianAvailability";
+import { technicianColor } from "../lib/technicianColor";
 import { isDispatchGeometry } from "../lib/dispatchGeometry";
 
 const prisma = new PrismaClient();
@@ -57,7 +59,7 @@ async function main() {
   try {
     for (const [index, techId] of techIds.entries()) {
       await prisma.technician.create({ data: {
-        id: techId, metroId: metro.id, name: `Optimizer fixture ${index}`,
+        id: techId, metroId: metro.id, name: `Optimizer fixture ${index}`, color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
         homeLat: index === 0 ? 43.735 : 43.748, homeLng: index === 0 ? 7.420 : 7.438,
         shiftStartMin: 480, shiftEndMin: 1020, maxDailyMinutes: 600, maxOvertimeMinutes: 60,
         qualifications: { create: { serviceId: service.id } },

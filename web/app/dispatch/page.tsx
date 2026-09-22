@@ -50,6 +50,7 @@ export default async function DispatchPage({
   const boardTechnicians = technicians.map((t) => ({
     id: t.id,
     name: t.name,
+    color: t.color,
     homeLat: t.homeLat,
     homeLng: t.homeLng,
     shiftStartMin: t.shiftStartMin,

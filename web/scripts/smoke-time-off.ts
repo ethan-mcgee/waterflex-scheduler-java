@@ -1,5 +1,7 @@
 import { timeOffResult, required } from "../lib/contracts";
 import { PrismaClient } from "@prisma/client";
+import { initialAvailability } from "../lib/technicianAvailability";
+import { technicianColor } from "../lib/technicianColor";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 
@@ -33,7 +35,7 @@ async function main() {
   const requestIds: string[] = [];
   try {
     for (const id of [techA, techB]) await prisma.technician.create({ data: {
-      id, metroId: metro.id, name: id, homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
+      id, metroId: metro.id, name: id, color: technicianColor(id), availabilityVersions: initialAvailability(480, 1020), homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
       qualifications: { create: { serviceId: service.id } },
     } });
     await prisma.customer.create({ data: { id: customerId, firstName: "Time", lastName: "Off", email: "timeoff@example.invalid", phone: "0000000000" } });

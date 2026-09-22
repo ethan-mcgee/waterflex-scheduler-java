@@ -1,5 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
+import { initialAvailability } from "./technicianAvailability";
+import { technicianColor } from "./technicianColor";
 
 const OMAHA_DEPOT_ID = "depot-omaha-main";
 
@@ -111,7 +113,7 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
     await prisma.technician.upsert({
       where: { id: technician.id },
       update: configuration,
-      create: { id: technician.id, ...configuration },
+      create: { id: technician.id, ...configuration, color: technicianColor(technician.id), availabilityVersions: initialAvailability(8 * 60, 17 * 60) },
     });
   }
 

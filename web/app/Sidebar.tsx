@@ -24,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/book", label: "Book Service Visit", icon: ClipboardPlus },
   { href: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
   { href: "/dispatch", label: "Dispatch Board", icon: Route },
-  { href: "/dispatch/availability", label: "Shifts & Qualifications", icon: Users },
+  { href: "/technicians", label: "Technicians", icon: Users },
   { href: "/time-off", label: "Time Off", icon: CalendarOff },
   { href: "/dispatch/follow-up", label: "Manual Follow-up", icon: PhoneCall },
 ];

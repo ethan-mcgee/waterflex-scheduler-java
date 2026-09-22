@@ -42,6 +42,22 @@ export const availabilityRequest = z.object({ technicianId: text, date, availabl
   shiftStartMin: minute.nullish(), shiftEndMin: minute.nullish() }).refine(v => !v.available ||
     (v.shiftStartMin != null && v.shiftEndMin != null && v.shiftStartMin < v.shiftEndMin), "Invalid shift hours");
 export const deleteAvailabilityRequest = z.object({ technicianId: text, date });
+export const technicianColorValue = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const standardDay = z.object({ dayOfWeek: z.int().min(0).max(6), available: z.boolean(),
+  shiftStartMin: minute.nullable(), shiftEndMin: minute.nullable() }).strict().refine(v => v.available
+    ? v.shiftStartMin != null && v.shiftEndMin != null && v.shiftStartMin < v.shiftEndMin
+    : v.shiftStartMin === null && v.shiftEndMin === null, "Invalid daily hours");
+export const standardWeek = z.array(standardDay).length(7).refine(days =>
+  new Set(days.map(day => day.dayOfWeek)).size === 7 && days.some(day => day.available), "Choose at least one available day and include each weekday once");
+export const technicianProfileRequest = z.object({ name: text.max(120), email: z.email().nullable().optional(),
+  phone: z.string().trim().min(7).max(40).nullable().optional(), bio: z.string().trim().max(2000).nullable().optional(),
+  color: technicianColorValue }).strict();
+export const createTechnicianRequest = technicianProfileRequest.extend({ metroId: text,
+  email: z.email(), phone: z.string().trim().min(7).max(40),
+  address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(),
+  confirmedPin: point, days: standardWeek, qualifications: z.array(text).min(1).refine(ids => new Set(ids).size === ids.length),
+}).strict();
+export const updateStandardWeekRequest = z.object({ days: standardWeek }).strict();
 export const timeOffCategories = [
   "Vacation / personal travel", "Medical appointment", "Illness", "Family emergency",
   "Bereavement", "Jury duty / civic obligation", "Other",
