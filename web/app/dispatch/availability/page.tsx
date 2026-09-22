@@ -8,8 +8,7 @@ export default async function AvailabilityPage() {
     prisma.technician.findMany({ include: { qualifications: true, shiftOverrides: { orderBy: { serviceDate: "asc" }, take: 20 } }, orderBy: { name: "asc" } }),
     prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
   ]);
-  return <main style={{ padding: "2rem", fontFamily: "system-ui", maxWidth: 900 }}>
-    <a href="/dispatch">Back to dispatch</a>
+  return <main style={{ maxWidth: 900 }}>
     <h1>Technician availability</h1>
     <AvailabilityEditor technicians={technicians.map((tech) => ({
       id: tech.id, name: tech.name, shiftStartMin: tech.shiftStartMin, shiftEndMin: tech.shiftEndMin,
