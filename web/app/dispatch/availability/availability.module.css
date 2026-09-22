@@ -1,0 +1,275 @@
+.main {
+  max-width: 1180px;
+}
+
+.top {
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+.title {
+  font-size: 22px;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 288px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.roster {
+  padding: 14px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.search input {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  width: 100%;
+  outline: none;
+}
+
+.search svg {
+  flex: 0 0 auto;
+  color: var(--quiet);
+}
+
+.rosterList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 620px;
+  overflow-y: auto;
+}
+
+.rosterItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+
+.rosterItem:hover {
+  background: var(--surface-soft);
+}
+
+.rosterItemSelected {
+  background: var(--brand-wash);
+  border-color: #bcdcf6;
+}
+
+.rosterName {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.availDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.availOn {
+  background: var(--success);
+}
+
+.availOff {
+  background: var(--quiet);
+}
+
+.detail {
+  padding: 22px 24px;
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.detailId {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.detailId h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weekStrip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.day {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px 8px;
+  text-align: center;
+  background: var(--surface-soft);
+}
+
+.day .dname {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day .ddate {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 3px 0 8px;
+}
+
+.shiftBlock {
+  font-size: 11px;
+  font-weight: 650;
+  border-radius: 6px;
+  padding: 5px 4px;
+}
+
+.dayOn .shiftBlock {
+  background: var(--success-wash);
+  color: var(--success);
+}
+
+.dayOff .shiftBlock {
+  background: var(--danger-wash);
+  color: var(--danger);
+}
+
+.overrideList {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overrideRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.overrideDate {
+  font-size: 12.5px;
+  font-weight: 700;
+  width: 92px;
+  flex: 0 0 auto;
+}
+
+.overrideTime {
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1;
+}
+
+.overrideForm {
+  display: grid;
+  grid-template-columns: repeat(4, auto) 1fr;
+  gap: 10px;
+  align-items: end;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field label {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.field input,
+.field select {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.message {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin: 10px 0 0;
+}
+
+.empty {
+  color: var(--quiet);
+  font-size: 13px;
+  padding: 40px 0;
+  text-align: center;
+}

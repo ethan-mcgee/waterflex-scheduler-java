@@ -57,6 +57,19 @@ public class ScheduleGuardService {
     }
 
     @Transactional
+    public void deleteAvailability(String technicianId, LocalDate day) {
+        unfrozen(day);
+        lockTechnician(technicianId);
+        lockDay(technicianId, day);
+        noHolds(technicianId, day);
+        if (Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL",
+                Integer.class, technicianId, stamp(day)) > 0)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Existing appointments require schedule repair");
+        jdbc.update("DELETE FROM technician_shift_override WHERE \"technicianId\"=? AND \"serviceDate\"=?", technicianId, stamp(day));
+        jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", technicianId, stamp(day));
+    }
+
+    @Transactional
     public void qualification(String technicianId, String serviceId, boolean qualified) {
         lockTechnician(technicianId);
         if (!qualified) {

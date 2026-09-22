@@ -41,8 +41,13 @@ export const qualificationRequest = z.object({ technicianId: text, serviceId: te
 export const availabilityRequest = z.object({ technicianId: text, date, available: z.boolean(),
   shiftStartMin: minute.nullish(), shiftEndMin: minute.nullish() }).refine(v => !v.available ||
     (v.shiftStartMin != null && v.shiftEndMin != null && v.shiftStartMin < v.shiftEndMin), "Invalid shift hours");
+export const deleteAvailabilityRequest = z.object({ technicianId: text, date });
+export const timeOffCategories = [
+  "Vacation / personal travel", "Medical appointment", "Illness", "Family emergency",
+  "Bereavement", "Jury duty / civic obligation", "Other",
+] as const;
 export const timeOffRequest = z.object({ technicianId: text, firstDate: date, lastDate: date,
-  startMin: minute, endMin: minute, reason: text }).refine(v => v.firstDate <= v.lastDate && v.startMin < v.endMin, "Invalid absence interval");
+  startMin: minute, endMin: minute, category: z.enum(timeOffCategories), reason: text }).refine(v => v.firstDate <= v.lastDate && v.startMin < v.endMin, "Invalid absence interval");
 export const testRadiusMi = z.union([z.literal(10), z.literal(20), z.literal(30), z.literal(45), z.literal(65)]);
 const testConfigFields = { count: z.int().min(1).max(100), policy: z.enum(["earliest", "first", "random"]),
   weights: z.array(finite.min(0).max(100)).length(4).refine(v => v.some(w => w > 0)), radiusMi: testRadiusMi } as const;

@@ -15,11 +15,11 @@ export class EngineError extends Error {
   }
 }
 
-async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000, externalSignal?: AbortSignal): Promise<T> {
+async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000, externalSignal?: AbortSignal, method?: "GET" | "POST" | "DELETE"): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${ENGINE_URL}${path}`, {
-      method: body === undefined ? "GET" : "POST",
+      method: method ?? (body === undefined ? "GET" : "POST"),
       headers: { "Content-Type": "application/json", "x-internal-secret": INTERNAL_API_SECRET },
       body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store",
       signal: externalSignal ? AbortSignal.any([externalSignal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
@@ -140,7 +140,7 @@ export function dispatchGeometry(metroId: string, date: string, runId?: string, 
   return request(`/v1/dispatch/geometry?${query}`, z.custom<GeometryResponse>(v => isDispatchGeometry(v, date, phase)));
 }
 
-export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; reason: string }): Promise<{ requestId: string; status: string }> {
+export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; category: string; reason: string }): Promise<{ requestId: string; status: string }> {
   return requestEngine("/v1/time-off/request", timeOffResult, request);
 }
 
@@ -150,6 +150,10 @@ export function approveTimeOff(id: string): Promise<{ requestId: string; status:
 
 export function updateAvailability(request: { technicianId: string; date: string; available: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null }): Promise<{ success: boolean }> {
   return requestEngine("/v1/dispatch/availability", success, request);
+}
+
+export function deleteAvailabilityOverride(request: { technicianId: string; date: string }): Promise<{ success: boolean }> {
+  return requestEngine("/v1/dispatch/availability", success, request, 30000, undefined, "DELETE");
 }
 
 export function updateQualification(request: { technicianId: string; serviceId: string; qualified: boolean }): Promise<{ success: boolean }> {

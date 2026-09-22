@@ -42,7 +42,7 @@ async function main() {
     await prisma.appointment.create({ data: { jobId, technicianId: techA, serviceDate: day,
       windowStart: new Date(`${date}T15:00:00Z`), windowEnd: new Date(`${date}T17:00:00Z`),
       plannedStart: new Date(`${date}T15:00:00Z`), plannedEnd: new Date(`${date}T16:00:00Z`), sequence: 0 } });
-    const request = await post("/v1/time-off/request", { technicianId: techA, firstDate: date, lastDate: date, startMin: 480, endMin: 1020, reason: "Fixture leave" });
+    const request = await post("/v1/time-off/request", { technicianId: techA, firstDate: date, lastDate: date, startMin: 480, endMin: 1020, category: "Other", reason: "Fixture leave" });
     const requestId: string = request.requestId;
     requestIds.push(requestId);
     let status = "";
@@ -61,7 +61,7 @@ async function main() {
     shortDate.setUTCDate(shortDate.getUTCDate() + 13);
     const shortKey = shortDate.toISOString().slice(0, 10);
     const short = await post("/v1/time-off/request", { technicianId: techA, firstDate: shortKey, lastDate: shortKey,
-      startMin: 480, endMin: 1020, reason: "Fixture short notice" });
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture short notice" });
     requestIds.push(short.requestId);
     let shortStatus = "";
     for (let attempt = 0; attempt < 45; attempt++) {
@@ -90,7 +90,7 @@ async function main() {
       plannedStart: new Date(`${date}T18:00:00Z`), plannedEnd: new Date(`${date}T19:00:00Z`), insertPosition: 1,
       locationLat: 43.748, locationLng: 7.438, expiresAt: new Date(Date.now() + 10 * 60_000) } });
     const blocked = await post("/v1/time-off/request", { technicianId: techB, firstDate: date, lastDate: date,
-      startMin: 480, endMin: 1020, reason: "Fixture active reservation" });
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture active reservation" });
     requestIds.push(blocked.requestId);
     let blockedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: blocked.requestId } });
     for (let attempt = 0; attempt < 45 && ["QUEUED", "ANALYZING"].includes(blockedReport.status); attempt++) {

@@ -9,15 +9,11 @@ export default async function TimeOffPage() {
     include: { technician: { select: { name: true } }, intervals: { orderBy: { serviceDate: "asc" } }, report: true },
     orderBy: { createdAt: "desc" }, take: 100,
   });
-  return <main style={{ maxWidth: 1050 }}>
-    <h1>Technician time off</h1>
-    <p><strong>Local demo selector:</strong> choose a technician to submit a request. This selector does not authenticate the technician.</p>
-    <TimeOffDemo technicians={technicians} requests={requests.map((request) => ({
-      id: request.id, technicianId: request.technicianId, technicianName: request.technician.name,
-      reason: request.reason, status: request.status, createdAt: request.createdAt.toISOString(),
-      intervals: request.intervals.map((interval) => ({ date: interval.serviceDate.toISOString().slice(0, 10), startMin: interval.startMin, endMin: interval.endMin })),
-      reportStatus: request.report?.status ?? null, reportProgress: request.report?.progress ?? null,
-      report: request.report?.data ?? null,
-    }))} />
-  </main>;
+  return <TimeOffDemo technicians={technicians} requests={requests.map((request) => ({
+    id: request.id, technicianId: request.technicianId, technicianName: request.technician.name,
+    category: request.category, reason: request.reason, status: request.status, createdAt: request.createdAt.toISOString(),
+    intervals: request.intervals.map((interval) => ({ date: interval.serviceDate.toISOString().slice(0, 10), startMin: interval.startMin, endMin: interval.endMin })),
+    reportStatus: request.report?.status ?? null, reportProgress: request.report?.progress ?? null,
+    report: request.report?.data ?? null,
+  }))} />;
 }
