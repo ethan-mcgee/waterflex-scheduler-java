@@ -20,6 +20,8 @@ public class BookingController {
     public BookingService.Offers offers(@RequestBody JobRequest request) { return booking.offers(request.jobId(), Boolean.TRUE.equals(request.refresh())); }
     @PostMapping("/v1/offers/select")
     public BookingService.Selection select(@RequestBody SelectRequest request) { return booking.select(request.jobId(), request.offerId()); }
+    @PostMapping("/v1/offers/release")
+    public Map<String, Boolean> release(@RequestBody SelectRequest request) { return booking.release(request.jobId(), request.offerId()); }
     @PostMapping("/v1/holds/confirm")
     public BookingService.Confirmation confirm(@RequestBody ConfirmRequest request) { return booking.confirm(request.holdId()); }
     @PostMapping("/v1/appointments/cancel")
