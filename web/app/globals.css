@@ -1,0 +1,202 @@
+:root {
+  font-family: "Aptos", "Corbel", "Segoe UI", sans-serif;
+  color: #18211e;
+  background: #f3f5f1;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #18211e;
+  --ink-soft: #34413c;
+  --muted: #69766f;
+  --quiet: #8c9892;
+  --canvas: #f3f5f1;
+  --surface: #ffffff;
+  --surface-soft: #f8faf7;
+  --line: #d8dfda;
+  --line-strong: #b8c4bd;
+  --brand: #0157b6;
+  --brand-dark: #01336a;
+  --brand-wash: #eef7fd;
+  --nav: #082b50;
+  --success: #237957;
+  --success-wash: #e6f3eb;
+  --warning: #a66308;
+  --warning-wash: #fff3d9;
+  --danger: #ad3c42;
+  --danger-wash: #fae9e9;
+  --shadow: 0 18px 45px rgba(30, 48, 40, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--canvas);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background-color: var(--canvas);
+  background-image:
+    linear-gradient(rgba(24, 33, 30, 0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(24, 33, 30, 0.022) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(1, 87, 182, 0.25);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* App shell: fixed left sidebar + scrolling content area */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  padding: 20px 14px;
+  color: #eef6f1;
+  background: var(--nav);
+  border-right: 3px solid #0099ff;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 6px;
+  margin-bottom: 26px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar-brand-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #7fcef4;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+}
+
+.sidebar-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.sidebar-brand-text strong {
+  font-family: "Bahnschrift", "Aptos Display", sans-serif;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.sidebar-brand-text small {
+  color: #92a69e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  color: #b8c8d7;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.sidebar-nav a svg {
+  flex: 0 0 auto;
+}
+
+.sidebar-nav a:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.sidebar-nav a.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-nav a.active::before {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: -14px;
+  width: 3px;
+  background: #45b7f0;
+  border-radius: 2px;
+  content: "";
+}
+
+.app-main {
+  min-width: 0;
+  padding: 30px 32px 48px;
+}

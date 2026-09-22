@@ -2,7 +2,6 @@ import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
 import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
-import { bookingTestsEnabled } from "@/lib/bookingTestAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -74,18 +73,13 @@ export default async function DispatchPage({
     }));
 
   return (
-    <><nav style={{ padding: "0.75rem 2rem", display: "flex", gap: "1rem" }}>
-      <a href="/dispatch/availability">Shifts and qualifications</a>
-      <a href="/dispatch/follow-up">Manual follow-up</a>
-      <a href="/time-off">Technician time off</a>
-      {bookingTestsEnabled() && <a href="/dispatch/testing">Sequential booking test</a>}
-    </nav><DispatchBoard
+    <DispatchBoard
       metroId={metro.id}
       timezone={metro.timezone}
       date={date}
       technicians={boardTechnicians}
       appointments={boardAppointments}
       initialRunId={searchParams.run}
-    /></>
+    />
   );
 }

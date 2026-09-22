@@ -1,5 +1,4 @@
 import { date as dateContract } from "@/lib/contracts";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import ScheduleView from "./ScheduleView";
@@ -19,9 +18,8 @@ export default async function SchedulePage({
   const metro = await prisma.metro.findFirst();
   if (!metro) {
     return (
-      <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+      <main>
         <p>No metro configured yet.</p>
-        <Link href="/">Return home</Link>
       </main>
     );
   }

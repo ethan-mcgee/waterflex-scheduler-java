@@ -1,4 +1,7 @@
 import type { ReactNode } from "react";
+import AppShell from "./AppShell";
+import "./globals.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
 export const metadata = {
   title: "WaterFlex Scheduler",
@@ -8,8 +11,9 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }
-import "maplibre-gl/dist/maplibre-gl.css";
