@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { createSeededRandom } from "./fakeDataCore";
 import { generateTestInputPlans, type TestConfig } from "./bookingTestCore";
 import { haversineMiles } from "./geo";
 
@@ -13,7 +12,15 @@ export interface AddressCandidate { id: string; serviceCode: string; lat: number
 export interface AddressGenerationDependencies {
   reverse(lat: number, lng: number, signal: AbortSignal, stateCode: string): Promise<GeneratedTestLocation | null>;
   routable(candidates: AddressCandidate[], signal: AbortSignal): Promise<Set<string>>;
-  timeoutMs?: number;
+}
+export interface PendingAddressCandidate extends AddressCandidate {
+  ordinal: number;
+  selectionUnit: number;
+}
+export interface CandidateBatch {
+  candidates: PendingAddressCandidate[];
+  randomState: number;
+  roundRobinCursor: number;
 }
 
 const coordinateString = (limit: number) => z.string().trim().regex(/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/)
@@ -69,43 +76,86 @@ function samplePoint(random: () => number, area: TestServiceArea): { lat: number
   return { lat, lng };
 }
 
-export async function generateRealTestInputs(config: TestConfig, area: TestServiceArea, collisions: AddressCollisionSets,
-  dependencies: AddressGenerationDependencies) {
+const RANDOM_INCREMENT = 0x6d2b79f5;
+function randomStep(state: number): { state: number; value: number } {
+  const next = (state + RANDOM_INCREMENT) >>> 0;
+  let value = next;
+  value = Math.imul(value ^ (value >>> 15), value | 1);
+  value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+  return { state: next, value: ((value ^ (value >>> 14)) >>> 0) / 0x100000000 };
+}
+
+export function initialAddressRandomState(config: TestConfig): number {
+  let state = config.seed >>> 0;
+  for (let index = 0; index < config.count * 2; index++) state = randomStep(state).state;
+  return state;
+}
+
+export function createAddressCandidateBatch(config: TestConfig, area: TestServiceArea, acceptedOrdinals: ReadonlySet<number>,
+  randomState: number, roundRobinCursor: number, limit = 12): CandidateBatch {
+  validateServiceArea(area);
+  if (!Number.isInteger(randomState) || randomState < 0 || randomState > 0xffffffff) throw new Error("Invalid saved address random state.");
+  if (!Number.isInteger(roundRobinCursor) || roundRobinCursor < 0 || roundRobinCursor >= config.count) throw new Error("Invalid saved address round-robin cursor.");
+  const plans = generateTestInputPlans(config);
+  const candidates: PendingAddressCandidate[] = [];
+  let state = randomState;
+  let cursor = roundRobinCursor;
+  let inspected = 0;
+  const random = () => { const next = randomStep(state); state = next.state; return next.value; };
+  while (candidates.length < Math.min(limit, config.count - acceptedOrdinals.size) && inspected < config.count) {
+    const plan = plans[cursor];
+    cursor = (cursor + 1) % config.count;
+    inspected++;
+    if (!plan || acceptedOrdinals.has(plan.ordinal)) continue;
+    const point = samplePoint(random, area);
+    candidates.push({ id: String(plan.ordinal), ordinal: plan.ordinal, serviceCode: plan.serviceCode, selectionUnit: plan.selectionUnit, ...point });
+  }
+  return { candidates, randomState: state, roundRobinCursor: cursor };
+}
+
+function validateServiceArea(area: TestServiceArea) {
   if (!Number.isFinite(area.radiusMi) || area.radiusMi <= 0 || !/^[A-Z]{2}$/.test(area.stateCode) || area.depots.length === 0 ||
       area.depots.some(point => !Number.isFinite(point.lat) || !Number.isFinite(point.lng))) throw new Error("Invalid configured Omaha service area.");
-  const plans = generateTestInputPlans(config);
-  const random = createSeededRandom(config.seed);
-  // Consume the same service and selection draws before coordinate sampling.
-  for (let index = 0; index < plans.length * 2; index++) random();
-  const accepted = new Map<number, GeneratedTestLocation>();
-  const usedAddresses = new Set(collisions.addresses), usedCoordinates = new Set(collisions.coordinates);
+}
+
+export async function evaluateAddressCandidateBatch(batch: readonly PendingAddressCandidate[], area: TestServiceArea,
+  collisions: AddressCollisionSets, dependencies: AddressGenerationDependencies) {
+  validateServiceArea(area);
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), dependencies.timeoutMs ?? 150_000);
-  try {
-    attempts: for (let attempt = 0; attempt < 100 && accepted.size < plans.length; attempt++) {
-      const pending = plans.filter(plan => !accepted.has(plan.ordinal)).map(plan => ({ plan, point: samplePoint(random, area) }));
-      for (let offset = 0; offset < pending.length; offset += 12) {
-        if (controller.signal.aborted) break;
-        const chunk = pending.slice(offset, offset + 12);
-        const reversed = await Promise.all(chunk.map(item => dependencies.reverse(item.point.lat, item.point.lng, controller.signal, area.stateCode)));
-        const candidates = chunk.flatMap((item, index) => {
-          const location = reversed[index];
-          if (!location || !area.depots.some(depot => haversineMiles(location.lat, location.lng, depot.lat, depot.lng) <= area.radiusMi)
-              || usedAddresses.has(addressKey(location)) || usedCoordinates.has(coordinateKey(location))) return [];
-          return [{ item, location, candidate: { id: String(item.plan.ordinal), serviceCode: item.plan.serviceCode, lat: location.lat, lng: location.lng } }];
-        });
-        let routable = new Set<string>();
-        try { if (candidates.length) routable = await dependencies.routable(candidates.map(value => value.candidate), controller.signal); }
-        catch (error) { if (controller.signal.aborted) break attempts; throw error; }
-        for (const value of candidates) {
-          if (!routable.has(value.candidate.id) || accepted.has(value.item.plan.ordinal)) continue;
-          const address = addressKey(value.location), coordinate = coordinateKey(value.location);
-          if (usedAddresses.has(address) || usedCoordinates.has(coordinate)) continue;
-          usedAddresses.add(address); usedCoordinates.add(coordinate); accepted.set(value.item.plan.ordinal, value.location);
-        }
-      }
-    }
-  } finally { clearTimeout(timer); }
+  const reversed = await Promise.all(batch.map(item => dependencies.reverse(item.lat, item.lng, controller.signal, area.stateCode)));
+  const candidates = batch.flatMap((item, index) => {
+    const location = reversed[index];
+    if (!location || !area.depots.some(depot => haversineMiles(location.lat, location.lng, depot.lat, depot.lng) <= area.radiusMi)
+        || collisions.addresses.has(addressKey(location)) || collisions.coordinates.has(coordinateKey(location))) return [];
+    return [{ item, location, candidate: { id: item.id, serviceCode: item.serviceCode, lat: location.lat, lng: location.lng } }];
+  });
+  const routable = candidates.length ? await dependencies.routable(candidates.map(value => value.candidate), controller.signal) : new Set<string>();
+  const accepted: Array<{ ordinal: number; serviceCode: string; selectionUnit: number; location: GeneratedTestLocation }> = [];
+  const usedAddresses = new Set(collisions.addresses), usedCoordinates = new Set(collisions.coordinates);
+  for (const value of candidates) {
+    if (!routable.has(value.candidate.id)) continue;
+    const address = addressKey(value.location), coordinate = coordinateKey(value.location);
+    if (usedAddresses.has(address) || usedCoordinates.has(coordinate)) continue;
+    usedAddresses.add(address); usedCoordinates.add(coordinate);
+    accepted.push({ ordinal: value.item.ordinal, serviceCode: value.item.serviceCode, selectionUnit: value.item.selectionUnit, location: value.location });
+  }
+  return accepted;
+}
+
+export async function generateRealTestInputs(config: TestConfig, area: TestServiceArea, collisions: AddressCollisionSets,
+  dependencies: AddressGenerationDependencies) {
+  validateServiceArea(area);
+  const accepted = new Map<number, Awaited<ReturnType<typeof evaluateAddressCandidateBatch>>[number]>();
+  let state = initialAddressRandomState(config), cursor = 0;
+  for (let attempt = 0; attempt < 100 && accepted.size < config.count; attempt++) {
+    const batch = createAddressCandidateBatch(config, area, new Set(accepted.keys()), state, cursor, 12);
+    state = batch.randomState; cursor = batch.roundRobinCursor;
+    const found = await evaluateAddressCandidateBatch(batch.candidates, area, {
+      addresses: new Set([...collisions.addresses, ...[...accepted.values()].map(value => addressKey(value.location))]),
+      coordinates: new Set([...collisions.coordinates, ...[...accepted.values()].map(value => coordinateKey(value.location))]),
+    }, dependencies);
+    for (const value of found) if (!accepted.has(value.ordinal)) accepted.set(value.ordinal, value);
+  }
   if (accepted.size !== config.count) throw new Error(`Could not create the run: generated ${accepted.size} of ${config.count} routable unique house addresses; shortfall ${config.count - accepted.size}. No run was saved.`);
-  return plans.map(plan => ({ ...plan, location: accepted.get(plan.ordinal) ?? (() => { throw new Error("Generated address missing"); })() }));
+  return [...accepted.values()].sort((left, right) => left.ordinal - right.ordinal);
 }

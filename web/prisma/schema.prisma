@@ -428,7 +428,23 @@ model BookingTestRun {
   updatedAt DateTime @updatedAt
   requests BookingTestRequest[]
   previews BookingTestPreview[]
+  generation BookingTestGeneration?
   @@map("booking_test_run")
+}
+
+model BookingTestGeneration {
+  runId String @id
+  run BookingTestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  acceptedInputs Json @default("[]")
+  randomState BigInt
+  roundRobinCursor Int @default(0)
+  pendingCandidates Json?
+  candidatesTried BigInt @default(0)
+  batches BigInt @default(0)
+  elapsedMs BigInt @default(0)
+  consecutiveNoProgressBatches BigInt @default(0)
+  completedAt DateTime?
+  @@map("booking_test_generation")
 }
 
 model BookingTestRequest {
