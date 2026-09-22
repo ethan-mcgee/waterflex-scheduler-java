@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.RoadClient;
 import dev.waterflex.scheduler.ScheduleCutoff;
+import dev.waterflex.scheduler.WeeklyAvailability;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -42,6 +43,7 @@ public class OptimizationService {
     private record SavedRun(String metroId, Instant day, String versions, String assignments, String weights, String status) { }
     private record RunResponse(String metroId, Instant day, String status, @Nullable String reason, String solverStatus, int solveMs, int improvement, String before, String after, Instant created, @Nullable Instant applied, String weights) { }
     private record TechData(String id, RoadClient.Point point, TechRoute route) { }
+    private record TechBase(String id, RoadClient.Point point, int maxDaily, int maxOvertime) { }
     private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
                              Instant windowStart, Instant windowEnd) { }
     private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
@@ -315,23 +317,30 @@ public class OptimizationService {
     static List<LocalDate> overnightDates(Instant now) {
         List<LocalDate> days = new ArrayList<>();
         LocalDate day = now.atZone(CHICAGO).toLocalDate();
-        while (days.size() < 10) {
-            if (day.getDayOfWeek().getValue() <= 5 && !ScheduleCutoff.frozen(day, now)) days.add(day);
+        int weekdays = 0;
+        while (weekdays < 10) {
+            if (!ScheduleCutoff.frozen(Required.value(day), now)) {
+                days.add(Required.value(day));
+                if (day.getDayOfWeek().getValue() <= 5) weekdays++;
+            }
             day = day.plusDays(1);
         }
         return days;
     }
 
     private Problem build(String metroId, LocalDate day) {
-        List<TechData> techs = jdbc.query("SELECT t.id,t.\"homeLat\",t.\"homeLng\",COALESCE(o.\"shiftStartMin\",t.\"shiftStartMin\"),COALESCE(o.\"shiftEndMin\",t.\"shiftEndMin\"),t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t LEFT JOIN technician_shift_override o ON o.\"technicianId\"=t.id AND o.\"serviceDate\"=? WHERE t.\"metroId\"=? AND t.active=true AND COALESCE(o.available,true)=true ORDER BY t.id",
-                (rs, _) -> {
-                    String id = Required.string(rs, 1);
-                    Set<String> qualifications = new HashSet<String>(Required.value(jdbc.query("SELECT \"serviceId\" FROM technician_qualification WHERE \"technicianId\"=?", (r, _) -> Required.string(r, 1), id)));
-                    Instant start = ScheduleCutoff.localMinute(day, Required.integer(rs, 4), false);
-                    Instant end = ScheduleCutoff.localMinute(day, Required.integer(rs, 5), true);
-                    return new TechData(id, Required.location(rs, 2, 3, HttpStatus.CONFLICT),
-                            new TechRoute(id, start, end, Required.integer(rs, 6), Required.integer(rs, 7), qualifications));
-                }, dayStamp(day), metroId);
+        List<TechBase> base = jdbc.query("SELECT id,\"homeLat\",\"homeLng\",\"maxDailyMinutes\",\"maxOvertimeMinutes\" FROM technician WHERE \"metroId\"=? AND active=true ORDER BY id",
+                (rs, _) -> new TechBase(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.integer(rs, 4), Required.integer(rs, 5)), metroId);
+        List<TechData> techs = new ArrayList<>();
+        for (TechBase technician : base) {
+            WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician.id(), day);
+            if (shift == null) continue;
+            Set<String> qualifications = new HashSet<String>(Required.value(jdbc.query("SELECT \"serviceId\" FROM technician_qualification WHERE \"technicianId\"=?", (r, _) -> Required.string(r, 1), technician.id())));
+            Instant start = ScheduleCutoff.localMinute(day, shift.start(), false);
+            Instant end = ScheduleCutoff.localMinute(day, shift.end(), true);
+            techs.add(new TechData(technician.id(), technician.point(),
+                    new TechRoute(technician.id(), start, end, technician.maxDaily(), technician.maxOvertime(), qualifications)));
+        }
         Map<String, TechData> byId = new HashMap<>();
         for (TechData tech : techs) byId.put(tech.id(), tech);
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id WHERE r.status='APPROVED' AND i.\"serviceDate\"=?",
@@ -409,6 +418,12 @@ public class OptimizationService {
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(';'), metroId);
         jdbc.query("SELECT o.\"technicianId\", o.available, o.\"shiftStartMin\", o.\"shiftEndMin\" FROM technician_shift_override o JOIN technician t ON t.id=o.\"technicianId\" WHERE t.\"metroId\"=? AND o.\"serviceDate\"=? ORDER BY o.\"technicianId\"",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(rs.getString(3)).append(':').append(rs.getString(4)).append(';'), metroId, dayStamp(day));
+        jdbc.query("SELECT t.id, v.\"effectiveDate\", d.\"dayOfWeek\", d.available, d.\"shiftStartMin\", d.\"shiftEndMin\" FROM technician t LEFT JOIN LATERAL (SELECT id, \"effectiveDate\" FROM technician_availability_version WHERE \"technicianId\"=t.id AND \"effectiveDate\"<=? ORDER BY \"effectiveDate\" DESC LIMIT 1) v ON true LEFT JOIN technician_availability_day d ON d.\"versionId\"=v.id AND d.\"dayOfWeek\"=? WHERE t.\"metroId\"=? ORDER BY t.id",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                    raw.append(Required.string(rs, 1));
+                    for (int i = 2; i <= 6; i++) raw.append(':').append(rs.getString(i));
+                    raw.append(';');
+                }, dayStamp(day), day.getDayOfWeek().getValue() % 7, metroId);
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id JOIN technician t ON t.id=r.\"technicianId\" WHERE t.\"metroId\"=? AND r.status='APPROVED' AND i.\"serviceDate\"=? ORDER BY r.\"technicianId\", i.\"startMin\"",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(Required.string(rs, 3)).append(';'), metroId, dayStamp(day));
         try { return Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw.toString().getBytes(StandardCharsets.UTF_8)))); }

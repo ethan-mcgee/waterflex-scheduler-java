@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
+import { initialAvailability } from "../lib/technicianAvailability";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -9,9 +10,9 @@ test("empty datasets expose no shift mutations and disable time-off submission",
   expect(await prisma.serviceCatalog.count()).toBe(0);
   await page.goto("/book");
   await expect(page.getByRole("button", { name: /see available/i })).toBeDisabled();
-  await page.goto("/dispatch/availability");
+  await page.goto("/technicians");
   await expect(page.getByText("No technicians found", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /add override|save day|edit .*override|delete .*override/i })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /add exception|save day|edit .*exception|delete .*exception/i })).toHaveCount(0);
   await page.goto("/time-off");
   await page.getByRole("button", { name: /new request/i }).click();
   await expect(page.getByRole("button", { name: "Submit request" })).toBeDisabled();
@@ -35,8 +36,8 @@ test("malformed booking responses retain entered form data and create no job", a
 
 test("shift drafts follow the selected technician and time-off modal preserves failed input", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "UI controls metro", timezone: "America/Chicago" } });
-  const first = await prisma.technician.create({ data: { metroId: metro.id, name: "Ada Shift", homeLat: 41.2, homeLng: -95.9, shiftStartMin: 420, shiftEndMin: 900 } });
-  const second = await prisma.technician.create({ data: { metroId: metro.id, name: "Ben Shift", homeLat: 41.3, homeLng: -96.0, shiftStartMin: 540, shiftEndMin: 1080, active: false } });
+  const first = await prisma.technician.create({ data: { metroId: metro.id, name: "Ada Shift", color: "#2563eb", availabilityVersions: initialAvailability(420, 900), homeLat: 41.2, homeLng: -95.9, shiftStartMin: 420, shiftEndMin: 900 } });
+  const second = await prisma.technician.create({ data: { metroId: metro.id, name: "Ben Shift", color: "#dc2626", availabilityVersions: initialAvailability(540, 1080), homeLat: 41.3, homeLng: -96.0, shiftStartMin: 540, shiftEndMin: 1080, active: false } });
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_SHIFT_TEST", name: "Shift test service", estDurationMin: 60 } });
   const override = await prisma.technicianShiftOverride.create({ data: { technicianId: first.id, serviceDate: new Date("2099-10-05T00:00:00Z"), available: true, shiftStartMin: 480, shiftEndMin: 960 } });
   const dateParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
@@ -51,21 +52,21 @@ test("shift drafts follow the selected technician and time-off modal preserves f
     report: { create: { status: "ANALYZING", data: { days: null } } } } });
   try {
     await page.route("**/api/dispatch/availability", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) }));
-    await page.goto("/dispatch/availability");
+    await page.goto("/technicians");
     await expect(page.getByText("Time off 10a to 12p", { exact: true })).toBeVisible();
     await expect(page.getByText("Time off 12a to 12a", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Shift test service" })).toHaveAttribute("aria-pressed", "false");
-    await page.getByRole("button", { name: "+ Add override" }).click();
+    await page.getByRole("button", { name: "+ Add exception" }).click();
     await expect(page.getByLabel("Start")).toHaveValue("07:00");
     await page.getByRole("button", { name: /Ben Shift/ }).click();
     await expect(page.getByText("Inactive technician", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "+ Add override" }).click();
+    await page.getByRole("button", { name: "+ Add exception" }).click();
     await expect(page.getByLabel("Start")).toHaveValue("09:00");
     await page.getByRole("button", { name: /Ada Shift/ }).click();
-    await page.getByRole("button", { name: `Edit Ada Shift's override for 2099-10-05` }).click();
+    await page.getByRole("button", { name: `Edit Ada Shift's exception for 2099-10-05` }).click();
     await expect(page.getByLabel("Date")).toBeDisabled();
     page.once("dialog", async dialog => { expect(dialog.message()).toContain("default shift hours will be restored"); await dialog.dismiss(); });
-    await page.getByRole("button", { name: `Delete Ada Shift's override for 2099-10-05` }).click();
+    await page.getByRole("button", { name: `Delete Ada Shift's exception for 2099-10-05` }).click();
 
     await page.route("**/api/time-off", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Overlapping time-off request" }) }));
     await page.goto("/time-off");
@@ -101,7 +102,7 @@ test("shift drafts follow the selected technician and time-off modal preserves f
 
 test("dispatch retains missing-location appointments and shows malformed-history errors", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "UI test metro", timezone: "America/Chicago" } });
-  const tech = await prisma.technician.create({ data: { metroId: metro.id, name: "UI test tech", homeLat: 41.25, homeLng: -95.93, shiftStartMin: 480, shiftEndMin: 1020 } });
+  const tech = await prisma.technician.create({ data: { metroId: metro.id, name: "UI test tech", color: "#059669", availabilityVersions: initialAvailability(480, 1020), homeLat: 41.25, homeLng: -95.93, shiftStartMin: 480, shiftEndMin: 1020 } });
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_LOCATION_TEST", name: "UI location service", estDurationMin: 60 } });
   const customer = await prisma.customer.create({ data: { firstName: "Missing", lastName: "Location", email: "missing@example.invalid", phone: "4025550100" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "Unverified address", city: "Omaha", state: "NE", postalCode: "68102" } });

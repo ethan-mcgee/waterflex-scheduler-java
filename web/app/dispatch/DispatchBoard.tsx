@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import styles from "@/app/dispatch/dispatch.module.css";
-import { TECH_COLORS } from "@/app/dispatch/colors";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import type { OptimizationRun } from "@/lib/engineClient";
 import OptimizationReview from "@/app/dispatch/OptimizationReview";
@@ -76,8 +75,8 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
     </details>}
     <div className={styles.body}><div className={styles.columns}>
       {technicians.length === 0 && <div className={styles.empty}>No active technicians.</div>}
-      {technicians.map((tech, index) => {
-        const color = TECH_COLORS[index % TECH_COLORS.length];
+      {technicians.map((tech) => {
+        const color = tech.color;
         const stops = appointments.filter(item => item.technicianId === tech.id).sort((left, right) => left.sequence - right.sequence);
         return <div className={styles.column} key={tech.id}><div className={styles.columnHeader} style={{ borderColor: color }}>{tech.name}<div className={styles.columnMeta}>{stops.length} stop{stops.length === 1 ? "" : "s"}</div></div>
           {stops.map(appointment => <AppointmentCard key={appointment.id} appointment={appointment} timezone={timezone} />)}

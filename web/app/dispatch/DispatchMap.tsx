@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { localMapStyle } from "@/lib/localMapStyle";
-import { TECH_COLORS } from "@/app/dispatch/colors";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import { isDispatchGeometry } from "@/lib/dispatchGeometry";
 import { errorMessage } from "@/lib/contracts";
@@ -38,7 +37,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
     const homeMarkers: maplibregl.Marker[] = [];
     let stopMarkers: maplibregl.Marker[] = [];
     const appointmentById = new Map(appointments.map((appointment) => [appointment.id, appointment]));
-    const colorByTech = new Map(technicians.map((tech, index) => [tech.id, TECH_COLORS[index % TECH_COLORS.length]]));
+    const colorByTech = new Map(technicians.map((tech) => [tech.id, tech.color]));
     const markerForStop = (stop: { id: string; technicianId: string; plannedStart: string; lat: number; lng: number }) => {
       const appointment = appointmentById.get(stop.id);
       const tech = technicians.find((item) => item.id === stop.technicianId);
@@ -69,7 +68,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
           if (!isDispatchGeometry(geometry, date, phase))
             throw new Error("Invalid road geometry");
           const routedTechnicians = [...new Set(geometry.features.map(feature => feature.properties.technicianId))];
-          routedTechnicians.forEach((id, index) => { if (!colorByTech.has(id)) colorByTech.set(id, TECH_COLORS[index % TECH_COLORS.length]); });
+          routedTechnicians.forEach((id) => { if (!colorByTech.has(id)) throw new Error(`Unknown route technician ${id}`); });
           routedTechnicians.forEach((technicianId, index) => {
             const features = geometry.features.filter((feature) => feature.properties.technicianId === technicianId);
             if (features.length === 0) return;

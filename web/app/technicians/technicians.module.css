@@ -60,11 +60,6 @@
   outline: none;
 }
 
-.search svg {
-  flex: 0 0 auto;
-  color: var(--quiet);
-}
-
 .rosterList {
   display: flex;
   flex-direction: column;
@@ -311,6 +306,246 @@
   font-size: 13px;
   padding: 40px 0;
   text-align: center;
+}
+
+.profileHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.previewBadge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--warning-wash);
+  color: var(--warning);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.noteBanner {
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  background: var(--warning-wash);
+  color: var(--warning);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 33, 30, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 24px;
+}
+
+.modal {
+  width: 100%;
+  max-width: 820px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 26px;
+  box-shadow: 0 18px 45px rgba(30, 48, 40, 0.2);
+}
+
+.modalTitle {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.modalSubtitle {
+  margin: 0 0 18px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.required {
+  color: var(--danger);
+}
+
+.optional {
+  color: var(--quiet);
+  font-weight: 500;
+}
+
+.errorText {
+  font-size: 11.5px;
+  color: var(--danger);
+  margin: 0 0 10px;
+}
+
+.colorRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: pointer;
+}
+
+.swatchSelected {
+  border-color: var(--ink);
+}
+
+.customTrigger {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px dashed var(--line-strong);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.customTriggerOpen {
+  background: var(--brand-wash);
+  border: 1px solid var(--brand);
+  color: var(--brand);
+}
+
+.customPopover {
+  position: absolute;
+  top: 38px;
+  left: 0;
+  z-index: 30;
+  width: 230px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 12px 30px rgba(30, 48, 40, 0.18);
+}
+
+.svBox {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  border-radius: 8px;
+  cursor: crosshair;
+  border: 1px solid var(--line);
+}
+
+.svIndicator {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.hueSlider {
+  width: 100%;
+  margin: 10px 0 8px;
+}
+
+.previewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.previewSwatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.previewSwatch span {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.dayGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.dayCard {
+  min-width: 0;
+  text-align: center;
+  padding: 10px 4px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  cursor: pointer;
+  font: inherit;
+}
+
+.dayCard input[type="time"] {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.dayCardOff {
+  background: #faf4f4;
+}
+
+.dayCardPill {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 650;
+  border-radius: 6px;
+  padding: 5px 2px;
+  white-space: nowrap;
+  background: var(--success-wash);
+  color: var(--success);
+}
+
+.dayCardPillOff {
+  background: var(--danger-wash);
+  color: var(--danger);
 }
 
 @media (max-width: 820px) {

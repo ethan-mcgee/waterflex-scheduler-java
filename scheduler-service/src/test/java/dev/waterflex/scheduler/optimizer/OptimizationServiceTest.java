@@ -40,6 +40,8 @@ class OptimizationServiceTest {
                 Required.value(LocalDate.parse("2026-09-23")),
                 Required.value(LocalDate.parse("2026-09-24")),
                 Required.value(LocalDate.parse("2026-09-25")),
+                Required.value(LocalDate.parse("2026-09-26")),
+                Required.value(LocalDate.parse("2026-09-27")),
                 Required.value(LocalDate.parse("2026-09-28")),
                 Required.value(LocalDate.parse("2026-09-29")),
                 Required.value(LocalDate.parse("2026-09-30")),
