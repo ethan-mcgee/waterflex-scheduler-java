@@ -15,7 +15,10 @@ import styles from "./testing.module.css";
 const DispatchMap = dynamic(() => import("@/app/dispatch/DispatchMap"), { ssr: false, loading: () => <p>Loading road routes...</p> });
 const NO_TECHNICIANS: BoardTechnician[] = [];
 const NO_APPOINTMENTS: BoardAppointment[] = [];
-interface RunSummary { id: string; status: string; createdAt: string; config: TestConfig; purgedAt: string | null; purgedCount: number | null }
+interface GenerationProgress { acceptedCount: number; targetCount: number; candidatesTried: number; batches: number; elapsedMs: number;
+  completedAt: string | null; consecutiveNoProgressBatches: number }
+interface RunSummary { id: string; status: string; createdAt: string; config: TestConfig; purgedAt: string | null; purgedCount: number | null;
+  generation: GenerationProgress | null }
 interface Run extends RunSummary {
   revision: number; error: string | null; horizon: string[]; currentHorizon: string[];
   requests: Array<{ id: string; ordinal: number; input: { location: FakeLocation; serviceCode: string }; status: string;
@@ -26,7 +29,7 @@ interface Run extends RunSummary {
 }
 async function api<T>(schema: z.ZodType<T>, body?: object, id?: string) {
   const response = await fetch(`/api/dispatch/testing${id ? `?id=${encodeURIComponent(id)}` : ""}`, body ? {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(170_000),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(60_000),
   } : { cache: "no-store", signal: AbortSignal.timeout(15_000) });
   return readResponse(response, schema);
 }
@@ -35,6 +38,18 @@ function windowLabel(offer: SlotOffer) {
   return `${offer.date}: ${format(offer.windowStart)} to ${format(offer.windowEnd)}`;
 }
 const mean = (values: number[]) => values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1) : "n/a";
+function duration(ms: number) {
+  const seconds = Math.floor(ms / 1000), minutes = Math.floor(seconds / 60), hours = Math.floor(minutes / 60);
+  return hours ? `${hours}h ${minutes % 60}m ${seconds % 60}s` : minutes ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
+}
+function generationStatus(run: Run) {
+  if (!run.generation) return "Address generation was completed by the legacy runner.";
+  if (run.generation.completedAt) return "Address generation complete. Booking is underway or ready to continue.";
+  if (run.status === "RUNNING") return "Searching for routable addresses.";
+  if (run.status === "STOPPED") return "Address generation stopped.";
+  if (run.status === "PAUSED") return run.error ? "Address generation failed and is paused." : "Address generation paused.";
+  return `Address generation ${run.status.toLowerCase()}.`;
+}
 export default function TestingPage() {
   const [config, setConfig] = useState<TestConfigInput>({ ...DEFAULT_TEST_CONFIG, weights: [...DEFAULT_TEST_CONFIG.weights] });
   const [runs, setRuns] = useState<RunSummary[]>([]);
@@ -99,7 +114,7 @@ export default function TestingPage() {
       <button onClick={() => void start()}>Start new run</button>
     </fieldset><p>A blank seed generates and saves a cryptographically random unsigned seed. An explicit seed reproduces candidate order when the map, Nominatim data, and database state are unchanged.</p></section>
     <section className={styles.panel}><label>Run history<select aria-label="Run history" value={run?.id ?? ""} disabled={busy || driving} onChange={event => { if (event.target.value) void load(event.target.value); }}>
-      <option value="">Choose a saved run</option>{runs.map(item => <option key={item.id} value={item.id}>{new Date(item.createdAt).toLocaleString()} | {item.status} | seed {item.config.seed} | {item.id.slice(0, 8)}</option>)}</select></label>
+      <option value="">Choose a saved run</option>{runs.map(item => <option key={item.id} value={item.id}>{new Date(item.createdAt).toLocaleString()} | {item.status} | {item.generation && !item.generation.completedAt ? `${item.generation.acceptedCount}/${item.generation.targetCount} addresses | ` : ""}seed {item.config.seed} | {item.id.slice(0, 8)}</option>)}</select></label>
       {run && <><h2>{run.status} {driving ? "(progressing in this tab)" : ["COMPLETED", "STOPPED", "PURGED"].includes(run.status) ? "(saved history)" : "(read-only until Resume)"}</h2>
         <p>Run {run.id} | {run.config.policy} | seed {run.config.seed}</p>
         <div className={styles.controls}>
@@ -111,7 +126,13 @@ export default function TestingPage() {
         </div>
         {run.purgedAt && <p>Purged {run.purgedCount ?? 0} generated appointment(s) at {new Date(run.purgedAt).toLocaleString()}. This cleanup is complete and idempotent.</p>}
         <p>Pause and Stop finish the current operation. Stop is final. Purge removes only this run&apos;s generated booking records and does not reverse an already applied optimization.</p>
-        <div className={styles.stats}><span>Requested <strong>{run.requests.length}</strong></span><span>Booked <strong>{booked.length}</strong></span><span>No offer <strong>{noOffer.length}</strong></span>
+        {run.generation && <section className={styles.generation} aria-labelledby="generation-heading"><h3 id="generation-heading">Finding routable addresses</h3>
+          <progress aria-label="Finding routable addresses" max={run.generation.targetCount} value={run.generation.acceptedCount} />
+          <p aria-live="polite"><strong>{run.generation.acceptedCount} of {run.generation.targetCount} addresses ready.</strong> {generationStatus(run)}</p>
+          <p>{run.generation.candidatesTried} candidates examined in {run.generation.batches} batches. Active elapsed time: {duration(run.generation.elapsedMs)}.</p>
+          {run.generation.consecutiveNoProgressBatches >= 3 && !run.generation.completedAt && <p role="status" className={styles.warning}>No new addresses were found in the last {run.generation.consecutiveNoProgressBatches} batches. Searching will continue until you Pause or Stop the run.</p>}
+        </section>}
+        <div className={styles.stats}><span>Requested <strong>{run.config.count}</strong></span><span>Booked <strong>{booked.length}</strong></span><span>No offer <strong>{noOffer.length}</strong></span>
           <span>Errors <strong>{run.requests.filter(request => request.status === "ERROR").length}</strong></span><span>Offer availability <strong>{completed.length ? `${(100 * booked.length / completed.length).toFixed(1)}%` : "n/a"}</strong></span>
           <span>Mean offers / completed request <strong>{mean(completed.map(request => request.offers.length))}</strong></span><span>Mean booking latency <strong>{mean(booked.map(request => request.elapsedMs / 1000))} s</strong></span><span>Mean days until service <strong>{mean(daysUntil)}</strong></span></div>
         {run.error && <p role="alert" className={styles.error}>{run.error}</p>}

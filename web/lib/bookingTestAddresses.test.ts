@@ -1,10 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generateRealTestInputs, reverseTestAddress, type GeneratedTestLocation } from "./bookingTestAddresses";
+import { createAddressCandidateBatch, evaluateAddressCandidateBatch, generateRealTestInputs, initialAddressRandomState,
+  reverseTestAddress, type GeneratedTestLocation } from "./bookingTestAddresses";
 
 const config = { count: 3, seed: 42, policy: "earliest" as const, weights: [1, 1, 1, 1] };
 const area = { radiusMi: 65, stateCode: "NE", depots: [{ lat: 41.2565, lng: -95.9345 }] };
 const location = (lat: number, lng: number): GeneratedTestLocation => ({ slug: `${lat}:${lng}`, neighborhood: "Omaha", line1: `${Math.abs(Math.round(lat * 100000))} Test Road`, city: "Omaha", state: "Nebraska", postalCode: "68102", lat, lng });
+
+test("candidate batches persist deterministic random state and rotate fairly across missing ordinals", () => {
+  const initial = initialAddressRandomState(config);
+  const first = createAddressCandidateBatch(config, area, new Set(), initial, 0, 2);
+  const replay = createAddressCandidateBatch(config, area, new Set(), initial, 0, 2);
+  assert.deepEqual(first, replay);
+  assert.deepEqual(first.candidates.map(candidate => candidate.ordinal), [0, 1]);
+  const second = createAddressCandidateBatch(config, area, new Set([0, 1]), first.randomState, first.roundRobinCursor, 2);
+  assert.deepEqual(second.candidates.map(candidate => candidate.ordinal), [2]);
+});
+
+test("a recovered pending batch rejects duplicate and unroutable results without changing its candidates", async () => {
+  const pending = createAddressCandidateBatch(config, area, new Set(), initialAddressRandomState(config), 0, 3).candidates;
+  const firstLocation = location(41.25, -95.95);
+  let call = 0;
+  const accepted = await evaluateAddressCandidateBatch(pending, area, { addresses: new Set(), coordinates: new Set() }, {
+    reverse: async () => ++call <= 2 ? firstLocation : location(41.26, -95.96),
+    routable: async candidates => new Set(candidates.filter(candidate => candidate.id !== "2").map(candidate => candidate.id)),
+  });
+  assert.equal(accepted.length, 1);
+  assert.equal(accepted[0]?.ordinal, 0);
+  assert.deepEqual(pending, createAddressCandidateBatch(config, area, new Set(), initialAddressRandomState(config), 0, 3).candidates);
+});
 
 test("explicit seeds produce deterministic unique routable real-address inputs", async () => {
   const generate = () => generateRealTestInputs(config, area, { addresses: new Set(), coordinates: new Set() }, {

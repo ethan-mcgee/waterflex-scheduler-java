@@ -5,19 +5,29 @@ import { prisma } from "../lib/prisma";
 import { advanceTestRun, controlTestRun, createTestRun, purgeTestRun, readTestRun, testEngine } from "../lib/bookingTestRunner";
 import { dispatchGeometry, EngineError } from "../lib/engineClient";
 import type { SlotOffer } from "../lib/engineClient";
-import { generateTestInputPlans, validateTestConfig, type TestConfig } from "../lib/bookingTestCore";
+import { validateTestConfig } from "../lib/bookingTestCore";
 import { OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
-import { addressKey, coordinateKey, type AddressCollisionSets } from "../lib/bookingTestAddresses";
+import type { AddressGenerationDependencies } from "../lib/bookingTestAddresses";
 
 // Intentionally retains run history in the disposable test database for inspection.
 if (!new URL(process.env.DATABASE_URL ?? "").pathname.endsWith("/waterflex_test")) throw new Error("Use isolated waterflex_test database only.");
 const config = { count: 3, seed: 42, policy: "earliest", weights: [1, 0, 0, 0] };
-const fixtureCreation = { generate: async (value: TestConfig, _area: unknown, collisions: AddressCollisionSets) => {
-  const locations = OMAHA_FAKE_LOCATIONS.filter(location => !collisions.addresses.has(addressKey(location)) && !collisions.coordinates.has(coordinateKey(location)));
-  if (locations.length < value.count) throw new Error(`Fixture address shortfall ${value.count - locations.length}`);
-  return generateTestInputPlans(value).map((input, index) => ({ ...input, location: required(locations[index]) }));
-} };
-const createRun = (id: string, value: unknown) => createTestRun(id, value, fixtureCreation);
+let fixtureLocation = 0;
+const fixtureGeneration: AddressGenerationDependencies = {
+  reverse: async () => required(OMAHA_FAKE_LOCATIONS.filter(location => location.state === "NE")[fixtureLocation++ % 10]),
+  routable: async candidates => new Set(candidates.map(candidate => candidate.id)),
+};
+async function createRun(id: string, value: unknown) {
+  let run = await createTestRun(id, value);
+  if (!run.generation?.completedAt) {
+    run = await resumed(id);
+    for (let index = 0; index < 20 && !run.generation?.completedAt; index++)
+      run = await advanceTestRun(id, run.revision, { ...testEngine, generation: fixtureGeneration });
+    assert.ok(run.generation?.completedAt, "Fixture address generation completed");
+    run = await controlTestRun(id, "pause");
+  }
+  return run;
+}
 async function resumed(id: string) { return controlTestRun(id, "resume"); }
 async function main() {
   const configuration = () => Promise.all([
@@ -27,13 +37,72 @@ async function main() {
     prisma.omahaSetting.findMany({ orderBy: { key: "asc" } }),
   ]);
   const configurationBefore = await configuration();
+  const legacyId = randomUUID();
+  await prisma.bookingTestRun.create({ data: { id: legacyId, config, horizon: [] } });
+  let legacy = await readTestRun(legacyId);
+  assert.equal(legacy.generation, null, "A run without a generation journal remains legacy-complete");
+  legacy = await resumed(legacyId); legacy = await advanceTestRun(legacyId, legacy.revision);
+  assert.equal(legacy.status, "COMPLETED");
   const randomSeedRun = await createRun(randomUUID(), { ...config, count: 1, seed: null });
   const randomSeedConfig = validateTestConfig(randomSeedRun.config);
   assert.ok(Number.isInteger(randomSeedConfig.seed) && randomSeedConfig.seed >= 0 && randomSeedConfig.seed <= 0xffffffff);
   await purgeTestRun(randomSeedRun.id);
   const missingId = randomUUID();
-  await assert.rejects(createTestRun(missingId, { ...config, count: 1 }, { generate: async () => { throw new Error("generated 0 of 1; shortfall 1"); } }), /shortfall 1/);
-  assert.equal(await prisma.bookingTestRun.count({ where: { id: missingId } }), 0, "Address failure creates no partial run");
+  let missing = await createTestRun(missingId, { ...config, count: 1 });
+  assert.equal(missing.requests.length, 0, "Draft creation does not create booking requests");
+  missing = await resumed(missingId);
+  missing = await advanceTestRun(missingId, missing.revision, { ...testEngine, generation: { reverse: async () => null, routable: async () => new Set() } });
+  assert.equal(missing.generation?.acceptedCount, 0); assert.equal(missing.generation?.consecutiveNoProgressBatches, 1);
+  for (let index = 0; index < 2; index++) missing = await advanceTestRun(missingId, missing.revision, { ...testEngine,
+    generation: { reverse: async () => null, routable: async () => new Set() } });
+  assert.equal(missing.generation?.consecutiveNoProgressBatches, 3, "No-progress batches remain active and visible");
+  await controlTestRun(missingId, "stop");
+  const interruptedId = randomUUID();
+  let interrupted = await createTestRun(interruptedId, { ...config, count: 1 });
+  interrupted = await resumed(interruptedId);
+  interrupted = await advanceTestRun(interruptedId, interrupted.revision, { ...testEngine, generation: {
+    reverse: async () => { throw new Error("Injected generation interruption"); }, routable: async () => new Set(),
+  } });
+  assert.equal(interrupted.status, "PAUSED");
+  const savedPending = await prisma.bookingTestGeneration.findUniqueOrThrow({ where: { runId: interruptedId } });
+  assert.ok(Array.isArray(savedPending.pendingCandidates) && savedPending.pendingCandidates.length === 1);
+  interrupted = await resumed(interruptedId);
+  interrupted = await advanceTestRun(interruptedId, interrupted.revision, { ...testEngine, generation: fixtureGeneration });
+  assert.equal(interrupted.generation?.acceptedCount, 1); assert.equal(interrupted.generation?.candidatesTried, 1);
+  assert.equal((await prisma.bookingTestGeneration.findUniqueOrThrow({ where: { runId: interruptedId } })).pendingCandidates, null);
+  await controlTestRun(interruptedId, "stop");
+  const malformedId = randomUUID();
+  await createTestRun(malformedId, { ...config, count: 1 });
+  await prisma.bookingTestGeneration.update({ where: { runId: malformedId }, data: { pendingCandidates: { malformed: true } } });
+  let malformed = await resumed(malformedId);
+  malformed = await advanceTestRun(malformedId, malformed.revision, { ...testEngine, generation: fixtureGeneration });
+  assert.equal(malformed.status, "PAUSED"); assert.match(required(malformed.error), /Malformed booking-test journal/);
+  assert.equal(await prisma.bookingTestRequest.count({ where: { runId: malformedId } }), 0);
+  const collisionId = randomUUID(), collisionRecordId = randomUUID();
+  let collision = await createTestRun(collisionId, { ...config, count: 1 });
+  collision = await resumed(collisionId);
+  const collisionLocation = required(OMAHA_FAKE_LOCATIONS.filter(location => location.state === "NE")[9]);
+  collision = await advanceTestRun(collisionId, collision.revision, { ...testEngine, generation: {
+    reverse: async () => collisionLocation,
+    routable: async candidates => {
+      const customer = await prisma.customer.create({ data: { id: collisionRecordId, firstName: "Collision", lastName: "Test",
+        email: `${collisionRecordId}@example.invalid`, phone: "4025550111" } });
+      const address = await prisma.address.create({ data: { id: collisionRecordId, customerId: customer.id, line1: collisionLocation.line1,
+        city: collisionLocation.city, state: collisionLocation.state, postalCode: collisionLocation.postalCode, lat: collisionLocation.lat, lng: collisionLocation.lng } });
+      const service = await prisma.serviceCatalog.findUniqueOrThrow({ where: { code: "FILTER_SWAP" } });
+      const job = await prisma.job.create({ data: { id: collisionRecordId, customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 30 } });
+      const technician = await prisma.technician.findFirstOrThrow({ where: { active: true } });
+      const start = new Date(`${required(collision.currentHorizon[0])}T14:00:00Z`);
+      await prisma.appointment.create({ data: { id: collisionRecordId, jobId: job.id, technicianId: technician.id, serviceDate: new Date(`${required(collision.currentHorizon[0])}T00:00:00Z`),
+        windowStart: start, windowEnd: new Date(start.getTime() + 7_200_000), plannedStart: start, plannedEnd: new Date(start.getTime() + 1_800_000), sequence: 0 } });
+      return new Set(candidates.map(candidate => candidate.id));
+    },
+  } });
+  assert.equal(collision.generation?.acceptedCount, 0, "A candidate claimed before finalization is discarded");
+  assert.equal(collision.requests.length, 0, "Collision does not create a partial request set");
+  await controlTestRun(collisionId, "stop");
+  await prisma.appointment.delete({ where: { id: collisionRecordId } }); await prisma.job.delete({ where: { id: collisionRecordId } });
+  await prisma.address.delete({ where: { id: collisionRecordId } }); await prisma.customer.delete({ where: { id: collisionRecordId } });
   const prior = await createRun(randomUUID(), { ...config, count: 1 });
   const priorStarted = await resumed(prior.id);
   const priorBooked = await advanceTestRun(prior.id, priorStarted.revision);
@@ -44,9 +113,9 @@ async function main() {
   assert.equal(created.status, "PAUSED");
   assert.equal((await createRun(id, config)).id, id);
   const duplicateId = randomUUID();
-  const duplicates = await Promise.all([createRun(duplicateId, config), createRun(duplicateId, config)]);
+  const duplicates = await Promise.all([createTestRun(duplicateId, config), createTestRun(duplicateId, config)]);
   assert.equal(required(duplicates[0]).id, required(duplicates[1]).id);
-  assert.equal(await prisma.bookingTestRequest.count({ where: { runId: duplicateId } }), config.count);
+  assert.equal(await prisma.bookingTestRequest.count({ where: { runId: duplicateId } }), 0);
   await assert.rejects(createRun(id, { ...config, seed: 43 }));
   assert.equal(await prisma.job.count({ where: { id: { in: created.requests.map(r => r.id) } } }), 0);
   let run = await resumed(id);
