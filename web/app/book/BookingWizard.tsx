@@ -1,6 +1,6 @@
 "use client";
 
-import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
+import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { useEffect, useMemo, useState } from "react";
 import styles from "@/app/book/booking.module.css";
 import AddressPinMap, { type PinCandidate } from "@/app/book/AddressPinMap";
@@ -94,6 +94,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const [invalidOffers, setInvalidOffers] = useState(false);
   const [offers, setOffers] = useState<SlotOffer[]>([]);
   const [confirmingHoldId, setConfirmingHoldId] = useState<string | null>(null);
+  const [releasing, setReleasing] = useState(false);
   const [confirmedOffer, setConfirmedOffer] = useState<SlotOffer | null>(null);
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -182,12 +183,26 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     }
   }
 
-  function handleBackToForm() {
-    setStep("form");
-    setOffers([]);
+  async function handleBackToForm() {
+    if (submitting || confirmingHoldId !== null || releasing || !jobId || offers.length === 0) return;
+    setReleasing(true);
     setError(null);
-    setRequestId(newRequestId());
-    setJobId(null);
+    try {
+      const response = await fetch("/api/book/release", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, offerId: required(offers[0]).offerId }),
+      });
+      const result = await readResponse(response, success);
+      if (!result.success) throw new Error("Could not release times. Please try Start over again.");
+      setStep("form");
+      setOffers([]);
+      setRequestId(newRequestId());
+      setJobId(null);
+    } catch (error) {
+      setError(errorMessage(error, "Could not release times. Please try Start over again."));
+    } finally {
+      setReleasing(false);
+    }
   }
 
   async function refreshOffers() {
@@ -299,7 +314,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
                 </div>
                 <button
                   className={styles.selectButton}
-                  disabled={invalidOffers || expired || confirmingHoldId !== null}
+                  disabled={invalidOffers || expired || confirmingHoldId !== null || submitting || releasing}
                   onClick={() => handleSelectSlot(offer.offerId)}
                 >
                   {confirmingHoldId === offer.offerId ? "Booking..." : expired ? "Expired" : "Select"}
@@ -308,9 +323,9 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
             );
           })}
         </div>
-        <button className={styles.linkButton} onClick={refreshOffers} disabled={submitting || confirmingHoldId !== null}>Refresh times</button>
-        <button className={styles.linkButton} onClick={handleBackToForm}>
-          &larr; Start over
+        <button className={styles.linkButton} onClick={refreshOffers} disabled={submitting || confirmingHoldId !== null || releasing}>Refresh times</button>
+        <button className={styles.linkButton} onClick={handleBackToForm} disabled={submitting || confirmingHoldId !== null || releasing}>
+          {releasing ? "Releasing times..." : "← Start over"}
         </button>
       </main>
     );
