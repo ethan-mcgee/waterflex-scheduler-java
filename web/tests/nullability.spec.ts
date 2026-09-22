@@ -51,13 +51,38 @@ test("dispatch retains missing-location appointments and shows malformed-history
   }
 });
 
+test("sequential runs default to a fixed 30-mile radius and submit the selected preset", async ({ page }) => {
+  const id = "44444444-4444-4444-8444-444444444444";
+  let submittedConfig: unknown;
+  await page.route("**/api/dispatch/testing**", async route => {
+    if (route.request().method() === "GET") return route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ runs: [], horizon: ["2026-10-05"] }) });
+    const body = z.object({ action: z.string(), config: z.unknown().optional() }).parse(route.request().postDataJSON() as unknown);
+    if (body.action === "create") submittedConfig = body.config;
+    const parsed = z.object({ count: z.number(), seed: z.number().nullable(), policy: z.string(), weights: z.array(z.number()), radiusMi: z.number() })
+      .parse(submittedConfig);
+    const run = { id, status: "STOPPED", createdAt: "2026-09-21T12:00:00Z", config: { ...parsed, seed: parsed.seed ?? 123 },
+      purgedAt: null, purgedCount: null, generation: null, revision: 1, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"],
+      requests: [], previews: [], applied: [] };
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(run) });
+  });
+  await page.goto("/dispatch/testing");
+  const radius = page.getByLabel("Generation radius");
+  await expect(radius).toHaveValue("30");
+  await expect(radius.locator("option")).toHaveText(["10 miles", "20 miles", "30 miles", "45 miles", "65 miles"]);
+  await radius.selectOption("45");
+  await page.getByRole("button", { name: "Start new run" }).click();
+  await expect.poll(() => z.object({ radiusMi: z.number() }).parse(submittedConfig).radiusMi).toBe(45);
+  await expect(page.getByText(/45-mile generation radius/)).toBeVisible();
+});
+
 test("running sequential polling retains its preview map and refetches only on phase changes", async ({ page }) => {
   const id = "22222222-2222-4222-8222-222222222222", optimizationId = "preview-poll-test";
   const preview = { run_id: optimizationId, metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
     solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 100,
     churn_penalty_minutes: 0, optimized: false, appointments_moved: 0, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
     route_summary_before: [], route_summary_after: [], changes: [] };
-  const run = { id, status: "RUNNING", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] },
+  const run = { id, status: "RUNNING", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
     purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
     previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }], applied: [] };
   let runReads = 0;
@@ -99,7 +124,7 @@ test("address generation progress survives pause, reload, and resume into bookin
   let releaseAdvance!: () => void;
   const advanceGate = new Promise<void>(resolve => { releaseAdvance = resolve; });
   const responseRun = () => ({ id, status, createdAt: "2026-09-21T12:00:00Z",
-    config: { count: 3, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] }, purgedAt: null, purgedCount: null,
+    config: { count: 3, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 }, purgedAt: null, purgedCount: null,
     generation: { ...progress }, revision: status === "RUNNING" ? 3 : 4, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"],
     requests: [], previews: [], applied: [] });
   await page.route("**/api/dispatch/testing**", async route => {
@@ -137,7 +162,7 @@ test("sequential review confirms guarded apply, reports conflicts, refreshes rou
     solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 100,
     churn_penalty_minutes: 0, optimized: false, appointments_moved: 1, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
     route_summary_before: [], route_summary_after: [], changes: [] };
-  const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] },
+  const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
     purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
     previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }],
     applied: [{ id: optimizationId, status: "PREVIEW", appliedAt: null }] };
