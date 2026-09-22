@@ -74,8 +74,10 @@ export const bookingResponse = z.object({ jobId: text, offers: z.array(offer).op
 export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional() });
 export const testAttempt = z.object({ at: instant, horizon: z.array(date), elapsedMs: finite.nonnegative(), offers: z.array(offer),
   selected: offer.nullable(), outcome: text, error: z.string().nullable() });
+export const testGeneration = z.object({ acceptedCount: z.int().nonnegative(), targetCount: z.int().positive(), candidatesTried: z.int().nonnegative(),
+  batches: z.int().nonnegative(), elapsedMs: z.int().nonnegative(), completedAt: instant.nullable(), consecutiveNoProgressBatches: z.int().nonnegative() });
 export const runSummary = z.object({ id: text, status: text, createdAt: instant, config: testConfig,
-  purgedAt: instant.nullable(), purgedCount: z.int().nonnegative().nullable() });
+  purgedAt: instant.nullable(), purgedCount: z.int().nonnegative().nullable(), generation: testGeneration.nullable() });
 export const testRun = runSummary.extend({ revision: z.int().nonnegative(), error: z.string().nullable(), horizon: z.array(date), currentHorizon: z.array(date),
   requests: z.array(z.object({ id: text, ordinal: z.int().nonnegative(), input: testInput, status: text, offers: z.array(offer),
     selected: offer.nullable(), elapsedMs: finite.nonnegative(), serviceDate: date.nullable(), startedAt: instant.nullable(),

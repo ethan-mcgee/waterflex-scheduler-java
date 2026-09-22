@@ -58,7 +58,7 @@ test("running sequential polling retains its preview map and refetches only on p
     churn_penalty_minutes: 0, optimized: false, appointments_moved: 0, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
     route_summary_before: [], route_summary_after: [], changes: [] };
   const run = { id, status: "RUNNING", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] },
-    purgedAt: null, purgedCount: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
+    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
     previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }], applied: [] };
   let runReads = 0;
   const geometryPhases: string[] = [];
@@ -91,6 +91,46 @@ test("running sequential polling retains its preview map and refetches only on p
   await expect.poll(() => geometryPhases).toEqual(["after", "before"]);
 });
 
+test("address generation progress survives pause, reload, and resume into booking", async ({ page }) => {
+  const id = "33333333-3333-4333-8333-333333333333";
+  const progress = { acceptedCount: 1, targetCount: 3, candidatesTried: 12, batches: 3, elapsedMs: 154000,
+    completedAt: null as string | null, consecutiveNoProgressBatches: 3 };
+  let status = "PAUSED", advanceCalls = 0;
+  let releaseAdvance!: () => void;
+  const advanceGate = new Promise<void>(resolve => { releaseAdvance = resolve; });
+  const responseRun = () => ({ id, status, createdAt: "2026-09-21T12:00:00Z",
+    config: { count: 3, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] }, purgedAt: null, purgedCount: null,
+    generation: { ...progress }, revision: status === "RUNNING" ? 3 : 4, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"],
+    requests: [], previews: [], applied: [] });
+  await page.route("**/api/dispatch/testing**", async route => {
+    const url = new URL(route.request().url());
+    if (route.request().method() === "GET") return route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify(url.searchParams.has("id") ? responseRun() : { runs: [responseRun()], horizon: ["2026-10-05"] }) });
+    const body = z.object({ action: z.string() }).parse(route.request().postDataJSON() as unknown);
+    if (body.action === "resume") status = "RUNNING";
+    if (body.action === "pause") { status = "PAUSED"; releaseAdvance(); }
+    if (body.action === "advance") {
+      advanceCalls++;
+      if (advanceCalls === 1) { await advanceGate; progress.acceptedCount = 2; progress.candidatesTried = 24; progress.batches = 4; progress.consecutiveNoProgressBatches = 0; }
+      else { progress.acceptedCount = 3; progress.candidatesTried = 30; progress.batches = 5; progress.completedAt = "2026-09-21T12:03:00Z"; status = "COMPLETED"; }
+    }
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(responseRun()) });
+  });
+  await page.goto(`/dispatch/testing?run=${id}`);
+  await expect(page.getByText("1 of 3 addresses ready.", { exact: false })).toBeVisible();
+  await expect(page.getByText(/No new addresses were found in the last 3 batches/)).toBeVisible();
+  await expect(page.getByRole("option", { name: /1\/3 addresses/ })).toBeAttached();
+  await page.getByRole("button", { name: "Resume" }).click();
+  await expect(page.getByRole("button", { name: "Pause" })).toBeEnabled();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByText("2 of 3 addresses ready.", { exact: false })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("2 of 3 addresses ready.", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Resume" }).click();
+  await expect(page.getByText("3 of 3 addresses ready.", { exact: false })).toBeVisible();
+  await expect(page.getByText(/Address generation complete/)).toBeVisible();
+});
+
 test("sequential review confirms guarded apply, reports conflicts, refreshes routes, and confirms purge", async ({ page }) => {
   const id = "11111111-1111-4111-8111-111111111111", optimizationId = "preview-ui-test";
   const preview = { run_id: optimizationId, metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
@@ -98,7 +138,7 @@ test("sequential review confirms guarded apply, reports conflicts, refreshes rou
     churn_penalty_minutes: 0, optimized: false, appointments_moved: 1, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
     route_summary_before: [], route_summary_after: [], changes: [] };
   const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1] },
-    purgedAt: null, purgedCount: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
+    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
     previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }],
     applied: [{ id: optimizationId, status: "PREVIEW", appliedAt: null }] };
   let applied = false, purged = false, applyCalls = 0, runReads = 0;

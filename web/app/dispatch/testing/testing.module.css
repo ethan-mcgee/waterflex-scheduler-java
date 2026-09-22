@@ -14,6 +14,10 @@
 .stats { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem; }
 .stats span { background: #eaf3f7; padding: .8rem; border-radius: 6px; }
 .stats strong { display: block; font-size: 1.4rem; }
+.generation { margin-top: 1.25rem; padding: 1rem; background: #f0f8fb; border: 1px solid #b8d8e5; border-radius: 8px; }
+.generation h3 { margin-top: 0; }
+.generation progress { width: 100%; height: 1.25rem; accent-color: #08789c; }
+.warning { color: #854d0e; background: #fef9c3; border: 1px solid #fde047; border-radius: 6px; padding: .75rem; }
 .scroll { overflow-x: auto; }
 .page table { width: 100%; border-collapse: collapse; font-size: .85rem; text-align: left; }
 .page th, .page td { padding: .7rem; border-bottom: 1px solid #dce5ec; vertical-align: top; }
