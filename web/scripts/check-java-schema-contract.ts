@@ -6,7 +6,10 @@ import { Prisma, PrismaClient } from "@prisma/client";
 const expected: Record<string, string[]> = {
   appointment: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "plannedStart", "plannedEnd", "sequence"],
   job: ["id", "addressId", "serviceId", "durationMin", "status", "bookingRequestId"],
-  technician: ["id", "metroId", "homeLat", "homeLng", "shiftStartMin", "shiftEndMin", "maxDailyMinutes", "maxOvertimeMinutes", "active"],
+  technician: ["id", "metroId", "dealershipId", "homeLat", "homeLng", "shiftStartMin", "shiftEndMin", "maxDailyMinutes", "maxOvertimeMinutes", "active"],
+  dealership: ["id", "metroId", "depotId", "departure", "returnTo"],
+  dealership_endpoint_policy: ["dealershipId", "effectiveDate", "departure", "returnTo"],
+  depot: ["id", "metroId", "lat", "lng"],
   technician_qualification: ["technicianId", "serviceId"],
   technician_shift_override: ["technicianId", "serviceDate", "available", "shiftStartMin", "shiftEndMin"],
   technician_availability_version: ["id", "technicianId", "effectiveDate"],
@@ -16,7 +19,7 @@ const expected: Record<string, string[]> = {
   schedule_day: ["technicianId", "serviceDate", "version"],
   road_route_cache: ["originKey", "destinationKey", "profile", "mapVersion", "seconds", "meters", "routable"],
   omaha_setting: ["key", "value"],
-  optimization_run: ["id", "serviceDate", "scheduleVersions", "proposedAssignments", "objectiveImprovement", "status"],
+  optimization_run: ["id", "serviceDate", "scheduleVersions", "proposedAssignments", "endpointSnapshots", "objectiveImprovement", "status"],
   optimization_change: ["runId", "appointmentId", "fromTechnicianId", "toTechnicianId"],
 };
 

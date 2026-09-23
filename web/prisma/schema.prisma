@@ -22,6 +22,7 @@ model Metro {
   createdAt       DateTime @default(now())
 
   depots           Depot[]
+  dealerships      Dealership[]
   technicians      Technician[]
   optimizationRuns OptimizationRun[]
 
@@ -37,7 +38,7 @@ model Depot {
   lng       Float
   createdAt DateTime @default(now())
 
-  technicians Technician[]
+  dealerships Dealership[]
 
   @@map("depot")
 }
@@ -47,12 +48,41 @@ enum RouteAnchor {
   DEPOT
 }
 
+model DealershipEndpointPolicy {
+  dealershipId String
+  dealership Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+  effectiveDate DateTime
+  departure RouteAnchor
+  returnTo RouteAnchor
+
+  @@id([dealershipId, effectiveDate])
+  @@map("dealership_endpoint_policy")
+}
+
+model Dealership {
+  id String @id @default(cuid())
+  metroId String
+  metro Metro @relation(fields: [metroId], references: [id])
+  depotId String
+  depot Depot @relation(fields: [depotId], references: [id])
+  name String
+  departure RouteAnchor @default(HOME)
+  returnTo RouteAnchor @default(HOME)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  technicians Technician[]
+  endpointPolicies DealershipEndpointPolicy[]
+
+  @@index([metroId])
+  @@map("dealership")
+}
+
 model Technician {
   id                 String      @id @default(cuid())
   metroId            String
   metro              Metro       @relation(fields: [metroId], references: [id])
-  depotId            String?
-  depot              Depot?      @relation(fields: [depotId], references: [id])
+  dealershipId       String
+  dealership         Dealership  @relation(fields: [dealershipId], references: [id])
   name               String
   email              String?
   phone              String?
@@ -64,8 +94,6 @@ model Technician {
   homeAddressPostalCode String?
   homeLat            Float
   homeLng            Float
-  startLocation      RouteAnchor @default(HOME)
-  endLocation        RouteAnchor @default(HOME)
   shiftStartMin      Int // minutes from local midnight, e.g. 480 = 8:00am
   shiftEndMin        Int
   maxDailyMinutes    Int         @default(540)
@@ -435,6 +463,7 @@ model OptimizationRun {
   warnings             Json
   proposedAssignments  Json
   baselineAssignments  Json                 @default("[]")
+  endpointSnapshots    Json?
   objectiveImprovement Int
   churnCost            Int
   status               String

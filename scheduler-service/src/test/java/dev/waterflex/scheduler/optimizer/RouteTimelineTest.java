@@ -18,7 +18,7 @@ class RouteTimelineTest {
         PlanVisit second = new PlanVisit("second", "service", at("19:00:00"), at("20:00:00"), 60, "home", at("19:00:00"));
         route.getVisits().addAll(Required.value(List.of(first, second)));
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
-        for (String from : Required.value(List.of("home", "first", "second"))) for (String to : Required.value(List.of("home", "first", "second")))
+        for (String from : Required.value(List.of("home", "first", "second"))) for (String to : Required.value(List.of("home", "home:return", "first", "second")))
             if (!from.equals(to)) matrix.put(from + ">" + to, new DayPlan.RoadLeg(600, 3000));
         return new DayPlan(Required.value(List.of(route)), Required.value(List.of(first, second)), matrix, 30, 45, 0.67, 0, 0);
     }
@@ -50,6 +50,26 @@ class RouteTimelineTest {
     }
 
     @Test
+    void allEndpointPairsUseDirectedDepartureAndReturnLegsForEachSegment() {
+        for (boolean depotStart : List.of(false, true)) for (boolean depotReturn : List.of(false, true)) {
+            DayPlan day = plan(500, at("17:00:00"), at("18:00:00"));
+            int outboundSeconds = depotStart ? 1200 : 600;
+            int returnSeconds = depotReturn ? 1800 : 600;
+            for (String stop : List.of("first", "second")) {
+                day.getMatrix().put("home>" + stop, new DayPlan.RoadLeg(outboundSeconds, 1000));
+                day.getMatrix().put(stop + ">home:return", new DayPlan.RoadLeg(returnSeconds, 2000));
+            }
+            var independent = RouteEvaluator.evaluate(day);
+            var score = DayScoreCalculator.evaluate(day);
+            assertTrue(independent.feasible(), depotStart + " to " + depotReturn);
+            assertEquals(0, score.hardPenalty());
+            assertEquals(120 + 2 * (outboundSeconds + returnSeconds) / 60, independent.paidMinutes());
+            assertEquals(independent.driveMinutes(), score.driveMinutes());
+            assertEquals(independent.meters(), score.meters());
+        }
+    }
+
+    @Test
     void rejectsAnUnknownVisitEvenWhenTheVisitCountMatches() {
         DayPlan plan = plan(300, at("17:00:00"), at("18:00:00"));
         TechRoute route = plan.getRoutes().getFirst();
@@ -57,7 +77,7 @@ class RouteTimelineTest {
                 60, "home", at("19:00:00"));
         route.getVisits().set(1, unknown);
         plan.getMatrix().put("home>unknown", new DayPlan.RoadLeg(600, 3000));
-        plan.getMatrix().put("unknown>home", new DayPlan.RoadLeg(600, 3000));
+        plan.getMatrix().put("unknown>home:return", new DayPlan.RoadLeg(600, 3000));
         assertFalse(RouteEvaluator.evaluate(plan).feasible());
     }
 
@@ -73,7 +93,7 @@ class RouteTimelineTest {
             route.getVisits().add(visit);
             routes.add(route); visits.add(visit);
             matrix.put(home + ">" + stop, new DayPlan.RoadLeg(0, 0));
-            matrix.put(stop + ">" + home, new DayPlan.RoadLeg(0, 0));
+            matrix.put(stop + ">" + home + ":return", new DayPlan.RoadLeg(0, 0));
         }
         DayPlan plan = new DayPlan(routes, visits, matrix, .30, .45, 0, 0, 0);
         assertEquals(1, RouteEvaluator.evaluate(plan).costCents());

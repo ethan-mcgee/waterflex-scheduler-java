@@ -7,6 +7,10 @@ export const instant = z.iso.datetime({ offset: true });
 export const finite = z.number().finite();
 export const minute = z.int().min(0).max(1440);
 export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-180).max(180) });
+export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();
+export const depotSetup = z.object({ metroId: text, name: text.max(120),
+  address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(), confirmedPin: point }).strict();
+export const dealershipSetup = dealershipPolicy.extend({ metroId: text, depotId: text, name: text.max(120) }).strict();
 export const offer = z.object({ offerId: text, date, windowStart: instant, windowEnd: instant, expiresAt: instant });
 export const offersResponse = z.object({ jobId: text, offers: z.array(offer) });
 export const confirmation = z.object({ appointmentId: text, windowStart: instant, windowEnd: instant });
@@ -52,7 +56,7 @@ export const standardWeek = z.array(standardDay).length(7).refine(days =>
 export const technicianProfileRequest = z.object({ name: text.max(120), email: z.email().nullable().optional(),
   phone: z.string().trim().min(7).max(40).nullable().optional(), bio: z.string().trim().max(2000).nullable().optional(),
   color: technicianColorValue }).strict();
-export const createTechnicianRequest = technicianProfileRequest.extend({ metroId: text,
+export const createTechnicianRequest = technicianProfileRequest.extend({ metroId: text, dealershipId: text,
   email: z.email(), phone: z.string().trim().min(7).max(40),
   address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(),
   confirmedPin: point, days: standardWeek, qualifications: z.array(text).min(1).refine(ids => new Set(ids).size === ids.length),

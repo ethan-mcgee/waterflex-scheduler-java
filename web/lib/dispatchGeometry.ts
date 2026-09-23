@@ -10,6 +10,7 @@ export type GeometryResponse = {
   phase: string;
   features: RoadFeature[];
   stops: Array<{ id: string; technicianId: string; sequence: number; plannedStart: string; lat: number; lng: number }>;
+  endpoints?: Array<{ technicianId: string; departureLat: number; departureLng: number; returnLat: number; returnLng: number }>;
 };
 
 function object(value: unknown): value is Record<string, unknown> {
@@ -27,6 +28,9 @@ export function isDispatchGeometry(value: unknown, date: string, phase: string):
   if (!object(value) || value.type !== "FeatureCollection" || value.serviceDate !== date || value.phase !== phase ||
       typeof value.routingIdentity !== "string" || !value.routingIdentity ||
       !Array.isArray(value.features) || !Array.isArray(value.stops)) return false;
+  if (value.endpoints !== undefined && (!Array.isArray(value.endpoints) || !value.endpoints.every((endpoint: unknown) =>
+    object(endpoint) && typeof endpoint.technicianId === "string" && coordinate(endpoint.departureLat, 90) &&
+    coordinate(endpoint.departureLng, 180) && coordinate(endpoint.returnLat, 90) && coordinate(endpoint.returnLng, 180)))) return false;
   if (!value.features.every((feature: unknown) => {
     if (!object(feature) || feature.type !== "Feature" || !object(feature.properties) || !object(feature.geometry)) return false;
     const { properties, geometry } = feature;

@@ -29,6 +29,9 @@ async function main() {
   while (day.getUTCDay() !== 1) day.setUTCDate(day.getUTCDate() + 1);
   const date = day.toISOString().slice(0, 10);
   const metro = await prisma.metro.create({ data: { id: `timeoff-metro-${suffix}`, name: "Time off fixture", timezone: "America/Chicago" } });
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "Time off depot", lat: 43.735, lng: 7.420 } });
+  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "Time off dealership",
+    endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `TIMEOFF_${suffix}`, name: "Time off fixture", estDurationMin: 60 } });
   const techA = `timeoff-tech-a-${suffix}`, techB = `timeoff-tech-b-${suffix}`, techC = `timeoff-tech-c-${suffix}`;
   const customerId = `timeoff-customer-${suffix}`, addressId = `timeoff-address-${suffix}`, jobId = `timeoff-job-${suffix}`;
@@ -36,7 +39,7 @@ async function main() {
   const requestIds: string[] = [];
   try {
     for (const id of [techA, techB]) await prisma.technician.create({ data: {
-      id, metroId: metro.id, name: id, color: technicianColor(id), availabilityVersions: initialAvailability(480, 1020), homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
+      id, metroId: metro.id, dealershipId: dealership.id, name: id, color: technicianColor(id), availabilityVersions: initialAvailability(480, 1020), homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
       qualifications: { create: { serviceId: service.id } },
     } });
     await prisma.customer.create({ data: { id: customerId, firstName: "Time", lastName: "Off", email: "timeoff@example.invalid", phone: "0000000000" } });
@@ -143,7 +146,7 @@ async function main() {
     assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: impossible.requestId } })).status, "PENDING");
     await prisma.technicianQualification.create({ data: { technicianId: techB, serviceId: service.id } });
 
-    await prisma.technician.create({ data: { id: techC, metroId: metro.id, name: techC, color: technicianColor(techC), homeLat: 43.735, homeLng: 7.420,
+    await prisma.technician.create({ data: { id: techC, metroId: metro.id, dealershipId: dealership.id, name: techC, color: technicianColor(techC), homeLat: 43.735, homeLng: 7.420,
       shiftStartMin: 480, shiftEndMin: 1020, qualifications: { create: { serviceId: service.id } } } });
     const tuesday = new Date(day);
     tuesday.setUTCDate(tuesday.getUTCDate() + 1);
@@ -216,6 +219,8 @@ async function main() {
     await prisma.technicianQualification.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });
     await prisma.technician.deleteMany({ where: { id: { in: [techA, techB, techC] } } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
+    await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.$disconnect();
   }

@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/schedule", label: "Weekly Schedule", icon: CalendarDays },
   { href: "/dispatch", label: "Dispatch Board", icon: Route },
   { href: "/technicians", label: "Technicians", icon: Users },
+  { href: "/dealerships", label: "Dealerships", icon: Users },
   { href: "/time-off", label: "Time Off", icon: CalendarOff },
   { href: "/dispatch/follow-up", label: "Manual Follow-up", icon: PhoneCall },
 ];

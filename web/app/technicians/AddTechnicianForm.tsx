@@ -11,9 +11,10 @@ import { z } from "zod";
 
 const candidatesResponse = z.object({ candidates: z.array(z.object({ lat: z.number(), lng: z.number(), precision: z.enum(["ROOFTOP", "APPROXIMATE"]) })) });
 
-export default function AddTechnicianForm({ services, metros, onClose, onCreated }: {
+export default function AddTechnicianForm({ services, metros, dealerships, onClose, onCreated }: {
   services: Array<{ id: string; name: string }>;
   metros: Array<{ id: string; name: string }>;
+  dealerships: Array<{ id: string; name: string; metroId: string }>;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -25,12 +26,13 @@ export default function AddTechnicianForm({ services, metros, onClose, onCreated
   const [days, setDays] = useState<StandardDay[]>(() => defaultStandardWeek(8 * 60, 17 * 60));
   const [quals, setQuals] = useState<string[]>([]);
   const [metroId, setMetroId] = useState(metros[0]?.id ?? "");
+  const [dealershipId, setDealershipId] = useState(dealerships.find(item => item.metroId === metros[0]?.id)?.id ?? "");
   const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "" });
   const [candidates, setCandidates] = useState<Array<{ lat: number; lng: number; precision: string }>>([]);
   const [pinIndex, setPinIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
 
-  const invalid = !name.trim() || !email.trim() || !phone.trim() || !metroId || pinIndex == null || !quals.length ||
+  const invalid = !name.trim() || !email.trim() || !phone.trim() || !metroId || !dealershipId || pinIndex == null || !quals.length ||
     !days.some(day => day.available) || days.some(day => day.available && day.startMin >= day.endMin);
 
   function toggleDay(dayOfWeek: number) {
@@ -55,7 +57,7 @@ export default function AddTechnicianForm({ services, metros, onClose, onCreated
     try {
       const response = await fetch("/api/technicians", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), bio: bio.trim() || null,
-          color, metroId, address, confirmedPin: { lat: pin.lat, lng: pin.lng },
+          color, metroId, dealershipId, address, confirmedPin: { lat: pin.lat, lng: pin.lng },
           days: days.map(day => ({ dayOfWeek: day.dayOfWeek, available: day.available,
             shiftStartMin: day.available ? day.startMin : null, shiftEndMin: day.available ? day.endMin : null })), qualifications: quals }) });
       await readResponse(response, z.object({ success: z.literal(true), id: z.string() }));
@@ -70,7 +72,10 @@ export default function AddTechnicianForm({ services, metros, onClose, onCreated
         <p className={styles.modalSubtitle}>Set up their profile and standard weekly schedule once. Exceptions can be layered on for specific dates later.</p>
           <>
             <div className={styles.fieldGrid}><div><label className={ui.sectionLabel} htmlFor="new-metro">Metro</label>
-              <select id="new-metro" value={metroId} onChange={event => setMetroId(event.target.value)} style={inputStyle}>{metros.map(metro => <option key={metro.id} value={metro.id}>{metro.name}</option>)}</select></div></div>
+              <select id="new-metro" value={metroId} onChange={event => { const next = event.target.value; setMetroId(next); setDealershipId(dealerships.find(item => item.metroId === next)?.id ?? ""); }} style={inputStyle}>{metros.map(metro => <option key={metro.id} value={metro.id}>{metro.name}</option>)}</select></div>
+              <div><label className={ui.sectionLabel} htmlFor="new-dealership">Dealership</label><select id="new-dealership" value={dealershipId} onChange={event => setDealershipId(event.target.value)} style={inputStyle}>
+                <option value="">Choose a dealership</option>{dealerships.filter(item => item.metroId === metroId).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select></div></div>
             <div className={styles.fieldGrid}>{(["line1", "city", "state", "postalCode"] as const).map(field =>
               <div key={field}><label className={ui.sectionLabel} htmlFor={`new-${field}`}>{field === "line1" ? "Street address" : field === "postalCode" ? "Postal code" : field}</label>
                 <input id={`new-${field}`} value={address[field]} onChange={event => { setAddress(current => ({ ...current, [field]: event.target.value })); setCandidates([]); setPinIndex(null); }} style={inputStyle} /></div>)}</div>
