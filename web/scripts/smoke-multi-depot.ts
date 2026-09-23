@@ -49,6 +49,23 @@ async function main() {
   const holdJob = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 50 } });
   try {
     const sameDay = dateAfter(5), crossDay = dateAfter(25), beforeDay = dateAfter(2);
+    const futurePolicyDate = dateAfter(35);
+    await prisma.depotEndpointPolicy.create({ data: { depotId: first.id, effectiveDate: new Date(`${futurePolicyDate}T00:00:00Z`), departure: "HOME", returnTo: "HOME" } });
+    const policyEdit = await post(`/v1/depots/${first.id}/policy`, { departure: "DEPOT", returnTo: "HOME" });
+    assert.equal(policyEdit.status, 200, JSON.stringify(policyEdit.payload));
+    assert.equal(z.object({ success: z.literal(true), effectiveDate: z.string() }).parse(policyEdit.payload).effectiveDate, futurePolicyDate);
+    assert.equal(await prisma.depotEndpointPolicy.count({ where: { depotId: first.id } }), 2);
+    assert.equal((await prisma.depotEndpointPolicy.findUniqueOrThrow({ where: { depotId_effectiveDate: {
+      depotId: first.id, effectiveDate: new Date(`${futurePolicyDate}T00:00:00Z`) } } })).returnTo, "HOME");
+    const chicagoNow = new Date();
+    const chicagoDate = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(chicagoNow);
+    const chicagoHour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", hourCycle: "h23" }).format(chicagoNow));
+    const ordinaryEdit = await post(`/v1/depots/${second.id}/policy`, { departure: "DEPOT", returnTo: "HOME" });
+    assert.equal(ordinaryEdit.status, 200, JSON.stringify(ordinaryEdit.payload));
+    const savedDate = z.object({ effectiveDate: z.string() }).parse(ordinaryEdit.payload).effectiveDate;
+    const expectedDate = new Date(`${chicagoDate}T00:00:00Z`);
+    if (chicagoHour >= 6) expectedDate.setUTCDate(expectedDate.getUTCDate() + 1);
+    assert.equal(savedDate, expectedDate.toISOString().slice(0, 10));
     assert.equal((await endpoint(lincoln.id, beforeDay, tech.id))?.departureLat, first.lat);
     const sameStart = new Date(`${sameDay}T15:00:00Z`), sameEnd = new Date(`${sameDay}T19:00:00Z`);
     const sameAppointment = await prisma.appointment.create({ data: { jobId: job.id, technicianId: tech.id, serviceDate: new Date(`${sameDay}T00:00:00Z`),

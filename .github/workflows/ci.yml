@@ -132,6 +132,9 @@ jobs:
       - name: Multi-depot dealership smoke
         working-directory: web
         run: npm run test:multi-depot:integration
+      - name: Depot pin setup smoke
+        working-directory: web
+        run: npm run test:depot-setup:integration
       - name: Time-off repair smoke
         working-directory: web
         run: npm run test:time-off:integration

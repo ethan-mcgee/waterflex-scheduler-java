@@ -34,6 +34,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   const [moveDepotId, setMoveDepotId] = useState("");
   const tech = technicians.find(item => item.id === techId);
   const currentAssignment = tech?.depotAssignments.filter(item => item.effectiveDate <= today).at(-1);
+  const moveDateAssignment = tech?.depotAssignments.filter(item => item.effectiveDate <= (moveDate || today)).at(-1);
   const activeServiceIds = useMemo(() => new Set(services.map(service => service.id)), [services]);
   const filtered = useMemo(() => technicians.filter(item => item.name.toLowerCase().includes(search.toLowerCase())), [technicians, search]);
 
@@ -44,7 +45,9 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   function selectTechnician(next: Tech) { if (!busy) { setTechId(next.id); resetDraft(next); setMoveDate(""); setMoveDepotId(""); } }
   async function moveDepot(event: React.FormEvent) {
     event.preventDefault();
-    if (!tech || !moveDate || !moveDepotId) { setMessage("Choose a date and depot."); return; }
+    if (!tech || !moveDate || !moveDepotId || !depots.some(item => item.id === moveDepotId && item.dealershipId === moveDateAssignment?.dealershipId)) {
+      setMessage("Choose a date and a depot in this technician's dealership."); return;
+    }
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/technicians/${tech.id}/depot-assignments`, { method: "POST", headers: { "Content-Type": "application/json" },
@@ -133,9 +136,9 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
         <p className={ui.sectionLabel}>Dealership: {dealerships.find(item => item.id === currentAssignment?.dealershipId)?.name ?? "Missing dealership"}</p>
         <p className={ui.sectionLabel}>Current depot: {depots.find(item => item.id === currentAssignment?.depotId)?.name ?? "Missing depot assignment"}</p>
         <form onSubmit={moveDepot} className={styles.overrideForm}>
-          <label htmlFor="move-date">Depot move effective <input id="move-date" type="date" min={today} required value={moveDate} onChange={event => setMoveDate(event.target.value)} /></label>
+          <label htmlFor="move-date">Depot move effective <input id="move-date" type="date" min={today} required value={moveDate} onChange={event => { setMoveDate(event.target.value); setMoveDepotId(""); }} /></label>
           <label htmlFor="move-depot">New depot <select id="move-depot" required value={moveDepotId} onChange={event => setMoveDepotId(event.target.value)}>
-            <option value="">Choose a depot</option>{depots.filter(item => item.dealershipId === currentAssignment?.dealershipId && item.id !== currentAssignment?.depotId).map(item =>
+            <option value="">Choose a depot</option>{depots.filter(item => item.dealershipId === moveDateAssignment?.dealershipId && item.id !== moveDateAssignment?.depotId).map(item =>
               <option key={item.id} value={item.id}>{item.name} ({metros.find(metro => metro.id === item.metroId)?.name ?? item.metroId})</option>)}</select></label>
           <button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy || !moveDate || !moveDepotId}>Schedule depot move</button>
         </form>
