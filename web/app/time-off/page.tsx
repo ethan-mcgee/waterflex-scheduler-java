@@ -4,10 +4,11 @@ import TimeOffDemo from "./TimeOffDemo";
 
 export const dynamic = "force-dynamic";
 const FILTERS = {
-  all: undefined,
+  all: ["PENDING", "READY", "APPROVED"],
   pending: ["PENDING"],
   ready: ["READY"],
   approved: ["APPROVED"],
+  denied: ["DENIED"],
 } as const;
 type FilterKey = keyof typeof FILTERS;
 function isFilterKey(value: string | undefined): value is FilterKey { return value != null && Object.hasOwn(FILTERS, value); }

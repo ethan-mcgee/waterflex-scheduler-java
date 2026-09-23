@@ -31,7 +31,7 @@ class NullabilityTest {
         ScheduleGuardService guard = mock(ScheduleGuardService.class);
         var http = MockMvcBuilders.standaloneSetup(new OptimizationController(optimization), new TimeOffController(timeOff), new ScheduleGuardController(guard))
                 .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
-        for (String path : List.of("/v1/optimize/day/preview", "/v1/optimize/runs/x/apply", "/v1/time-off/request", "/v1/time-off/x/approve", "/v1/dispatch/availability", "/v1/dispatch/qualification"))
+        for (String path : List.of("/v1/optimize/day/preview", "/v1/optimize/runs/x/apply", "/v1/time-off/request", "/v1/time-off/x/approve", "/v1/time-off/x/retry", "/v1/time-off/x/deny", "/v1/dispatch/availability", "/v1/dispatch/qualification"))
             for (String body : List.of("null", "[]", "{", "false", "\"text\""))
                 http.perform(Required.value(post(Required.value(path)).contentType("application/json").content(Required.value(body)))).andExpect(status().isBadRequest());
         verifyNoInteractions(optimization, timeOff, guard);
@@ -81,5 +81,8 @@ class NullabilityTest {
         assertThrows(ResponseStatusException.class, () -> SavedJson.summary(Required.value(json.readTree("[{}]"))));
         for (String body : List.of("null", "{}", "{\"technician_id\":\"t\",\"days\":[]}", "{\"technician_id\":\"t\",\"days\":[null]}"))
             assertThrows(ResponseStatusException.class, () -> SavedJson.readyReport(Required.value(json.readTree(body))));
+        String offDay = "{\"technician_id\":\"t\",\"reassigned_jobs\":0,\"total_before\":null,\"total_after\":null,\"days\":[{\"service_date\":\"2026-10-03\",\"start_min\":480,\"end_min\":1020,\"status\":\"NO_SHIFT\"}]}";
+        assertTrue(SavedJson.readyReport(Required.value(json.readTree(offDay))).isObject());
+        assertThrows(ResponseStatusException.class, () -> SavedJson.readyReport(Required.value(json.readTree(offDay.replace("\"status\":\"NO_SHIFT\"", "\"status\":\"NO_SHIFT\",\"run_id\":\"fake\"")))));
     }
 }

@@ -103,6 +103,12 @@ public class OptimizationService {
 
     public Map<String, Object> previewRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
         if (ScheduleCutoff.frozen(day, Required.value(Instant.now()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination");
+        if (WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) == null) {
+            int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class,
+                    absentTechnicianId, dayStamp(day));
+            return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", appointments == 0 ? "NO_SHIFT" : "SKIPPED",
+                    "reason", appointments == 0 ? "No technician shift on this date" : "Appointments remain on a date without a technician shift"));
+        }
         Problem baseline = build(metroId, day);
         if (hasHolds(Required.value(baseline.versions().keySet()), day)) return skipped(metroId, day, baseline, "ACTIVE_RESERVATIONS");
         var before = DayScoreCalculator.evaluate(baseline.plan());
@@ -118,8 +124,9 @@ public class OptimizationService {
         if (!status.equals("REPAIR_PREVIEW"))
             reason = after.hardPenalty() == 0 ? "VALIDATED_CONSTRAINT_CONFLICT"
                     : individuallyImpossible(baseline.plan()) ? "VALIDATED_CONSTRAINT_CONFLICT" : "SEARCH_BUDGET_EXHAUSTED";
-        return persist(metroId, day, baseline, Required.value(solved), before, after, solveMs, status,
-                reason);
+        if (!status.equals("REPAIR_PREVIEW"))
+            return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", Required.value(reason)));
+        return persist(metroId, day, baseline, Required.value(solved), before, after, solveMs, status, null);
     }
 
     private boolean individuallyImpossible(DayPlan plan) {
