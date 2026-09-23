@@ -19,6 +19,10 @@ export function updateDepotPolicy(id: string, departure: "HOME" | "DEPOT", retur
   return request(`/v1/depots/${encodeURIComponent(id)}/policy`, depotPolicyResult, { departure, returnTo });
 }
 
+export function updateDepotDetails(id: string, details: { name: string; address?: { line1: string; city: string; state: string; postalCode: string }; confirmedPin?: { lat: number; lng: number }; candidate?: { lat: number; lng: number; precision: string } }): Promise<{ success: boolean }> {
+  return request(`/v1/depots/${encodeURIComponent(id)}/details`, success, details);
+}
+
 export function assignTechnicianDepot(id: string, depotId: string, effectiveDate: string): Promise<{ success: boolean }> {
   return request(`/v1/technicians/${encodeURIComponent(id)}/depot-assignments`, success, { depotId, effectiveDate });
 }

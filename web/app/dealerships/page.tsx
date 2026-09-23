@@ -22,12 +22,12 @@ export default async function DealershipsPage() {
     const upcoming = item.endpointPolicies.find(candidate => candidate.effectiveDate > todayKey);
     if (!policy) throw new Error(`Depot ${item.id} is missing a current route policy`);
     return { id: item.id, dealershipId: item.dealershipId, metroId: item.metroId, name: item.name,
+      address: { line1: item.addressLine1 ?? "", city: item.addressCity ?? "", state: item.addressState ?? "", postalCode: item.addressPostalCode ?? "" },
+      hasSavedAddress: Boolean(item.addressLine1 && item.addressCity && item.addressState && item.addressPostalCode),
       lat: item.lat, lng: item.lng, departure: policy.departure, returnTo: policy.returnTo,
       policyEffectiveDate: policy.effectiveDate.toISOString().slice(0, 10),
       upcomingPolicy: upcoming ? { departure: upcoming.departure, returnTo: upcoming.returnTo,
         effectiveDate: upcoming.effectiveDate.toISOString().slice(0, 10) } : null,
       technicianCount: assignments.filter(a => a.depotId === item.id).length };
-  })} dealerships={dealerships.map(item => ({
-    id: item.id, name: item.name, technicianCount: assignments.filter(a => a.depot.dealershipId === item.id).length,
-  }))} />;
+  })} dealerships={dealerships.map(item => ({ id: item.id, name: item.name }))} />;
 }
