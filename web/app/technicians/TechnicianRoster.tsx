@@ -28,6 +28,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   const [start, setStart] = useState(technicians[0] ? fromMinutes(technicians[0].shiftStartMin) : "");
   const [end, setEnd] = useState(technicians[0] ? fromMinutes(technicians[0].shiftEndMin) : "");
   const [message, setMessage] = useState(""), [busy, setBusy] = useState(false);
+  const [modalError, setModalError] = useState("");
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [moveDate, setMoveDate] = useState("");
@@ -46,14 +47,14 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   async function moveDepot(event: React.FormEvent) {
     event.preventDefault();
     if (!tech || !moveDate || !moveDepotId || !depots.some(item => item.id === moveDepotId && item.dealershipId === moveDateAssignment?.dealershipId)) {
-      setMessage("Choose a date and a depot in this technician's dealership."); return;
+      setModalError("Choose a date and a depot in this technician's dealership."); return;
     }
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/technicians/${tech.id}/depot-assignments`, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ depotId: moveDepotId, effectiveDate: moveDate }) });
-      await readResponse(response, success); setMessage("Depot assignment scheduled."); setMoveDate(""); setMoveDepotId(""); router.refresh();
-    } catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
+      await readResponse(response, success); setModalError(""); setMessage("Depot assignment scheduled."); setMoveDate(""); setMoveDepotId(""); router.refresh();
+    } catch (error) { setModalError(errorMessage(error)); } finally { setBusy(false); }
   }
   async function saveShift(event: React.FormEvent) {
     event.preventDefault();
@@ -93,21 +94,21 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
     return { name: item.name, email: item.email ?? "", phone: item.phone ?? "", bio: item.bio ?? "", color: item.color };
   }
   async function saveProfile(item: Tech, draft: ProfileDraft) {
-    setBusy(true); setMessage("");
+    setBusy(true); setMessage(""); setModalError("");
     try {
       const response = await fetch(`/api/technicians/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...draft, email: draft.email || null, phone: draft.phone || null, bio: draft.bio || null }) });
       await readResponse(response, success); setShowProfileModal(false); setMessage("Profile saved."); router.refresh();
-    } catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
+    } catch (error) { setModalError(errorMessage(error)); } finally { setBusy(false); }
   }
   async function saveAvailability(item: Tech, days: StandardDay[]) {
-    setBusy(true); setMessage("");
+    setBusy(true); setMessage(""); setModalError("");
     try {
       const response = await fetch(`/api/technicians/${item.id}/standard-availability`, { method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ days: days.map(day => ({ dayOfWeek: day.dayOfWeek, available: day.available,
           shiftStartMin: day.available ? day.startMin : null, shiftEndMin: day.available ? day.endMin : null })) }) });
       await readResponse(response, success); setShowProfileModal(false); setMessage("Weekly availability scheduled."); router.refresh();
-    } catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
+    } catch (error) { setModalError(errorMessage(error)); } finally { setBusy(false); }
   }
 
   return <div className={styles.main}>
@@ -129,19 +130,12 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
         <div className={styles.detailHead}><div className={styles.detailId}><Avatar name={tech.name} color={profileFor(tech).color} size={52} /><div><h2>{tech.name}</h2>{!tech.active && <span className={styles.inactive}>Inactive technician</span>}</div></div>
           <div className={styles.detailActions}>
             <span className={`${ui.pill} ${ui.pillBrand}`}>{tech.qualifications.filter(id => activeServiceIds.has(id)).length} of {services.length} active services qualified</span>
-            <button className={ui.button} type="button" onClick={() => setShowProfileModal(true)}>Edit profile</button>
+            <button className={ui.button} type="button" onClick={() => { setModalError(""); setShowProfileModal(true); }}>Edit profile</button>
             <button className={`${ui.button} ${ui.buttonBrand}`} type="button" disabled={busy} onClick={() => resetDraft(tech, true)}>+ Add exception</button>
           </div></div>
 
         <p className={ui.sectionLabel}>Dealership: {dealerships.find(item => item.id === currentAssignment?.dealershipId)?.name ?? "Missing dealership"}</p>
         <p className={ui.sectionLabel}>Current depot: {depots.find(item => item.id === currentAssignment?.depotId)?.name ?? "Missing depot assignment"}</p>
-        <form onSubmit={moveDepot} className={styles.overrideForm}>
-          <label htmlFor="move-date">Depot move effective <input id="move-date" type="date" min={today} required value={moveDate} onChange={event => { setMoveDate(event.target.value); setMoveDepotId(""); }} /></label>
-          <label htmlFor="move-depot">New depot <select id="move-depot" required value={moveDepotId} onChange={event => setMoveDepotId(event.target.value)}>
-            <option value="">Choose a depot</option>{depots.filter(item => item.dealershipId === moveDateAssignment?.dealershipId && item.id !== moveDateAssignment?.depotId).map(item =>
-              <option key={item.id} value={item.id}>{item.name} ({metros.find(metro => metro.id === item.metroId)?.name ?? item.metroId})</option>)}</select></label>
-          <button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy || !moveDate || !moveDepotId}>Schedule depot move</button>
-        </form>
         {tech.depotAssignments.filter(item => item.effectiveDate > today).map(item => <p key={item.effectiveDate} className={styles.message}>
           Moves to {depots.find(depot => depot.id === item.depotId)?.name ?? "Unknown depot"} on {item.effectiveDate}.</p>)}
         <p className={ui.sectionLabel}>Profile</p>
@@ -168,7 +162,14 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
           onSave={(draft) => saveProfile(tech, draft)}
           onSaveAvailability={(days) => saveAvailability(tech, days)}
           busy={busy}
-          error={message}
+          error={modalError}
+          depotMove={<form onSubmit={moveDepot} className={styles.overrideForm}>
+            <label htmlFor="move-date">Depot move effective <input id="move-date" type="date" min={today} required value={moveDate} onChange={event => { setMoveDate(event.target.value); setMoveDepotId(""); }} /></label>
+            <label htmlFor="move-depot">New depot <select id="move-depot" required value={moveDepotId} onChange={event => setMoveDepotId(event.target.value)}>
+              <option value="">Choose a depot</option>{depots.filter(item => item.dealershipId === moveDateAssignment?.dealershipId && item.id !== moveDateAssignment?.depotId).map(item =>
+                <option key={item.id} value={item.id}>{item.name} ({metros.find(metro => metro.id === item.metroId)?.name ?? item.metroId})</option>)}</select></label>
+            <button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy || !moveDate || !moveDepotId}>Schedule depot move</button>
+          </form>}
         />}
       </div> : <div className={`${ui.card} ${styles.detail} ${styles.empty}`}>No technicians found</div>}
     </div>

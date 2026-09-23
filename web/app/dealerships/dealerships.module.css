@@ -346,17 +346,19 @@
 }
 
 .depotRow {
-  padding: 13px 20px 13px 58px;
+    padding: 13px 20px 13px 58px;
   border-bottom: 1px solid var(--line);
 }
 
 .depotRowExpanded {
-  padding: 13px 20px 16px 58px;
+    padding: 13px 20px 16px 58px;
   background: #fbfcfb;
   border-bottom: 1px solid var(--line);
 }
 
 .depotName {
+    box-sizing: border-box;
+    padding-left: 28px;
   font-size: 13px;
   font-weight: 650;
 }

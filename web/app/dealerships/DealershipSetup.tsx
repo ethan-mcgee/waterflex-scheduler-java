@@ -12,10 +12,11 @@ import styles from "./dealerships.module.css";
 type Anchor = "HOME" | "DEPOT";
 type Depot = {
   id: string; dealershipId: string; metroId: string; name: string; lat: number; lng: number;
+  address: Address; hasSavedAddress: boolean;
   departure: Anchor; returnTo: Anchor; policyEffectiveDate: string; technicianCount: number;
   upcomingPolicy: { departure: Anchor; returnTo: Anchor; effectiveDate: string } | null;
 };
-type Dealership = { id: string; name: string; technicianCount: number };
+type Dealership = { id: string; name: string };
 type Address = { line1: string; city: string; state: string; postalCode: string };
 type Pin = { lat: number; lng: number };
 
@@ -43,9 +44,12 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
   const [departure, setDeparture] = useState<Anchor>("HOME");
   const [returnTo, setReturnTo] = useState<Anchor>("HOME");
   const [editingDepotId, setEditingDepotId] = useState<string | null>(null);
+  const [editingDetailsId, setEditingDetailsId] = useState<string | null>(null);
+  const [editingDealershipId, setEditingDealershipId] = useState<string | null>(null);
+  const [dealershipDraft, setDealershipDraft] = useState("");
   const [search, setSearch] = useState("");
   const [message, setMessage] = useState("");
-  const [error, setError] = useState<{ area: "dealership" | "depot" | "policy"; text: string } | null>(null);
+  const [error, setError] = useState<{ area: "dealership" | "depot" | "policy" | "dealershipEdit" | "depotEdit"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const addressComplete = Object.values(address).every(value => value.trim());
@@ -77,7 +81,7 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
     setLookup("idle");
   }
 
-  async function run(area: "dealership" | "depot" | "policy", action: () => Promise<void>) {
+  async function run(area: "dealership" | "depot" | "policy" | "dealershipEdit" | "depotEdit", action: () => Promise<void>) {
     setBusy(true); setMessage(""); setError(null);
     try { await action(); router.refresh(); }
     catch (failure) { setError({ area, text: errorMessage(failure) }); }
@@ -107,6 +111,18 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
       const result = await readResponse(response, saved);
       setEditingDepotId(null);
       setMessage(`Saved ${item.name} policy for ${result.effectiveDate}. Booked routes were checked.`);
+    });
+  }
+  async function saveDealership(item: Dealership) {
+    await run("dealershipEdit", async () => {
+      await readResponse(await fetch(`/api/dealerships/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: dealershipDraft }) }), z.object({ success: z.literal(true) }));
+      setEditingDealershipId(null); setMessage("Dealership name saved.");
+    });
+  }
+  async function saveDepot(item: Depot, details: { name: string; address?: Address; confirmedPin?: Pin }) {
+    await run("depotEdit", async () => {
+      await readResponse(await fetch(`/api/depots/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(details) }), z.object({ success: z.literal(true) }));
+      setEditingDetailsId(null); setMessage("Depot details saved. Booked routes were checked.");
     });
   }
 
@@ -253,11 +269,17 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
             <div className={styles.dealershipGroup}>
               <Avatar name={item.name} size={30} />
               <span className={styles.dealershipGroupName}>{item.name}</span>
-              <span className={styles.depotDetail}>{item.technicianCount} active technicians today</span>
+              <button type="button" className={styles.editButton} onClick={() => { setEditingDealershipId(item.id); setDealershipDraft(item.name); setError(null); }}>Edit dealership</button>
             </div>
+            {editingDealershipId === item.id && <div className={styles.policyPanel}>
+              <label htmlFor={`dealership-edit-${item.id}`}>Dealership name</label>
+              <input id={`dealership-edit-${item.id}`} className={styles.textInput} value={dealershipDraft} onChange={event => setDealershipDraft(event.target.value)} />
+              <button type="button" className={ui.button} onClick={() => setEditingDealershipId(null)}>Cancel</button>
+              <button type="button" className={`${ui.button} ${ui.buttonBrand}`} disabled={busy || !dealershipDraft.trim()} onClick={() => void saveDealership(item)}>Save dealership</button>
+              {error?.area === "dealershipEdit" && <p role="alert" className={styles.errorMessage}>{error.text}</p>}
+            </div>}
             {depots.filter(depot => depot.dealershipId === item.id).map(depot => (
-              <DepotRow
-                key={depot.id}
+              <div key={depot.id}><DepotRow
                 depot={depot}
                 metroName={metros.find(metro => metro.id === depot.metroId)?.name ?? depot.metroId}
                 editing={editingDepotId === depot.id}
@@ -265,7 +287,11 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
                 error={error?.area === "policy" && editingDepotId === depot.id ? error.text : null}
                 onToggleEdit={() => { setError(null); setEditingDepotId(current => (current === depot.id ? null : depot.id)); }}
                 onSave={savePolicy}
+                onEditDetails={() => { setEditingDetailsId(current => current === depot.id ? null : depot.id); setError(null); }}
               />
+              {editingDetailsId === depot.id && <DepotDetailsEditor key={depot.id} depot={depot} busy={busy}
+                error={error?.area === "depotEdit" ? error.text : null} onCancel={() => setEditingDetailsId(null)} onSave={details => saveDepot(depot, details)} />}
+              </div>
             ))}
             {!depots.some(depot => depot.dealershipId === item.id) && <p className={styles.empty}>No depots configured.</p>}
           </div>
@@ -289,9 +315,61 @@ function AnchorToggle({ label, value, onChange }: { label: string; value: Anchor
   );
 }
 
-function DepotRow({ depot, metroName, editing, busy, error, onToggleEdit, onSave }: {
+function DepotDetailsEditor({ depot, busy, error, onCancel, onSave }: {
+  depot: Depot; busy: boolean; error: string | null; onCancel: () => void;
+  onSave: (details: { name: string; address?: Address; confirmedPin?: Pin }) => Promise<void>;
+}) {
+  const [name, setName] = useState(depot.name);
+  const [address, setAddress] = useState<Address>(depot.address);
+  const [pin, setPin] = useState<Pin | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [lookup, setLookup] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const addressChanged = address.line1 !== depot.address.line1 || address.city !== depot.address.city ||
+    address.state !== depot.address.state || address.postalCode !== depot.address.postalCode;
+  const complete = Object.values(address).every(value => value.trim().length > 0);
+  useEffect(() => {
+    if (!addressChanged || !complete) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setLookup("loading");
+      fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address), signal: controller.signal })
+        .then(response => readResponse(response, pinsResponse))
+        .then(result => {
+          if (controller.signal.aborted) return;
+          const best = result.candidates.find(candidate => candidate.precision === "ROOFTOP") ?? result.candidates[0];
+          if (best) { setPin({ lat: best.lat, lng: best.lng }); setLookup("done"); }
+          else setLookup("error");
+        }).catch(() => { if (!controller.signal.aborted) setLookup("error"); });
+    }, LOOKUP_DEBOUNCE_MS);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [address, addressChanged, complete]);
+  function changeAddress(field: keyof Address, value: string) {
+    setAddress(current => ({ ...current, [field]: value })); setPin(null); setConfirmed(false); setLookup("idle");
+  }
+  return <div className={styles.policyPanel}>
+    <div className={styles.field}><label htmlFor={`edit-name-${depot.id}`}>Depot name</label><input id={`edit-name-${depot.id}`} className={styles.textInput} value={name} onChange={event => setName(event.target.value)} /></div>
+    {!depot.hasSavedAddress && <p className={styles.mapStatus}>Saved address unavailable or incomplete. Enter the full address to add one.</p>}
+    <div className={styles.fieldGrid4}>{(["line1", "city", "state", "postalCode"] as const).map(field =>
+      <div className={styles.field} key={field}><label htmlFor={`edit-${depot.id}-${field}`}>{({ line1: "Street address", city: "City", state: "State", postalCode: "Postal code" })[field]}</label>
+        <input id={`edit-${depot.id}-${field}`} className={styles.textInput} value={address[field]} onChange={event => changeAddress(field, event.target.value)} /></div>)}</div>
+    {addressChanged && <div className={styles.mapSection}>
+      <p className={ui.sectionLabel}>Confirm new depot pin</p>
+      {lookup === "loading" && <p>Locating address...</p>}
+      {lookup === "error" && <p role="alert">No verified pin found for this address.</p>}
+      {pin && <><div className={styles.mapBoxWrap}><DepotPinMap lat={pin.lat} lng={pin.lng} onDrag={(lat, lng) => { setPin({ lat, lng }); setConfirmed(false); }} /></div>
+        <button type="button" className={ui.button} onClick={() => setConfirmed(true)}>Confirm pin</button>
+        {confirmed && <span className={styles.mapStatus}>Pin confirmed</span>}</>}
+    </div>}
+    {error && <p role="alert" className={styles.errorMessage}>{error}</p>}
+    <div className={styles.policyRow}><button type="button" className={ui.button} onClick={onCancel}>Cancel</button>
+      <button type="button" className={`${ui.button} ${ui.buttonBrand}`} disabled={busy || !name.trim() || (addressChanged && (!complete || !pin || !confirmed))}
+        onClick={() => void onSave({ name, ...(addressChanged && pin ? { address, confirmedPin: pin } : {}) })}>Save depot details</button></div>
+  </div>;
+}
+
+function DepotRow({ depot, metroName, editing, busy, error, onToggleEdit, onEditDetails, onSave }: {
   depot: Depot; metroName: string; editing: boolean; busy: boolean; error: string | null;
-  onToggleEdit: () => void; onSave: (depot: Depot, departure: Anchor, returnTo: Anchor) => Promise<void>;
+  onToggleEdit: () => void; onEditDetails: () => void; onSave: (depot: Depot, departure: Anchor, returnTo: Anchor) => Promise<void>;
 }) {
   const [departure, setDeparture] = useState<Anchor>(depot.upcomingPolicy?.departure ?? depot.departure);
   const [returnTo, setReturnTo] = useState<Anchor>(depot.upcomingPolicy?.returnTo ?? depot.returnTo);
@@ -307,6 +385,7 @@ function DepotRow({ depot, metroName, editing, busy, error, onToggleEdit, onSave
         <span className={styles.colDeparture}><AnchorPill value={depot.departure} /></span>
         <span className={styles.colReturn}><AnchorPill value={depot.returnTo} /></span>
         <span className={styles.colActions}>
+          <button type="button" className={styles.editButton} onClick={onEditDetails}>Edit details</button>
           <button type="button" className={`${styles.editButton} ${editing ? styles.editButtonOn : ""}`} onClick={onToggleEdit}>
             {editing ? "Editing policy" : "Edit policy"}
           </button>
