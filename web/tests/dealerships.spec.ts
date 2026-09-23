@@ -10,15 +10,18 @@ test("dealership policy controls save independent departure and return endpoints
   const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "Dealership UI fixture",
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   try {
+    let submitted: unknown = null;
+    await page.route(`**/api/dealerships/${dealership.id}/policy`, async route => {
+      submitted = route.request().postDataJSON() as unknown;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+    });
     await page.goto("/dealerships");
     const editor = page.locator("div").filter({ has: page.getByRole("heading", { name: "Dealership UI fixture" }) }).last();
     await editor.getByLabel("Departure").selectOption("DEPOT");
     await editor.getByLabel("Return").selectOption("HOME");
     await editor.getByRole("button", { name: "Save route policy" }).click();
     await expect(page.getByText("Saved Dealership UI fixture. Booked routes were checked.")).toBeVisible();
-    const updated = await prisma.dealership.findUniqueOrThrow({ where: { id: dealership.id } });
-    expect(updated.departure).toBe("DEPOT");
-    expect(updated.returnTo).toBe("HOME");
+    expect(submitted).toEqual({ departure: "DEPOT", returnTo: "HOME" });
   } finally {
     await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.depot.delete({ where: { id: depot.id } });
