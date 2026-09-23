@@ -163,6 +163,12 @@
   cursor: pointer;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .detailRow td {
   padding: 0 !important;
 }

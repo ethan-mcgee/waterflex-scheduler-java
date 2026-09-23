@@ -12,4 +12,8 @@ public class TimeOffController {
     public Map<String, Object> submit(@RequestBody TimeOffService.Request request) { return service.submit(request); }
     @PostMapping("/v1/time-off/{id}/approve")
     public Map<String, Object> approve(@PathVariable String id, @RequestBody dev.waterflex.scheduler.RequestChecks.Empty request) { return service.approve(id); }
+    @PostMapping("/v1/time-off/{id}/retry")
+    public Map<String, Object> retry(@PathVariable String id, @RequestBody dev.waterflex.scheduler.RequestChecks.Empty request) { return service.retry(id); }
+    @PostMapping("/v1/time-off/{id}/deny")
+    public Map<String, Object> deny(@PathVariable String id, @RequestBody dev.waterflex.scheduler.RequestChecks.Empty request) { return service.deny(id); }
 }

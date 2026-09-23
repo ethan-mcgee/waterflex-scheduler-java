@@ -6,6 +6,7 @@ const VARIANTS: Record<string, { className: string; label: string }> = {
   NEEDS_COORDINATION: { className: styles.pillWarning ?? "", label: "Needs coordination" },
   READY: { className: styles.pillBrand ?? "", label: "Ready for review" },
   APPROVED: { className: styles.pillSuccess ?? "", label: "Approved" },
+  DENIED: { className: styles.pillNeutral ?? "", label: "Denied" },
 };
 
 export default function StatusPill({ status }: { status: string }) {
