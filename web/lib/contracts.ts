@@ -30,13 +30,24 @@ const routeSummary = z.object({
   technician_id: text, stop_count: z.int().nonnegative(), route_minutes: finite, drive_minutes: finite,
   waiting_minutes: finite, distance_meters: finite, modeled_cost_cents: finite, workload_minutes: finite,
   overtime_minutes: finite, appointment_ids: z.array(text),
+  segments: z.array(z.object({ departure: instant, returned_at: instant, appointment_ids: z.array(text) })).nullish(),
 });
+const policyMetrics = z.object({ overtimeMinutes: z.int().nonnegative(), costCents: z.int().nonnegative(),
+  fairness: z.object({ variance: finite.nonnegative(), maximumUtilization: finite.nonnegative(),
+    workloads: z.array(z.object({ technicianId: text, paidMinutes: z.int().nonnegative(),
+      regularCapacityMinutes: z.int().positive(), utilization: finite.nonnegative() })) }) });
+export const policyAnalysis = z.object({ version: z.literal("overtime-fairness-v1"), before: policyMetrics, after: policyMetrics,
+  decision: z.object({ accepted: z.boolean(), reason: text, referenceCostCents: z.int().nonnegative(),
+    overtimeTargetMinutes: z.int().nonnegative(), costCeilingCents: z.int().nonnegative() }),
+  rules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: finite.min(0).max(1),
+    fairnessAllowance: finite.min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }), costChangeCents: z.int() });
 export const optimization = z.object({
   run_id: text, metro_id: text, service_date: date, status: text, reason: z.string().nullable(),
   solver_status: text, solve_ms: finite.nonnegative(), routing_identity: text, configuration_version: text,
   objective_improvement: finite, churn_penalty_minutes: finite, optimized: z.boolean(),
   appointments_moved: z.int().nonnegative(), created_at: instant, applied_at: instant.nullable(), warnings: z.array(z.string()),
   route_summary_before: z.array(routeSummary), route_summary_after: z.array(routeSummary),
+  policy_analysis: policyAnalysis.nullish(),
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
 });

@@ -38,6 +38,8 @@ public class BookingService {
     private record Tech(String id, RouteEndpoints endpoints, int shiftStart, int shiftEnd, int maxDaily, int maxOvertime) { }
     private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
     private record Visit(String id, RoadClient.Point point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
+    private record EvaluationContext(List<TechRoute.Unavailable> absences, Map<String, DayPlan.RoadLeg> matrix,
+                                     Map<String, Double> settings) { }
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
                            long meters, long costCents, Map<String, Instant> arrivals) { }
 
@@ -233,14 +235,23 @@ public class BookingService {
 
     private List<Candidate> candidates(Job job, @Nullable LocalDate onlyDay, @Nullable Instant onlyStart) {
         List<Candidate> result = new ArrayList<>();
+        Map<String, Double> sharedSettings = Required.value(Map.copyOf(settings()));
+        String routingIdentity = roads.activeIdentity();
         List<LocalDate> days = onlyDay == null ? bookingDates(Required.value(Instant.now())) : Required.value(List.of(Required.value(onlyDay)));
         for (LocalDate day : days) {
             LocalDate serviceDay = Required.value(day);
             for (Tech tech : technicians(job.serviceId(), serviceDay, job.metroId())) {
+                    List<Visit> visits = visits(tech.id(), serviceDay, job.id());
+                    List<Visit> locations = new ArrayList<>(visits);
+                    Instant startOfShift = ScheduleCutoff.localMinute(serviceDay, tech.shiftStart(), false);
+                    locations.add(new Visit(job.id(), job.point(), startOfShift, Required.value(startOfShift.plus(Duration.ofHours(2))), startOfShift, job.duration(), true));
+                    EvaluationContext snapshot = prepare(Required.value(tech), serviceDay, locations, sharedSettings, routingIdentity);
+                    Metrics baseline = evaluate(Required.value(tech), serviceDay, visits, snapshot);
+                    if (!baseline.feasible()) continue;
                     for (int minute : windowStartMinutes(tech.shiftStart(), tech.shiftEnd())) {
                         Instant start = ScheduleCutoff.localMinute(serviceDay, minute, false);
                         if (onlyStart != null && !start.equals(onlyStart)) continue;
-                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(2))));
+                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(2))), visits, snapshot, baseline);
                         if (c != null) result.add(c);
                     }
             }
@@ -270,13 +281,21 @@ public class BookingService {
 
     private @Nullable Candidate evaluateCandidate(Job job, Tech tech, LocalDate day, Instant start, Instant end) {
         List<Visit> visits = visits(tech.id(), day, job.id());
-        Metrics baseline = evaluate(tech, day, visits);
+        List<Visit> locations = new ArrayList<>(visits);
+        locations.add(new Visit(job.id(), job.point(), start, end, start, job.duration(), true));
+        EvaluationContext snapshot = prepare(tech, day, locations, settings(), roads.activeIdentity());
+        Metrics baseline = evaluate(tech, day, visits, snapshot);
+        return evaluateCandidate(job, tech, day, start, end, visits, snapshot, baseline);
+    }
+
+    private @Nullable Candidate evaluateCandidate(Job job, Tech tech, LocalDate day, Instant start, Instant end,
+            List<Visit> visits, EvaluationContext snapshot, Metrics baseline) {
         if (!baseline.feasible()) return null;
         Candidate best = null;
         for (int position = 0; position <= visits.size(); position++) {
             List<Visit> proposal = new ArrayList<>(visits);
             proposal.add(position, new Visit(job.id(), job.point(), start, end, start, job.duration(), true));
-            Metrics m = evaluate(tech, day, proposal);
+            Metrics m = evaluate(tech, day, proposal, snapshot);
             if (!m.feasible() || m.newArrival() == null) continue;
             double paidDelta = m.paidMinutes() - baseline.paidMinutes();
             double overtimeDelta = m.overtimeMinutes() - baseline.overtimeMinutes();
@@ -290,24 +309,45 @@ public class BookingService {
 
     private Metrics evaluate(Tech tech, LocalDate day, List<Visit> visits) {
         if (visits.isEmpty()) return new Metrics(true, null, 0, 0, 0, 0, Required.value(Map.of()));
-        Map<String, Double> settings = settings();
-        Instant shiftStart = ScheduleCutoff.localMinute(day, tech.shiftStart(), false);
-        Instant shiftEnd = ScheduleCutoff.localMinute(day, tech.shiftEnd(), true);
-        TechRoute route = new TechRoute(tech.id(), shiftStart, shiftEnd, tech.maxDaily(), tech.maxOvertime(), Required.value(Set.of("BOOKING")));
-        jdbc.query("SELECT i.\"startMin\", i.\"endMin\" FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.status='APPROVED' AND r.\"technicianId\"=? AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> route.getUnavailable().add(new TechRoute.Unavailable(
-                        ScheduleCutoff.localMinute(day, Required.integer(rs, 1), false),
-                        ScheduleCutoff.localMinute(day, Required.integer(rs, 2), true))), tech.id(), dayStamp(day));
+        return evaluate(tech, day, visits, prepare(tech, day, visits, settings(), roads.activeIdentity()));
+    }
+
+    private EvaluationContext prepare(Tech tech, LocalDate day, List<Visit> visits, Map<String, Double> settings, String routingIdentity) {
+        List<TechRoute.Unavailable> absences = jdbc.query("SELECT i.\"startMin\", i.\"endMin\" FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.status='APPROVED' AND r.\"technicianId\"=? AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
+                (rs, _) -> new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, Required.integer(rs, 1), false),
+                        ScheduleCutoff.localMinute(day, Required.integer(rs, 2), true)), tech.id(), dayStamp(day));
         Map<String, RoadClient.Point> points = new LinkedHashMap<>();
         points.put(tech.id(), tech.endpoints().departure());
         points.put(tech.id() + ":return", tech.endpoints().returnTo());
-        for (Visit visit : visits) {
-            route.getVisits().add(new PlanVisit(visit.id(), "BOOKING", visit.start(), visit.end(), visit.duration(), tech.id(), visit.planned()));
-            points.put(visit.id(), visit.point());
-        }
+        visits.forEach(visit -> points.put(visit.id(), visit.point()));
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
-        roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
-        DayPlan plan = new DayPlan(Required.value(List.of(route)), route.getVisits(), matrix,
+        Map<String, RoadClient.Pair> pairs = new LinkedHashMap<>();
+        for (Visit visit : visits) {
+            addPair(pairs, points, tech.id(), visit.id());
+            addPair(pairs, points, visit.id(), tech.id() + ":return");
+        }
+        for (int index = 1; index < visits.size(); index++) addPair(pairs, points, visits.get(index - 1).id(), visits.get(index).id());
+        for (Visit candidate : visits) if (candidate.newJob()) for (Visit existing : visits) if (!candidate.id().equals(existing.id())) {
+            addPair(pairs, points, candidate.id(), existing.id());
+            addPair(pairs, points, existing.id(), candidate.id());
+        }
+        roads.sparse(new ArrayList<>(pairs.values()), routingIdentity).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
+        return new EvaluationContext(Required.value(List.copyOf(absences)), Required.value(Map.copyOf(matrix)), Required.value(Map.copyOf(settings)));
+    }
+
+    private static void addPair(Map<String, RoadClient.Pair> pairs, Map<String, RoadClient.Point> points, String from, String to) {
+        pairs.putIfAbsent(from + ">" + to, new RoadClient.Pair(from + ">" + to,
+                Required.value(points.get(from), "road origin"), Required.value(points.get(to), "road destination")));
+    }
+
+    private Metrics evaluate(Tech tech, LocalDate day, List<Visit> visits, EvaluationContext snapshot) {
+        Instant shiftStart = ScheduleCutoff.localMinute(day, tech.shiftStart(), false);
+        Instant shiftEnd = ScheduleCutoff.localMinute(day, tech.shiftEnd(), true);
+        TechRoute route = new TechRoute(tech.id(), shiftStart, shiftEnd, tech.maxDaily(), tech.maxOvertime(), Required.value(Set.of("BOOKING")));
+        route.setUnavailable(new ArrayList<>(snapshot.absences()));
+        for (Visit visit : visits) route.getVisits().add(new PlanVisit(visit.id(), "BOOKING", visit.start(), visit.end(), visit.duration(), tech.id(), visit.planned()));
+        Map<String, Double> settings = snapshot.settings();
+        DayPlan plan = new DayPlan(Required.value(List.of(route)), route.getVisits(), snapshot.matrix(),
                 settings.getOrDefault("regular_hourly_dollars", 30.0), settings.getOrDefault("overtime_hourly_dollars", 45.0),
                 settings.getOrDefault("mileage_dollars_per_mile", 0.67), settings.getOrDefault("travel_buffer_pct", 0.2),
                 Math.round(settings.getOrDefault("travel_buffer_minutes_per_leg", 5.0)));

@@ -9,8 +9,11 @@ import java.util.*;
 /** Independently recomputes route timing, coverage, qualifications, limits, and cost. */
 public final class RouteEvaluator {
     public record Result(boolean feasible, long costCents, Map<String, Instant> arrivals,
-                         long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) { }
+                         long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters,
+                         Map<String, List<WorkingSegment>> segments) { }
+    public record WorkingSegment(Instant departure, Instant returnedAt, List<String> visitIds) { }
     private record Segment(String previous, Instant departure, Instant done) { }
+    private record Timing(PlanVisit visit, Instant arrival, long waitingBefore) { }
     private record Work(Instant start, Instant end) { }
     private record RouteResult(boolean feasible, long paid, long overtime, long drive, long waiting, long meters) { }
     private RouteEvaluator() { }
@@ -22,10 +25,13 @@ public final class RouteEvaluator {
         Set<String> seen = new HashSet<>();
         Map<String, Instant> arrivals = new HashMap<>();
         long paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;
+        Map<String, List<WorkingSegment>> segments = new LinkedHashMap<>();
         for (TechRoute route : plan.getRoutes()) {
             for (PlanVisit visit : route.getVisits())
                 if (!seen.add(visit.getId()) || !expected.contains(visit.getId())) feasible = false;
-            RouteResult result = validateRoute(plan, route, arrivals);
+            List<WorkingSegment> routeSegments = new ArrayList<>();
+            RouteResult result = validateRoute(plan, route, arrivals, routeSegments);
+            segments.put(route.getId(), Required.value(List.copyOf(routeSegments)));
             feasible &= result.feasible();
             paid += result.paid(); overtime += result.overtime(); drive += result.drive();
             waiting += result.waiting(); meters += result.meters();
@@ -34,13 +40,14 @@ public final class RouteEvaluator {
         long cents = Math.round((paid - overtime) * plan.getRegularHourly() * 100 / 60.0
                 + overtime * plan.getOvertimeHourly() * 100 / 60.0
                 + meters / 1609.344 * plan.getMileagePerMile() * 100);
-        return new Result(feasible, cents, arrivals, paid, overtime, drive, waiting, meters);
+        return new Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters, Required.value(Map.copyOf(segments)));
     }
 
-    private static RouteResult validateRoute(DayPlan plan, TechRoute route, Map<String, Instant> arrivals) {
+    private static RouteResult validateRoute(DayPlan plan, TechRoute route, Map<String, Instant> arrivals, List<WorkingSegment> segments) {
         List<Work> work = workingIntervals(route);
         long paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;
         long segmentDrive = 0, segmentWaiting = 0, segmentMeters = 0;
+        List<Timing> segmentTimings = new ArrayList<>();
         int interval = 0;
         Segment segment = null;
         boolean feasible = true;
@@ -61,6 +68,7 @@ public final class RouteEvaluator {
                 if (arrival.isBefore(visit.getWindowEnd()) && !doneAtHome.isAfter(shift.end())) {
 
                     segmentWaiting += Math.max(0, Duration.between(fromTime.plus(Duration.ofMinutes(travel)), arrival).toMinutes());
+                    segmentTimings.add(new Timing(visit, arrival, segmentWaiting));
                     segmentDrive += travel; segmentMeters += road.meters();
                     segment = new Segment(visit.getId(), depart, Required.value(arrival.plus(Duration.ofMinutes(visit.getDurationMinutes())))); arrivals.put(visit.getId(), arrival);
                     placed = true;
@@ -71,9 +79,14 @@ public final class RouteEvaluator {
                     if (home == null) { feasible = false; break; }
                     Instant back = segment.done().plus(Duration.ofMinutes(travel(plan, home)));
                     if (back.isAfter(shift.end())) feasible = false;
-                    paid += Duration.between(segment.departure(), back).toMinutes();
-                    overtime += Math.max(0, Duration.between(latest(segment.departure(), route.getShiftEnd()), back).toMinutes());
-                    drive += segmentDrive + travel(plan, home); waiting += segmentWaiting; meters += segmentMeters + home.meters();
+                    long delay = delayDeparture(segmentTimings, segmentWaiting, arrivals);
+                    Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
+                    segments.add(new WorkingSegment(departure, Required.value(back),
+                            Required.value(segmentTimings.stream().<String>map((Timing timing) -> timing.visit().getId()).toList())));
+                    paid += Duration.between(departure, back).toMinutes();
+                    overtime += Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes());
+                    drive += segmentDrive + travel(plan, home); waiting += segmentWaiting - delay; meters += segmentMeters + home.meters();
+                    segmentTimings.clear();
                     segment = null;
                     segmentDrive = segmentWaiting = segmentMeters = 0;
                 }
@@ -87,13 +100,31 @@ public final class RouteEvaluator {
             else {
                 Instant back = segment.done().plus(Duration.ofMinutes(travel(plan, home)));
                 if (back.isAfter(work.get(interval).end())) feasible = false;
-                paid += Duration.between(segment.departure(), back).toMinutes();
-                overtime += Math.max(0, Duration.between(latest(segment.departure(), route.getShiftEnd()), back).toMinutes());
-                drive += segmentDrive + travel(plan, home); waiting += segmentWaiting; meters += segmentMeters + home.meters();
+                long delay = delayDeparture(segmentTimings, segmentWaiting, arrivals);
+                Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
+                segments.add(new WorkingSegment(departure, Required.value(back),
+                        Required.value(segmentTimings.stream().<String>map((Timing timing) -> timing.visit().getId()).toList())));
+                paid += Duration.between(departure, back).toMinutes();
+                overtime += Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes());
+                drive += segmentDrive + travel(plan, home); waiting += segmentWaiting - delay; meters += segmentMeters + home.meters();
             }
         }
         if (paid > route.getMaxDailyMinutes() || overtime > route.getMaxOvertimeMinutes()) feasible = false;
         return new RouteResult(feasible, paid, overtime, drive, waiting, meters);
+    }
+
+    // Absorb waiting without moving the segment's return time. The earliest equivalent
+    // departure is the first point at which all removable waiting has disappeared.
+    private static long delayDeparture(List<Timing> timings, long waiting, Map<String, Instant> arrivals) {
+        long delay = waiting;
+        for (Timing timing : timings) {
+            long slack = Duration.between(timing.arrival(), timing.visit().getWindowEnd().minusNanos(1)).toMinutes();
+            delay = Math.min(delay, slack + timing.waitingBefore());
+        }
+        delay = Math.max(0, delay);
+        for (Timing timing : timings) arrivals.put(timing.visit().getId(), Required.value(timing.arrival()
+                .plus(Duration.ofMinutes(Math.max(0, delay - timing.waitingBefore())))));
+        return delay;
     }
 
     private static List<Work> workingIntervals(TechRoute route) {

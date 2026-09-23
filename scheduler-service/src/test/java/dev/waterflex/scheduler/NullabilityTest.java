@@ -73,6 +73,9 @@ class NullabilityTest {
 
     @Test void malformedSavedAssignmentsAndVersionsFailClosed() throws Exception {
         ObjectMapper json = new ObjectMapper();
+        for (String body : List.of("null", "{}", "[]", "{\"version\":\"overtime-fairness-v1\",\"costChangeCents\":null}",
+                "{\"version\":\"overtime-fairness-v1\",\"costChangeCents\":0,\"rules\":null}"))
+            assertThrows(ResponseStatusException.class, () -> SavedJson.policyAnalysis(Required.value(json.readTree(body))));
         for (String body : List.of("null", "{}", "[null]", "[{\"appointmentId\":\"a\"}]"))
             assertThrows(ResponseStatusException.class, () -> SavedJson.assignments(Required.value(json.readTree(body))));
         for (String body : List.of("null", "[]", "{\"t\":null}", "{\"t\":\"0\"}", "{\"t\":-1}"))

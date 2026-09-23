@@ -21,6 +21,7 @@ import java.util.*;
 public class RoadClient {
     public record Point(double lat, double lng) { }
     public record Leg(long seconds, long meters) { }
+    public record Pair(String id, Point origin, Point destination) { }
     public static class RoadUnavailable extends RuntimeException {
         private static final long serialVersionUID = 1L;
         public RoadUnavailable(String message) { super(message); }
@@ -82,10 +83,94 @@ public class RoadClient {
         return leg;
     }
 
+    /** Directed pairs only. Absence in the result means an explicitly unroutable pair. */
+    public Map<String, Leg> sparse(List<Pair> pairs, String identity) {
+        if (identity.isBlank()) throw new RoadUnavailable("Routing identity required");
+        Map<String, String> ids = new LinkedHashMap<>();
+        Map<String, Pair> unique = new LinkedHashMap<>();
+        for (Pair pair : pairs) {
+            if (pair.id().isBlank() || ids.containsKey(pair.id())) throw new IllegalArgumentException("Duplicate or missing pair ID");
+            String origin = key(pair.origin()), destination = key(pair.destination()), coordinatePair = origin + ">" + destination;
+            ids.put(pair.id(), coordinatePair);
+            unique.putIfAbsent(coordinatePair, new Pair(coordinatePair, normalized(origin), normalized(destination)));
+        }
+        Map<String, Cached> found = new HashMap<>();
+        List<Pair> missing = new ArrayList<>();
+        for (Pair pair : unique.values()) {
+            Cached cached = memory.get(pair.id() + ":" + identity);
+            if (cached != null && cached.expiresAt().isAfter(Instant.now())) found.put(pair.id(), cached);
+            else missing.add(pair);
+        }
+        for (int offset = 0; offset < missing.size(); offset += 256) {
+            List<Pair> batch = missing.subList(offset, Math.min(offset + 256, missing.size()));
+            List<Object> arguments = new ArrayList<>();
+            arguments.add(identity);
+            for (Pair pair : batch) { arguments.add(key(pair.origin())); arguments.add(key(pair.destination())); }
+            String values = String.join(",", Collections.nCopies(batch.size(), "(?,?)"));
+            jdbc.query("SELECT \"originKey\",\"destinationKey\",seconds,meters,routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND (\"originKey\",\"destinationKey\") IN (" + values + ") AND \"fetchedAt\">CURRENT_TIMESTAMP-INTERVAL '30 days'",
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                        String id = Required.string(rs, 1) + ">" + Required.string(rs, 2);
+                        boolean routable = Required.bool(rs, 5);
+                        Long seconds = Required.nullableLong(rs, 3), meters = Required.nullableLong(rs, 4);
+                        if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0))
+                            throw new RoadUnavailable("Malformed persisted road leg");
+                        Cached cached = new Cached(routable ? new Leg(Required.value(seconds), Required.value(meters)) : null,
+                                Required.value(Instant.now().plus(cacheTtl)));
+                        found.put(id, cached); memory.put(id + ":" + identity, cached);
+                    }, Required.value(arguments.toArray(new @Nullable Object[0])));
+            List<Pair> requested = batch.stream().filter(pair -> !found.containsKey(pair.id())).toList();
+            if (requested.isEmpty()) continue;
+            try {
+                byte[] body = mapper.writeValueAsBytes(Map.of("pairs", requested, "expectedRoutingIdentity", identity));
+                var request = HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(Duration.ofSeconds(10))
+                        .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
+                var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) throw new RoadUnavailable("Sparse routing unavailable: HTTP " + response.statusCode());
+                JsonNode data = mapper.readTree(response.body());
+                if (!identity.equals(data.path("routingIdentity").asText()) || !data.path("pairs").isArray()
+                        || data.path("pairs").size() != requested.size()) throw new RoadUnavailable("Malformed sparse routing response or changed identity");
+                Set<String> expected = new HashSet<>();
+                requested.forEach(pair -> expected.add(pair.id()));
+                List<@Nullable Object[]> writes = new ArrayList<>();
+                for (JsonNode item : data.path("pairs")) {
+                    if (!item.path("id").isTextual() || !expected.remove(item.path("id").asText())) throw new RoadUnavailable("Unexpected sparse pair ID");
+                    String id = Required.value(item.path("id").asText());
+                    JsonNode leg = item.path("leg");
+                    if (!leg.path("routable").isBoolean()) throw new RoadUnavailable("Missing pair routability");
+                    Leg value = null;
+                    if (leg.path("routable").asBoolean()) {
+                        if (!leg.path("seconds").isIntegralNumber() || !leg.path("seconds").canConvertToLong() || leg.path("seconds").asLong() < 0
+                                || !leg.path("meters").isIntegralNumber() || !leg.path("meters").canConvertToLong() || leg.path("meters").asLong() < 0)
+                            throw new RoadUnavailable("Malformed sparse road leg");
+                        value = new Leg(leg.path("seconds").asLong(), leg.path("meters").asLong());
+                    }
+                    Pair pair = Required.value(unique.get(id), "requested road pair");
+                    Cached cached = new Cached(value, Required.value(Instant.now().plus(cacheTtl)));
+                    found.put(id, cached);
+                    writes.add(new @Nullable Object[]{UUID.randomUUID().toString(), key(pair.origin()), key(pair.destination()), identity,
+                            value == null ? null : value.seconds(), value == null ? null : value.meters(), value != null});
+                }
+                jdbc.batchUpdate("INSERT INTO road_route_cache (id,\"originKey\",\"destinationKey\",profile,\"mapVersion\",seconds,meters,routable) VALUES (?,?,?,'car',?,?,?,?) ON CONFLICT (\"originKey\",\"destinationKey\",profile,\"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds,meters=EXCLUDED.meters,routable=EXCLUDED.routable,\"fetchedAt\"=CURRENT_TIMESTAMP", writes);
+                for (Pair pair : requested) memory.put(pair.id() + ":" + identity, Required.value(found.get(pair.id()), "resolved road pair"));
+            } catch (RoadUnavailable e) { throw e; }
+              catch (Exception e) { throw new RoadUnavailable("Sparse routing unavailable: " + e.getClass().getSimpleName()); }
+        }
+        Map<String, Leg> result = new LinkedHashMap<>();
+        ids.forEach((id, coordinatePair) -> {
+            Leg leg = Required.value(found.get(coordinatePair), "resolved directed pair").leg();
+            if (leg != null) result.put(id, leg);
+        });
+        return Required.value(Map.copyOf(result));
+    }
+
     /** Returns directed legs by caller ID; missing entries are proven unreachable. */
     public Map<String, Leg> matrix(Map<String, Point> locations) {
         if (locations.isEmpty()) return Required.value(Map.of());
-        String identity = healthIdentity();
+        return matrix(locations, healthIdentity());
+    }
+
+    public Map<String, Leg> matrix(Map<String, Point> locations, String identity) {
+        if (identity.isBlank()) throw new RoadUnavailable("Routing identity required");
         Map<String, Point> unique = new LinkedHashMap<>();
         Map<String, String> locationKeys = new LinkedHashMap<>();
         for (var entry : locations.entrySet()) {
