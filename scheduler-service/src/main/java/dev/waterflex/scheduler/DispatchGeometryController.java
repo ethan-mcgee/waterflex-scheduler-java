@@ -26,7 +26,7 @@ public class DispatchGeometryController {
     public record LineString(String type, List<List<Double>> coordinates) { }
     public record RoadProperties(String technicianId, String interval, int legIndex, long seconds, long meters) { }
     public record RoadFeature(String type, LineString geometry, RoadProperties properties) { }
-    private record SavedGeometry(String before, String after, String weights) { }
+    private record SavedGeometry(String before, String after, String weights, @Nullable String endpoints) { }
     private record Stop(String id, String technicianId, int sequence, Instant plannedStart, RoadClient.Point point) { }
     private record Absence(Instant start, Instant end) { }
     private final JdbcTemplate jdbc;
@@ -79,10 +79,9 @@ public class DispatchGeometryController {
         if (phase.equals("after") && (runId == null || runId.isBlank()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
         Timestamp serviceDate = Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant());
-        Map<String, RoadClient.Point> homes = new LinkedHashMap<>();
-        jdbc.query("SELECT id, \"homeLat\", \"homeLng\" FROM technician WHERE \"metroId\"=? ORDER BY id",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> homes.put(Required.string(rs, 1),
-                        Required.location(rs, 2, 3, HttpStatus.CONFLICT)), metroId);
+        Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
+        if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE t.\"metroId\"=? ORDER BY t.id",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(Required.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, metroId);
         List<Stop> stops;
         if (phase.equals("current")) {
             stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
@@ -91,21 +90,29 @@ public class DispatchGeometryController {
         } else {
             if (runId == null || runId.isBlank())
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
-            var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
-                    (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)), runId, metroId, serviceDate);
+            var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text, \"endpointSnapshots\"::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
+                    (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3), rs.getString(4)), runId, metroId, serviceDate);
             if (runs.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Optimization run not found");
             try {
+                String snapshot = runs.getFirst().endpoints();
+                if (snapshot == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Historical endpoint geometry is unavailable for this preview");
+                JsonNode savedEndpoints = Required.value(mapper.readTree(snapshot));
+                if (!savedEndpoints.isObject()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid endpoint snapshots");
+                savedEndpoints.properties().forEach(entry -> {
+                    JsonNode departure = entry.getValue().path("departure"), returnTo = entry.getValue().path("returnTo");
+                    endpoints.put(entry.getKey(), new RouteEndpoints(savedPoint(Required.value(departure)), savedPoint(Required.value(returnTo))));
+                });
                 if (!SavedJson.provenance(Required.value(mapper.readTree(runs.getFirst().weights()))).path("mapVersion").asText().equals(roads.activeIdentity()))
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; generate a new preview");
                 List<Stop> savedStops = new ArrayList<>();
                 for (JsonNode assignment : SavedJson.assignments(Required.value(mapper.readTree(phase.equals("before") ? runs.getFirst().before() : runs.getFirst().after())))) {
                     String technicianId = SavedJson.text(Required.value(assignment), "technicianId");
-                    if (!homes.containsKey(technicianId))
+                    if (!endpoints.containsKey(technicianId))
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Saved route technician is unavailable");
                     savedStops.add(new Stop(SavedJson.text(Required.value(assignment), "appointmentId"), technicianId,
                             Math.toIntExact(SavedJson.integer(Required.value(assignment), "sequence")),
                             Required.value(Instant.parse(SavedJson.text(Required.value(assignment), "plannedStart"))),
-                            new RoadClient.Point(assignment.path("locationLat").asDouble(), assignment.path("locationLng").asDouble())));
+                            savedAssignmentPoint(Required.value(assignment))));
                 }
                 stops = savedStops;
             } catch (ResponseStatusException e) { throw e; }
@@ -133,12 +140,12 @@ public class DispatchGeometryController {
             route.sort(Comparator.comparingInt((Stop stop) -> stop.sequence())
                     .thenComparing((Stop stop) -> stop.id()));
             String techId = route.getFirst().technicianId();
-            RoadClient.Point home = homes.get(techId);
-            if (home == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable");
+            RouteEndpoints anchor = endpoints.get(techId);
+            if (anchor == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable");
             List<RoadClient.Point> points = new ArrayList<>();
-            points.add(home);
+            points.add(anchor.departure());
             route.forEach(stop -> points.add(stop.point()));
-            points.add(home);
+            points.add(anchor.returnTo());
             for (int offset = 0; offset < points.size() - 1; offset += 64) {
                 JsonNode legs = roads.routeGeometry(Required.value(points.subList(offset, Math.min(points.size(), offset + 65))), identity).path("legs");
                 for (int i = 0; i < legs.size(); i++) {
@@ -152,7 +159,29 @@ public class DispatchGeometryController {
         List<Map<String, Object>> displayedStops = stops.stream().map(stop -> Map.<String, Object>of(
                 "id", stop.id(), "technicianId", stop.technicianId(), "sequence", stop.sequence(),
                 "plannedStart", stop.plannedStart().toString(), "lat", stop.point().lat(), "lng", stop.point().lng())).toList();
+        List<Map<String, Object>> displayedEndpoints = endpoints.entrySet().stream().map(entry -> Map.<String, Object>of(
+                "technicianId", entry.getKey(), "departureLat", entry.getValue().departure().lat(),
+                "departureLng", entry.getValue().departure().lng(), "returnLat", entry.getValue().returnTo().lat(),
+                "returnLng", entry.getValue().returnTo().lng())).toList();
         return Required.value(Map.of("type", "FeatureCollection", "features", features, "stops", Required.value(displayedStops),
-                "routingIdentity", identity, "serviceDate", Required.value(day.toString()), "phase", phase));
+                "endpoints", Required.value(displayedEndpoints), "routingIdentity", identity, "serviceDate", Required.value(day.toString()), "phase", phase));
+    }
+
+    private static RoadClient.Point savedPoint(JsonNode node) {
+        if (!node.isObject() || !node.path("lat").isNumber() || !node.path("lng").isNumber())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid endpoint snapshots");
+        double lat = node.path("lat").asDouble(), lng = node.path("lng").asDouble();
+        if (!Double.isFinite(lat) || !Double.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid endpoint snapshots");
+        return new RoadClient.Point(lat, lng);
+    }
+
+    private static RoadClient.Point savedAssignmentPoint(JsonNode assignment) {
+        if (!assignment.path("locationLat").isNumber() || !assignment.path("locationLng").isNumber())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignment coordinates");
+        double lat = assignment.path("locationLat").asDouble(), lng = assignment.path("locationLng").asDouble();
+        if (!Double.isFinite(lat) || !Double.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignment coordinates");
+        return new RoadClient.Point(lat, lng);
     }
 }

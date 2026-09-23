@@ -8,12 +8,14 @@ export async function POST(request: NextRequest) {
   const parsed = await readBody(request, createTechnicianRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid technician profile or weekly availability" }, { status: 400 });
   const input = parsed.data;
-  const [metro, services, candidates] = await Promise.all([
+  const [metro, dealership, services, candidates] = await Promise.all([
     prisma.metro.findUnique({ where: { id: input.metroId } }),
+    prisma.dealership.findUnique({ where: { id: input.dealershipId }, include: { depot: true } }),
     prisma.serviceCatalog.findMany({ where: { id: { in: input.qualifications }, active: true }, select: { id: true } }),
     searchAddress(input.address),
   ]);
-  if (!metro || services.length !== input.qualifications.length) return NextResponse.json({ error: "Invalid metro or qualification" }, { status: 400 });
+  if (!metro || !dealership || dealership.metroId !== metro.id || dealership.depot.metroId !== metro.id || services.length !== input.qualifications.length)
+    return NextResponse.json({ error: "Invalid metro, dealership, depot, or qualification" }, { status: 400 });
   const selected = candidates.find(candidate => Math.abs(candidate.lat - input.confirmedPin.lat) < 0.0001 &&
     Math.abs(candidate.lng - input.confirmedPin.lng) < 0.0001);
   if (!selected) return NextResponse.json({ error: "Choose a verified address pin" }, { status: 422 });
@@ -23,7 +25,7 @@ export async function POST(request: NextRequest) {
   if (!firstAvailable || firstAvailable.shiftStartMin == null || firstAvailable.shiftEndMin == null)
     return NextResponse.json({ error: "Valid shift hours are required" }, { status: 400 });
   const technician = await prisma.technician.create({ data: {
-    metroId: metro.id, name: input.name, email: input.email ?? null, phone: input.phone ?? null,
+    metroId: metro.id, dealershipId: dealership.id, name: input.name, email: input.email ?? null, phone: input.phone ?? null,
     bio: input.bio ?? null, color: input.color, homeLat: selected.lat, homeLng: selected.lng,
     homeAddressLine1: input.address.line1, homeAddressCity: input.address.city,
     homeAddressState: input.address.state, homeAddressPostalCode: input.address.postalCode,

@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
-/** Evaluates paid home-to-home work intervals separated by approved absences. */
+/** Evaluates working intervals separated by approved absences. */
 final class RouteTimeline {
     record Result(long hardPenalty, long costCents, Map<String, Instant> arrivals,
                   long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) { }
@@ -34,7 +34,7 @@ final class RouteTimeline {
                 Instant proposedDeparture = segment == null ? max(block.start(), Required.value(visit.getWindowStart().minus(Duration.ofMinutes(travel)))) : segment.departure();
                 Instant start = segment == null ? proposedDeparture : segment.done();
                 Instant arrival = max(Required.value(start.plus(Duration.ofMinutes(travel))), visit.getWindowStart());
-                DayPlan.RoadLeg home = plan.getMatrix().get(visit.getId() + ">" + route.getId());
+                DayPlan.RoadLeg home = plan.getMatrix().get(visit.getId() + ">" + route.getId() + ":return");
                 if (home == null) { hard += 1_000_000; break; }
                 Instant homeReturn = arrival.plus(Duration.ofMinutes(visit.getDurationMinutes() + buffered(plan, home)));
                 if (arrival.isBefore(visit.getWindowEnd()) && !homeReturn.isAfter(block.end())) {
@@ -48,7 +48,7 @@ final class RouteTimeline {
                     break;
                 }
                 if (segment != null) {
-                    DayPlan.RoadLeg returnHome = plan.getMatrix().get(segment.previous() + ">" + route.getId());
+                    DayPlan.RoadLeg returnHome = plan.getMatrix().get(segment.previous() + ">" + route.getId() + ":return");
                     if (returnHome == null) { hard += 1_000_000; break; }
                     Instant finish = segment.done().plus(Duration.ofMinutes(buffered(plan, returnHome)));
                     if (finish.isAfter(block.end())) hard += 1_000_000;
@@ -65,7 +65,7 @@ final class RouteTimeline {
             if (!placed) hard += 1_000_000;
         }
         if (segment != null) {
-            DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId());
+            DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId() + ":return");
             if (home == null) hard += 1_000_000;
             else {
                 Instant finish = segment.done().plus(Duration.ofMinutes(buffered(plan, home)));
