@@ -161,65 +161,8 @@
   gap: 8px;
 }
 
-.weekStrip {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.weekScroller {
-  overflow-x: auto;
-  margin-bottom: 22px;
-}
-
-.day {
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 10px 8px;
-  text-align: center;
-  background: var(--surface-soft);
-}
-
-.day .dname {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.day .ddate {
-  font-size: 13px;
-  font-weight: 700;
-  margin: 3px 0 8px;
-}
-
-.shiftBlock {
-  font-size: 11px;
-  font-weight: 650;
-  border-radius: 6px;
-  padding: 5px 4px;
-}
-
-.absence {
-  margin-top: 5px;
-  padding: 4px;
-  border-radius: 5px;
-  background: var(--warning-wash);
-  color: var(--warning);
-  font-size: 10px;
-  font-weight: 650;
-}
-
-.dayOn .shiftBlock {
-  background: var(--success-wash);
-  color: var(--success);
-}
-
-.dayOff .shiftBlock {
-  background: var(--danger-wash);
-  color: var(--danger);
+.profileQualifications {
+  margin-bottom: 24px;
 }
 
 .overrideList {
@@ -554,7 +497,6 @@
   .detail { padding: 18px 14px; min-width: 0; }
   .detailHead { flex-direction: column; }
   .detailActions { justify-content: flex-start; }
-  .weekStrip { min-width: 720px; }
   .overrideForm { grid-template-columns: 1fr 1fr; }
   .overrideRow { flex-wrap: wrap; }
 }

@@ -1,25 +1,23 @@
 "use client";
 
 import { errorMessage, readResponse, success } from "@/lib/contracts";
-import { mondayOfWeek, weekDates } from "@/lib/date";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Avatar from "../components/Avatar";
 import ui from "../components/ui.module.css";
 import AddTechnicianForm from "./AddTechnicianForm";
-import { DAY_NAMES, formatInterval, fromMinutes, toMinutes } from "./format";
+import { formatInterval, fromMinutes, toMinutes } from "./format";
 import StandardAvailabilityGrid, { type StandardDay } from "./StandardAvailabilityGrid";
 import TechnicianProfileModal, { type ProfileDraft } from "./TechnicianProfileModal";
 import styles from "./technicians.module.css";
 
 interface Override { date: string; available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }
-interface Absence { technicianId: string; date: string; startMin: number | null; endMin: number | null }
 interface Tech { id: string; name: string; active: boolean; email: string | null; phone: string | null; bio: string | null; color: string;
   availabilityVersions: Array<{ effectiveDate: string; days: StandardDay[] }>;
   shiftStartMin: number | null; shiftEndMin: number | null; qualifications: string[]; overrides: Override[]; overridesTruncated: boolean }
 
-export default function TechnicianRoster({ technicians, services, metros, today, absences }: {
-  technicians: Tech[]; services: Array<{ id: string; name: string }>; metros: Array<{ id: string; name: string }>; today: string; absences: Absence[];
+export default function TechnicianRoster({ technicians, services, metros, today }: {
+  technicians: Tech[]; services: Array<{ id: string; name: string }>; metros: Array<{ id: string; name: string }>; today: string;
 }) {
   const router = useRouter();
   const [techId, setTechId] = useState(technicians[0]?.id ?? ""), [search, setSearch] = useState("");
@@ -33,7 +31,6 @@ export default function TechnicianRoster({ technicians, services, metros, today,
   const tech = technicians.find(item => item.id === techId);
   const activeServiceIds = useMemo(() => new Set(services.map(service => service.id)), [services]);
   const filtered = useMemo(() => technicians.filter(item => item.name.toLowerCase().includes(search.toLowerCase())), [technicians, search]);
-  const week = useMemo(() => weekDates(mondayOfWeek(today)), [today]);
 
   function resetDraft(next: Tech, open = false) {
     setDate(""); setAvailable(true); setStart(fromMinutes(next.shiftStartMin)); setEnd(fromMinutes(next.shiftEndMin));
@@ -124,22 +121,12 @@ export default function TechnicianRoster({ technicians, services, metros, today,
           <p style={{ margin: 0, fontSize: 13, color: profileFor(tech).bio ? "var(--ink)" : "var(--quiet)", fontStyle: profileFor(tech).bio ? "normal" : "italic" }}>{profileFor(tech).bio || "No bio provided yet."}</p>
         </div>
 
-        <p className={ui.sectionLabel}>Service qualifications</p><div className={styles.chipRow}>{services.map(service => { const on = tech.qualifications.includes(service.id); return <button key={service.id} type="button" disabled={busy} aria-pressed={on} className={`${ui.chip} ${on ? ui.chipOn : ""}`} onClick={() => toggleQualification(service.id, !on)}>{on && <span aria-hidden="true">&#10003;</span>}{service.name}</button>; })}</div>
+        <p className={ui.sectionLabel}>Service qualifications</p><div className={`${styles.chipRow} ${styles.profileQualifications}`}>{services.map(service => { const on = tech.qualifications.includes(service.id); return <button key={service.id} type="button" disabled={busy} aria-pressed={on} className={`${ui.chip} ${on ? ui.chipOn : ""}`} onClick={() => toggleQualification(service.id, !on)}>{on && <span aria-hidden="true">&#10003;</span>}{service.name}</button>; })}</div>
 
         <p className={ui.sectionLabel}>Current weekly availability</p>
         <StandardAvailabilityGrid days={versionFor(tech, today).days} />
         {tech.availabilityVersions.find(version => version.effectiveDate > today) && <p className={styles.message}>A replacement weekly schedule is pending from {tech.availabilityVersions.find(version => version.effectiveDate > today)?.effectiveDate}. Open Edit profile to review it.</p>}
 
-        <p className={ui.sectionLabel}>This week</p><div className={styles.weekScroller}><div className={styles.weekStrip}>{week.map(dateKey => {
-          const override = tech.overrides.find(item => item.date === dateKey);
-          const daily = versionFor(tech, dateKey).days.find(item => item.dayOfWeek === new Date(`${dateKey}T00:00:00Z`).getUTCDay());
-          if (!daily) throw new Error(`Technician availability is incomplete for ${dateKey}`);
-          const isAvailable = override ? override.available : daily.available;
-          const startMin = override ? override.shiftStartMin : daily.startMin;
-          const endMin = override ? override.shiftEndMin : daily.endMin;
-          const dayAbsences = absences.filter(item => item.technicianId === tech.id && item.date === dateKey);
-          return <div key={dateKey} className={`${styles.day} ${isAvailable ? styles.dayOn : styles.dayOff}`}><div className={styles.dname}>{DAY_NAMES[new Date(`${dateKey}T00:00:00Z`).getUTCDay()]}</div><div className={styles.ddate}>{Number(dateKey.slice(-2))}</div><div className={styles.shiftBlock}>{!isAvailable ? "Off" : formatInterval(startMin, endMin) ?? "Shift hours unavailable"}</div>{dayAbsences.map((absence, index) => <div className={styles.absence} key={`${dateKey}-${index}`}>{formatInterval(absence.startMin, absence.endMin) == null ? "Invalid approved time-off interval" : `Time off ${formatInterval(absence.startMin, absence.endMin)}`}</div>)}</div>;
-        })}</div></div>
         {showForm && <form onSubmit={saveShift} className={styles.overrideForm}><div className={styles.field}><label htmlFor="override-date">Date</label><input id="override-date" type="date" required value={date} min={today} disabled={editingDate != null} onChange={event => setDate(event.target.value)} /></div><div className={styles.checkboxField}><input id="override-available" type="checkbox" checked={available} onChange={event => setAvailable(event.target.checked)} /><label htmlFor="override-available">Available</label></div>{available && <><div className={styles.field}><label htmlFor="override-start">Start</label><input id="override-start" type="time" required value={start} onChange={event => setStart(event.target.value)} /></div><div className={styles.field}><label htmlFor="override-end">End</label><input id="override-end" type="time" required value={end} onChange={event => setEnd(event.target.value)} /></div></>}<button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy}>Save day</button><button className={ui.button} type="button" disabled={busy} onClick={() => { setShowForm(false); setEditingDate(null); }}>Cancel</button></form>}
         {message && <p role="status" className={styles.message}>{message}</p>}<p className={ui.sectionLabel}>Upcoming schedule exceptions</p>
         <div className={styles.overrideList}>{tech.overrides.length === 0 && <p className={styles.message}>No upcoming exceptions.</p>}{tech.overrides.map(item => <div key={item.date} className={styles.overrideRow}><span className={styles.overrideDate}>{item.date}</span><span className={`${ui.pill} ${item.available ? ui.pillSuccess : ui.pillDanger}`}>{item.available ? "Available" : "Off"}</span><span className={styles.overrideTime}>{!item.available ? "Full day" : formatInterval(item.shiftStartMin, item.shiftEndMin) ?? "Invalid shift hours"}</span><button type="button" className={ui.iconButton} aria-label={`Edit ${tech.name}'s exception for ${item.date}`} disabled={busy} onClick={() => { setDate(item.date); setAvailable(item.available); setStart(item.shiftStartMin == null ? fromMinutes(tech.shiftStartMin) : fromMinutes(item.shiftStartMin)); setEnd(item.shiftEndMin == null ? fromMinutes(tech.shiftEndMin) : fromMinutes(item.shiftEndMin)); setEditingDate(item.date); setShowForm(true); setMessage(""); }}>&#9998;</button><button type="button" className={ui.iconButton} aria-label={`Delete ${tech.name}'s exception for ${item.date}`} disabled={busy} onClick={() => deleteOverride(item)}>&#10005;</button></div>)}{tech.overridesTruncated && <p role="note" className={styles.message}>Showing the first 100 upcoming exceptions.</p>}</div>
