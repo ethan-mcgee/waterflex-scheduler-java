@@ -20,6 +20,7 @@
     "test:dealership:integration": "tsx scripts/smoke-dealership-endpoints.ts",
     "test:multi-depot:integration": "tsx scripts/smoke-multi-depot.ts",
     "test:depot-setup:integration": "tsx scripts/smoke-depot-setup.ts",
+    "test:technician-home:integration": "tsx scripts/smoke-technician-home.ts",
     "test:optimizer:integration": "tsx scripts/smoke-optimizer.ts",
     "test:time-off:integration": "tsx scripts/smoke-time-off.ts",
     "addresses:regeocode": "tsx scripts/regeocode-approximate-addresses.ts",

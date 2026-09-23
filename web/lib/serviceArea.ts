@@ -27,3 +27,10 @@ export async function resolveMetroForLocation(lat: number, lng: number): Promise
 
   return bestMetroId;
 }
+
+export async function isWithinMetroServiceArea(lat: number, lng: number, metroId: string): Promise<boolean> {
+  const depots = await prisma.depot.findMany({ where: { metroId }, select: {
+    lat: true, lng: true, metro: { select: { serviceRadiusMi: true } },
+  } });
+  return depots.some(depot => haversineMiles(lat, lng, depot.lat, depot.lng) <= depot.metro.serviceRadiusMi);
+}
