@@ -34,7 +34,7 @@ public class TimeOffService {
     private final TransactionTemplate transactions;
 
     public record Request(String technicianId, String firstDate, String lastDate, Integer startMin, Integer endMin, String category, String reason) { public Request { technicianId = RequestChecks.text(technicianId, "technicianId"); firstDate = RequestChecks.date(firstDate); lastDate = RequestChecks.date(lastDate); category = RequestChecks.text(category, "category"); reason = RequestChecks.text(reason, "reason"); if (startMin == null || endMin == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing absence hours"); if (!allowedCategory(category)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid time-off category"); } }
-    private record Owner(String technicianId, String metroId) { }
+    private record Owner(String technicianId) { }
     private record ApprovalOwner(String technicianId, String status) { }
     private record Report(String data, String status) { }
     private record Interval(LocalDate day, int start, int end) { }
@@ -101,8 +101,8 @@ public class TimeOffService {
     }
 
     private void analyze(String id) throws Exception {
-        var owner = jdbc.query("SELECT r.\"technicianId\", t.\"metroId\" FROM time_off_request r JOIN technician t ON t.id=r.\"technicianId\" WHERE r.id=?",
-                (rs, _) -> new Owner(Required.string(rs, 1), Required.string(rs, 2)), id);
+        var owner = jdbc.query("SELECT r.\"technicianId\" FROM time_off_request r WHERE r.id=?",
+                (rs, _) -> new Owner(Required.string(rs, 1)), id);
         if (owner.isEmpty()) return;
         List<Interval> intervals = intervals(id);
         List<Map<String, Object>> days = new ArrayList<>();
@@ -115,7 +115,9 @@ public class TimeOffService {
                 if (ScheduleCutoff.frozen(interval.day(), Required.value(Instant.now()))) {
                     preview = Map.of("serviceDate", interval.day().toString(), "status", "FROZEN_CSR_COORDINATION", "reason", "Scheduling cutoff has passed; coordinate with customer service");
                 } else {
-                    preview = optimizer.previewRepair(owner.getFirst().metroId(), interval.day(), owner.getFirst().technicianId(), interval.start(), interval.end());
+                    String metroId = Required.query(jdbc, "SELECT p.\"metroId\" FROM technician_depot_assignment a JOIN depot p ON p.id=a.\"depotId\" WHERE a.\"technicianId\"=? AND a.\"effectiveDate\"<=? ORDER BY a.\"effectiveDate\" DESC LIMIT 1", String.class,
+                            owner.getFirst().technicianId(), java.sql.Timestamp.from(interval.day().atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
+                    preview = optimizer.previewRepair(metroId, interval.day(), owner.getFirst().technicianId(), interval.start(), interval.end());
                 }
             } catch (Exception e) { throw new DayAnalysisException(interval.day(), e); }
             Map<String, Object> saved = new LinkedHashMap<>();

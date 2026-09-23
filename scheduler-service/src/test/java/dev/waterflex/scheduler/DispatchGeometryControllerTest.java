@@ -42,7 +42,7 @@ class DispatchGeometryControllerTest {
             when(row.getString(5)).thenReturn("HOME");
             Required.value(call.<@org.jspecify.annotations.Nullable RowCallbackHandler>getArgument(1)).processRow(row);
             return null;
-        }).<@org.jspecify.annotations.Nullable JdbcTemplate>when(jdbc)).query(MockArguments.startsText("SELECT t.id,"), MockArguments.callback(), any(Timestamp.class), MockArguments.equalText("metro"));
+        }).<@org.jspecify.annotations.Nullable JdbcTemplate>when(jdbc)).query(MockArguments.startsText("SELECT t.id,"), MockArguments.callback(), any(Timestamp.class), any(Timestamp.class), MockArguments.equalText("metro"));
         when(jdbc.query(MockArguments.startsText("SELECT a.id"), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(), MockArguments.equalText("metro"), any(Timestamp.class)))
                 .thenAnswer(call -> {
                     ResultSet row = mock(ResultSet.class);

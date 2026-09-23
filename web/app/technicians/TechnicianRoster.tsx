@@ -12,13 +12,14 @@ import TechnicianProfileModal, { type ProfileDraft } from "./TechnicianProfileMo
 import styles from "./technicians.module.css";
 
 interface Override { date: string; available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }
-interface Tech { id: string; name: string; active: boolean; dealershipId: string; email: string | null; phone: string | null; bio: string | null; color: string;
+interface Tech { id: string; name: string; active: boolean; email: string | null; phone: string | null; bio: string | null; color: string;
+  depotAssignments: Array<{ effectiveDate: string; depotId: string; dealershipId: string; metroId: string }>;
   availabilityVersions: Array<{ effectiveDate: string; days: StandardDay[] }>;
   shiftStartMin: number | null; shiftEndMin: number | null; qualifications: string[]; overrides: Override[]; overridesTruncated: boolean }
 
-export default function TechnicianRoster({ technicians, services, metros, dealerships, today }: {
+export default function TechnicianRoster({ technicians, services, metros, dealerships, depots, today }: {
   technicians: Tech[]; services: Array<{ id: string; name: string }>; metros: Array<{ id: string; name: string }>;
-  dealerships: Array<{ id: string; name: string; metroId: string }>; today: string;
+  dealerships: Array<{ id: string; name: string }>; depots: Array<{ id: string; name: string; dealershipId: string; metroId: string }>; today: string;
 }) {
   const router = useRouter();
   const [techId, setTechId] = useState(technicians[0]?.id ?? ""), [search, setSearch] = useState("");
@@ -29,7 +30,10 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   const [message, setMessage] = useState(""), [busy, setBusy] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [moveDate, setMoveDate] = useState("");
+  const [moveDepotId, setMoveDepotId] = useState("");
   const tech = technicians.find(item => item.id === techId);
+  const currentAssignment = tech?.depotAssignments.filter(item => item.effectiveDate <= today).at(-1);
   const activeServiceIds = useMemo(() => new Set(services.map(service => service.id)), [services]);
   const filtered = useMemo(() => technicians.filter(item => item.name.toLowerCase().includes(search.toLowerCase())), [technicians, search]);
 
@@ -37,7 +41,17 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
     setDate(""); setAvailable(true); setStart(fromMinutes(next.shiftStartMin)); setEnd(fromMinutes(next.shiftEndMin));
     setEditingDate(null); setShowForm(open); setMessage("");
   }
-  function selectTechnician(next: Tech) { if (!busy) { setTechId(next.id); resetDraft(next); } }
+  function selectTechnician(next: Tech) { if (!busy) { setTechId(next.id); resetDraft(next); setMoveDate(""); setMoveDepotId(""); } }
+  async function moveDepot(event: React.FormEvent) {
+    event.preventDefault();
+    if (!tech || !moveDate || !moveDepotId) { setMessage("Choose a date and depot."); return; }
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch(`/api/technicians/${tech.id}/depot-assignments`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ depotId: moveDepotId, effectiveDate: moveDate }) });
+      await readResponse(response, success); setMessage("Depot assignment scheduled."); setMoveDate(""); setMoveDepotId(""); router.refresh();
+    } catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
+  }
   async function saveShift(event: React.FormEvent) {
     event.preventDefault();
     if (!tech || !date) { setMessage("Choose a date before saving."); return; }
@@ -116,7 +130,17 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
             <button className={`${ui.button} ${ui.buttonBrand}`} type="button" disabled={busy} onClick={() => resetDraft(tech, true)}>+ Add exception</button>
           </div></div>
 
-        <p className={ui.sectionLabel}>Dealership: {dealerships.find(item => item.id === tech.dealershipId)?.name ?? "Missing dealership"}</p>
+        <p className={ui.sectionLabel}>Dealership: {dealerships.find(item => item.id === currentAssignment?.dealershipId)?.name ?? "Missing dealership"}</p>
+        <p className={ui.sectionLabel}>Current depot: {depots.find(item => item.id === currentAssignment?.depotId)?.name ?? "Missing depot assignment"}</p>
+        <form onSubmit={moveDepot} className={styles.overrideForm}>
+          <label htmlFor="move-date">Depot move effective <input id="move-date" type="date" min={today} required value={moveDate} onChange={event => setMoveDate(event.target.value)} /></label>
+          <label htmlFor="move-depot">New depot <select id="move-depot" required value={moveDepotId} onChange={event => setMoveDepotId(event.target.value)}>
+            <option value="">Choose a depot</option>{depots.filter(item => item.dealershipId === currentAssignment?.dealershipId && item.id !== currentAssignment?.depotId).map(item =>
+              <option key={item.id} value={item.id}>{item.name} ({metros.find(metro => metro.id === item.metroId)?.name ?? item.metroId})</option>)}</select></label>
+          <button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy || !moveDate || !moveDepotId}>Schedule depot move</button>
+        </form>
+        {tech.depotAssignments.filter(item => item.effectiveDate > today).map(item => <p key={item.effectiveDate} className={styles.message}>
+          Moves to {depots.find(depot => depot.id === item.depotId)?.name ?? "Unknown depot"} on {item.effectiveDate}.</p>)}
         <p className={ui.sectionLabel}>Profile</p>
         <div style={{ padding: "12px 14px", background: "var(--surface-soft)", border: "1px solid var(--line)", borderRadius: 9, marginBottom: 20 }}>
           <p style={{ margin: "0 0 4px", fontSize: 12.5, color: "var(--ink-soft)" }}>{profileFor(tech).email || "No email on file"} &middot; {profileFor(tech).phone || "No phone on file"}</p>
@@ -145,6 +169,6 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
         />}
       </div> : <div className={`${ui.card} ${styles.detail} ${styles.empty}`}>No technicians found</div>}
     </div>
-    {showAddForm && <AddTechnicianForm services={services} metros={metros} dealerships={dealerships} onClose={() => setShowAddForm(false)} onCreated={() => { setShowAddForm(false); router.refresh(); }} />}
+    {showAddForm && <AddTechnicianForm services={services} metros={metros} dealerships={dealerships} depots={depots} onClose={() => setShowAddForm(false)} onCreated={() => { setShowAddForm(false); router.refresh(); }} />}
   </div>;
 }

@@ -4,7 +4,7 @@ export interface ScheduleTechnician {
   color: string;
   shiftStartMin: number;
   shiftEndMin: number;
-  days: Record<string, { available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }>;
+  days: Record<string, { member: boolean; available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }>;
 }
 
 export interface ScheduleAppointment {

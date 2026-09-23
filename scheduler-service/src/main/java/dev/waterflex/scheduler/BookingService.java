@@ -33,7 +33,8 @@ public class BookingService {
     private record OfferWindow(Instant day, Instant start, Instant end, String setId) { }
     private record Hold(String jobId, String techId, Instant day, Instant start, Instant end, Instant expiresAt, @Nullable Timestamp releasedAt, String offerToken, @Nullable String selectedOfferId, @Nullable Timestamp supersededAt, @Nullable String offerSetId) { }
     private record Cancellation(String jobId, String techId, Instant day, @Nullable Timestamp cancelledAt) { }
-    private record Job(String id, String serviceId, int duration, RoadClient.Point point, String status) { }
+    private record Job(String id, String serviceId, int duration, RoadClient.Point point, String status, String metroId) { }
+    private record ServiceDepot(String metroId, double lat, double lng, double radiusMi) { }
     private record Tech(String id, RouteEndpoints endpoints, int shiftStart, int shiftEnd, int maxDaily, int maxOvertime) { }
     private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
     private record Visit(String id, RoadClient.Point point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
@@ -69,7 +70,7 @@ public class BookingService {
         for (Candidate c : windows.values()) {
             if (result.size() == 4) break;
             lockDay(c.techId(), c.day());
-            Tech tech = technicians(job.serviceId(), c.day()).stream().filter(t -> t.id().equals(c.techId())).findFirst().orElse(null);
+            Tech tech = technicians(job.serviceId(), c.day(), job.metroId()).stream().filter(t -> t.id().equals(c.techId())).findFirst().orElse(null);
             Candidate reserved = tech == null ? null : evaluateCandidate(job, tech, c.day(), c.start(), c.end());
             if (reserved == null) continue;
             String id = UUID.randomUUID().toString();
@@ -130,7 +131,7 @@ public class BookingService {
         Instant start = rows.getFirst().start(), end = rows.getFirst().end();
         String holdId = selectedRow.holdId();
         List<Candidate> feasible = new ArrayList<>();
-        for (Tech tech : technicians(job.serviceId(), Required.value(day))) {
+        for (Tech tech : technicians(job.serviceId(), Required.value(day), job.metroId())) {
             lockDay(tech.id(), Required.value(day));
             Candidate candidate = evaluateCandidate(job, tech, Required.value(day), start, end);
             if (candidate != null) feasible.add(candidate);
@@ -164,7 +165,7 @@ public class BookingService {
         if (!(h.expiresAt()).isAfter(Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold expired");
         Job job = job(jobId, HttpStatus.CONFLICT);
         roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
-        Tech tech = technicians(job.serviceId(), Required.value(day)).stream().filter(t -> t.id().equals(techId)).findFirst()
+        Tech tech = technicians(job.serviceId(), Required.value(day), job.metroId()).stream().filter(t -> t.id().equals(techId)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable"));
         Candidate candidate = evaluateCandidate(job, Required.value(tech), Required.value(day), start, end);
         if (candidate == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
@@ -215,7 +216,7 @@ public class BookingService {
             List<Visit> remaining = visits(Required.value(techId), Required.value(day), Required.value(jobId));
             WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, Required.value(day));
             var techs = shift == null ? List.<Tech>of() : jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
-                    (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(Required.value(day)), techId);
+                    (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(Required.value(day)), dayStamp(Required.value(day)), techId);
             if (!techs.isEmpty()) {
                 Metrics recalculated = evaluate(Required.value(techs.getFirst()), Required.value(day), Required.value(remaining));
                 if (recalculated.feasible()) for (int i = 0; i < remaining.size(); i++) {
@@ -235,7 +236,7 @@ public class BookingService {
         List<LocalDate> days = onlyDay == null ? bookingDates(Required.value(Instant.now())) : Required.value(List.of(Required.value(onlyDay)));
         for (LocalDate day : days) {
             LocalDate serviceDay = Required.value(day);
-            for (Tech tech : technicians(job.serviceId(), serviceDay)) {
+            for (Tech tech : technicians(job.serviceId(), serviceDay, job.metroId())) {
                     for (int minute : windowStartMinutes(tech.shiftStart(), tech.shiftEnd())) {
                         Instant start = ScheduleCutoff.localMinute(serviceDay, minute, false);
                         if (onlyStart != null && !start.equals(onlyStart)) continue;
@@ -321,7 +322,7 @@ public class BookingService {
         WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, day);
         if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Booked technician has no shift");
         var rows = jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
-                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), techId);
+                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), dayStamp(day), techId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Booked technician is missing");
         List<Visit> visits = jdbc.query("SELECT a.id, ad.lat, ad.lng, a.\"windowStart\", a.\"windowEnd\", a.\"plannedStart\", j.\"durationMin\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"technicianId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.sequence, a.\"plannedStart\"",
                 (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day));
@@ -336,18 +337,61 @@ public class BookingService {
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(day));
     }
 
+    /** Revalidate every active reservation and booked window after a depot move. */
+    void replanAssignment(String techId, LocalDate day) {
+        WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, day);
+        if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Assigned technician has no shift");
+        var rows = jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
+                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), dayStamp(day), techId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Assigned technician is missing");
+        List<Visit> route = visits(techId, day, "");
+        Metrics result = evaluate(Required.value(rows.getFirst()), day, route);
+        if (!result.feasible() || result.arrivals().size() != route.size())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Depot move would make a booked route or active hold infeasible");
+        for (int index = 0; index < route.size(); index++) {
+            Visit visit = route.get(index);
+            Instant arrival = Required.value(result.arrivals().get(visit.id()), "route arrival");
+            Timestamp plannedStart = stamp(arrival), plannedEnd = stamp(Required.value(arrival.plus(Duration.ofMinutes(visit.duration()))));
+            int updated = jdbc.update("UPDATE appointment SET sequence=?,\"plannedStart\"=?,\"plannedEnd\"=?,\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
+                    index, plannedStart, plannedEnd, visit.id());
+            if (updated == 0) updated = jdbc.update("UPDATE slot_hold SET \"insertPosition\"=?,\"plannedStart\"=?,\"plannedEnd\"=? WHERE id=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
+                    index, plannedStart, plannedEnd, visit.id());
+            if (updated != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "A route reservation changed during the depot move");
+        }
+        jdbc.update("INSERT INTO schedule_day (id,\"technicianId\",\"serviceDate\",version) VALUES (?,?,?,0) ON CONFLICT (\"technicianId\",\"serviceDate\") DO NOTHING",
+                UUID.randomUUID().toString(), techId, dayStamp(day));
+        jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(day));
+    }
+
     private Job job(String id) { return job(id, HttpStatus.UNPROCESSABLE_ENTITY); }
 
     private Job job(String id, HttpStatus missingLocationStatus) {
         var rows = jdbc.query("SELECT j.id, j.\"serviceId\", j.\"durationMin\", a.lat, a.lng, j.status::text FROM job j JOIN address a ON a.id=j.\"addressId\" WHERE j.id=?",
-                (rs, _) -> new Job(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.location(rs, 4, 5, missingLocationStatus), Required.string(rs, 6)), id);
+                (rs, _) -> new Job(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.location(rs, 4, 5, missingLocationStatus), Required.string(rs, 6), ""), id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found");
-        return Required.value(rows.getFirst());
+        Job row = Required.value(rows.getFirst());
+        return new Job(row.id(), row.serviceId(), row.duration(), row.point(), row.status(), metroFor(row.point()));
     }
 
-    private List<Tech> technicians(String serviceId, LocalDate day) {
-        List<TechBase> rows = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? WHERE t.active=true ORDER BY t.id FOR SHARE OF t",
-                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), serviceId);
+    private String metroFor(RoadClient.Point point) {
+        List<ServiceDepot> depots = jdbc.query("SELECT p.\"metroId\",p.lat,p.lng,m.\"serviceRadiusMi\" FROM depot p JOIN metro m ON m.id=p.\"metroId\"",
+                (rs, _) -> new ServiceDepot(Required.string(rs, 1), Required.number(rs, 2), Required.number(rs, 3), Required.number(rs, 4)));
+        String best = null;
+        double bestMiles = Double.POSITIVE_INFINITY;
+        for (ServiceDepot depot : depots) {
+            double lat = Math.toRadians(depot.lat() - point.lat());
+            double lng = Math.toRadians(depot.lng() - point.lng());
+            double a = Math.pow(Math.sin(lat / 2), 2) + Math.cos(Math.toRadians(point.lat())) * Math.cos(Math.toRadians(depot.lat())) * Math.pow(Math.sin(lng / 2), 2);
+            double miles = 3958.7613 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
+            if (miles <= depot.radiusMi() && miles < bestMiles) { best = depot.metroId(); bestMiles = miles; }
+        }
+        if (best == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job location is outside configured metros");
+        return best;
+    }
+
+    private List<Tech> technicians(String serviceId, LocalDate day, String metroId) {
+        List<TechBase> rows = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? WHERE t.active=true AND p.\"metroId\"=? ORDER BY t.id FOR SHARE OF t",
+                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), serviceId, metroId);
         List<Tech> result = new ArrayList<>();
         for (TechBase row : rows) {
             TechBase technician = Required.value(row);
