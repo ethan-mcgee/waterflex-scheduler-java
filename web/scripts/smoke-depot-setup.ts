@@ -11,7 +11,9 @@ if (database !== "waterflex_test") throw new Error("Requires waterflex_test");
 
 const geocoder = createServer((_, response) => {
   response.setHeader("Content-Type", "application/json");
-  response.end(JSON.stringify([{ lat: "43.735", lon: "7.420", address: { house_number: "1" } }]));
+  response.end(JSON.stringify([{ lat: "43.735", lon: "7.420", address: {
+    house_number: "1", road: "Test Street", city: "Monaco", postcode: "98000", country_code: "us",
+  } }]));
 });
 
 async function main() {

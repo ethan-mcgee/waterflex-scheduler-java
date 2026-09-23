@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { readBody, bookingRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { searchAddress } from "@/lib/geocode";
+import { GeocoderError, searchAddress } from "@/lib/geocode";
 import { resolveMetroForLocation } from "@/lib/serviceArea";
 import { requestSlots, EngineError } from "@/lib/engineClient";
 
@@ -12,7 +12,12 @@ export async function POST(req: NextRequest) {
   const input = parsed.data;
   const pin = input.confirmedPin;
 
-  const candidates = await searchAddress(input);
+  let candidates;
+  try { candidates = await searchAddress(input); }
+  catch (error) {
+    if (!(error instanceof GeocoderError)) throw error;
+    return NextResponse.json({ error: error.message }, { status: error.kind === "timeout" ? 504 : error.kind === "malformed" ? 502 : 503 });
+  }
   const geocode = candidates[0] ?? null;
   const selected = pin
     ? candidates.find((candidate) => Math.abs(candidate.lat - pin.lat) < 0.0001

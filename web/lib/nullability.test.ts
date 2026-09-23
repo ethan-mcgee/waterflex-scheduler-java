@@ -57,12 +57,13 @@ test("scheduler client preserves status and rejects malformed success and transp
 test("geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero", async () => {
   const original = globalThis.fetch;
   const address = { line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102" };
+  const detail = { road: "Main Street", city: "Omaha", postcode: "68102", country_code: "us", house_number: "1" };
   try {
     for (const lat of [null, "", " ", "abc", "Infinity", "91", "0x10", 0]) {
-      globalThis.fetch = async () => Response.json([{ lat, lon: "0", address: { house_number: "1" } }]);
-      assert.deepEqual(await searchAddress(address), []);
+      globalThis.fetch = async () => Response.json([{ lat, lon: "0", address: detail }]);
+      await assert.rejects(searchAddress(address));
     }
-    globalThis.fetch = async () => Response.json([{ lat: "0", lon: "0", address: { house_number: "1" } }]);
+    globalThis.fetch = async () => Response.json([{ lat: "0", lon: "0", address: detail }]);
     assert.deepEqual(await searchAddress(address), [{ lat: 0, lng: 0, precision: "ROOFTOP" }]);
   } finally { globalThis.fetch = original; }
 });

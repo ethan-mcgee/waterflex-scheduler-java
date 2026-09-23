@@ -67,6 +67,8 @@ See [scheduling quality notes](docs/scheduling-quality-foundations.md) for API e
 
 ## Verification
 
+Technician home lookup first searches the full address, then retries without the state filter when Nominatim has no matching result. Only candidates whose returned country, ZIP, city or town, street, house number when present, and state when present agree with the entered address are offered. A street-only candidate is approximate. Creation requires a manually confirmed map pin near its returned street bounds and inside the selected depot metro's service area. The map must load before a street pin can be confirmed. The server repeats the lookup when creating the technician. New technician records save `GEOCODER_HOUSE` or `MANUALLY_CONFIRMED` home pin provenance; older records keep a null provenance because their origin is unknown. Lookup misses and geocoder failures return separate API statuses.
+
 With the services and a seeded database available:
 
 ```powershell

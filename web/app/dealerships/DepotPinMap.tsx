@@ -10,10 +10,12 @@ const tileMetadata = z.object({ bounds: z.tuple([
   z.number().finite().min(-180).max(180), z.number().finite().min(-90).max(90),
 ]).refine(([west, south, east, north]) => west < east && south < north) });
 
-export default function DepotPinMap({ lat, lng, onDrag }: {
+export default function DepotPinMap({ lat, lng, onDrag, requireInteractive = false, onAvailableChange }: {
   lat: number;
   lng: number;
   onDrag: (lat: number, lng: number) => void;
+  requireInteractive?: boolean;
+  onAvailableChange?: (available: boolean) => void;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -23,6 +25,8 @@ export default function DepotPinMap({ lat, lng, onDrag }: {
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   const onDragRef = useRef(onDrag);
   onDragRef.current = onDrag;
+  const availableRef = useRef(onAvailableChange);
+  availableRef.current = onAvailableChange;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +43,8 @@ export default function DepotPinMap({ lat, lng, onDrag }: {
   useEffect(() => {
     if (!element.current || !mapAvailable) return;
     const map = new maplibregl.Map({ container: element.current, style: localMapStyle, center: [initialPosition.current.lng, initialPosition.current.lat], zoom: 15 });
+    map.on("load", () => availableRef.current?.(true));
+    map.on("error", () => availableRef.current?.(false));
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     const marker = new maplibregl.Marker({ color: "#1558a6", draggable: true }).setLngLat([initialPosition.current.lng, initialPosition.current.lat]).addTo(map);
     marker.on("dragend", () => {
@@ -48,6 +54,7 @@ export default function DepotPinMap({ lat, lng, onDrag }: {
     mapRef.current = map;
     markerRef.current = marker;
     return () => {
+      availableRef.current?.(false);
       marker.remove();
       map.remove();
       mapRef.current = null;
@@ -65,7 +72,7 @@ export default function DepotPinMap({ lat, lng, onDrag }: {
   return <div style={{ width: "100%", height: "100%" }}>
     {mapAvailable ? <div ref={element} style={{ width: "100%", height: "100%" }} /> :
       <div role="status" style={{ padding: 24, textAlign: "center" }}>
-        {metadataLoaded ? "Map tiles are unavailable at this address. You can still confirm the located pin." : "Checking map coverage…"}
+        {metadataLoaded ? requireInteractive ? "Map tiles are unavailable at this address. Home pin placement is blocked until the map is available." : "Map tiles are unavailable at this address. You can still confirm the located pin." : "Checking map coverage..."}
         <br />Pin: {lat.toFixed(6)}, {lng.toFixed(6)}
       </div>}
   </div>;
