@@ -129,6 +129,9 @@ jobs:
       - name: Optimizer smoke
         working-directory: web
         run: npm run test:optimizer:integration
+      - name: Multi-depot dealership smoke
+        working-directory: web
+        run: npm run test:multi-depot:integration
       - name: Time-off repair smoke
         working-directory: web
         run: npm run test:time-off:integration

@@ -6,7 +6,7 @@ import { z } from "zod";
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:8004";
 const suffix = randomUUID();
-const dealershipId = "dealership-omaha-main";
+const depotId = "depot-omaha-main";
 const techId = "tech-1";
 const tomorrow = new Date();
 tomorrow.setUTCDate(tomorrow.getUTCDate() + 8);
@@ -18,7 +18,7 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", ye
 const saved = z.object({ success: z.literal(true) });
 
 async function policy(departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT", expected = 200) {
-  const response = await fetch(`${base}/v1/dealerships/${dealershipId}/policy`, { method: "POST", headers: { "Content-Type": "application/json" },
+  const response = await fetch(`${base}/v1/depots/${depotId}/policy`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ departure, returnTo }), signal: AbortSignal.timeout(30_000) });
   const body: unknown = await response.json();
   assert.equal(response.status, expected, JSON.stringify(body));
@@ -26,7 +26,7 @@ async function policy(departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT", e
 }
 
 async function main() {
-  const dealership = await prisma.dealership.findUniqueOrThrow({ where: { id: dealershipId } });
+  const original = await prisma.depotEndpointPolicy.findFirstOrThrow({ where: { depotId }, orderBy: { effectiveDate: "desc" } });
   const technician = await prisma.technician.findUniqueOrThrow({ where: { id: techId } });
   const service = await prisma.serviceCatalog.findFirstOrThrow();
   const customer = await prisma.customer.create({ data: { firstName: "Route", lastName: "Fixture", email: `${suffix}@example.invalid`, phone: "4025550100" } });
@@ -83,12 +83,12 @@ async function main() {
     await policy("HOME", "HOME", 409);
     const after = await prisma.appointment.findUniqueOrThrow({ where: { id: appointment.id } });
     assert.deepEqual(after, before);
-    const current = await prisma.dealership.findUniqueOrThrow({ where: { id: dealershipId } });
+    const current = await prisma.depotEndpointPolicy.findFirstOrThrow({ where: { depotId }, orderBy: { effectiveDate: "desc" } });
     assert.equal(current.departure, "DEPOT"); assert.equal(current.returnTo, "DEPOT");
     console.log("Four endpoint pairs, directed geometry, held and infeasible edits, cutoff, stale fingerprint, and preserved promises passed");
   } finally {
     await prisma.technician.update({ where: { id: techId }, data: { maxDailyMinutes: technician.maxDailyMinutes } });
-    await policy(dealership.departure, dealership.returnTo);
+    await policy(original.departure, original.returnTo);
     await prisma.appointment.delete({ where: { id: appointment.id } });
     await prisma.appointment.delete({ where: { id: todayAppointment.id } });
     await prisma.job.deleteMany({ where: { id: { in: [job.id, heldJob.id, todayJob.id] } } });

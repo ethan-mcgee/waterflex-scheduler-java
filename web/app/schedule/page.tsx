@@ -5,6 +5,7 @@ import ScheduleView from "./ScheduleView";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
 import { resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
 import { weekDates } from "@/lib/date";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,14 @@ function validDateKey(value: string | undefined): value is string {
 export default async function SchedulePage({
   searchParams,
 }: {
-  searchParams: { week?: string };
+  searchParams: { week?: string; metroId?: string };
 }) {
-  const metro = await prisma.metro.findFirst();
+  const metros = await prisma.metro.findMany({ orderBy: { name: "asc" } });
+  const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
       <main>
-        <p>No metro configured yet.</p>
+        <p>{searchParams.metroId ? "Selected metro is unavailable." : "No metro configured yet."}</p>
       </main>
     );
   }
@@ -35,13 +37,16 @@ export default async function SchedulePage({
   const weekEnd = new Date(`${nextMonday}T00:00:00.000Z`);
 
   const technicians = await prisma.technician.findMany({
-    where: { metroId: metro.id, active: true },
+    where: { active: true },
     orderBy: { name: "asc" },
     include: { availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } },
+      depotAssignments: { where: { effectiveDate: { lt: weekEnd } }, include: { depot: { select: { metroId: true } } }, orderBy: { effectiveDate: "asc" } },
       shiftOverrides: { where: { serviceDate: { gte: weekStart, lt: weekEnd } } } },
   });
 
-  const technicianIds = technicians.map((technician) => technician.id);
+  const metroTechnicians = technicians.filter(technician => weekDates(monday).some(day =>
+    technician.depotAssignments.filter(assignment => assignment.effectiveDate.toISOString().slice(0, 10) <= day).at(-1)?.depot.metroId === metro.id));
+  const technicianIds = metroTechnicians.map((technician) => technician.id);
   const appointments = await prisma.appointment.findMany({
     where: {
       technicianId: { in: technicianIds },
@@ -69,7 +74,9 @@ export default async function SchedulePage({
     startMin: interval.startMin, endMin: interval.endMin,
   }));
 
-  const scheduleAppointments: ScheduleAppointment[] = appointments.map((appointment) => ({
+  const scheduleAppointments: ScheduleAppointment[] = appointments.filter(appointment =>
+    metroTechnicians.find(tech => tech.id === appointment.technicianId)?.depotAssignments
+      .filter(assignment => assignment.effectiveDate <= appointment.serviceDate).at(-1)?.depot.metroId === metro.id).map((appointment) => ({
     id: appointment.id,
     technicianId: appointment.technicianId,
     technicianName: appointment.technician.name,
@@ -91,17 +98,23 @@ export default async function SchedulePage({
     plannedEnd: appointment.plannedEnd.toISOString(),
   }));
 
-  return (
+  return <>
+    {metros.length > 1 && <nav aria-label="Schedule metro" style={{ display: "flex", gap: 12, padding: 16 }}>
+      {metros.map(item => <Link key={item.id} href={`/schedule?metroId=${encodeURIComponent(item.id)}&week=${monday}`} aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
+    </nav>}
     <ScheduleView
+      metroId={metro.id}
       monday={monday}
       timezone={metro.timezone}
-      technicians={technicians.map(technician => {
+      technicians={metroTechnicians.map(technician => {
         const versions = validateVersions(technician.availabilityVersions.map(version => ({ effectiveDate: version.effectiveDate, days: version.days })));
         const days = Object.fromEntries(weekDates(monday).map(date => {
           const override = technician.shiftOverrides.find(item => item.serviceDate.toISOString().slice(0, 10) === date);
           const standard = resolveWeeklyDay(versions, date);
-          return [date, override ? { available: override.available, shiftStartMin: override.shiftStartMin, shiftEndMin: override.shiftEndMin }
-            : { available: standard.available, shiftStartMin: standard.shiftStartMin, shiftEndMin: standard.shiftEndMin }];
+          const member = technician.depotAssignments.filter(assignment => assignment.effectiveDate.toISOString().slice(0, 10) <= date)
+            .at(-1)?.depot.metroId === metro.id;
+          return [date, override ? { member, available: override.available, shiftStartMin: override.shiftStartMin, shiftEndMin: override.shiftEndMin }
+            : { member, available: standard.available, shiftStartMin: standard.shiftStartMin, shiftEndMin: standard.shiftEndMin }];
         }));
         return { id: technician.id, name: technician.name, color: technician.color,
           shiftStartMin: technician.shiftStartMin, shiftEndMin: technician.shiftEndMin, days } satisfies ScheduleTechnician;
@@ -109,5 +122,5 @@ export default async function SchedulePage({
       appointments={scheduleAppointments}
       absences={absences}
     />
-  );
+  </>;
 }

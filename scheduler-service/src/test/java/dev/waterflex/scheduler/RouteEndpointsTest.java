@@ -10,7 +10,7 @@ import static org.mockito.Mockito.*;
 
 class RouteEndpointsTest {
     @Test
-    void missingDealershipRejectsRouteWithoutInventingCoordinates() throws Exception {
+    void missingDepotAssignmentOrPolicyRejectsRouteWithoutInventingCoordinates() throws Exception {
         ResultSet row = mock(ResultSet.class);
         when(row.getDouble(1)).thenReturn(41.2);
         when(row.getDouble(2)).thenReturn(-95.9);

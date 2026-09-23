@@ -49,8 +49,8 @@ async function geometry(path: string, phase: string, expectedHome: [number, numb
 
 async function main() {
   const metro = await prisma.metro.create({ data: { id: `opt-metro-${suffix}`, name: "Optimizer fixture", timezone: "America/Chicago" } });
-  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "Optimizer depot", lat: 43.735, lng: 7.420 } });
-  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "Optimizer dealership",
+  const dealership = await prisma.dealership.create({ data: { name: "Optimizer dealership" } });
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Optimizer depot", lat: 43.735, lng: 7.420,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `OPT_${suffix}`, name: "Optimizer fixture", estDurationMin: 50 } });
   const techIds = [`opt-a-${suffix}`, `opt-b-${suffix}`] as const;
@@ -62,7 +62,8 @@ async function main() {
   try {
     for (const [index, techId] of techIds.entries()) {
       await prisma.technician.create({ data: {
-        id: techId, metroId: metro.id, dealershipId: dealership.id, name: `Optimizer fixture ${index}`, color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
+        id: techId, name: `Optimizer fixture ${index}`, color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
+        depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
         homeLat: index === 0 ? 43.735 : 43.748, homeLng: index === 0 ? 7.420 : 7.438,
         shiftStartMin: 480, shiftEndMin: 1020, maxDailyMinutes: 600, maxOvertimeMinutes: 60,
         qualifications: { create: { serviceId: service.id } },
@@ -112,8 +113,8 @@ async function main() {
     await prisma.scheduleDay.deleteMany({ where: { technicianId: { in: [...techIds] } } });
     await prisma.technician.deleteMany({ where: { id: { in: [...techIds] } } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
-    await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.depot.delete({ where: { id: depot.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.$disconnect();
   }

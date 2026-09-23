@@ -11,10 +11,11 @@ import { z } from "zod";
 
 const candidatesResponse = z.object({ candidates: z.array(z.object({ lat: z.number(), lng: z.number(), precision: z.enum(["ROOFTOP", "APPROXIMATE"]) })) });
 
-export default function AddTechnicianForm({ services, metros, dealerships, onClose, onCreated }: {
+export default function AddTechnicianForm({ services, metros, dealerships, depots, onClose, onCreated }: {
   services: Array<{ id: string; name: string }>;
   metros: Array<{ id: string; name: string }>;
-  dealerships: Array<{ id: string; name: string; metroId: string }>;
+  dealerships: Array<{ id: string; name: string }>;
+  depots: Array<{ id: string; name: string; dealershipId: string; metroId: string }>;
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -26,13 +27,14 @@ export default function AddTechnicianForm({ services, metros, dealerships, onClo
   const [days, setDays] = useState<StandardDay[]>(() => defaultStandardWeek(8 * 60, 17 * 60));
   const [quals, setQuals] = useState<string[]>([]);
   const [metroId, setMetroId] = useState(metros[0]?.id ?? "");
-  const [dealershipId, setDealershipId] = useState(dealerships.find(item => item.metroId === metros[0]?.id)?.id ?? "");
+  const [dealershipId, setDealershipId] = useState(depots.find(item => item.metroId === metros[0]?.id)?.dealershipId ?? "");
+  const [depotId, setDepotId] = useState(depots.find(item => item.metroId === metros[0]?.id)?.id ?? "");
   const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "" });
   const [candidates, setCandidates] = useState<Array<{ lat: number; lng: number; precision: string }>>([]);
   const [pinIndex, setPinIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
 
-  const invalid = !name.trim() || !email.trim() || !phone.trim() || !metroId || !dealershipId || pinIndex == null || !quals.length ||
+  const invalid = !name.trim() || !email.trim() || !phone.trim() || !metroId || !dealershipId || !depotId || pinIndex == null || !quals.length ||
     !days.some(day => day.available) || days.some(day => day.available && day.startMin >= day.endMin);
 
   function toggleDay(dayOfWeek: number) {
@@ -57,7 +59,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, onClo
     try {
       const response = await fetch("/api/technicians", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), bio: bio.trim() || null,
-          color, metroId, dealershipId, address, confirmedPin: { lat: pin.lat, lng: pin.lng },
+          color, depotId, address, confirmedPin: { lat: pin.lat, lng: pin.lng },
           days: days.map(day => ({ dayOfWeek: day.dayOfWeek, available: day.available,
             shiftStartMin: day.available ? day.startMin : null, shiftEndMin: day.available ? day.endMin : null })), qualifications: quals }) });
       await readResponse(response, z.object({ success: z.literal(true), id: z.string() }));
@@ -72,9 +74,12 @@ export default function AddTechnicianForm({ services, metros, dealerships, onClo
         <p className={styles.modalSubtitle}>Set up their profile and standard weekly schedule once. Exceptions can be layered on for specific dates later.</p>
           <>
             <div className={styles.fieldGrid}><div><label className={ui.sectionLabel} htmlFor="new-metro">Metro</label>
-              <select id="new-metro" value={metroId} onChange={event => { const next = event.target.value; setMetroId(next); setDealershipId(dealerships.find(item => item.metroId === next)?.id ?? ""); }} style={inputStyle}>{metros.map(metro => <option key={metro.id} value={metro.id}>{metro.name}</option>)}</select></div>
-              <div><label className={ui.sectionLabel} htmlFor="new-dealership">Dealership</label><select id="new-dealership" value={dealershipId} onChange={event => setDealershipId(event.target.value)} style={inputStyle}>
-                <option value="">Choose a dealership</option>{dealerships.filter(item => item.metroId === metroId).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+              <select id="new-metro" value={metroId} onChange={event => { const next = event.target.value; const first = depots.find(item => item.metroId === next); setMetroId(next); setDealershipId(first?.dealershipId ?? ""); setDepotId(first?.id ?? ""); }} style={inputStyle}>{metros.map(metro => <option key={metro.id} value={metro.id}>{metro.name}</option>)}</select></div>
+              <div><label className={ui.sectionLabel} htmlFor="new-dealership">Dealership</label><select id="new-dealership" value={dealershipId} onChange={event => { const next = event.target.value; setDealershipId(next); setDepotId(depots.find(item => item.metroId === metroId && item.dealershipId === next)?.id ?? ""); }} style={inputStyle}>
+                <option value="">Choose a dealership</option>{dealerships.filter(item => depots.some(depot => depot.dealershipId === item.id && depot.metroId === metroId)).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select></div>
+              <div><label className={ui.sectionLabel} htmlFor="new-depot">Depot</label><select id="new-depot" value={depotId} onChange={event => setDepotId(event.target.value)} style={inputStyle}>
+                <option value="">Choose a depot</option>{depots.filter(item => item.metroId === metroId && item.dealershipId === dealershipId).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select></div></div>
             <div className={styles.fieldGrid}>{(["line1", "city", "state", "postalCode"] as const).map(field =>
               <div key={field}><label className={ui.sectionLabel} htmlFor={`new-${field}`}>{field === "line1" ? "Street address" : field === "postalCode" ? "Postal code" : field}</label>

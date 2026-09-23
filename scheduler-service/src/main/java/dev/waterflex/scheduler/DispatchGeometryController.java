@@ -80,11 +80,11 @@ public class DispatchGeometryController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
         Timestamp serviceDate = Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant());
         Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
-        if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE t.\"metroId\"=? ORDER BY t.id",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(Required.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, metroId);
+        if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(Required.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, serviceDate, metroId);
         List<Stop> stops;
         if (phase.equals("current")) {
-            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" WHERE t.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
+            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
                     (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()),
                             Required.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
         } else {
