@@ -13,6 +13,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.*;
@@ -20,6 +22,7 @@ import java.util.*;
 
 @Service
 public class TimeOffService {
+    private static final Logger log = Required.value(LoggerFactory.getLogger(TimeOffService.class));
     private static final ZoneId LOCAL = Required.value(ZoneId.of("America/Chicago"));
     private static final Set<String> CATEGORIES = Required.value(Set.of(
             "Vacation / personal travel", "Medical appointment", "Illness", "Family emergency",
@@ -35,6 +38,11 @@ public class TimeOffService {
     private record ApprovalOwner(String technicianId, String status) { }
     private record Report(String data, String status) { }
     private record Interval(LocalDate day, int start, int end) { }
+    private static final class DayAnalysisException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        private final LocalDate day;
+        DayAnalysisException(LocalDate day, Exception cause) { super(cause); this.day = day; }
+    }
 
     public TimeOffService(JdbcTemplate jdbc, OptimizationService optimizer, ScheduleGuardService guard, PlatformTransactionManager manager) {
         this.jdbc = jdbc; this.optimizer = optimizer; this.guard = guard; this.transactions = new TransactionTemplate(manager);
@@ -69,14 +77,25 @@ public class TimeOffService {
 
     @Scheduled(fixedDelay = 30000)
     public void processQueued() {
-        var ids = jdbc.query("SELECT \"requestId\" FROM time_off_report WHERE status='QUEUED' ORDER BY \"createdAt\" LIMIT 3", (rs, _) -> Required.string(rs, 1));
+        var ids = jdbc.query("SELECT p.\"requestId\" FROM time_off_report p JOIN time_off_request r ON r.id=p.\"requestId\" WHERE p.status='QUEUED' AND r.status='PENDING' ORDER BY p.\"createdAt\" LIMIT 3", (rs, _) -> Required.string(rs, 1));
         for (String id : ids) {
-            if (jdbc.update("UPDATE time_off_report SET status='ANALYZING', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='QUEUED'", id) == 0) continue;
+            if (jdbc.update("UPDATE time_off_report SET status='ANALYZING', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='QUEUED' AND EXISTS (SELECT 1 FROM time_off_request WHERE id=? AND status='PENDING')", id, id) == 0) continue;
             try { analyze(Required.value(id)); }
             catch (Exception e) {
-                String category = e instanceof RoadClient.RoadUnavailable ? "ROUTING_FAILURE" : "ANALYSIS_FAILURE";
-                jdbc.update("UPDATE time_off_report SET status=?, data=?::jsonb, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=?",
-                        category, "{\"reason\":\"" + category + "\"}", id);
+                log.error("Time-off analysis failed for request {}", id, e);
+                Throwable cause = e instanceof DayAnalysisException && e.getCause() != null ? e.getCause() : e;
+                String category = cause instanceof RoadClient.RoadUnavailable ? "ROUTING_FAILURE" : "ANALYSIS_FAILURE";
+                String date = e instanceof DayAnalysisException dayError ? dayError.day.toString() : "the request";
+                @Nullable String detail = cause instanceof ResponseStatusException statusError ? statusError.getReason() : null;
+                String reason;
+                if (cause instanceof RoadClient.RoadUnavailable) reason = "Routing was unavailable for " + date + ". Retry analysis when routing is available.";
+                else if (detail != null && detail.startsWith("Technician weekly availability"))
+                    reason = "Technician weekly availability is missing or invalid for " + date + ". Correct the availability and retry analysis.";
+                else reason = "Could not analyze " + date + ". Retry analysis; if it fails again, ask an administrator to check the scheduler logs.";
+                try {
+                    jdbc.update("UPDATE time_off_report SET status=?, data=?::jsonb, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='ANALYZING' AND EXISTS (SELECT 1 FROM time_off_request WHERE id=? AND status='PENDING')",
+                            category, mapper.writeValueAsString(Map.of("reason", reason)), id, id);
+                } catch (Exception saveError) { log.error("Could not save time-off failure for request {}", id, saveError); }
             }
         }
     }
@@ -92,11 +111,13 @@ public class TimeOffService {
         int reassignedJobs = 0;
         for (Interval interval : intervals) {
             Map<String, Object> preview;
-            if (ScheduleCutoff.frozen(interval.day(), Required.value(Instant.now()))) {
-                preview = Map.of("serviceDate", interval.day().toString(), "status", "FROZEN_CSR_COORDINATION");
-            } else {
-                preview = optimizer.previewRepair(owner.getFirst().metroId(), interval.day(), owner.getFirst().technicianId(), interval.start(), interval.end());
-            }
+            try {
+                if (ScheduleCutoff.frozen(interval.day(), Required.value(Instant.now()))) {
+                    preview = Map.of("serviceDate", interval.day().toString(), "status", "FROZEN_CSR_COORDINATION", "reason", "Scheduling cutoff has passed; coordinate with customer service");
+                } else {
+                    preview = optimizer.previewRepair(owner.getFirst().metroId(), interval.day(), owner.getFirst().technicianId(), interval.start(), interval.end());
+                }
+            } catch (Exception e) { throw new DayAnalysisException(interval.day(), e); }
             Map<String, Object> saved = new LinkedHashMap<>();
             saved.put("service_date", interval.day().toString());
             saved.put("start_min", interval.start());
@@ -115,8 +136,8 @@ public class TimeOffService {
                 beforeMetrics.add(before); afterMetrics.add(after); reassignedJobs += moved;
             }
             days.add(saved);
-            feasible &= "REPAIR_PREVIEW".equals(preview.get("status"));
-            jdbc.update("UPDATE time_off_report SET progress=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=?",
+            feasible &= "REPAIR_PREVIEW".equals(preview.get("status")) || "NO_SHIFT".equals(preview.get("status"));
+            jdbc.update("UPDATE time_off_report SET progress=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='ANALYZING'",
                     days.size() * 100 / intervals.size(), id);
         }
         String status = feasible ? "READY" : "NEEDS_COORDINATION";
@@ -126,10 +147,18 @@ public class TimeOffService {
         data.put("total_before", beforeMetrics.size() == days.size() ? combined(beforeMetrics) : null);
         data.put("total_after", afterMetrics.size() == days.size() ? combined(afterMetrics) : null);
         data.put("reassigned_jobs", reassignedJobs);
-        jdbc.update("UPDATE time_off_report SET status=?, data=?::jsonb, progress=100, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=?",
-                status, mapper.writeValueAsString(data), id);
-        if (feasible) {
-            jdbc.update("UPDATE time_off_request SET status='READY' WHERE id=? AND status='PENDING'", id);
+        String reportJson = mapper.writeValueAsString(data);
+        boolean ready = feasible;
+        boolean committed = Boolean.TRUE.equals(transactions.execute(_ -> {
+            var current = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+            if (current.isEmpty() || !"PENDING".equals(current.getFirst())) return false;
+            int updated = jdbc.update("UPDATE time_off_report SET status=?, data=?::jsonb, progress=100, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='ANALYZING'",
+                    status, reportJson, id);
+            if (updated == 0) return false;
+            if (ready) jdbc.update("UPDATE time_off_request SET status='READY' WHERE id=? AND status='PENDING'", id);
+            return true;
+        }));
+        if (committed && feasible) {
             if (automaticEligible(intervals.getFirst().day(), Required.value(LocalDate.now(LOCAL))))
                 try { tryApprove(id); }
                 catch (ResponseStatusException ignored) { /* Stale reports are queued for another analysis. */ }
@@ -137,6 +166,30 @@ public class TimeOffService {
     }
 
     public Map<String, Object> approve(String id) { return tryApprove(id); }
+
+    public Map<String, Object> retry(String id) {
+        return Required.value(transactions.execute(_ -> {
+            var rows = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+            if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
+            if (!"PENDING".equals(rows.getFirst())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending requests can be retried");
+            int updated = jdbc.update("UPDATE time_off_report SET status='QUEUED', data=NULL, progress=0, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status IN ('ANALYSIS_FAILURE','ROUTING_FAILURE')", id);
+            if (updated == 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Only failed analyses can be retried");
+            return Map.<String, Object>of("requestId", id, "status", "PENDING");
+        }));
+    }
+
+    public Map<String, Object> deny(String id) {
+        return Required.value(transactions.execute(_ -> {
+            var rows = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+            if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
+            if ("DENIED".equals(rows.getFirst())) return Map.<String, Object>of("requestId", id, "status", "DENIED");
+            if (!"PENDING".equals(rows.getFirst()) && !"READY".equals(rows.getFirst()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Approved requests cannot be denied");
+            jdbc.update("UPDATE time_off_request SET status='DENIED', \"decidedAt\"=CURRENT_TIMESTAMP WHERE id=?", id);
+            jdbc.update("UPDATE time_off_report SET status='DENIED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=?", id);
+            return Map.<String, Object>of("requestId", id, "status", "DENIED");
+        }));
+    }
 
     private Map<String, Object> tryApprove(String id) {
         try { return Required.value(transactions.execute(_ -> approveLocked(id))); }
@@ -170,13 +223,19 @@ public class TimeOffService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Request changed");
             if (!days.isArray() || intervals.isEmpty() || days.size() != intervals.size()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Incomplete report");
             for (int i = 0; i < intervals.size(); i++) {
-                SavedJson.text(Required.value(days.path(i)), "run_id");
+                String dayStatus = SavedJson.text(Required.value(days.path(i)), "status");
                 SavedJson.integer(Required.value(days.path(i)), "start_min"); SavedJson.integer(Required.value(days.path(i)), "end_min");
-                if (!"REPAIR_PREVIEW".equals(SavedJson.text(Required.value(days.path(i)), "status"))) throw SavedJson.invalid();
+                if (!"REPAIR_PREVIEW".equals(dayStatus) && !"NO_SHIFT".equals(dayStatus)) throw SavedJson.invalid();
                 if (!intervals.get(i).day().toString().equals(days.get(i).path("service_date").asText())
                         || intervals.get(i).start() != days.get(i).path("start_min").asInt(-1)
                         || intervals.get(i).end() != days.get(i).path("end_min").asInt(-1))
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Report date changed");
+                if ("NO_SHIFT".equals(dayStatus)) {
+                    if (WeeklyAvailability.resolve(jdbc, owner.getFirst().technicianId(), intervals.get(i).day()) != null)
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Availability changed; retry analysis");
+                    continue;
+                }
+                SavedJson.text(Required.value(days.path(i)), "run_id");
                 optimizer.applyRepair(Required.value(days.get(i).path("run_id").asText()), owner.getFirst().technicianId(), intervals.get(i).day(), intervals.get(i).start(), intervals.get(i).end());
             }
             jdbc.update("UPDATE time_off_request SET status='APPROVED', \"decidedAt\"=CURRENT_TIMESTAMP WHERE id=?", id);

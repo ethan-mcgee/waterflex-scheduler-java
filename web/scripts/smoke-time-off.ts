@@ -2,6 +2,7 @@ import { timeOffResult, required } from "../lib/contracts";
 import { PrismaClient } from "@prisma/client";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
+import { parseTimeOffReport } from "../lib/timeOffView";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 
@@ -29,9 +30,9 @@ async function main() {
   const date = day.toISOString().slice(0, 10);
   const metro = await prisma.metro.create({ data: { id: `timeoff-metro-${suffix}`, name: "Time off fixture", timezone: "America/Chicago" } });
   const service = await prisma.serviceCatalog.create({ data: { code: `TIMEOFF_${suffix}`, name: "Time off fixture", estDurationMin: 60 } });
-  const techA = `timeoff-tech-a-${suffix}`, techB = `timeoff-tech-b-${suffix}`;
+  const techA = `timeoff-tech-a-${suffix}`, techB = `timeoff-tech-b-${suffix}`, techC = `timeoff-tech-c-${suffix}`;
   const customerId = `timeoff-customer-${suffix}`, addressId = `timeoff-address-${suffix}`, jobId = `timeoff-job-${suffix}`;
-  const heldJobId = `timeoff-held-job-${suffix}`;
+  const heldJobId = `timeoff-held-job-${suffix}`, impossibleJobId = `timeoff-impossible-job-${suffix}`;
   const requestIds: string[] = [];
   try {
     for (const id of [techA, techB]) await prisma.technician.create({ data: {
@@ -101,9 +102,104 @@ async function main() {
     }
     assert.equal(blockedReport.status, "NEEDS_COORDINATION");
     assert.match(JSON.stringify(blockedReport.data), /ACTIVE_RESERVATIONS/);
-    console.log("Automatic repair, invalid-report rollback, staff review, and active-reservation deferral passed");
+    const friday = new Date(day);
+    friday.setUTCDate(friday.getUTCDate() + 4);
+    const sunday = new Date(day);
+    sunday.setUTCDate(sunday.getUTCDate() + 6);
+    const offDays = await post("/v1/time-off/request", { technicianId: techB, firstDate: friday.toISOString().slice(0, 10), lastDate: sunday.toISOString().slice(0, 10),
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture weekend range" });
+    requestIds.push(offDays.requestId);
+    let weekend = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDays.requestId }, include: { report: true } });
+    for (let attempt = 0; attempt < 45 && weekend.status !== "APPROVED" && !["NEEDS_COORDINATION", "ANALYSIS_FAILURE"].includes(weekend.report?.status ?? ""); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      weekend = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDays.requestId }, include: { report: true } });
+    }
+    assert.equal(weekend.status, "APPROVED");
+    assert.equal(weekend.report?.status, "APPLIED");
+    const weekendSummary = parseTimeOffReport(weekend.report?.data);
+    assert.equal(weekendSummary.kind, "complete");
+    if (weekendSummary.kind !== "complete") throw new Error("Missing weekend analysis");
+    assert.equal(weekendSummary.summary.days.filter(item => item.status === "NO_SHIFT").length, 2);
+
+    const wednesday = new Date(day);
+    wednesday.setUTCDate(wednesday.getUTCDate() + 2);
+    const impossibleDate = wednesday.toISOString().slice(0, 10);
+    await prisma.technicianQualification.delete({ where: { technicianId_serviceId: { technicianId: techB, serviceId: service.id } } });
+    await prisma.job.create({ data: { id: impossibleJobId, customerId, addressId, serviceId: service.id, durationMin: 60, status: "SCHEDULED" } });
+    await prisma.appointment.create({ data: { jobId: impossibleJobId, technicianId: techA, serviceDate: wednesday,
+      windowStart: new Date(`${impossibleDate}T15:00:00Z`), windowEnd: new Date(`${impossibleDate}T17:00:00Z`),
+      plannedStart: new Date(`${impossibleDate}T15:00:00Z`), plannedEnd: new Date(`${impossibleDate}T16:00:00Z`), sequence: 0 } });
+    const impossible = await post("/v1/time-off/request", { technicianId: techA, firstDate: impossibleDate, lastDate: impossibleDate,
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture impossible repair" });
+    requestIds.push(impossible.requestId);
+    let impossibleReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: impossible.requestId } });
+    for (let attempt = 0; attempt < 45 && ["QUEUED", "ANALYZING"].includes(impossibleReport.status); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      impossibleReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: impossible.requestId } });
+    }
+    assert.equal(impossibleReport.status, "NEEDS_COORDINATION");
+    assert.match(JSON.stringify(impossibleReport.data), /VALIDATED_CONSTRAINT_CONFLICT|SEARCH_BUDGET_EXHAUSTED/);
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { jobId: impossibleJobId } })).technicianId, techA);
+    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: impossible.requestId } })).status, "PENDING");
+    await prisma.technicianQualification.create({ data: { technicianId: techB, serviceId: service.id } });
+
+    await prisma.technician.create({ data: { id: techC, metroId: metro.id, name: techC, color: technicianColor(techC), homeLat: 43.735, homeLng: 7.420,
+      shiftStartMin: 480, shiftEndMin: 1020, qualifications: { create: { serviceId: service.id } } } });
+    const tuesday = new Date(day);
+    tuesday.setUTCDate(tuesday.getUTCDate() + 1);
+    const nextDate = tuesday.toISOString().slice(0, 10);
+    const failed = await post("/v1/time-off/request", { technicianId: techC, firstDate: nextDate, lastDate: nextDate,
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture retry" });
+    requestIds.push(failed.requestId);
+    let failedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } });
+    for (let attempt = 0; attempt < 45 && ["QUEUED", "ANALYZING"].includes(failedReport.status); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      failedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } });
+    }
+    assert.equal(failedReport.status, "ANALYSIS_FAILURE");
+    assert.match(JSON.stringify(failedReport.data), new RegExp(nextDate));
+    assert.match(JSON.stringify(failedReport.data), /weekly availability is missing or invalid/);
+    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: failed.requestId } })).status, "PENDING");
+    await prisma.technician.update({ where: { id: techC }, data: { availabilityVersions: initialAvailability(480, 1020) } });
+    await post(`/v1/time-off/${failed.requestId}/retry`, {});
+    assert.equal((await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } })).status, "QUEUED");
+    const denied = await post("/v1/time-off/request", { technicianId: techB, firstDate: nextDate, lastDate: nextDate,
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture denial" });
+    requestIds.push(denied.requestId);
+    await prisma.timeOffReport.update({ where: { requestId: denied.requestId }, data: { status: "ANALYZING" } });
+    await post(`/v1/time-off/${denied.requestId}/deny`, {});
+    const deniedRow = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: denied.requestId }, include: { report: true } });
+    assert.equal(deniedRow.status, "DENIED");
+    assert.ok(deniedRow.decidedAt);
+    assert.equal(deniedRow.report?.status, "DENIED");
+    const replacement = await post("/v1/time-off/request", { technicianId: techB, firstDate: nextDate, lastDate: nextDate,
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture replacement" });
+    requestIds.push(replacement.requestId);
+    await post(`/v1/time-off/${replacement.requestId}/deny`, {});
+    const nearSaturday = localToday();
+    nearSaturday.setUTCDate(nearSaturday.getUTCDate() + 7);
+    while (nearSaturday.getUTCDay() !== 6) nearSaturday.setUTCDate(nearSaturday.getUTCDate() + 1);
+    const saturdayKey = nearSaturday.toISOString().slice(0, 10);
+    const offDayReview = await post("/v1/time-off/request", { technicianId: techB, firstDate: saturdayKey, lastDate: saturdayKey,
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture availability change" });
+    requestIds.push(offDayReview.requestId);
+    let review = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDayReview.requestId }, include: { report: true } });
+    for (let attempt = 0; attempt < 45 && review.status === "PENDING" && ["QUEUED", "ANALYZING"].includes(review.report?.status ?? ""); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      review = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDayReview.requestId }, include: { report: true } });
+    }
+    assert.equal(review.status, "READY");
+    await prisma.technicianShiftOverride.create({ data: { technicianId: techB, serviceDate: nearSaturday, available: true, shiftStartMin: 480, shiftEndMin: 1020 } });
+    const staleOffDay = await fetch(`${base}/v1/time-off/${offDayReview.requestId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(staleOffDay.status, 409);
+    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDayReview.requestId } })).status, "PENDING");
+    await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techB, serviceDate: nearSaturday } });
+    const cannotDeny = await fetch(`${base}/v1/time-off/${offDays.requestId}/deny`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(cannotDeny.status, 409);
+    console.log("Time-off repair, weekend range, failure detail, retry, denial, and overlap eligibility passed");
   } finally {
     await prisma.slotHold.deleteMany({ where: { jobId: heldJobId } });
+    await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });
     await prisma.job.deleteMany({ where: { id: heldJobId } });
     if (requestIds.length) {
       await prisma.timeOffReport.deleteMany({ where: { requestId: { in: requestIds } } });
@@ -112,13 +208,13 @@ async function main() {
     }
     await prisma.optimizationChange.deleteMany({ where: { run: { metroId: metro.id } } });
     await prisma.optimizationRun.deleteMany({ where: { metroId: metro.id } });
-    await prisma.appointment.deleteMany({ where: { jobId } });
-    await prisma.job.deleteMany({ where: { id: jobId } });
+    await prisma.appointment.deleteMany({ where: { jobId: { in: [jobId, impossibleJobId] } } });
+    await prisma.job.deleteMany({ where: { id: { in: [jobId, impossibleJobId] } } });
     await prisma.address.deleteMany({ where: { id: addressId } });
     await prisma.customer.deleteMany({ where: { id: customerId } });
-    await prisma.scheduleDay.deleteMany({ where: { technicianId: { in: [techA, techB] } } });
-    await prisma.technicianQualification.deleteMany({ where: { technicianId: { in: [techA, techB] } } });
-    await prisma.technician.deleteMany({ where: { id: { in: [techA, techB] } } });
+    await prisma.scheduleDay.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });
+    await prisma.technicianQualification.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });
+    await prisma.technician.deleteMany({ where: { id: { in: [techA, techB, techC] } } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.$disconnect();

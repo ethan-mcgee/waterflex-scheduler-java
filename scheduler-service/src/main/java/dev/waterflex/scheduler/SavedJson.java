@@ -61,18 +61,23 @@ public final class SavedJson {
     public static JsonNode readyReport(JsonNode node) {
         object(node);
         text(node, "technician_id");
-        metrics(Required.value(node.path("total_before")));
-        metrics(Required.value(node.path("total_after")));
         if (integer(node, "reassigned_jobs") < 0) throw invalid();
         JsonNode days = array(Required.value(node.path("days")));
         if (days.isEmpty()) throw invalid();
+        boolean allRepair = true;
         for (JsonNode day : days) {
-            text(Required.value(day), "run_id");
-            if (!"REPAIR_PREVIEW".equals(text(Required.value(day), "status"))) throw invalid();
+            String status = text(Required.value(day), "status");
+            if (!"REPAIR_PREVIEW".equals(status) && !"NO_SHIFT".equals(status)) throw invalid();
             try { java.time.LocalDate.parse(text(Required.value(day), "service_date")); }
             catch (RuntimeException e) { throw invalid(); }
             long start = integer(Required.value(day), "start_min"), end = integer(Required.value(day), "end_min");
             if (start < 0 || end > 1440 || start >= end) throw invalid();
+            if ("NO_SHIFT".equals(status)) {
+                allRepair = false;
+                if (day.has("run_id") || day.has("before") || day.has("after") || day.has("changes")) throw invalid();
+                continue;
+            }
+            text(Required.value(day), "run_id");
             summary(Required.value(day.path("before"))); summary(Required.value(day.path("after")));
             metrics(Required.value(day.path("daily_before"))); metrics(Required.value(day.path("daily_after")));
             if (integer(Required.value(day), "reassigned_jobs") < 0) throw invalid();
@@ -81,6 +86,10 @@ public final class SavedJson {
                 for (String field : new String[]{"from_sequence", "to_sequence", "from_planned_arrival_min", "to_planned_arrival_min"}) integer(Required.value(change), Required.value(field));
             }
         }
+        if (allRepair) {
+            metrics(Required.value(node.path("total_before")));
+            metrics(Required.value(node.path("total_after")));
+        } else if (!node.path("total_before").isNull() || !node.path("total_after").isNull()) throw invalid();
         return node;
     }
     private static void metrics(JsonNode node) {
