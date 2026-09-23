@@ -12,6 +12,12 @@ export const depotSetup = dealershipPolicy.extend({ dealershipId: text, metroId:
   address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(), confirmedPin: point }).strict();
 export const depotPolicyResult = z.object({ success: z.literal(true), effectiveDate: date });
 export const dealershipSetup = z.object({ name: text.max(120) }).strict();
+export const dealershipDetails = dealershipSetup;
+export const depotDetails = z.object({ name: text.max(120), address: depotSetup.shape.address.optional(),
+  confirmedPin: point.optional() }).strict().superRefine((value, context) => {
+  if ((value.address === undefined) !== (value.confirmedPin === undefined))
+    context.addIssue({ code: "custom", message: "Address and confirmed pin must be supplied together" });
+});
 export const technicianDepotAssignment = z.object({ depotId: text, effectiveDate: date }).strict();
 export const offer = z.object({ offerId: text, date, windowStart: instant, windowEnd: instant, expiresAt: instant });
 export const offersResponse = z.object({ jobId: text, offers: z.array(offer) });

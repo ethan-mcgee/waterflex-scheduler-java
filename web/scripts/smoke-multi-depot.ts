@@ -49,6 +49,13 @@ async function main() {
   const holdJob = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 50 } });
   try {
     const sameDay = dateAfter(5), crossDay = dateAfter(25), beforeDay = dateAfter(2);
+    assert.equal((await post(`/v1/depots/${first.id}/details`, { name: "Renamed Lincoln" })).status, 200);
+    assert.equal((await prisma.depot.findUniqueOrThrow({ where: { id: first.id } })).lat, 43.735);
+    const updatedLocation = { name: "Renamed Lincoln", address: { line1: "1 Fixture St", city: "Monaco", state: "MC", postalCode: "98000" },
+      confirmedPin: { lat: 43.735, lng: 7.420 }, candidate: { lat: 43.735, lng: 7.420, precision: "ROOFTOP" } };
+    assert.equal((await post(`/v1/depots/${first.id}/details`, updatedLocation)).status, 200);
+    assert.equal((await prisma.depot.findUniqueOrThrow({ where: { id: first.id } })).addressLine1, "1 Fixture St");
+    assert.equal((await post(`/v1/depots/${first.id}/details`, { ...updatedLocation, confirmedPin: { lat: null, lng: 7.420 } })).status, 400);
     const futurePolicyDate = dateAfter(35);
     await prisma.depotEndpointPolicy.create({ data: { depotId: first.id, effectiveDate: new Date(`${futurePolicyDate}T00:00:00Z`), departure: "HOME", returnTo: "HOME" } });
     const policyEdit = await post(`/v1/depots/${first.id}/policy`, { departure: "DEPOT", returnTo: "HOME" });
@@ -113,6 +120,8 @@ async function main() {
     const hold = await prisma.slotHold.create({ data: { jobId: holdJob.id, technicianId: tech.id, serviceDate: new Date(`${crossDay}T00:00:00Z`),
       offerToken: suffix, windowStart: start, windowEnd: end, plannedStart: start, plannedEnd: new Date(start.getTime() + 50 * 60_000),
       insertPosition: 0, expiresAt: new Date(Date.now() + 600_000) } });
+    assert.equal((await post(`/v1/depots/${second.id}/details`, { ...updatedLocation, name: "Blocked depot" })).status, 409);
+    assert.equal((await prisma.depot.findUniqueOrThrow({ where: { id: second.id } })).name, "Lincoln second");
     assert.equal((await post(`/v1/technicians/${tech.id}/depot-assignments`, { depotId: third.id, effectiveDate: crossDay })).status, 409);
     await prisma.slotHold.delete({ where: { id: hold.id } });
     assert.equal((await post(`/v1/technicians/${tech.id}/depot-assignments`, { depotId: third.id, effectiveDate: crossDay })).status, 200);
