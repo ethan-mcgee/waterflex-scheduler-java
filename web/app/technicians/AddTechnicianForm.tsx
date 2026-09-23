@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import ui from "../components/ui.module.css";
 import ColorPicker from "./ColorPicker";
 import StandardAvailabilityGrid, { defaultStandardWeek, type StandardDay } from "./StandardAvailabilityGrid";
@@ -13,6 +13,7 @@ import type { GeocodeResult } from "@/lib/geocode";
 
 const candidatesResponse = z.object({ candidates: z.array(z.object({ lat: z.number().finite(), lng: z.number().finite(),
   precision: z.enum(["ROOFTOP", "APPROXIMATE"]), bounds: z.object({ south: z.number(), north: z.number(), west: z.number(), east: z.number() }).optional() })) });
+const LOOKUP_DEBOUNCE_MS = 700;
 
 export default function AddTechnicianForm({ services, metros, dealerships, depots, onClose, onCreated }: {
   services: Array<{ id: string; name: string }>;
@@ -33,16 +34,17 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
   const [dealershipId, setDealershipId] = useState(depots.find(item => item.metroId === metros[0]?.id)?.dealershipId ?? "");
   const [depotId, setDepotId] = useState(depots.find(item => item.metroId === metros[0]?.id)?.id ?? "");
   const [address, setAddress] = useState({ line1: "", city: "", state: "", postalCode: "" });
-  const [candidates, setCandidates] = useState<GeocodeResult[]>([]);
-  const [pinIndex, setPinIndex] = useState<number | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<GeocodeResult | null>(null);
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const [pinConfirmed, setPinConfirmed] = useState(false);
+  const [pinMoved, setPinMoved] = useState(false);
   const [mapAvailable, setMapAvailable] = useState(false);
+  const [lookup, setLookup] = useState<"idle" | "loading" | "done" | "error">("idle");
   const lookupVersion = useRef(0);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
 
-  const selectedCandidate = pinIndex == null ? null : candidates[pinIndex] ?? null;
-  const pinReady = pin && selectedCandidate && (selectedCandidate.precision === "ROOFTOP" || (pinConfirmed && mapAvailable));
+  const addressComplete = Object.values(address).every(value => value.trim().length > 0);
+  const pinReady = pin && selectedCandidate && (selectedCandidate.precision === "ROOFTOP" && !pinMoved || pinConfirmed && mapAvailable);
   const invalid = !name.trim() || !email.trim() || !phone.trim() || !metroId || !dealershipId || !depotId || !pinReady || !quals.length ||
     !days.some(day => day.available) || days.some(day => day.available && day.startMin >= day.endMin);
 
@@ -52,15 +54,29 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
   function toggleQual(id: string) {
     setQuals((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   }
-  async function findPins() {
+  useEffect(() => {
     const version = ++lookupVersion.current;
-    setBusy(true); setMessage(""); setCandidates([]); setPinIndex(null); setPin(null); setPinConfirmed(false); setMapAvailable(false);
-    try {
-      const response = await fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address) });
-      const result = await readResponse(response, candidatesResponse);
-      if (version === lookupVersion.current) setCandidates(result.candidates);
-    } catch (error) { if (version === lookupVersion.current) setMessage(errorMessage(error)); }
-    finally { if (version === lookupVersion.current) setBusy(false); }
+    if (!addressComplete) { setLookup("idle"); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setLookup("loading"); setMessage("");
+      fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address), signal: controller.signal })
+        .then(response => readResponse(response, candidatesResponse))
+        .then(result => {
+          if (controller.signal.aborted || version !== lookupVersion.current) return;
+          const best = result.candidates.find(candidate => candidate.precision === "ROOFTOP") ?? result.candidates[0] ?? null;
+          if (!best) { setSelectedCandidate(null); setPin(null); setLookup("error"); return; }
+          setSelectedCandidate(best); setPin({ lat: best.lat, lng: best.lng }); setPinConfirmed(false); setPinMoved(false); setMapAvailable(false); setLookup("done");
+        })
+        .catch(error => { if (!controller.signal.aborted && version === lookupVersion.current) { setSelectedCandidate(null); setPin(null); setLookup("error"); setMessage(errorMessage(error)); } });
+    }, LOOKUP_DEBOUNCE_MS);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [address, addressComplete]);
+
+  function updateAddress(field: keyof typeof address, value: string) {
+    ++lookupVersion.current;
+    setAddress(current => ({ ...current, [field]: value }));
+    setSelectedCandidate(null); setPin(null); setPinConfirmed(false); setPinMoved(false); setMapAvailable(false); setLookup("idle"); setMessage("");
   }
   async function createTechnician() {
     if (invalid || !pin) return;
@@ -68,7 +84,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
     try {
       const response = await fetch("/api/technicians", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim(), phone: phone.trim(), bio: bio.trim() || null,
-          color, depotId, address, confirmedPin: pin, manuallyConfirmed: selectedCandidate?.precision === "APPROXIMATE" && pinConfirmed,
+          color, depotId, address, confirmedPin: pin, manuallyConfirmed: (selectedCandidate?.precision === "APPROXIMATE" || pinMoved) && pinConfirmed,
           days: days.map(day => ({ dayOfWeek: day.dayOfWeek, available: day.available,
             shiftStartMin: day.available ? day.startMin : null, shiftEndMin: day.available ? day.endMin : null })), qualifications: quals }) });
       await readResponse(response, z.object({ success: z.literal(true), id: z.string() }));
@@ -92,20 +108,19 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
               </select></div></div>
             <div className={styles.fieldGrid}>{(["line1", "city", "state", "postalCode"] as const).map(field =>
               <div key={field}><label className={ui.sectionLabel} htmlFor={`new-${field}`}>{field === "line1" ? "Street address" : field === "postalCode" ? "Postal code" : field}</label>
-                <input id={`new-${field}`} value={address[field]} onChange={event => { ++lookupVersion.current; setBusy(false); setAddress(current => ({ ...current, [field]: event.target.value })); setCandidates([]); setPinIndex(null); setPin(null); setPinConfirmed(false); setMapAvailable(false); setMessage(""); }} style={inputStyle} /></div>)}</div>
-            <button type="button" className={ui.button} disabled={busy || Object.values(address).some(value => !value.trim())} onClick={findPins}>Find address pins</button>
-            {candidates.length > 0 && <div><label className={ui.sectionLabel} htmlFor="new-pin">Home address match</label><select id="new-pin" value={pinIndex ?? ""} onChange={event => { const index = event.target.value === "" ? null : Number(event.target.value); const candidate = index == null ? null : candidates[index] ?? null; setPinIndex(candidate ? index : null); setPin(candidate ? { lat: candidate.lat, lng: candidate.lng } : null); setPinConfirmed(false); setMapAvailable(false); }} style={inputStyle}>
-              <option value="">Choose an address match</option>{candidates.map((candidate, index) => <option key={`${candidate.lat}-${candidate.lng}`} value={index}>{candidate.precision === "ROOFTOP" ? "House match" : "Approximate street only"} {candidate.lat.toFixed(5)}, {candidate.lng.toFixed(5)}</option>)}</select></div>}
-            {selectedCandidate?.precision === "APPROXIMATE" && pin && <div style={{ margin: "12px 0" }}>
-              <p>This street was found, but house number {address.line1.match(/^\s*\d+[A-Za-z]?/)?.[0]?.trim() ?? ""} was not verified. Move the home pin to the correct house and confirm it.</p>
+                <input id={`new-${field}`} value={address[field]} onChange={event => updateAddress(field, event.target.value)} style={inputStyle} /></div>)}</div>
+            <div style={{ margin: "12px 0" }}>
+              <p>{lookup === "loading" ? "Locating home address…" : lookup === "error" ? "No verified pin found for this address." : selectedCandidate?.precision === "APPROXIMATE" ? `This street was found, but house number ${address.line1.match(/^\s*\d+[A-Za-z]?/)?.[0]?.trim() ?? ""} was not verified. Move the home pin to the correct house and confirm it.` : selectedCandidate ? "Review the located home pin. Drag it to adjust the location." : "Fill in the complete home address to locate it on the map."}</p>
+              {pin && selectedCandidate && <>
               <div style={{ height: 280, border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
-                <DepotPinMap key={pinIndex} lat={pin.lat} lng={pin.lng} requireInteractive onAvailableChange={setMapAvailable}
-                  onDrag={(lat, lng) => { setPin({ lat, lng }); setPinConfirmed(false); }} />
+                <DepotPinMap key={`${selectedCandidate.lat}-${selectedCandidate.lng}`} lat={pin.lat} lng={pin.lng} requireInteractive onAvailableChange={setMapAvailable}
+                  onDrag={(lat, lng) => { setPin({ lat, lng }); setPinMoved(true); setPinConfirmed(false); }} />
               </div>
-              {!mapAvailable && <p role="status">Map placement is unavailable. Technician creation is blocked until the map loads.</p>}
-              <button type="button" className={ui.button} disabled={!mapAvailable} onClick={() => setPinConfirmed(true)}>Confirm home pin</button>
+              {!mapAvailable && <p role="status">Map placement is unavailable at this address. A located house pin can still be used; manual confirmation requires the map.</p>}
+              {(selectedCandidate.precision === "APPROXIMATE" || pinMoved) && <button type="button" className={ui.button} disabled={!mapAvailable} onClick={() => setPinConfirmed(true)}>Confirm home pin</button>}
               {pinConfirmed && <span role="status"> Home pin confirmed</span>}
-            </div>}
+              </>}
+            </div>
             <div className={styles.fieldGrid}>
               <div>
                 <label className={ui.sectionLabel} htmlFor="new-name">Name <span className={styles.required}>*</span></label>

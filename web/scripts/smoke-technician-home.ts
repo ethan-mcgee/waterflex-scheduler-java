@@ -20,7 +20,7 @@ const geocoder = createServer((request, response) => {
 
 async function main() {
   // Clean a prior interrupted smoke run in the isolated test database.
-  const previous = await prisma.technician.findMany({ where: { email: { in: ["home-pin@example.com", "house-pin@example.com"] },
+  const previous = await prisma.technician.findMany({ where: { email: { in: ["home-pin@example.com", "house-pin@example.com", "moved-house-pin@example.com"] },
     homeAddressLine1: "2125 Crest Ridge Dr" }, select: { id: true } });
   if (previous.length) {
     const ids = previous.map(item => item.id);
@@ -62,7 +62,15 @@ async function main() {
     const houseSaved = await prisma.technician.findFirstOrThrow({ where: { email: "house-pin@example.com" } });
     created.push(houseSaved.id);
     assert.equal(houseSaved.homePinProvenance, "GEOCODER_HOUSE");
-    console.log("Street pin bounds, confirmation, provenance, and exact house creation passed");
+    const movedPin = { lat: 41.1659, lng: -96.0079032 };
+    assert.equal((await submit({ ...input, email: "moved-house-pin@example.com", confirmedPin: movedPin, manuallyConfirmed: false })).status, 422);
+    assert.equal((await submit({ ...input, email: "moved-house-pin@example.com", confirmedPin: { lat: 41.17, lng: -96.0079032 }, manuallyConfirmed: true })).status, 422);
+    const moved = await submit({ ...input, email: "moved-house-pin@example.com", confirmedPin: movedPin, manuallyConfirmed: true });
+    assert.equal(moved.status, 201);
+    const movedSaved = await prisma.technician.findFirstOrThrow({ where: { email: "moved-house-pin@example.com" } });
+    created.push(movedSaved.id);
+    assert.equal(movedSaved.homePinProvenance, "MANUALLY_CONFIRMED");
+    console.log("Street pin bounds, confirmation, exact house creation, and manually adjusted house pin limits passed");
   } finally {
     await prisma.technicianQualification.deleteMany({ where: { technicianId: { in: created } } });
     await prisma.technician.deleteMany({ where: { id: { in: created } } });
