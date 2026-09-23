@@ -20,13 +20,11 @@ test("street result needs a working map and address edits discard its confirmati
     await page.getByLabel("city", { exact: true }).fill("Papillion");
     await page.getByLabel("state", { exact: true }).fill("NE");
     await page.getByLabel("Postal code").fill("68133");
-    await page.getByRole("button", { name: "Find address pins" }).click();
-    await page.getByLabel("Home address match").selectOption("0");
-    await expect(page.getByLabel("Home address match")).toHaveValue("0");
+    await expect(page.getByText("house number 2125 was not verified", { exact: false })).toBeVisible();
     await expect(page.getByRole("button", { name: "Confirm home pin" })).toBeDisabled();
     await expect(page.getByText("Home pin placement is blocked", { exact: false })).toBeVisible();
     await page.getByLabel("Street address").fill("2126 Crest Ridge Dr");
-    await expect(page.getByLabel("Home address match")).toHaveCount(0);
+    await expect(page.getByText("house number 2125 was not verified", { exact: false })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Create technician" })).toBeDisabled();
   } finally {
     await prisma.depot.delete({ where: { id: depot.id } });
@@ -52,8 +50,6 @@ test("a confirmed street pin is cleared by an address edit", async ({ page }) =>
     await page.getByLabel("city", { exact: true }).fill("Papillion");
     await page.getByLabel("state", { exact: true }).fill("NE");
     await page.getByLabel("Postal code").fill("68133");
-    await page.getByRole("button", { name: "Find address pins" }).click();
-    await page.getByLabel("Home address match").selectOption("0");
     await expect(page.getByRole("button", { name: "Confirm home pin" })).toBeEnabled();
     await page.getByRole("button", { name: "Confirm home pin" }).click();
     await expect(page.getByText("Home pin confirmed")).toBeVisible();

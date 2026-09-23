@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   const technician = await prisma.technician.create({ data: {
     name: input.name, email: input.email ?? null, phone: input.phone ?? null,
     bio: input.bio ?? null, color: input.color, homeLat: input.confirmedPin.lat, homeLng: input.confirmedPin.lng,
-    homePinProvenance: selected.precision === "ROOFTOP" ? "GEOCODER_HOUSE" : "MANUALLY_CONFIRMED",
+    homePinProvenance: selected.precision === "ROOFTOP" && !input.manuallyConfirmed ? "GEOCODER_HOUSE" : "MANUALLY_CONFIRMED",
     homeAddressLine1: input.address.line1, homeAddressCity: input.address.city,
     homeAddressState: input.address.state, homeAddressPostalCode: input.address.postalCode,
     shiftStartMin: firstAvailable.shiftStartMin, shiftEndMin: firstAvailable.shiftEndMin,
