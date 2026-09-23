@@ -120,7 +120,8 @@ test("weekly edits reject malformed payloads and conflicts with an appointment",
       { data: { days: initialAvailability(480, 1020).create.days.create } })).status()).toBe(409);
     const invalidPin = await request.post("/api/technicians", { data: { name: "Invalid pin", email: "pin@example.invalid", phone: "4025550100",
       bio: null, color: "#2563eb", depotId: depot.id, address: { line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102" },
-      confirmedPin: { lat: 0, lng: 0 }, days: initialAvailability(480, 1020).create.days.create, qualifications: [service.id] } });
+      confirmedPin: { lat: 0, lng: 0 }, manuallyConfirmed: false,
+      days: initialAvailability(480, 1020).create.days.create, qualifications: [service.id] } });
     expect(invalidPin.status()).toBe(422);
     const days = initialAvailability(480, 1020).create.days.create.map(day => day.dayOfWeek === 1
       ? { ...day, available: false, shiftStartMin: null, shiftEndMin: null } : day);
