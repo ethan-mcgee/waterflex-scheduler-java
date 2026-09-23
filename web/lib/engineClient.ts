@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse } from "./contracts";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
@@ -15,8 +15,8 @@ export class EngineError extends Error {
   }
 }
 
-export function updateDepotPolicy(id: string, departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT"): Promise<{ success: boolean }> {
-  return request(`/v1/depots/${encodeURIComponent(id)}/policy`, success, { departure, returnTo });
+export function updateDepotPolicy(id: string, departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT"): Promise<{ success: true; effectiveDate: string }> {
+  return request(`/v1/depots/${encodeURIComponent(id)}/policy`, depotPolicyResult, { departure, returnTo });
 }
 
 export function assignTechnicianDepot(id: string, depotId: string, effectiveDate: string): Promise<{ success: boolean }> {
