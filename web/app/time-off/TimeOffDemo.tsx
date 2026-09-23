@@ -13,9 +13,9 @@ type Request = {
   id: string; technicianId: string; technicianName: string; category: string; reason: string; status: string; createdAt: string;
   intervals: TimeOffIntervalView[]; intervalsValid: boolean; reportStatus: string | null; reportProgress: number | null; report: ParsedTimeOffReport;
 };
-type FilterKey = "all" | "pending" | "ready" | "approved";
+type FilterKey = "all" | "pending" | "ready" | "approved" | "denied";
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
-  { key: "all", label: "All requests" }, { key: "pending", label: "Pending" }, { key: "ready", label: "Ready for review" }, { key: "approved", label: "Approved" },
+  { key: "all", label: "Active requests" }, { key: "pending", label: "Pending" }, { key: "ready", label: "Ready for review" }, { key: "approved", label: "Approved" }, { key: "denied", label: "Denied history" },
 ];
 function minutes(value: string): number | null {
   if (!/^\d{2}:\d{2}$/.test(value)) return null;
@@ -24,6 +24,7 @@ function minutes(value: string): number | null {
 }
 function time(value: number) { return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`; }
 function analysisLabel(request: Request): string {
+  if (request.status === "DENIED") return "Denied";
   if (request.status === "APPROVED") return "Approved";
   if (request.reportStatus === "QUEUED") return "Queued for analysis";
   if (request.reportStatus === "ANALYZING") return request.reportProgress == null ? "Analyzing, progress unknown" : `Analyzing, ${request.reportProgress}%`;
@@ -37,11 +38,17 @@ function reportMatches(request: Request): boolean {
   if (!request.intervalsValid || request.report.kind !== "complete" || request.report.summary.days.length !== request.intervals.length) return false;
   return request.intervals.every((interval, index) => {
     const day = request.report.kind === "complete" ? request.report.summary.days[index] : undefined;
-    return day != null && day.status === "REPAIR_PREVIEW" && day.run_id != null && day.service_date === interval.date
+    return day != null && (day.status === "NO_SHIFT" || (day.status === "REPAIR_PREVIEW" && day.run_id != null)) && day.service_date === interval.date
       && day.start_min === interval.startMin && day.end_min === interval.endMin;
   });
 }
 function metric(value: number | undefined, suffix = "") { return value == null ? "Missing" : `${value.toLocaleString()}${suffix}`; }
+function dayReason(reason: string | null | undefined): string {
+  if (reason === "ACTIVE_RESERVATIONS") return "Active booking reservations need to expire or be resolved before analysis.";
+  if (reason === "VALIDATED_CONSTRAINT_CONFLICT") return "The requested absence conflicts with appointment or route constraints.";
+  if (reason === "SEARCH_BUDGET_EXHAUSTED") return "The solver could not find a feasible repair in its search time.";
+  return reason ?? "No reason reported";
+}
 type MetricValues = { route_minutes: number; overtime_minutes: number; drive_minutes: number; waiting_minutes: number; distance_meters: number; modeled_cost_cents: number };
 
 export default function TimeOffDemo({ technicians, requests, selectedFilter, truncated }: {
@@ -90,19 +97,28 @@ export default function TimeOffDemo({ technicians, requests, selectedFilter, tru
     try { const response = await fetch("/api/time-off/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); await readResponse(response, timeOffResult); setMessage(`Request ${id} approved.`); router.refresh(); }
     catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
   }
+  async function act(id: string, action: "retry" | "deny") {
+    setBusy(true); setMessage("");
+    try {
+      const response = await fetch(`/api/time-off/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      await readResponse(response, timeOffResult);
+      setMessage(action === "retry" ? `Request ${id} queued for another analysis.` : `Request ${id} denied.`);
+      router.refresh();
+    } catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
+  }
 
   return <div className={styles.main}><div className={styles.top}><p className={styles.eyebrow}>Dispatch</p><h1 className={styles.title}>Time off</h1><p className={styles.subtitle}>Requests, conflict analysis, and approvals in one queue.</p></div>
     <div className={styles.toolbar}><div className={styles.seg}>{FILTERS.map(filter => <button key={filter.key} type="button" aria-pressed={selectedFilter === filter.key} className={selectedFilter === filter.key ? styles.segActive : ""} onClick={() => router.push(filter.key === "all" ? "/time-off" : `/time-off?status=${filter.key}`)}>{filter.label}</button>)}</div>
       <button ref={opener} className={`${ui.button} ${ui.buttonBrand}`} type="button" onClick={() => { setFormError(""); setShowForm(true); }}>+ New request</button></div>
     {message && <p role="status" className={styles.message}>{message}</p>}
     {truncated && <p role="note" className={styles.limitNotice}>Showing the first 100 matching requests.</p>}
-    {requests.length === 0 ? <div className={`${ui.card} ${styles.emptyState}`}>{selectedFilter === "all" ? "No time-off requests yet." : `No requests match the ${FILTERS.find(item => item.key === selectedFilter)?.label.toLowerCase()} filter.`}</div> :
+    {requests.length === 0 ? <div className={`${ui.card} ${styles.emptyState}`}>{selectedFilter === "all" ? "No active time-off requests." : `No requests match the ${FILTERS.find(item => item.key === selectedFilter)?.label.toLowerCase()} filter.`}</div> :
     <div className={`${ui.card} ${styles.tableCard}`}><table className={styles.table}><thead><tr><th>Technician</th><th>Dates</th><th>Reason</th><th>Status</th><th>Conflict analysis</th><th>Action</th></tr></thead><tbody>{requests.map(request => {
       const isOpen = expanded === request.id, canApprove = request.status === "READY" && reportMatches(request), progress = request.reportProgress;
       return <Fragment key={request.id}><tr><td className={styles.who}><Avatar name={request.technicianName} /><span><button type="button" className={styles.nameLink} aria-expanded={isOpen} aria-controls={`request-${request.id}`} onClick={() => setExpanded(isOpen ? null : request.id)}>{request.technicianName}</button><br /><span className={styles.sub}>Technician</span></span></td>
         <td>{request.intervalsValid ? <><div className={styles.mainDate}>{request.intervals[0]?.date}{request.intervals.length > 1 ? ` to ${request.intervals.at(-1)?.date}` : ""}</div><div className={styles.times}>{request.intervals.length === 1 && request.intervals[0] ? `${time(request.intervals[0].startMin)} to ${time(request.intervals[0].endMin)}` : `${request.intervals.length} days`}</div></> : <span className={styles.invalid}>Invalid interval data</span>}</td>
-        <td>{request.category}</td><td><StatusPill status={request.status} /></td><td><div className={styles.analysisLbl}>{analysisLabel(request)}</div>{progress == null ? <div className={styles.progressUnknown}>Progress unknown</div> : <div className={styles.analysisBar} aria-label={`Analysis ${progress}% complete`}><span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} /></div>}{(request.reportStatus === "QUEUED" || request.reportStatus === "ANALYZING") && <button className={styles.refreshBtn} type="button" onClick={() => router.refresh()}>Refresh analysis</button>}</td>
-        <td>{request.status === "READY" && <button className={styles.approveBtn} disabled={busy || !canApprove} title={!canApprove ? "A valid matching report is required" : undefined} onClick={() => approve(request.id)}>Approve</button>}</td></tr>
+        <td>{request.category}</td><td><StatusPill status={request.status} /></td><td><div className={styles.analysisLbl}>{analysisLabel(request)}</div>{request.report.kind === "failure" && <div className={styles.analysisLbl}>{request.report.reason}</div>}{request.status !== "DENIED" && (progress == null ? <div className={styles.progressUnknown}>Progress unknown</div> : <div className={styles.analysisBar} aria-label={`Analysis ${progress}% complete`}><span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} /></div>)}{(request.reportStatus === "QUEUED" || request.reportStatus === "ANALYZING") && <button className={styles.refreshBtn} type="button" onClick={() => router.refresh()}>Refresh analysis</button>}</td>
+        <td><div className={styles.actions}>{request.status === "READY" && <button className={styles.approveBtn} disabled={busy || !canApprove} title={!canApprove ? "A valid matching report is required" : undefined} onClick={() => approve(request.id)}>Approve</button>}{request.status === "PENDING" && (request.reportStatus === "ANALYSIS_FAILURE" || request.reportStatus === "ROUTING_FAILURE") && <button className={ui.button} type="button" disabled={busy} onClick={() => act(request.id, "retry")}>Retry analysis</button>}{(request.status === "PENDING" || request.status === "READY") && <button className={ui.button} type="button" disabled={busy} onClick={() => act(request.id, "deny")}>Deny</button>}</div></td></tr>
         {isOpen && <tr className={styles.detailRow}><td colSpan={6}><div className={styles.detailBody} id={`request-${request.id}`}><div><p className={ui.sectionLabel}>Request</p><div className={styles.kvRow}><span className={styles.key}>Status</span><span>{request.status}</span></div><div className={styles.kvRow}><span className={styles.key}>Category</span><span>{request.category}</span></div><div className={styles.kvRow}><span className={styles.key}>Submitted</span><span>{new Date(request.createdAt).toLocaleDateString()}</span></div><p className={ui.sectionLabel}>Explanation</p><p className={styles.explanation}>{request.reason}</p></div>
           <div><p className={ui.sectionLabel}>Requested intervals</p>{request.intervalsValid ? request.intervals.map(interval => <div key={interval.date} className={styles.intervalRow}><span>{interval.date}</span><span>{time(interval.startMin)} to {time(interval.endMin)}</span></div>) : <p className={styles.invalid}>Missing or invalid requested intervals. Approval is unavailable.</p>}</div>
           <div><p className={ui.sectionLabel}>Conflict analysis</p><p className={styles.analysisLbl}>{analysisLabel(request)}</p><ReportDetails report={request.report} /><button className={ui.button} type="button" onClick={() => setExpanded(null)}>Collapse</button></div></div></td></tr>}
@@ -125,7 +141,7 @@ function ReportDetails({ report }: { report: ParsedTimeOffReport }) {
   if (report.kind === "failure") return <p className={styles.invalid}>Analysis failure reason: {report.reason}</p>;
   const summary = report.summary;
   return <div className={styles.report}><p>{summary.reassigned_jobs == null ? "Reassignment count missing" : `${summary.reassigned_jobs} reassigned job${summary.reassigned_jobs === 1 ? "" : "s"}`}</p>
-    {summary.days.map(day => <div className={styles.reportDay} key={`${day.service_date}-${day.start_min}`}><strong>{day.service_date}: {day.status}</strong><span>{day.reason ? `Reason: ${day.reason}` : "No reason reported"}</span><span>{day.reassigned_jobs == null ? "Reassignment count missing" : `${day.reassigned_jobs} reassigned`}</span><MetricComparison before={day.daily_before} after={day.daily_after} /></div>)}
+    {summary.days.map(day => <div className={styles.reportDay} key={`${day.service_date}-${day.start_min}`}><strong>{day.service_date}: {day.status === "NO_SHIFT" ? "No scheduled shift" : day.status === "SKIPPED" ? "Needs coordination" : day.status === "FROZEN_CSR_COORDINATION" ? "Past scheduling cutoff" : "Repair preview"}</strong><span>{dayReason(day.reason)}</span>{day.status === "REPAIR_PREVIEW" && <><span>{day.reassigned_jobs == null ? "Reassignment count missing" : `${day.reassigned_jobs} reassigned`}</span><MetricComparison before={day.daily_before} after={day.daily_after} /></>}</div>)}
     <strong>Combined metrics</strong><MetricComparison before={summary.total_before ?? undefined} after={summary.total_after ?? undefined} /></div>;
 }
 

@@ -152,6 +152,14 @@ export function approveTimeOff(id: string): Promise<{ requestId: string; status:
   return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, {});
 }
 
+export function retryTimeOff(id: string): Promise<{ requestId: string; status: string }> {
+  return request(`/v1/time-off/${encodeURIComponent(id)}/retry`, timeOffResult, {});
+}
+
+export function denyTimeOff(id: string): Promise<{ requestId: string; status: string }> {
+  return request(`/v1/time-off/${encodeURIComponent(id)}/deny`, timeOffResult, {});
+}
+
 export function updateAvailability(request: { technicianId: string; date: string; available: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null }): Promise<{ success: boolean }> {
   return requestEngine("/v1/dispatch/availability", success, request);
 }
