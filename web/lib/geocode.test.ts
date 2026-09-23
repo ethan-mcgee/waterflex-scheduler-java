@@ -56,6 +56,8 @@ test("accepts an exact matching house without manual confirmation", async () => 
     bounds: { south: 41.1623576, north: 41.1654397, west: -96.0109311, east: -96.0046578 } });
   assert.equal(confirmedHomePin({ lat: 41.1637462, lng: -96.0079032 }, result ? [result] : [], false)?.precision, "ROOFTOP");
   assert.equal(confirmedHomePin({ lat: 41.164, lng: -96.008 }, result ? [result] : [], false), null);
+  assert.equal(confirmedHomePin({ lat: 41.164, lng: -96.008 }, result ? [result] : [], true)?.precision, "ROOFTOP");
+  assert.equal(confirmedHomePin({ lat: 41.17, lng: -96.008 }, result ? [result] : [], true), null);
 });
 
 test("separates transport, timeout, malformed response, and genuine miss", async () => {
