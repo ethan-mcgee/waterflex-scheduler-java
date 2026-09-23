@@ -10,6 +10,7 @@ export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-1
 export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();
 export const depotSetup = dealershipPolicy.extend({ dealershipId: text, metroId: text, name: text.max(120),
   address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(), confirmedPin: point }).strict();
+export const depotPolicyResult = z.object({ success: z.literal(true), effectiveDate: date });
 export const dealershipSetup = z.object({ name: text.max(120) }).strict();
 export const technicianDepotAssignment = z.object({ depotId: text, effectiveDate: date }).strict();
 export const offer = z.object({ offerId: text, date, windowStart: instant, windowEnd: instant, expiresAt: instant });

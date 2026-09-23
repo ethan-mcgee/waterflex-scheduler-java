@@ -27,7 +27,7 @@ public class DealershipPolicyController {
 
     @PostMapping("/v1/depots/{id}/policy")
     @Transactional
-    public Map<String, Boolean> update(@PathVariable String id, @RequestBody @Nullable Policy policy) {
+    public Map<String, Object> update(@PathVariable String id, @RequestBody @Nullable Policy policy) {
         String departure = policy == null ? null : policy.departure();
         String returnTo = policy == null ? null : policy.returnTo();
         if (!("HOME".equals(departure) || "DEPOT".equals(departure)) ||
@@ -45,7 +45,11 @@ public class DealershipPolicyController {
                 (rs, _) -> Required.string(rs, 1), id);
         Instant now = Required.value(Instant.now());
         LocalDate today = Required.value(now.atZone(ZoneId.of("America/Chicago")).toLocalDate());
-        LocalDate effectiveDate = ScheduleCutoff.frozen(Required.value(today), Required.value(now)) ? Required.value(today.plusDays(1)) : today;
+        LocalDate proposedDate = ScheduleCutoff.frozen(Required.value(today), Required.value(now)) ? Required.value(today.plusDays(1)) : today;
+        Timestamp nextPolicy = jdbc.query("SELECT \"effectiveDate\" FROM depot_endpoint_policy WHERE \"depotId\"=? AND \"effectiveDate\">? ORDER BY \"effectiveDate\" LIMIT 1",
+                rs -> rs.next() ? Required.timestamp(rs, 1) : null,
+                id, Timestamp.from(today.atStartOfDay(ZoneOffset.UTC).toInstant()));
+        LocalDate effectiveDate = nextPolicy == null ? proposedDate : Required.value(nextPolicy.toInstant().atZone(ZoneOffset.UTC).toLocalDate());
         List<BookedDay> booked = new ArrayList<>();
         for (String techId : technicians) {
             var days = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM (SELECT \"serviceDate\" FROM appointment WHERE \"technicianId\"=? AND \"cancelledAt\" IS NULL UNION ALL SELECT \"serviceDate\" FROM slot_hold WHERE \"technicianId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP) affected WHERE \"serviceDate\">=? ORDER BY \"serviceDate\"",
@@ -73,6 +77,6 @@ public class DealershipPolicyController {
         for (BookedDay day : booked) booking.replanExisting(day.technicianId(), day.date());
         if (effectiveDate.equals(today) && ScheduleCutoff.frozen(Required.value(today), Required.value(Instant.now())))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Today's route passed the 6 a.m. cutoff");
-        return Required.value(Map.of("success", true));
+        return Required.value(Map.of("success", true, "effectiveDate", effectiveDate.toString()));
     }
 }
