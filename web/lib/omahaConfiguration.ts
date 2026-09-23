@@ -79,10 +79,16 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
     },
   });
 
+  const dealership = await prisma.dealership.upsert({
+    where: { id: OMAHA_DEALERSHIP_ID },
+    update: { name: "Omaha Main Dealership" },
+    create: { id: OMAHA_DEALERSHIP_ID, name: "Omaha Main Dealership" },
+  });
   const depot = await prisma.depot.upsert({
     where: { id: OMAHA_DEPOT_ID },
     update: {
       metroId: metro.id,
+      dealershipId: dealership.id,
       name: "Omaha Main Depot",
       lat: 41.2565,
       lng: -95.9345,
@@ -90,22 +96,17 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
     create: {
       id: OMAHA_DEPOT_ID,
       metroId: metro.id,
+      dealershipId: dealership.id,
       name: "Omaha Main Depot",
       lat: 41.2565,
       lng: -95.9345,
     },
   });
-  const dealership = await prisma.dealership.upsert({
-    where: { id: OMAHA_DEALERSHIP_ID },
-    update: { metroId: metro.id, depotId: depot.id, name: "Omaha Main Dealership" },
-    create: { id: OMAHA_DEALERSHIP_ID, metroId: metro.id, depotId: depot.id, name: "Omaha Main Dealership",
-      endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } },
-  });
+  await prisma.depotEndpointPolicy.upsert({ where: { depotId_effectiveDate: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
+    update: {}, create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } });
 
   for (const technician of OMAHA_TECHNICIANS) {
     const configuration = {
-      metroId: metro.id,
-      dealershipId: dealership.id,
       name: technician.name,
       homeLat: technician.homeLat,
       homeLng: technician.homeLng,
@@ -120,6 +121,8 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
       update: configuration,
       create: { id: technician.id, ...configuration, color: technicianColor(technician.id), availabilityVersions: initialAvailability(8 * 60, 17 * 60) },
     });
+    await prisma.technicianDepotAssignment.upsert({ where: { technicianId_effectiveDate: { technicianId: technician.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
+      update: {}, create: { technicianId: technician.id, effectiveDate: new Date("1900-01-01T00:00:00Z"), depotId: depot.id } });
   }
 
   for (const service of OMAHA_SERVICES) {

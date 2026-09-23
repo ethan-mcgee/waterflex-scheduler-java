@@ -3,7 +3,7 @@ import { required } from "./contracts";
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { confirmHold, selectOffer, EngineError, requestSlots, type SlotOffer } from "./engineClient";
-import { addCalendarDays } from "./date";
+import { addCalendarDays, todayInTz } from "./date";
 import {
   buildCallPlans,
   candidateDates,
@@ -50,12 +50,15 @@ export interface FakeDataClearSummary {
 }
 
 async function loadOmahaConfiguration(): Promise<OmahaConfiguration> {
-  const [metro, depotCount, technicianCount, services] = await Promise.all([
+  const today = new Date(`${todayInTz(OMAHA_TIMEZONE)}T00:00:00Z`);
+  const [metro, depotCount, technicians, services] = await Promise.all([
     prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID } }),
     prisma.depot.count({ where: { metroId: OMAHA_METRO_ID } }),
-    prisma.technician.count({ where: { metroId: OMAHA_METRO_ID, active: true } }),
+    prisma.technician.findMany({ where: { active: true }, select: { depotAssignments: { where: { effectiveDate: { lte: today } },
+      include: { depot: { select: { metroId: true } } }, orderBy: { effectiveDate: "desc" }, take: 1 } } }),
     prisma.serviceCatalog.findMany({ where: { code: { in: [...FAKE_SERVICE_CODES] }, active: true } }),
   ]);
+  const technicianCount = technicians.filter(technician => technician.depotAssignments[0]?.depot.metroId === OMAHA_METRO_ID).length;
   if (!metro || metro.timezone !== OMAHA_TIMEZONE || depotCount === 0 || technicianCount === 0) {
     throw new Error("The Omaha metro, depot, timezone, and active technicians must be configured first.");
   }

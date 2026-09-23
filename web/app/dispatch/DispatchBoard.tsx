@@ -44,7 +44,7 @@ export default function DispatchBoard({ metroId, timezone, date, technicians, ap
     }
   }, [metroId, date, initialRunId]);
   useEffect(() => { void loadHistory().catch(error => { setStatus(errorMessage(error)); setInvalidResponse(true); }); }, [loadHistory]);
-  function goToDate(nextDate: string) { setPreview(null); router.push(`/dispatch?date=${nextDate}`); }
+  function goToDate(nextDate: string) { setPreview(null); router.push(`/dispatch?metroId=${encodeURIComponent(metroId)}&date=${nextDate}`); }
   function shiftDate(days: number) { const next = new Date(`${date}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + days); goToDate(next.toISOString().slice(0, 10)); }
   async function handlePreview() {
     setBusy(true); setStatus(null);

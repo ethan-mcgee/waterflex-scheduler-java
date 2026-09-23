@@ -15,7 +15,7 @@ async function fakeJobs() {
       customer: true,
       address: true,
       service: true,
-      appointment: { include: { technician: true } },
+      appointment: { include: { technician: { include: { depotAssignments: { include: { depot: true }, orderBy: { effectiveDate: "asc" } } } } } },
       slotHolds: true,
     },
   });
@@ -112,7 +112,11 @@ async function main() {
     assert.ok(inside.every((job) => job.status === "SCHEDULED" && job.appointment));
     assert.ok(inside.every((job) => job.customer.externalId?.startsWith(FAKE_DATA_PREFIX)));
     assert.ok(inside.every((job) => job.appointment?.externalId?.startsWith(FAKE_DATA_PREFIX)));
-    assert.ok(inside.every((job) => job.appointment?.technician.metroId === "metro-omaha"));
+    assert.ok(inside.every((job) => {
+      const appointment = job.appointment;
+      return appointment?.technician.depotAssignments
+        .filter(assignment => assignment.effectiveDate <= appointment.serviceDate).at(-1)?.depot.metroId === "metro-omaha";
+    }));
     assert.ok(
       inside.every(
         (job) =>
