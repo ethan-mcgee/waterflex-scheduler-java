@@ -8,7 +8,10 @@ test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("legacy contacts stay nullable and profile and pending week persist after refresh", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Profile UI metro", timezone: "America/Chicago" } });
-  const technician = await prisma.technician.create({ data: { metroId: metro.id, name: "Profile Fixture", color: "#2563eb",
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "Profile depot", lat: 41.2, lng: -95.9 } });
+  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "Profile dealership",
+    endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
+  const technician = await prisma.technician.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile Fixture", color: "#2563eb",
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
     availabilityVersions: initialAvailability(480, 1020) } });
   try {
@@ -65,16 +68,21 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     expect(pending?.days.find(day => day.dayOfWeek === 6)?.shiftStartMin).toBe(600);
   } finally {
     await prisma.technician.delete({ where: { id: technician.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
+    await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }
 });
 
 test("weekly edits reject malformed payloads and conflicts with an appointment", async ({ request }) => {
   const metro = await prisma.metro.create({ data: { name: "Profile conflict metro", timezone: "America/Chicago" } });
-  const technician = await prisma.technician.create({ data: { metroId: metro.id, name: "Conflict Fixture", color: "#2563eb",
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "Conflict depot", lat: 41.2, lng: -95.9 } });
+  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "Conflict dealership",
+    endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
+  const technician = await prisma.technician.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Conflict Fixture", color: "#2563eb",
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
     availabilityVersions: initialAvailability(480, 1020) } });
-  const missingWeek = await prisma.technician.create({ data: { metroId: metro.id, name: "Missing week fixture", color: "#2563eb",
+  const missingWeek = await prisma.technician.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Missing week fixture", color: "#2563eb",
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020 } });
   const service = await prisma.serviceCatalog.create({ data: { code: `PROFILE_${technician.id}`, name: "Profile fixture service", estDurationMin: 60 } });
   const customer = await prisma.customer.create({ data: { firstName: "Profile", lastName: "Fixture", email: "profile@example.invalid", phone: "4025550123" } });
@@ -92,7 +100,7 @@ test("weekly edits reject malformed payloads and conflicts with an appointment",
     expect((await request.put(`/api/technicians/${missingWeek.id}/standard-availability`,
       { data: { days: initialAvailability(480, 1020).create.days.create } })).status()).toBe(409);
     const invalidPin = await request.post("/api/technicians", { data: { name: "Invalid pin", email: "pin@example.invalid", phone: "4025550100",
-      bio: null, color: "#2563eb", metroId: metro.id, address: { line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102" },
+      bio: null, color: "#2563eb", metroId: metro.id, dealershipId: dealership.id, address: { line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102" },
       confirmedPin: { lat: 0, lng: 0 }, days: initialAvailability(480, 1020).create.days.create, qualifications: [service.id] } });
     expect(invalidPin.status()).toBe(422);
     const days = initialAvailability(480, 1020).create.days.create.map(day => day.dayOfWeek === 1
@@ -115,6 +123,8 @@ test("weekly edits reject malformed payloads and conflicts with an appointment",
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
     await prisma.technician.delete({ where: { id: missingWeek.id } });
     await prisma.technician.delete({ where: { id: technician.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
+    await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }
 });

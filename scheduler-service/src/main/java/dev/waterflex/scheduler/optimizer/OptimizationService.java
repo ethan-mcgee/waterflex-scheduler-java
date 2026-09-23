@@ -8,6 +8,7 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.RoadClient;
+import dev.waterflex.scheduler.RouteEndpoints;
 import dev.waterflex.scheduler.ScheduleCutoff;
 import dev.waterflex.scheduler.WeeklyAvailability;
 import org.springframework.http.HttpStatus;
@@ -42,12 +43,12 @@ public class OptimizationService {
     private record ExistingPreview(String id, String metroId, LocalDate day) { }
     private record SavedRun(String metroId, Instant day, String versions, String assignments, String weights, String status) { }
     private record RunResponse(String metroId, Instant day, String status, @Nullable String reason, String solverStatus, int solveMs, int improvement, String before, String after, Instant created, @Nullable Instant applied, String weights) { }
-    private record TechData(String id, RoadClient.Point point, TechRoute route) { }
-    private record TechBase(String id, RoadClient.Point point, int maxDaily, int maxOvertime) { }
+    private record TechData(String id, RouteEndpoints endpoints, TechRoute route) { }
+    private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
     private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
                              Instant windowStart, Instant windowEnd) { }
     private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
-                           String configurationVersion, String routingIdentity) { }
+                           String configurationVersion, String routingIdentity, Map<String, RouteEndpoints> endpoints) { }
 
     public OptimizationService(JdbcTemplate jdbc, RoadClient roads, SolverFactory<DayPlan> solverFactory) {
         this.jdbc = jdbc; this.roads = roads; this.solverFactory = solverFactory;
@@ -177,11 +178,11 @@ public class OptimizationService {
                 "windowStart", visit.windowStart().toString(), "windowEnd", visit.windowEnd().toString(),
                 "locationLat", visit.point().lat(), "locationLng", visit.point().lng())).toList();
         try {
-            jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"baselineAssignments\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
+            jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"baselineAssignments\", \"endpointSnapshots\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
                     id, metroId, dayStamp(day), mapper.writeValueAsString(baseline.versions()),
                     mapper.writeValueAsString(Map.of("mapVersion", baseline.routingIdentity(), "configVersion", baseline.configurationVersion())), status, solveMs,
                     mapper.writeValueAsString(summary(baseline.plan(), before)), mapper.writeValueAsString(summary(proposal, after)),
-                    "[]", mapper.writeValueAsString(assignments), mapper.writeValueAsString(originalAssignments), improvement, status, reason);
+                    "[]", mapper.writeValueAsString(assignments), mapper.writeValueAsString(originalAssignments), mapper.writeValueAsString(baseline.endpoints()), improvement, status, reason);
             for (Assignment assignment : assignments) {
                 String appointmentId = assignment.appointmentId();
                 VisitData source = Required.value(original.get(appointmentId), "original assignment");
@@ -336,8 +337,8 @@ public class OptimizationService {
     }
 
     private Problem build(String metroId, LocalDate day) {
-        List<TechBase> base = jdbc.query("SELECT id,\"homeLat\",\"homeLng\",\"maxDailyMinutes\",\"maxOvertimeMinutes\" FROM technician WHERE \"metroId\"=? AND active=true ORDER BY id",
-                (rs, _) -> new TechBase(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.integer(rs, 4), Required.integer(rs, 5)), metroId);
+        List<TechBase> base = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.\"metroId\"=? AND t.active=true ORDER BY t.id",
+                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), metroId);
         List<TechData> techs = new ArrayList<>();
         for (TechBase technician : base) {
             WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician.id(), day);
@@ -345,7 +346,7 @@ public class OptimizationService {
             Set<String> qualifications = new HashSet<String>(Required.value(jdbc.query("SELECT \"serviceId\" FROM technician_qualification WHERE \"technicianId\"=?", (r, _) -> Required.string(r, 1), technician.id())));
             Instant start = ScheduleCutoff.localMinute(day, shift.start(), false);
             Instant end = ScheduleCutoff.localMinute(day, shift.end(), true);
-            techs.add(new TechData(technician.id(), technician.point(),
+            techs.add(new TechData(technician.id(), technician.endpoints(),
                     new TechRoute(technician.id(), start, end, technician.maxDaily(), technician.maxOvertime(), qualifications)));
         }
         Map<String, TechData> byId = new HashMap<>();
@@ -368,7 +369,10 @@ public class OptimizationService {
             tech.route().getVisits().add(visit.visit());
         }
         Map<String, RoadClient.Point> points = new LinkedHashMap<>();
-        techs.forEach(tech -> points.put(tech.id(), tech.point()));
+        techs.forEach(tech -> {
+            points.put(tech.id(), tech.endpoints().departure());
+            points.put(tech.id() + ":return", tech.endpoints().returnTo());
+        });
         visits.forEach(visit -> points.put(visit.visit().getId(), visit.point()));
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
         roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
@@ -384,7 +388,9 @@ public class OptimizationService {
                     UUID.randomUUID().toString(), tech.id(), dayStamp(day));
             versions.put(tech.id(), Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, tech.id(), dayStamp(day)));
         }
-        return new Problem(plan, versions, visits, configurationVersion(metroId, day), points.isEmpty() ? roads.activeIdentity() : roads.currentVersion());
+        Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
+        techs.forEach(tech -> endpoints.put(tech.id(), tech.endpoints()));
+        return new Problem(plan, versions, visits, configurationVersion(metroId, day), points.isEmpty() ? roads.activeIdentity() : roads.currentVersion(), endpoints);
     }
 
     private List<Map<String, Object>> summary(DayPlan plan, DayScoreCalculator.Evaluation metrics) {
@@ -416,11 +422,11 @@ public class OptimizationService {
         StringBuilder raw = new StringBuilder();
         jdbc.query("SELECT key, value, \"updatedAt\" FROM omaha_setting ORDER BY key",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(Required.string(rs, 3)).append(';'));
-        jdbc.query("SELECT id, active, \"homeLat\", \"homeLng\", \"shiftStartMin\", \"shiftEndMin\", \"maxDailyMinutes\", \"maxOvertimeMinutes\" FROM technician WHERE \"metroId\"=? ORDER BY id",
+        jdbc.query("SELECT t.id, t.active, t.\"homeLat\", t.\"homeLng\", t.\"shiftStartMin\", t.\"shiftEndMin\", t.\"maxDailyMinutes\", t.\"maxOvertimeMinutes\", t.\"dealershipId\", ep.departure, ep.\"returnTo\", d.\"depotId\", p.lat, p.lng FROM technician t" + RouteEndpoints.JOINS + " WHERE t.\"metroId\"=? ORDER BY t.id",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                    for (int i = 1; i <= 8; i++) raw.append(rs.getString(i)).append(':');
+                    for (int i = 1; i <= 14; i++) raw.append(rs.getString(i)).append(':');
                     raw.append(';');
-                }, metroId);
+                }, dayStamp(day), metroId);
         jdbc.query("SELECT q.\"technicianId\", q.\"serviceId\" FROM technician_qualification q JOIN technician t ON t.id=q.\"technicianId\" WHERE t.\"metroId\"=? ORDER BY q.\"technicianId\", q.\"serviceId\"",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(';'), metroId);
         jdbc.query("SELECT o.\"technicianId\", o.available, o.\"shiftStartMin\", o.\"shiftEndMin\" FROM technician_shift_override o JOIN technician t ON t.id=o.\"technicianId\" WHERE t.\"metroId\"=? AND o.\"serviceDate\"=? ORDER BY o.\"technicianId\"",

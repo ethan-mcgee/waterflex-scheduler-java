@@ -12,12 +12,13 @@ import TechnicianProfileModal, { type ProfileDraft } from "./TechnicianProfileMo
 import styles from "./technicians.module.css";
 
 interface Override { date: string; available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }
-interface Tech { id: string; name: string; active: boolean; email: string | null; phone: string | null; bio: string | null; color: string;
+interface Tech { id: string; name: string; active: boolean; dealershipId: string; email: string | null; phone: string | null; bio: string | null; color: string;
   availabilityVersions: Array<{ effectiveDate: string; days: StandardDay[] }>;
   shiftStartMin: number | null; shiftEndMin: number | null; qualifications: string[]; overrides: Override[]; overridesTruncated: boolean }
 
-export default function TechnicianRoster({ technicians, services, metros, today }: {
-  technicians: Tech[]; services: Array<{ id: string; name: string }>; metros: Array<{ id: string; name: string }>; today: string;
+export default function TechnicianRoster({ technicians, services, metros, dealerships, today }: {
+  technicians: Tech[]; services: Array<{ id: string; name: string }>; metros: Array<{ id: string; name: string }>;
+  dealerships: Array<{ id: string; name: string; metroId: string }>; today: string;
 }) {
   const router = useRouter();
   const [techId, setTechId] = useState(technicians[0]?.id ?? ""), [search, setSearch] = useState("");
@@ -115,6 +116,7 @@ export default function TechnicianRoster({ technicians, services, metros, today 
             <button className={`${ui.button} ${ui.buttonBrand}`} type="button" disabled={busy} onClick={() => resetDraft(tech, true)}>+ Add exception</button>
           </div></div>
 
+        <p className={ui.sectionLabel}>Dealership: {dealerships.find(item => item.id === tech.dealershipId)?.name ?? "Missing dealership"}</p>
         <p className={ui.sectionLabel}>Profile</p>
         <div style={{ padding: "12px 14px", background: "var(--surface-soft)", border: "1px solid var(--line)", borderRadius: 9, marginBottom: 20 }}>
           <p style={{ margin: "0 0 4px", fontSize: 12.5, color: "var(--ink-soft)" }}>{profileFor(tech).email || "No email on file"} &middot; {profileFor(tech).phone || "No phone on file"}</p>
@@ -143,6 +145,6 @@ export default function TechnicianRoster({ technicians, services, metros, today 
         />}
       </div> : <div className={`${ui.card} ${styles.detail} ${styles.empty}`}>No technicians found</div>}
     </div>
-    {showAddForm && <AddTechnicianForm services={services} metros={metros} onClose={() => setShowAddForm(false)} onCreated={() => { setShowAddForm(false); router.refresh(); }} />}
+    {showAddForm && <AddTechnicianForm services={services} metros={metros} dealerships={dealerships} onClose={() => setShowAddForm(false)} onCreated={() => { setShowAddForm(false); router.refresh(); }} />}
   </div>;
 }

@@ -38,9 +38,11 @@ class DispatchGeometryControllerTest {
             when(row.getString(1)).thenReturn("tech");
             when(row.getDouble(2)).thenReturn(41.25);
             when(row.getDouble(3)).thenReturn(-95.93);
+            when(row.getString(4)).thenReturn("HOME");
+            when(row.getString(5)).thenReturn("HOME");
             Required.value(call.<@org.jspecify.annotations.Nullable RowCallbackHandler>getArgument(1)).processRow(row);
             return null;
-        }).<@org.jspecify.annotations.Nullable JdbcTemplate>when(jdbc)).query(MockArguments.startsText("SELECT id,"), MockArguments.callback(), MockArguments.equalText("metro"));
+        }).<@org.jspecify.annotations.Nullable JdbcTemplate>when(jdbc)).query(MockArguments.startsText("SELECT t.id,"), MockArguments.callback(), any(Timestamp.class), MockArguments.equalText("metro"));
         when(jdbc.query(MockArguments.startsText("SELECT a.id"), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(), MockArguments.equalText("metro"), any(Timestamp.class)))
                 .thenAnswer(call -> {
                     ResultSet row = mock(ResultSet.class);
@@ -134,6 +136,22 @@ class DispatchGeometryControllerTest {
     }
 
     @Test
+    void olderPreviewWithoutEndpointSnapshotsReportsUnavailableGeometry() throws Exception {
+        stubSavedGeometry(savedAssignment("visit", "tech", 41.27, -95.95), savedAssignment("visit", "tech", 41.27, -95.95), "test-roads");
+        when(jdbc.query(MockArguments.startsText("SELECT \"baselineAssignments\""), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(),
+                MockArguments.equalText("saved-run"), MockArguments.equalText("metro"), any(Timestamp.class))).thenAnswer(call -> {
+                    ResultSet row = mock(ResultSet.class);
+                    when(row.getString(1)).thenReturn(savedAssignment("visit", "tech", 41.27, -95.95));
+                    when(row.getString(2)).thenReturn(savedAssignment("visit", "tech", 41.27, -95.95));
+                    when(row.getString(3)).thenReturn("{\"mapVersion\":\"test-roads\"}");
+                    RowMapper<Object> mapper = call.getArgument(1);
+                    return Required.value(List.of(Required.value(mapper.mapRow(row, 0))));
+                });
+        Required.value(http).perform(Required.value(savedGeometryRequest("before"))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Historical endpoint geometry is unavailable for this preview"));
+    }
+
+    @Test
     void routingFailureReturnsUnavailableWithoutInventingGeometry() throws Exception {
         when(roads.routeGeometry(Required.value(anyList()), Required.value(anyString()))).thenThrow(new RoadClient.RoadUnavailable("Routing offline"));
         Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-22")))
@@ -173,6 +191,7 @@ class DispatchGeometryControllerTest {
                     when(row.getString(1)).thenReturn(before);
                     when(row.getString(2)).thenReturn(after);
                     when(row.getString(3)).thenReturn("{\"mapVersion\":\"" + mapVersion + "\",\"configVersion\":\"test-config\"}");
+                    when(row.getString(4)).thenReturn("{\"tech\":{\"departure\":{\"lat\":41.25,\"lng\":-95.93},\"returnTo\":{\"lat\":41.25,\"lng\":-95.93}}}");
                     RowMapper<Object> mapper = call.getArgument(1);
                     return Required.value(List.of(Required.value(mapper.mapRow(row, 0))));
                 });

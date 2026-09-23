@@ -22,6 +22,9 @@ async function post<T>(schema: z.ZodType<T>, path: string, body: unknown) {
 async function main() {
   // Only the fixture technician can qualify, so seeded Omaha routes cannot affect offers.
   const metro = await prisma.metro.create({ data: { id: `smoke-metro-${suffix}`, name: "Booking fixture", timezone: "America/Chicago" } });
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "Booking depot", lat: 43.735, lng: 7.420 } });
+  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "Booking dealership",
+    endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `BOOK_${suffix}`, name: "Booking fixture", estDurationMin: 50 } });
   const techId = `smoke-tech-${suffix}`;
   const customerId = `smoke-customer-${suffix}`;
@@ -30,7 +33,7 @@ async function main() {
   const otherJobId = `smoke-other-job-${suffix}`;
   try {
     await prisma.technician.create({ data: {
-      id: techId, metroId: metro.id, name: "Monaco fixture technician", color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
+      id: techId, metroId: metro.id, dealershipId: dealership.id, name: "Monaco fixture technician", color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
       homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
       maxDailyMinutes: 600, maxOvertimeMinutes: 60,
       qualifications: { create: { serviceId: service.id } },
@@ -116,6 +119,8 @@ async function main() {
     await prisma.scheduleDay.deleteMany({ where: { technicianId: techId } });
     await prisma.technician.deleteMany({ where: { id: techId } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
+    await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.$disconnect();
   }

@@ -67,6 +67,19 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
           if (cancelled) return;
           if (!isDispatchGeometry(geometry, date, phase))
             throw new Error("Invalid road geometry");
+          if (geometry.endpoints) {
+            homeMarkers.forEach(marker => marker.remove());
+            homeMarkers.length = 0;
+            geometry.endpoints.forEach(endpoint => {
+              const tech = technicians.find(item => item.id === endpoint.technicianId);
+              if (!tech) throw new Error(`Unknown route technician ${endpoint.technicianId}`);
+              homeMarkers.push(new maplibregl.Marker({ color: tech.color }).setLngLat([endpoint.departureLng, endpoint.departureLat])
+                .setPopup(new maplibregl.Popup().setText(`${tech.name}: departure`)).addTo(map));
+              if (endpoint.departureLat !== endpoint.returnLat || endpoint.departureLng !== endpoint.returnLng)
+                homeMarkers.push(new maplibregl.Marker({ color: tech.color }).setLngLat([endpoint.returnLng, endpoint.returnLat])
+                  .setPopup(new maplibregl.Popup().setText(`${tech.name}: return`)).addTo(map));
+            });
+          }
           const routedTechnicians = [...new Set(geometry.features.map(feature => feature.properties.technicianId))];
           routedTechnicians.forEach((id) => { if (!colorByTech.has(id)) throw new Error(`Unknown route technician ${id}`); });
           routedTechnicians.forEach((technicianId, index) => {

@@ -4,6 +4,7 @@ import { initialAvailability } from "./technicianAvailability";
 import { technicianColor } from "./technicianColor";
 
 const OMAHA_DEPOT_ID = "depot-omaha-main";
+const OMAHA_DEALERSHIP_ID = "dealership-omaha-main";
 
 const OMAHA_TECHNICIANS = [
   { id: "tech-1", name: "Alex Rivera", homeLat: 41.1544, homeLng: -96.0422 },
@@ -94,16 +95,20 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
       lng: -95.9345,
     },
   });
+  const dealership = await prisma.dealership.upsert({
+    where: { id: OMAHA_DEALERSHIP_ID },
+    update: { metroId: metro.id, depotId: depot.id, name: "Omaha Main Dealership" },
+    create: { id: OMAHA_DEALERSHIP_ID, metroId: metro.id, depotId: depot.id, name: "Omaha Main Dealership",
+      endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } },
+  });
 
   for (const technician of OMAHA_TECHNICIANS) {
     const configuration = {
       metroId: metro.id,
-      depotId: depot.id,
+      dealershipId: dealership.id,
       name: technician.name,
       homeLat: technician.homeLat,
       homeLng: technician.homeLng,
-      startLocation: "HOME" as const,
-      endLocation: "HOME" as const,
       shiftStartMin: 8 * 60,
       shiftEndMin: 17 * 60,
       maxDailyMinutes: 540,
