@@ -13,6 +13,14 @@ import { availabilityRequest, readResponse, offersResponse, testInput, testAttem
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView } from "./timeOffView";
+import { nearbyCandidate } from "./depotPin";
+
+test("depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates", () => {
+  const candidate = { lat: 41.256, lng: -95.934, precision: "ROOFTOP" as const };
+  assert.deepEqual(nearbyCandidate({ lat: 41.257, lng: -95.934 }, [candidate]), candidate);
+  assert.equal(nearbyCandidate({ lat: 41.26, lng: -95.934 }, [candidate]), null);
+  assert.equal(nearbyCandidate(candidate, []), null);
+});
 
 test("invalid request bodies fail before downstream requests or writes", async () => {
   const original = globalThis.fetch;

@@ -34,6 +34,14 @@ model Depot {
   name      String
   lat       Float
   lng       Float
+  addressLine1 String?
+  addressCity String?
+  addressState String?
+  addressPostalCode String?
+  geocodeLat Float?
+  geocodeLng Float?
+  geocodePrecision String?
+  pinConfirmedAt DateTime?
   createdAt DateTime @default(now())
 
   dealershipId String

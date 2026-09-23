@@ -1,0 +1,438 @@
+.main {
+  max-width: 1180px;
+}
+
+.top {
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+.title {
+  font-size: 22px;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.card {
+  padding: 18px 24px;
+  margin-bottom: 18px;
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.stepBadge {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--brand-wash);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dealershipRow {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.nameInput {
+  flex: 1 1 auto;
+  max-width: 360px;
+}
+
+.depotCard {
+  padding: 20px 24px;
+}
+
+.depotCardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fieldGrid3 {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 1.3fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fieldGrid4 {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 0.5fr 0.6fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field label {
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.textInput {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.textInput::placeholder {
+  color: var(--quiet, var(--muted));
+}
+
+.mapSection {
+  margin-bottom: 14px;
+}
+
+.mapSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.mapStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.mapStatusError {
+  color: var(--danger);
+}
+
+.mapBoxWrap {
+  position: relative;
+  height: 190px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.mapPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.mapHint {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.policyRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.anchorGroup {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.toggleLabel {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.toggleGroup {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+}
+
+.toggleBtn {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.toggleBtnOn {
+  background: var(--surface-soft);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--ink);
+}
+
+.savedMessage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--success-wash);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+
+.errorMessage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--danger-wash);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+  width: fit-content;
+}
+
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+}
+
+.listTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  width: 220px;
+}
+
+.search input {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  width: 100%;
+  outline: none;
+}
+
+.columnHeader {
+  display: flex;
+  align-items: center;
+  padding: 0 20px 10px 58px;
+  border-bottom: 1px solid var(--line);
+}
+
+.colLabel {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.colName {
+  width: 280px;
+}
+
+.colMetro {
+  width: 96px;
+}
+
+.colTech {
+  width: 96px;
+}
+
+.colDeparture {
+  width: 100px;
+}
+
+.colReturn {
+  width: 140px;
+}
+
+.colActions {
+  flex: 1;
+  text-align: right;
+}
+
+.dealershipGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 20px;
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--line);
+}
+
+.dealershipGroupName {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.depotRow {
+  padding: 13px 20px 13px 58px;
+  border-bottom: 1px solid var(--line);
+}
+
+.depotRowExpanded {
+  padding: 13px 20px 16px 58px;
+  background: #fbfcfb;
+  border-bottom: 1px solid var(--line);
+}
+
+.depotName {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.depotDetail {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.editButton {
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 650;
+  padding: 6px 12px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.editButtonOn {
+  border-color: var(--brand);
+  background: var(--brand-wash);
+  color: var(--brand);
+}
+
+.policyPanel {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.upcomingNote {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.cutoffNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 9px 12px;
+  background: var(--warning-wash);
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.empty {
+  padding: 22px 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nextSteps {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0 0;
+  line-height: 1.5;
+}
+
+.listCard { overflow-x: auto; }
+
+@media (max-width: 700px) {
+  .card, .depotCard { padding: 16px; }
+  .dealershipRow { flex-wrap: wrap; gap: 10px; }
+  .nameInput { min-width: 180px; }
+  .fieldGrid3, .fieldGrid4 { grid-template-columns: minmax(0, 1fr); }
+  .mapSectionHead { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .listHead { flex-wrap: wrap; gap: 10px; }
+  .search { width: min(100%, 280px); }
+  .columnHeader, .dealershipGroup, .depotRow, .depotRowExpanded { min-width: 720px; }
+}
