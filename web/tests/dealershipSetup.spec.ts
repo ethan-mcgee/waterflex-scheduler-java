@@ -57,7 +57,7 @@ test("address changes discard stale geocodes and unavailable tiles retain a conf
   }
 });
 
-test("current and upcoming policy and active technician count stay distinct", async ({ page }) => {
+test("depot counts and policy history stay visible under the dealership", async ({ page }) => {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const next = new Date(`${today}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 4);
   const dealer = await prisma.dealership.create({ data: { name: "Policy browser dealer" } });
@@ -79,7 +79,14 @@ test("current and upcoming policy and active technician count stay distinct", as
         route.fulfill({ json: { success: true, effectiveDate: next.toISOString().slice(0, 10) } });
     });
     await page.goto("/dealerships");
-    await expect(page.getByText("1 active technicians today")).toBeVisible();
+    await expect(page.getByText("1 active technicians today")).toHaveCount(0);
+    await expect(page.getByText("1 active", { exact: true })).toBeVisible();
+    const dealerPosition = await page.getByText("Policy browser dealer", { exact: true }).last().boundingBox();
+    const depotPosition = await page.getByText("Current browser depot", { exact: true }).boundingBox();
+    expect(dealerPosition).not.toBeNull();
+    expect(depotPosition).not.toBeNull();
+    const depotIndent = await page.getByText("Current browser depot", { exact: true }).evaluate(element => Number.parseFloat(getComputedStyle(element).paddingLeft));
+    if (dealerPosition && depotPosition) expect(depotPosition.x + depotIndent).toBeGreaterThan(dealerPosition.x);
     await page.getByRole("button", { name: "Edit policy" }).first().click();
     await expect(page.getByText("Current policy from 1900-01-01", { exact: false })).toBeVisible();
     await expect(page.getByText(`Scheduled for ${next.toISOString().slice(0, 10)}`, { exact: false })).toBeVisible();

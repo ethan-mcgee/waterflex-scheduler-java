@@ -11,6 +11,8 @@ test("legacy contacts stay nullable and profile and pending week persist after r
   const dealership = await prisma.dealership.create({ data: { name: "Profile dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile depot", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
+  const nextDepot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile destination", lat: 41.2, lng: -95.9,
+    endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const technician = await prisma.technician.create({ data: { name: "Profile Fixture", color: "#2563eb",
     depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
@@ -30,7 +32,20 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     }
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.getByText("No email on file")).toBeVisible();
+    await expect(page.locator("#move-date")).toHaveCount(0);
     await page.getByRole("button", { name: "Edit profile" }).click();
+    await expect(page.locator("#move-date")).toBeVisible();
+    let movePayload: unknown = null;
+    await page.route(`**/api/technicians/${technician.id}/depot-assignments`, route => {
+      movePayload = route.request().postDataJSON() as unknown;
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+    });
+    const moveDate = addCalendarDays(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()), 30);
+    await page.locator("#move-date").fill(moveDate);
+    await page.locator("#move-depot").selectOption(nextDepot.id);
+    await page.getByRole("button", { name: "Schedule depot move" }).click();
+    await expect(page.getByText("Depot assignment scheduled.")).toBeVisible();
+    expect(movePayload).toEqual({ depotId: nextDepot.id, effectiveDate: moveDate });
     await page.locator("#profile-name").fill("Updated Fixture");
     await page.getByRole("button", { name: "Use color #dc2626" }).click();
     await page.getByRole("button", { name: "Save changes" }).click();
@@ -70,6 +85,7 @@ test("legacy contacts stay nullable and profile and pending week persist after r
   } finally {
     await prisma.technician.delete({ where: { id: technician.id } });
     await prisma.depot.delete({ where: { id: depot.id } });
+    await prisma.depot.delete({ where: { id: nextDepot.id } });
     await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }

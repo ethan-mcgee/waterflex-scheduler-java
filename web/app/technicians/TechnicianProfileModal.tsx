@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import Avatar from "../components/Avatar";
 import ui from "../components/ui.module.css";
 import ColorPicker from "./ColorPicker";
@@ -15,7 +15,7 @@ export interface ProfileDraft {
   color: string;
 }
 
-export default function TechnicianProfileModal({ initial, currentDays, pending, onClose, onSave, onSaveAvailability, busy, error }: {
+export default function TechnicianProfileModal({ initial, currentDays, pending, onClose, onSave, onSaveAvailability, busy, error, depotMove }: {
   initial: ProfileDraft;
   currentDays: StandardDay[];
   pending: { effectiveDate: string; days: StandardDay[] } | null;
@@ -24,6 +24,7 @@ export default function TechnicianProfileModal({ initial, currentDays, pending, 
   onSaveAvailability: (days: StandardDay[]) => void;
   busy: boolean;
   error: string;
+  depotMove: ReactNode;
 }) {
   const [name, setName] = useState(initial.name);
   const [email, setEmail] = useState(initial.email);
@@ -65,6 +66,9 @@ export default function TechnicianProfileModal({ initial, currentDays, pending, 
 
         <label className={ui.sectionLabel}>Color</label>
         <ColorPicker value={color} onChange={setColor} />
+
+        <p className={ui.sectionLabel}>Schedule depot move</p>
+        {depotMove}
 
         <p className={ui.sectionLabel}>Current weekly availability</p>
         <StandardAvailabilityGrid days={currentDays} />
