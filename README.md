@@ -1,6 +1,6 @@
 # WaterFlex Technician Scheduler
 
-Local Omaha booking and dispatch prototype. The customer portal is in `web/`, the Spring Boot booking and Timefold service is in `scheduler-service/`, the GraphHopper matrix service is in `routing-service/`, and map preparation is in `infra/`. [UPSTREAMS.md](UPSTREAMS.md) records source versions and revisions.
+Local booking and dispatch prototype with Omaha map data and support for dealerships across metros. The customer portal is in `web/`, the Spring Boot booking and Timefold service is in `scheduler-service/`, the GraphHopper matrix service is in `routing-service/`, and map preparation is in `infra/`. [UPSTREAMS.md](UPSTREAMS.md) records source versions and revisions.
 
 ## Requirements
 
@@ -15,8 +15,9 @@ All published Compose ports bind to `127.0.0.1`. The portal is at `http://localh
 1. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, merges them, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
 2. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space.
 3. Activate the prepared map with `docker compose --profile map-import run --rm map-import activate <version>`.
-4. Start the application with `docker compose up -d`. Compose builds the local application images, waits for PostgreSQL, applies all tracked Prisma migrations, and starts the portal and scheduler only after migration succeeds.
-5. For a new demo database only, seed sample data explicitly with `docker compose exec web npx prisma db seed`. Normal startup never runs seed commands.
+4. Before upgrading an existing database to multi-depot dealerships, run the [depot owner audit](docs/dealerships.md). Resolve every ownerless or multiply owned depot explicitly. The migration stops if the audit has unresolved rows.
+5. Start the application with `docker compose up -d`. Compose builds the local application images, waits for PostgreSQL, applies all tracked Prisma migrations, and starts the portal and scheduler only after migration succeeds.
+6. For a new demo database only, seed sample data explicitly with `docker compose exec web npx prisma db seed`. Normal startup never runs seed commands.
 
 ## Normal local updates and restarts
 
@@ -31,6 +32,8 @@ Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` v
 - `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
 - `/schedule`: weekly routes, approved time-off blocks, promises, and reasoned cancellation.
 - `/dispatch`: route review and overnight optimization preview and apply.
+- `/dealerships`: create an organization, then add its metro depots and their route policies. See [setup and dated moves](docs/dealerships.md).
+- `/technicians`: create technicians at a depot and schedule same-dealership depot moves by service date.
 - `/dispatch/testing`: local Compose sequential booking runs and automatic day previews. Compose enables the route by default; set `LOCAL_BOOKING_TESTS=false` to opt out. Non-Compose and production environments remain disabled unless they explicitly set `LOCAL_BOOKING_TESTS=true`. See [operation, recovery, and verification](docs/sequential-booking-tests.md).
 - `/dispatch/availability`: qualifications and date-specific shifts.
 - `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.

@@ -7,18 +7,21 @@ export const dynamic = "force-dynamic";
 
 export default async function TechniciansPage() {
   const today = todayInTz("America/Chicago");
-  const [technicians, services, metros, dealerships] = await Promise.all([
-    prisma.technician.findMany({ include: { qualifications: true, availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } }, shiftOverrides: {
+  const [technicians, services, metros, dealerships, depots] = await Promise.all([
+    prisma.technician.findMany({ include: { qualifications: true, depotAssignments: { include: { depot: true }, orderBy: { effectiveDate: "asc" } }, availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } }, shiftOverrides: {
       where: { serviceDate: { gte: new Date(`${today}T00:00:00Z`) } }, orderBy: { serviceDate: "asc" }, take: 101,
     } }, orderBy: { name: "asc" } }),
     prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
     prisma.metro.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.dealership.findMany({ select: { id: true, name: true, metroId: true }, orderBy: { name: "asc" } }),
+    prisma.dealership.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.depot.findMany({ select: { id: true, name: true, dealershipId: true, metroId: true }, orderBy: { name: "asc" } }),
   ]);
   return <TechnicianRoster technicians={technicians.map((tech) => {
     const versions = validateVersions(tech.availabilityVersions.map(version => ({ effectiveDate: version.effectiveDate, days: version.days })));
     return ({
-      id: tech.id, name: tech.name, active: tech.active, dealershipId: tech.dealershipId,
+      id: tech.id, name: tech.name, active: tech.active,
+      depotAssignments: tech.depotAssignments.map(item => ({ effectiveDate: item.effectiveDate.toISOString().slice(0, 10),
+        depotId: item.depotId, dealershipId: item.depot.dealershipId, metroId: item.depot.metroId })),
       email: tech.email, phone: tech.phone, bio: tech.bio, color: tech.color,
       availabilityVersions: versions.map(version => {
         const first = version.days.find(day => day.available);
@@ -35,7 +38,7 @@ export default async function TechniciansPage() {
       overridesTruncated: tech.shiftOverrides.length > 100,
       overrides: tech.shiftOverrides.slice(0, 100).map((item) => ({ date: item.serviceDate.toISOString().slice(0, 10), available: item.available,
         shiftStartMin: item.shiftStartMin, shiftEndMin: item.shiftEndMin })),
-    }); })} services={services.map((service) => ({ id: service.id, name: service.name }))} metros={metros} dealerships={dealerships} today={today} />;
+    }); })} services={services.map((service) => ({ id: service.id, name: service.name }))} metros={metros} dealerships={dealerships} depots={depots} today={today} />;
 }
 
 function validInterval(start: number, end: number): boolean {

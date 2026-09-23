@@ -17,8 +17,9 @@ public class TestAddressRoutabilityService {
     public TestAddressRoutabilityService(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
 
     public List<Result> check(List<Candidate> candidates) {
-        List<Technician> technicians = jdbc.query("SELECT t.id, s.code," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id JOIN service_catalog s ON s.id=q.\"serviceId\" WHERE t.active=true AND t.\"metroId\"='metro-omaha' AND s.active=true ORDER BY t.id,s.code",
+        List<Technician> technicians = jdbc.query("SELECT t.id, s.code," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id JOIN service_catalog s ON s.id=q.\"serviceId\" WHERE t.active=true AND p.\"metroId\"='metro-omaha' AND s.active=true ORDER BY t.id,s.code",
                 (rs, _) -> new Technician(Required.string(rs, 1), Required.string(rs, 2), RouteEndpoints.from(rs, 3)),
+                java.sql.Timestamp.from(java.time.LocalDate.now(java.time.ZoneId.of("America/Chicago")).plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()),
                 java.sql.Timestamp.from(java.time.LocalDate.now(java.time.ZoneId.of("America/Chicago")).plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
         Map<String, RoadClient.Point> points = new LinkedHashMap<>();
         technicians.forEach(tech -> { points.put("tech:" + tech.id(), tech.endpoints().departure()); points.put("return:" + tech.id(), tech.endpoints().returnTo()); });

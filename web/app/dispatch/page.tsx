@@ -2,19 +2,21 @@ import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
 import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function DispatchPage({
   searchParams,
 }: {
-  searchParams: { date?: string; run?: string };
+  searchParams: { date?: string; run?: string; metroId?: string };
 }) {
-  const metro = await prisma.metro.findFirst();
+  const metros = await prisma.metro.findMany({ orderBy: { name: "asc" } });
+  const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
       <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-        <p>No metro configured yet.</p>
+        <p>{searchParams.metroId ? "Selected metro is unavailable." : "No metro configured yet."}</p>
       </main>
     );
   }
@@ -24,10 +26,12 @@ export default async function DispatchPage({
   const dayStart = new Date(`${date}T00:00:00.000Z`);
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
-  const technicians = await prisma.technician.findMany({
-    where: { metroId: metro.id, active: true },
+  const candidates = await prisma.technician.findMany({
+    where: { active: true },
+    include: { depotAssignments: { where: { effectiveDate: { lte: dayStart } }, include: { depot: { select: { metroId: true } } }, orderBy: { effectiveDate: "desc" }, take: 1 } },
     orderBy: { name: "asc" },
   });
+  const technicians = candidates.filter(tech => tech.depotAssignments[0]?.depot.metroId === metro.id);
 
   const appointments = await prisma.appointment.findMany({
     where: {
@@ -73,7 +77,10 @@ export default async function DispatchPage({
       lng: a.job.address.lng,
     }));
 
-  return (
+  return <>
+    {metros.length > 1 && <nav aria-label="Dispatch metro" style={{ display: "flex", gap: 12, padding: 16 }}>
+      {metros.map(item => <Link key={item.id} href={`/dispatch?metroId=${encodeURIComponent(item.id)}&date=${date}`} aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
+    </nav>}
     <DispatchBoard
       metroId={metro.id}
       timezone={metro.timezone}
@@ -82,5 +89,5 @@ export default async function DispatchPage({
       appointments={boardAppointments}
       initialRunId={searchParams.run}
     />
-  );
+  </>;
 }

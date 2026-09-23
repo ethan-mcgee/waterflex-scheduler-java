@@ -15,8 +15,12 @@ export class EngineError extends Error {
   }
 }
 
-export function updateDealershipPolicy(id: string, departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT"): Promise<{ success: boolean }> {
-  return request(`/v1/dealerships/${encodeURIComponent(id)}/policy`, success, { departure, returnTo });
+export function updateDepotPolicy(id: string, departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT"): Promise<{ success: boolean }> {
+  return request(`/v1/depots/${encodeURIComponent(id)}/policy`, success, { departure, returnTo });
+}
+
+export function assignTechnicianDepot(id: string, depotId: string, effectiveDate: string): Promise<{ success: boolean }> {
+  return request(`/v1/technicians/${encodeURIComponent(id)}/depot-assignments`, success, { depotId, effectiveDate });
 }
 
 async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000, externalSignal?: AbortSignal, method?: "GET" | "POST" | "DELETE"): Promise<T> {

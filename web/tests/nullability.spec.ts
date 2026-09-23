@@ -36,11 +36,13 @@ test("malformed booking responses retain entered form data and create no job", a
 
 test("shift drafts follow the selected technician and time-off modal preserves failed input", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "UI controls metro", timezone: "America/Chicago" } });
-  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "UI controls depot", lat: 41.2, lng: -95.9 } });
-  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "UI controls dealership",
+  const dealership = await prisma.dealership.create({ data: { name: "UI controls dealership" } });
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "UI controls depot", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const first = await prisma.technician.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Ada Shift", color: "#2563eb", availabilityVersions: initialAvailability(420, 900), homeLat: 41.2, homeLng: -95.9, shiftStartMin: 420, shiftEndMin: 900 } });
-  const second = await prisma.technician.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Ben Shift", color: "#dc2626", availabilityVersions: initialAvailability(540, 1080), homeLat: 41.3, homeLng: -96.0, shiftStartMin: 540, shiftEndMin: 1080, active: false } });
+  const first = await prisma.technician.create({ data: { name: "Ada Shift", color: "#2563eb", availabilityVersions: initialAvailability(420, 900), homeLat: 41.2, homeLng: -95.9, shiftStartMin: 420, shiftEndMin: 900,
+    depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } } } });
+  const second = await prisma.technician.create({ data: { name: "Ben Shift", color: "#dc2626", availabilityVersions: initialAvailability(540, 1080), homeLat: 41.3, homeLng: -96.0, shiftStartMin: 540, shiftEndMin: 1080, active: false,
+    depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_SHIFT_TEST", name: "Shift test service", estDurationMin: 60 } });
   const override = await prisma.technicianShiftOverride.create({ data: { technicianId: first.id, serviceDate: new Date("2099-10-05T00:00:00Z"), available: true, shiftStartMin: 480, shiftEndMin: 960 } });
   const dateParts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
@@ -97,18 +99,19 @@ test("shift drafts follow the selected technician and time-off modal preserves f
     await prisma.technicianShiftOverride.delete({ where: { id: override.id } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
     await prisma.technician.deleteMany({ where: { id: { in: [first.id, second.id] } } });
-    await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.depot.delete({ where: { id: depot.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }
 });
 
 test("dispatch retains missing-location appointments and shows malformed-history errors", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "UI test metro", timezone: "America/Chicago" } });
-  const depot = await prisma.depot.create({ data: { metroId: metro.id, name: "UI test depot", lat: 41.25, lng: -95.93 } });
-  const dealership = await prisma.dealership.create({ data: { metroId: metro.id, depotId: depot.id, name: "UI test dealership",
+  const dealership = await prisma.dealership.create({ data: { name: "UI test dealership" } });
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "UI test depot", lat: 41.25, lng: -95.93,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const tech = await prisma.technician.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "UI test tech", color: "#059669", availabilityVersions: initialAvailability(480, 1020), homeLat: 41.25, homeLng: -95.93, shiftStartMin: 480, shiftEndMin: 1020 } });
+  const tech = await prisma.technician.create({ data: { name: "UI test tech", color: "#059669", availabilityVersions: initialAvailability(480, 1020), homeLat: 41.25, homeLng: -95.93, shiftStartMin: 480, shiftEndMin: 1020,
+    depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_LOCATION_TEST", name: "UI location service", estDurationMin: 60 } });
   const customer = await prisma.customer.create({ data: { firstName: "Missing", lastName: "Location", email: "missing@example.invalid", phone: "4025550100" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "Unverified address", city: "Omaha", state: "NE", postalCode: "68102" } });
@@ -126,7 +129,7 @@ test("dispatch retains missing-location appointments and shows malformed-history
     await prisma.appointment.delete({ where: { id: appointment.id } }); await prisma.job.delete({ where: { id: job.id } });
     await prisma.address.delete({ where: { id: address.id } }); await prisma.customer.delete({ where: { id: customer.id } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } }); await prisma.technician.delete({ where: { id: tech.id } });
-    await prisma.dealership.delete({ where: { id: dealership.id } }); await prisma.depot.delete({ where: { id: depot.id } });
+    await prisma.depot.delete({ where: { id: depot.id } }); await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }
 });

@@ -116,7 +116,7 @@ function TimelineCell({
   onSelect: (appointment: ScheduleAppointment) => void;
 }) {
   const daily = scheduleDay(technician, day);
-  const closed = !daily.available;
+  const closed = !daily.member || !daily.available;
   const timelineHeight = ((timelineEnd - timelineStart) / 60) * TIMELINE_HOUR_HEIGHT_PX;
   const shiftStart = Math.max(daily.shiftStartMin ?? timelineStart, timelineStart);
   const shiftEnd = Math.min(daily.shiftEndMin ?? timelineStart, timelineEnd);
@@ -126,6 +126,7 @@ function TimelineCell({
 
   return (
     <div className={`${styles.cell} ${closed ? styles.closedCell : ""}`} style={{ height: timelineHeight }}>
+      {!daily.member && <span className={styles.subtle}>Assigned to another metro</span>}
       {!closed && (
         <div
           className={styles.shiftBand}
@@ -262,12 +263,14 @@ function AppointmentPanel({
 }
 
 export default function ScheduleView({
+  metroId,
   monday,
   timezone,
   technicians,
   appointments,
   absences,
 }: {
+  metroId: string;
   monday: string;
   timezone: string;
   technicians: ScheduleTechnician[];
@@ -282,7 +285,7 @@ export default function ScheduleView({
     (technician) => technicianFilter === "all" || technician.id === technicianFilter
   );
   const shiftHours = technicians.flatMap(technician => Object.values(technician.days).flatMap(day =>
-    day.available && day.shiftStartMin != null && day.shiftEndMin != null ? [{ start: day.shiftStartMin, end: day.shiftEndMin }] : []));
+    day.member && day.available && day.shiftStartMin != null && day.shiftEndMin != null ? [{ start: day.shiftStartMin, end: day.shiftEndMin }] : []));
   const timelineStart = shiftHours.length
     ? Math.floor(Math.min(...shiftHours.map(shift => shift.start)) / 60) * 60
     : 8 * 60;
@@ -305,7 +308,7 @@ export default function ScheduleView({
   }, [appointments]);
 
   function goToWeek(nextMonday: string) {
-    router.push(`/schedule?week=${nextMonday}`);
+    router.push(`/schedule?metroId=${encodeURIComponent(metroId)}&week=${nextMonday}`);
   }
 
   return (
@@ -358,10 +361,10 @@ export default function ScheduleView({
           <div className={styles.grid} aria-label="Weekly technician schedule">
             <div className={styles.corner}>Technician</div>
             {days.map((day) => (
-              <div className={`${styles.dayHeader} ${technicians.every(technician => !scheduleDay(technician, day).available) ? styles.closedDayHeader : ""}`} key={day}>
+              <div className={`${styles.dayHeader} ${technicians.every(technician => !scheduleDay(technician, day).member || !scheduleDay(technician, day).available) ? styles.closedDayHeader : ""}`} key={day}>
                 <span className={styles.dayName}>{DAY_FORMAT.format(localDate(day))}</span>
                 <span className={styles.dayDate}>{DATE_FORMAT.format(localDate(day))}</span>
-                {technicians.every(technician => !scheduleDay(technician, day).available) && <span className={styles.dayStatus}>Off</span>}
+                {technicians.every(technician => !scheduleDay(technician, day).member || !scheduleDay(technician, day).available) && <span className={styles.dayStatus}>Off</span>}
               </div>
             ))}
             {visibleTechnicians.flatMap((technician) =>
@@ -411,7 +414,7 @@ export default function ScheduleView({
               const entries = visibleTechnicians.flatMap(
                 (technician) => byCell.get(`${technician.id}:${day}`) ?? []
               );
-              const dayAbsences = absences.filter((absence) => absence.date === day && visibleTechnicians.some((tech) => tech.id === absence.technicianId));
+              const dayAbsences = absences.filter((absence) => absence.date === day && visibleTechnicians.some((tech) => tech.id === absence.technicianId && scheduleDay(tech, day).member));
               return (
                 <section className={styles.agendaDay} key={day}>
                   <h2>{localDate(day).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</h2>
@@ -419,7 +422,7 @@ export default function ScheduleView({
                     {technicians.find((tech) => tech.id === absence.technicianId)?.name}: approved time off {formatMinuteOfDay(absence.startMin)} to {formatMinuteOfDay(absence.endMin)}. Working intervals are split around this block.
                   </div>)}
                   {entries.length === 0 ? (
-                    <div className={styles.subtle}>{visibleTechnicians.every(technician => !scheduleDay(technician, day).available) ? "Off shift." : "No visits scheduled."}</div>
+                    <div className={styles.subtle}>{visibleTechnicians.every(technician => !scheduleDay(technician, day).member) ? "No technicians assigned to this metro." : visibleTechnicians.every(technician => !scheduleDay(technician, day).available) ? "Off shift." : "No visits scheduled."}</div>
                   ) : (
                     entries.map((appointment) => (
                       <AppointmentCard

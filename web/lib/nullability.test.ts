@@ -9,7 +9,7 @@ import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
 import { POST as qualification } from "../app/api/dispatch/qualification/route";
 import { EngineError, requestSlots } from "./engineClient";
-import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest } from "./contracts";
+import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView } from "./timeOffView";
@@ -25,6 +25,13 @@ test("invalid request bodies fail before downstream requests or writes", async (
       }
     }
   } finally { globalThis.fetch = original; }
+});
+
+test("depot ownership and technician assignment fields are required", () => {
+  assert.equal(depotSetup.safeParse({ metroId: "metro", name: "Depot", departure: "HOME", returnTo: "HOME",
+    address: { line1: "1 Main", city: "Lincoln", state: "NE", postalCode: "68501" }, confirmedPin: { lat: 40.8, lng: -96.7 } }).success, false);
+  assert.equal(createTechnicianRequest.safeParse({ name: "Tech", metroId: "metro", dealershipId: "dealer" }).success, false);
+  assert.equal(technicianDepotAssignment.safeParse({ depotId: "depot", effectiveDate: null }).success, false);
 });
 
 test("scheduler client preserves status and rejects malformed success and transport failures", async () => {

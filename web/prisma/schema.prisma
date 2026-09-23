@@ -22,8 +22,6 @@ model Metro {
   createdAt       DateTime @default(now())
 
   depots           Depot[]
-  dealerships      Dealership[]
-  technicians      Technician[]
   optimizationRuns OptimizationRun[]
 
   @@map("metro")
@@ -38,7 +36,12 @@ model Depot {
   lng       Float
   createdAt DateTime @default(now())
 
-  dealerships Dealership[]
+  dealershipId String
+  dealership Dealership @relation(fields: [dealershipId], references: [id])
+  endpointPolicies DepotEndpointPolicy[]
+  assignments TechnicianDepotAssignment[]
+
+  @@index([dealershipId])
 
   @@map("depot")
 }
@@ -48,41 +51,29 @@ enum RouteAnchor {
   DEPOT
 }
 
-model DealershipEndpointPolicy {
-  dealershipId String
-  dealership Dealership @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
+model DepotEndpointPolicy {
+  depotId String
+  depot Depot @relation(fields: [depotId], references: [id], onDelete: Cascade)
   effectiveDate DateTime
   departure RouteAnchor
   returnTo RouteAnchor
 
-  @@id([dealershipId, effectiveDate])
-  @@map("dealership_endpoint_policy")
+  @@id([depotId, effectiveDate])
+  @@map("depot_endpoint_policy")
 }
 
 model Dealership {
   id String @id @default(cuid())
-  metroId String
-  metro Metro @relation(fields: [metroId], references: [id])
-  depotId String
-  depot Depot @relation(fields: [depotId], references: [id])
   name String
-  departure RouteAnchor @default(HOME)
-  returnTo RouteAnchor @default(HOME)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  technicians Technician[]
-  endpointPolicies DealershipEndpointPolicy[]
+  depots Depot[]
 
-  @@index([metroId])
   @@map("dealership")
 }
 
 model Technician {
   id                 String      @id @default(cuid())
-  metroId            String
-  metro              Metro       @relation(fields: [metroId], references: [id])
-  dealershipId       String
-  dealership         Dealership  @relation(fields: [dealershipId], references: [id])
   name               String
   email              String?
   phone              String?
@@ -110,9 +101,22 @@ model Technician {
   shiftOverrides TechnicianShiftOverride[]
   availabilityVersions TechnicianAvailabilityVersion[]
   timeOffRequests TimeOffRequest[]
+  depotAssignments TechnicianDepotAssignment[]
 
-  @@index([metroId, active])
+  @@index([active])
   @@map("technician")
+}
+
+model TechnicianDepotAssignment {
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  effectiveDate DateTime
+  depotId String
+  depot Depot @relation(fields: [depotId], references: [id])
+
+  @@id([technicianId, effectiveDate])
+  @@index([depotId, effectiveDate])
+  @@map("technician_depot_assignment")
 }
 
 model TechnicianAvailabilityVersion {
