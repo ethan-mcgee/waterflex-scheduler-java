@@ -93,6 +93,7 @@ model Technician {
   homeAddressPostalCode String?
   homeLat            Float
   homeLng            Float
+  homePinProvenance  String? // GEOCODER_HOUSE | MANUALLY_CONFIRMED; null for legacy homes
   shiftStartMin      Int // minutes from local midnight, e.g. 480 = 8:00am
   shiftEndMin        Int
   maxDailyMinutes    Int         @default(540)

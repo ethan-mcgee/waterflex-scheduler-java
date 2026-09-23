@@ -135,6 +135,9 @@ jobs:
       - name: Depot pin setup smoke
         working-directory: web
         run: npm run test:depot-setup:integration
+      - name: Technician home pin smoke
+        working-directory: web
+        run: npm run test:technician-home:integration
       - name: Time-off repair smoke
         working-directory: web
         run: npm run test:time-off:integration

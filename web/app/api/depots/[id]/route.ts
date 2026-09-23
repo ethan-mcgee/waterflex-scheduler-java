@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { depotDetails, readBody } from "@/lib/contracts";
 import { updateDepotDetails, EngineError } from "@/lib/engineClient";
-import { searchAddress } from "@/lib/geocode";
+import { GeocoderError, searchAddress } from "@/lib/geocode";
 import { nearbyCandidate } from "@/lib/depotPin";
 import { prisma } from "@/lib/prisma";
 
@@ -20,7 +20,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (!addressChanged && address !== undefined) return NextResponse.json({ error: "Only include an address when it changes" }, { status: 400 });
   let candidate: { lat: number; lng: number; precision: string } | undefined;
   if (address && confirmedPin) {
-    const nearby = nearbyCandidate(confirmedPin, await searchAddress(address));
+    let candidates;
+    try { candidates = await searchAddress(address); }
+    catch (error) {
+      if (!(error instanceof GeocoderError)) throw error;
+      return NextResponse.json({ error: error.message }, { status: error.kind === "timeout" ? 504 : error.kind === "malformed" ? 502 : 503 });
+    }
+    const nearby = nearbyCandidate(confirmedPin, candidates);
     if (!nearby) return NextResponse.json({ error: "Pin must be within 250 meters of the located address. Confirm the address and pin again." }, { status: 422 });
     candidate = nearby;
   }

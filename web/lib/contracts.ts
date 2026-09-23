@@ -67,7 +67,7 @@ export const technicianProfileRequest = z.object({ name: text.max(120), email: z
 export const createTechnicianRequest = technicianProfileRequest.extend({ depotId: text,
   email: z.email(), phone: z.string().trim().min(7).max(40),
   address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(),
-  confirmedPin: point, days: standardWeek, qualifications: z.array(text).min(1).refine(ids => new Set(ids).size === ids.length),
+  confirmedPin: point, manuallyConfirmed: z.boolean(), days: standardWeek, qualifications: z.array(text).min(1).refine(ids => new Set(ids).size === ids.length),
 }).strict();
 export const updateStandardWeekRequest = z.object({ days: standardWeek }).strict();
 export const timeOffCategories = [

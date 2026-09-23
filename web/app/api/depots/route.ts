@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { depotSetup, readBody } from "@/lib/contracts";
-import { searchAddress } from "@/lib/geocode";
+import { GeocoderError, searchAddress } from "@/lib/geocode";
 import { prisma } from "@/lib/prisma";
 import { nearbyCandidate } from "@/lib/depotPin";
 
@@ -13,7 +13,12 @@ export async function POST(request: NextRequest) {
     prisma.dealership.findUnique({ where: { id: input.dealershipId } }),
   ]);
   if (!metro || !dealership) return NextResponse.json({ error: "Metro or dealership not found" }, { status: 404 });
-  const candidates = await searchAddress(input.address);
+  let candidates;
+  try { candidates = await searchAddress(input.address); }
+  catch (error) {
+    if (!(error instanceof GeocoderError)) throw error;
+    return NextResponse.json({ error: error.message }, { status: error.kind === "timeout" ? 504 : error.kind === "malformed" ? 502 : 503 });
+  }
   const candidate = nearbyCandidate(input.confirmedPin, candidates);
   if (!candidate) return NextResponse.json({ error: "Pin must be within 250 meters of the located address. Confirm the address and pin again." }, { status: 422 });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: input.name,
