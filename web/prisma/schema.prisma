@@ -477,6 +477,7 @@ model OptimizationRun {
   proposedAssignments  Json
   baselineAssignments  Json                 @default("[]")
   endpointSnapshots    Json?
+  policyAnalysis       Json?
   objectiveImprovement Int
   churnCost            Int
   status               String

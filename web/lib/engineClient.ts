@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult } from "./contracts";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
@@ -69,6 +69,7 @@ export function confirmHold(holdId: string): Promise<{ appointmentId: string; wi
 }
 
 export interface OptimizationRun {
+  policy_analysis?: z.infer<typeof policyAnalysis> | null;
   run_id: string;
   metro_id: string;
   service_date: string;
@@ -96,6 +97,7 @@ export interface OptimizationRun {
     workload_minutes: number;
     overtime_minutes: number;
     appointment_ids: string[];
+    segments?: Array<{ departure: string; returned_at: string; appointment_ids: string[] }> | null;
   }>;
   route_summary_after: Array<{
     technician_id: string;
@@ -108,6 +110,7 @@ export interface OptimizationRun {
     workload_minutes: number;
     overtime_minutes: number;
     appointment_ids: string[];
+    segments?: Array<{ departure: string; returned_at: string; appointment_ids: string[] }> | null;
   }>;
   changes: Array<{
     appointment_id: string;

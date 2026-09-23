@@ -240,6 +240,11 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     finally { setSubmitting(false); }
   }
 
+  const searchProgress = submitting ? <div role="status">
+    <label htmlFor="appointment-search-progress">Finding available appointments</label>
+    <progress id="appointment-search-progress" aria-label="Finding available appointments" />
+  </div> : null;
+
   if (step === "pending") {
     return <main className={styles.wrap}><div className={styles.card}>
       <h1 className={styles.title}>We will follow up</h1>
@@ -251,7 +256,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     return <main className={styles.wrap}>
       <h1 className={styles.title}>Confirm your service location</h1>
       <p className={styles.subtitle}>We found more than one possible match. Select the pin that marks your home.</p>
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div role="alert" className={styles.error}>{error}</div>}
+      {searchProgress}
       <AddressPinMap candidates={pinCandidates} selected={selectedPinIndex} onSelect={setSelectedPinIndex} />
       <div className={styles.card}>
         {pinCandidates.map((candidate, index) => <label key={`${candidate.lat}-${candidate.lng}`} className={styles.serviceOption}>
@@ -291,7 +297,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         <p className={styles.subtitle}>
           {selectedService?.name} &mdash; pick whichever works best for you.
         </p>
-        {error && <div className={styles.error}>{error}</div>}
+        {error && <div role="alert" className={styles.error}>{error}</div>}
+      {searchProgress}
         <div className={styles.slotGrid}>
           {offers.map((offer) => {
             const remaining = secondsRemaining(offer.expiresAt, now);
@@ -335,7 +342,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     <main className={styles.wrap}>
       <h1 className={styles.title}>Book a service visit</h1>
       <p className={styles.subtitle}>Tell us what you need and we&apos;ll find the soonest good time.</p>
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div role="alert" className={styles.error}>{error}</div>}
+      {searchProgress}
       <form className={styles.card} onSubmit={handleSubmit}>
         <fieldset className={styles.serviceFieldset}>
           <legend className={styles.label}>What type of service do you need?</legend>

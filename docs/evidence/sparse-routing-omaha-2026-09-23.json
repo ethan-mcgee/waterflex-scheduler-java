@@ -1,0 +1,91 @@
+{
+  "recordedAt": "2026-09-23T23:19:06.101Z",
+  "evidence": "Direct Omaha routing check only; not customer latency or fleet quality acceptance",
+  "hardware": {
+    "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+    "logicalProcessors": 24,
+    "memoryBytes": 67870916608
+  },
+  "routing": {
+    "ready": true,
+    "engineVersion": "11.0",
+    "mapVersion": "2026-09-16",
+    "profile": "car",
+    "routingIdentity": "d4a7c8575bad71445a7f745383e1466de88552a81db580196a4c62916acdcbaf"
+  },
+  "points": [
+    {
+      "lat": 41.2565,
+      "lng": -95.9345
+    },
+    {
+      "lat": 41.1544,
+      "lng": -96.0422
+    },
+    {
+      "lat": 41.2864,
+      "lng": -96.2345
+    }
+  ],
+  "directedPairs": [
+    {
+      "id": "0>1",
+      "leg": {
+        "routable": true,
+        "seconds": 1043,
+        "meters": 19905
+      }
+    },
+    {
+      "id": "0>2",
+      "leg": {
+        "routable": true,
+        "seconds": 1597,
+        "meters": 27765
+      }
+    },
+    {
+      "id": "1>0",
+      "leg": {
+        "routable": true,
+        "seconds": 1030,
+        "meters": 19826
+      }
+    },
+    {
+      "id": "1>2",
+      "leg": {
+        "routable": true,
+        "seconds": 1609,
+        "meters": 26295
+      }
+    },
+    {
+      "id": "2>0",
+      "leg": {
+        "routable": true,
+        "seconds": 1554,
+        "meters": 28077
+      }
+    },
+    {
+      "id": "2>1",
+      "leg": {
+        "routable": true,
+        "seconds": 1574,
+        "meters": 26779
+      }
+    }
+  ],
+  "apiSamplesMs": {
+    "initialSparse": 329.9471,
+    "repeatedSparse": 3.955100000000016,
+    "subsequentFullMatrix": 10.793799999999976
+  },
+  "checks": {
+    "sparseEqualsFull": true,
+    "repeatEqualsInitial": true,
+    "unreachableDistinct": true,
+    "staleIdentityRejected": true
+  }
+}

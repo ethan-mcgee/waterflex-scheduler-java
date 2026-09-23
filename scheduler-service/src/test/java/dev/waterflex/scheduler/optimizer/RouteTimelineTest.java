@@ -99,4 +99,32 @@ class RouteTimelineTest {
         assertEquals(1, RouteEvaluator.evaluate(plan).costCents());
         assertEquals(1, DayScoreCalculator.evaluate(plan).costCents());
     }
+
+    @Test void laterDepartureAbsorbsWaitingWithoutCrossingExclusiveWindowEnd() {
+        DayPlan day = plan(600, at("22:00:00"), at("23:00:00"));
+        var result = RouteEvaluator.evaluate(day);
+        assertTrue(result.feasible());
+        assertEquals(at("14:59:00"), result.arrivals().get("first"));
+        assertEquals(at("19:00:00"), result.arrivals().get("second"));
+        assertEquals(at("14:49:00"), Required.value(result.segments().get("home")).getFirst().departure());
+        assertEquals(at("20:10:00"), Required.value(result.segments().get("home")).getFirst().returnedAt());
+        assertEquals(171, result.waitingMinutes());
+        assertEquals(321, result.paidMinutes());
+        var full = DayScoreCalculator.evaluate(day);
+        assertEquals(result.arrivals(), full.arrivals());
+        assertEquals(result.costCents(), full.costCents());
+    }
+
+    @Test void broadFirstWindowRemovesAllAvoidableWaiting() {
+        DayPlan day = plan(600, at("22:00:00"), at("23:00:00"));
+        PlanVisit first = new PlanVisit("first", "service", at("14:00:00"), at("19:00:00"), 60, "home", at("14:00:00"));
+        day.getRoutes().getFirst().getVisits().set(0, first);
+        day.setVisits(Required.value(List.of(first, day.getVisits().get(1))));
+        var result = RouteEvaluator.evaluate(day);
+        assertTrue(result.feasible());
+        assertEquals(0, result.waitingMinutes());
+        assertEquals(150, result.paidMinutes());
+        assertEquals(at("17:50:00"), result.arrivals().get("first"));
+        assertEquals(result.arrivals(), DayScoreCalculator.evaluate(day).arrivals());
+    }
 }

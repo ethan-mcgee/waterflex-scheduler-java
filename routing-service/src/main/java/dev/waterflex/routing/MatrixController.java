@@ -43,6 +43,23 @@ public class MatrixController {
     }
     public record Leg(boolean routable, @Nullable Long seconds, @Nullable Long meters) { }
     public record Matrix(String mapVersion, String routingIdentity, List<List<Leg>> legs) { }
+    public record Pair(String id, Point origin, Point destination) {
+        public Pair {
+            if (id == null || id.isBlank() || id.length() > 300) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pair ID");
+            validatePoint(origin); validatePoint(destination);
+        }
+    }
+    public record SparseRequest(List<Pair> pairs, String expectedRoutingIdentity) {
+        public SparseRequest {
+            if (pairs == null || pairs.isEmpty() || pairs.size() > 256 || expectedRoutingIdentity == null || expectedRoutingIdentity.isBlank())
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pairs and routing identity required");
+            var ids = new java.util.HashSet<String>();
+            for (Pair pair : pairs) if (pair == null || !ids.add(pair.id())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate or missing pair");
+            pairs = Required.value(List.copyOf(pairs));
+        }
+    }
+    public record PairResult(String id, Leg leg) { }
+    public record SparseResponse(String routingIdentity, List<PairResult> pairs) { }
     public record Geometry(String type, List<List<Double>> coordinates) { }
     public record RouteLeg(long seconds, long meters, Geometry geometry) { }
     public record RouteResponse(String routingIdentity, List<RouteLeg> legs) { }
@@ -129,6 +146,23 @@ public class MatrixController {
                     new Geometry("LineString", Required.value(coordinates))));
         }
         return new RouteResponse(routingIdentity, Required.value(legs));
+    }
+
+    @PostMapping("/internal/legs")
+    public SparseResponse sparse(@RequestBody SparseRequest request) {
+        checkIdentity(request.expectedRoutingIdentity());
+        if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
+        List<PairResult> results = new ArrayList<>();
+        for (Pair pair : request.pairs()) {
+            String key = pair.origin().lat() + "," + pair.origin().lng() + ">" + pair.destination().lat() + "," + pair.destination().lng();
+            Cached hit = cache.get(key);
+            if (hit == null || !hit.expiresAt().isAfter(Instant.now())) {
+                hit = new Cached(route(pair.origin(), pair.destination()), Required.value(Instant.now().plus(cacheTtl)));
+                cache.put(key, hit);
+            }
+            results.add(new PairResult(pair.id(), hit.leg()));
+        }
+        return new SparseResponse(routingIdentity, results);
     }
 
     private void checkIdentity(@Nullable String expected) {
