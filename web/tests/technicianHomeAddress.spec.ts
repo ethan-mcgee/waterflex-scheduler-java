@@ -40,10 +40,8 @@ test("a confirmed street pin is cleared by an address edit", async ({ page }) =>
   const dealer = await prisma.dealership.create({ data: { name: "Home confirmation browser dealer" } });
   const depot = await prisma.depot.create({ data: { name: "Home confirmation browser depot", metroId: metro.id, dealershipId: dealer.id, lat: 41.16, lng: -96.01 } });
   try {
-    await page.route("http://localhost:8083/**", async route => {
-      const response = await route.fetch();
-      await route.fulfill({ response, headers: { ...response.headers(), "access-control-allow-origin": "*" } });
-    });
+    await page.route("http://localhost:8083/omaha.json", route => route.fulfill({ json: { bounds: [-97.5, 40.5, -95.2, 42.1] } }));
+    await page.route("http://localhost:8083/omaha/**/*.mvt", route => route.fulfill({ status: 200, contentType: "application/x-protobuf", body: "" }));
     await page.route("**/api/technicians/geocode", route => route.fulfill({ json: { candidates: [{
       lat: 41.1637462, lng: -96.0079032, precision: "APPROXIMATE",
       bounds: { south: 41.1623576, north: 41.1654397, west: -96.0109311, east: -96.0046578 },
