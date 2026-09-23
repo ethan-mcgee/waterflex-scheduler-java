@@ -15,6 +15,10 @@ export class EngineError extends Error {
   }
 }
 
+export function updateDealershipPolicy(id: string, departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT"): Promise<{ success: boolean }> {
+  return request(`/v1/dealerships/${encodeURIComponent(id)}/policy`, success, { departure, returnTo });
+}
+
 async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000, externalSignal?: AbortSignal, method?: "GET" | "POST" | "DELETE"): Promise<T> {
   let res: Response;
   try {

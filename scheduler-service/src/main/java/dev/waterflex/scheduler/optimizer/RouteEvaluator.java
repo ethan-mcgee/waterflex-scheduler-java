@@ -51,7 +51,7 @@ public final class RouteEvaluator {
                 Work shift = work.get(interval);
                 String from = segment == null ? route.getId() : segment.previous();
                 DayPlan.RoadLeg road = plan.getMatrix().get(from + ">" + visit.getId());
-                DayPlan.RoadLeg returnHome = plan.getMatrix().get(visit.getId() + ">" + route.getId());
+                DayPlan.RoadLeg returnHome = plan.getMatrix().get(visit.getId() + ">" + route.getId() + ":return");
                 if (road == null || returnHome == null) { feasible = false; break; }
                 long travel = travel(plan, road);
                 Instant depart = segment == null ? latest(shift.start(), Required.value(visit.getWindowStart().minus(Duration.ofMinutes(travel)))) : segment.departure();
@@ -67,7 +67,7 @@ public final class RouteEvaluator {
                     break;
                 }
                 if (segment != null) {
-                    DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId());
+                    DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId() + ":return");
                     if (home == null) { feasible = false; break; }
                     Instant back = segment.done().plus(Duration.ofMinutes(travel(plan, home)));
                     if (back.isAfter(shift.end())) feasible = false;
@@ -82,7 +82,7 @@ public final class RouteEvaluator {
             if (!placed) feasible = false;
         }
         if (segment != null) {
-            DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId());
+            DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId() + ":return");
             if (home == null || interval >= work.size()) feasible = false;
             else {
                 Instant back = segment.done().plus(Duration.ofMinutes(travel(plan, home)));
