@@ -8,14 +8,19 @@ import org.springframework.stereotype.Component;
 @Component
 public final class BookingSearchPipeline {
     public record Prepared(BookingSnapshotLoader.Loaded loaded, BookingSnapshot routed, BoundedBookingSearch.Result search,
-            ReservationOffers.Bundle reservations, Instant expiresAt, String stopReason, long evaluatedRoutes, long reusedRoutes, long prunedArrangements) { }
+            ReservationOffers.Bundle reservations, Instant expiresAt, String stopReason, long evaluatedRoutes, long reusedRoutes, long prunedArrangements,
+            int optionalRefinementMillis) { }
     private final BookingSnapshotLoader loader;
     private final RoadClient roads;
     private final SnapshotRouting routing;
     private final boolean bounded;
+    private final int refinementMillis;
     public BookingSearchPipeline(BookingSnapshotLoader loader, RoadClient roads, SnapshotRouting routing,
-            @Value("${booking.search.bounded:false}") boolean bounded) {
+            @Value("${booking.search.bounded:false}") boolean bounded,
+            @Value("${booking.search.refinement-ms:250}") int refinementMillis) {
+        if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid optional refinement budget");
         this.loader = loader; this.roads = roads; this.routing = routing; this.bounded = bounded;
+        this.refinementMillis = refinementMillis;
     }
 
     public Prepared prepare(String metroId, BoundedBookingSearch.Request request) {
@@ -29,14 +34,24 @@ public final class BookingSearchPipeline {
         long prunedArrangements = insertion.prunedArrangements();
         String reason = result.stopReason();
         if (bounded && !"DEADLINE".equals(result.stopReason())) {
+            boolean optional = result.complete() && result.distinctRegularWindows() > snapshot.policy().regularWindowThreshold();
+            long refinementStarted = System.nanoTime();
+            Runnable refinementCheckpoint = () -> {
+                SearchDeadline.checkpoint();
+                if (optional && (System.nanoTime() - refinementStarted) / 1_000_000 >= refinementMillis)
+                    throw new BoundedBookingSearch.RefinementLimit();
+            };
             try {
-                snapshot = routing.neighborhoods(snapshot, insertion.neighborhoodRoutes());
-                var neighborhood = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), SearchDeadline::checkpoint);
-                var refined = neighborhood.search(true);
+                refinementCheckpoint.run();
+                snapshot = routing.neighborhoods(snapshot, insertion.neighborhoodRoutes(), refinementCheckpoint);
+                var neighborhood = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), refinementCheckpoint);
+                var refined = neighborhood.refine(result);
                 result = combine(result, refined, snapshot.policy());
                 evaluatedRoutes += neighborhood.evaluatedRoutes(); reusedRoutes += neighborhood.reusedRoutes();
                 prunedArrangements += neighborhood.prunedArrangements();
                 reason = result.stopReason();
+            } catch (BoundedBookingSearch.RefinementLimit exception) {
+                reason = "REFINEMENT_TIME_LIMIT";
             } catch (SearchDeadline.Expired exception) {
                 reason = "DEADLINE";
             } catch (RoadClient.RoadUnavailable exception) {
@@ -47,7 +62,7 @@ public final class BookingSearchPipeline {
         SearchDeadline.beginCommit();
         Instant expiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
         var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, SearchDeadline::checkpoint);
-        return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements);
+        return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements, refinementMillis);
     }
 
     /** Preserve independently validated insertion offers when later optional refinement runs out of time. */
