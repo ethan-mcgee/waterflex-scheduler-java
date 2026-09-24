@@ -34,6 +34,7 @@ class BookingRouteBoundsTest {
             var baseline = new Arrangement(Required.value(Map.<String, List<String>>of("tech", order)));
             var day = new Day(Required.value(Map.<String, Technician>of("tech", technician)), facts, baseline, 0, new Roads(matrix, Required.value(Set.of())));
             var bounds = new BookingRouteBounds(day, rates);
+            var incremental = new BookingEvaluation(day, rates, "service", () -> { });
             boolean baseFeasible = day.evaluate(baseline, facts, rates).feasible();
             if (baseFeasible) assertTrue(bounds.possible("tech", order, facts));
             if (!baseFeasible) continue;
@@ -45,7 +46,10 @@ class BookingRouteBoundsTest {
                     var inserted = baseline.insert("tech", "new", position);
                     boolean allowed = bounds.insertion("tech", order, facts, visit, position);
                     if (!allowed) pruned++;
-                    if (day.evaluate(inserted, insertedFacts, rates).feasible()) {
+                    var full = day.evaluate(inserted, insertedFacts, rates);
+                    assertEquals(full, incremental.evaluate(inserted, insertedFacts, false));
+                    assertEquals(day.evaluate(baseline, facts, rates), incremental.evaluate(baseline, facts, false), "Move undo must restore the baseline");
+                    if (full.feasible()) {
                         feasible++; assertTrue(allowed, "False pruning at sample " + sample + " promise " + promise + " position " + position);
                         assertTrue(bounds.possible("tech", Required.value(inserted.routes().get("tech")), insertedFacts));
                     }
