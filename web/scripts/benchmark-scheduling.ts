@@ -12,6 +12,7 @@ import { initialAvailability } from "../lib/technicianAvailability";
 import { localMidnightUtc } from "../lib/date";
 import { technicianColor } from "../lib/technicianColor";
 import { createSeededRandom, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
+import { legacyBenchmarkServer, legacyOffers } from "./benchmarkLegacy";
 
 async function main() {
 const database = new URL(required(process.env.DATABASE_URL));
@@ -20,11 +21,15 @@ assert.ok(required(database.searchParams.get("schema")).startsWith("benchmark_")
 const revision = required(process.env.BENCHMARK_REVISION, "Exact server revision");
 const variant = required(process.env.BENCHMARK_VARIANT, "Named implementation/configuration stage");
 const harnessRevision = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
+const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "scripts/benchmarkLegacy.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
 execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
 const harnessSources = await Promise.all(sourcePaths.map(async path => ({ path, sha256: createHash("sha256").update(await readFile(path)).digest("hex") })));
 const artifactSha256 = process.env.BENCHMARK_ARTIFACT_SHA256 == null ? null : z.string().regex(/^[a-f0-9]{64}$/i).parse(process.env.BENCHMARK_ARTIFACT_SHA256);
 const engine = required(process.env.ENGINE_URL);
+const legacy = z.enum(["current", "legacy"]).parse(process.env.BENCHMARK_SERVER_MODE ?? "current") === "legacy";
+const auditEngine = legacy ? required(process.env.BENCHMARK_AUDIT_URL) : engine;
+if (legacy) assert.notEqual(auditEngine, engine, "Legacy audits require a separate current read-only evaluator");
+let legacyServer: Awaited<ReturnType<typeof legacyBenchmarkServer>> | null = null;
 const prisma = new PrismaClient();
 const sizes = (process.env.BENCHMARK_SIZES ?? "20,30,50").split(",").map(value => z.union([z.literal(20), z.literal(30), z.literal(50)]).parse(Number(value)));
 const workloadSchema = z.enum(["SPARSE", "CLUSTERED", "DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW", "ABSENCE", "NEAR_CAPACITY"]);
@@ -39,7 +44,7 @@ assert.equal(points.length, 10);
 const output = await open(required(process.env.BENCHMARK_OUTPUT), "wx");
 async function record(value: unknown) { await output.write(JSON.stringify(value) + "\n"); }
 async function post(path: string, body: unknown): Promise<unknown> {
-  const response = await fetch(engine + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(120000) });
+  const response = await fetch(auditEngine + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(120000) });
   const value: unknown = await response.json(); assert.equal(response.status, 200, JSON.stringify(value)); return value;
 }
 const policy = z.object({ overtimeMinutes: z.int().nonnegative(), costCents: z.int().nonnegative(), fairness: z.object({ variance: z.number().nonnegative(), maximumUtilization: z.number().nonnegative(),
@@ -106,7 +111,7 @@ async function dataset(size: number, workload: Workload, caseId: string) {
   return { metroId: metro.id, jobIds, fingerprint: createHash("sha256").update(JSON.stringify({ size, workload, seed, dates, points, manifest })).digest("hex") };
 }
 
-type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch>; selectionElapsedMs?: number };
+type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean | null; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch>; selectionElapsedMs?: number };
 async function removeSuccessfulCase(caseId: string) {
   const jobs = { id: { startsWith: `${caseId}-` } };
   const technicians = { id: { startsWith: `${caseId}-tech-` } };
@@ -134,6 +139,8 @@ async function removeSuccessfulCase(caseId: string) {
 try {
   assert.equal(await prisma.metro.count(), 0, "Start with a freshly migrated, unseeded benchmark schema; failed datasets are retained for inspection");
   await record({ type: "provenance", revision, artifactSha256, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
+    serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
+    legacyLimitations: legacy ? "Original unchanged server: 120-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics." : null,
     scope: "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
   for (const size of sizes) for (const workload of workloads) for (const concurrency of concurrencyValues) for (const cache of caches) {
     const caseId = `benchmark-${randomUUID()}`;
@@ -146,16 +153,18 @@ try {
     }
     const originals = await prisma.appointment.findMany({ where: { technician: { id: { startsWith: `${caseId}-tech-` } } }, orderBy: { id: "asc" } });
     await post("/internal/benchmark/cache", { warm: cache === "warm", points });
+    if (legacy) legacyServer = await legacyBenchmarkServer(database, engine, required(artifactSha256));
     const attempts: Attempt[] = [];
     for (let offset = 0; offset < data.jobIds.length; offset += concurrency) {
       const group = await Promise.all(data.jobIds.slice(offset, offset + concurrency).map(async (jobId, localIndex): Promise<Attempt> => {
         const started = performance.now(); let offered: string | null = null;
         let searched: Attempt | null = null; let selectionStarted: number | null = null;
         try {
-          const response = await requestSlots(jobId);
+          const response = legacy ? { ...await legacyOffers(engine, jobId), search: undefined } : await requestSlots(jobId);
           const elapsedMs = performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
-          const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search, outcome: response.search.outcome, completed: response.search.prescribedSearchCompleted,
+          const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search,
+            outcome: response.search?.outcome ?? (response.offers.length ? "LEGACY_AVAILABLE" : "LEGACY_NO_OFFER"), completed: response.search?.prescribedSearchCompleted ?? null,
             offers: response.offers.length, served: false };
           searched = attempt;
           if (selected) {
@@ -164,6 +173,9 @@ try {
           }
           return attempt;
         } catch (error) {
+          // A legacy timeout cannot safely imply that server work stopped. Stop the case and
+          // its dedicated process, retain the dataset, and never race cleanup against that work.
+          if (legacy && !searched) throw error;
           if (offered) await releaseOffers(jobId, offered).catch(() => undefined);
           if (searched && selectionStarted != null) return { ...searched, outcome: "SELECTION_CONFLICT", served: false,
             selectionElapsedMs: performance.now() - selectionStarted, error: errorMessage(error) };
@@ -171,13 +183,15 @@ try {
         }
       })); attempts.push(...group);
     }
+    if (legacyServer) { await legacyServer.stop(); legacyServer = null; }
     const after = await audit(data.metroId);
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);
     const percentile = (p: number) => required(ordered[Math.min(ordered.length - 1, Math.ceil(p * ordered.length) - 1)]);
     await record({ type: "case", revision, variant, caseId, size, workload, concurrency, cache, datasetFingerprint: data.fingerprint, before, after, attempts,
-      served: attempts.filter(item => item.served).length, incomplete: attempts.filter(item => !item.completed).length,
+      served: attempts.filter(item => item.served).length, incomplete: attempts.filter(item => item.completed === false).length,
+      unknownSearchCompletion: attempts.filter(item => item.completed === null).length,
       p50Ms: percentile(.5), p95Ms: percentile(.95), p99Ms: percentile(.99),
       changedAssignments: final.filter((item, index) => item.technicianId !== required(originals[index]).technicianId).length,
       retimedAppointments: final.filter((item, index) => item.plannedStart.getTime() !== required(originals[index]).plannedStart.getTime()).length,
@@ -186,6 +200,6 @@ try {
     await removeSuccessfulCase(caseId);
   }
 } catch (error) { await record({ type: "failure", message: errorMessage(error), at: new Date().toISOString() }); throw error; }
-finally { await output.close(); await prisma.$disconnect(); }
+finally { if (legacyServer) await legacyServer.stop(); await output.close(); await prisma.$disconnect(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
