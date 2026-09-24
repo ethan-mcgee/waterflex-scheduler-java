@@ -13,6 +13,16 @@ import { availabilityRequest, readResponse, offersResponse, testInput, testAttem
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime } from "./timeOffView";
+
+test("time-off travel retains unavailable history and rejects malformed accounting", () => {
+  const report = { technician_id: "tech", days: [], travel_before: null };
+  assert.equal(parseTimeOffReport(report).kind, "complete");
+  assert.equal(parseTimeOffReport({ ...report, travel_before: { road_seconds: null } }).kind, "malformed");
+  const travel = { road_seconds: 180, configured_buffer_seconds: 636, rounding_seconds: 84, modeled_travel_minutes: 15, leg_count: 2 };
+  const parsed = parseTimeOffReport({ ...report, travel_after: travel });
+  assert.equal(parsed.kind, "complete");
+  if (parsed.kind === "complete") assert.deepEqual(parsed.summary.travel_after, travel);
+});
 import { nearbyCandidate } from "./depotPin";
 
 test("road travel and buffer reporting rejects missing or inconsistent components", () => {
