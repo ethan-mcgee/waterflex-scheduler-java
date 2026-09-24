@@ -86,7 +86,9 @@ public final class SolverBenchmark {
             var metrics = SchedulingPolicy.measure(fair.plan());
             if (metrics.overtimeMinutes() == referenceMetrics.overtimeMinutes() && metrics.costCents() <= rules.costCeiling(referenceMetrics.costCents())
                     && (metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) < 0
-                    || metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) == 0 && metrics.costCents() < referenceMetrics.costCents())) chosen = fair.plan();
+                    || metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) == 0
+                    && (metrics.costCents() < referenceMetrics.costCents() || metrics.costCents() == referenceMetrics.costCents()
+                    && SchedulingPolicy.compareArrangements(fair.plan(), reference) < 0))) chosen = fair.plan();
         }
         var decision = SchedulingPolicy.compare(before, SchedulingPolicy.measure(chosen), referenceMetrics, rules);
         if (!decision.accepted()) chosen = fixture;

@@ -135,7 +135,8 @@ public class OptimizationService {
                             && fairMetrics.costCents() <= baseline.policy().costCeiling(reference.costCents())
                             && (fairMetrics.fairness().variance().compareTo(reference.fairness().variance()) < 0
                             || (fairMetrics.fairness().variance().compareTo(reference.fairness().variance()) == 0
-                            && fairMetrics.costCents() < reference.costCents()))) {
+                            && (fairMetrics.costCents() < reference.costCents()
+                            || fairMetrics.costCents() == reference.costCents() && SchedulingPolicy.compareArrangements(fair, referencePlan) < 0)))) {
                         solved = fair;
                         candidatePolicy = fairMetrics;
                         after = DayScoreCalculator.evaluate(fair);

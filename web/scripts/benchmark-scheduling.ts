@@ -12,7 +12,7 @@ import { initialAvailability } from "../lib/technicianAvailability";
 import { localMidnightUtc } from "../lib/date";
 import { technicianColor } from "../lib/technicianColor";
 import { createSeededRandom, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
-import { legacyBenchmarkServer, legacyOffers } from "./benchmarkLegacy";
+import { legacyBenchmarkServer, legacyOffers, LegacyRequestUncertain } from "./benchmarkLegacy";
 
 async function main() {
 const database = new URL(required(process.env.DATABASE_URL));
@@ -175,11 +175,11 @@ try {
         } catch (error) {
           // A legacy timeout cannot safely imply that server work stopped. Stop the case and
           // its dedicated process, retain the dataset, and never race cleanup against that work.
-          if (legacy && !searched) throw error;
+          if (error instanceof LegacyRequestUncertain) throw error;
           if (offered) await releaseOffers(jobId, offered).catch(() => undefined);
           if (searched && selectionStarted != null) return { ...searched, outcome: "SELECTION_CONFLICT", served: false,
             selectionElapsedMs: performance.now() - selectionStarted, error: errorMessage(error) };
-          return { index: offset + localIndex, elapsedMs: performance.now() - started, outcome: offered ? "SELECTION_CONFLICT" : "SEARCH_ERROR", completed: false, offers: offered ? 1 : 0, served: false, error: errorMessage(error) };
+          return { index: offset + localIndex, elapsedMs: performance.now() - started, outcome: offered ? "SELECTION_CONFLICT" : "SEARCH_ERROR", completed: legacy ? null : false, offers: offered ? 1 : 0, served: false, error: errorMessage(error) };
         }
       })); attempts.push(...group);
     }

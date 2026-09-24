@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { z } from "zod";
 import { offer, required } from "../lib/contracts";
 
@@ -36,6 +36,7 @@ export async function legacyBenchmarkServer(database: URL, engine: string, expec
       child.once("exit", () => { clearTimeout(timeout); resolve(); });
       child.kill();
     });
+    await appendFile(required(process.env.BENCHMARK_OUTPUT) + ".legacy-server.log", `\nStopped ${child.pid} at ${new Date().toISOString()}\n${logs}\n`);
   };
   try {
     const start = performance.now();
@@ -53,12 +54,17 @@ export async function legacyBenchmarkServer(database: URL, engine: string, expec
   } catch (error) { await stop(); throw error; }
 }
 
+export class LegacyRequestUncertain extends Error { }
+
 export async function legacyOffers(engine: string, jobId: string) {
-  const response = await fetch(`${engine}/v1/offers`, {
-    method: "POST", headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET ?? "dev-only-change-me" },
-    body: JSON.stringify({ jobId }), signal: AbortSignal.timeout(120000),
-  });
-  const body: unknown = await response.json();
+  let response: Response; let body: unknown;
+  try {
+    response = await fetch(`${engine}/v1/offers`, {
+      method: "POST", headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET ?? "dev-only-change-me" },
+      body: JSON.stringify({ jobId }), signal: AbortSignal.timeout(120000),
+    });
+    body = await response.json();
+  } catch (error) { throw new LegacyRequestUncertain("Original server transport ended without a complete response", { cause: error }); }
   assert.equal(response.status, 200, JSON.stringify(body));
   const result = z.object({ jobId: z.string().min(1), offers: z.array(offer) }).parse(body);
   assert.equal(result.jobId, jobId);

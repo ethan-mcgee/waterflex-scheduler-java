@@ -117,10 +117,38 @@ public final class SchedulingPolicy {
         else if (candidate.overtimeMinutes() != reference.overtimeMinutes()) reason = "OVERTIME_TARGET_MISMATCH";
         else if (candidate.costCents() > ceiling) reason = "COST_CEILING_EXCEEDED";
         else if (candidate.overtimeMinutes() < baseline.overtimeMinutes()) reason = "OVERTIME_REDUCTION";
+        else if (baseline.costCents() <= ceiling && candidate.fairness().variance().compareTo(baseline.fairness().variance()) > 0)
+            reason = "FAIRNESS_REGRESSION_WITHIN_ALLOWANCE";
         else if (candidate.fairness().variance().compareTo(baseline.fairness().variance()) < 0) reason = "FAIRNESS_IMPROVEMENT";
         else if (candidate.costCents() < baseline.costCents()) reason = "COST_REDUCTION";
         else reason = "NO_POLICY_IMPROVEMENT";
         return new Decision(Set.of("OVERTIME_REDUCTION", "FAIRNESS_IMPROVEMENT", "COST_REDUCTION").contains(reason), reason,
                 reference.costCents(), reference.overtimeMinutes(), ceiling);
+    }
+
+    /** Final ties between independently validated, policy-equivalent daily candidates. */
+    public static int compareArrangements(DayPlan first, DayPlan second) {
+        var left = assignments(first); var right = assignments(second);
+        long leftChanges = left.stream().filter(item -> !item.technician().equals(item.original())).count();
+        long rightChanges = right.stream().filter(item -> !item.technician().equals(item.original())).count();
+        int changed = Long.compare(leftChanges, rightChanges);
+        if (changed != 0) return changed;
+        var order = Comparator.comparing((Assignment item) -> item.window()).thenComparing(item -> item.technician())
+                .thenComparingInt(item -> item.position()).thenComparing(item -> item.visit());
+        left.sort(order); right.sort(order);
+        for (int i = 0; i < Math.min(left.size(), right.size()); i++) {
+            int compared = order.compare(left.get(i), right.get(i));
+            if (compared != 0) return compared;
+        }
+        return Integer.compare(left.size(), right.size());
+    }
+    private record Assignment(Instant window, String technician, int position, String visit, String original) { }
+    private static List<Assignment> assignments(DayPlan plan) {
+        List<Assignment> result = new ArrayList<>();
+        for (TechRoute route : plan.getRoutes()) for (int position = 0; position < route.getVisits().size(); position++) {
+            PlanVisit visit = Required.value(route.getVisits().get(position));
+            result.add(new Assignment(visit.getWindowStart(), route.getId(), position, visit.getId(), visit.getOriginalTechnicianId()));
+        }
+        return result;
     }
 }

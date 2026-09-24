@@ -48,6 +48,33 @@ class SchedulingPolicyTest {
         assertFalse(SchedulingPolicy.compare(baseline, metrics(11, 1, 200, 200), baseline, RULES).accepted());
         assertFalse(SchedulingPolicy.compare(baseline, baseline, baseline, RULES).accepted());
     }
+    @Test void lowerCostDoesNotDisplaceFairerBaselineInsideTheAllowance() {
+        var reference = metrics(0, 10000, 300, 100);
+        var atCeiling = metrics(0, 10200, 200, 200);
+        var rejected = SchedulingPolicy.compare(atCeiling, reference, reference, RULES);
+        assertFalse(rejected.accepted());
+        assertEquals("FAIRNESS_REGRESSION_WITHIN_ALLOWANCE", rejected.reason());
+        assertTrue(SchedulingPolicy.compare(metrics(0, 10201, 200, 200), reference, reference, RULES).accepted(),
+                "A baseline above the ceiling is outside the fairness allowance");
+        assertTrue(SchedulingPolicy.compare(atCeiling, metrics(0, 10000, 200, 200), reference, RULES).accepted(),
+                "Equal fairness still uses lower cost");
+    }
+    @Test void equalPolicyPlansPreferFewerChangedAssignmentsThenStableRouteOrder() {
+        DayPlan original = SolverBenchmarkData.create(20, SolverBenchmarkData.Workload.CLUSTERED);
+        DayPlan changed = PlanCopies.copy(original);
+        TechRoute source = Required.value(changed.getRoutes().stream().filter(route -> !route.getVisits().isEmpty()).findFirst().orElseThrow());
+        TechRoute target = Required.value(changed.getRoutes().stream().filter(route -> route != source).findFirst().orElseThrow());
+        target.getVisits().add(source.getVisits().removeFirst());
+        assertTrue(SchedulingPolicy.compareArrangements(original, changed) < 0);
+        assertTrue(SchedulingPolicy.compareArrangements(changed, original) > 0);
+        assertEquals(0, SchedulingPolicy.compareArrangements(original, PlanCopies.copy(original)));
+        DayPlan reversed = PlanCopies.copy(original);
+        TechRoute multi = Required.value(reversed.getRoutes().stream().filter(route -> route.getVisits().size() > 1).findFirst().orElseThrow());
+        java.util.Collections.reverse(multi.getVisits());
+        int comparison = SchedulingPolicy.compareArrangements(original, reversed);
+        assertNotEquals(0, comparison);
+        assertEquals(Integer.signum(comparison), -Integer.signum(SchedulingPolicy.compareArrangements(reversed, original)));
+    }
     @Test void overlappingAbsencesAreClippedAndUnionedBeforeDailyCap() {
         TechRoute route = new TechRoute("tech", at("08"), at("16"), 450, 60, Required.value(Set.of("service")));
         route.getUnavailable().add(new TechRoute.Unavailable(at("07"), at("09")));

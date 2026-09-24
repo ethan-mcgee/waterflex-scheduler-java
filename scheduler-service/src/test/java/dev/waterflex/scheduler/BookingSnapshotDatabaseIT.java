@@ -122,6 +122,31 @@ class BookingSnapshotDatabaseIT {
                 jdbc.update("UPDATE job SET status='SCHEDULED' WHERE id=?", prefix + "-held");
                 return newAppointment;
             };
+            // Mutations after snapshot capture must fail before touching appointments or holds,
+            // even when the changed schedule would still be independently feasible.
+            record Change(Runnable apply, Runnable restore) { }
+            var changes = List.of(
+                    new Change(() -> jdbc.update("UPDATE technician SET \"maxDailyMinutes\"=590 WHERE id=?", prefix + "-b"),
+                            () -> jdbc.update("UPDATE technician SET \"maxDailyMinutes\"=600 WHERE id=?", prefix + "-b")),
+                    new Change(() -> jdbc.update("DELETE FROM technician_qualification WHERE \"technicianId\"=? AND \"serviceId\"=?", prefix + "-b", prefix + "-other-service"),
+                            () -> jdbc.update("INSERT INTO technician_qualification (\"technicianId\",\"serviceId\") VALUES (?,?)", prefix + "-b", prefix + "-other-service")),
+                    new Change(() -> jdbc.update("UPDATE technician SET \"homeLat\"=43.736 WHERE id=?", prefix + "-b"),
+                            () -> jdbc.update("UPDATE technician SET \"homeLat\"=43.735 WHERE id=?", prefix + "-b")),
+                    new Change(() -> jdbc.update("UPDATE technician_availability_day SET \"shiftStartMin\"=481 WHERE \"versionId\"=?", prefix + "-b"),
+                            () -> jdbc.update("UPDATE technician_availability_day SET \"shiftStartMin\"=480 WHERE \"versionId\"=?", prefix + "-b")),
+                    new Change(() -> jdbc.update("UPDATE appointment SET \"windowEnd\"=\"windowEnd\"-INTERVAL '1 minute' WHERE id=?", prefix + "-appointment"),
+                            () -> jdbc.update("UPDATE appointment SET \"windowEnd\"=\"windowEnd\"+INTERVAL '1 minute' WHERE id=?", prefix + "-appointment")));
+            for (Change change : changes) {
+                var mutated = new java.util.concurrent.atomic.AtomicBoolean();
+                change.apply().run();
+                try {
+                    assertThrows(ResponseStatusException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
+                        mutated.set(true); return mutation.get();
+                    }));
+                    assertFalse(mutated.get(), "Stale configuration must be detected before the write callback");
+                    assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
+                } finally { change.restore().run(); }
+            }
             assertThrows(IllegalStateException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
                 mutation.get(); throw new IllegalStateException("Injected failure before arrangement save");
             }));
