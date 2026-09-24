@@ -8,14 +8,14 @@ This checklist tracks the original consolidated specification, not a reduced rep
 | --- | --- |
 | Two-hour promises, ten-weekday horizon including supported weekends, ten-minute offers, service-date 06:00 Chicago cutoff | Existing behavior retained; add lifecycle and concurrency regression coverage |
 | Qualifications, approved absences, daily/overtime limits, dated depots and endpoints | Existing checks retained; extend to pending rearrangement dependencies |
-| Regular candidate means no added overtime relative to a consistent reservation baseline | Not enforced in booking |
-| Distinct `(date,start,end)` regular choices counted before four-offer truncation | Not implemented |
+| Regular candidate means no added overtime relative to a consistent reservation baseline | Booking filters zero-added-overtime candidates and prioritizes overtime before cost; shared durable arrangement baseline remains open |
+| Distinct `(date,start,end)` regular choices counted before four-offer truncation | Implemented in immutable search core; not connected to reservation persistence |
 | Overtime requires at most two regular choices and at least 90% confirmed utilization | Pure policy predicate tested; booking integration missing |
 | Qualified, metro/date eligible capacity, absence union, maxDaily cap, zero-capacity exclusion | Optimization capacity implemented; horizon booking aggregation missing |
-| Confirmed demand includes all services, caps consumed regular minutes per tech/date, excludes holds and old alternatives | Not implemented in booking |
-| Routing failures, incomplete snapshots, deadlines never establish scarcity | Typed outcomes started; gate enforcement missing |
+| Confirmed demand includes all services, caps consumed regular minutes per tech/date, excludes holds and old alternatives | Search core measures all confirmed services and excludes holds; database snapshot loader and refresh exclusion remain open |
+| Routing failures, incomplete snapshots, deadlines never establish scarcity | Deployed insertion path cannot authorize new overtime; search core requires full horizon/window coverage and completed search |
 | Regular offers first, authorized overtime fills at most four slots | Not implemented |
-| Persist overtime authorization; later demand drop does not revoke it | Not implemented |
+| Persist overtime authorization; later demand drop does not revoke it | Offer authorization migrated and rechecked at select/confirm; only known legacy overtime offers authorized until complete search integration |
 | Decimal capacity-weighted variance including idle eligible techs; paid work includes service/drive/wait | Implemented for optimization; booking incremental fairness missing |
 | Fairness excludes sibling offers and uses canonical timing | Optimization has no active holds; booking missing; timing interval placement incomplete |
 | Hard feasibility, lowest found overtime, lowest found cost, fairness within floor(reference*1.02) | Optimization implemented; booking missing |
@@ -56,6 +56,8 @@ This checklist tracks the original consolidated specification, not a reduced rep
 - [ ] Use remaining budget for regular choices/fairness after completed scarcity pass.
 - [ ] Coverage, pruning, limits, moves, stop reason and insertion/rearrangement provenance recorded.
 - [ ] Application shortlists; no Enterprise nearby selection; feature flag retains policy and issued-offer confirmation when disabled.
+
+The immutable `BookingSnapshot` and `BoundedBookingSearch` core now implement these moves and limits, horizon rounds, application shortlists including idle capacity, confirmed utilization, distinct windows, incremental fairness and candidate policy comparison. Tests cover relocation versus insertion, a tiny exact assignment/order oracle, duplicate technician windows, idle capacity, holds, thresholds, cost ceilings and incomplete inputs. This core is deliberately not connected to public offers until durable common arrangements and atomic confirmation are complete. The checkboxes above therefore remain open.
 
 ## E. Routing
 

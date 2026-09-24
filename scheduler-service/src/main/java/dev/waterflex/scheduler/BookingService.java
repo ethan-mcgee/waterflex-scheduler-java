@@ -28,6 +28,11 @@ public class BookingService {
     public record Confirmation(String appointmentId, Instant windowStart, Instant windowEnd) { }
     public record Candidate(String techId, LocalDate day, Instant start, Instant end, Instant arrival,
                             int position, double cost, long regularDeltaMinutes, long overtimeDeltaMinutes, long roadDeltaMeters) { }
+    static final Comparator<Candidate> INSERTION_ORDER = Required.value(Comparator.comparingLong((Candidate candidate) -> candidate.overtimeDeltaMinutes())
+            .thenComparingDouble(candidate -> candidate.cost())
+            .thenComparing(candidate -> candidate.start())
+            .thenComparing(candidate -> candidate.techId())
+            .thenComparingInt(candidate -> candidate.position()));
     private record SelectedOffer(@Nullable String selectedOfferId, String holdId, Instant expiresAt, @Nullable Timestamp releasedAt) { }
     private record ReleasableSet(String id, @Nullable Timestamp supersededAt) { }
     private record OfferWindow(Instant day, Instant start, Instant end, String setId) { }
@@ -67,10 +72,7 @@ public class BookingService {
         SearchDeadline.beginCommit();
         LinkedHashMap<String, Candidate> windows = new LinkedHashMap<>();
         candidates.stream().filter(candidate -> candidate.overtimeDeltaMinutes() <= 0)
-                .sorted(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
-                        .thenComparing((Candidate candidate) -> candidate.start())
-                        .thenComparing((Candidate candidate) -> candidate.techId())
-                        .thenComparingInt((Candidate candidate) -> candidate.position()))
+                .sorted(INSERTION_ORDER)
                 .forEach(c -> windows.putIfAbsent(c.start().toString(), c));
         List<Offer> result = new ArrayList<>();
         Instant expiry = Instant.now().plus(Duration.ofMinutes(10));
@@ -148,8 +150,7 @@ public class BookingService {
             Candidate candidate = evaluateCandidate(job, tech, Required.value(day), start, end);
             if (candidate != null && (candidate.overtimeDeltaMinutes() <= 0 || overtimeAuthorized)) feasible.add(candidate);
         }
-        Candidate chosen = feasible.stream().min(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
-                        .thenComparing((Candidate candidate) -> candidate.techId()))
+        Candidate chosen = feasible.stream().min(INSERTION_ORDER)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available"));
         jdbc.update("UPDATE slot_hold SET \"technicianId\"=?, \"plannedStart\"=?, \"plannedEnd\"=?, \"insertPosition\"=? WHERE id=?",
                 chosen.techId(), stamp(chosen.arrival()), stamp(Required.value(chosen.arrival().plus(Duration.ofMinutes(job.duration())))), chosen.position(), holdId);
@@ -193,12 +194,7 @@ public class BookingService {
                 candidate.arrival(), job.duration(), true));
         Metrics planned = evaluate(Required.value(tech), Required.value(day), route);
         if (!planned.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
-        for (int index = 0; index < route.size(); index++) {
-            Visit visit = route.get(index);
-            Instant arrival = Required.value(planned.arrivals().get(visit.id()), "arrival for " + visit.id());
-            jdbc.update("UPDATE appointment SET sequence=?, \"plannedStart\"=?, \"plannedEnd\"=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?",
-                    index, stamp(Required.value(arrival)), stamp(Required.value(arrival.plus(Duration.ofMinutes(visit.duration())))), visit.id());
-        }
+        persistTiming(route, planned);
         jdbc.update("UPDATE job SET status='SCHEDULED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", jobId);
         jdbc.update("UPDATE job SET \"manualFollowUpStatus\"=NULL, \"manualFollowUpReason\"=NULL WHERE id=?", jobId);
         jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND \"releasedAt\" IS NULL", jobId);
@@ -232,18 +228,29 @@ public class BookingService {
             WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, Required.value(day));
             var techs = shift == null ? List.<Tech>of() : jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
                     (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(Required.value(day)), dayStamp(Required.value(day)), techId);
-            if (!techs.isEmpty()) {
-                Metrics recalculated = evaluate(Required.value(techs.getFirst()), Required.value(day), Required.value(remaining));
-                if (recalculated.feasible()) for (int i = 0; i < remaining.size(); i++) {
-                    Visit visit = remaining.get(i);
-                    Instant arrival = Required.value(recalculated.arrivals().get(visit.id()), "arrival for " + visit.id());
-                    if (jdbc.update("UPDATE appointment SET sequence=?, \"plannedStart\"=?, \"plannedEnd\"=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
-                            i, stamp(Required.value(arrival)), stamp(Required.value(arrival.plus(Duration.ofMinutes(visit.duration())))), visit.id()) > 0) { /* active appointment */ }
-                }
+            if (!remaining.isEmpty()) {
+                if (techs.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Remaining appointments or reservations have no working technician");
+                Metrics recalculated = evaluate(Required.value(techs.getFirst()), Required.value(day), remaining);
+                if (!recalculated.feasible())
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancellation requires repair of remaining appointments or reservations");
+                persistTiming(remaining, recalculated);
             }
         }
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(Required.value(day)));
         return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", false));
+    }
+
+    private void persistTiming(List<Visit> route, Metrics result) {
+        for (int index = 0; index < route.size(); index++) {
+            Visit visit = route.get(index);
+            Instant arrival = Required.value(result.arrivals().get(visit.id()), "route arrival");
+            Timestamp plannedStart = stamp(arrival), plannedEnd = stamp(Required.value(arrival.plus(Duration.ofMinutes(visit.duration()))));
+            int updated = jdbc.update("UPDATE appointment SET sequence=?,\"plannedStart\"=?,\"plannedEnd\"=?,\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
+                    index, plannedStart, plannedEnd, visit.id());
+            if (updated == 0) updated = jdbc.update("UPDATE slot_hold SET \"insertPosition\"=?,\"plannedStart\"=?,\"plannedEnd\"=? WHERE id=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
+                    index, plannedStart, plannedEnd, visit.id());
+            if (updated != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "A route appointment or reservation changed during validation");
+        }
     }
 
     private List<Candidate> candidates(Job job, @Nullable LocalDate onlyDay, @Nullable Instant onlyStart) {
@@ -325,7 +332,7 @@ public class BookingService {
             double cost = (m.costCents() - baseline.costCents()) / 100.0;
             Candidate c = new Candidate(tech.id(), day, start, end, Required.value(m.newArrival(), "candidate arrival"), position, cost,
                     (long) (paidDelta - overtimeDelta), (long) overtimeDelta, m.meters() - baseline.meters());
-            if (best == null || c.cost() < best.cost()) best = c;
+            if (best == null || INSERTION_ORDER.compare(c, best) < 0) best = c;
         }
         return best;
     }
@@ -370,11 +377,9 @@ public class BookingService {
         TechRoute route = new TechRoute(tech.id(), shiftStart, shiftEnd, tech.maxDaily(), tech.maxOvertime(), Required.value(Set.of("BOOKING")));
         route.setUnavailable(new ArrayList<>(snapshot.absences()));
         for (Visit visit : visits) route.getVisits().add(new PlanVisit(visit.id(), "BOOKING", visit.start(), visit.end(), visit.duration(), tech.id(), visit.planned()));
-        Map<String, Double> settings = snapshot.settings();
+        BookingSnapshot.Rates rates = BookingSnapshot.Rates.read(snapshot.settings());
         DayPlan plan = new DayPlan(Required.value(List.of(route)), route.getVisits(), snapshot.matrix(),
-                settings.getOrDefault("regular_hourly_dollars", 30.0), settings.getOrDefault("overtime_hourly_dollars", 45.0),
-                settings.getOrDefault("mileage_dollars_per_mile", 0.67), settings.getOrDefault("travel_buffer_pct", 0.2),
-                Math.round(settings.getOrDefault("travel_buffer_minutes_per_leg", 5.0)));
+                rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
         var result = RouteEvaluator.evaluate(plan);
         Instant newArrival = visits.stream().filter((Visit visit) -> visit.newJob()).findFirst().map(v -> result.arrivals().get(v.id())).orElse(null);
         return new Metrics(result.feasible(), newArrival, result.paidMinutes(), result.overtimeMinutes(),
@@ -458,9 +463,11 @@ public class BookingService {
         List<TechBase> rows = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? WHERE t.active=true AND p.\"metroId\"=? ORDER BY t.id FOR SHARE OF t",
                 (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), serviceId, metroId);
         List<Tech> result = new ArrayList<>();
+        Map<String, WeeklyAvailability.Availability> availability = WeeklyAvailability.resolveAll(jdbc,
+                Required.value(rows.stream().map((TechBase row) -> row.id()).toList()), day);
         for (TechBase row : rows) {
             TechBase technician = Required.value(row);
-            WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician.id(), day);
+            WeeklyAvailability.Shift shift = Required.value(availability.get(technician.id()), "technician availability").shift();
             if (shift != null) result.add(new Tech(technician.id(), technician.endpoints(), shift.start(), shift.end(), technician.maxDaily(), technician.maxOvertime()));
         }
         return result;
