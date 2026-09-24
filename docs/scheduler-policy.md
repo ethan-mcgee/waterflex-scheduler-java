@@ -2,6 +2,8 @@
 
 This describes the implemented consolidated policy. Release acceptance and measured limitations are tracked separately in [the original-plan checklist](scheduler-plan-checklist.md), [booking benchmarks](booking-benchmarks.md) and [solver experiments](solver-benchmarks.md). The dispatcher still previews and manually applies optimization proposals. No same-day replanning, paid service migration or automatic dispatch apply is introduced.
 
+The new booking path, including booking fairness and common reservation arrangements, requires `booking.reservations.enabled=true`. Its bounded rearrangement search additionally requires `booking.search.bounded=true`. Both remain disabled by default for staged rollout. The fallback cannot authorize new overtime without the prescribed scarcity search, and previously issued managed offers retain their confirmation path when either flag is disabled. Daily optimization policy operates independently of these booking flags.
+
 ## Customer promises and overtime
 
 Bookings retain two-hour arrival windows, ten-minute offer expiry, the existing booking horizon and the service-date cutoff of **06:00 America/Chicago**. Qualifications, approved absences, technician paid/overtime limits, date-effective depot assignments and departure/return endpoint policies are hard constraints. Invalid or missing required scheduling facts fail explicitly.
