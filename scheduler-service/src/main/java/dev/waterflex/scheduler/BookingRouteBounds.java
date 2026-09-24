@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 final class BookingRouteBounds {
     private record Work(Instant start, Instant end) { }
     private record Key(String technician, List<Visit> visits) { }
+    private record OrderKey(String technician, List<String> order) { }
     private record Summary(List<Visit> visits, Instant[] earliest, Instant[] latest, long[] prefixPaid, long[] suffixPaid, boolean possible) { }
     private final Day day;
     private final Rates rates;
@@ -16,6 +17,9 @@ final class BookingRouteBounds {
     private final Map<String, Long> buffered = new HashMap<>();
     private final Map<Key, Summary> summaries = new LinkedHashMap<>(128, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Key, Summary> eldest) { return size() > 2048; }
+    };
+    private final Map<OrderKey, Summary> immutableSummaries = new LinkedHashMap<>(128, .75f, true) {
+        @Override protected boolean removeEldestEntry(Map.@Nullable Entry<OrderKey, Summary> eldest) { return size() > 2048; }
     };
     BookingRouteBounds(Day day, Rates rates) {
         this.day = day; this.rates = rates;
@@ -44,10 +48,19 @@ final class BookingRouteBounds {
         return summary(Required.value(day.technicians().get(technicianId)), order, facts).possible();
     }
     private Summary summary(Technician technician, List<String> order, Map<String, Visit> facts) {
+        OrderKey immutableKey = facts == day.visits() ? new OrderKey(technician.id(), Required.value(List.copyOf(order))) : null;
+        if (immutableKey != null) {
+            Summary cached = immutableSummaries.get(immutableKey);
+            if (cached != null) return cached;
+        }
         List<Visit> visits = new ArrayList<>();
         for (String id : order) visits.add(Required.value(facts.get(id), "bounded route visit"));
         Key key = new Key(technician.id(), Required.value(List.copyOf(visits)));
-        Summary cached = summaries.get(key); if (cached != null) return cached;
+        Summary cached = summaries.get(key);
+        if (cached != null) {
+            if (immutableKey != null) immutableSummaries.put(immutableKey, cached);
+            return cached;
+        }
         int count = visits.size(); Instant[] earliest = new Instant[count], latest = new Instant[count];
         long[] prefix = new long[count + 1], suffix = new long[count + 1];
         boolean possible = true;
@@ -75,7 +88,9 @@ final class BookingRouteBounds {
         }
         if (count > 0 && possible && add(prefix[count], travel(previous, technician.id() + ":return")) > technician.maxDailyMinutes()) possible = false;
         Summary result = new Summary(key.visits(), earliest, latest, prefix, suffix, possible);
-        summaries.put(key, result); return result;
+        summaries.put(key, result);
+        if (immutableKey != null) immutableSummaries.put(immutableKey, result);
+        return result;
     }
     private long connection(String technician, String from, String to) {
         // Across an absence, endpoint travel may be cheaper than the direct arc. No triangle inequality is assumed.

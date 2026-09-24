@@ -24,8 +24,10 @@ class BoundedBookingSearchTest {
                 assertThrows(UnsupportedOperationException.class, () -> facts.put("other", visit));
                 assertThrows(UnsupportedOperationException.class, () -> facts.entrySet().iterator().next().setValue(visit));
                 assertThrows(BookingSnapshot.Incomplete.class, () -> new InsertionFacts(day, Required.value(day.visits().get("old"))));
-                for (int position = 0; position <= Required.value(day.baseline().routes().get(technician)).size(); position++) {
-                    var arrangement = day.baseline().insert(Required.value(technician), visit.id(), position);
+                var reassigned = new Arrangement(Required.value(Map.of("a", List.of(), "b", List.of("old"))));
+                for (Arrangement parent : List.of(day.baseline(), reassigned))
+                  for (int position = 0; position <= Required.value(parent.routes().get(technician)).size(); position++) {
+                    var arrangement = parent.insert(Required.value(technician), visit.id(), position);
                     for (boolean confirmed : List.of(false, true)) {
                         var full = dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(arrangement, copied, RATES, confirmed));
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmed));
@@ -34,6 +36,8 @@ class BoundedBookingSearchTest {
                                 evaluation.fairness(arrangement, facts));
                     }
                 }
+                var missing = new Arrangement(Required.value(Map.of("a", List.of(), "b", List.of()))).insert("a", visit.id(), 0);
+                assertThrows(BookingSnapshot.Incomplete.class, () -> evaluation.metrics(missing, facts, false));
             }
         }
     }

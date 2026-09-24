@@ -122,6 +122,9 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
         @org.jspecify.annotations.Nullable String insertionTechnician(Arrangement original, String visit) {
             return parent == original && visit.equals(insertedVisit) ? insertedTechnician : null;
         }
+        @org.jspecify.annotations.Nullable Arrangement insertionParent(String visit) {
+            return visit.equals(insertedVisit) ? parent : null;
+        }
         private boolean containsVisit(String visit) {
             for (Arrangement current = this; ; ) {
                 if (visit.equals(current.insertedVisit)) return true;

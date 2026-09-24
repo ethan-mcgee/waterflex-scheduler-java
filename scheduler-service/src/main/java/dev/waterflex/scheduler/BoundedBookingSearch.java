@@ -84,6 +84,7 @@ public final class BoundedBookingSearch {
         final BigDecimal fairness;
         final List<String> eligible;
         @Nullable List<String> shortlist;
+        final Map<Arrangement, Integer> assignmentChanges = new IdentityHashMap<>();
         final Map<Arrangement, List<Move>> neighborhoods = new LinkedHashMap<>(16, .75f, true) {
             @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Arrangement, List<Move>> eldest) { return size() > 32; }
         };
@@ -332,12 +333,16 @@ public final class BoundedBookingSearch {
         }
 
         int changes(Arrangement arrangement) {
+            var counts = context(window.day()).assignmentChanges;
+            Integer cached = counts.get(arrangement);
+            if (cached != null) return cached;
             int count = 0;
             for (var entry : arrangement.routes().entrySet()) for (String id : entry.getValue()) {
                 Visit visit = Required.value(day.visits().get(id), "existing visit");
                 if (!visit.reservation() && !visit.originalTechnicianId().equals(entry.getKey())) count++;
             }
-            return count;
+            if (counts.size() >= 1024) counts.clear();
+            counts.put(arrangement, count); return count;
         }
 
         void startNeighborhood() {
@@ -427,8 +432,8 @@ public final class BoundedBookingSearch {
             if (cached == null) {
                 cached = Optional.empty();
                 if (evaluation.possible(arrangement, day.visits())) {
-                    var result = evaluation.evaluate(arrangement, day.visits(), false);
-                    if (result.feasible() && evaluation.evaluate(arrangement, day.visits(), true).feasible())
+                    var result = evaluation.metrics(arrangement, day.visits(), false);
+                    if (result.feasible() && (!evaluation.hasReservations() || evaluation.metrics(arrangement, day.visits(), true).feasible()))
                         cached = Optional.of(new Ranked(arrangement, result.overtimeMinutes(), result.costCents(), evaluation.fairness(arrangement, day.visits())));
                 }
                 shared.arrangements.put(arrangement, Required.value(cached));

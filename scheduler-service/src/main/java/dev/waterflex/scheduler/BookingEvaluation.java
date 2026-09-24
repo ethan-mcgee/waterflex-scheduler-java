@@ -22,7 +22,8 @@ final class BookingEvaluation {
     private record Baseline(RouteEvaluator.Result total, Map<String, RouteEvaluator.Result> parts, int infeasibleRoutes) { }
     private final Map<Boolean, Baseline> baselines = new HashMap<>();
     private record Load(long paid, long capacity) { }
-    private @Nullable Map<String, Load> baselineLoads;
+    private final Map<Arrangement, Map<String, Load>> baselineLoads = new IdentityHashMap<>();
+    private final Map<Arrangement, Map<Boolean, Baseline>> insertionBaselines = new IdentityHashMap<>();
     private final Map<Map<Load, Integer>, BigDecimal> fairnessResults = new LinkedHashMap<>(128, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Map<Load, Integer>, BigDecimal> eldest) { return size() > 2048; }
     };
@@ -98,7 +99,8 @@ final class BookingEvaluation {
 
     private RouteEvaluator.Result aggregate(Arrangement arrangement, Map<String, Visit> facts, boolean confirmedOnly, boolean timeline) {
         coverage(arrangement, facts);
-        Baseline baseline = baseline(confirmedOnly);
+        Arrangement parent = insertionParent(arrangement, facts);
+        Baseline baseline = parent == null ? baseline(confirmedOnly) : insertionBaseline(parent, confirmedOnly);
         if (arrangement.equals(day.baseline()) && facts.equals(day.visits())) return baseline.total();
         var total = baseline.total();
         long paid = total.paidMinutes(), overtime = total.overtimeMinutes(), driving = total.driveMinutes();
@@ -106,6 +108,9 @@ final class BookingEvaluation {
         int infeasible = baseline.infeasibleRoutes();
         Map<String, Instant> arrivals = timeline ? new HashMap<>(total.arrivals()) : new HashMap<>();
         Map<String, List<RouteEvaluator.WorkingSegment>> segments = timeline ? new TreeMap<>(total.segments()) : new TreeMap<>();
+        if (timeline && parent != null && parent != day.baseline()) {
+            baseline.parts().values().forEach(part -> { arrivals.putAll(part.arrivals()); segments.putAll(part.segments()); });
+        }
         List<RouteEvaluator.Result> changed = new ArrayList<>();
         String insertion = insertionTechnician(arrangement, facts);
         Map<String, List<String>> affected = insertion == null ? arrangement.routes()
@@ -155,15 +160,47 @@ final class BookingEvaluation {
     private void coverage(Arrangement arrangement, Map<String, Visit> facts) {
         // The private structural insertion constructor preserves exactly the validated parent
         // routes and adds the overlay's one new visit. Other arrangements still require a scan.
-        if (insertionTechnician(arrangement, facts) != null) return;
+        Arrangement parent = insertionParent(arrangement, facts);
+        if (parent != null) { insertionBaseline(parent, false); return; }
         if (!arrangement.routes().keySet().equals(day.technicians().keySet())) throw new Incomplete("Arrangement technician coverage changed");
         Set<String> coverage = new HashSet<>(); arrangement.routes().values().forEach(coverage::addAll);
         if (!coverage.equals(facts.keySet())) throw new Incomplete("Arrangement visit coverage changed");
     }
 
     private @Nullable String insertionTechnician(Arrangement arrangement, Map<String, Visit> facts) {
-        return facts instanceof InsertionFacts inserted && inserted.day == day
-                ? arrangement.insertionTechnician(day.baseline(), inserted.visit.id()) : null;
+        Arrangement parent = insertionParent(arrangement, facts);
+        return parent != null && facts instanceof InsertionFacts inserted ? arrangement.insertionTechnician(parent, inserted.visit.id()) : null;
+    }
+
+    private @Nullable Arrangement insertionParent(Arrangement arrangement, Map<String, Visit> facts) {
+        return facts instanceof InsertionFacts inserted && inserted.day == day ? arrangement.insertionParent(inserted.visit.id()) : null;
+    }
+
+    /** A neighborhood parent is validated once, then reused across its windows and insertion positions. */
+    private Baseline insertionBaseline(Arrangement parent, boolean confirmedOnly) {
+        if (parent == day.baseline()) return baseline(confirmedOnly);
+        Map<Boolean, Baseline> known = insertionBaselines.get(parent);
+        if (known != null) {
+            Baseline cached = known.get(confirmedOnly);
+            if (cached != null) return cached;
+        } else {
+            coverage(parent, day.visits());
+            if (insertionBaselines.size() >= 512) { insertionBaselines.clear(); baselineLoads.clear(); }
+            known = new HashMap<>(); insertionBaselines.put(parent, known);
+        }
+        Map<String, RouteEvaluator.Result> parts = new TreeMap<>();
+        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0; int infeasible = 0;
+        for (var entry : parent.routes().entrySet()) {
+            var measured = route(Required.value(entry.getKey()), Required.value(entry.getValue()), day.visits(), confirmedOnly);
+            parts.put(entry.getKey(), measured);
+            paid += measured.paidMinutes(); overtime += measured.overtimeMinutes(); driving += measured.driveMinutes();
+            waiting += measured.waitingMinutes(); meters += measured.meters(); if (!measured.feasible()) infeasible++;
+        }
+        var cached = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, Required.value(Map.of()), Required.value(Map.of())),
+                Required.value(Map.copyOf(parts)), infeasible);
+        known.put(confirmedOnly, cached);
+        if (!reservations) known.put(!confirmedOnly, cached);
+        return cached;
     }
 
     private RouteEvaluator.Result result(boolean feasible, long paid, long overtime, long driving, long waiting, long meters,
@@ -177,7 +214,7 @@ final class BookingEvaluation {
     BigDecimal fairness(Arrangement arrangement, Map<String, Visit> facts) {
         String insertion = insertionTechnician(arrangement, facts);
         if (insertion != null && facts instanceof InsertionFacts inserted && inserted.visit.serviceId().equals(requestedService)) {
-            Map<String, Load> loads = new HashMap<>(baselineLoads());
+            Map<String, Load> loads = new HashMap<>(baselineLoads(Required.value(insertionParent(arrangement, facts))));
             var measured = route(insertion, Required.value(arrangement.routes().get(insertion)), facts, true);
             if (!measured.feasible()) throw new Incomplete("Confirmed workload cannot be evaluated");
             if (loads.containsKey(insertion)) loads.put(insertion, new Load(measured.paidMinutes(), capacity(insertion)));
@@ -211,13 +248,13 @@ final class BookingEvaluation {
         return variance;
     }
 
-    private Map<String, Load> baselineLoads() {
-        Map<String, Load> cached = baselineLoads;
+    private Map<String, Load> baselineLoads(Arrangement parent) {
+        Map<String, Load> cached = baselineLoads.get(parent);
         if (cached != null) return cached;
         Set<String> services = new HashSet<>(); services.add(requestedService);
         day.visits().values().stream().filter(visit -> !visit.reservation()).forEach(visit -> services.add(visit.serviceId()));
         Map<String, Load> loads = new HashMap<>();
-        Baseline confirmed = baseline(true);
+        Baseline confirmed = insertionBaseline(parent, true);
         for (Technician technician : day.technicians().values()) {
             long capacity = capacity(technician.id());
             if (capacity == 0 || Collections.disjoint(services, technician.services())) continue;
@@ -225,6 +262,6 @@ final class BookingEvaluation {
             if (!measured.feasible()) throw new Incomplete("Confirmed workload cannot be evaluated");
             loads.put(technician.id(), new Load(measured.paidMinutes(), capacity));
         }
-        cached = Required.value(Map.copyOf(loads)); baselineLoads = cached; return cached;
+        cached = Required.value(Map.copyOf(loads)); baselineLoads.put(parent, cached); return cached;
     }
 }
