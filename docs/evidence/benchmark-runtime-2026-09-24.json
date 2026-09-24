@@ -1,0 +1,207 @@
+{
+  "date": "2026-09-24",
+  "scope": "Isolated local benchmark launch provenance; process IDs are historical, not running-service assertions.",
+  "launches": [
+    {
+      "source": "waterflex-corrected-18014-process.json",
+      "sourceSha256": "fb192501ac3a5ec071279f7c06bdaa5a569c51e1a22b6f9f6c2282d7c7bb180b",
+      "launch": {
+        "pid": 70404,
+        "arguments": [
+          "-Xmx768m",
+          "-jar",
+          "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-scheduler-971b0b9.jar",
+          "--server.port=18014",
+          "--spring.profiles.active=benchmark",
+          "--booking.reservations.enabled=true",
+          "--booking.search.bounded=true",
+          "--spring.datasource.hikari.maximum-pool-size=4",
+          "--spring.datasource.hikari.minimum-idle=1"
+        ],
+        "schema": "benchmark_browser_v2",
+        "routing": "http://localhost:18003",
+        "sha256": "D0A34E72D61395FE39730CB7E8A498A7DD6FB3817146F6404E92F2F4047586AD"
+      }
+    },
+    {
+      "source": "waterflex-corrected-18010-process.json",
+      "sourceSha256": "9f9485bd34620bf11ba414437818f7de710a851c0aca904956a1fd605ef3b77e",
+      "launch": {
+        "pid": 70104,
+        "arguments": [
+          "-Xmx768m",
+          "-jar",
+          "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\.scratch\\ablation-policy-insertion-90f407e\\scheduler-service\\target\\scheduler-service-0.1.0-SNAPSHOT.jar",
+          "--server.port=18010",
+          "--spring.profiles.active=benchmark",
+          "--booking.reservations.enabled=true",
+          "--booking.search.bounded=false",
+          "--spring.datasource.hikari.maximum-pool-size=4",
+          "--spring.datasource.hikari.minimum-idle=1"
+        ],
+        "schema": "benchmark_ablation_policy_v2",
+        "routing": "http://localhost:18001",
+        "sha256": "539648A71B80D384572022940313FB40F44F0589029377738EB9D65FCBD182C3"
+      }
+    },
+    {
+      "source": "waterflex-ablation-snapshot-insertion-v2-process.json",
+      "sourceSha256": "8b52aca2b01d7635f5b77445f05fb9086858e0de68ff5b06b4373ae8d7107a91",
+      "launch": {
+        "stage": "snapshot-insertion",
+        "pid": 61672,
+        "port": 18011,
+        "schema": "benchmark_ablation_snapshot_insertion",
+        "artifact": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\.scratch\\ablation-snapshot-insertion-90f407e\\scheduler-service\\target\\scheduler-service-0.1.0-SNAPSHOT.jar",
+        "sha256": "A898EB9E0809A1F800E1FFD5E56B02017EC307D4D9A55E6E7601CD1DE535DC38",
+        "arguments": [
+          "-Xmx768m",
+          "-jar",
+          "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\.scratch\\ablation-snapshot-insertion-90f407e\\scheduler-service\\target\\scheduler-service-0.1.0-SNAPSHOT.jar",
+          "--server.port=18011",
+          "--spring.profiles.active=benchmark",
+          "--booking.reservations.enabled=true",
+          "--booking.search.bounded=false",
+          "--spring.datasource.hikari.maximum-pool-size=4",
+          "--spring.datasource.hikari.minimum-idle=1"
+        ]
+      }
+    },
+    {
+      "source": "waterflex-ablation-bounded-early-v2-process.json",
+      "sourceSha256": "3c16553dc2aec2dd374a41baecf0be5ab96d4a57a4593a2d2602e198247ae2a3",
+      "launch": {
+        "stage": "bounded-early",
+        "pid": 62924,
+        "port": 18012,
+        "schema": "benchmark_ablation_bounded_early",
+        "artifact": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\.scratch\\ablation-bounded-early-90f407e\\scheduler-service\\target\\scheduler-service-0.1.0-SNAPSHOT.jar",
+        "sha256": "43745C813F3F592B59693D358E92438A2B3C9F904D663EECFC17C1B2E524383A",
+        "arguments": [
+          "-Xmx768m",
+          "-jar",
+          "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\.scratch\\ablation-bounded-early-90f407e\\scheduler-service\\target\\scheduler-service-0.1.0-SNAPSHOT.jar",
+          "--server.port=18012",
+          "--spring.profiles.active=benchmark",
+          "--booking.reservations.enabled=true",
+          "--booking.search.bounded=true",
+          "--spring.datasource.hikari.maximum-pool-size=4",
+          "--spring.datasource.hikari.minimum-idle=1"
+        ]
+      }
+    },
+    {
+      "source": "waterflex-ablation-flexible-final-v2-process.json",
+      "sourceSha256": "fe02e83b4918d3abf96ba8bf42e6df265ab623698fc343e6e6817b18802d2887",
+      "launch": {
+        "stage": "flexible-final",
+        "pid": 11532,
+        "port": 18013,
+        "schema": "benchmark_ablation_flexible_final",
+        "artifact": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-scheduler-2902c87.jar",
+        "sha256": "9D019E5568C8D4C39F37F3C4887EB611B3309C7BA8A0380D4DEC55DC26BB0D8C",
+        "arguments": [
+          "-Xmx768m",
+          "-jar",
+          "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-scheduler-2902c87.jar",
+          "--server.port=18013",
+          "--spring.profiles.active=benchmark",
+          "--booking.reservations.enabled=true",
+          "--booking.search.bounded=true",
+          "--spring.datasource.hikari.maximum-pool-size=4",
+          "--spring.datasource.hikari.minimum-idle=1"
+        ]
+      }
+    },
+    {
+      "source": "waterflex-omaha-v3-process.json",
+      "sourceSha256": "fda384effa39e54059fe7675fa3cad4f21b52dde8317f420e3d0f0f651434ce9",
+      "launch": {
+        "pid": 45860,
+        "arguments": [
+          "-Xmx768m",
+          "-jar",
+          "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-scheduler-2902c87.jar",
+          "--server.port=18007",
+          "--spring.profiles.active=benchmark",
+          "--booking.reservations.enabled=true",
+          "--booking.search.bounded=true",
+          "--spring.datasource.hikari.maximum-pool-size=4",
+          "--spring.datasource.hikari.minimum-idle=1"
+        ],
+        "schema": "benchmark_omaha_v3",
+        "routing": "http://localhost:18003",
+        "sha256": "9D019E5568C8D4C39F37F3C4887EB611B3309C7BA8A0380D4DEC55DC26BB0D8C"
+      }
+    }
+  ],
+  "latestFixture": {
+    "artifactRevision": "971b0b9f115e557f81925e57ae5ebba0d52eead2",
+    "artifactSha256": "d0a34e72d61395fe39730cb7e8a498a7dd6fb3817146f6404e92f2f4047586ad",
+    "schema": "benchmark_booking_v1",
+    "port": 18005,
+    "heap": "768m",
+    "profile": "benchmark",
+    "reservations": true,
+    "boundedSearch": true,
+    "maximumPoolSize": 10,
+    "minimumIdle": 1,
+    "poolSource": "maximum 10 from committed application.properties; minimum 1 from verified process arguments",
+    "routing": "ci-monaco-omaha-car-v2"
+  },
+  "portal": {
+    "behaviorRevision": "0629445b03f6795704e23fb66ae6a9ed62b27df9",
+    "mode": "production next start",
+    "port": 13001,
+    "schema": "benchmark_browser_v2",
+    "schedulerPort": 18014,
+    "prismaConnectionLimit": 4
+  },
+  "routing": {
+    "revision": "3b387c2",
+    "artifactSha256": "440031df17452bd7216ebdcab73cf75fec66cc22d574a382cc6bdd1f71dc84b1",
+    "flexArguments": [
+      "\"-Xmx2g\"",
+      "\"-jar\"",
+      "\"C:/Users/mcgee/AppData/Local/Temp/waterflex-policy-omaha/routing-3b387c2.jar\"",
+      "\"--server.port=18003\"",
+      "\"--routing.graph-dir=C:/Users/mcgee/AppData/Local/Temp/waterflex-policy-omaha/graph\"",
+      "\"--routing.osm-file=missing-pinned-osm\"",
+      "\"--routing.cache.max-entries=1\""
+    ],
+    "chArguments": [
+      "\"-Xmx2g\"",
+      "\"-jar\"",
+      "\"C:/Users/mcgee/AppData/Local/Temp/waterflex-policy-omaha/routing-3b387c2.jar\"",
+      "\"--server.port=18004\"",
+      "\"--routing.graph-dir=C:/Users/mcgee/AppData/Local/Temp/waterflex-policy-omaha/graph\"",
+      "\"--routing.osm-file=missing-pinned-osm\"",
+      "\"--routing.ch.enabled=true\"",
+      "\"--routing.cache.max-entries=1\""
+    ],
+    "manifest": {
+      "version": "2026-09-16",
+      "preparedAt": "2026-09-16T22:04:26Z",
+      "sources": {
+        "nebraska": {
+          "url": "https://download.geofabrik.de/north-america/us/nebraska-latest.osm.pbf",
+          "sourceTimestamp": "2026-09-15T20:13:01Z",
+          "sha256": "627126fff9f88d040371ee58cf1b3d8bae82a33ba4dcb44f81be58c5493534fe"
+        },
+        "iowa": {
+          "url": "https://download.geofabrik.de/north-america/us/iowa-latest.osm.pbf",
+          "sourceTimestamp": "2026-09-15T20:12:40Z",
+          "sha256": "55e1b97f2a9a91374fc8bef26418fb5b070e84a7e17d4f30a1d039ef04fcefbc"
+        }
+      },
+      "mergedSha256": "cff0f790d8eda12bca1f4823bd52a429b7ae7c7626cbf9ca76f0992185636f1c"
+    },
+    "flexIdentity": "d4a7c8575bad71445a7f745383e1466de88552a81db580196a4c62916acdcbaf"
+  },
+  "limitations": [
+    "Processes shared this workstation and PostgreSQL server with other isolated tests. No production capacity claim.",
+    "Final browser and corrected stage instances explicitly use four-connection pools; the latest direct fixture uses the ten-connection application default. Do not hide that configuration difference.",
+    "Each original baseline case restarts the unchanged original artifact; its own measurements do not include the separate audit process counters.",
+    "The graph was already imported from the pinned manifest; missing-pinned-osm prevents silently importing different source data. CH uses a separate artifact and routing identity."
+  ]
+}

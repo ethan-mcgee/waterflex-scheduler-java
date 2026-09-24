@@ -230,7 +230,8 @@
     "Compose configuration validation",
     "git diff --check",
     "Git object integrity: no corruption; existing dangling objects retained",
-    "No em dash in added patch lines"
+    "No em dash in added patch lines",
+    "35 gzip evidence files decoded, 31 recorded source hashes verified, and added documentation local links resolved"
   ],
   "caveats": [
     "The first managed-booking rerun used a routing cache warmed by a prior time-off worker. Its persistent-cache repair assertion failed. A fresh instance passed the required cold-cache test; no product fallback was added.",
@@ -241,6 +242,11 @@
     {
       "revision": "03eac84c21be9624b51e53b992edc9490ea38041",
       "run": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/35998976088",
+      "result": "success"
+    },
+    {
+      "revision": "94a4827d2c42042b5d311f5e0597fdae239d768c",
+      "run": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/36000034937",
       "result": "success"
     }
   ]
