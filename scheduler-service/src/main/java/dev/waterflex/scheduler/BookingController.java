@@ -15,7 +15,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class BookingController {
     private final BookingService booking;
     private final SearchAdmission admission;
-    public BookingController(BookingService booking, SearchAdmission admission) { this.booking = booking; this.admission = admission; }
+    private final BookingCoordinator coordinator;
+    private final ReservationLifecycleService lifecycle;
+    private final boolean reservationsEnabled;
+    public BookingController(BookingService booking, SearchAdmission admission, BookingCoordinator coordinator,
+            ReservationLifecycleService lifecycle, @org.springframework.beans.factory.annotation.Value("${booking.reservations.enabled:false}") boolean reservationsEnabled) {
+        this.booking = booking; this.admission = admission; this.coordinator = coordinator; this.lifecycle = lifecycle; this.reservationsEnabled = reservationsEnabled;
+    }
     public record JobRequest(String jobId, @Nullable Boolean refresh, @Nullable Long deadlineEpochMs) {
         public JobRequest {
             jobId = RequestChecks.text(jobId, "jobId");
@@ -45,11 +51,14 @@ public class BookingController {
         long queueMs = admitted.queueMillis();
         try (var lease = admitted) {
             org.slf4j.LoggerFactory.getLogger(BookingController.class).debug("Booking queue time {} ms", lease.queueMillis());
-            BookingService.Offers result = deadline.within(() -> booking.offers(request.jobId(), Boolean.TRUE.equals(request.refresh())));
-            // The bounded scarcity neighborhood is not implemented yet. An insertion miss
-            // cannot establish that the prescribed search completed.
-            SearchOutcome outcome = result.offers().isEmpty() ? SearchOutcome.SEARCH_INCOMPLETE : SearchOutcome.AVAILABLE;
-            return searchResult(request.jobId(), result.offers(), outcome, started, queueMs);
+            BookingCoordinator.Result result = deadline.within(() -> (reservationsEnabled || coordinator.requiresCommonArrangement())
+                    ? coordinator.offers(request.jobId(), Boolean.TRUE.equals(request.refresh()))
+                    : new BookingCoordinator.Result(booking.offers(request.jobId(), Boolean.TRUE.equals(request.refresh())), false, "LEGACY_INSERTION"));
+            SearchOutcome outcome = !result.offers().offers().isEmpty() ? SearchOutcome.AVAILABLE
+                    : result.completed() ? SearchOutcome.NO_CANDIDATE_FOUND
+                    : result.stopReason().equals("ROUTING_UNAVAILABLE") ? SearchOutcome.ROUTING_UNAVAILABLE : SearchOutcome.SEARCH_INCOMPLETE;
+            return new SearchResponse(request.jobId(), result.offers().offers(), new SearchStatus(outcome, result.completed(),
+                    (System.nanoTime() - started) / 1_000_000, outcome != SearchOutcome.AVAILABLE && outcome != SearchOutcome.NO_CANDIDATE_FOUND, queueMs));
         } catch (RoadClient.RoadUnavailable exception) {
             org.slf4j.LoggerFactory.getLogger(BookingController.class).warn("Booking routing failure for job {}", request.jobId(), exception);
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.ROUTING_UNAVAILABLE, started, queueMs);
@@ -58,8 +67,12 @@ public class BookingController {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SERVICE_BUSY, started, queueMs);
         } catch (QueryTimeoutException | org.springframework.transaction.TransactionTimedOutException | SearchDeadline.Expired exception) {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SEARCH_INCOMPLETE, started, queueMs);
+        } catch (BookingSnapshot.Incomplete exception) {
+            org.slf4j.LoggerFactory.getLogger(BookingController.class).warn("Incomplete booking snapshot for job {}", request.jobId(), exception);
+            return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SCHEDULE_CONFLICT, started, queueMs);
         } catch (ResponseStatusException exception) {
             if (exception.getStatusCode().value() != 409) throw exception;
+            org.slf4j.LoggerFactory.getLogger(BookingController.class).warn("Booking conflict for job {}: {}", request.jobId(), exception.getReason());
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SCHEDULE_CONFLICT, started, queueMs);
         }
     }
@@ -69,13 +82,21 @@ public class BookingController {
                 (System.nanoTime() - started) / 1_000_000, outcome != SearchOutcome.AVAILABLE, queueMs));
     }
     @PostMapping("/v1/offers/select")
-    public BookingService.Selection select(@RequestBody SelectRequest request) { return booking.select(request.jobId(), request.offerId()); }
+    public BookingService.Selection select(@RequestBody SelectRequest request) {
+        return coordinator.managedOffer(request.jobId(), request.offerId()) ? lifecycle.select(request.jobId(), request.offerId()) : booking.select(request.jobId(), request.offerId());
+    }
     @PostMapping("/v1/offers/release")
-    public Map<String, Boolean> release(@RequestBody SelectRequest request) { return booking.release(request.jobId(), request.offerId()); }
+    public Map<String, Boolean> release(@RequestBody SelectRequest request) {
+        return coordinator.managedOffer(request.jobId(), request.offerId()) ? lifecycle.release(request.jobId(), request.offerId()) : booking.release(request.jobId(), request.offerId());
+    }
     @PostMapping("/v1/holds/confirm")
-    public BookingService.Confirmation confirm(@RequestBody ConfirmRequest request) { return booking.confirm(request.holdId()); }
+    public BookingService.Confirmation confirm(@RequestBody ConfirmRequest request) {
+        return coordinator.managedHold(request.holdId()) ? lifecycle.confirm(request.holdId()) : booking.confirm(request.holdId());
+    }
     @PostMapping("/v1/appointments/cancel")
-    public Map<String, Object> cancel(@RequestBody CancelRequest request) { return booking.cancel(request.appointment_id(), request.reason()); }
+    public Map<String, Object> cancel(@RequestBody CancelRequest request) {
+        return coordinator.managedAppointment(request.appointment_id()) ? lifecycle.cancel(request.appointment_id(), request.reason()) : booking.cancel(request.appointment_id(), request.reason());
+    }
     @GetMapping("/health")
     public Map<String, String> health() { return Required.value(Map.of("status", "ok")); }
 

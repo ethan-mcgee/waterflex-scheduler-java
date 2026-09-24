@@ -8,18 +8,18 @@ This checklist tracks the original consolidated specification, not a reduced rep
 | --- | --- |
 | Two-hour promises, ten-weekday horizon including supported weekends, ten-minute offers, service-date 06:00 Chicago cutoff | Existing behavior retained; add lifecycle and concurrency regression coverage |
 | Qualifications, approved absences, daily/overtime limits, dated depots and endpoints | Existing checks retained; extend to pending rearrangement dependencies |
-| Regular candidate means no added overtime relative to a consistent reservation baseline | Booking filters zero-added-overtime candidates and prioritizes overtime before cost; shared durable arrangement baseline remains open |
-| Distinct `(date,start,end)` regular choices counted before four-offer truncation | Implemented in immutable search core; not connected to reservation persistence |
-| Overtime requires at most two regular choices and at least 90% confirmed utilization | Pure policy predicate tested; booking integration missing |
-| Qualified, metro/date eligible capacity, absence union, maxDaily cap, zero-capacity exclusion | Optimization capacity implemented; horizon booking aggregation missing |
-| Confirmed demand includes all services, caps consumed regular minutes per tech/date, excludes holds and old alternatives | Search core measures all confirmed services and excludes holds; database snapshot loader and refresh exclusion remain open |
+| Regular candidate means no added overtime relative to a consistent reservation baseline | Connected common-arrangement path independently validates incremental overtime; rollout acceptance remains open |
+| Distinct `(date,start,end)` regular choices counted before four-offer truncation | Connected search core counts distinct windows before preparing up to four compatible offers |
+| Overtime requires at most two regular choices and at least 90% confirmed utilization | Connected behind rollout flags; threshold unit tests pass, full API overtime/lifecycle matrix remains open |
+| Qualified, metro/date eligible capacity, absence union, maxDaily cap, zero-capacity exclusion | Implemented in horizon snapshots and optimization; broaden constructed and load scenarios |
+| Confirmed demand includes all services, caps consumed regular minutes per tech/date, excludes holds and old alternatives | Uses persisted confirmed assignments, excluding holds and pending reassignment; refresh releases old alternatives through validation |
 | Routing failures, incomplete snapshots, deadlines never establish scarcity | Deployed insertion path cannot authorize new overtime; search core requires full horizon/window coverage and completed search |
-| Regular offers first, authorized overtime fills at most four slots | Not implemented |
+| Regular offers first, authorized overtime fills at most four slots | Implemented in common offer bundle; broader overtime API acceptance remains open |
 | Persist overtime authorization; later demand drop does not revoke it | Offer authorization migrated and rechecked at select/confirm; only known legacy overtime offers authorized until complete search integration |
-| Decimal capacity-weighted variance including idle eligible techs; paid work includes service/drive/wait | Implemented for optimization; booking incremental fairness missing |
-| Fairness excludes sibling offers and uses canonical timing | Optimization has no active holds; booking missing; timing interval placement incomplete |
-| Hard feasibility, lowest found overtime, lowest found cost, fairness within floor(reference*1.02) | Optimization implemented; booking missing |
-| Zero/negative incremental cost gets no positive fairness allowance | Pure policy tested; booking integration missing |
+| Decimal capacity-weighted variance including idle eligible techs; paid work includes service/drive/wait | Implemented for optimization and booking core, now connected to offers behind rollout flags |
+| Fairness excludes sibling offers and uses canonical timing | Holds excluded from confirmed fairness; full alternative interval timing remains incomplete |
+| Hard feasibility, lowest found overtime, lowest found cost, fairness within floor(reference*1.02) | Implemented for optimization and connected booking search; expand quality and compatibility oracles |
+| Zero/negative incremental cost gets no positive fairness allowance | Implemented and unit tested in connected booking candidate comparison |
 | Remaining ties: cost, changed assignments, earlier window, technician ID, insertion/order | Partial; disruption and consistent route tie-breaking missing |
 | Preview and locked apply share policy, no ordinary overtime increase, retain baseline without improvement | Implemented; broaden quality oracles |
 | Disruption repair explicitly labels and requires approval of extra overtime | Implemented with locked recomputation, reviewed preview identities and persisted approval; unit/browser/integration covered |
@@ -57,7 +57,7 @@ This checklist tracks the original consolidated specification, not a reduced rep
 - [ ] Coverage, pruning, limits, moves, stop reason and insertion/rearrangement provenance recorded.
 - [ ] Application shortlists; no Enterprise nearby selection; feature flag retains policy and issued-offer confirmation when disabled.
 
-The immutable `BookingSnapshot` and `BoundedBookingSearch` core now implement these moves and limits, horizon rounds, application shortlists including idle capacity, confirmed utilization, distinct windows, incremental fairness and candidate policy comparison. Tests cover relocation versus insertion, a tiny exact assignment/order oracle, duplicate technician windows, idle capacity, holds, thresholds, cost ceilings and incomplete inputs. This core is deliberately not connected to public offers until durable common arrangements and atomic confirmation are complete. The checkboxes above therefore remain open.
+The immutable `BookingSnapshot` and `BoundedBookingSearch` core implement these moves and limits, horizon rounds, application shortlists including idle capacity, confirmed utilization, distinct windows, incremental fairness and candidate policy comparison. Tests cover relocation versus insertion, a tiny exact assignment/order oracle, duplicate technician windows, idle capacity, holds, thresholds, cost ceilings and incomplete inputs. The public path now connects this core to common reservation bundles and atomic confirmation behind disabled rollout flags. API tests demonstrate actual relocation, concurrent reservation protection and confirmation with the flags disabled. Acceptance remains open for full coverage, budget refinement and representative performance evidence.
 
 ## E. Routing
 
@@ -78,7 +78,7 @@ The immutable `BookingSnapshot` and `BoundedBookingSearch` core now implement th
 - [ ] Extend availability, qualification, depot, endpoint, time-off and purge guards to pending reassignment dependencies.
 - [ ] Block ordinary optimization with relevant active holds, including pending route dependencies.
 
-Versioned reservation storage, strict restart decoding, relational dependencies and guard integration are implemented. Sparse snapshot routing, common offer bundle validation, confirmation/release preparation and a short locked atomic commit component are also implemented. The PostgreSQL integration gate covers shadow reassignment persistence, actual confirmation reassignment, stale versions and rollback after route updates; a separate API gate covers dependent qualifications, availability, depot assignment and purge protection. Public offer/confirmation/expiry lifecycle integration is still missing, so reservation guarantees for newly rearranged offers are not yet enabled.
+Versioned reservation storage, strict restart decoding, relational dependencies, guard integration and public lifecycle wiring are implemented behind rollout flags. Sparse snapshot routing, common offer bundles, confirmation/release and cancellation use independent validation and short atomic commits. PostgreSQL and API gates cover actual reassignment, stale versions, rollback after route updates, concurrent customers, pending cancellation and confirmation with flags disabled. Expiry, restart and configuration race coverage still need expansion before enabling rollout generally.
 
 ## G. Daily optimization and H. concurrency
 

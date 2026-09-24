@@ -39,7 +39,7 @@ public final class BookingSearchPipeline {
             }
         }
         SearchDeadline.beginCommit();
-        Instant expiry = Required.value(Instant.now().plusSeconds(600));
+        Instant expiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
         var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, SearchDeadline::checkpoint);
         return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE");
     }

@@ -18,6 +18,7 @@ public final class ReservationLifecycleService {
     private record Offer(String holdId, String offerId, String jobId, LocalDate day, String metroId, Instant expiresAt,
             @Nullable Instant releasedAt, @Nullable String setId, @Nullable String selectedOfferId,
             @Nullable Instant supersededAt, String status, RoadClient.Point address) { }
+    private record Cancellation(String jobId, LocalDate day, String metroId, boolean cancelled) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
     private final BookingSnapshotLoader loader;
@@ -96,6 +97,26 @@ public final class ReservationLifecycleService {
             if (offer.setId() != null) jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", offer.setId());
             jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND \"releasedAt\" IS NULL", jobId);
             return Required.value(Map.of("success", true));
+        });
+    }
+
+    public Map<String, Object> cancel(String appointmentId, String reason) {
+        if (reason.isBlank() || reason.length() > 500) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cancellation reason required");
+        var rows = jdbc.query("SELECT a.\"jobId\",a.\"serviceDate\",p.\"metroId\",a.\"cancelledAt\" IS NOT NULL FROM appointment a "
+                + "JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" WHERE a.id=?",
+                (rs, _) -> new Cancellation(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate()),
+                        Required.string(rs, 3), Required.bool(rs, 4)), appointmentId);
+        if (rows.size() != 1) throw conflict("Appointment or dated depot is missing");
+        Cancellation cancellation = Required.value(rows.getFirst());
+        if (cancellation.cancelled()) return Required.value(Map.of("success", true, "appointmentId", appointmentId, "alreadyCancelled", true));
+        List<LocalDate> dates = new ArrayList<>(); dates.add(cancellation.day());
+        var facts = loader.loadDates(cancellation.metroId(), dates, Required.value(Instant.now()), roads.activeIdentity());
+        var proposals = transitions.cancel(facts, appointmentId);
+        return commits.cancellation(facts, cancellation.jobId(), proposals, () -> {
+            if (jdbc.update("UPDATE appointment SET \"cancelledAt\"=CURRENT_TIMESTAMP,\"cancellationReason\"=?,\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
+                    reason.trim(), appointmentId) != 1) throw conflict("Appointment changed during cancellation");
+            jdbc.update("UPDATE job SET status='CANCELLED',\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", cancellation.jobId());
+            return Required.value(Map.of("success", true, "appointmentId", appointmentId, "alreadyCancelled", false));
         });
     }
 

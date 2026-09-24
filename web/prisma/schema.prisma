@@ -381,6 +381,7 @@ model BookingOfferSet {
   expiresAt DateTime
   supersededAt DateTime?
   selectedOfferId String?
+  searchDiagnostics Json?
   createdAt DateTime @default(now())
   offers BookingOffer[]
   holds SlotHold[]

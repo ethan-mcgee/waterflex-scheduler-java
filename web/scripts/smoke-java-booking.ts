@@ -9,6 +9,7 @@ import { technicianColor } from "../lib/technicianColor";
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
 const suffix = randomUUID();
+const commonReservations = process.env.SCHEDULER_RESERVATIONS_TEST === "true";
 
 async function post<T>(schema: z.ZodType<T>, path: string, body: unknown) {
   const response = await fetch(`${base}${path}`, {
@@ -78,7 +79,7 @@ async function main() {
     const offered = await post(offersResponse, "/v1/offers", { jobId });
     assert.equal(offered.jobId, jobId);
     assert.equal(offered.search.outcome, "AVAILABLE");
-    assert.equal(offered.search.prescribedSearchCompleted, false);
+    assert.equal(offered.search.prescribedSearchCompleted, commonReservations);
     assert.equal(await prisma.bookingOffer.count({ where: { jobId, overtimeAuthorized: true } }), 0,
       "Incomplete scarcity search cannot authorize overtime");
     const repairedCache = await prisma.roadRouteCache.findUniqueOrThrow({ where: { originKey_destinationKey_profile_mapVersion: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2" } } });
@@ -157,6 +158,7 @@ async function main() {
   } finally {
     await prisma.appointment.deleteMany({ where: { jobId: { in: [jobId, otherJobId] } } });
     await prisma.slotHold.deleteMany({ where: { jobId } });
+    await prisma.reservationArrangement.deleteMany({ where: { metroId: metro.id } });
     await prisma.bookingOffer.deleteMany({ where: { jobId } });
     await prisma.bookingOfferSet.deleteMany({ where: { jobId } });
     await prisma.job.deleteMany({ where: { id: jobId } });

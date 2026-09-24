@@ -126,6 +126,16 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
                 throw new IllegalArgumentException("Visit key mismatch");
         }
 
+        /** Persisted assignments, before any pending reservation rearrangement is applied. */
+        public Arrangement actualArrangement() {
+            Map<String, List<String>> routes = new TreeMap<>();
+            technicians.keySet().forEach(id -> routes.put(id, new ArrayList<>()));
+            List<Visit> ordered = new ArrayList<>(visits.values());
+            ordered.sort(Comparator.comparing((Visit visit) -> visit.plannedStart()).thenComparing(visit -> visit.id()));
+            for (Visit visit : ordered) Required.value(routes.get(visit.originalTechnicianId()), "persisted assignment technician").add(visit.id());
+            return new Arrangement(routes);
+        }
+
         public DayPlan plan(Arrangement arrangement, Map<String, Visit> facts, Rates rates, boolean confirmedOnly) {
             if (!arrangement.routes().keySet().equals(technicians.keySet()))
                 throw new Incomplete("Arrangement technician coverage changed");

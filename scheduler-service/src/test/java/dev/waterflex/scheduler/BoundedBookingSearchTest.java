@@ -75,6 +75,22 @@ class BoundedBookingSearchTest {
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(Required.value(List.of()), true));
     }
 
+    @Test void pendingReassignmentDoesNotChangeConfirmedDemandBeforeCustomerConfirmation() {
+        BookingSnapshot original = fixture(106, false, true, 60);
+        Day before = Required.value(original.days().get(DAY));
+        Map<String, List<String>> routes = new TreeMap<>();
+        routes.put("a", Required.value(List.of())); routes.put("b", Required.value(List.of("old")));
+        Map<LocalDate, Day> days = new TreeMap<>(original.days());
+        days.put(DAY, new Day(before.technicians(), before.visits(), new Arrangement(routes), before.reservationVersion(), before.roads()));
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), original.rates(), days);
+        var result = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 13, POINT),
+                BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
+        assertTrue(result.complete());
+        assertEquals(108, result.confirmedRegularMinutes());
+        assertEquals(120, result.regularCapacityMinutes());
+        assertEquals(List.of("old"), before.actualArrangement().routes().get("a"));
+    }
+
     @Test void fairnessCeilingIncludesBoundaryButNeverGrantsAllowanceOnNonpositiveCosts() {
         BookingSnapshot snapshot = fixture(30, false, false, 60);
         var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
