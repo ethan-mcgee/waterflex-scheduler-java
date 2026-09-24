@@ -5,6 +5,8 @@ import { z } from "zod";
 import { offersResponse, selection, required } from "../lib/contracts";
 import { addCalendarDays, localMidnightUtc, tomorrowInTz } from "../lib/date";
 import { technicianColor } from "../lib/technicianColor";
+import { currentRouteTiming } from "../lib/currentRouteTiming";
+import { isDispatchGeometry } from "../lib/dispatchGeometry";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -84,6 +86,15 @@ async function main() {
     assert.equal(moved.windowStart.getTime(), start.getTime()); assert.equal(moved.windowEnd.getTime(), end.getTime());
     assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).technicianId, ids.a);
     assert.equal(await prisma.slotHold.count({ where: { jobId: winner.jobId, releasedAt: null } }), 0);
+    for (const technicianId of [ids.a, ids.b]) {
+      const day = await prisma.scheduleDay.findUniqueOrThrow({ where: { technicianId_serviceDate: { technicianId, serviceDate } } });
+      const confirmed = await prisma.appointment.findMany({ where: { technicianId, serviceDate, cancelledAt: null } });
+      assert.equal(currentRouteTiming(day.routeTiming, day.version, confirmed).status, "AVAILABLE");
+    }
+    const geometry = await fetch(`${confirmationBase}/v1/dispatch/geometry?metro_id=${encodeURIComponent(ids.metro)}&date=${date}`);
+    const geometryBody: unknown = await geometry.json();
+    assert.equal(geometry.status, 200, JSON.stringify(geometryBody));
+    assert.ok(isDispatchGeometry(geometryBody, date, "current"));
     console.log(JSON.stringify({ result: "Bounded API rearrangement and concurrent reservation protection passed", cancelPending, outcomes: results.map(result => ({
       outcome: result.search.outcome, apiMs: Math.round(result.apiMs), completed: result.search.prescribedSearchCompleted,
     })) }));

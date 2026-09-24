@@ -18,7 +18,7 @@ const expected: Record<string, string[]> = {
   booking_offer: ["id", "jobId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "incrementalRegularMinutes", "incrementalOvertimeMinutes", "incrementalRoadMeters", "incrementalCostDollars", "overtimeAuthorized"],
   slot_hold: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "releasedAt"],
   booking_offer_set: ["id", "jobId", "expiresAt", "supersededAt", "selectedOfferId", "searchDiagnostics"],
-  schedule_day: ["technicianId", "serviceDate", "version"],
+  schedule_day: ["technicianId", "serviceDate", "version", "routeTiming"],
   road_route_cache: ["originKey", "destinationKey", "profile", "mapVersion", "seconds", "meters", "routable"],
   omaha_setting: ["key", "value"],
   optimization_run: ["id", "serviceDate", "scheduleVersions", "proposedAssignments", "endpointSnapshots", "objectiveImprovement", "status", "policyAnalysis"],

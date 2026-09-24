@@ -72,6 +72,8 @@ public final class SavedJson {
             if (sequence < 0 || sequence > Integer.MAX_VALUE || !positions.add(tech + ":" + sequence)) throw invalid();
             try {
                 Instant.parse(text(Required.value(item), "plannedStart"));
+                if (item.has("plannedEnd") && !Instant.parse(text(Required.value(item), "plannedStart"))
+                        .isBefore(Instant.parse(text(Required.value(item), "plannedEnd")))) throw invalid();
                 if (!Instant.parse(text(Required.value(item), "windowStart")).isBefore(Instant.parse(text(Required.value(item), "windowEnd")))) throw invalid();
             } catch (RuntimeException e) { throw invalid(); }
             for (String key : new String[]{"locationLat", "locationLng"}) {

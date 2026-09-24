@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
 import Link from "next/link";
+import { currentRouteTiming } from "@/lib/currentRouteTiming";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,8 @@ export default async function DispatchPage({
     orderBy: { plannedStart: "asc" },
   });
 
+  const scheduleDays = await prisma.scheduleDay.findMany({ where: { technicianId: { in: technicians.map(tech => tech.id) }, serviceDate: dayStart } });
+  const timingByTechnician = new Map(scheduleDays.map(day => [day.technicianId, day]));
   const boardTechnicians = technicians.map((t) => ({
     id: t.id,
     name: t.name,
@@ -59,6 +62,8 @@ export default async function DispatchPage({
     homeLng: t.homeLng,
     shiftStartMin: t.shiftStartMin,
     shiftEndMin: t.shiftEndMin,
+    routeTiming: currentRouteTiming(timingByTechnician.get(t.id)?.routeTiming ?? null, timingByTechnician.get(t.id)?.version ?? null,
+      appointments.filter(appointment => appointment.technicianId === t.id)),
   }));
 
   const boardAppointments = appointments

@@ -96,7 +96,7 @@ public final class ReservationCommit {
                 var evaluated = day.evaluate(day.baseline(), day.visits(), expected.rates());
                 if (!evaluated.feasible()) throw conflict("Reservation proposal is no longer feasible");
                 Arrangement actualArrangement = keepAssignments ? day.actualArrangement() : day.baseline();
-                var actual = keepAssignments ? dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(actualArrangement, day.visits(), expected.rates(), true)) : evaluated;
+                var actual = applyConfirmed ? dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(actualArrangement, day.visits(), expected.rates(), true)) : evaluated;
                 if (!actual.feasible()) throw conflict("Remaining confirmed routes require repair");
                 Map<String, Visit> facts = new TreeMap<>();
                 for (var route : day.baseline().routes().entrySet()) {
@@ -112,8 +112,8 @@ public final class ReservationCommit {
                         } else if (applyConfirmed) {
                             if (keepAssignments) {
                                 assigned = visit.originalTechnicianId();
-                                arrival = Required.value(actual.arrivals().get(id), "confirmed arrival");
                             }
+                            arrival = Required.value(actual.arrivals().get(id), "confirmed arrival");
                             int actualSequence = Required.value(actualArrangement.routes().get(assigned)).indexOf(id);
                             if (actualSequence < 0) throw conflict("Confirmed assignment is missing");
                             if (jdbc.update("UPDATE appointment SET \"technicianId\"=?,sequence=?,\"plannedStart\"=?,\"plannedEnd\"=?,\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
@@ -132,6 +132,7 @@ public final class ReservationCommit {
                         if (jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=? AND version=?",
                                 technician.id(), stamp(header.day()), version) != 1) throw conflict("Schedule changed during commit");
                         version = Math.incrementExact(version);
+                        ScheduleSegments.save(jdbc, technician.id(), header.day(), Required.value(actual.segments().get(technician.id()), "confirmed working segments"), expected.routingIdentity());
                     }
                     technicians.put(technician.id(), new Technician(technician.id(), technician.shiftStart(), technician.shiftEnd(), technician.maxDailyMinutes(),
                             technician.maxOvertimeMinutes(), technician.services(), technician.absences(), technician.departure(), technician.returnTo(), version));

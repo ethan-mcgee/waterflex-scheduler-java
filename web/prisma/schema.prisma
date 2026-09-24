@@ -286,6 +286,7 @@ model ScheduleDay {
   technician   Technician @relation(fields: [technicianId], references: [id])
   serviceDate  DateTime
   version      Int        @default(0) // bumped on every committed change; the lock row
+  routeTiming  Json?      // independently validated current segment timing at the recorded version
 
   @@unique([technicianId, serviceDate])
   @@map("schedule_day")

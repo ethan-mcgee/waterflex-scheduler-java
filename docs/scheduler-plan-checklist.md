@@ -27,7 +27,7 @@ This checklist tracks the original consolidated specification, not a reduced rep
 ## A. Snapshots and deadline
 
 - [ ] Immutable full-horizon snapshot: loader and immutable facts implemented and database-tested; routing population, cached baseline metrics, commit integration and metadata remain open.
-- [ ] Shared request settings/baselines once; precomputed eligibility, intervals and buffered travel. Partial per-route insertion snapshots exist.
+- [ ] Shared request settings/baselines once; precomputed eligibility, intervals and buffered travel. Request-local day baselines, eligibility, capacity and bounded immutable route-result caches now reuse unaffected routes. Buffered-leg and complete suffix precomputation remain open.
 - [ ] No database/network calls during scoring or moves. Insertion and daily scoring meet this locally; new neighborhoods must preserve it.
 - [ ] One five-second budget from validated job/address search, including queue, portal, routing, locks and persistence. Initial implementation stops exploration by four seconds, propagates network/SQL timeouts and checks pre-commit. Remaining cancellation, snapshot restructuring, transport classification and load acceptance prevent marking this complete.
 - [ ] Cancel abandoned work and prohibit late reservations; stale snapshot retry at most once within original budget.
@@ -43,8 +43,8 @@ This checklist tracks the original consolidated specification, not a reduced rep
 - [x] Keep independent RouteEvaluator for acceptance; move/undo FULL_ASSERT differential tests.
 - [ ] Expand differential tests: repeated reassignment, absences, waiting, departure changes, exact enumeration.
 - [x] Canonical forward/backward timing across feasible interval placements, minimizing overtime then cost and removing avoidable waiting before earliest equivalent departure. Scoring and independent validation match a 200-case exhaustive minute-grid oracle, including nonmetric directed legs.
-- [ ] Persist current departure/return per working segment through booking, confirmation, cancellation and repair. Preview summaries persist them today.
-- [ ] Dispatch geometry and timeline consume the persisted current timings.
+- [x] Persist versioned current departure/return per working segment through booking, confirmation, cancellation, repair and independently validated test purges. Migration 28 leaves historical timing explicitly unavailable.
+- [x] Dispatch geometry and timeline consume validated current timings; malformed, stale and routing-identity mismatches have explicit handling. Browser and integration coverage verifies the current path; historical compatibility continues to require review.
 - [ ] Report modeled operating cost, separate road time from configured buffers, never claim unsupported payroll savings.
 
 ## D. Bounded search
@@ -53,7 +53,7 @@ This checklist tracks the original consolidated specification, not a reduced rep
 - [ ] Same-day relocation, pair swap, within-route reversal; depth two, beam eight, 500 arrangements per window.
 - [ ] Six promising routes including least-utilized eligible route; preserve every existing date/window.
 - [ ] Round-based horizon allocation and ranking by directed road cost, qualification scarcity, slack and workload.
-- [ ] Use remaining budget for regular choices/fairness after completed scarcity pass.
+- [x] Refine regular choices/fairness after the insertion scarcity pass; partial optional refinement preserves independently validated insertion choices and completion evidence.
 - [ ] Coverage, pruning, limits, moves, stop reason and insertion/rearrangement provenance recorded.
 - [ ] Application shortlists; no Enterprise nearby selection; feature flag retains policy and issued-offer confirmation when disabled.
 

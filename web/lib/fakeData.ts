@@ -23,7 +23,7 @@ import {
 } from "./fakeDataCore";
 import { ensureOmahaConfiguration } from "./omahaConfiguration";
 import { prisma } from "./prisma";
-import { lockPurgeDays, purgeHasReservations } from "./reservationGuards";
+import { lockPurgeDays, purgeHasReservations, preparePurgeRoutes, applyPurgeRoutes } from "./reservationGuards";
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1_000;
 const CONFIRM_ATTEMPTS = 4;
@@ -113,7 +113,8 @@ async function cleanupFakeDataValidated(startDate: string, endDate: string): Pro
     const lockedDays = await lockPurgeDays(tx, jobIds);
     if (await purgeHasReservations(tx, jobIds, lockedDays))
       throw new Error("Active reservations depend on this schedule. Release or expire the offers before purging.");
-    const appointmentIds = (await tx.appointment.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } })).map(item => item.id);
+    const preparedRoutes = await preparePurgeRoutes(tx, jobIds, lockedDays);
+      const appointmentIds = (await tx.appointment.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } })).map(item => item.id);
     const aggregateIds = [...jobIds, ...appointmentIds, ...customerIds];
     await tx.outboundEvent.deleteMany({ where: { aggregateId: { in: aggregateIds } } });
     await tx.slotHold.deleteMany({ where: { jobId: { in: jobIds } } });
@@ -125,21 +126,8 @@ async function cleanupFakeDataValidated(startDate: string, endDate: string): Pro
     await tx.address.deleteMany({ where: { id: { in: addressIds } } });
     await tx.customer.deleteMany({ where: { id: { in: customerIds } } });
 
-    for (const { technicianId, serviceDate } of lockedDays) {
-      const survivors = await tx.appointment.findMany({
-        where: { technicianId, serviceDate, cancelledAt: null },
-        orderBy: [{ plannedStart: "asc" }, { id: "asc" }],
-        select: { id: true },
-      });
-      for (const [sequence, survivor] of survivors.entries()) {
-        await tx.appointment.update({ where: { id: survivor.id }, data: { sequence } });
-      }
-      await tx.scheduleDay.updateMany({
-        where: { technicianId, serviceDate },
-        data: { version: { increment: 1 } },
-      });
-    }
-  });
+    await applyPurgeRoutes(tx, preparedRoutes);
+  }, { timeout: 60_000, maxWait: 5_000 });
   return jobs.length;
 }
 

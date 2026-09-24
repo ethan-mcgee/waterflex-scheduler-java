@@ -44,7 +44,7 @@ public class OptimizationService {
     public record RouteSummary(String technician_id, int stop_count, long route_minutes, long drive_minutes,
             long waiting_minutes, long distance_meters, long modeled_cost_cents, long workload_minutes,
             long overtime_minutes, List<String> appointment_ids, @Nullable List<SegmentSummary> segments) { }
-    private record Assignment(String appointmentId, String technicianId, int sequence, String plannedStart, String windowStart, String windowEnd, double locationLat, double locationLng) { }
+    private record Assignment(String appointmentId, String technicianId, int sequence, String plannedStart, String plannedEnd, String windowStart, String windowEnd, double locationLat, double locationLng) { }
     private record ExistingPreview(String id, String metroId, LocalDate day) { }
     private record SavedRun(String metroId, Instant day, String versions, String assignments, String weights, String status) { }
     private record RunResponse(String metroId, Instant day, String status, @Nullable String reason, String solverStatus, int solveMs, int improvement, String before, String after, Instant created, @Nullable Instant applied, String weights) { }
@@ -231,6 +231,7 @@ public class OptimizationService {
                 VisitData source = original.get(visit.getId());
                 VisitData originalVisit = Required.value(source, "original appointment " + visit.getId());
                 assignments.add(new Assignment(visit.getId(), route.getId(), i, Required.value(arrival.toString()),
+                        Required.value(arrival.plusSeconds(visit.getDurationMinutes() * 60L).toString()),
                         Required.value(visit.getWindowStart().toString()), Required.value(visit.getWindowEnd().toString()),
                         originalVisit.point().lat(), originalVisit.point().lng()));
             }
@@ -238,7 +239,8 @@ public class OptimizationService {
         int improvement = (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, before.costCents() - after.costCents()));
         List<Map<String, Object>> originalAssignments = baseline.visits().stream().map(visit -> Map.<String, Object>of(
                 "appointmentId", visit.visit().getId(), "technicianId", visit.technicianId(),
-                "sequence", visit.sequence(), "plannedStart", visit.visit().getOriginalPlannedStart().toString(),
+                "sequence", visit.sequence(), "plannedStart", baselineArrival(visit, before).toString(),
+                "plannedEnd", baselineArrival(visit, before).plusSeconds(visit.visit().getDurationMinutes() * 60L).toString(),
                 "windowStart", visit.windowStart().toString(), "windowEnd", visit.windowEnd().toString(),
                 "locationLat", visit.point().lat(), "locationLng", visit.point().lng())).toList();
         try {
@@ -374,11 +376,24 @@ public class OptimizationService {
                             route.getId(), index, stamp(Required.value(arrival)), stamp(Required.value(arrival.plus(Duration.ofMinutes(visit.getDurationMinutes())))), visit.getId());
                 }
             }
-            for (String techId : techIds) jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(Required.value(day)));
+            for (String techId : techIds) {
+                jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(Required.value(day)));
+                dev.waterflex.scheduler.ScheduleSegments.save(jdbc, Required.value(techId), Required.value(day),
+                        Required.value(evaluated.segments().get(techId), "applied working segments"), current.routingIdentity());
+            }
             jdbc.update("UPDATE optimization_run SET status='APPLIED', \"appliedAt\"=CURRENT_TIMESTAMP WHERE id=?", runId);
             return response(runId);
         } catch (ResponseStatusException e) { throw e; }
           catch (Exception e) { throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid saved proposal", e); }
+    }
+
+    private static Instant baselineArrival(VisitData visit, DayScoreCalculator.Evaluation before) {
+        Instant modeled = before.arrivals().get(visit.visit().getId());
+        if (modeled != null) return modeled;
+        // An infeasible repair baseline can lack a modeled placement. Preserve its actual saved
+        // appointment time for historical display, without claiming that the route is feasible.
+        if (before.hardPenalty() > 0) return visit.visit().getOriginalPlannedStart();
+        throw new IllegalStateException("Feasible baseline is missing an appointment arrival");
     }
 
     static void requireRepairOvertimeApproval(long before, long after, boolean approved) {

@@ -1,3 +1,4 @@
+import { currentRouteTiming } from "../lib/currentRouteTiming";
 import { offer, optimization, required, testAttempt } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -271,6 +272,8 @@ async function main() {
   assert.ok(retainedGeometry.stops.some(stop => stop.id === first.id), "Saved geometry retains a purged appointment snapshot");
   const survivors = await prisma.appointment.findMany({ where: { technicianId: first.technicianId, serviceDate: first.serviceDate, cancelledAt: null }, orderBy: [{ plannedStart: "asc" }, { id: "asc" }] });
   assert.deepEqual(survivors.map(item => item.sequence), survivors.map((_, index) => index), "Surviving appointments are resequenced");
+  const survivingDay = await prisma.scheduleDay.findUniqueOrThrow({ where: { technicianId_serviceDate: { technicianId: first.technicianId, serviceDate: first.serviceDate } } });
+  assert.equal(currentRouteTiming(survivingDay.routeTiming, survivingDay.version, survivors).status, "AVAILABLE", "Purge persists independently validated surviving route segments");
   const purgedAgain = await purgeTestRun(id);
   assert.equal(purgedAgain.purgedAt?.toISOString(), purged.purgedAt?.toISOString()); assert.equal(purgedAgain.purgedCount, purged.purgedCount);
   assert.deepEqual(await configuration(), configurationBefore, "Runs never rewrite Omaha configuration");
