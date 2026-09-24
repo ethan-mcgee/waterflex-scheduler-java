@@ -14,7 +14,11 @@ const day = tomorrow.toISOString().slice(0, 10);
 const serviceDate = new Date(`${day}T00:00:00Z`);
 const windowStart = new Date(`${day}T15:00:00Z`);
 const windowEnd = new Date(`${day}T19:00:00Z`);
-const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const localToday = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const frozenDate = new Date(`${localToday}T00:00:00Z`);
+frozenDate.setUTCDate(frozenDate.getUTCDate() - 1);
+// Yesterday is frozen even when this gate runs before today's 06:00 Chicago cutoff.
+const today = frozenDate.toISOString().slice(0, 10);
 const saved = z.object({ success: z.literal(true) });
 
 async function policy(departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT", expected = 200) {
