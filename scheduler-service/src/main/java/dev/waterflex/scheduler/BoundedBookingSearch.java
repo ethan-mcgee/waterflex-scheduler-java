@@ -11,6 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 /** Deterministic, bounded, same-date search. All inputs are immutable and already routed. */
 public final class BoundedBookingSearch {
+    static final class RefinementLimit extends RuntimeException { private static final long serialVersionUID = 1L; }
     public record Limits(int routes, int depth, int beam, int arrangementsPerWindow) {
         public Limits {
             if (routes < 1 || routes > 6 || depth < 1 || depth > 2 || beam < 1 || beam > 8
@@ -100,6 +101,12 @@ public final class BoundedBookingSearch {
     }
 
     public Result search(List<Window> windows, boolean rearrangementEnabled) {
+        return search(windows, rearrangementEnabled, null);
+    }
+
+    Result refine(Result insertion) { return search(windows(), true, insertion); }
+
+    private Result search(List<Window> windows, boolean rearrangementEnabled, @Nullable Result insertion) {
         if (new HashSet<>(windows).size() != windows.size()) throw new IllegalArgumentException("Duplicate booking window");
         if (!new HashSet<>(windows).equals(new HashSet<>(windows())))
             throw new BookingSnapshot.Incomplete("Search does not cover every eligible customer window");
@@ -109,7 +116,10 @@ public final class BoundedBookingSearch {
         long confirmed = 0, capacity = 0;
         try {
             // Confirmed demand is measured once per eligible technician/date, across all services.
-            for (var entry : snapshot.days().entrySet()) {
+            if (insertion != null) {
+                confirmed = insertion.confirmedRegularMinutes(); capacity = insertion.regularCapacityMinutes();
+                complete = insertion.complete();
+            } else for (var entry : snapshot.days().entrySet()) {
                 checkpoint.run();
                 DayContext context = context(Required.value(entry.getKey()));
                 Day day = context.day;
@@ -124,7 +134,14 @@ public final class BoundedBookingSearch {
                     confirmed = Math.addExact(confirmed, Math.min(available, measured.paidMinutes() - measured.overtimeMinutes()));
                 }
             }
-            for (Window window : windows) states.add(new State(Required.value(window)));
+            for (Window window : windows) {
+                State state = new State(Required.value(window));
+                if (insertion != null) {
+                    state.insertionCursor = state.eligible.size(); state.examinedRoutes.addAll(state.eligible);
+                    insertion.candidates().stream().filter(candidate -> candidate.window().equals(window)).forEach(state.candidates::add);
+                }
+                states.add(state);
+            }
             // One route per window per round gives every date an insertion opportunity.
             boolean work;
             do {
@@ -158,6 +175,7 @@ public final class BoundedBookingSearch {
                 }
             }
         } catch (SearchDeadline.Expired expired) { stopped = "DEADLINE"; }
+          catch (RefinementLimit limited) { stopped = "REFINEMENT_TIME_LIMIT"; }
         List<Candidate> candidates = new ArrayList<>();
         List<Coverage> coverage = new ArrayList<>();
         for (State state : states) {

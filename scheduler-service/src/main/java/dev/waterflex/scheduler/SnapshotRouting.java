@@ -38,9 +38,13 @@ public final class SnapshotRouting {
     }
 
     public BookingSnapshot neighborhoods(BookingSnapshot snapshot, Map<LocalDate, Set<String>> selected) {
+        return neighborhoods(snapshot, selected, SearchDeadline::checkpoint);
+    }
+
+    public BookingSnapshot neighborhoods(BookingSnapshot snapshot, Map<LocalDate, Set<String>> selected, Runnable checkpoint) {
         Map<PairKey, RoadClient.Pair> pairs = new LinkedHashMap<>();
         for (var entry : selected.entrySet()) {
-            SearchDeadline.checkpoint();
+            checkpoint.run();
             LocalDate date = Required.value(entry.getKey());
             Day day = Required.value(snapshot.days().get(date), "neighborhood date");
             Map<String, RoadClient.Point> points = points(day, day.visits());
@@ -53,6 +57,7 @@ public final class SnapshotRouting {
             for (String from : stops) for (String to : stops) if (!from.equals(to))
                 add(pairs, date, day, points, Required.value(from), Required.value(to));
         }
+        checkpoint.run();
         return withDays(snapshot, fetch(snapshot.days(), pairs, snapshot.routingIdentity()));
     }
 

@@ -11,6 +11,32 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoundedBookingSearchTest {
+    @Test void reusedInsertionStillCompletesScarcityNeighborhoodAndFindsRelocation() {
+        var snapshot = fixture(60, false, true, 0);
+        var request = new BoundedBookingSearch.Request("new", "new-service", 60, POINT);
+        var insertion = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
+        var refined = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).refine(insertion);
+        var full = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
+        assertTrue(refined.complete());
+        assertEquals(full.candidates(), refined.candidates());
+        assertEquals(full.confirmedRegularMinutes(), refined.confirmedRegularMinutes());
+        assertEquals(full.regularCapacityMinutes(), refined.regularCapacityMinutes());
+        assertEquals("REARRANGEMENT", Required.value(BoundedBookingSearch.choose(refined.candidates(), snapshot.policy())).source());
+    }
+
+    @Test void interruptedScarcityRefinementNeverAuthorizesOvertime() {
+        var snapshot = fixture(106, false, false, 60);
+        var request = new BoundedBookingSearch.Request("new", "new-service", 13, POINT);
+        var insertion = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
+        var refined = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(),
+                () -> { throw new BoundedBookingSearch.RefinementLimit(); }).refine(insertion);
+        var combined = BookingSearchPipeline.combine(insertion, refined, snapshot.policy());
+        assertEquals("REFINEMENT_TIME_LIMIT", combined.stopReason());
+        assertFalse(combined.complete());
+        assertFalse(combined.overtimeAuthorized());
+        assertEquals(insertion.candidates(), combined.candidates());
+    }
+
     @Test void optionalRefinementTimeoutKeepsCompletedRegularChoicesWithoutUnlockingOvertime() {
         var snapshot = fixture(30, false, false, 60);
         var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
