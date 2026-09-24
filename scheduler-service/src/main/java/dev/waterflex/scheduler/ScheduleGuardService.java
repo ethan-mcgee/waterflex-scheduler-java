@@ -31,7 +31,7 @@ public class ScheduleGuardService {
     }
 
     public void noHolds(String technicianId, LocalDate day) {
-        if (Required.query(jdbc, "SELECT count(*) FROM slot_hold WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
+        if (Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
                 Integer.class, technicianId, stamp(day)) > 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Active reservations require a fresh proposal");
     }
@@ -75,7 +75,7 @@ public class ScheduleGuardService {
         if (!qualified) {
             int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment a JOIN job j ON j.id=a.\"jobId\" WHERE a.\"technicianId\"=? AND j.\"serviceId\"=? AND a.\"cancelledAt\" IS NULL",
                     Integer.class, technicianId, serviceId);
-            int holds = Required.query(jdbc, "SELECT count(*) FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" WHERE h.\"technicianId\"=? AND j.\"serviceId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP",
+            int holds = Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
                     Integer.class, technicianId, serviceId);
             if (appointments + holds > 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Existing schedule requires qualification repair");
             jdbc.update("DELETE FROM technician_qualification WHERE \"technicianId\"=? AND \"serviceId\"=?", technicianId, serviceId);

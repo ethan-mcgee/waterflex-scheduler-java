@@ -95,6 +95,8 @@ jobs:
       - name: Migrate, seed, and check schema
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+      - name: Immutable snapshot and reservation database gate
+        run: ./mvnw -Pnullability -pl scheduler-service clean package -Dtest=BookingSnapshotDatabaseIT --batch-mode --no-transfer-progress
       - name: Browser nullability regressions in an isolated schema
         working-directory: web
         env:
@@ -126,6 +128,9 @@ jobs:
       - name: Booking smoke
         working-directory: web
         run: npm run test:booking:integration
+      - name: Pending reservation dependency guards
+        working-directory: web
+        run: npm run test:reservation:integration
       - name: Optimizer smoke
         working-directory: web
         run: npm run test:optimizer:integration

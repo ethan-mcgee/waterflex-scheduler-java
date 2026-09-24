@@ -92,7 +92,10 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
             for (var entry : routes.entrySet()) {
                 text(Required.value(entry.getKey()));
                 List<String> ids = Required.value(List.copyOf(entry.getValue()));
-                for (String id : ids) if (!seen.add(id)) throw new IllegalArgumentException("Visit assigned more than once");
+                for (String id : ids) {
+                    text(Required.value(id));
+                    if (!seen.add(id)) throw new IllegalArgumentException("Visit assigned more than once");
+                }
                 copy.put(entry.getKey(), ids);
             }
             routes = Required.value(Collections.unmodifiableMap(copy));

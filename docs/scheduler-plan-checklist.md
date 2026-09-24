@@ -26,7 +26,7 @@ This checklist tracks the original consolidated specification, not a reduced rep
 
 ## A. Snapshots and deadline
 
-- [ ] Immutable full-horizon snapshot: appointments, reservations, qualifications, availability, absences, dated endpoints, configuration fingerprint, schedule/reservation versions, routing identity, directed legs, baseline metrics, metadata.
+- [ ] Immutable full-horizon snapshot: loader and immutable facts implemented and database-tested; routing population, cached baseline metrics, commit integration and metadata remain open.
 - [ ] Shared request settings/baselines once; precomputed eligibility, intervals and buffered travel. Partial per-route insertion snapshots exist.
 - [ ] No database/network calls during scoring or moves. Insertion and daily scoring meet this locally; new neighborhoods must preserve it.
 - [ ] One five-second budget from validated job/address search, including queue, portal, routing, locks and persistence. Initial implementation stops exploration by four seconds, propagates network/SQL timeouts and checks pre-commit. Remaining cancellation, snapshot restructuring, transport classification and load acceptance prevent marking this complete.
@@ -77,6 +77,8 @@ The immutable `BookingSnapshot` and `BoundedBookingSearch` core now implement th
 - [ ] Refresh, release, expiry, cancellation, restart, repeated confirmation, configuration changes and stale snapshots revalidate remaining arrangements. Do not assume stop deletion is safe.
 - [ ] Extend availability, qualification, depot, endpoint, time-off and purge guards to pending reassignment dependencies.
 - [ ] Block ordinary optimization with relevant active holds, including pending route dependencies.
+
+Versioned reservation storage, strict restart decoding, relational dependencies and guard integration are implemented. A PostgreSQL integration gate covers shadow reassignment persistence and stale versions; a separate API gate covers dependent qualifications, availability, depot assignment and purge protection. Public offer/confirmation/expiry lifecycle integration is still missing, so reservation guarantees for newly rearranged offers are not yet enabled.
 
 ## G. Daily optimization and H. concurrency
 
