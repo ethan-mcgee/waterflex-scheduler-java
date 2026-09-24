@@ -12,7 +12,7 @@ import { EngineError, requestSlots } from "./engineClient";
 import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
-import { parseTimeOffReport, timeOffIntervalView } from "./timeOffView";
+import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime } from "./timeOffView";
 import { nearbyCandidate } from "./depotPin";
 
 test("depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates", () => {
@@ -76,7 +76,50 @@ test("browser and journal decoders reject incomplete state while permitting unav
   await assert.rejects(readResponse(Response.json({ offers: null }), offersResponse), /Invalid response/);
   await assert.rejects(readResponse(new Response(null, { status: 404 }), offersResponse), /Request failed \(404\)/);
   await assert.rejects(readResponse(new Response("not json", { status: 200 }), offersResponse), /Invalid response\. Reload before continuing\./);
-  assert.deepEqual(await readResponse(Response.json({ jobId: "job-1", offers: [] }), offersResponse), { jobId: "job-1", offers: [] });
+  const result = { jobId: "job-1", offers: [], search: { outcome: "SEARCH_INCOMPLETE", prescribedSearchCompleted: false, elapsedMs: 12, retryable: true } };
+  assert.deepEqual(await readResponse(Response.json(result), offersResponse), result);
+});
+
+test("appointment outcomes reject missing or contradictory search evidence", () => {
+  const result = { jobId: "job", offers: [], search: { outcome: "SEARCH_INCOMPLETE", prescribedSearchCompleted: false, elapsedMs: 12, retryable: true } };
+  for (const search of [null, undefined, {}, { ...result.search, elapsedMs: null }, { ...result.search, outcome: "NO_CANDIDATE_FOUND" },
+    { ...result.search, outcome: "AVAILABLE" }, { ...result.search, prescribedSearchCompleted: true }, { ...result.search, retryable: false }])
+    assert.equal(offersResponse.safeParse({ ...result, search }).success, false);
+  for (const outcome of ["ROUTING_UNAVAILABLE", "SERVICE_BUSY", "SCHEDULE_CONFLICT", "SEARCH_INCOMPLETE"])
+    assert.equal(offersResponse.safeParse({ ...result, search: { ...result.search, outcome } }).success, true);
+});
+
+test("scheduler search timing is kept separate from client transport duration", async () => {
+  const original = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => Response.json({ jobId: "job", offers: [],
+      search: { outcome: "ROUTING_UNAVAILABLE", prescribedSearchCompleted: false, elapsedMs: 11, retryable: true } });
+    const result = await requestSlots("job");
+    assert.equal(result.search.elapsedMs, 11);
+    assert.equal(result.search.outcome, "ROUTING_UNAVAILABLE");
+    assert.ok(result.search.apiElapsedMs !== undefined && result.search.apiElapsedMs >= 0);
+  } finally { globalThis.fetch = original; }
+});
+
+test("selection conflicts preserve retryable refresh outcomes and transport failures", async () => {
+  const original = globalThis.fetch;
+  try {
+    let calls = 0;
+    globalThis.fetch = async () => ++calls === 1 ? Response.json({ detail: "Changed" }, { status: 409 })
+      : Response.json({ jobId: "job", offers: [], search: { outcome: "SERVICE_BUSY", prescribedSearchCompleted: false, elapsedMs: 20, retryable: true } });
+    const response = await select(new NextRequest("http://localhost/api/book/select", { method: "POST", body: JSON.stringify({ jobId: "job", offerId: "offer" }) }));
+    assert.equal(response.status, 409);
+    const result: unknown = await response.json();
+    assert.equal(offersResponse.parse(result).search.outcome, "SERVICE_BUSY");
+    calls = 0;
+    globalThis.fetch = async () => {
+      if (++calls === 1) return Response.json({ detail: "Changed" }, { status: 409 });
+      throw new TypeError("offline");
+    };
+    const unavailable = await select(new NextRequest("http://localhost/api/book/select", { method: "POST", body: JSON.stringify({ jobId: "job", offerId: "offer" }) }));
+    assert.equal(unavailable.status, 503);
+    assert.deepEqual(await unavailable.json(), { error: "Scheduling service unavailable" });
+  } finally { globalThis.fetch = original; }
 });
 
 test("calendar utilities reject missing or invalid calendar values", () => {
@@ -101,4 +144,16 @@ test("time-off contracts reject invalid categories, intervals, and persisted rep
   assert.deepEqual(parseTimeOffReport({ reason: "ROUTING_FAILURE" }), { kind: "failure", reason: "ROUTING_FAILURE" });
   const complete = parseTimeOffReport({ technician_id: "tech", days: [{ service_date: "2026-10-01", start_min: 480, end_min: 1020, status: "REPAIR_PREVIEW" }] });
   assert.equal(complete.kind, "complete");
+  assert.equal(additionalRepairOvertime(complete), null, "Missing metrics must not become zero overtime");
+});
+
+test("repair approval sums increases by day without cancelling them against another day's reduction", () => {
+  const metric = (overtime: number) => ({ route_minutes: 100, overtime_minutes: overtime, drive_minutes: 20,
+    waiting_minutes: 0, distance_meters: 3000, modeled_cost_cents: 5000 });
+  const report = parseTimeOffReport({ technician_id: "tech", days: [
+    { service_date: "2026-10-01", start_min: 480, end_min: 1020, status: "REPAIR_PREVIEW", daily_before: metric(0), daily_after: metric(30) },
+    { service_date: "2026-10-02", start_min: 480, end_min: 1020, status: "REPAIR_PREVIEW", daily_before: metric(60), daily_after: metric(0) },
+    { service_date: "2026-10-03", start_min: 480, end_min: 1020, status: "NO_SHIFT" },
+  ] });
+  assert.equal(additionalRepairOvertime(report), 30);
 });

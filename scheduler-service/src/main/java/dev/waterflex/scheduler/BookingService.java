@@ -45,8 +45,13 @@ public class BookingService {
 
     public BookingService(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
 
-    @Transactional
+    @Transactional(timeout = 5)
     public Offers offers(String jobId, boolean refresh) {
+        SearchDeadline.database(jdbc);
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override public void beforeCommit(boolean readOnly) { SearchDeadline.checkpoint(); }
+                });
         lockJob(jobId);
         Job job = job(jobId);
         if (!job.status().equals("PENDING")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job already booked");
@@ -59,8 +64,10 @@ public class BookingService {
         }
         roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
         List<Candidate> candidates = candidates(job, null, null);
+        SearchDeadline.beginCommit();
         LinkedHashMap<String, Candidate> windows = new LinkedHashMap<>();
-        candidates.stream().sorted(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
+        candidates.stream().filter(candidate -> candidate.overtimeDeltaMinutes() <= 0)
+                .sorted(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
                         .thenComparing((Candidate candidate) -> candidate.start())
                         .thenComparing((Candidate candidate) -> candidate.techId())
                         .thenComparingInt((Candidate candidate) -> candidate.position()))
@@ -68,13 +75,15 @@ public class BookingService {
         List<Offer> result = new ArrayList<>();
         Instant expiry = Instant.now().plus(Duration.ofMinutes(10));
         String setId = UUID.randomUUID().toString();
+        SearchDeadline.database(jdbc);
         jdbc.update("INSERT INTO booking_offer_set (id, \"jobId\", \"expiresAt\") VALUES (?, ?, ?)", setId, jobId, stamp(Required.value(expiry)));
         for (Candidate c : windows.values()) {
             if (result.size() == 4) break;
+            SearchDeadline.database(jdbc);
             lockDay(c.techId(), c.day());
             Tech tech = technicians(job.serviceId(), c.day(), job.metroId()).stream().filter(t -> t.id().equals(c.techId())).findFirst().orElse(null);
             Candidate reserved = tech == null ? null : evaluateCandidate(job, tech, c.day(), c.start(), c.end());
-            if (reserved == null) continue;
+            if (reserved == null || reserved.overtimeDeltaMinutes() > 0) continue;
             String id = UUID.randomUUID().toString();
             jdbc.update("INSERT INTO booking_offer (id, \"jobId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"expiresAt\", \"incrementalRegularMinutes\", \"incrementalOvertimeMinutes\", \"incrementalRoadMeters\", \"incrementalCostDollars\", \"offerSetId\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     id, jobId, dayStamp(c.day()), stamp(c.start()), stamp(c.end()), stamp(Required.value(expiry)),
@@ -132,11 +141,12 @@ public class BookingService {
         LocalDate day = rows.getFirst().day().atZone(ZoneOffset.UTC).toLocalDate();
         Instant start = rows.getFirst().start(), end = rows.getFirst().end();
         String holdId = selectedRow.holdId();
+        boolean overtimeAuthorized = Required.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=? AND \"jobId\"=?", Boolean.class, offerId, jobId);
         List<Candidate> feasible = new ArrayList<>();
         for (Tech tech : technicians(job.serviceId(), Required.value(day), job.metroId())) {
             lockDay(tech.id(), Required.value(day));
             Candidate candidate = evaluateCandidate(job, tech, Required.value(day), start, end);
-            if (candidate != null) feasible.add(candidate);
+            if (candidate != null && (candidate.overtimeDeltaMinutes() <= 0 || overtimeAuthorized)) feasible.add(candidate);
         }
         Candidate chosen = feasible.stream().min(Comparator.comparingDouble((Candidate candidate) -> candidate.cost())
                         .thenComparing((Candidate candidate) -> candidate.techId()))
@@ -171,6 +181,9 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable"));
         Candidate candidate = evaluateCandidate(job, Required.value(tech), Required.value(day), start, end);
         if (candidate == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
+        boolean overtimeAuthorized = Required.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=? AND \"jobId\"=?", Boolean.class, h.offerToken(), jobId);
+        if (candidate.overtimeDeltaMinutes() > 0 && !overtimeAuthorized)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Reserved offer does not authorize additional overtime");
         String id = UUID.randomUUID().toString();
         jdbc.update("INSERT INTO appointment (id, \"jobId\", \"technicianId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"plannedStart\", \"plannedEnd\", sequence, \"updatedAt\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
                 id, jobId, techId, dayStamp(Required.value(day)), stamp(start), stamp(end), stamp(candidate.arrival()),
@@ -235,12 +248,16 @@ public class BookingService {
 
     private List<Candidate> candidates(Job job, @Nullable LocalDate onlyDay, @Nullable Instant onlyStart) {
         List<Candidate> result = new ArrayList<>();
+        try {
         Map<String, Double> sharedSettings = Required.value(Map.copyOf(settings()));
+        SearchDeadline.policyLimit(dev.waterflex.scheduler.optimizer.PolicySettings.read(sharedSettings).bookingDeadlineMs());
         String routingIdentity = roads.activeIdentity();
         List<LocalDate> days = onlyDay == null ? bookingDates(Required.value(Instant.now())) : Required.value(List.of(Required.value(onlyDay)));
         for (LocalDate day : days) {
+            SearchDeadline.database(jdbc);
             LocalDate serviceDay = Required.value(day);
             for (Tech tech : technicians(job.serviceId(), serviceDay, job.metroId())) {
+                    SearchDeadline.database(jdbc);
                     List<Visit> visits = visits(tech.id(), serviceDay, job.id());
                     List<Visit> locations = new ArrayList<>(visits);
                     Instant startOfShift = ScheduleCutoff.localMinute(serviceDay, tech.shiftStart(), false);
@@ -249,12 +266,17 @@ public class BookingService {
                     Metrics baseline = evaluate(Required.value(tech), serviceDay, visits, snapshot);
                     if (!baseline.feasible()) continue;
                     for (int minute : windowStartMinutes(tech.shiftStart(), tech.shiftEnd())) {
+                        SearchDeadline.checkpoint();
                         Instant start = ScheduleCutoff.localMinute(serviceDay, minute, false);
                         if (onlyStart != null && !start.equals(onlyStart)) continue;
                         Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(2))), visits, snapshot, baseline);
                         if (c != null) result.add(c);
                     }
             }
+        }
+        } catch (SearchDeadline.Expired exception) {
+            // Independent validation and reservation commit still have the final second.
+            // Only zero-added-overtime candidates are considered by the caller.
         }
         return result;
     }
@@ -293,6 +315,7 @@ public class BookingService {
         if (!baseline.feasible()) return null;
         Candidate best = null;
         for (int position = 0; position <= visits.size(); position++) {
+            SearchDeadline.checkpoint();
             List<Visit> proposal = new ArrayList<>(visits);
             proposal.add(position, new Visit(job.id(), job.point(), start, end, start, job.duration(), true));
             Metrics m = evaluate(tech, day, proposal, snapshot);
@@ -313,6 +336,7 @@ public class BookingService {
     }
 
     private EvaluationContext prepare(Tech tech, LocalDate day, List<Visit> visits, Map<String, Double> settings, String routingIdentity) {
+        SearchDeadline.database(jdbc);
         List<TechRoute.Unavailable> absences = jdbc.query("SELECT i.\"startMin\", i.\"endMin\" FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.status='APPROVED' AND r.\"technicianId\"=? AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
                 (rs, _) -> new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, Required.integer(rs, 1), false),
                         ScheduleCutoff.localMinute(day, Required.integer(rs, 2), true)), tech.id(), dayStamp(day));
@@ -430,6 +454,7 @@ public class BookingService {
     }
 
     private List<Tech> technicians(String serviceId, LocalDate day, String metroId) {
+        SearchDeadline.database(jdbc);
         List<TechBase> rows = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? WHERE t.active=true AND p.\"metroId\"=? ORDER BY t.id FOR SHARE OF t",
                 (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), serviceId, metroId);
         List<Tech> result = new ArrayList<>();
@@ -442,6 +467,7 @@ public class BookingService {
     }
 
     private List<Visit> visits(String techId, LocalDate day, String excludeJobId) {
+        SearchDeadline.database(jdbc);
         List<Visit> result = new ArrayList<Visit>(Required.value(jdbc.query("SELECT a.id, ad.lat, ad.lng, a.\"windowStart\", a.\"windowEnd\", a.\"plannedStart\", j.\"durationMin\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"technicianId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL AND (? IS NULL OR a.\"jobId\"<>?) ORDER BY a.sequence, a.\"plannedStart\"",
                 (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId, excludeJobId)));
         result.addAll(jdbc.query("SELECT h.id, h.\"locationLat\", h.\"locationLng\", h.\"windowStart\", h.\"windowEnd\", h.\"plannedStart\", j.\"durationMin\" FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" WHERE h.\"technicianId\"=? AND h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP ORDER BY h.\"plannedStart\"",
@@ -457,11 +483,13 @@ public class BookingService {
     }
 
     private void lockDay(String techId, LocalDate day) {
+        SearchDeadline.database(jdbc);
         jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING", UUID.randomUUID().toString(), techId, dayStamp(day));
         Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
     }
 
     private void lockJob(String jobId) {
+        SearchDeadline.database(jdbc);
         var rows = jdbc.query("SELECT id FROM job WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), jobId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found");
     }

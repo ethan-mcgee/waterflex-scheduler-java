@@ -11,6 +11,8 @@ import dev.waterflex.scheduler.RoadClient;
 import dev.waterflex.scheduler.RouteEndpoints;
 import dev.waterflex.scheduler.ScheduleCutoff;
 import dev.waterflex.scheduler.WeeklyAvailability;
+import dev.waterflex.scheduler.SearchAdmission;
+import dev.waterflex.scheduler.SearchDeadline;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,6 +32,8 @@ public class OptimizationService {
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
     private final SolverFactory<DayPlan> solverFactory;
+    private final SearchAdmission admission;
+    private final org.springframework.transaction.support.TransactionTemplate previewTransactions;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public record Request(String metro_id, String date, @Nullable String request_key) {
@@ -51,12 +55,20 @@ public class OptimizationService {
     private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
                            String configurationVersion, String routingIdentity, Map<String, RouteEndpoints> endpoints, SchedulingPolicy.Rules policy) { }
 
-    public OptimizationService(JdbcTemplate jdbc, RoadClient roads, SolverFactory<DayPlan> solverFactory) {
-        this.jdbc = jdbc; this.roads = roads; this.solverFactory = solverFactory;
+    public OptimizationService(JdbcTemplate jdbc, RoadClient roads, SolverFactory<DayPlan> solverFactory, SearchAdmission admission,
+                               org.springframework.transaction.PlatformTransactionManager transactionManager) {
+        this.jdbc = jdbc; this.roads = roads; this.solverFactory = solverFactory; this.admission = admission;
+        this.previewTransactions = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public Map<String, Object> preview(Request request) {
+        try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, new SearchDeadline(Required.value(Duration.ofSeconds(20))))) {
+            org.slf4j.LoggerFactory.getLogger(OptimizationService.class).debug("Optimization queue time {} ms", lease.queueMillis());
+            return Required.value(previewTransactions.execute(_ -> requestedPreview(request)), "optimization preview");
+        }
+    }
+
+    private Map<String, Object> requestedPreview(Request request) {
         String requestKey = request.request_key();
         if (requestKey == null) return createPreview(request);
         if (requestKey.isBlank() || requestKey.length() > 160)
@@ -140,6 +152,13 @@ public class OptimizationService {
     }
 
     public Map<String, Object> previewRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
+        try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, new SearchDeadline(Required.value(Duration.ofSeconds(20))))) {
+            org.slf4j.LoggerFactory.getLogger(OptimizationService.class).debug("Repair queue time {} ms", lease.queueMillis());
+            return createRepair(metroId, day, absentTechnicianId, startMin, endMin);
+        }
+    }
+
+    private Map<String, Object> createRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
         if (ScheduleCutoff.frozen(day, Required.value(Instant.now()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination");
         if (WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) == null) {
             int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class,
@@ -264,15 +283,15 @@ public class OptimizationService {
     }
 
     @Transactional
-    public Map<String, Object> applyRepair(String runId, String absentTechnicianId, LocalDate day, int startMin, int endMin) {
-        return applyInternal(runId, absentTechnicianId, day, startMin, endMin);
+    public Map<String, Object> applyRepair(String runId, String absentTechnicianId, LocalDate day, int startMin, int endMin, boolean allowAdditionalOvertime) {
+        return applyInternal(runId, absentTechnicianId, day, startMin, endMin, allowAdditionalOvertime);
     }
 
     private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId) {
-        return applyInternal(runId, absentTechnicianId, null, 0, 0);
+        return applyInternal(runId, absentTechnicianId, null, 0, 0, false);
     }
 
-    private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId, @Nullable LocalDate repairDay, int startMin, int endMin) {
+    private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId, @Nullable LocalDate repairDay, int startMin, int endMin, boolean allowAdditionalOvertime) {
         var runRows = jdbc.query("SELECT \"metroId\", \"serviceDate\", \"scheduleVersions\"::text, \"proposedAssignments\"::text, weights::text, status FROM optimization_run WHERE id=? FOR UPDATE",
                 (rs, _) -> new SavedRun(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.string(rs, 3), Required.string(rs, 4), Required.string(rs, 5), Required.string(rs, 6)), runId);
         if (runRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
@@ -322,6 +341,10 @@ public class OptimizationService {
             if (!evaluated.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal infeasible");
             Problem baseline = build(run.metroId(), Required.value(day));
             var baselineMetrics = RouteEvaluator.evaluate(baseline.plan());
+            if (absentTechnicianId != null) {
+                if (!baselineMetrics.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Baseline infeasible; a fresh repair is required");
+                requireRepairOvertimeApproval(baselineMetrics.overtimeMinutes(), evaluated.overtimeMinutes(), allowAdditionalOvertime);
+            }
             if (absentTechnicianId == null) {
                 JsonNode provenance = SavedJson.provenance(Required.value(mapper.readTree(run.weights())));
                 if (!SchedulingPolicy.VERSION.equals(provenance.path("policyVersion").asText()))
@@ -354,6 +377,11 @@ public class OptimizationService {
             return response(runId);
         } catch (ResponseStatusException e) { throw e; }
           catch (Exception e) { throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid saved proposal", e); }
+    }
+
+    static void requireRepairOvertimeApproval(long before, long after, boolean approved) {
+        if (before < 0 || after < 0) throw new IllegalArgumentException("Invalid repair overtime metrics");
+        if (after > before && !approved) throw new RepairOvertimeApprovalRequired(after - before);
     }
 
     private static DayPlan restoreReference(DayPlan baseline, JsonNode savedRoutes) {

@@ -17,7 +17,7 @@ test("Start over retries release, then returns to the populated form with a new 
       const body: unknown = route.request().postDataJSON();
       if (typeof body !== "object" || body === null || !("requestId" in body) || typeof body.requestId !== "string") throw new Error("Missing request ID");
       requestIds.push(body.requestId);
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: "pending-job", offers: [{ offerId, date: "2099-10-05", windowStart: "2099-10-05T14:00:00Z", windowEnd: "2099-10-05T16:00:00Z", expiresAt: "2099-10-05T13:00:00Z" }] }) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: "pending-job", search: { outcome: "AVAILABLE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: false }, offers: [{ offerId, date: "2099-10-05", windowStart: "2099-10-05T14:00:00Z", windowEnd: "2099-10-05T16:00:00Z", expiresAt: "2099-10-05T13:00:00Z" }] }) });
     });
     await page.route("**/api/book/release", async route => {
       releaseBodies.push(z.object({ jobId: z.string(), offerId: z.string() }).parse(route.request().postDataJSON()));

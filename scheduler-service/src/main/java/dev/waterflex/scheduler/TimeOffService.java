@@ -162,12 +162,14 @@ public class TimeOffService {
         }));
         if (committed && feasible) {
             if (automaticEligible(intervals.getFirst().day(), Required.value(LocalDate.now(LOCAL))))
-                try { tryApprove(id); }
+                try { tryApprove(id, false, Required.value(List.of())); }
                 catch (ResponseStatusException ignored) { /* Stale reports are queued for another analysis. */ }
         }
     }
 
-    public Map<String, Object> approve(String id) { return tryApprove(id); }
+    public Map<String, Object> approve(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
+        return tryApprove(id, allowAdditionalOvertime, approvedRepairIds);
+    }
 
     public Map<String, Object> retry(String id) {
         return Required.value(transactions.execute(_ -> {
@@ -193,9 +195,10 @@ public class TimeOffService {
         }));
     }
 
-    private Map<String, Object> tryApprove(String id) {
-        try { return Required.value(transactions.execute(_ -> approveLocked(id))); }
+    private Map<String, Object> tryApprove(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
+        try { return Required.value(transactions.execute(_ -> approveLocked(id, allowAdditionalOvertime, approvedRepairIds))); }
         catch (ResponseStatusException e) {
+            if (e instanceof dev.waterflex.scheduler.optimizer.RepairOvertimeApprovalRequired) throw e;
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 boolean frozen = String.valueOf(e.getReason()).contains("Frozen date");
                 jdbc.update("UPDATE time_off_request SET status='PENDING' WHERE id=? AND status='READY'", id);
@@ -206,7 +209,7 @@ public class TimeOffService {
         }
     }
 
-    private Map<String, Object> approveLocked(String id) {
+    private Map<String, Object> approveLocked(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
         var owner = jdbc.query("SELECT \"technicianId\", status FROM time_off_request WHERE id=? FOR UPDATE",
                 (rs, _) -> new ApprovalOwner(Required.string(rs, 1), Required.string(rs, 2)), id);
         if (owner.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
@@ -221,6 +224,13 @@ public class TimeOffService {
             for (Interval interval : intervals) guard.unfrozen(interval.day());
             JsonNode report = SavedJson.readyReport(Required.value(mapper.readTree(reports.getFirst().data())));
             JsonNode days = report.path("days");
+            if (allowAdditionalOvertime) {
+                java.util.Set<String> currentRepairs = new java.util.HashSet<>();
+                for (JsonNode repair : days) if ("REPAIR_PREVIEW".equals(repair.path("status").asText()))
+                    currentRepairs.add(SavedJson.text(Required.value(repair), "run_id"));
+                if (!currentRepairs.equals(new java.util.HashSet<>(approvedRepairIds)))
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Repair preview changed; review the latest report");
+            }
             if (!owner.getFirst().technicianId().equals(report.path("technician_id").asText()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Request changed");
             if (!days.isArray() || intervals.isEmpty() || days.size() != intervals.size()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Incomplete report");
@@ -238,9 +248,9 @@ public class TimeOffService {
                     continue;
                 }
                 SavedJson.text(Required.value(days.path(i)), "run_id");
-                optimizer.applyRepair(Required.value(days.get(i).path("run_id").asText()), owner.getFirst().technicianId(), intervals.get(i).day(), intervals.get(i).start(), intervals.get(i).end());
+                optimizer.applyRepair(Required.value(days.get(i).path("run_id").asText()), owner.getFirst().technicianId(), intervals.get(i).day(), intervals.get(i).start(), intervals.get(i).end(), allowAdditionalOvertime);
             }
-            jdbc.update("UPDATE time_off_request SET status='APPROVED', \"decidedAt\"=CURRENT_TIMESTAMP WHERE id=?", id);
+            jdbc.update("UPDATE time_off_request SET status='APPROVED', \"decidedAt\"=CURRENT_TIMESTAMP, \"additionalOvertimeApproved\"=? WHERE id=?", allowAdditionalOvertime, id);
             jdbc.update("UPDATE time_off_report SET status='APPLIED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=?", id);
             return Required.value(Map.<String, Object>of("requestId", id, "status", "APPROVED"));
         } catch (ResponseStatusException e) { throw e; }

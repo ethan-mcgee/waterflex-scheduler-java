@@ -28,6 +28,21 @@ test("appointment search shows indeterminate progress and retains inputs after f
     await expect(progress).not.toBeVisible();
     await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
     await expect(page.getByRole("button", { name: /see available times/i })).toBeEnabled();
+    await page.unroute("**/api/book");
+    for (const [outcome, message] of [
+      ["SEARCH_INCOMPLETE", "The appointment search did not finish. Please retry to check available times."],
+      ["ROUTING_UNAVAILABLE", "Road routing is temporarily unavailable. Please retry your appointment search."],
+      ["SERVICE_BUSY", "Appointment search is temporarily busy. Please retry."],
+      ["SCHEDULE_CONFLICT", "The schedule changed during your search. Please retry to get current times."],
+    ] as const) {
+      await page.route("**/api/book", route => route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ jobId: "search-job", offers: [], search: { outcome, prescribedSearchCompleted: false, elapsedMs: 5, retryable: true } }) }));
+      await page.getByRole("button", { name: /see available times/i }).click();
+      await expect(page.getByRole("main").getByRole("alert")).toHaveText(message);
+      await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
+      await expect(page.getByRole("button", { name: /see available times/i })).toBeEnabled();
+      await page.unroute("**/api/book");
+    }
   } finally {
     finish?.();
     await prisma.serviceCatalog.delete({ where: { id: service.id } });

@@ -57,9 +57,10 @@ public class RoadClient {
         try {
             byte[] body = mapper.writeValueAsBytes(Map.of("points", points, "expectedRoutingIdentity", identity));
             var request = HttpRequest.newBuilder(URI.create(url + "/internal/route"))
-                    .timeout(Duration.ofSeconds(10)).header("Content-Type", "application/json")
+                    .timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10)))).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            SearchDeadline.checkpoint();
             if (response.statusCode() == 409) throw new RoadUnavailable("Routing identity changed");
             if (response.statusCode() != 200) throw new RoadUnavailable("Road geometry unavailable: HTTP " + response.statusCode());
             JsonNode data = mapper.readTree(response.body());
@@ -73,7 +74,9 @@ public class RoadClient {
                 throw new RoadUnavailable("Malformed road geometry");
             return data;
         } catch (RoadUnavailable e) { throw e; }
-          catch (Exception e) { throw new RoadUnavailable("Road geometry unavailable: " + e.getClass().getSimpleName()); }
+          catch (org.springframework.dao.DataAccessException e) { throw e; }
+          catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
+          catch (Exception e) { SearchDeadline.checkpoint(); throw new RoadUnavailable("Road geometry unavailable: " + e.getClass().getSimpleName()); }
     }
 
     public Leg leg(Point origin, Point destination) {
@@ -102,6 +105,7 @@ public class RoadClient {
             else missing.add(pair);
         }
         for (int offset = 0; offset < missing.size(); offset += 256) {
+            SearchDeadline.database(jdbc);
             List<Pair> batch = missing.subList(offset, Math.min(offset + 256, missing.size()));
             List<Object> arguments = new ArrayList<>();
             arguments.add(identity);
@@ -122,9 +126,10 @@ public class RoadClient {
             if (requested.isEmpty()) continue;
             try {
                 byte[] body = mapper.writeValueAsBytes(Map.of("pairs", requested, "expectedRoutingIdentity", identity));
-                var request = HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(Duration.ofSeconds(10))
+                var request = HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10))))
                         .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
                 var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            SearchDeadline.checkpoint();
                 if (response.statusCode() != 200) throw new RoadUnavailable("Sparse routing unavailable: HTTP " + response.statusCode());
                 JsonNode data = mapper.readTree(response.body());
                 if (!identity.equals(data.path("routingIdentity").asText()) || !data.path("pairs").isArray()
@@ -153,7 +158,9 @@ public class RoadClient {
                 jdbc.batchUpdate("INSERT INTO road_route_cache (id,\"originKey\",\"destinationKey\",profile,\"mapVersion\",seconds,meters,routable) VALUES (?,?,?,'car',?,?,?,?) ON CONFLICT (\"originKey\",\"destinationKey\",profile,\"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds,meters=EXCLUDED.meters,routable=EXCLUDED.routable,\"fetchedAt\"=CURRENT_TIMESTAMP", writes);
                 for (Pair pair : requested) memory.put(pair.id() + ":" + identity, Required.value(found.get(pair.id()), "resolved road pair"));
             } catch (RoadUnavailable e) { throw e; }
-              catch (Exception e) { throw new RoadUnavailable("Sparse routing unavailable: " + e.getClass().getSimpleName()); }
+              catch (org.springframework.dao.DataAccessException e) { throw e; }
+          catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
+          catch (Exception e) { SearchDeadline.checkpoint(); throw new RoadUnavailable("Sparse routing unavailable: " + e.getClass().getSimpleName()); }
         }
         Map<String, Leg> result = new LinkedHashMap<>();
         ids.forEach((id, coordinatePair) -> {
@@ -170,6 +177,7 @@ public class RoadClient {
     }
 
     public Map<String, Leg> matrix(Map<String, Point> locations, String identity) {
+        SearchDeadline.database(jdbc);
         if (identity.isBlank()) throw new RoadUnavailable("Routing identity required");
         Map<String, Point> unique = new LinkedHashMap<>();
         Map<String, String> locationKeys = new LinkedHashMap<>();
@@ -252,9 +260,10 @@ public class RoadClient {
             matrixRequest.put("expectedRoutingIdentity", identity);
             byte[] body = mapper.writeValueAsBytes(matrixRequest);
             var request = HttpRequest.newBuilder(URI.create(url + "/internal/matrix"))
-                    .timeout(Duration.ofSeconds(10)).header("Content-Type", "application/json")
+                    .timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10)))).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            SearchDeadline.checkpoint();
             if (response.statusCode() == 409) throw new RoadUnavailable("Routing identity changed");
             if (response.statusCode() != 200) throw new RoadUnavailable("Road routing unavailable: HTTP " + response.statusCode());
             JsonNode data = mapper.readTree(response.body());
@@ -265,13 +274,16 @@ public class RoadClient {
                 throw new RoadUnavailable("Malformed road matrix");
             return rows;
         } catch (RoadUnavailable e) { throw e; }
-          catch (Exception e) { throw new RoadUnavailable("Road routing unavailable: " + e.getClass().getSimpleName()); }
+          catch (org.springframework.dao.DataAccessException e) { throw e; }
+          catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
+          catch (Exception e) { SearchDeadline.checkpoint(); throw new RoadUnavailable("Road routing unavailable: " + e.getClass().getSimpleName()); }
     }
 
     private String healthIdentity() {
         try {
-            var request = HttpRequest.newBuilder(URI.create(url + "/health")).timeout(Duration.ofSeconds(5)).GET().build();
+            var request = HttpRequest.newBuilder(URI.create(url + "/health")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(5)))).GET().build();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            SearchDeadline.checkpoint();
             if (response.statusCode() != 200) throw new RoadUnavailable("Road routing unavailable");
             JsonNode health = mapper.readTree(response.body());
             if (!health.path("ready").isBoolean() || !health.path("ready").asBoolean()) throw new RoadUnavailable("Road graph not ready");
@@ -281,7 +293,9 @@ public class RoadClient {
             if (!identity.equals(routingIdentity)) { memory.clear(); routingIdentity = identity; }
             return identity;
         } catch (RoadUnavailable e) { throw e; }
-          catch (Exception e) { throw new RoadUnavailable("Road routing unavailable: " + e.getClass().getSimpleName()); }
+          catch (org.springframework.dao.DataAccessException e) { throw e; }
+          catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
+          catch (Exception e) { SearchDeadline.checkpoint(); throw new RoadUnavailable("Road routing unavailable: " + e.getClass().getSimpleName()); }
     }
 
     private static String key(@Nullable Point point) {

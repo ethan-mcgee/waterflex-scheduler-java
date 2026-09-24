@@ -20,7 +20,22 @@ export const depotDetails = z.object({ name: text.max(120), address: depotSetup.
 });
 export const technicianDepotAssignment = z.object({ depotId: text, effectiveDate: date }).strict();
 export const offer = z.object({ offerId: text, date, windowStart: instant, windowEnd: instant, expiresAt: instant });
-export const offersResponse = z.object({ jobId: text, offers: z.array(offer) });
+export const appointmentSearch = z.object({
+  outcome: z.enum(["AVAILABLE", "SEARCH_INCOMPLETE", "NO_CANDIDATE_FOUND", "ROUTING_UNAVAILABLE", "SCHEDULE_CONFLICT", "SERVICE_BUSY"]),
+  prescribedSearchCompleted: z.boolean(), elapsedMs: z.int().nonnegative(), retryable: z.boolean(),
+  apiElapsedMs: z.int().nonnegative().optional(),
+  queueMs: z.int().nonnegative().optional(),
+}).superRefine((value, context) => {
+  if (value.outcome === "NO_CANDIDATE_FOUND" && !value.prescribedSearchCompleted)
+    context.addIssue({ code: "custom", message: "An incomplete search cannot establish no candidate found" });
+  if (["SEARCH_INCOMPLETE", "ROUTING_UNAVAILABLE", "SCHEDULE_CONFLICT", "SERVICE_BUSY"].includes(value.outcome)
+      && (!value.retryable || value.prescribedSearchCompleted))
+    context.addIssue({ code: "custom", message: "Failed searches must remain incomplete and retryable" });
+});
+export const offersResponse = z.object({ jobId: text, offers: z.array(offer), search: appointmentSearch }).superRefine((value, context) => {
+  if ((value.search.outcome === "AVAILABLE") !== (value.offers.length > 0))
+    context.addIssue({ code: "custom", message: "Search outcome does not match committed offers" });
+});
 export const confirmation = z.object({ appointmentId: text, windowStart: instant, windowEnd: instant });
 export const selection = confirmation.extend({ holdId: text, expiresAt: instant });
 export const success = z.object({ success: z.boolean() });
@@ -117,11 +132,12 @@ export function required<T>(value: T | undefined | null, label = "Required value
 }
 
 export const bookingResponse = z.object({ jobId: text, offers: z.array(offer).optional(), pendingReference: text.optional(),
+  search: appointmentSearch.optional(),
   pinRequired: z.boolean().optional(), candidates: z.array(point.extend({ precision: z.enum(["ROOFTOP", "APPROXIMATE"]) })).optional()
-}).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || v.offers !== undefined, "Incomplete booking response");
-export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional() });
+}).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || offersResponse.safeParse(v).success, "Incomplete booking response");
+export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional(), search: appointmentSearch.optional() });
 export const testAttempt = z.object({ at: instant, horizon: z.array(date), elapsedMs: finite.nonnegative(), offers: z.array(offer),
-  selected: offer.nullable(), outcome: text, error: z.string().nullable() });
+  selected: offer.nullable(), outcome: text, error: z.string().nullable(), search: appointmentSearch.nullish() });
 export const testGeneration = z.object({ acceptedCount: z.int().nonnegative(), targetCount: z.int().positive(), candidatesTried: z.int().nonnegative(),
   batches: z.int().nonnegative(), elapsedMs: z.int().nonnegative(), completedAt: instant.nullable(), consecutiveNoProgressBatches: z.int().nonnegative() });
 export const runSummary = z.object({ id: text, status: text, createdAt: instant, config: testConfig,

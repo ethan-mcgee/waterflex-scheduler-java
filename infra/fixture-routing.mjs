@@ -12,6 +12,8 @@ const points = new Map([
   ["41.25246,-95.96034", 10], ["41.15062,-96.10707", 11],
   ["41.23851,-95.89048", 12], ["41.15440,-96.04220", 13],
   ["41.26190,-95.86080", 14], ["41.28640,-96.23450", 15],
+  // The sequential test deliberately preserves this manual appointment after purge.
+  ["41.25240,-95.99800", 16],
 ]);
 const routingIdentity = "ci-monaco-omaha-car-v2";
 
@@ -46,7 +48,7 @@ const server = createServer(async (request, response) => {
     if (request.url === "/internal/legs") {
       if (!Array.isArray(pairs) || !pairs.length || pairs.length > 256 || !expectedRoutingIdentity ||
           pairs.some(pair => typeof pair.id !== "string" || index(pair.origin) === undefined || index(pair.destination) === undefined))
-        throw new Error("Invalid fixture pairs");
+        throw new Error(`Invalid fixture pairs: ${JSON.stringify(pairs)}`);
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ routingIdentity, pairs: pairs.map(pair => ({ id: pair.id,
         leg: { routable: true, seconds: index(pair.origin) === index(pair.destination) ? 0 : 600,
@@ -84,7 +86,8 @@ const server = createServer(async (request, response) => {
     }));
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ mapVersion: "ci-monaco-v1", routingIdentity, legs }));
-  } catch {
+  } catch (error) {
+    console.error(error);
     response.writeHead(400, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ error: "Invalid matrix request" }));
   }

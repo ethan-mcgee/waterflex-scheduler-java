@@ -2,7 +2,7 @@
 
 This is a partial implementation of the consolidated scheduler plan. It is not ready for the plan's production rollout. In particular, the booking overtime gate and five-second appointment-search guarantee are **not implemented**. The PR must remain a draft until the outstanding work and acceptance gates below are completed.
 
-Implementation revision: `7109c2d248d07d2a4e6a5d75b1fda19ab312cafc`.
+Initial foundation revision: `7109c2d248d07d2a4e6a5d75b1fda19ab312cafc`.
 Inspected baseline: `2d17885141d4a901b06b3f9732530db85c951568`.
 
 ## Implemented behavior
@@ -14,11 +14,11 @@ Inspected baseline: `2d17885141d4a901b06b3f9732530db85c951568`.
 - Fixed working segments can depart later to absorb avoidable waiting. Timing respects exclusive window ends and leaves segment return times unchanged. Baseline and proposed routes use the same rules. Preview summaries persist departure/return times and display them in dispatch. This is not a complete interval-placement optimizer or a durable current-route timing implementation for every booking lifecycle mutation.
 - Booking prepares settings, absences, road data, and a baseline once per technician/date during insertion scanning. Candidate scoring performs no database or network operations. The existing long transaction and reservation model have not been replaced.
 - `/internal/legs` accepts explicit directed pair IDs and an expected routing identity. Booking requests endpoint, adjacent-stop, and candidate incoming/outgoing legs. The scheduler batches persistent reads and upserts and shares the existing bounded memory cache. Missing, malformed, unavailable, and explicitly unroutable results do not become invented travel times. Full matrix and geometry endpoints remain available.
-- Appointment search displays an accessible indeterminate progress bar labeled "Finding available appointments". Existing error handling retains entered form values. Typed incomplete-search results and end-to-end retry propagation remain outstanding.
+- Appointment search displays an accessible indeterminate progress bar labeled "Finding available appointments". Existing error handling retains entered form values. Typed incomplete, routing, conflict and busy results now propagate through initial booking, refresh, conflict handling and the sequential testing journal. Empty incomplete searches stay open for retry rather than becoming a no-capacity claim.
 
 ## Migration and compatibility
 
-`20260924010000_scheduling_policy` adds nullable `policyAnalysis` and validated settings for two regular windows, 90% utilization, 2% fairness allowance, and 5,000 ms. Existing settings fingerprints include these values. The booking thresholds and deadline are stored policy definitions, not active enforcement in this revision.
+`20260924010000_scheduling_policy` adds nullable `policyAnalysis` and validated settings for two regular windows, 90% utilization, 2% fairness allowance, and 5,000 ms. Existing settings fingerprints include these values. The booking scarcity thresholds are not yet connected to a completed bounded search. The deadline now limits admission, exploration, routing, lock waits and pre-commit checks; end-to-end performance acceptance and cancellation propagation remain outstanding.
 
 For eventual deployment, migrate first and deploy the routing service before the scheduler, because new booking code calls `/internal/legs`. The new routing service remains compatible with the old full-matrix client. The additive schema can remain during rollback. Revert scheduler/portal behavior together and require fresh previews after changing policy behavior. No live services were deployed during this work.
 
@@ -43,13 +43,29 @@ The initial sparse request took approximately 330 ms and its repeat approximatel
 
 ## Outstanding implementation and acceptance
 
-1. Full immutable horizon snapshots, schedule/reservation versions, bounded admission, deadline propagation, cancellation, lock/commit budgets, conflict retry, and typed search outcomes.
-2. Booking confirmed-utilization aggregation, distinct-window scarcity, regular-first ranking, incremental fairness, persisted overtime authorization, and enforcement only after a completed bounded scarcity pass. Booking currently retains its legacy cost-based offer policy.
+1. Full immutable horizon snapshots, schedule/reservation versions, bounded admission, deadline propagation, cancellation, lock/commit budgets, conflict retry, and cancellation propagation. Typed search outcomes and initial deadline/admission enforcement are implemented.
+2. Booking confirmed-utilization aggregation, distinct-window scarcity, regular-first ranking, incremental fairness, persisted overtime authorization, and enforcement only after a completed bounded scarcity pass. Booking uses cost ranking among zero-added-overtime candidates until the complete scarcity pass can authorize overtime. A new persisted overtime authorization field preserves known legacy overtime offers and prevents regular-offer confirmation from adding unauthorized overtime.
 3. Versioned common reservation arrangements, reassignment dependencies, atomic confirmation of rearranged routes, and revalidation across refresh, release, expiry, cancellation, restart, and guarded technician changes.
 4. The prescribed two-move relocation/swap/reversal search, six-route shortlist, beam width eight, 500-arrangement cap, horizon round allocation, diagnostics, and feature flags.
 5. Prefix/suffix incremental timing, full interval-placement handling, current segment timing persistence across every mutation, and separate road-versus-buffer reporting.
 6. Sparse request coalescing with isolated caller deadlines, low-priority versioned prewarming, and contraction-hierarchy artifact benchmarking.
-7. Explicit additional-overtime approval for disruption repairs, shared concurrency limits and booking priority, solver acceptance-strategy comparisons, tie-breaking by disruption, and accurate termination/provenance telemetry.
+7. Solver acceptance-strategy comparisons, tie-breaking by disruption, accurate termination/provenance telemetry and load evidence for admission limits. Explicit repair overtime approval and shared admission are now implemented.
 8. Reproducible 20/30/50-technician benchmark matrix, cold/warm and 1/5/10 concurrent booking streams, exact-enumeration quality oracles, five-second p95 proof with served-demand reporting, and complete reservation/failure regression coverage.
 
 No claim is made that the consolidated plan, reservation guarantees for rearranged booking, or performance acceptance has been completed.
+
+## Crash recovery and deadline checkpoint
+
+The crash zero-filled `web/lib/nullability.test.ts` and generated `.next` types. The test source and its new cases were reconstructed from Git and the recorded edits. Generated output was removed and regenerated; a scan of tracked and untracked source text found no other zero-byte corruption, and `git fsck` passed.
+
+Shared admission uses two expensive searches by default (one on a single CPU), a maximum queue of sixteen, booking priority, and one background optimization/repair at a time. Queue waits consume the request deadline. The portal sends an absolute five-second deadline, and the scheduler uses a monotonic remaining budget, stopping exploration with one second reserved for validation and persistence. PostgreSQL statement/lock limits and a pre-commit deadline check prevent timed-out work from later reserving offers in the tested lock case. Database pool acquisition is bounded. This does not yet prove the complete cold-cache/overload p95 requirement, cancel all disconnected callers, or replace long search transactions with immutable horizon snapshots.
+
+Local verification includes strict Java/nullability, portal lint/typecheck, typed-response/nullability tests, migration/schema checks, and booking plus sequential integration in the new isolated `waterflex_test.search_policy_recovery` schema. A deliberately locked job returned a retryable outcome without creating a hold. The sequential fixture now recognizes the manual-survivor coordinate it intentionally retains after purge; previously reusing the disposable test database caused an explicit routing error for that fixture point.
+
+The full original requirement inventory is tracked in [scheduler-plan-checklist.md](scheduler-plan-checklist.md). Remaining work is not implicitly deferred.
+
+## Repair overtime review checkpoint
+
+A disruption repair adding overtime cannot be applied automatically. Locked apply independently compares current baseline and proposed overtime, and missing approval leaves the time-off request `READY` rather than requeueing it. Dispatch shows the additional minutes and requires an unchecked-by-default acknowledgement tied to the displayed report. The API also requires the exact reviewed repair IDs, preventing approval of a replaced preview. Migration `20260924030000_repair_overtime_approval` records the explicit approval on the request. Technician limits remain hard constraints.
+
+The time-off integration includes a constructed repair that must transfer a late appointment to a shorter-shift technician. It verifies that automatic approval stops, an unapproved manual apply changes nothing, and explicit approval applies the repair. The complete time-off integration and the new browser approval regression pass locally.

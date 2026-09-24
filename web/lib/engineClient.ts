@@ -52,8 +52,12 @@ export interface SlotOffer {
   expiresAt: string;
 }
 
-export function requestSlots(jobId: string, refresh = false, timeoutMs?: number): Promise<{ jobId: string; offers: SlotOffer[] }> {
-  return request("/v1/offers", offersResponse, { jobId, refresh }, timeoutMs);
+export async function requestSlots(jobId: string, refresh = false, timeoutMs = 5000, signal?: AbortSignal): Promise<z.infer<typeof offersResponse>> {
+  const started = performance.now();
+  const budgetMs = Math.min(5000, timeoutMs);
+  if (!Number.isInteger(budgetMs) || budgetMs <= 0) throw new EngineError(400, "Invalid appointment search budget");
+  const result = await request("/v1/offers", offersResponse, { jobId, refresh, deadlineEpochMs: Date.now() + budgetMs }, budgetMs, signal);
+  return { ...result, search: { ...result.search, apiElapsedMs: Math.ceil(performance.now() - started) } };
 }
 
 export function selectOffer(jobId: string, offerId: string, timeoutMs?: number): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {
@@ -163,8 +167,8 @@ export function submitTimeOff(request: { technicianId: string; firstDate: string
   return requestEngine("/v1/time-off/request", timeOffResult, request);
 }
 
-export function approveTimeOff(id: string): Promise<{ requestId: string; status: string }> {
-  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, {});
+export function approveTimeOff(id: string, allowAdditionalOvertime = false, approvedRepairIds: string[] = []): Promise<{ requestId: string; status: string }> {
+  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, { allowAdditionalOvertime, approvedRepairIds });
 }
 
 export function retryTimeOff(id: string): Promise<{ requestId: string; status: string }> {
