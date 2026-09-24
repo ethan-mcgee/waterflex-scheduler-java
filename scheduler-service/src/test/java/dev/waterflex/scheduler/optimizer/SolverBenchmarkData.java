@@ -20,8 +20,8 @@ final class SolverBenchmarkData {
             routes.add(route); location.put(id, technician); location.put(id + ":return", technician);
             cluster.put(id, technician % 4); cluster.put(id + ":return", technician % 4);
             int assigned = workload == Workload.SPARSE ? (technician < count / 2 ? 3 : 1)
-                    : workload == Workload.NEAR_CAPACITY ? (technician < count / 2 ? 8 : 4) : (technician < count / 2 ? 6 : 2);
-            int duration = workload == Workload.NEAR_CAPACITY || workload == Workload.TIGHT_WINDOW ? 45 : 30;
+                    : workload == Workload.NEAR_CAPACITY ? 8 : (technician < count / 2 ? 6 : 2);
+            int duration = workload == Workload.NEAR_CAPACITY ? 55 : workload == Workload.TIGHT_WINDOW ? 45 : 30;
             for (int index = 0; index < assigned; index++) {
                 String visitId = "visit-" + technician + "-" + index;
                 int window = 480 + (index / 2) * (workload == Workload.TIGHT_WINDOW ? 90 : 120);

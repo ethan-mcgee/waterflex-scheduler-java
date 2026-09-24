@@ -13,11 +13,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class TravelBreakdownTest {
     @Test void directedRoadSecondsBufferAndRoundingReconcileWithoutChangingModel() {
         var plan = DayConstraintProviderTest.fixture(); var route = Required.value(plan.getRoutes().getFirst());
-        plan.setMatrix(Required.value(Map.of(route.getId() + ">visit", new DayPlan.RoadLeg(61, 100),
+        plan.setMatrix(Required.value(Map.<String, DayPlan.RoadLeg>of(route.getId() + ">visit", new DayPlan.RoadLeg(61, 100),
                 "visit>" + route.getId() + ":return", new DayPlan.RoadLeg(119, 200))));
         var configured = new DayPlan(plan.getRoutes(), plan.getVisits(), plan.getMatrix(), 30, 45, .67, .2, 5);
         Instant now = Required.value(Instant.parse("2026-10-26T08:00:00Z"));
-        var segments = Required.value(List.of(new RouteEvaluator.WorkingSegment(now, now, Required.value(List.of("visit")))));
+        var segments = Required.value(List.<RouteEvaluator.WorkingSegment>of(new RouteEvaluator.WorkingSegment(now, now, Required.value(List.of("visit")))));
         var metrics = TravelBreakdown.forRoute(configured, route, segments);
         assertEquals(180, metrics.road_seconds()); assertEquals(15, metrics.modeled_travel_minutes()); assertEquals(2, metrics.leg_count());
         assertEquals(0, new BigDecimal("636").compareTo(metrics.configured_buffer_seconds()));

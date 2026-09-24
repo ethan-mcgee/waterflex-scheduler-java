@@ -128,6 +128,7 @@ public final class BookingCoordinator {
         data.put("snapshotAgeMs", java.time.Duration.between(prepared.routed().capturedAt(), Instant.now()).toMillis());
         data.put("routingPairs", prepared.routed().days().values().stream().mapToInt(day -> day.roads().legs().size() + day.roads().unreachable().size()).sum());
         data.put("evaluatedRoutes", prepared.evaluatedRoutes()); data.put("reusedRoutes", prepared.reusedRoutes());
+        data.put("prunedArrangements", prepared.prunedArrangements());
         SearchDeadline deadline = SearchDeadline.current();
         if (deadline != null) data.put("elapsedMs", deadline.elapsedMillis());
         data.put("distinctRegularWindows", result.distinctRegularWindows()); data.put("confirmedRegularMinutes", result.confirmedRegularMinutes());

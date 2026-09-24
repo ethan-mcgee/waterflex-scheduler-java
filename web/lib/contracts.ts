@@ -62,6 +62,13 @@ export const policyAnalysis = z.object({ version: z.literal("overtime-fairness-v
     overtimeTargetMinutes: z.int().nonnegative(), costCeilingCents: z.int().nonnegative() }),
   rules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: finite.min(0).max(1),
     fairnessAllowance: finite.min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }), costChangeCents: z.int() });
+export const solverAnalysis = z.object({ engine: text, configurationXml: text, phases: z.array(z.object({
+  name: text, statistics: z.object({ variant: text, seed: z.int(), configurationFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED"]),
+    budgetMs: z.int().positive(), stepLimit: z.int().positive().nullable(), steps: z.int().nonnegative(),
+    moveEvaluations: z.int().nonnegative(), scoreCalculations: z.int().nonnegative(), solveMs: z.int().nonnegative(), timeToBestMs: z.int().nonnegative().nullable(),
+  }),
+})).min(1) });
 export const optimization = z.object({
   run_id: text, metro_id: text, service_date: date, status: text, reason: z.string().nullable(),
   solver_status: text, solve_ms: finite.nonnegative(), routing_identity: text, configuration_version: text,
@@ -69,6 +76,7 @@ export const optimization = z.object({
   appointments_moved: z.int().nonnegative(), created_at: instant, applied_at: instant.nullable(), warnings: z.array(z.string()),
   route_summary_before: z.array(routeSummary), route_summary_after: z.array(routeSummary),
   policy_analysis: policyAnalysis.nullish(),
+  solver_analysis: solverAnalysis.nullish(),
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
 });

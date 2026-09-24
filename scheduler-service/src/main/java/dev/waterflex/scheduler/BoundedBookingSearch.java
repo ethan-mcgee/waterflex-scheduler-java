@@ -62,6 +62,7 @@ public final class BoundedBookingSearch {
     private DayContext context(LocalDate date) { return Required.value(contexts.computeIfAbsent(date, key -> new DayContext(Required.value(key)))); }
     public long evaluatedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.evaluations()).sum(); }
     public long reusedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.hits()).sum(); }
+    public long prunedArrangements() { return contexts.values().stream().mapToLong(value -> value.evaluation.pruned()).sum(); }
 
     public BoundedBookingSearch(BookingSnapshot snapshot, Request request, Limits limits, Runnable checkpoint) {
         this.snapshot = snapshot; this.request = request; this.limits = limits; this.checkpoint = checkpoint;
@@ -226,6 +227,7 @@ public final class BoundedBookingSearch {
                     evaluations++;
                     var visit = new Visit(request.jobId(), request.jobId(), request.serviceId(), window.start(), window.end(),
                             request.durationMinutes(), request.location(), Required.value(tech), window.start(), false);
+                    if (!evaluation.possibleInsertion(Required.value(tech), route, visit, position)) continue;
                     Map<String, Visit> facts = new HashMap<>(day.visits());
                     if (facts.putIfAbsent(visit.id(), visit) != null) throw new BookingSnapshot.Incomplete("Request already present in snapshot");
                     Arrangement proposal = arrangement.insert(Required.value(tech), visit.id(), position);
@@ -353,6 +355,7 @@ public final class BoundedBookingSearch {
             Arrangement arrangement = Required.value(pending.next());
             if (!seen.add(arrangement)) return true;
             arrangements++;
+            if (!evaluation.possible(arrangement, day.visits())) return true;
             var result = evaluation.evaluate(arrangement, day.visits(), false);
             if (result.feasible()) {
                 if (evaluation.evaluate(arrangement, day.visits(), true).feasible()) {

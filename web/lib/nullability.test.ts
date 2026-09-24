@@ -9,7 +9,7 @@ import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
 import { POST as qualification } from "../app/api/dispatch/qualification/route";
 import { EngineError, requestSlots } from "./engineClient";
-import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment, travelBreakdown } from "./contracts";
+import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment, travelBreakdown, solverAnalysis } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime } from "./timeOffView";
@@ -21,6 +21,16 @@ test("road travel and buffer reporting rejects missing or inconsistent component
   for (const value of [null, {}, { ...valid, road_seconds: null }, { ...valid, rounding_seconds: -1 },
     { ...valid, configured_buffer_seconds: Infinity }, { ...valid, modeled_travel_minutes: 14 }])
     assert.equal(travelBreakdown.safeParse(value).success, false);
+});
+
+test("solver diagnostics require measured phase counts and explicit unavailable optional metrics", () => {
+  const statistics = { variant: "CURRENT_CAPPED", seed: 17, configurationFingerprint: "a".repeat(64), termination: "TIME_LIMIT",
+    budgetMs: 10000, stepLimit: null, steps: 20, moveEvaluations: 500, scoreCalculations: 501, solveMs: 10000, timeToBestMs: null };
+  const result = { engine: "Timefold-2.6.0", configurationXml: "<solver/>", phases: [{ name: "REFERENCE", statistics }] };
+  assert.equal(solverAnalysis.safeParse(result).success, true);
+  for (const invalid of [{ ...statistics, steps: null }, { ...statistics, moveEvaluations: -1 },
+    { ...statistics, termination: "unknown" }, { ...statistics, stepLimit: undefined }])
+    assert.equal(solverAnalysis.safeParse({ ...result, phases: [{ name: "REFERENCE", statistics: invalid }] }).success, false);
 });
 
 test("depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates", () => {

@@ -64,7 +64,10 @@ public final class SolverExperiment {
 
     public static Result solve(Definition definition, DayPlan initial, Duration budget) {
         if (budget.isNegative() || budget.isZero()) throw new IllegalArgumentException("Positive solver budget required");
-        var solver = definition.factory().buildSolver(new SolverConfigOverride().withTerminationSpentLimit(budget));
+        // The override replaces termination configuration; preserve the diagnostic step cap explicitly.
+        var termination = new ai.timefold.solver.core.config.solver.termination.TerminationConfig().withSpentLimit(budget);
+        termination.setStepCountLimit(definition.stepLimit());
+        var solver = definition.factory().buildSolver(new SolverConfigOverride().withTerminationConfig(termination));
         if (!(solver instanceof DefaultSolver<DayPlan> measured)) throw new IllegalStateException("Unsupported solver diagnostics implementation");
         long[] steps = {0};
         measured.addPhaseLifecycleListener(new PhaseLifecycleListenerAdapter<DayPlan>() {
