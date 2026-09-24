@@ -21,6 +21,9 @@ class BoundedBookingSearchTest {
         assertEquals(full.candidates(), refined.candidates());
         assertEquals(full.confirmedRegularMinutes(), refined.confirmedRegularMinutes());
         assertEquals(full.regularCapacityMinutes(), refined.regularCapacityMinutes());
+        var combined = BookingSearchPipeline.combine(insertion, refined, snapshot.policy());
+        assertEquals(full.coverage().stream().mapToInt(item -> item.candidateEvaluations()).sum(),
+                combined.coverage().stream().mapToInt(item -> item.candidateEvaluations()).sum());
         assertEquals("REARRANGEMENT", Required.value(BoundedBookingSearch.choose(refined.candidates(), snapshot.policy())).source());
     }
 

@@ -115,6 +115,8 @@ public class RoadClient {
             if (cached != null && cached.expiresAt().isAfter(Instant.now())) found.put(pair.id(), cached);
             else missing.add(pair);
         }
+        SearchDeadline deadline = SearchDeadline.current();
+        if (deadline != null) deadline.telemetry().routing(unique.size(), found.size(), 0, 0);
         for (int offset = 0; offset < missing.size(); offset += 256) {
             List<Pair> batch = missing.subList(offset, Math.min(offset + 256, missing.size()));
             List<Object> arguments = new ArrayList<>();
@@ -135,6 +137,7 @@ public class RoadClient {
                         found.put(id, cached); memory.put(id + ":" + identity, cached);
                     }, Required.value(arguments.toArray(new @Nullable Object[0]))));
             List<Pair> requested = batch.stream().filter(pair -> !found.containsKey(pair.id())).toList();
+            if (deadline != null) deadline.telemetry().routing(0, 0, batch.size() - requested.size(), requested.size());
             if (requested.isEmpty()) continue;
             Map<String, Leg> shared = flights.resolve(Required.value(requested), identity, batchPairs -> requestSparse(Required.value(batchPairs), identity));
             for (Pair pair : requested) found.put(pair.id(), new Cached(shared.get(pair.id()), Required.value(Instant.now().plus(cacheTtl))));

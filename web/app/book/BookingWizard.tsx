@@ -1,8 +1,8 @@
 "use client";
 
 import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
-import { appointmentSearchMessage } from "@/lib/appointmentSearch";
-import { useEffect, useMemo, useState } from "react";
+import { appointmentSearchMessage, recordBookingApiDuration } from "@/lib/appointmentSearch";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/book/booking.module.css";
 import AddressPinMap, { type PinCandidate } from "@/app/book/AddressPinMap";
 
@@ -86,6 +86,13 @@ function formatCountdown(seconds: number): string {
 }
 
 export default function BookingWizard({ services }: { services: ServiceOption[] }) {
+  const activeRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => activeRequest.current?.abort(), []);
+  function requestSignal() {
+    activeRequest.current?.abort();
+    activeRequest.current = new AbortController();
+    return activeRequest.current.signal;
+  }
   const [step, setStep] = useState<Step>("form");
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [requestId, setRequestId] = useState(() => newRequestId());
@@ -119,11 +126,13 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   }
 
   async function handleSubmit(e: React.FormEvent) {
+    const started = performance.now();
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
       const res = await fetch("/api/book", {
+        signal: requestSignal(),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, requestId }),
@@ -150,15 +159,18 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       setError(errorMessage(error));
       setInvalidOffers(true);
     } finally {
+      recordBookingApiDuration(started, "initial");
       setSubmitting(false);
     }
   }
 
   async function handleSelectSlot(offerId: string) {
+    const started = performance.now();
     setError(null);
     setConfirmingHoldId(offerId);
     try {
       const selection = await fetch("/api/book/select", {
+        signal: requestSignal(),
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId, offerId }),
       });
@@ -179,6 +191,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       setError(errorMessage(error));
       setInvalidOffers(true);
     } finally {
+      recordBookingApiDuration(started, "selection");
       setConfirmingHoldId(null);
     }
   }
@@ -207,10 +220,11 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
 
   async function refreshOffers() {
     if (!jobId) return;
+    const started = performance.now();
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
+      const response = await fetch("/api/book/refresh", { signal: requestSignal(), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
       const data = await readResponse(response, offersResponse);
       const problem = appointmentSearchMessage(data.search);
       if (problem) { setOffers([]); setInvalidOffers(true); setError(problem); return; }
@@ -218,16 +232,18 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       setInvalidOffers(false);
       setNow(Date.now());
     } catch (error) { setInvalidOffers(true); setError(error instanceof Error ? error.message : "Could not refresh times."); }
-    finally { setSubmitting(false); }
+    finally { recordBookingApiDuration(started, "refresh"); setSubmitting(false); }
   }
 
   async function handlePinConfirmation() {
     const pin = pinCandidates[selectedPinIndex];
     if (!pin) return;
+    const started = performance.now();
     setSubmitting(true);
     setError(null);
     try {
       const response = await fetch("/api/book", {
+        signal: requestSignal(),
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, requestId, confirmedPin: { lat: pin.lat, lng: pin.lng } }),
       });
@@ -239,7 +255,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       setInvalidOffers(false);
       setStep("slots");
     } catch (error) { setError(errorMessage(error)); }
-    finally { setSubmitting(false); }
+    finally { recordBookingApiDuration(started, "pin"); setSubmitting(false); }
   }
 
   const searchProgress = submitting ? <div role="status">

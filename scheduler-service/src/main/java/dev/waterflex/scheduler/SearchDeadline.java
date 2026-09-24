@@ -15,6 +15,8 @@ public final class SearchDeadline {
     }
     private final LongSupplier clock;
     private final long started;
+    private final SearchTelemetry telemetry = new SearchTelemetry();
+    public SearchTelemetry telemetry() { return telemetry; }
     private long durationNanos;
     private boolean committing;
     private volatile boolean cancelled;

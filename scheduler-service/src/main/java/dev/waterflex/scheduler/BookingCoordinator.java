@@ -131,7 +131,7 @@ public final class BookingCoordinator {
         data.put("prunedArrangements", prepared.prunedArrangements());
         data.put("optionalRefinementMillis", prepared.optionalRefinementMillis());
         SearchDeadline deadline = SearchDeadline.current();
-        if (deadline != null) data.put("elapsedMs", deadline.elapsedMillis());
+        if (deadline != null) { data.put("elapsedMs", deadline.elapsedMillis()); data.put("measurements", deadline.telemetry().snapshot()); }
         data.put("distinctRegularWindows", result.distinctRegularWindows()); data.put("confirmedRegularMinutes", result.confirmedRegularMinutes());
         data.put("regularCapacityMinutes", result.regularCapacityMinutes()); data.put("overtimeAuthorized", result.overtimeAuthorized());
         data.put("limits", BoundedBookingSearch.Limits.defaults());

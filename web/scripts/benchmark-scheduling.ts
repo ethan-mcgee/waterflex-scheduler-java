@@ -4,7 +4,7 @@ import { open } from "node:fs/promises";
 import { cpus, totalmem } from "node:os";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import { required, errorMessage } from "../lib/contracts";
+import { required, errorMessage, appointmentSearch } from "../lib/contracts";
 import { requestSlots, selectOffer, releaseOffers } from "../lib/engineClient";
 import { bookingHorizon, chooseTestOffer } from "../lib/bookingTestCore";
 import { initialAvailability } from "../lib/technicianAvailability";
@@ -100,7 +100,7 @@ async function dataset(size: number, workload: Workload, caseId: string) {
   return { metroId: metro.id, jobIds, fingerprint: createHash("sha256").update(JSON.stringify({ size, workload, seed, dates, points, manifest })).digest("hex") };
 }
 
-type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean; offers: number; served: boolean; serviceDate?: string; error?: string };
+type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch> };
 async function removeSuccessfulCase(caseId: string) {
   const jobs = { id: { startsWith: `${caseId}-` } };
   const technicians = { id: { startsWith: `${caseId}-tech-` } };
@@ -148,7 +148,7 @@ try {
           const response = await requestSlots(jobId);
           const elapsedMs = performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
-          const attempt: Attempt = { index: offset + localIndex, elapsedMs, outcome: response.search.outcome, completed: response.search.prescribedSearchCompleted,
+          const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search, outcome: response.search.outcome, completed: response.search.prescribedSearchCompleted,
             offers: response.offers.length, served: false };
           if (selected) { offered = selected.offerId; await selectOffer(jobId, selected.offerId); attempt.served = true; attempt.serviceDate = selected.date; }
           return attempt;
