@@ -26,6 +26,7 @@ public class BookingService {
     public record Offers(String jobId, List<Offer> offers) { }
     public record Selection(String holdId, Instant expiresAt, String appointmentId, Instant windowStart, Instant windowEnd) { }
     public record Confirmation(String appointmentId, Instant windowStart, Instant windowEnd) { }
+    public record SearchContext(String metroId, BoundedBookingSearch.Request request) { }
     public record Candidate(String techId, LocalDate day, Instant start, Instant end, Instant arrival,
                             int position, double cost, long regularDeltaMinutes, long overtimeDeltaMinutes, long roadDeltaMeters) { }
     static final Comparator<Candidate> INSERTION_ORDER = Required.value(Comparator.comparingLong((Candidate candidate) -> candidate.overtimeDeltaMinutes())
@@ -50,6 +51,14 @@ public class BookingService {
 
     public BookingService(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
 
+    @Transactional(readOnly = true, timeout = 4)
+    public SearchContext searchContext(String jobId) {
+        SearchDeadline.database(jdbc);
+        Job job = job(jobId);
+        if (!job.status().equals("PENDING")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job already booked");
+        return new SearchContext(job.metroId(), new BoundedBookingSearch.Request(job.id(), job.serviceId(), job.duration(), job.point()));
+    }
+
     @Transactional(timeout = 5)
     public Offers offers(String jobId, boolean refresh) {
         SearchDeadline.database(jdbc);
@@ -64,6 +73,9 @@ public class BookingService {
                 (rs, _) -> Required.string(rs, 1), jobId);
         if (!active.isEmpty() && !refresh) return savedOffers(jobId, Required.value(active.getFirst()));
         if (!active.isEmpty()) {
+            lockOfferSetDays(Required.value(active.getFirst()));
+            if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"offerSetId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, active.getFirst()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; refresh again");
             jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", active.getFirst());
             jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL", active.getFirst());
         }
@@ -83,6 +95,9 @@ public class BookingService {
             if (result.size() == 4) break;
             SearchDeadline.database(jdbc);
             lockDay(c.techId(), c.day());
+            if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_arrangement r JOIN reservation_dependency d ON d.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=d.\"holdId\" WHERE r.\"metroId\"=? AND r.\"serviceDate\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
+                    Boolean.class, job.metroId(), dayStamp(c.day())))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; search again");
             Tech tech = technicians(job.serviceId(), c.day(), job.metroId()).stream().filter(t -> t.id().equals(c.techId())).findFirst().orElse(null);
             Candidate reserved = tech == null ? null : evaluateCandidate(job, tech, c.day(), c.start(), c.end());
             if (reserved == null || reserved.overtimeDeltaMinutes() > 0) continue;
@@ -115,6 +130,9 @@ public class BookingService {
         if (sets.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer does not belong to job");
         ReleasableSet set = sets.getFirst();
         if (set.supersededAt() == null) {
+            lockOfferSetDays(set.id());
+            if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"offerSetId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, set.id()))
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; release again");
             jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", set.id());
             jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL", set.id());
         }
@@ -170,6 +188,8 @@ public class BookingService {
         Instant start = h.start(), end = h.end();
         lockJob(jobId);
         lockDay(techId, Required.value(day));
+        if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, holdId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; select again");
         if (h.offerSetId() != null && (!Objects.equals(h.selectedOfferId(), h.offerToken()) || h.supersededAt() != null))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A different offer was selected");
         var existing = jdbc.query("SELECT id FROM appointment WHERE \"jobId\"=? AND \"cancelledAt\" IS NULL", (rs, _) -> Required.string(rs, 1), jobId);
@@ -221,6 +241,9 @@ public class BookingService {
         lockDay(Required.value(techId), Required.value(day));
         if (Required.query(jdbc, "SELECT \"cancelledAt\" IS NOT NULL FROM appointment WHERE id=?", Boolean.class, appointmentId))
             return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", true));
+        if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM appointment a JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" JOIN reservation_arrangement r ON r.\"metroId\"=p.\"metroId\" AND r.\"serviceDate\"=a.\"serviceDate\" JOIN reservation_dependency dependency ON dependency.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=dependency.\"holdId\" WHERE a.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
+                Boolean.class, appointmentId))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancellation requires updating the reserved common arrangement");
         jdbc.update("UPDATE appointment SET \"cancelledAt\"=CURRENT_TIMESTAMP, \"cancellationReason\"=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", reason.trim(), appointmentId);
         jdbc.update("UPDATE job SET status='CANCELLED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", jobId);
         if (!ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) {
@@ -493,6 +516,13 @@ public class BookingService {
         SearchDeadline.database(jdbc);
         jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING", UUID.randomUUID().toString(), techId, dayStamp(day));
         Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
+    }
+
+    private void lockOfferSetDays(String setId) {
+        record HeldDay(String technician, LocalDate day) { }
+        var days = jdbc.query("SELECT DISTINCT \"technicianId\",\"serviceDate\" FROM slot_hold WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL ORDER BY \"technicianId\",\"serviceDate\"",
+                (rs, _) -> new HeldDay(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate())), setId);
+        for (HeldDay day : days) lockDay(day.technician(), day.day());
     }
 
     private void lockJob(String jobId) {

@@ -32,6 +32,7 @@ public final class SnapshotRouting {
                 add(pairs, date, day, points, request.jobId(), visit.id());
             }
             routePairs(pairs, date, day, day.baseline(), day.visits(), points);
+            routePairs(pairs, date, day, day.actualArrangement(), day.visits(), points);
         }
         return withDays(snapshot, fetch(snapshot.days(), pairs, snapshot.routingIdentity()));
     }

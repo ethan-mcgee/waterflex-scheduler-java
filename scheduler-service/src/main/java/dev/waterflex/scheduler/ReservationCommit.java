@@ -32,6 +32,16 @@ public final class ReservationCommit {
 
     public <T> T commit(BookingSnapshotLoader.Facts expected, String jobId, String excludedJob, boolean pendingRequired,
             Map<LocalDate, ReservationTransition.Prepared> proposals, boolean applyConfirmed, Supplier<T> mutation) {
+        return commit(expected, jobId, excludedJob, pendingRequired, proposals, applyConfirmed, false, mutation);
+    }
+
+    public <T> T cancellation(BookingSnapshotLoader.Facts expected, String jobId,
+            Map<LocalDate, ReservationTransition.Prepared> proposals, Supplier<T> mutation) {
+        return commit(expected, jobId, "", false, proposals, true, true, mutation);
+    }
+
+    private <T> T commit(BookingSnapshotLoader.Facts expected, String jobId, String excludedJob, boolean pendingRequired,
+            Map<LocalDate, ReservationTransition.Prepared> proposals, boolean applyConfirmed, boolean keepAssignments, Supplier<T> mutation) {
         SearchDeadline.beginCommit();
         return Required.value(transaction.execute(_ -> {
             SearchDeadline.database(jdbc);
@@ -85,23 +95,33 @@ public final class ReservationCommit {
                 Day day = proposal.day();
                 var evaluated = day.evaluate(day.baseline(), day.visits(), expected.rates());
                 if (!evaluated.feasible()) throw conflict("Reservation proposal is no longer feasible");
+                Arrangement actualArrangement = keepAssignments ? day.actualArrangement() : day.baseline();
+                var actual = keepAssignments ? dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(actualArrangement, day.visits(), expected.rates(), true)) : evaluated;
+                if (!actual.feasible()) throw conflict("Remaining confirmed routes require repair");
                 Map<String, Visit> facts = new TreeMap<>();
                 for (var route : day.baseline().routes().entrySet()) {
                     int sequence = 0;
                     for (String id : route.getValue()) {
                         Visit visit = Required.value(day.visits().get(id), "committed visit");
                         Instant arrival = Required.value(evaluated.arrivals().get(id), "committed arrival");
+                        String assigned = Required.value(route.getKey());
                         if (visit.reservation()) {
                             if (jdbc.update("UPDATE slot_hold SET \"technicianId\"=?,\"insertPosition\"=?,\"plannedStart\"=?,\"plannedEnd\"=? WHERE id=? AND \"releasedAt\" IS NULL AND \"expiresAt\">clock_timestamp()",
                                     route.getKey(), sequence, stamp(arrival), stamp(Required.value(arrival.plusSeconds(visit.durationMinutes() * 60L))), id) != 1)
                                 throw conflict("Reservation changed during commit");
                         } else if (applyConfirmed) {
+                            if (keepAssignments) {
+                                assigned = visit.originalTechnicianId();
+                                arrival = Required.value(actual.arrivals().get(id), "confirmed arrival");
+                            }
+                            int actualSequence = Required.value(actualArrangement.routes().get(assigned)).indexOf(id);
+                            if (actualSequence < 0) throw conflict("Confirmed assignment is missing");
                             if (jdbc.update("UPDATE appointment SET \"technicianId\"=?,sequence=?,\"plannedStart\"=?,\"plannedEnd\"=?,\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
-                                    route.getKey(), sequence, stamp(arrival), stamp(Required.value(arrival.plusSeconds(visit.durationMinutes() * 60L))), id) != 1)
+                                    assigned, actualSequence, stamp(arrival), stamp(Required.value(arrival.plusSeconds(visit.durationMinutes() * 60L))), id) != 1)
                                 throw conflict("Appointment changed during commit");
                         }
                         facts.put(id, applyConfirmed || visit.reservation() ? new Visit(visit.id(), visit.jobId(), visit.serviceId(), visit.windowStart(), visit.windowEnd(),
-                                visit.durationMinutes(), visit.location(), Required.value(route.getKey()), arrival, visit.reservation()) : visit);
+                                visit.durationMinutes(), visit.location(), assigned, arrival, visit.reservation()) : visit);
                         sequence++;
                     }
                 }

@@ -91,7 +91,7 @@ public final class BoundedBookingSearch {
             for (var entry : snapshot.days().entrySet()) {
                 checkpoint.run();
                 Day day = Required.value(entry.getValue());
-                var confirmedPlan = day.plan(day.baseline(), day.visits(), snapshot.rates(), true);
+                var confirmedPlan = day.plan(day.actualArrangement(), day.visits(), snapshot.rates(), true);
                 for (var route : confirmedPlan.getRoutes()) {
                     if (!route.getQualifiedServiceIds().contains(request.serviceId())) continue;
                     long available = SchedulingPolicy.regularCapacity(Required.value(route));

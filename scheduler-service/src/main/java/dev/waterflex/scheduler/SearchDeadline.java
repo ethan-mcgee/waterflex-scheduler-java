@@ -57,6 +57,10 @@ public final class SearchDeadline {
         SearchDeadline current = CURRENT.get();
         if (current != null) { current.committing = true; current.requireTime(); }
     }
+    public static void beginExploration() {
+        SearchDeadline current = CURRENT.get();
+        if (current != null) { current.committing = false; checkpoint(); }
+    }
     public static void policyLimit(int millis) {
         if (millis < 1000 || millis > 5000) throw new IllegalArgumentException("Invalid booking deadline policy");
         SearchDeadline current = CURRENT.get();

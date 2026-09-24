@@ -18,6 +18,7 @@
     "test:fake-data:integration": "tsx scripts/smoke-fake-data.ts",
     "test:booking:integration": "tsx scripts/smoke-java-booking.ts",
     "test:reservation:integration": "tsx scripts/smoke-reservation-guards.ts",
+    "test:bounded-booking:integration": "tsx scripts/smoke-bounded-reservations.ts",
     "test:dealership:integration": "tsx scripts/smoke-dealership-endpoints.ts",
     "test:multi-depot:integration": "tsx scripts/smoke-multi-depot.ts",
     "test:depot-setup:integration": "tsx scripts/smoke-depot-setup.ts",

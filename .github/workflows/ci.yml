@@ -149,6 +149,33 @@ jobs:
       - name: Sequential booking and preview smoke
         working-directory: web
         run: npm run test:booking-tests:integration
+      - name: Start common-reservation rollout test instance
+        run: |
+          java -Xmx512m -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --server.port=18002 --booking.reservations.enabled=true --booking.search.bounded=true > "$RUNNER_TEMP/reservation-scheduler.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18002/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Common reservation booking lifecycle
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_RESERVATIONS_TEST: 'true'
+        run: npm run test:booking:integration
+      - name: Bounded rearrangement and concurrency with rollout disabled at confirmation
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
+        run: npm run test:bounded-booking:integration
+      - name: Cancellation preserves a pending rearranged reservation
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
+          SCHEDULER_CANCEL_PENDING_TEST: 'true'
+        run: npm run test:bounded-booking:integration
       - name: Print service logs on failure
         if: failure()
         run: |
@@ -156,3 +183,4 @@ jobs:
           cat "$RUNNER_TEMP/fixture-routing.log" 2>/dev/null || true
           echo 'Scheduler log:'
           cat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true
