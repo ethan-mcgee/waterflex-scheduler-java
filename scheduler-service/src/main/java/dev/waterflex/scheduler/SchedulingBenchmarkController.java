@@ -16,6 +16,28 @@ import org.springframework.web.server.ResponseStatusException;
 @Profile("benchmark")
 @RestController
 public final class SchedulingBenchmarkController {
+    public record StatisticsRequest(@org.jspecify.annotations.Nullable Boolean resetPeak) {
+        public StatisticsRequest {
+            if (resetPeak == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "resetPeak is required");
+        }
+    }
+    public record Statistics(RoadClient.HttpMeasurements routing, @org.jspecify.annotations.Nullable Long processCpuNanos,
+            long heapUsedBytes, long peakHeapUsedBytes, long uptimeMs, Map<String, String> configuration) { }
+
+    @PostMapping("/internal/benchmark/statistics")
+    public Statistics statistics(@RequestBody StatisticsRequest request) {
+        isolated();
+        var pools = java.lang.management.ManagementFactory.getMemoryPoolMXBeans().stream()
+                .filter(pool -> pool.getType() == java.lang.management.MemoryType.HEAP).toList();
+        if (Boolean.TRUE.equals(request.resetPeak())) pools.forEach(pool -> pool.resetPeakUsage());
+        long peak = pools.stream().mapToLong(pool -> Required.value(pool.getPeakUsage()).getUsed()).sum();
+        long cpu = java.lang.management.ManagementFactory.getOperatingSystemMXBean() instanceof com.sun.management.OperatingSystemMXBean system
+                ? system.getProcessCpuTime() : -1;
+        return new Statistics(roads.httpMeasurements(), cpu < 0 ? null : cpu,
+                java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed(), peak,
+                java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime(), configuration());
+    }
+
     public record Request(String metroId, List<String> dates) {
         public Request {
             metroId = RequestChecks.text(metroId, "metroId");
@@ -32,8 +54,20 @@ public final class SchedulingBenchmarkController {
     private final BookingSnapshotLoader loader;
     private final SnapshotRouting routing;
     private final RoadClient roads;
-    public SchedulingBenchmarkController(JdbcTemplate jdbc, BookingSnapshotLoader loader, SnapshotRouting routing, RoadClient roads) {
-        this.jdbc = jdbc; this.loader = loader; this.routing = routing; this.roads = roads;
+    private final org.springframework.core.env.Environment environment;
+    public SchedulingBenchmarkController(JdbcTemplate jdbc, BookingSnapshotLoader loader, SnapshotRouting routing, RoadClient roads,
+            org.springframework.core.env.Environment environment) {
+        this.jdbc = jdbc; this.loader = loader; this.routing = routing; this.roads = roads; this.environment = environment;
+    }
+
+    private Map<String, String> configuration() {
+        Map<String, String> values = new TreeMap<>();
+        var defaults = Map.of("booking.reservations.enabled", "false", "booking.search.bounded", "false",
+                "booking.search.refinement-ms", "250", "scheduler.search.capacity", "0", "scheduler.search.queue-limit", "16",
+                "scheduler.optimizer.variant", "TABU", "scheduler.optimizer.seed", "17", "routing.prewarm.enabled", "false");
+        defaults.forEach((key, fallback) -> values.put(key, Required.value(environment.getProperty(Required.value(key), Required.value(fallback)))));
+        values.put("maximumHeapBytes", Long.toString(Runtime.getRuntime().maxMemory()));
+        return Required.value(Map.copyOf(values));
     }
 
     public record CacheRequest(boolean warm, List<RoadClient.Point> points) {
@@ -99,6 +133,6 @@ public final class SchedulingBenchmarkController {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Benchmark schedule changed during validation");
         }
         return Required.value(Map.<String, Object>of("routingIdentity", identity, "configurationFingerprint", facts.configurationFingerprint(),
-                "days", measurements, "independentlyValidated", true));
+                "days", measurements, "independentlyValidated", true, "policyRules", facts.policy(), "operatingRates", facts.rates()));
     }
 }

@@ -50,9 +50,24 @@ async function post(path: string, body: unknown): Promise<unknown> {
 const policy = z.object({ overtimeMinutes: z.int().nonnegative(), costCents: z.int().nonnegative(), fairness: z.object({ variance: z.number().nonnegative(), maximumUtilization: z.number().nonnegative(),
   workloads: z.array(z.object({ technicianId: z.string(), paidMinutes: z.int().nonnegative(), regularCapacityMinutes: z.int().positive(), utilization: z.number().nonnegative() })) }) });
 const auditContract = z.object({ routingIdentity: z.string().min(1), configurationFingerprint: z.string().min(1), independentlyValidated: z.literal(true),
+  policyRules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: z.number().min(0).max(1),
+    fairnessAllowance: z.number().min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }).optional(),
+  operatingRates: z.object({ regularHourly: z.number().nonnegative(), overtimeHourly: z.number().nonnegative(), mileagePerMile: z.number().nonnegative(),
+    travelBufferPct: z.number().nonnegative(), travelBufferMinutes: z.int().nonnegative() }).optional(),
   days: z.array(z.object({ date: z.iso.date(), policy, waitingMinutes: z.int().nonnegative(), roadSeconds: z.int().nonnegative(),
     configuredBufferSeconds: z.number().nonnegative(), roundingSeconds: z.number().nonnegative(), confirmedAppointments: z.int().nonnegative(), reservedStops: z.int().nonnegative() })) });
 async function audit(metroId: string) { return auditContract.parse(await post("/internal/benchmark/audit", { metroId, dates })); }
+const statisticsContract = z.object({ routing: z.object({ legRequests: z.int().nonnegative(), requestedPairs: z.int().nonnegative(),
+  identityRequests: z.int().nonnegative(), geometryRequests: z.int().nonnegative() }), processCpuNanos: z.int().nonnegative().nullable(),
+  heapUsedBytes: z.int().nonnegative(), peakHeapUsedBytes: z.int().nonnegative(), uptimeMs: z.int().nonnegative(), configuration: z.record(z.string(), z.string()) });
+async function statistics(resetPeak: boolean) {
+  if (legacy) return null; // Audit-process counters cannot be attributed to the original booking process.
+  const response = await fetch(`${engine}/internal/benchmark/statistics`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resetPeak }), signal: AbortSignal.timeout(5000) });
+  if (response.status === 404) return null; // Earlier frozen artifacts explicitly lack this instrumentation.
+  const body: unknown = await response.json(); assert.equal(response.status, 200, JSON.stringify(body));
+  return statisticsContract.parse(body);
+}
 function at(date: string, minute: number) { return new Date(localMidnightUtc(date, "America/Chicago").getTime() + minute * 60000); }
 type Workload = z.infer<typeof workloadSchema>;
 
@@ -154,6 +169,7 @@ try {
     const originals = await prisma.appointment.findMany({ where: { technician: { id: { startsWith: `${caseId}-tech-` } } }, orderBy: { id: "asc" } });
     await post("/internal/benchmark/cache", { warm: cache === "warm", points });
     if (legacy) legacyServer = await legacyBenchmarkServer(database, engine, required(artifactSha256));
+    const processBefore = await statistics(true);
     const attempts: Attempt[] = [];
     for (let offset = 0; offset < data.jobIds.length; offset += concurrency) {
       const group = await Promise.all(data.jobIds.slice(offset, offset + concurrency).map(async (jobId, localIndex): Promise<Attempt> => {
@@ -184,12 +200,13 @@ try {
       })); attempts.push(...group);
     }
     if (legacyServer) { await legacyServer.stop(); legacyServer = null; }
+    const processAfter = await statistics(false);
     const after = await audit(data.metroId);
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);
     const percentile = (p: number) => required(ordered[Math.min(ordered.length - 1, Math.ceil(p * ordered.length) - 1)]);
-    await record({ type: "case", revision, variant, caseId, size, workload, concurrency, cache, datasetFingerprint: data.fingerprint, before, after, attempts,
+    await record({ type: "case", revision, variant, caseId, size, workload, concurrency, cache, datasetFingerprint: data.fingerprint, before, after, attempts, processBefore, processAfter,
       served: attempts.filter(item => item.served).length, incomplete: attempts.filter(item => item.completed === false).length,
       unknownSearchCompletion: attempts.filter(item => item.completed === null).length,
       p50Ms: percentile(.5), p95Ms: percentile(.95), p99Ms: percentile(.99),

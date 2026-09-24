@@ -18,9 +18,9 @@ function localToday(): Date {
 
 async function post(path: string, body: unknown) {
   const response = await fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const payload = timeOffResult.parse(await response.json());
+  const payload: unknown = await response.json();
   assert.equal(response.status, 200, `${path}: ${JSON.stringify(payload)}`);
-  return payload;
+  return timeOffResult.parse(payload);
 }
 
 async function main() {

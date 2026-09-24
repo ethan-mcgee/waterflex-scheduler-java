@@ -17,10 +17,20 @@ public final class SearchDatabaseTelemetry implements BeanPostProcessor {
     @Override public Object postProcessAfterInitialization(Object bean, String name) {
         if (!(bean instanceof DataSource source)) return bean;
         return Required.value(Proxy.newProxyInstance(DataSource.class.getClassLoader(), new Class<?>[]{DataSource.class}, (Object _, Method method, @Nullable Object @Nullable [] args) -> {
-            Object result = invoke(source, Required.value(method), args);
             SearchDeadline deadline = SearchDeadline.current();
-            if (result instanceof Connection connection && method.getName().equals("getConnection") && deadline != null)
-                return connection(connection, deadline.telemetry());
+            boolean acquiring = method.getName().equals("getConnection") && deadline != null;
+            if (acquiring) {
+                long remaining = Required.value(deadline).timeout(Required.value(java.time.Duration.ofSeconds(5))).toMillis();
+                if (source instanceof com.zaxxer.hikari.HikariDataSource pool
+                        && remaining < Math.addExact(pool.getConnectionTimeout(), pool.getValidationTimeout()))
+                    throw new SearchAdmission.Busy("Insufficient deadline remaining for database admission");
+            }
+            Object result = invoke(source, Required.value(method), args);
+            if (result instanceof Connection connection && acquiring) {
+                try { Required.value(deadline).timeout(Required.value(java.time.Duration.ofSeconds(5))); }
+                catch (RuntimeException expired) { connection.close(); throw expired; }
+                return connection(connection, Required.value(deadline).telemetry());
+            }
             return result;
         }));
     }

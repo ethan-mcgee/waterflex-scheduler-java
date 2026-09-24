@@ -47,6 +47,8 @@ class RoadClientTest {
                 assertEquals(new RoadClient.Leg(60, 42), Required.value(matrix.get(2, java.util.concurrent.TimeUnit.SECONDS)).get("a>b"));
                 assertEquals(Map.of("selected", new RoadClient.Leg(60, 42)), roads.sparse(pairs, "test"));
                 assertEquals(1, requests.get());
+                assertEquals(1, roads.httpMeasurements().legRequests(), "Coalesced callers count one actual provider request");
+                assertEquals(4, roads.httpMeasurements().requestedPairs());
             } finally { release.countDown(); }
         } finally { roads.closeRoutingWork(); server.stop(0); }
     }

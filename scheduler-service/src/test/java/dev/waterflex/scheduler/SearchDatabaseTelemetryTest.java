@@ -8,6 +8,26 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SearchDatabaseTelemetryTest {
+    @Test void poolAdmissionRequiresEnoughBudgetAndClosesConnectionsArrivingAfterExpiry() throws Exception {
+        var pool = mock(com.zaxxer.hikari.HikariDataSource.class);
+        when(pool.getConnectionTimeout()).thenReturn(250L);
+        when(pool.getValidationTimeout()).thenReturn(250L);
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        var deadline = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)), clock::get);
+        var observed = (javax.sql.DataSource) new SearchDatabaseTelemetry().postProcessAfterInitialization(pool, "pool");
+        deadline.within(() -> {
+            SearchDeadline.beginCommit(); clock.set(4_501_000_000L);
+            assertThrows(SearchAdmission.Busy.class, observed::getConnection);
+            return true;
+        });
+        verify(pool, never()).getConnection();
+        var connection = mock(Connection.class);
+        clock.set(0);
+        when(pool.getConnection()).thenAnswer(_ -> { clock.set(5_000_000_000L); return connection; });
+        deadline.within(() -> { assertThrows(SearchDeadline.Expired.class, observed::getConnection); return true; });
+        verify(connection).close();
+    }
+
     @Test void statementAndCommitTransportUseRemainingBudgetAndExpiredRollbackStillRuns() throws Exception {
         var target = mock(Connection.class); var statement = mock(PreparedStatement.class);
         when(target.prepareStatement("SELECT 1")).thenReturn(statement);
