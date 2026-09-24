@@ -224,14 +224,20 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch("/api/book/refresh", { signal: requestSignal(), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
+      const response = await fetch("/api/book/refresh", { signal: AbortSignal.any([requestSignal(), AbortSignal.timeout(5000)]), method: "POST",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, deadlineEpochMs: Date.now() + 5000 }) });
       const data = await readResponse(response, offersResponse);
       const problem = appointmentSearchMessage(data.search);
       if (problem) { setOffers([]); setInvalidOffers(true); setError(problem); return; }
       setOffers(data.offers);
       setInvalidOffers(false);
       setNow(Date.now());
-    } catch (error) { setInvalidOffers(true); setError(error instanceof Error ? error.message : "Could not refresh times."); }
+    } catch (error) {
+      setInvalidOffers(true);
+      setError(error instanceof DOMException && error.name === "TimeoutError"
+        ? "The appointment search did not finish. Please retry to check available times."
+        : errorMessage(error, "Could not refresh times."));
+    }
     finally { recordBookingApiDuration(started, "refresh"); setSubmitting(false); }
   }
 

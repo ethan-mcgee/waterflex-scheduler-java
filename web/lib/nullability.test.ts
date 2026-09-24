@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 import { POST as confirm } from "../app/api/book/confirm/route";
 import { POST as select } from "../app/api/book/select/route";
+import { POST as refresh } from "../app/api/book/refresh/route";
 import { POST as preview } from "../app/api/dispatch/optimize/preview/route";
 import { POST as book } from "../app/api/book/route";
 import { POST as absence } from "../app/api/time-off/route";
@@ -13,6 +14,37 @@ import { availabilityRequest, readResponse, offersResponse, testInput, testAttem
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime } from "./timeOffView";
+
+test("refresh preserves the browser deadline and rejects expired or malformed values before scheduling", async () => {
+  const original = globalThis.fetch;
+  const deadline = Date.now() + 4000;
+  let calls = 0;
+  globalThis.fetch = async (_input, init) => {
+    calls++;
+    assert.equal(typeof init?.body, "string");
+    const body: unknown = JSON.parse(String(init?.body));
+    assert.ok(body && typeof body === "object" && "deadlineEpochMs" in body);
+    assert.equal(body.deadlineEpochMs, deadline, "Portal transport must not restart the browser's search budget");
+    return new Response(JSON.stringify({ jobId: "deadline-job", offers: [], search: {
+      outcome: "SEARCH_INCOMPLETE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: true,
+    } }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  const request = (value: unknown) => new NextRequest("http://localhost/api/book/refresh", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value),
+  });
+  try {
+    assert.equal((await refresh(request({ jobId: "deadline-job", deadlineEpochMs: deadline }))).status, 200);
+    assert.equal(calls, 1);
+    for (const value of [null, "5000", false, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])
+      assert.equal((await refresh(request({ jobId: "deadline-job", deadlineEpochMs: value }))).status, 400);
+    const expired = await refresh(request({ jobId: "deadline-job", deadlineEpochMs: Date.now() - 1 }));
+    assert.equal(expired.status, 200);
+    const incomplete = offersResponse.parse(await expired.json());
+    assert.equal(incomplete.search.outcome, "SEARCH_INCOMPLETE"); assert.equal(incomplete.search.retryable, true);
+    assert.equal(incomplete.search.prescribedSearchCompleted, false); assert.deepEqual(incomplete.offers, []);
+    assert.equal(calls, 1, "No database or scheduling work may begin after browser deadline expiry");
+  } finally { globalThis.fetch = original; }
+});
 
 test("time-off travel retains unavailable history and rejects malformed accounting", () => {
   const report = { technician_id: "tech", days: [], travel_before: null };

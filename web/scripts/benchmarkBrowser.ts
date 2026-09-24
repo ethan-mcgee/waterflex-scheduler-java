@@ -24,7 +24,7 @@ export async function browserBenchmark(portal: string) {
           const started = performance.now();
           try {
             const response = await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ jobId: id }), signal: AbortSignal.timeout(6000) });
+              body: JSON.stringify({ jobId: id, deadlineEpochMs: Date.now() + 5000 }), signal: AbortSignal.timeout(6000) });
             const body: unknown = await response.json();
             return { status: response.status, body, elapsedMs: performance.now() - started, error: null };
           } catch (failure) {
