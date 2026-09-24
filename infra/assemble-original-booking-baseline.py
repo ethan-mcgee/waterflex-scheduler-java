@@ -1,8 +1,9 @@
 """Assemble the explicitly split original baseline without discarding source evidence.
 
 The primary run supplies every case except 50-tech NEAR_CAPACITY. The parallel
-tail supplies precisely those six cases. This fixed partition is selected before
-results are known. Raw sources, failures and excluded duplicate rows are retained.
+tail supplies precisely those six cases. An optional separate ABSENCE tail also
+replaces its entire six-case group. Partitions are selected before results are
+known. Raw sources, failures and excluded duplicate rows are retained.
 """
 import argparse
 import gzip
@@ -26,8 +27,10 @@ def key(row):
     return row["size"], row["workload"], row["concurrency"], row["cache"]
 
 
-def assemble(primary, tail, output):
+def assemble(primary, tail, output, absence_tail=None):
     inputs = [load(primary), load(tail)]
+    if absence_tail is not None:
+        inputs.append(load(absence_tail))
     first, second = inputs[0][2], inputs[1][2]
     if first["revision"] != "2d17885141d4a901b06b3f9732530db85c951568":
         raise ValueError("This assembly is restricted to the unchanged original baseline")
@@ -35,11 +38,14 @@ def assemble(primary, tail, output):
         raise ValueError("A recorded original artifact hash is required")
     if first["concurrencyValues"] != [1, 5, 10] or first["caches"] != ["cold", "warm"]:
         raise ValueError("The planned concurrency/cache matrix is required")
-    for field in ("revision", "artifactSha256", "seed", "dates", "requests", "concurrencyValues", "caches", "serverMode"):
-        if first[field] != second[field]:
-            raise ValueError("Different experiment configuration: " + field)
+    for _, _, other in inputs[1:]:
+        for field in ("revision", "artifactSha256", "seed", "dates", "requests", "concurrencyValues", "caches", "serverMode"):
+            if first[field] != other[field]:
+                raise ValueError("Different experiment configuration: " + field)
     if first["serverMode"] != "legacy" or second["sizes"] != [50] or second["workloads"] != ["NEAR_CAPACITY"]:
         raise ValueError("Unexpected original-baseline partition")
+    if absence_tail is not None and (inputs[2][2]["sizes"] != [50] or inputs[2][2]["workloads"] != ["ABSENCE"]):
+        raise ValueError("Unexpected absence partition")
     if first["sizes"] != [20, 30, 50] or set(first["workloads"]) != {
             "SPARSE", "CLUSTERED", "DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW", "ABSENCE", "NEAR_CAPACITY"}:
         raise ValueError("The primary source must configure the full planned matrix")
@@ -50,7 +56,7 @@ def assemble(primary, tail, output):
     for index, (raw, rows, provenance) in enumerate(inputs):
         excluded = []
         failures = [row for row in rows if row.get("type") == "failure"]
-        if index == 1 and failures:
+        if index > 0 and failures:
             raise ValueError("The parallel tail must complete; failures cannot disappear during assembly")
         for row in rows:
             if row.get("type") != "case":
@@ -58,9 +64,10 @@ def assemble(primary, tail, output):
             case = key(row)
             if case not in expected:
                 raise ValueError("Unexpected source case: " + str(case))
-            belongs_to_tail = case[0] == 50 and case[1] == "NEAR_CAPACITY"
-            if belongs_to_tail != (index == 1):
-                if index == 1:
+            partition = 1 if case[0] == 50 and case[1] == "NEAR_CAPACITY" else (
+                2 if absence_tail is not None and case[0] == 50 and case[1] == "ABSENCE" else 0)
+            if partition != index:
+                if index > 0:
                     raise ValueError("The tail contains a case outside its declared partition")
                 excluded.append(case)
                 continue
@@ -84,7 +91,8 @@ def assemble(primary, tail, output):
                   "harnessSources": None, "auditRevision": None,
                   "assembly": {"revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
                                "scriptSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                               "partition": "Primary except 50/NEAR_CAPACITY; separate tail supplies that entire six-case group",
+                               "partition": "Primary except 50/NEAR_CAPACITY; separate tail supplies that entire six-case group"
+                                            + ("; third source supplies the entire 50/ABSENCE six-case group" if absence_tail is not None else ""),
                                "sources": sources,
                                "limitations": ["Independent schemas and processes shared hardware and the fixture provider.",
                                                 "Source provenance retains different harness and read-only audit revisions.",
@@ -109,5 +117,6 @@ if __name__ == "__main__":
     parser.add_argument("primary", type=Path)
     parser.add_argument("tail", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--absence-tail", type=Path)
     args = parser.parse_args()
-    assemble(args.primary, args.tail, args.output)
+    assemble(args.primary, args.tail, args.output, args.absence_tail)
