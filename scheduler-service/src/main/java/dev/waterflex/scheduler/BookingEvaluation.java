@@ -22,6 +22,7 @@ final class BookingEvaluation {
     private record Baseline(RouteEvaluator.Result total, Map<String, RouteEvaluator.Result> parts, int infeasibleRoutes) { }
     private final Map<Boolean, Baseline> baselines = new HashMap<>();
     private record Load(long paid, long capacity) { }
+    private @Nullable Map<String, Load> baselineLoads;
     private final Map<Map<Load, Integer>, BigDecimal> fairnessResults = new LinkedHashMap<>(128, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Map<Load, Integer>, BigDecimal> eldest) { return size() > 2048; }
     };
@@ -106,12 +107,15 @@ final class BookingEvaluation {
         Map<String, Instant> arrivals = timeline ? new HashMap<>(total.arrivals()) : new HashMap<>();
         Map<String, List<RouteEvaluator.WorkingSegment>> segments = timeline ? new TreeMap<>(total.segments()) : new TreeMap<>();
         List<RouteEvaluator.Result> changed = new ArrayList<>();
-        for (var entry : arrangement.routes().entrySet()) {
+        String insertion = insertionTechnician(arrangement, facts);
+        Map<String, List<String>> affected = insertion == null ? arrangement.routes()
+                : Required.value(Map.of(insertion, Required.value(arrangement.routes().get(insertion))));
+        for (var entry : affected.entrySet()) {
             checkpoint.run();
             String technician = Required.value(entry.getKey());
             List<String> order = Required.value(entry.getValue());
             List<String> original = Required.value(day.baseline().routes().get(technician));
-            if (order.equals(original) && order.stream().allMatch(id -> Objects.equals(facts.get(id), day.visits().get(id)))) continue;
+            if (insertion == null && order.equals(original) && order.stream().allMatch(id -> Objects.equals(facts.get(id), day.visits().get(id)))) continue;
             var before = Required.value(baseline.parts().get(technician));
             var after = route(technician, order, facts, confirmedOnly);
             changed.add(after);
@@ -149,9 +153,17 @@ final class BookingEvaluation {
     }
 
     private void coverage(Arrangement arrangement, Map<String, Visit> facts) {
+        // The private structural insertion constructor preserves exactly the validated parent
+        // routes and adds the overlay's one new visit. Other arrangements still require a scan.
+        if (insertionTechnician(arrangement, facts) != null) return;
         if (!arrangement.routes().keySet().equals(day.technicians().keySet())) throw new Incomplete("Arrangement technician coverage changed");
         Set<String> coverage = new HashSet<>(); arrangement.routes().values().forEach(coverage::addAll);
         if (!coverage.equals(facts.keySet())) throw new Incomplete("Arrangement visit coverage changed");
+    }
+
+    private @Nullable String insertionTechnician(Arrangement arrangement, Map<String, Visit> facts) {
+        return facts instanceof InsertionFacts inserted && inserted.day == day
+                ? arrangement.insertionTechnician(day.baseline(), inserted.visit.id()) : null;
     }
 
     private RouteEvaluator.Result result(boolean feasible, long paid, long overtime, long driving, long waiting, long meters,
@@ -163,6 +175,22 @@ final class BookingEvaluation {
     }
 
     BigDecimal fairness(Arrangement arrangement, Map<String, Visit> facts) {
+        String insertion = insertionTechnician(arrangement, facts);
+        if (insertion != null && facts instanceof InsertionFacts inserted && inserted.visit.serviceId().equals(requestedService)) {
+            Map<String, Load> loads = new HashMap<>(baselineLoads());
+            var measured = route(insertion, Required.value(arrangement.routes().get(insertion)), facts, true);
+            if (!measured.feasible()) throw new Incomplete("Confirmed workload cannot be evaluated");
+            if (loads.containsKey(insertion)) loads.put(insertion, new Load(measured.paidMinutes(), capacity(insertion)));
+            Map<Load, Integer> histogram = new HashMap<>();
+            loads.values().forEach(load -> histogram.merge(load, 1, (a, b) -> Required.value(a) + Required.value(b)));
+            BigDecimal cached = fairnessResults.get(histogram);
+            if (cached != null) return cached;
+            List<SchedulingPolicy.Workload> workloads = new ArrayList<>();
+            loads.forEach((id, load) -> workloads.add(new SchedulingPolicy.Workload(Required.value(id), load.paid(), load.capacity(), Required.value(BigDecimal.ZERO))));
+            BigDecimal variance = SchedulingPolicy.fairness(workloads).variance();
+            fairnessResults.put(Required.value(Map.copyOf(histogram)), variance);
+            return variance;
+        }
         Set<String> services = new HashSet<>(); services.add(requestedService);
         facts.values().stream().filter(visit -> !visit.reservation()).forEach(visit -> services.add(visit.serviceId()));
         List<SchedulingPolicy.Workload> workloads = new ArrayList<>();
@@ -181,5 +209,22 @@ final class BookingEvaluation {
         BigDecimal variance = SchedulingPolicy.fairness(workloads).variance();
         fairnessResults.put(Required.value(Map.copyOf(histogram)), variance);
         return variance;
+    }
+
+    private Map<String, Load> baselineLoads() {
+        Map<String, Load> cached = baselineLoads;
+        if (cached != null) return cached;
+        Set<String> services = new HashSet<>(); services.add(requestedService);
+        day.visits().values().stream().filter(visit -> !visit.reservation()).forEach(visit -> services.add(visit.serviceId()));
+        Map<String, Load> loads = new HashMap<>();
+        Baseline confirmed = baseline(true);
+        for (Technician technician : day.technicians().values()) {
+            long capacity = capacity(technician.id());
+            if (capacity == 0 || Collections.disjoint(services, technician.services())) continue;
+            var measured = Required.value(confirmed.parts().get(technician.id()));
+            if (!measured.feasible()) throw new Incomplete("Confirmed workload cannot be evaluated");
+            loads.put(technician.id(), new Load(measured.paidMinutes(), capacity));
+        }
+        cached = Required.value(Map.copyOf(loads)); baselineLoads = cached; return cached;
     }
 }
