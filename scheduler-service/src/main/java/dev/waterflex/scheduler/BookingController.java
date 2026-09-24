@@ -68,10 +68,10 @@ public class BookingController {
                     return search(request, deadline, started);
                 }
             });
-        } catch (SearchDeadline.Expired | QueryTimeoutException | org.springframework.transaction.TransactionTimedOutException failure) {
+        } catch (SearchDeadline.Expired | QueryTimeoutException | org.springframework.transaction.TransactionTimedOutException | org.springframework.transaction.TransactionSystemException failure) {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SEARCH_INCOMPLETE, started, 0);
         } catch (SearchAdmission.Busy | org.springframework.dao.PessimisticLockingFailureException | org.springframework.transaction.CannotCreateTransactionException
-                | org.springframework.jdbc.CannotGetJdbcConnectionException failure) {
+                | org.springframework.dao.DataAccessResourceFailureException failure) {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SERVICE_BUSY, started, 0);
         }
     }
@@ -96,9 +96,9 @@ public class BookingController {
             org.slf4j.LoggerFactory.getLogger(BookingController.class).warn("Booking routing failure for job {}", request.jobId(), exception);
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.ROUTING_UNAVAILABLE, started, queueMs);
         } catch (SearchAdmission.Busy | PessimisticLockingFailureException | org.springframework.transaction.CannotCreateTransactionException
-                 | org.springframework.jdbc.CannotGetJdbcConnectionException exception) {
+                 | org.springframework.dao.DataAccessResourceFailureException exception) {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SERVICE_BUSY, started, queueMs);
-        } catch (QueryTimeoutException | org.springframework.transaction.TransactionTimedOutException | SearchDeadline.Expired exception) {
+        } catch (QueryTimeoutException | org.springframework.transaction.TransactionTimedOutException | org.springframework.transaction.TransactionSystemException | SearchDeadline.Expired exception) {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SEARCH_INCOMPLETE, started, queueMs);
         } catch (BookingSnapshot.Incomplete exception) {
             org.slf4j.LoggerFactory.getLogger(BookingController.class).warn("Incomplete booking snapshot for job {}", request.jobId(), exception);

@@ -8,6 +8,29 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SearchDatabaseTelemetryTest {
+    @Test void statementAndCommitTransportUseRemainingBudgetAndExpiredRollbackStillRuns() throws Exception {
+        var target = mock(Connection.class); var statement = mock(PreparedStatement.class);
+        when(target.prepareStatement("SELECT 1")).thenReturn(statement);
+        var clock = new java.util.concurrent.atomic.AtomicLong();
+        var deadline = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)), clock::get);
+        var connection = SearchDatabaseTelemetry.connection(target, deadline.telemetry());
+        deadline.within(() -> {
+            try {
+                connection.prepareStatement("SELECT 1").executeUpdate();
+                clock.set(3_500_000_000L); SearchDeadline.beginCommit(); connection.commit();
+                clock.set(5_000_000_000L);
+                assertThrows(SearchDeadline.Expired.class, connection::commit);
+                connection.rollback();
+            } catch (SQLException failure) { throw new IllegalStateException(failure); }
+            return true;
+        });
+        var timeouts = mockingDetails(target).getInvocations().stream()
+                .filter(call -> call.getMethod().getName().equals("setNetworkTimeout"))
+                .map(call -> Required.value(call.getArgument(1, Integer.class))).toList();
+        assertEquals(java.util.List.of(4000, 1500, 1), timeouts);
+        verify(target).commit(); verify(target).rollback();
+    }
+
     @Test void preservesNullBindingsResultsExceptionsAndConnectionLifecycle() throws Exception {
         var target = mock(Connection.class); var statement = mock(PreparedStatement.class);
         when(target.prepareStatement("SELECT id FROM job FOR UPDATE")).thenReturn(statement);
