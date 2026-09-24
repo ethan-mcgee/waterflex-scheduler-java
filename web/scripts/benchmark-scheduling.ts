@@ -13,6 +13,7 @@ import { localMidnightUtc } from "../lib/date";
 import { technicianColor } from "../lib/technicianColor";
 import { createSeededRandom, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
 import { legacyBenchmarkServer, legacyOffers, LegacyRequestUncertain } from "./benchmarkLegacy";
+import { browserBenchmark, BrowserSearchError } from "./benchmarkBrowser";
 
 async function main() {
 const database = new URL(required(process.env.DATABASE_URL));
@@ -21,7 +22,7 @@ assert.ok(required(database.searchParams.get("schema")).startsWith("benchmark_")
 const revision = required(process.env.BENCHMARK_REVISION, "Exact server revision");
 const variant = required(process.env.BENCHMARK_VARIANT, "Named implementation/configuration stage");
 const harnessRevision = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "scripts/benchmarkLegacy.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
+const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "scripts/benchmarkLegacy.ts", "scripts/benchmarkBrowser.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
 execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
 const harnessSources = await Promise.all(sourcePaths.map(async path => ({ path, sha256: createHash("sha256").update(await readFile(path)).digest("hex") })));
 const artifactSha256 = process.env.BENCHMARK_ARTIFACT_SHA256 == null ? null : z.string().regex(/^[a-f0-9]{64}$/i).parse(process.env.BENCHMARK_ARTIFACT_SHA256);
@@ -38,6 +39,7 @@ const legacy = z.enum(["current", "legacy"]).parse(process.env.BENCHMARK_SERVER_
 const auditEngine = legacy ? required(process.env.BENCHMARK_AUDIT_URL) : engine;
 if (legacy) assert.notEqual(auditEngine, engine, "Legacy audits require a separate current read-only evaluator");
 let legacyServer: Awaited<ReturnType<typeof legacyBenchmarkServer>> | null = null;
+let browser: Awaited<ReturnType<typeof browserBenchmark>> | null = null;
 const prisma = new PrismaClient();
 const sizes = (process.env.BENCHMARK_SIZES ?? "20,30,50").split(",").map(value => z.union([z.literal(20), z.literal(30), z.literal(50)]).parse(Number(value)));
 const workloadSchema = z.enum(["SPARSE", "CLUSTERED", "DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW", "ABSENCE", "NEAR_CAPACITY"]);
@@ -166,10 +168,16 @@ async function removeSuccessfulCase(caseId: string) {
 }
 try {
   assert.equal(await prisma.metro.count(), 0, "Start with a freshly migrated, unseeded benchmark schema; failed datasets are retained for inspection");
+  if (process.env.BENCHMARK_PORTAL_URL != null) {
+    assert.equal(legacy, false, "Original server comparison uses its unchanged API directly");
+    browser = await browserBenchmark(process.env.BENCHMARK_PORTAL_URL);
+  }
   await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
+    browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: "validated-job refresh" },
     serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
     legacyLimitations: legacy ? "Original unchanged server: 120-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics." : null,
-    scope: "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
+    scope: browser == null ? "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport"
+      : "Browser HTTP through the portal including scheduler cancellation/acknowledgement; starts with validated job/address; excludes address entry/geocoding and rendering", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
   for (const size of sizes) for (const workload of workloads) for (const concurrency of concurrencyValues) for (const cache of caches) {
     const caseId = `benchmark-${randomUUID()}`;
     const data = await dataset(size, workload, caseId);
@@ -189,8 +197,9 @@ try {
         const started = performance.now(); let offered: string | null = null;
         let searched: Attempt | null = null; let selectionStarted: number | null = null;
         try {
-          const response = legacy ? { ...await legacyOffers(engine, jobId), search: undefined } : await requestSlots(jobId);
-          const elapsedMs = performance.now() - started;
+          const browserResult = browser == null ? null : await browser.search(jobId);
+          const response = browserResult?.response ?? (legacy ? { ...await legacyOffers(engine, jobId), search: undefined } : await requestSlots(jobId));
+          const elapsedMs = browserResult?.elapsedMs ?? performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
           const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search,
             outcome: response.search?.outcome ?? (response.offers.length ? "LEGACY_AVAILABLE" : "LEGACY_NO_OFFER"), completed: response.search?.prescribedSearchCompleted ?? null,
@@ -208,7 +217,7 @@ try {
           if (offered) await releaseOffers(jobId, offered).catch(() => undefined);
           if (searched && selectionStarted != null) return { ...searched, outcome: "SELECTION_CONFLICT", served: false,
             selectionElapsedMs: performance.now() - selectionStarted, error: errorMessage(error) };
-          return { index: offset + localIndex, elapsedMs: performance.now() - started, outcome: offered ? "SELECTION_CONFLICT" : "SEARCH_ERROR", completed: legacy ? null : false, offers: offered ? 1 : 0, served: false, error: errorMessage(error) };
+          return { index: offset + localIndex, elapsedMs: error instanceof BrowserSearchError ? error.elapsedMs : performance.now() - started, outcome: offered ? "SELECTION_CONFLICT" : "SEARCH_ERROR", completed: legacy ? null : false, offers: offered ? 1 : 0, served: false, error: errorMessage(error) };
         }
       })); attempts.push(...group);
     }
@@ -230,6 +239,6 @@ try {
     await removeSuccessfulCase(caseId);
   }
 } catch (error) { await record({ type: "failure", message: errorMessage(error), at: new Date().toISOString() }); throw error; }
-finally { if (legacyServer) await legacyServer.stop(); await output.close(); await prisma.$disconnect(); }
+finally { if (legacyServer) await legacyServer.stop(); if (browser) await browser.close(); await output.close(); await prisma.$disconnect(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
