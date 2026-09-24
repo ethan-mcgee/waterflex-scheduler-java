@@ -57,7 +57,7 @@ public final class SearchAdmission {
                     queue.removeFirst();
                     return start(kind, started);
                 }
-                changed.awaitNanos(deadline.remainingNanos());
+                changed.awaitNanos(Math.min(deadline.remainingNanos(), TimeUnit.MILLISECONDS.toNanos(50)));
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

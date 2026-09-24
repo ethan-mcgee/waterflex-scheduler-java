@@ -46,10 +46,10 @@ test("scheduler client preserves status and rejects malformed success and transp
   const original = globalThis.fetch;
   try {
     for (const [body, status, expected] of [[null, 409, 409], [null, 200, 502], [{ jobId: "j", offers: null }, 200, 502]] as const) {
-      globalThis.fetch = async () => Response.json(body, { status });
+      globalThis.fetch = async input => String(input).endsWith("/cancel-search") ? Response.json({ success: true }) : Response.json(body, { status });
       await assert.rejects(requestSlots("j"), e => e instanceof EngineError && e.status === expected);
     }
-    globalThis.fetch = async () => { throw new TypeError("offline"); };
+    globalThis.fetch = async input => { if (String(input).endsWith("/cancel-search")) return Response.json({ success: true }); throw new TypeError("offline"); };
     await assert.rejects(requestSlots("j"), e => e instanceof EngineError && e.status === 503);
   } finally { globalThis.fetch = original; }
 });
@@ -112,13 +112,31 @@ test("selection conflicts preserve retryable refresh outcomes and transport fail
     const result: unknown = await response.json();
     assert.equal(offersResponse.parse(result).search.outcome, "SERVICE_BUSY");
     calls = 0;
-    globalThis.fetch = async () => {
+    globalThis.fetch = async input => {
+      if (String(input).endsWith("/cancel-search")) return Response.json({ success: true });
       if (++calls === 1) return Response.json({ detail: "Changed" }, { status: 409 });
       throw new TypeError("offline");
     };
     const unavailable = await select(new NextRequest("http://localhost/api/book/select", { method: "POST", body: JSON.stringify({ jobId: "job", offerId: "offer" }) }));
     assert.equal(unavailable.status, 503);
     assert.deepEqual(await unavailable.json(), { error: "Scheduling service unavailable" });
+  } finally { globalThis.fetch = original; }
+});
+
+test("an already abandoned search sends only durable cancellation with its own live signal", async () => {
+  const original = globalThis.fetch;
+  try {
+    const calls: string[] = [];
+    globalThis.fetch = async (input, init) => {
+      calls.push(String(input));
+      assert.equal(init?.signal?.aborted, false);
+      const body: unknown = JSON.parse(String(init?.body));
+      assert.ok(typeof body === "object" && body !== null && "searchRequestId" in body && typeof body.searchRequestId === "string");
+      return Response.json({ success: true });
+    };
+    const controller = new AbortController(); controller.abort();
+    await assert.rejects(requestSlots("job", false, 5000, controller.signal), /cancelled/);
+    assert.equal(calls.length, 1); assert.ok(calls[0]?.endsWith("/cancel-search"));
   } finally { globalThis.fetch = original; }
 });
 

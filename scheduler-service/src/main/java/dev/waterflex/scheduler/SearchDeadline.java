@@ -17,6 +17,9 @@ public final class SearchDeadline {
     private final long started;
     private long durationNanos;
     private boolean committing;
+    private volatile boolean cancelled;
+    private Runnable commitGuard = () -> { };
+    private java.util.function.Consumer<String> reservationRecorder = _ -> { };
 
     public SearchDeadline(Duration duration) { this(duration, System::nanoTime); }
     SearchDeadline(Duration duration, LongSupplier clock) {
@@ -30,7 +33,17 @@ public final class SearchDeadline {
     public long remainingNanos() { return Math.max(0, durationNanos - (clock.getAsLong() - started)); }
     public long explorationNanos() { return Math.max(0, remainingNanos() - 1_000_000_000L); }
     public void requireTime() {
-        if (remainingNanos() == 0 || Thread.currentThread().isInterrupted()) throw new Expired();
+        if (cancelled || remainingNanos() == 0 || Thread.currentThread().isInterrupted()) throw new Expired();
+    }
+    public void cancel() { cancelled = true; }
+    void cancellationGuard(Runnable guard, java.util.function.Consumer<String> recorder) { commitGuard = guard; reservationRecorder = recorder; }
+    public static void beforeCommit() {
+        SearchDeadline current = CURRENT.get();
+        if (current != null) { current.requireTime(); current.commitGuard.run(); current.requireTime(); }
+    }
+    public static void reservedSet(String id) {
+        SearchDeadline current = CURRENT.get();
+        if (current != null) { current.requireTime(); current.reservationRecorder.accept(id); }
     }
     public Duration timeout(Duration maximum) {
         requireTime();

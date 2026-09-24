@@ -38,7 +38,7 @@ class NullabilityTest {
     }
     @Test void malformedRequestsNeverReachBooking() throws Exception {
         BookingService booking = mock(BookingService.class);
-        var http = MockMvcBuilders.standaloneSetup(new BookingController(booking, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), false))
+        var http = MockMvcBuilders.standaloneSetup(new BookingController(booking, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false))
                 .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
         for (String path : List.of("/v1/offers", "/v1/offers/select", "/v1/holds/confirm", "/v1/appointments/cancel")) {
             for (String body : List.of("null", "[]", "{}", "{", "false", "{\"jobId\":12,\"holdId\":false}", "{\"jobId\":\"\",\"holdId\":\" \"}"))

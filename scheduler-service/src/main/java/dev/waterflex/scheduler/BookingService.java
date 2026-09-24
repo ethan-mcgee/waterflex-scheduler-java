@@ -64,7 +64,7 @@ public class BookingService {
         SearchDeadline.database(jdbc);
         org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
                 new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override public void beforeCommit(boolean readOnly) { SearchDeadline.checkpoint(); }
+                    @Override public void beforeCommit(boolean readOnly) { SearchDeadline.beforeCommit(); }
                 });
         lockJob(jobId);
         Job job = job(jobId);
@@ -91,6 +91,7 @@ public class BookingService {
         String setId = UUID.randomUUID().toString();
         SearchDeadline.database(jdbc);
         jdbc.update("INSERT INTO booking_offer_set (id, \"jobId\", \"expiresAt\") VALUES (?, ?, ?)", setId, jobId, stamp(Required.value(expiry)));
+        SearchDeadline.reservedSet(Required.value(setId));
         for (Candidate c : windows.values()) {
             if (result.size() == 4) break;
             SearchDeadline.database(jdbc);

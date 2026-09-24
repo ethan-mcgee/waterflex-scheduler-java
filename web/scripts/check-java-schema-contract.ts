@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 const expected: Record<string, string[]> = {
+  booking_search_request: ["id", "jobId", "deadlineAt", "cancelledAt", "acknowledgedAt", "offerSetId", "cleanedAt"],
   appointment: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "plannedStart", "plannedEnd", "sequence"],
   job: ["id", "addressId", "serviceId", "durationMin", "status", "bookingRequestId"],
   technician: ["id", "homeLat", "homeLng", "shiftStartMin", "shiftEndMin", "maxDailyMinutes", "maxOvertimeMinutes", "active"],

@@ -40,7 +40,7 @@ final class DirectedLegFlights implements AutoCloseable {
         for (var entry : awaited.entrySet()) {
             try {
                 // Do not cancel on timeout: another customer can still need this result.
-                var value = entry.getValue().get(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(20))).toNanos(), TimeUnit.NANOSECONDS);
+                var value = await(Required.value(entry.getValue()));
                 SearchDeadline.checkpoint();
                 RoadClient.Leg leg = value.orElse(null);
                 if (leg != null) result.put(entry.getKey(), leg);
@@ -57,6 +57,18 @@ final class DirectedLegFlights implements AutoCloseable {
             }
         }
         return Required.value(Map.copyOf(result));
+    }
+
+    private static Optional<RoadClient.Leg> await(CompletableFuture<Optional<RoadClient.Leg>> future)
+            throws TimeoutException, InterruptedException, ExecutionException {
+        long expires = System.nanoTime() + SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(20))).toNanos();
+        while (true) {
+            SearchDeadline.checkpoint();
+            long remaining = expires - System.nanoTime();
+            if (remaining <= 0) throw new TimeoutException();
+            try { return Required.value(future.get(Math.min(remaining, TimeUnit.MILLISECONDS.toNanos(50)), TimeUnit.NANOSECONDS)); }
+            catch (TimeoutException timeout) { if (System.nanoTime() >= expires) throw timeout; }
+        }
     }
 
     private void run(List<RoadClient.Pair> owned, String identity,

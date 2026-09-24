@@ -76,7 +76,7 @@ public final class PurgeRoutesController {
                 stops.add(new Stop(Required.value(id), start, Required.value(start.plusSeconds(60L * Required.value(visits.get(id)).durationMinutes()))));
             }
             List<Segment> segments = Required.value(evaluated.segments().get(technician)).stream()
-                    .map(segment -> new Segment(segment.departure(), segment.returnedAt(), segment.visitIds())).toList();
+                    .<Segment>map(segment -> new Segment(segment.departure(), segment.returnedAt(), segment.visitIds())).toList();
             result.add(new Prepared(technician, date, version, identity, stops, Required.value(segments)));
         }
         return result;

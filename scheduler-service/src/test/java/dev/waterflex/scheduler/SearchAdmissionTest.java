@@ -12,6 +12,22 @@ import static org.junit.jupiter.api.Assertions.*;
 class SearchAdmissionTest {
     private static SearchDeadline deadline(long millis) { return new SearchDeadline(Required.value(Duration.ofMillis(millis))); }
 
+    @Test void cancellationStopsQueuedWorkAndCommitWithoutReleasingAnotherPermit() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 16);
+        SearchDeadline cancelled = deadline(5000);
+        try (var occupied = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(5000)); var pool = Executors.newSingleThreadExecutor()) {
+            assertTrue(occupied.queueMillis() >= 0);
+            var waiting = pool.submit(() -> assertThrows(SearchDeadline.Expired.class,
+                    () -> admission.acquire(SearchAdmission.Kind.BOOKING, cancelled)));
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+            while (admission.state().queuedBookings() == 0 && System.nanoTime() < until) Thread.sleep(1);
+            assertEquals(1, admission.state().queuedBookings());
+            cancelled.cancel(); waiting.get(1, TimeUnit.SECONDS);
+            assertEquals(1, admission.state().active()); assertEquals(0, admission.state().queuedBookings());
+        }
+        cancelled.within(() -> { assertThrows(SearchDeadline.Expired.class, SearchDeadline::beforeCommit); return true; });
+    }
+
     @Test void queueBoundAndBackgroundLimitReleaseWithoutLeakingPermits() {
         SearchAdmission admission = new SearchAdmission(2, 0);
         try (var background = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(1000))) {

@@ -46,7 +46,7 @@ public final class ReservationCommit {
         return Required.value(transaction.execute(_ -> {
             SearchDeadline.database(jdbc);
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override public void beforeCommit(boolean readOnly) { SearchDeadline.checkpoint(); }
+                @Override public void beforeCommit(boolean readOnly) { SearchDeadline.beforeCommit(); }
             });
             if (jdbc.query("SELECT id FROM job WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), jobId).size() != 1)
                 throw conflict("Job no longer exists");
