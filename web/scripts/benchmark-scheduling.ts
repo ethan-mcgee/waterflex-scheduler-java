@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { open } from "node:fs/promises";
+import { open, readFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { cpus, totalmem } from "node:os";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -18,6 +19,11 @@ assert.equal(database.pathname, "/waterflex_test");
 assert.ok(required(database.searchParams.get("schema")).startsWith("benchmark_"), "Use a dedicated benchmark_ schema");
 const revision = required(process.env.BENCHMARK_REVISION, "Exact server revision");
 const variant = required(process.env.BENCHMARK_VARIANT, "Named implementation/configuration stage");
+const harnessRevision = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
+execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
+const harnessSources = await Promise.all(sourcePaths.map(async path => ({ path, sha256: createHash("sha256").update(await readFile(path)).digest("hex") })));
+const artifactSha256 = process.env.BENCHMARK_ARTIFACT_SHA256 == null ? null : z.string().regex(/^[a-f0-9]{64}$/i).parse(process.env.BENCHMARK_ARTIFACT_SHA256);
 const engine = required(process.env.ENGINE_URL);
 const prisma = new PrismaClient();
 const sizes = (process.env.BENCHMARK_SIZES ?? "20,30,50").split(",").map(value => z.union([z.literal(20), z.literal(30), z.literal(50)]).parse(Number(value)));
@@ -100,7 +106,7 @@ async function dataset(size: number, workload: Workload, caseId: string) {
   return { metroId: metro.id, jobIds, fingerprint: createHash("sha256").update(JSON.stringify({ size, workload, seed, dates, points, manifest })).digest("hex") };
 }
 
-type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch> };
+type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch>; selectionElapsedMs?: number };
 async function removeSuccessfulCase(caseId: string) {
   const jobs = { id: { startsWith: `${caseId}-` } };
   const technicians = { id: { startsWith: `${caseId}-tech-` } };
@@ -127,7 +133,7 @@ async function removeSuccessfulCase(caseId: string) {
 }
 try {
   assert.equal(await prisma.metro.count(), 0, "Start with a freshly migrated, unseeded benchmark schema; failed datasets are retained for inspection");
-  await record({ type: "provenance", revision, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
+  await record({ type: "provenance", revision, artifactSha256, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
     scope: "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
   for (const size of sizes) for (const workload of workloads) for (const concurrency of concurrencyValues) for (const cache of caches) {
     const caseId = `benchmark-${randomUUID()}`;
@@ -144,16 +150,23 @@ try {
     for (let offset = 0; offset < data.jobIds.length; offset += concurrency) {
       const group = await Promise.all(data.jobIds.slice(offset, offset + concurrency).map(async (jobId, localIndex): Promise<Attempt> => {
         const started = performance.now(); let offered: string | null = null;
+        let searched: Attempt | null = null; let selectionStarted: number | null = null;
         try {
           const response = await requestSlots(jobId);
           const elapsedMs = performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
           const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search, outcome: response.search.outcome, completed: response.search.prescribedSearchCompleted,
             offers: response.offers.length, served: false };
-          if (selected) { offered = selected.offerId; await selectOffer(jobId, selected.offerId); attempt.served = true; attempt.serviceDate = selected.date; }
+          searched = attempt;
+          if (selected) {
+            offered = selected.offerId; selectionStarted = performance.now(); await selectOffer(jobId, selected.offerId);
+            attempt.selectionElapsedMs = performance.now() - selectionStarted; attempt.served = true; attempt.serviceDate = selected.date;
+          }
           return attempt;
         } catch (error) {
           if (offered) await releaseOffers(jobId, offered).catch(() => undefined);
+          if (searched && selectionStarted != null) return { ...searched, outcome: "SELECTION_CONFLICT", served: false,
+            selectionElapsedMs: performance.now() - selectionStarted, error: errorMessage(error) };
           return { index: offset + localIndex, elapsedMs: performance.now() - started, outcome: offered ? "SELECTION_CONFLICT" : "SEARCH_ERROR", completed: false, offers: offered ? 1 : 0, served: false, error: errorMessage(error) };
         }
       })); attempts.push(...group);
