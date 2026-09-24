@@ -31,6 +31,7 @@ class AssemblyTest(unittest.TestCase):
         for size, workload, concurrency, cache in itertools.product(self.provenance["sizes"], self.provenance["workloads"],
                                                                    [1, 5, 10], ["cold", "warm"]):
             row = {"type": "case", "size": size, "workload": workload, "concurrency": concurrency, "cache": cache,
+                   "datasetFingerprint": f"{size}/{workload}/{concurrency}/{cache}",
                    "independentlyValidated": True, "promiseViolations": 0,
                    "attempts": [{"completed": None} for _ in range(30)], "after": {"routingIdentity": "unit-fixture"}}
             (self.tail_cases if size == 50 and workload == "NEAR_CAPACITY" else self.primary_cases).append(row)
@@ -109,6 +110,40 @@ class AssemblyTest(unittest.TestCase):
         self.write_sources()
         with self.assertRaisesRegex(ValueError, "requires the declared absence"):
             assembly.assemble(self.primary, self.tail, self.output, middle_tail=self.tail)
+
+    def recheck_sources(self):
+        self.write_sources()
+        assembly.assemble(self.primary, self.tail, self.output)
+        paths = []
+        for workload, concurrency in [("DISPERSED", 10), ("MIXED_SKILL", 1)]:
+            path = self.root / f"recheck-{workload}.jsonl"
+            provenance = {**self.provenance, "sizes": [20], "workloads": [workload], "concurrencyValues": [concurrency]}
+            rows = [row for row in self.primary_cases if row["size"] == 20 and row["workload"] == workload and row["concurrency"] == concurrency]
+            path.write_text("".join(json.dumps(row) + "\n" for row in [provenance] + rows), encoding="utf8")
+            paths.append(path)
+        return paths
+
+    def test_declared_rechecks_preserve_the_original_matrix_and_unknown_completion(self):
+        dispersed, mixed = self.recheck_sources()
+        corrected = self.root / "corrected.jsonl"
+        original = self.output.read_bytes()
+        assembly.correct_rechecks(self.output, dispersed, mixed, corrected)
+        rows = [json.loads(line) for line in corrected.read_text().splitlines()]
+        self.assertEqual(127, len(rows))
+        self.assertEqual(4, len(rows[0]["correction"]["replacedCaseKeys"]))
+        self.assertEqual(4, sum("correctionSourceIndex" in row for row in rows[1:]))
+        self.assertTrue(all(row["attempts"][0]["completed"] is None for row in rows[1:]))
+        self.assertEqual(original, gzip.decompress(corrected.with_name(corrected.name + ".source-0.gz").read_bytes()))
+
+    def test_recheck_with_changed_request_stream_cannot_replace_a_case(self):
+        dispersed, mixed = self.recheck_sources()
+        rows = [json.loads(line) for line in dispersed.read_text().splitlines()]
+        rows[1]["datasetFingerprint"] = "different"
+        dispersed.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf8")
+        corrected = self.root / "corrected.jsonl"
+        with self.assertRaisesRegex(ValueError, "request stream differs"):
+            assembly.correct_rechecks(self.output, dispersed, mixed, corrected)
+        self.assertFalse(corrected.exists())
 
 
 if __name__ == "__main__":

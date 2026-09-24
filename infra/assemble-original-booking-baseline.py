@@ -27,6 +27,61 @@ def key(row):
     return row["size"], row["workload"], row["concurrency"], row["cache"]
 
 
+def correct_rechecks(original, dispersed, mixed, output):
+    """Replace only the four declared connection-incident rechecks, retaining all sources."""
+    inputs = [load(original), load(dispersed), load(mixed)]
+    first = inputs[0][2]
+    if first["revision"] != "2d17885141d4a901b06b3f9732530db85c951568" or "assembly" not in first:
+        raise ValueError("Correction requires the complete explicitly assembled original baseline")
+    rows = [row for row in inputs[0][1] if row.get("type") == "case"]
+    cases = {key(row): row for row in rows}
+    if len(rows) != 126 or len(cases) != 126:
+        raise ValueError("The original matrix must contain all 126 unique cases")
+    replaced = []
+    for index, workload, concurrency in [(1, "DISPERSED", 10), (2, "MIXED_SKILL", 1)]:
+        _, source_rows, provenance = inputs[index]
+        for field in ("revision", "artifactSha256", "seed", "dates", "requests", "serverMode"):
+            if first[field] != provenance[field]:
+                raise ValueError("Recheck configuration differs: " + field)
+        if provenance["sizes"] != [20] or provenance["workloads"] != [workload] or provenance["concurrencyValues"] != [concurrency] or provenance["caches"] != ["cold", "warm"]:
+            raise ValueError("Unexpected recheck partition")
+        if any(row.get("type") == "failure" for row in source_rows):
+            raise ValueError("A failed recheck cannot replace the original observations")
+        rechecks = [row for row in source_rows if row.get("type") == "case"]
+        expected = {(20, workload, concurrency, cache) for cache in ("cold", "warm")}
+        if len(rechecks) != 2 or {key(row) for row in rechecks} != expected:
+            raise ValueError("Recheck cases are missing or duplicated")
+        for row in rechecks:
+            case = key(row)
+            prior = cases[case]
+            if not isinstance(prior.get("datasetFingerprint"), str) or prior["datasetFingerprint"] != row.get("datasetFingerprint"):
+                raise ValueError("Recheck request stream differs")
+            if row.get("independentlyValidated") is not True or row.get("promiseViolations") != 0 or len(row["attempts"]) != first["requests"]:
+                raise ValueError("Recheck lacks complete independently validated observations")
+            if prior["after"]["routingIdentity"] != row["after"]["routingIdentity"]:
+                raise ValueError("Recheck routing identity differs")
+            cases[case] = {**row, "correctionSourceIndex": index}
+            replaced.append(case)
+    sources = [{"source": index, "archive": output.name + f".source-{index}.gz",
+                "rawSha256": hashlib.sha256(raw).hexdigest(), "provenance": provenance}
+               for index, (raw, _, provenance) in enumerate(inputs)]
+    provenance = {**first, "variant": "original-baseline-explicit-connection-rechecks", "correction": {
+        "reason": "Declared whole cold/warm pairs for the shared database connection incident; original failures remain archived.",
+        "replacedCaseKeys": sorted(replaced), "sources": sources,
+        "scriptSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}}
+    targets = [output] + [output.with_name(source["archive"]) for source in sources]
+    if any(path.exists() for path in targets):
+        raise FileExistsError("Correction output already exists")
+    for source, (raw, _, _) in zip(sources, inputs, strict=True):
+        with output.with_name(source["archive"]).open("xb") as archive:
+            archive.write(gzip.compress(raw))
+    with output.open("x", encoding="utf8") as stream:
+        stream.write(json.dumps(provenance) + "\n")
+        for case in sorted(cases):
+            stream.write(json.dumps(cases[case]) + "\n")
+    print(json.dumps({"cases": len(cases), "explicitlyReplaced": len(replaced), "output": str(output)}))
+
+
 def assemble(primary, tail, output, absence_tail=None, middle_tail=None):
     inputs = [load(primary), load(tail)]
     if absence_tail is not None:
@@ -129,5 +184,14 @@ if __name__ == "__main__":
     parser.add_argument("output", type=Path)
     parser.add_argument("--absence-tail", type=Path)
     parser.add_argument("--middle-tail", type=Path)
+    parser.add_argument("--correct-rechecks", action="store_true", help="Interpret primary, tail, output as assembled baseline, dispersed recheck, corrected output; --mixed-recheck is required")
+    parser.add_argument("--mixed-recheck", type=Path)
     args = parser.parse_args()
-    assemble(args.primary, args.tail, args.output, args.absence_tail, args.middle_tail)
+    if args.correct_rechecks:
+        if args.mixed_recheck is None or args.absence_tail is not None or args.middle_tail is not None:
+            parser.error("Correction requires --mixed-recheck and no assembly tail options")
+        correct_rechecks(args.primary, args.tail, args.mixed_recheck, args.output)
+    else:
+        if args.mixed_recheck is not None:
+            parser.error("--mixed-recheck requires --correct-rechecks")
+        assemble(args.primary, args.tail, args.output, args.absence_tail, args.middle_tail)
