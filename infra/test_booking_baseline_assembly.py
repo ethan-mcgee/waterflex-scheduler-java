@@ -111,6 +111,27 @@ class AssemblyTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "requires the declared absence"):
             assembly.assemble(self.primary, self.tail, self.output, middle_tail=self.tail)
 
+    def test_near_timeout_retains_sequential_cases_and_continues_parallel_cases(self):
+        absence, middle, parallel = (self.root / name for name in ("absence.jsonl", "middle.jsonl", "parallel.jsonl"))
+        for path, workloads in [(absence, ["ABSENCE"]), (middle, ["DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW"])]:
+            cases = [row for row in self.primary_cases if row["size"] == 50 and row["workload"] in workloads]
+            provenance = {**self.provenance, "sizes": [50], "workloads": workloads}
+            path.write_text("".join(json.dumps(row) + "\n" for row in [provenance] + cases), encoding="utf8")
+        continued = [row for row in self.tail_cases if row["concurrency"] > 1]
+        provenance = {**self.provenance, "sizes": [50], "workloads": ["NEAR_CAPACITY"], "concurrencyValues": [5, 10], "legacyMeasurementTimeoutMs": 600000}
+        parallel.write_text("".join(json.dumps(row) + "\n" for row in [provenance] + continued), encoding="utf8")
+        self.tail_cases = self.tail_cases[:2]
+        self.write_sources()
+        failure = {"type": "failure", "message": "Original transport timeout"}
+        with self.tail.open("a", encoding="utf8") as stream:
+            stream.write(json.dumps(failure) + "\n")
+        assembly.assemble(self.primary, self.tail, self.output, absence, middle, parallel)
+        rows = [json.loads(line) for line in self.output.read_text().splitlines()]
+        self.assertEqual(127, len(rows))
+        self.assertEqual(2, sum(row.get("sourceRunIndex") == 1 for row in rows[1:]))
+        self.assertEqual(4, sum(row.get("sourceRunIndex") == 4 for row in rows[1:]))
+        self.assertEqual([failure], rows[0]["assembly"]["sources"][1]["failureRecords"])
+
     def recheck_sources(self):
         self.write_sources()
         assembly.assemble(self.primary, self.tail, self.output)
