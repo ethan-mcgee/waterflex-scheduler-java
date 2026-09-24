@@ -22,7 +22,7 @@ class RoadClientTest {
         });
         server.start();
         try {
-            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10);
+            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10, mock(org.springframework.transaction.PlatformTransactionManager.class));
             SearchDeadline deadline = new SearchDeadline(Required.value(java.time.Duration.ofMillis(1200)));
             assertThrows(SearchDeadline.Expired.class, () -> deadline.within(roads::activeIdentity));
             assertTrue(deadline.remainingNanos() > 0, "The final second remains available for validation and persistence");
@@ -43,7 +43,7 @@ class RoadClientTest {
         });
         server.start();
         try {
-            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10);
+            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10, mock(org.springframework.transaction.PlatformTransactionManager.class));
             List<RoadClient.Pair> pairs = Required.value(List.of(new RoadClient.Pair("out", new RoadClient.Point(0, 0), new RoadClient.Point(1, 1)),
                     new RoadClient.Pair("back", new RoadClient.Point(1, 1), new RoadClient.Point(0, 0))));
             assertThrows(RoadClient.RoadUnavailable.class, () -> roads.sparse(pairs, "test"));
@@ -69,7 +69,7 @@ class RoadClientTest {
         });
         server.start();
         try {
-            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10);
+            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10, mock(org.springframework.transaction.PlatformTransactionManager.class));
             Map<String, RoadClient.Point> points = Required.value(Map.<String, RoadClient.Point>of("p", new RoadClient.Point(0, 0)));
             assertThrows(RoadClient.RoadUnavailable.class, () -> roads.matrix(points));
             assertTrue(roads.matrix(points).isEmpty());

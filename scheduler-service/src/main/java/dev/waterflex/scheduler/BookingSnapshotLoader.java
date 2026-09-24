@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.BookingSnapshot.*;
 import dev.waterflex.scheduler.ReservationState.Hold;
 import dev.waterflex.scheduler.optimizer.PolicySettings;
+import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import dev.waterflex.scheduler.optimizer.TechRoute;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,6 +25,16 @@ import org.springframework.web.server.ResponseStatusException;
 /** Reads one repeatable snapshot. Routing and exploratory search run after this transaction ends. */
 @Component
 public final class BookingSnapshotLoader {
+    public record Facts(String metroId, Instant capturedAt, String configurationFingerprint, String routingIdentity,
+            SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days,
+            Map<LocalDate, Map<String, ReservationState.Hold>> holds) {
+        public Facts {
+            days = Required.value(Map.copyOf(days));
+            Map<LocalDate, Map<String, ReservationState.Hold>> copy = new TreeMap<>();
+            holds.forEach((day, values) -> copy.put(day, Required.value(Map.copyOf(values))));
+            holds = Required.value(Collections.unmodifiableMap(copy));
+        }
+    }
     public record Loaded(BookingSnapshot snapshot, Map<LocalDate, Map<String, ReservationState.Hold>> holds) {
         public Loaded {
             Map<LocalDate, Map<String, ReservationState.Hold>> copy = new TreeMap<>();
@@ -48,12 +59,30 @@ public final class BookingSnapshotLoader {
     }
 
     public Loaded load(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity) {
-        return Required.value(reads.execute(_ -> read(metroId, requestingJobId, capturedAt, routingIdentity)), "booking snapshot");
+        Facts facts = Required.value(reads.execute(_ -> read(metroId, requestingJobId, capturedAt, routingIdentity,
+                BookingService.bookingDates(capturedAt), true)), "booking snapshot");
+        return new Loaded(new BookingSnapshot(facts.metroId(), facts.capturedAt(), facts.configurationFingerprint(),
+                facts.routingIdentity(), facts.policy(), facts.rates(), facts.days()), facts.holds());
     }
 
-    private Loaded read(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity) {
+    /** Existing offers can cross midnight; their service dates need not be in today's new-booking horizon. */
+    public Facts loadDates(String metroId, List<LocalDate> dates, Instant capturedAt, String routingIdentity) {
+        if (dates.isEmpty() || new HashSet<>(dates).size() != dates.size()) throw new IllegalArgumentException("Invalid reservation dates");
+        return Required.value(reads.execute(_ -> read(metroId, "", capturedAt, routingIdentity,
+                new ArrayList<>(new TreeSet<>(dates)), false)), "reservation snapshot");
+    }
+
+    /** Re-read under the caller's locks; never opens a second transaction during commit. */
+    public Facts locked(String metroId, List<LocalDate> dates, Instant capturedAt, String routingIdentity,
+            String excludedJob, boolean pendingRequired) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+            throw new IllegalStateException("Locked snapshot requires a transaction");
+        return read(metroId, excludedJob, capturedAt, routingIdentity, dates, pendingRequired);
+    }
+
+    private Facts read(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity, List<LocalDate> dates, boolean pendingRequired) {
         SearchDeadline.database(jdbc);
-        if (!"PENDING".equals(Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, requestingJobId)))
+        if (pendingRequired && !"PENDING".equals(Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, requestingJobId)))
             throw conflict("Job is no longer pending");
         Map<String, Double> settings = new TreeMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting ORDER BY key", (org.springframework.jdbc.core.RowCallbackHandler) rs ->
@@ -69,7 +98,7 @@ public final class BookingSnapshotLoader {
         StringBuilder configuration = new StringBuilder();
         append(configuration, metroId);
         settings.forEach((key, value) -> { append(configuration, Required.value(key)); append(configuration, Required.value(value.toString())); });
-        for (LocalDate date : BookingService.bookingDates(capturedAt)) {
+        for (LocalDate date : dates) {
             LocalDate day = Required.value(date);
             SearchDeadline.database(jdbc);
             List<Base> bases = jdbc.query("SELECT t.id,t.active," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\",sd.version FROM technician t" + RouteEndpoints.JOINS
@@ -121,7 +150,7 @@ public final class BookingSnapshotLoader {
             holds.put(day, reservations);
         }
         SearchDeadline.checkpoint();
-        return new Loaded(new BookingSnapshot(metroId, capturedAt, digest(Required.value(configuration.toString())), routingIdentity, policy, rates, days), holds);
+        return new Facts(metroId, capturedAt, digest(Required.value(configuration.toString())), routingIdentity, policy, rates, days, holds);
     }
 
     private Map<String, List<TechRoute.Unavailable>> absences(List<String> technicians, LocalDate day) {

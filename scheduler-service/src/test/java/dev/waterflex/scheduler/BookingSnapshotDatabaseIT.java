@@ -100,10 +100,57 @@ class BookingSnapshotDatabaseIT {
             assertTrue(Required.value(expired.holds().get(day)).isEmpty());
             assertEquals(List.of(prefix + "-appointment"), Required.value(expired.snapshot().days().get(day)).baseline().routes().get(prefix + "-a"),
                     "Expired reservations must not retain a shadow reassignment");
+            jdbc.update("UPDATE schedule_day SET version=0 WHERE \"technicianId\"=? AND \"serviceDate\"=?", prefix + "-b", date);
+            jdbc.update("UPDATE slot_hold SET \"expiresAt\"=? WHERE id=?", expiry, prefix + "-held");
+            var facts = loader.loadDates(prefix, Required.value(List.of(day)), captured, "fixture-roads");
+            RoadClient deterministic = new RoadClient(jdbc, "unused", 100, 60, manager) {
+                @Override public Map<String, Leg> sparse(List<Pair> pairs, String identity) {
+                    assertEquals("fixture-roads", identity);
+                    Map<String, Leg> result = new HashMap<>();
+                    pairs.forEach(pair -> result.put(pair.id(), new Leg(0, 0)));
+                    return result;
+                }
+            };
+            var transition = new ReservationTransition(new SnapshotRouting(deterministic));
+            String newAppointment = prefix + "-new-appointment";
+            var next = transition.prepare(facts, prefix + "-held", new ReservationTransition.Confirmation(prefix + "-held", newAppointment));
+            var commit = new ReservationCommit(jdbc, loader, store, manager);
+            java.util.function.Supplier<String> mutation = () -> {
+                jdbc.update("INSERT INTO appointment (id,\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",sequence,\"updatedAt\") VALUES (?,?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?::timestamp+INTERVAL '30 minutes',1,CURRENT_TIMESTAMP)",
+                        newAppointment, prefix + "-held", prefix + "-a", date, afternoon, afternoon, afternoon, afternoon);
+                jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE id=?", prefix + "-held");
+                jdbc.update("UPDATE job SET status='SCHEDULED' WHERE id=?", prefix + "-held");
+                return newAppointment;
+            };
+            assertThrows(IllegalStateException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
+                mutation.get(); throw new IllegalStateException("Injected failure before arrangement save");
+            }));
+            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
+            assertEquals(prefix + "-a", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
+            assertTrue(Required.query(jdbc, "SELECT \"releasedAt\" IS NULL FROM slot_hold WHERE id=?", Boolean.class, prefix + "-held"));
+            assertThrows(ResponseStatusException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
+                mutation.get();
+                // Force a coverage conflict after route updates, while saving the common arrangement.
+                jdbc.update("UPDATE slot_hold SET \"releasedAt\"=NULL WHERE id=?", prefix + "-held");
+                return newAppointment;
+            }));
+            assertEquals(prefix + "-a", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
+            assertEquals(0L, Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, prefix + "-b", date));
+            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
+            assertEquals(newAppointment, commit.commit(facts, prefix + "-held", "", false, next, true, mutation));
+            assertEquals(prefix + "-b", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
+            assertEquals(1L, Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, prefix + "-b", date));
+            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM reservation_dependency WHERE \"holdId\"=?", Integer.class, prefix + "-held"));
+            java.util.concurrent.atomic.AtomicBoolean staleMutation = new java.util.concurrent.atomic.AtomicBoolean();
+            assertThrows(ResponseStatusException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
+                staleMutation.set(true); return "unexpected";
+            }));
+            assertFalse(staleMutation.get());
         } finally {
             jdbc.update("DELETE FROM reservation_arrangement WHERE \"metroId\"=?", prefix);
             jdbc.update("DELETE FROM appointment WHERE id=?", prefix + "-appointment");
             for (String job : List.of(prefix + "-request", prefix + "-confirmed", prefix + "-held")) {
+                jdbc.update("DELETE FROM appointment WHERE \"jobId\"=?", job);
                 jdbc.update("DELETE FROM slot_hold WHERE \"jobId\"=?", job);
                 jdbc.update("DELETE FROM booking_offer WHERE \"jobId\"=?", job);
                 jdbc.update("DELETE FROM job WHERE id=?", job);
