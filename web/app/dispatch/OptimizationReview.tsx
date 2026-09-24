@@ -49,6 +49,12 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
         {" "}{workload.regularCapacityMinutes} regular capacity minutes ({(100 * workload.utilization).toFixed(1)}%)
       </p>)}
     </div> : <p>Policy metrics unavailable for this historical run. Generate a fresh preview before applying.</p>}
+    {run.solver_analysis ? <details><summary>Search diagnostics</summary>
+      {run.solver_analysis.phases.map((phase, index) => <p key={index}>{phase.name.toLowerCase()}: {phase.statistics.variant},
+        {" "}{phase.statistics.solveMs} ms, {phase.statistics.moveEvaluations} moves evaluated,
+        {" "}stopped by {phase.statistics.termination.replaceAll("_", " ").toLowerCase()}.
+        {" "}Time to best: {phase.statistics.timeToBestMs == null ? "unavailable" : `${phase.statistics.timeToBestMs} ms`}.</p>)}
+    </details> : <p>Solver diagnostics unavailable for this run.</p>}
     {run.status !== "PREVIEW" && run.status !== "SKIPPED" && run.reason && <p>{run.reason}</p>}
     {message && <p role="status" className={message.startsWith("Applied") ? undefined : styles.error}>{message}</p>}
     <div className={styles.fleetTotals}>

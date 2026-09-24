@@ -27,6 +27,26 @@ public final class SavedJson {
         return node;
     }
     public static JsonNode provenance(JsonNode node) { object(node); text(node, "mapVersion"); text(node, "configVersion"); return node; }
+    public static JsonNode solverAnalysis(JsonNode node) {
+        object(node); text(node, "engine"); text(node, "configurationXml");
+        JsonNode phases = array(Required.value(node.path("phases"))); if (phases.isEmpty()) throw invalid();
+        for (JsonNode phase : phases) {
+            text(Required.value(phase), "name"); JsonNode statistics = object(Required.value(phase.path("statistics")));
+            text(statistics, "variant");
+            if (!text(statistics, "configurationFingerprint").matches("[a-f0-9]{64}")) throw invalid();
+            if (!java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED").contains(text(statistics, "termination"))) throw invalid();
+            integer(statistics, "seed");
+            for (String key : new String[]{"budgetMs", "steps", "moveEvaluations", "scoreCalculations", "solveMs"})
+                if (integer(statistics, Required.value(key)) < 0) throw invalid();
+            if (integer(statistics, "budgetMs") == 0) throw invalid();
+            for (String key : new String[]{"stepLimit", "timeToBestMs"}) {
+                if (!statistics.has(key)) throw invalid();
+                if (statistics.hasNonNull(key) && integer(statistics, Required.value(key)) < 0) throw invalid();
+            }
+            if (statistics.hasNonNull("stepLimit") && integer(statistics, "stepLimit") == 0) throw invalid();
+        }
+        return node;
+    }
     public static JsonNode policyAnalysis(JsonNode node) {
         object(node);
         if (!dev.waterflex.scheduler.optimizer.SchedulingPolicy.VERSION.equals(text(node, "version"))) throw invalid();

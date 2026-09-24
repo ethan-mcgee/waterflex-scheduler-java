@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public final class BookingSearchPipeline {
     public record Prepared(BookingSnapshotLoader.Loaded loaded, BookingSnapshot routed, BoundedBookingSearch.Result search,
-            ReservationOffers.Bundle reservations, Instant expiresAt, String stopReason, long evaluatedRoutes, long reusedRoutes) { }
+            ReservationOffers.Bundle reservations, Instant expiresAt, String stopReason, long evaluatedRoutes, long reusedRoutes, long prunedArrangements) { }
     private final BookingSnapshotLoader loader;
     private final RoadClient roads;
     private final SnapshotRouting routing;
@@ -26,6 +26,7 @@ public final class BookingSearchPipeline {
         var insertion = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), SearchDeadline::checkpoint);
         var result = insertion.search(false);
         long evaluatedRoutes = insertion.evaluatedRoutes(), reusedRoutes = insertion.reusedRoutes();
+        long prunedArrangements = insertion.prunedArrangements();
         String reason = result.stopReason();
         if (bounded && !"DEADLINE".equals(result.stopReason())) {
             try {
@@ -34,6 +35,7 @@ public final class BookingSearchPipeline {
                 var refined = neighborhood.search(true);
                 result = combine(result, refined, snapshot.policy());
                 evaluatedRoutes += neighborhood.evaluatedRoutes(); reusedRoutes += neighborhood.reusedRoutes();
+                prunedArrangements += neighborhood.prunedArrangements();
                 reason = result.stopReason();
             } catch (SearchDeadline.Expired exception) {
                 reason = "DEADLINE";
@@ -45,7 +47,7 @@ public final class BookingSearchPipeline {
         SearchDeadline.beginCommit();
         Instant expiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
         var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, SearchDeadline::checkpoint);
-        return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes);
+        return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements);
     }
 
     /** Preserve independently validated insertion offers when later optional refinement runs out of time. */

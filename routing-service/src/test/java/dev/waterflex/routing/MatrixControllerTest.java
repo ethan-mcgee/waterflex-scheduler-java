@@ -83,12 +83,12 @@ class MatrixControllerTest {
             assertNotEquals(identity, prepared.health().get("routingIdentity"));
             assertEquals("CH-car-v1", prepared.health().get("preparedConfiguration"));
             assertTrue(Files.isDirectory(Required.value(temp).resolve("graph-ch-car-v1")));
-            var accelerated = prepared.matrix(new MatrixController.Request(Required.value(List.of(FIRST, SECOND)), Required.value(List.of(FIRST, SECOND)), null));
+            var accelerated = prepared.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), null));
             MatrixController flexible = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60);
             try {
-                assertEquals(accelerated.legs(), flexible.matrix(new MatrixController.Request(Required.value(List.of(FIRST, SECOND)), Required.value(List.of(FIRST, SECOND)), identity)).legs());
-                assertEquals(prepared.routeGeometry(new MatrixController.RouteRequest(Required.value(List.of(SECOND, FIRST)), null)).legs(),
-                        flexible.routeGeometry(new MatrixController.RouteRequest(Required.value(List.of(SECOND, FIRST)), identity)).legs());
+                assertEquals(accelerated.legs(), flexible.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), identity)).legs());
+                assertEquals(prepared.routeGeometry(new MatrixController.RouteRequest(Required.value(List.<MatrixController.Point>of(SECOND, FIRST)), null)).legs(),
+                        flexible.routeGeometry(new MatrixController.RouteRequest(Required.value(List.<MatrixController.Point>of(SECOND, FIRST)), identity)).legs());
             } finally { flexible.close(); }
         } finally { prepared.close(); }
         Files.writeString(Required.value(temp).resolve("manifest.json"), "{\"mergedSha256\":\"replacement-map\"}");

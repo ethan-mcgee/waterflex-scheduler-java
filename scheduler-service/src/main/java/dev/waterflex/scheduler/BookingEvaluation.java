@@ -14,19 +14,35 @@ final class BookingEvaluation {
     private final Rates rates;
     private final String requestedService;
     private final Runnable checkpoint;
+    private final BookingRouteBounds bounds;
     private final Map<String, Long> capacities = new HashMap<>();
     private final Map<Key, RouteEvaluator.Result> routes = new LinkedHashMap<>(128, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Key, RouteEvaluator.Result> eldest) { return size() > 2048; }
     };
-    private long evaluations, hits;
+    private long evaluations, hits, pruned;
 
     BookingEvaluation(Day day, Rates rates, String requestedService, Runnable checkpoint) {
         this.day = day; this.rates = rates; this.requestedService = requestedService; this.checkpoint = checkpoint;
+        this.bounds = new BookingRouteBounds(day, rates);
         day.technicians().forEach((id, technician) -> capacities.put(id, technician.regularCapacity()));
     }
     long capacity(String technician) { return Required.value(capacities.get(technician), "regular capacity"); }
     long evaluations() { return evaluations; }
     long hits() { return hits; }
+    long pruned() { return pruned; }
+    boolean possibleInsertion(String technician, List<String> order, Visit visit, int position) {
+        checkpoint.run();
+        boolean possible = bounds.insertion(technician, order, day.visits(), visit, position);
+        if (!possible) pruned++;
+        return possible;
+    }
+    boolean possible(Arrangement arrangement, Map<String, Visit> facts) {
+        for (var route : arrangement.routes().entrySet()) {
+            checkpoint.run();
+            if (!bounds.possible(Required.value(route.getKey()), Required.value(route.getValue()), facts)) { pruned++; return false; }
+        }
+        return true;
+    }
 
     RouteEvaluator.Result route(String technician, List<String> order, Map<String, Visit> facts, boolean confirmedOnly) {
         checkpoint.run();

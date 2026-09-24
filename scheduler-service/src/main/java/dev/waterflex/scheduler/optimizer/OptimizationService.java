@@ -4,7 +4,6 @@ import org.jspecify.annotations.Nullable;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.SavedJson;
 
-import ai.timefold.solver.core.api.solver.SolverFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.RoadClient;
@@ -31,7 +30,7 @@ public class OptimizationService {
     private static final ZoneId CHICAGO = Required.value(ZoneId.of("America/Chicago"));
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
-    private final SolverFactory<DayPlan> solverFactory;
+    private final DailySolver solver;
     private final SearchAdmission admission;
     private final org.springframework.transaction.support.TransactionTemplate previewTransactions;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -56,9 +55,9 @@ public class OptimizationService {
     private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
                            String configurationVersion, String routingIdentity, Map<String, RouteEndpoints> endpoints, SchedulingPolicy.Rules policy) { }
 
-    public OptimizationService(JdbcTemplate jdbc, RoadClient roads, SolverFactory<DayPlan> solverFactory, SearchAdmission admission,
+    public OptimizationService(JdbcTemplate jdbc, RoadClient roads, DailySolver solver, SearchAdmission admission,
                                org.springframework.transaction.PlatformTransactionManager transactionManager) {
-        this.jdbc = jdbc; this.roads = roads; this.solverFactory = solverFactory; this.admission = admission;
+        this.jdbc = jdbc; this.roads = roads; this.solver = solver; this.admission = admission;
         this.previewTransactions = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
     }
 
@@ -100,17 +99,19 @@ public class OptimizationService {
         if (hasHolds(Required.value(baseline.versions().keySet()), day)) return skipped(request.metro_id(), day, baseline, "Active hold");
         var before = DayScoreCalculator.evaluate(baseline.plan());
         var validatedBefore = RouteEvaluator.evaluate(baseline.plan());
-        if (before.hardPenalty() != 0 || !validatedBefore.feasible() || before.costCents() != validatedBefore.costCents())
+        if (before.hardPenalty() != 0 || !validatedBefore.feasible() || before.costCents() != validatedBefore.costCents()
+                || !before.arrivals().equals(validatedBefore.arrivals()))
             return skipped(request.metro_id(), day, baseline, "Baseline infeasible or scoring mismatch");
         long started = System.nanoTime();
-        DayPlan solved = solverFactory.buildSolver(new ai.timefold.solver.core.api.solver.SolverConfigOverride()
-                .withTerminationSpentLimit(Required.value(Duration.ofSeconds(10)))).solve(PlanCopies.copy(baseline.plan()));
+        var referenceSearch = solver.solve(baseline.plan(), Required.value(Duration.ofSeconds(10)));
+        List<DailySolver.Phase> phases = new ArrayList<>(); phases.add(new DailySolver.Phase("REFERENCE", referenceSearch.statistics()));
+        DayPlan solved = referenceSearch.plan();
         int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
         var after = DayScoreCalculator.evaluate(Required.value(solved));
         var validatedAfter = RouteEvaluator.evaluate(Required.value(solved));
         var baselinePolicy = SchedulingPolicy.measure(baseline.plan());
         boolean candidateValid = after.hardPenalty() == 0 && validatedAfter.feasible()
-                && after.costCents() == validatedAfter.costCents();
+                && after.costCents() == validatedAfter.costCents() && after.arrivals().equals(validatedAfter.arrivals());
         var candidatePolicy = candidateValid ? SchedulingPolicy.measure(Required.value(solved)) : baselinePolicy;
         var reference = candidatePolicy.overtimeMinutes() < baselinePolicy.overtimeMinutes()
                 || (candidatePolicy.overtimeMinutes() == baselinePolicy.overtimeMinutes()
@@ -122,10 +123,13 @@ public class OptimizationService {
                     reference.overtimeMinutes(), baseline.policy().costCeiling(reference.costCents()))));
             long remaining = (Duration.ofSeconds(15).toNanos() - (System.nanoTime() - started)) / 1_000_000;
             if (remaining > 0) {
-                DayPlan fair = Required.value(solverFactory.buildSolver(new ai.timefold.solver.core.api.solver.SolverConfigOverride()
-                        .withTerminationSpentLimit(Required.value(Duration.ofMillis(remaining)))).solve(fairnessSeed));
+                var fairnessSearch = solver.solve(fairnessSeed, Required.value(Duration.ofMillis(remaining)));
+                phases.add(new DailySolver.Phase("FAIRNESS", fairnessSearch.statistics()));
+                DayPlan fair = fairnessSearch.plan();
                 var validation = RouteEvaluator.evaluate(fair);
-                if (validation.feasible()) {
+                var fairScore = DayScoreCalculator.evaluate(fair);
+                if (validation.feasible() && fairScore.hardPenalty() == 0 && fairScore.costCents() == validation.costCents()
+                        && fairScore.arrivals().equals(validation.arrivals())) {
                     var fairMetrics = SchedulingPolicy.measure(fair);
                     if (fairMetrics.overtimeMinutes() == reference.overtimeMinutes()
                             && fairMetrics.costCents() <= baseline.policy().costCeiling(reference.costCents())
@@ -149,7 +153,7 @@ public class OptimizationService {
         String status = acceptable ? "PREVIEW" : "SKIPPED";
         return persist(request.metro_id(), day, baseline, acceptable ? Required.value(solved) : baseline.plan(),
                 before, acceptable ? after : before, solveMs, status,
-                acceptable ? decision.reason() : "No independently validated policy improvement", referencePlan);
+                acceptable ? decision.reason() : "No independently validated policy improvement", referencePlan, solver.diagnostics(phases));
     }
 
     public Map<String, Object> previewRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
@@ -176,7 +180,8 @@ public class OptimizationService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Technician not in metro"));
         absent.getUnavailable().add(new TechRoute.Unavailable(localInstant(day, startMin, false), localInstant(day, endMin, true)));
         long started = System.nanoTime();
-        DayPlan solved = solverFactory.buildSolver().solve(baseline.plan());
+        var repairSearch = solver.solve(baseline.plan(), Required.value(Duration.ofSeconds(15)));
+        DayPlan solved = repairSearch.plan();
         int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
         var after = DayScoreCalculator.evaluate(Required.value(solved));
         String status = after.hardPenalty() == 0 && RouteEvaluator.evaluate(Required.value(solved)).feasible() ? "REPAIR_PREVIEW" : "SKIPPED";
@@ -186,7 +191,8 @@ public class OptimizationService {
                     : individuallyImpossible(baseline.plan()) ? "VALIDATED_CONSTRAINT_CONFLICT" : "SEARCH_BUDGET_EXHAUSTED";
         if (!status.equals("REPAIR_PREVIEW"))
             return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", Required.value(reason)));
-        return persist(metroId, day, baseline, Required.value(solved), before, after, solveMs, status, null);
+        return persist(metroId, day, baseline, Required.value(solved), before, after, solveMs, status, null, null,
+                solver.diagnostics(Required.value(List.<DailySolver.Phase>of(new DailySolver.Phase("REPAIR", repairSearch.statistics())))));
     }
 
     private boolean individuallyImpossible(DayPlan plan) {
@@ -215,12 +221,13 @@ public class OptimizationService {
     private Map<String, Object> persist(String metroId, LocalDate day, Problem baseline, DayPlan proposal,
                                         DayScoreCalculator.Evaluation before, DayScoreCalculator.Evaluation after,
                                         int solveMs, String status, @Nullable String reason) {
-        return persist(metroId, day, baseline, proposal, before, after, solveMs, status, reason, null);
+        return persist(metroId, day, baseline, proposal, before, after, solveMs, status, reason, null, null);
     }
 
     private Map<String, Object> persist(String metroId, LocalDate day, Problem baseline, DayPlan proposal,
                                         DayScoreCalculator.Evaluation before, DayScoreCalculator.Evaluation after,
-                                        int solveMs, String status, @Nullable String reason, @Nullable DayPlan referencePlan) {
+                                        int solveMs, String status, @Nullable String reason, @Nullable DayPlan referencePlan,
+                                        DailySolver.@Nullable Diagnostics diagnostics) {
         String id = UUID.randomUUID().toString();
         List<Assignment> assignments = new ArrayList<>();
         Map<String, VisitData> original = new HashMap<>();
@@ -245,9 +252,13 @@ public class OptimizationService {
                 "windowStart", visit.windowStart().toString(), "windowEnd", visit.windowEnd().toString(),
                 "locationLat", visit.point().lat(), "locationLng", visit.point().lng())).toList();
         try {
+            Map<String, Object> provenance = new LinkedHashMap<>();
+            provenance.put("mapVersion", baseline.routingIdentity()); provenance.put("configVersion", baseline.configurationVersion());
+            provenance.put("policyVersion", SchedulingPolicy.VERSION);
+            if (diagnostics != null) provenance.put("solverAnalysis", diagnostics);
             jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"baselineAssignments\", \"endpointSnapshots\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
                     id, metroId, dayStamp(day), mapper.writeValueAsString(baseline.versions()),
-                    mapper.writeValueAsString(Map.of("mapVersion", baseline.routingIdentity(), "configVersion", baseline.configurationVersion(), "policyVersion", SchedulingPolicy.VERSION)), status, solveMs,
+                    mapper.writeValueAsString(provenance), status, solveMs,
                     mapper.writeValueAsString(summary(baseline.plan(), before)), mapper.writeValueAsString(summary(proposal, after)),
                     "[]", mapper.writeValueAsString(assignments), mapper.writeValueAsString(originalAssignments), mapper.writeValueAsString(baseline.endpoints()), improvement, status, reason);
             if (RouteEvaluator.evaluate(baseline.plan()).feasible() && RouteEvaluator.evaluate(proposal).feasible()) {
@@ -442,6 +453,8 @@ public class OptimizationService {
             JsonNode provenance = SavedJson.provenance(Required.value(mapper.readTree(row.weights())));
             value.put("routing_identity", provenance.path("mapVersion").asText(""));
             value.put("configuration_version", provenance.path("configVersion").asText(""));
+            value.put("solver_analysis", provenance.hasNonNull("solverAnalysis")
+                    ? mapper.treeToValue(SavedJson.solverAnalysis(Required.value(provenance.path("solverAnalysis"))), DailySolver.Diagnostics.class) : null);
             var analysis = jdbc.query("SELECT \"policyAnalysis\"::text FROM optimization_run WHERE id=?",
                     (rs, _) -> rs.getString(1), id);
             String policyJson = analysis.isEmpty() ? null : analysis.getFirst();

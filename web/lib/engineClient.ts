@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis } from "./contracts";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis, solverAnalysis } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
@@ -103,6 +103,7 @@ export function validatePurgeRoutes(jobIds: string[], days: Array<{ technicianId
 
 export interface OptimizationRun {
   policy_analysis?: z.infer<typeof policyAnalysis> | null;
+  solver_analysis?: z.infer<typeof solverAnalysis> | null;
   run_id: string;
   metro_id: string;
   service_date: string;
