@@ -12,7 +12,9 @@ import org.springframework.web.server.ResponseStatusException;
 /** Prepares release/confirmation outside the commit transaction, including all sibling dates. */
 @Component
 public final class ReservationTransition {
-    public record Confirmation(String holdId, String appointmentId) { }
+    public record Confirmation(String holdId, String appointmentId, @Nullable Integer reservedOvertimeDelta) {
+        public Confirmation(String holdId, String appointmentId) { this(holdId, appointmentId, null); }
+    }
     public record Prepared(Day day, Map<String, ReservationState.Hold> holds, RouteEvaluator.Result validation) {
         public Prepared { holds = Required.value(Map.copyOf(holds)); }
     }
@@ -84,8 +86,15 @@ public final class ReservationTransition {
             var evaluated = routed.evaluate(arrangement, facts, snapshot.rates());
             if (!evaluated.feasible()) throw conflict("Remaining appointments or reservations require repair");
             if (authorization != null && !authorization.overtimeAuthorized()) {
-                var withoutCustomer = routed.evaluate(baseline, baselineFacts, snapshot.rates());
-                if (!withoutCustomer.feasible() || evaluated.overtimeMinutes() > withoutCustomer.overtimeMinutes())
+                Integer reservedDelta = confirmation == null ? null : confirmation.reservedOvertimeDelta();
+                // A regular offer may have transferred existing overtime by rearranging other
+                // appointments. Its persisted net issuance delta and the current common
+                // arrangement preserve that reservation, even after another customer confirms.
+                // Missing historical issuance metrics retain the conservative marginal check.
+                var reference = reservedDelta != null && reservedDelta <= 0
+                        ? routed.evaluate(day.baseline(), day.visits(), snapshot.rates())
+                        : routed.evaluate(baseline, baselineFacts, snapshot.rates());
+                if (!reference.feasible() || evaluated.overtimeMinutes() > reference.overtimeMinutes())
                     throw conflict("Reserved offer does not authorize additional overtime");
             }
             Day next = new Day(day.technicians(), facts, arrangement, day.reservationVersion(), routed.roads());
