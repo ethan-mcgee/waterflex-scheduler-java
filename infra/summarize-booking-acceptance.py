@@ -38,7 +38,11 @@ def summarize(paths):
                 selected = [row for row in rows if int(row["key"].split("/")[2]) == concurrency]
                 breakdown.append({"concurrency": concurrency, "requests": len(selected) * 30,
                                   "served": sum(row["served"] for row in selected),
-                                  "maximumCaseP95Ms": max(row["p95Ms"] for row in selected)})
+                                  "maximumCaseP95Ms": max(row["p95Ms"] for row in selected),
+                                  "incrementalModeledCostCents": sum(row["afterCost"] - row["beforeCost"] for row in selected),
+                                  "overtimeDeltaMinutes": sum(row["overtimeAfter"] - row["overtimeBefore"] for row in selected),
+                                  "waitingDeltaMinutes": sum(row["waitingAfter"] - row["waitingBefore"] for row in selected),
+                                  "meanDailyVarianceAfter": sum(row["meanDailyVarianceAfter"] for row in selected) / len(selected)})
             variants.append({**summary, "revision": provenance["revision"],
                              "artifactSha256": provenance["artifactSha256"],
                              "unserved": summary["requests"] - served,
