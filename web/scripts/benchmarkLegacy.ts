@@ -56,12 +56,12 @@ export async function legacyBenchmarkServer(database: URL, engine: string, expec
 
 export class LegacyRequestUncertain extends Error { }
 
-export async function legacyOffers(engine: string, jobId: string) {
+export async function legacyOffers(engine: string, jobId: string, measurementTimeoutMs: number) {
   let response: Response; let body: unknown;
   try {
     response = await fetch(`${engine}/v1/offers`, {
       method: "POST", headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET ?? "dev-only-change-me" },
-      body: JSON.stringify({ jobId }), signal: AbortSignal.timeout(120000),
+      body: JSON.stringify({ jobId }), signal: AbortSignal.timeout(measurementTimeoutMs),
     });
     body = await response.json();
   } catch (error) { throw new LegacyRequestUncertain("Original server transport ended without a complete response", { cause: error }); }
