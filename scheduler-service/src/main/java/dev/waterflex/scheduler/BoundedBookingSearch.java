@@ -38,6 +38,24 @@ public final class BoundedBookingSearch {
                          int distinctRegularWindows, long confirmedRegularMinutes, long regularCapacityMinutes,
                          boolean overtimeAuthorized, String stopReason) { }
     private record Ranked(Arrangement arrangement, long overtime, long cost, BigDecimal fairness) { }
+    /** Delay route-map copies until a move is actually examined within the deadline. */
+    private record Move(Arrangement base, String from, int index, String to, int position, int kind) {
+        Arrangement apply() {
+            Map<String, List<String>> copy = new TreeMap<>(base.routes());
+            List<String> source = new ArrayList<>(Required.value(copy.get(from)));
+            copy.put(from, source);
+            List<String> target = from.equals(to) ? source : new ArrayList<>(Required.value(copy.get(to)));
+            copy.put(to, target);
+            if (kind == 0) {
+                String visit = Required.value(source.remove(index));
+                target.add(from.equals(to) && position > index ? position - 1 : position, visit);
+            } else if (kind == 1) {
+                String visit = Required.value(source.get(index));
+                source.set(index, Required.value(target.get(position))); target.set(position, visit);
+            } else Collections.reverse(source.subList(index, position));
+            return new Arrangement(copy);
+        }
+    }
     private record RouteRank(long roadDeltaSeconds, int qualificationScarcity, long slackMinutes, double utilization) { }
     private final BookingSnapshot snapshot;
     private final Request request;
@@ -222,7 +240,7 @@ public final class BoundedBookingSearch {
         final Set<Arrangement> seen = new HashSet<>();
         final List<Ranked> ranked = new ArrayList<>();
         List<String> shortlist = new ArrayList<>();
-        Iterator<Arrangement> pending = Required.value(Collections.emptyIterator());
+        Iterator<Move> pending = Required.value(Collections.emptyIterator());
         final Map<String, Double> utilizations = new HashMap<>();
         int insertionCursor, arrangements = 1, generated, evaluations, depth;
         String reason = "INSERTION_COMPLETED";
@@ -363,14 +381,14 @@ public final class BoundedBookingSearch {
                 if (depth >= limits.depth() || ranked.isEmpty()) return false;
                 ranked.sort(Comparator.comparingLong((Ranked r) -> r.overtime()).thenComparingLong(r -> r.cost())
                         .thenComparing(r -> r.fairness()).thenComparing(r -> r.arrangement().signature()));
-                List<Arrangement> next = new ArrayList<>();
+                List<Move> next = new ArrayList<>();
                 for (Ranked retained : ranked.subList(0, Math.min(limits.beam(), ranked.size())))
                     next.addAll(neighbors(retained.arrangement()));
                 ranked.clear();
                 depth++;
                 pending = Required.value(next.iterator());
             }
-            Arrangement arrangement = Required.value(pending.next());
+            Arrangement arrangement = Required.value(pending.next()).apply();
             if (!seen.add(arrangement)) return true;
             arrangements++;
             if (!evaluation.possible(arrangement, day.visits())) return true;
@@ -384,8 +402,8 @@ public final class BoundedBookingSearch {
             return true;
         }
 
-        List<Arrangement> neighbors(Arrangement base) {
-            List<Arrangement> relocation = new ArrayList<>(), swaps = new ArrayList<>(), reversals = new ArrayList<>();
+        List<Move> neighbors(Arrangement base) {
+            List<Move> relocation = new ArrayList<>(), swaps = new ArrayList<>(), reversals = new ArrayList<>();
             int cap = limits.arrangementsPerWindow();
             for (String from : shortlist) {
                 List<String> source = Required.value(base.routes().get(from), "source route");
@@ -396,28 +414,20 @@ public final class BoundedBookingSearch {
                         List<String> target = Required.value(base.routes().get(to), "target route");
                         if (qualifies(Required.value(to), id)) for (int position = 0; position <= target.size() && relocation.size() < cap; position++) {
                             if (from.equals(to) && (position == index || position == index + 1)) continue;
-                            Map<String, List<String>> copy = mutable(base);
-                            Required.value(copy.get(from)).remove(index);
-                            Required.value(copy.get(to)).add(from.equals(to) && position > index ? position - 1 : position, id);
-                            relocation.add(new Arrangement(copy));
+                            relocation.add(new Move(base, Required.value(from), index, Required.value(to), position, 0));
                         }
                         for (int position = 0; position < target.size() && swaps.size() < cap; position++) {
                             String other = Required.value(target.get(position));
                             if (id.equals(other) || !qualifies(Required.value(to), id) || !qualifies(Required.value(from), other)) continue;
-                            Map<String, List<String>> copy = mutable(base);
-                            Required.value(copy.get(from)).set(index, other);
-                            Required.value(copy.get(to)).set(position, id);
-                            swaps.add(new Arrangement(copy));
+                            swaps.add(new Move(base, Required.value(from), index, Required.value(to), position, 1));
                         }
                     }
                     for (int end = index + 2; end <= source.size() && reversals.size() < cap; end++) {
-                        Map<String, List<String>> copy = mutable(base);
-                        Collections.reverse(Required.value(copy.get(from)).subList(index, end));
-                        reversals.add(new Arrangement(copy));
+                        reversals.add(new Move(base, Required.value(from), index, Required.value(from), end, 2));
                     }
                 }
             }
-            List<Arrangement> result = new ArrayList<>();
+            List<Move> result = new ArrayList<>();
             for (int index = 0; index < cap && result.size() < cap; index++) {
                 if (index < relocation.size()) result.add(Required.value(relocation.get(index)));
                 if (index < swaps.size() && result.size() < cap) result.add(Required.value(swaps.get(index)));
@@ -431,9 +441,4 @@ public final class BoundedBookingSearch {
         }
     }
 
-    private static Map<String, List<String>> mutable(Arrangement arrangement) {
-        Map<String, List<String>> copy = new TreeMap<>();
-        arrangement.routes().forEach((id, visits) -> copy.put(id, new ArrayList<>(visits)));
-        return copy;
-    }
 }
