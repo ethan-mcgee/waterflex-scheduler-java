@@ -43,7 +43,7 @@ def summarize(paths):
                                   "overtimeDeltaMinutes": sum(row["overtimeAfter"] - row["overtimeBefore"] for row in selected),
                                   "waitingDeltaMinutes": sum(row["waitingAfter"] - row["waitingBefore"] for row in selected),
                                   "meanDailyVarianceAfter": sum(row["meanDailyVarianceAfter"] for row in selected) / len(selected)})
-            variants.append({**summary, "revision": provenance["revision"],
+            variants.append({**summary, "sourceReport": path.name, "revision": provenance["revision"],
                              "artifactSha256": provenance["artifactSha256"],
                              "unserved": summary["requests"] - served,
                              "maximumCaseP95Ms": max(row["p95Ms"] for row in rows),

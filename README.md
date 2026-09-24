@@ -65,7 +65,7 @@ The internal `/internal/route` endpoint returns road geometry for ordered points
 
 Dispatch geometry is serialized as plain response records containing `LineString` coordinates in longitude/latitude order. Jackson tree objects must not cross this HTTP boundary: the routing parser uses Jackson 2 while Spring MVC uses Jackson 3, which otherwise serializes tree metadata instead of GeoJSON. The controller rejects malformed positions with HTTP 503. The map validates the full response before rendering, fits the road geometry and markers, and cancels obsolete requests when the date or preview changes. Invalid or unavailable geometry leaves stop markers visible with an explicit message; it never substitutes straight lines. These are planned routes from the existing self-hosted GraphHopper graph, without GPS tracking or live traffic.
 
-See [booking measurements](docs/booking-benchmarks.md), [solver experiments](docs/solver-benchmarks.md) and [implementation evidence](docs/scheduler-policy-progress.md) for verification boundaries and remaining release gates. The earlier [quality foundation](docs/scheduling-quality-foundations.md) is retained as historical context.
+See the [acceptance report and measured tradeoffs](docs/scheduler-acceptance.md), [booking measurements](docs/booking-benchmarks.md), [solver experiments](docs/solver-benchmarks.md) and [implementation evidence](docs/scheduler-policy-progress.md) for verification boundaries and release gates. The earlier [quality foundation](docs/scheduling-quality-foundations.md) is retained as historical context.
 
 ## Verification
 
