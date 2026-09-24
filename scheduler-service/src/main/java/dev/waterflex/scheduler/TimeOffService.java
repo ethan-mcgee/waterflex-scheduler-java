@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.jspecify.annotations.Nullable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.optimizer.OptimizationService;
+import dev.waterflex.scheduler.optimizer.TravelBreakdown;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -108,6 +109,7 @@ public class TimeOffService {
         List<Map<String, Object>> days = new ArrayList<>();
         boolean feasible = !intervals.isEmpty();
         List<Map<String, Long>> beforeMetrics = new ArrayList<>(), afterMetrics = new ArrayList<>();
+        List<TravelBreakdown> beforeTravel = new ArrayList<>(), afterTravel = new ArrayList<>();
         int reassignedJobs = 0;
         for (Interval interval : intervals) {
             Map<String, Object> preview;
@@ -136,6 +138,11 @@ public class TimeOffService {
                 int moved = reassigned(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("changes"))));
                 saved.put("daily_before", before); saved.put("daily_after", after); saved.put("reassigned_jobs", moved);
                 beforeMetrics.add(before); afterMetrics.add(after); reassignedJobs += moved;
+                var roadBefore = travelTotals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("before"))));
+                var roadAfter = travelTotals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("after"))));
+                saved.put("travel_before", roadBefore); saved.put("travel_after", roadAfter);
+                if (roadBefore != null) beforeTravel.add(roadBefore);
+                if (roadAfter != null) afterTravel.add(roadAfter);
             }
             days.add(saved);
             feasible &= "REPAIR_PREVIEW".equals(preview.get("status")) || "NO_SHIFT".equals(preview.get("status"));
@@ -148,6 +155,8 @@ public class TimeOffService {
         data.put("days", days);
         data.put("total_before", beforeMetrics.size() == days.size() ? combined(beforeMetrics) : null);
         data.put("total_after", afterMetrics.size() == days.size() ? combined(afterMetrics) : null);
+        data.put("travel_before", beforeTravel.size() == days.size() ? combineTravel(beforeTravel) : null);
+        data.put("travel_after", afterTravel.size() == days.size() ? combineTravel(afterTravel) : null);
         data.put("reassigned_jobs", reassignedJobs);
         String reportJson = mapper.writeValueAsString(data);
         boolean ready = feasible;
@@ -266,6 +275,31 @@ public class TimeOffService {
     }
 
     private static final List<String> METRICS = Required.value(List.of("route_minutes", "overtime_minutes", "drive_minutes", "waiting_minutes", "distance_meters", "modeled_cost_cents"));
+
+    static @Nullable TravelBreakdown travelTotals(JsonNode routes) {
+        SavedJson.summary(routes);
+        List<TravelBreakdown> values = new ArrayList<>();
+        for (JsonNode route : routes) {
+            if (!route.hasNonNull("travel_breakdown")) return null;
+            JsonNode travel = Required.value(route.path("travel_breakdown"));
+            values.add(new TravelBreakdown(SavedJson.integer(travel, "road_seconds"),
+                    Required.value(travel.path("configured_buffer_seconds").decimalValue()),
+                    Required.value(travel.path("rounding_seconds").decimalValue()),
+                    SavedJson.integer(travel, "modeled_travel_minutes"), Math.toIntExact(SavedJson.integer(travel, "leg_count"))));
+        }
+        return combineTravel(values);
+    }
+
+    private static TravelBreakdown combineTravel(List<TravelBreakdown> values) {
+        long road = 0, modeled = 0; int legs = 0;
+        java.math.BigDecimal buffer = java.math.BigDecimal.ZERO, rounding = java.math.BigDecimal.ZERO;
+        for (TravelBreakdown value : values) {
+            road = Math.addExact(road, value.road_seconds()); modeled = Math.addExact(modeled, value.modeled_travel_minutes());
+            legs = Math.addExact(legs, value.leg_count()); buffer = buffer.add(value.configured_buffer_seconds());
+            rounding = rounding.add(value.rounding_seconds());
+        }
+        return new TravelBreakdown(road, Required.value(buffer), Required.value(rounding), modeled, legs);
+    }
 
     private static Map<String, Long> totals(JsonNode routes) {
         Map<String, Long> values = new LinkedHashMap<>();

@@ -70,8 +70,12 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
     <div className={styles.comparisonGrid}>{run.route_summary_before.map(before => {
       const after = run.route_summary_after.find(route => route.technician_id === before.technician_id);
       return <div className={styles.routeComparison} key={before.technician_id}><strong>{technicianName?.(before.technician_id) ?? before.technician_id}</strong>
-        <span>{before.stop_count} to {after?.stop_count ?? 0} stops</span><span>{before.drive_minutes} to {after?.drive_minutes ?? 0} drive min</span>
-        <span>{before.workload_minutes} to {after?.workload_minutes ?? 0} paid min</span>
+        <span>{before.stop_count} to {after?.stop_count ?? "unavailable"} stops</span><span>{before.drive_minutes} to {after?.drive_minutes ?? "unavailable"} drive min including buffers</span>
+        <span>{before.workload_minutes} to {after?.workload_minutes ?? "unavailable"} paid min</span>
+        {before.travel_breakdown ? <span>Current road travel: {(before.travel_breakdown.road_seconds / 60).toFixed(1)} min;
+          {" "}configured buffer: {(before.travel_breakdown.configured_buffer_seconds / 60).toFixed(1)} min;
+          {" "}rounding: {(before.travel_breakdown.rounding_seconds / 60).toFixed(1)} min</span>
+          : <span>Current road and buffer metrics unavailable.</span>}
         {after?.travel_breakdown ? <span>Proposed road travel: {(after.travel_breakdown.road_seconds / 60).toFixed(1)} min;
           {" "}configured buffer: {(after.travel_breakdown.configured_buffer_seconds / 60).toFixed(1)} min;
           {" "}rounding: {(after.travel_breakdown.rounding_seconds / 60).toFixed(1)} min</span>

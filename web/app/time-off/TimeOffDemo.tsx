@@ -1,7 +1,7 @@
 "use client";
 
 import { errorMessage, readResponse, timeOffCategories, timeOffRequest, timeOffResult } from "@/lib/contracts";
-import { additionalRepairOvertime, type ParsedTimeOffReport, type TimeOffIntervalView } from "@/lib/timeOffView";
+import { additionalRepairOvertime, type ParsedTimeOffReport, type TimeOffIntervalView, type TimeOffReportSummary } from "@/lib/timeOffView";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import Avatar from "../components/Avatar";
@@ -157,13 +157,23 @@ function ReportDetails({ report }: { report: ParsedTimeOffReport }) {
   const summary = report.summary;
   return <div className={styles.report}><p>{summary.reassigned_jobs == null ? "Reassignment count missing" : `${summary.reassigned_jobs} reassigned job${summary.reassigned_jobs === 1 ? "" : "s"}`}</p>
     {summary.days.map(day => <div className={styles.reportDay} key={`${day.service_date}-${day.start_min}`}><strong>{day.service_date}: {day.status === "NO_SHIFT" ? "No scheduled shift" : day.status === "SKIPPED" ? "Needs coordination" : day.status === "FROZEN_CSR_COORDINATION" ? "Past scheduling cutoff" : "Repair preview"}</strong><span>{dayReason(day.reason)}</span>{day.status === "REPAIR_PREVIEW" && <><span>{day.reassigned_jobs == null ? "Reassignment count missing" : `${day.reassigned_jobs} reassigned`}</span><MetricComparison before={day.daily_before} after={day.daily_after} /></>}</div>)}
-    <strong>Combined metrics</strong><MetricComparison before={summary.total_before ?? undefined} after={summary.total_after ?? undefined} /></div>;
+    <strong>Combined metrics</strong><MetricComparison before={summary.total_before ?? undefined} after={summary.total_after ?? undefined} />
+    <TravelComparison before={summary.travel_before} after={summary.travel_after} /></div>;
+}
+
+function TravelComparison({ before, after }: { before: TimeOffReportSummary["travel_before"]; after: TimeOffReportSummary["travel_after"] }) {
+  const minutes = (seconds: number | undefined) => seconds == null ? "unavailable" : `${(seconds / 60).toFixed(1)} min`;
+  return <div className={styles.metrics}>
+    <span>Road travel: {minutes(before?.road_seconds)} before, {minutes(after?.road_seconds)} after</span>
+    <span>Configured buffer: {minutes(before?.configured_buffer_seconds)} before, {minutes(after?.configured_buffer_seconds)} after</span>
+    <span>Travel rounding: {minutes(before?.rounding_seconds)} before, {minutes(after?.rounding_seconds)} after</span>
+  </div>;
 }
 
 function MetricComparison({ before, after }: { before?: MetricValues; after?: MetricValues }) {
   return <div className={styles.metrics}>
     <span>Route: {metric(before?.route_minutes, " min")} before, {metric(after?.route_minutes, " min")} after</span>
-    <span>Drive: {metric(before?.drive_minutes, " min")} before, {metric(after?.drive_minutes, " min")} after</span>
+    <span>Drive including buffers: {metric(before?.drive_minutes, " min")} before, {metric(after?.drive_minutes, " min")} after</span>
     <span>Waiting: {metric(before?.waiting_minutes, " min")} before, {metric(after?.waiting_minutes, " min")} after</span>
     <span>Overtime: {metric(before?.overtime_minutes, " min")} before, {metric(after?.overtime_minutes, " min")} after</span>
     <span>Distance: {metric(before?.distance_meters, " m")} before, {metric(after?.distance_meters, " m")} after</span>
