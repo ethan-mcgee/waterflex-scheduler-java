@@ -12,7 +12,7 @@ public final class DailySolver {
     public record Phase(String name, SolverExperiment.Statistics statistics) { }
     public record Diagnostics(String engine, String configurationXml, List<Phase> phases) { }
     private final SolverExperiment.Definition definition;
-    public DailySolver(@Value("${scheduler.optimizer.variant:CURRENT_CAPPED}") String variant,
+    public DailySolver(@Value("${scheduler.optimizer.variant:TABU}") String variant,
                        @Value("${scheduler.optimizer.seed:17}") long seed) {
         definition = SolverExperiment.configuration(SolverExperiment.Variant.valueOf(variant), seed);
     }
