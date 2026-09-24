@@ -165,7 +165,7 @@ public final class RouteEvaluator {
         }
         boolean dominates(Placement first, Placement second) {
             return first.paid() <= second.paid() && first.overtime() <= second.overtime() && first.waiting() <= second.waiting()
-                    && cost(first) <= cost(second) && departureOrder(first, second) <= 0;
+                    && cost(first) <= cost(second) && first.segments().size() == second.segments().size() && departureOrder(first, second) <= 0;
         }
         int compare(Placement first, Placement second) {
             int order = Long.compare(first.overtime(), second.overtime());

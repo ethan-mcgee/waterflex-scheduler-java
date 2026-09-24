@@ -20,14 +20,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.*;
+import dev.waterflex.scheduler.optimizer.RouteEvaluator.WorkingSegment;
 
 @RestController
 public class DispatchGeometryController {
     public record LineString(String type, List<List<Double>> coordinates) { }
     public record RoadProperties(String technicianId, String interval, int legIndex, long seconds, long meters) { }
     public record RoadFeature(String type, LineString geometry, RoadProperties properties) { }
-    private record SavedGeometry(String before, String after, String weights, @Nullable String endpoints) { }
-    private record Stop(String id, String technicianId, int sequence, Instant plannedStart, RoadClient.Point point) { }
+    private record SavedGeometry(String before, String after, String weights, @Nullable String endpoints, String beforeSummary, String afterSummary) { }
+    private record Stop(String id, String technicianId, int sequence, Instant plannedStart, @Nullable Instant plannedEnd, RoadClient.Point point) { }
     private record Absence(Instant start, Instant end) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
@@ -79,19 +80,31 @@ public class DispatchGeometryController {
         if (phase.equals("after") && (runId == null || runId.isBlank()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
         Timestamp serviceDate = Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant());
+        String identity = roads.activeIdentity();
+        Map<String, List<WorkingSegment>> savedTiming = new TreeMap<>();
         Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
         if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(Required.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, serviceDate, metroId);
         List<Stop> stops;
         if (phase.equals("current")) {
-            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
-                    (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()),
+            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng, a.\"plannedEnd\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
+                    (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 7).toInstant()),
                             Required.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
+            jdbc.query("SELECT \"technicianId\",version,\"routeTiming\"::text FROM schedule_day WHERE \"serviceDate\"=?",
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
+                        String technician = Required.string(rs, 1), raw = rs.getString(3);
+                        if (!endpoints.containsKey(technician) || raw == null) return;
+                        var timing = ScheduleSegments.decode(raw);
+                        if (timing.version() != Required.integer(rs, 2)) return;
+                        if (!timing.segments().isEmpty() && !identity.equals(timing.routingIdentity()))
+                            throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; replan current routes");
+                        savedTiming.put(technician, timing.segments());
+                    }, serviceDate);
         } else {
             if (runId == null || runId.isBlank())
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
-            var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text, \"endpointSnapshots\"::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
-                    (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3), rs.getString(4)), runId, metroId, serviceDate);
+            var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text, \"endpointSnapshots\"::text, \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
+                    (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3), rs.getString(4), Required.string(rs, 5), Required.string(rs, 6)), runId, metroId, serviceDate);
             if (runs.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Optimization run not found");
             try {
                 String snapshot = runs.getFirst().endpoints();
@@ -102,7 +115,7 @@ public class DispatchGeometryController {
                     JsonNode departure = entry.getValue().path("departure"), returnTo = entry.getValue().path("returnTo");
                     endpoints.put(entry.getKey(), new RouteEndpoints(savedPoint(Required.value(departure)), savedPoint(Required.value(returnTo))));
                 });
-                if (!SavedJson.provenance(Required.value(mapper.readTree(runs.getFirst().weights()))).path("mapVersion").asText().equals(roads.activeIdentity()))
+                if (!SavedJson.provenance(Required.value(mapper.readTree(runs.getFirst().weights()))).path("mapVersion").asText().equals(identity))
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; generate a new preview");
                 List<Stop> savedStops = new ArrayList<>();
                 for (JsonNode assignment : SavedJson.assignments(Required.value(mapper.readTree(phase.equals("before") ? runs.getFirst().before() : runs.getFirst().after())))) {
@@ -112,7 +125,22 @@ public class DispatchGeometryController {
                     savedStops.add(new Stop(SavedJson.text(Required.value(assignment), "appointmentId"), technicianId,
                             Math.toIntExact(SavedJson.integer(Required.value(assignment), "sequence")),
                             Required.value(Instant.parse(SavedJson.text(Required.value(assignment), "plannedStart"))),
+                            assignment.has("plannedEnd") ? Required.value(Instant.parse(SavedJson.text(Required.value(assignment), "plannedEnd"))) : null,
                             savedAssignmentPoint(Required.value(assignment))));
+                }
+                for (JsonNode summary : SavedJson.summary(Required.value(mapper.readTree(phase.equals("before") ? runs.getFirst().beforeSummary() : runs.getFirst().afterSummary())))) {
+                    if (summary.path("segments").isMissingNode() || summary.path("segments").isNull()) continue;
+                    // Older baseline assignments retained actual arrivals while summaries used canonical timing.
+                    // Their missing end timestamps identify timing that cannot safely be joined to those segments.
+                    if (phase.equals("before") && savedStops.stream().anyMatch(stop -> stop.plannedEnd() == null)) continue;
+                    var canonical = mapper.createObjectNode().put("format", 1).put("scheduleVersion", 0).put("routingIdentity", identity);
+                    var values = canonical.putArray("segments");
+                    for (JsonNode segment : summary.path("segments")) {
+                        var converted = values.addObject().put("departure", SavedJson.text(Required.value(segment), "departure"))
+                                .put("returnedAt", SavedJson.text(Required.value(segment), "returned_at"));
+                        converted.set("appointmentIds", segment.path("appointment_ids"));
+                    }
+                    savedTiming.put(SavedJson.text(Required.value(summary), "technician_id"), ScheduleSegments.decode(Required.value(canonical.toString())).segments());
                 }
                 stops = savedStops;
             } catch (ResponseStatusException e) { throw e; }
@@ -124,7 +152,28 @@ public class DispatchGeometryController {
                         .add(new Absence(ScheduleCutoff.localMinute(day, Required.integer(rs, 2), false),
                                 ScheduleCutoff.localMinute(day, Required.integer(rs, 3), true))), serviceDate);
         Map<String, List<Stop>> groups = new LinkedHashMap<>();
+        Map<String, Stop> byId = new HashMap<>(); stops.forEach(stop -> byId.put(stop.id(), stop));
+        for (var timing : savedTiming.entrySet()) {
+            Set<String> covered = new HashSet<>();
+            for (int index = 0; index < timing.getValue().size(); index++) {
+                WorkingSegment segment = timing.getValue().get(index);
+                List<Stop> route = new ArrayList<>(); Instant previous = segment.departure();
+                for (String id : segment.visitIds()) {
+                    Stop stop = byId.get(id);
+                    Instant plannedEnd = stop == null ? null : stop.plannedEnd();
+                    if (stop == null || !stop.technicianId().equals(timing.getKey()) || !covered.add(id)
+                            || stop.plannedStart().isBefore(previous) || !stop.plannedStart().isBefore(segment.returnedAt())
+                            || (plannedEnd != null && plannedEnd.isAfter(segment.returnedAt())))
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Saved segment timing does not match appointments");
+                    route.add(stop); previous = plannedEnd == null ? stop.plannedStart() : plannedEnd;
+                }
+                groups.put(timing.getKey() + ":" + index, route);
+            }
+            if (covered.size() != stops.stream().filter(stop -> stop.technicianId().equals(timing.getKey())).count())
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Saved segment coverage does not match appointments");
+        }
         for (Stop stop : stops) {
+            if (savedTiming.containsKey(stop.technicianId())) continue;
             int interval = 0;
             for (Absence absence : absences.getOrDefault(stop.technicianId(), List.of())) {
                 if (!stop.plannedStart().isBefore(absence.start()) && stop.plannedStart().isBefore(absence.end()))
@@ -133,7 +182,6 @@ public class DispatchGeometryController {
             }
             groups.computeIfAbsent(stop.technicianId() + ":" + interval, _ -> new ArrayList<>()).add(stop);
         }
-        String identity = roads.activeIdentity();
         List<RoadFeature> features = new ArrayList<>();
         for (var group : groups.entrySet()) {
             List<Stop> route = group.getValue();
@@ -164,7 +212,8 @@ public class DispatchGeometryController {
                 "departureLng", entry.getValue().departure().lng(), "returnLat", entry.getValue().returnTo().lat(),
                 "returnLng", entry.getValue().returnTo().lng())).toList();
         return Required.value(Map.of("type", "FeatureCollection", "features", features, "stops", Required.value(displayedStops),
-                "endpoints", Required.value(displayedEndpoints), "routingIdentity", identity, "serviceDate", Required.value(day.toString()), "phase", phase));
+                "endpoints", Required.value(displayedEndpoints), "routingIdentity", identity, "serviceDate", Required.value(day.toString()), "phase", phase,
+                "segments", savedTiming));
     }
 
     private static RoadClient.Point savedPoint(JsonNode node) {

@@ -72,6 +72,15 @@ export function confirmHold(holdId: string): Promise<{ appointmentId: string; wi
   return request("/v1/holds/confirm", confirmation, { holdId });
 }
 
+const purgeRoute = z.object({ technicianId: z.string().min(1), serviceDate: z.iso.date(), version: z.int().nonnegative(),
+  routingIdentity: z.string().min(1).nullable(),
+  stops: z.array(z.object({ id: z.string().min(1), plannedStart: z.iso.datetime(), plannedEnd: z.iso.datetime() })),
+  segments: z.array(z.object({ departure: z.iso.datetime(), returnedAt: z.iso.datetime(), appointmentIds: z.array(z.string().min(1)).min(1) })),
+});
+export function validatePurgeRoutes(jobIds: string[], days: Array<{ technicianId: string; serviceDate: string }>) {
+  return request("/v1/purge/validate-routes", z.array(purgeRoute), { jobIds, days });
+}
+
 export interface OptimizationRun {
   policy_analysis?: z.infer<typeof policyAnalysis> | null;
   run_id: string;

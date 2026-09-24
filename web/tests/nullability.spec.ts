@@ -125,10 +125,26 @@ test("dispatch retains missing-location appointments and shows malformed-history
     await expect(page.getByText("Location data missing. Routing is blocked.", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Preview optimization" })).toBeDisabled();
     await expect(page.getByText("Invalid response. Reload before continuing.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Departure and return times unavailable until this route is replanned.")).toBeVisible();
+    await prisma.address.update({ where: { id: address.id }, data: { lat: 41.25, lng: -95.93 } });
+    const timing = { format: 1, scheduleVersion: 2, routingIdentity: "test-roads", segments: [{
+      departure: "2026-10-05T14:50:00Z", returnedAt: "2026-10-05T16:10:00Z", appointmentIds: [appointment.id],
+    }] };
+    const day = await prisma.scheduleDay.create({ data: { technicianId: tech.id, serviceDate: appointment.serviceDate, version: 2, routeTiming: timing } });
+    await page.reload();
+    await expect(page.getByText("Segment 1: depart 9:50 AM, return 11:10 AM")).toBeVisible();
+    await prisma.scheduleDay.update({ where: { id: day.id }, data: { version: 3 } });
+    await page.reload();
+    await expect(page.getByText("Departure and return times unavailable until this route is replanned.")).toBeVisible();
+    await expect(page.getByText(/Segment 1: depart/)).toHaveCount(0);
+    await prisma.scheduleDay.update({ where: { id: day.id }, data: { routeTiming: { ...timing, scheduleVersion: 3, segments: null } } });
+    await page.reload();
+    await expect(page.getByText("Saved route timing is invalid. Replan this day before using departure times.")).toBeVisible();
   } finally {
     await prisma.appointment.delete({ where: { id: appointment.id } }); await prisma.job.delete({ where: { id: job.id } });
     await prisma.address.delete({ where: { id: address.id } }); await prisma.customer.delete({ where: { id: customer.id } });
-    await prisma.serviceCatalog.delete({ where: { id: service.id } }); await prisma.technician.delete({ where: { id: tech.id } });
+    await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await prisma.scheduleDay.deleteMany({ where: { technicianId: tech.id } }); await prisma.technician.delete({ where: { id: tech.id } });
     await prisma.depot.delete({ where: { id: depot.id } }); await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }

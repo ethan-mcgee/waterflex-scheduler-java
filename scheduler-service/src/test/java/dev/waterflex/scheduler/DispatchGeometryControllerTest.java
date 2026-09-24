@@ -52,6 +52,7 @@ class DispatchGeometryControllerTest {
                     when(row.getTimestamp(4)).thenReturn(Timestamp.from(Required.value(Instant.parse("2026-09-22T15:00:00Z"))));
                     when(row.getDouble(5)).thenReturn(41.27);
                     when(row.getDouble(6)).thenReturn(-95.95);
+                    when(row.getTimestamp(7)).thenReturn(Timestamp.from(Required.value(Instant.parse("2026-09-22T16:00:00Z"))));
                     RowMapper<Object> mapper = call.getArgument(1);
                     return Required.value(List.of(Required.value(mapper.mapRow(row, 0))));
                 });
@@ -81,6 +82,28 @@ class DispatchGeometryControllerTest {
         assertEquals("visit", body.at("/stops/0/id").asText());
         verify(roads).routeGeometry(Required.value(List.<RoadClient.Point>of(new RoadClient.Point(41.25, -95.93),
                 new RoadClient.Point(41.27, -95.95), new RoadClient.Point(41.25, -95.93))), "test-roads");
+    }
+
+    @Test void currentGeometryUsesVersionedSegmentsAndRejectsMalformedCoverage() throws Exception {
+        String saved = "{\"format\":1,\"scheduleVersion\":2,\"routingIdentity\":\"test-roads\",\"segments\":[{\"departure\":\"2026-09-22T14:50:00Z\",\"returnedAt\":\"2026-09-22T16:10:00Z\",\"appointmentIds\":[\"visit\"]}]}";
+        for (String raw : List.of(saved, saved.replace("visit", "missing"), "null", saved.replace("test-roads", "old-roads"))) {
+            stubCurrentTiming(Required.value(raw), 2);
+            var response = Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-22")));
+            if (raw.equals(saved)) response.andExpect(status().isOk()).andExpect(jsonPath("$.segments.tech[0].departure").value("2026-09-22T14:50:00Z"));
+            else response.andExpect(status().isConflict());
+        }
+        stubCurrentTiming(saved, 3);
+        Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-22")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.segments.tech").doesNotExist());
+    }
+
+    private void stubCurrentTiming(String raw, int version) {
+        Required.value(doAnswer(call -> {
+            ResultSet row = mock(ResultSet.class);
+            when(row.getString(1)).thenReturn("tech"); when(row.getInt(2)).thenReturn(version); when(row.getString(3)).thenReturn(raw);
+            Required.value(call.<@org.jspecify.annotations.Nullable RowCallbackHandler>getArgument(1)).processRow(row);
+            return null;
+        }).<@org.jspecify.annotations.Nullable JdbcTemplate>when(jdbc)).query(MockArguments.startsText("SELECT \"technicianId\",version"), MockArguments.callback(), any(Timestamp.class));
     }
 
     @Test
@@ -144,6 +167,7 @@ class DispatchGeometryControllerTest {
                     when(row.getString(1)).thenReturn(savedAssignment("visit", "tech", 41.27, -95.95));
                     when(row.getString(2)).thenReturn(savedAssignment("visit", "tech", 41.27, -95.95));
                     when(row.getString(3)).thenReturn("{\"mapVersion\":\"test-roads\"}");
+                    when(row.getString(5)).thenReturn("[]"); when(row.getString(6)).thenReturn("[]");
                     RowMapper<Object> mapper = call.getArgument(1);
                     return Required.value(List.of(Required.value(mapper.mapRow(row, 0))));
                 });
@@ -192,6 +216,7 @@ class DispatchGeometryControllerTest {
                     when(row.getString(2)).thenReturn(after);
                     when(row.getString(3)).thenReturn("{\"mapVersion\":\"" + mapVersion + "\",\"configVersion\":\"test-config\"}");
                     when(row.getString(4)).thenReturn("{\"tech\":{\"departure\":{\"lat\":41.25,\"lng\":-95.93},\"returnTo\":{\"lat\":41.25,\"lng\":-95.93}}}");
+                    when(row.getString(5)).thenReturn("[]"); when(row.getString(6)).thenReturn("[]");
                     RowMapper<Object> mapper = call.getArgument(1);
                     return Required.value(List.of(Required.value(mapper.mapRow(row, 0))));
                 });

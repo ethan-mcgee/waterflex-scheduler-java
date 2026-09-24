@@ -47,7 +47,7 @@ public class BookingService {
     private record EvaluationContext(List<TechRoute.Unavailable> absences, Map<String, DayPlan.RoadLeg> matrix,
                                      Map<String, Double> settings) { }
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
-                           long meters, long costCents, Map<String, Instant> arrivals) { }
+                           long meters, long costCents, Map<String, Instant> arrivals, List<RouteEvaluator.WorkingSegment> segments) { }
 
     public BookingService(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
 
@@ -219,6 +219,7 @@ public class BookingService {
         jdbc.update("UPDATE job SET \"manualFollowUpStatus\"=NULL, \"manualFollowUpReason\"=NULL WHERE id=?", jobId);
         jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND \"releasedAt\" IS NULL", jobId);
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(Required.value(day)));
+        persistCurrent(techId, Required.value(day));
         return new Confirmation(Required.value(id), start, end);
     }
 
@@ -260,6 +261,7 @@ public class BookingService {
             }
         }
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(Required.value(day)));
+        if (!ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) persistCurrent(techId, Required.value(day));
         return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", false));
     }
 
@@ -361,7 +363,7 @@ public class BookingService {
     }
 
     private Metrics evaluate(Tech tech, LocalDate day, List<Visit> visits) {
-        if (visits.isEmpty()) return new Metrics(true, null, 0, 0, 0, 0, Required.value(Map.of()));
+        if (visits.isEmpty()) return new Metrics(true, null, 0, 0, 0, 0, Required.value(Map.of()), Required.value(List.of()));
         return evaluate(tech, day, visits, prepare(tech, day, visits, settings(), roads.activeIdentity()));
     }
 
@@ -406,7 +408,7 @@ public class BookingService {
         var result = RouteEvaluator.evaluate(plan);
         Instant newArrival = visits.stream().filter((Visit visit) -> visit.newJob()).findFirst().map(v -> result.arrivals().get(v.id())).orElse(null);
         return new Metrics(result.feasible(), newArrival, result.paidMinutes(), result.overtimeMinutes(),
-                result.meters(), result.costCents(), result.arrivals());
+                result.meters(), result.costCents(), result.arrivals(), Required.value(result.segments().get(tech.id()), "working segments"));
     }
 
     /** Called inside the locked dealership policy transaction after its new endpoints are saved. */
@@ -427,6 +429,7 @@ public class BookingService {
                     stamp(arrival), stamp(Required.value(arrival.plus(Duration.ofMinutes(visit.duration())))), visit.id());
         }
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(day));
+        persistCurrent(techId, day);
     }
 
     /** Revalidate every active reservation and booked window after a depot move. */
@@ -453,6 +456,25 @@ public class BookingService {
         jdbc.update("INSERT INTO schedule_day (id,\"technicianId\",\"serviceDate\",version) VALUES (?,?,?,0) ON CONFLICT (\"technicianId\",\"serviceDate\") DO NOTHING",
                 UUID.randomUUID().toString(), techId, dayStamp(day));
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(day));
+        persistCurrent(techId, day);
+    }
+
+    /** Persist the actual confirmed route separately from conservative unconfirmed placeholders. */
+    private void persistCurrent(String technician, LocalDate day) {
+        List<Visit> confirmed = visits(technician, day, "", false);
+        if (confirmed.isEmpty()) {
+            ScheduleSegments.save(jdbc, technician, day, Required.value(List.of()), roads.currentVersion());
+            return;
+        }
+        WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician, day);
+        if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmed route has no working shift");
+        var rows = jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
+                (rs, _) -> new Tech(technician, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), dayStamp(day), technician);
+        if (rows.size() != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmed technician is unavailable");
+        Metrics actual = evaluate(Required.value(rows.getFirst()), day, confirmed);
+        if (!actual.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmed route requires repair");
+        persistTiming(confirmed, actual);
+        ScheduleSegments.save(jdbc, technician, day, actual.segments(), roads.currentVersion());
     }
 
     private Job job(String id) { return job(id, HttpStatus.UNPROCESSABLE_ENTITY); }
@@ -497,10 +519,13 @@ public class BookingService {
     }
 
     private List<Visit> visits(String techId, LocalDate day, String excludeJobId) {
+        return visits(techId, day, excludeJobId, true);
+    }
+    private List<Visit> visits(String techId, LocalDate day, String excludeJobId, boolean includeHolds) {
         SearchDeadline.database(jdbc);
         List<Visit> result = new ArrayList<Visit>(Required.value(jdbc.query("SELECT a.id, ad.lat, ad.lng, a.\"windowStart\", a.\"windowEnd\", a.\"plannedStart\", j.\"durationMin\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"technicianId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL AND (? IS NULL OR a.\"jobId\"<>?) ORDER BY a.sequence, a.\"plannedStart\"",
                 (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId, excludeJobId)));
-        result.addAll(jdbc.query("SELECT h.id, h.\"locationLat\", h.\"locationLng\", h.\"windowStart\", h.\"windowEnd\", h.\"plannedStart\", j.\"durationMin\" FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" WHERE h.\"technicianId\"=? AND h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP ORDER BY h.\"plannedStart\"",
+        if (includeHolds) result.addAll(jdbc.query("SELECT h.id, h.\"locationLat\", h.\"locationLng\", h.\"windowStart\", h.\"windowEnd\", h.\"plannedStart\", j.\"durationMin\" FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" WHERE h.\"technicianId\"=? AND h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP ORDER BY h.\"plannedStart\"",
                 (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId));
         result.sort(Comparator.comparing((Visit visit) -> visit.planned()));
         return result;

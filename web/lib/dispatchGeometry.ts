@@ -11,6 +11,7 @@ export type GeometryResponse = {
   features: RoadFeature[];
   stops: Array<{ id: string; technicianId: string; sequence: number; plannedStart: string; lat: number; lng: number }>;
   endpoints?: Array<{ technicianId: string; departureLat: number; departureLng: number; returnLat: number; returnLng: number }>;
+  segments?: Record<string, Array<{ departure: string; returnedAt: string; visitIds: string[] }>>;
 };
 
 function object(value: unknown): value is Record<string, unknown> {
@@ -41,6 +42,28 @@ export function isDispatchGeometry(value: unknown, date: string, phase: string):
       geometry.coordinates.every((point: unknown) => Array.isArray(point) && point.length === 2 &&
         coordinate(point[0], 180) && coordinate(point[1], 90));
   })) return false;
+  if (value.segments !== undefined) {
+    if (!object(value.segments) || Array.isArray(value.segments)) return false;
+    for (const [technician, segments] of Object.entries(value.segments)) {
+      if (!technician || !Array.isArray(segments)) return false;
+      const seen = new Set<string>(); let previous = -Infinity;
+      for (const segment of segments) {
+        if (!object(segment) || typeof segment.departure !== "string" || typeof segment.returnedAt !== "string" ||
+          !Array.isArray(segment.visitIds) || segment.visitIds.length === 0) return false;
+        const departure = Date.parse(segment.departure), returnedAt = Date.parse(segment.returnedAt);
+        if (!Number.isFinite(departure) || !Number.isFinite(returnedAt) || departure >= returnedAt || departure < previous) return false;
+        for (const id of segment.visitIds) {
+          if (typeof id !== "string" || !id || seen.has(id)) return false;
+          const stop: unknown = value.stops.find((item: unknown) => object(item) && item.id === id && item.technicianId === technician);
+          if (!object(stop) || typeof stop.plannedStart !== "string" || !Number.isFinite(Date.parse(stop.plannedStart)) ||
+            Date.parse(stop.plannedStart) < departure || Date.parse(stop.plannedStart) >= returnedAt) return false;
+          seen.add(id);
+        }
+        previous = returnedAt;
+      }
+      if (seen.size !== value.stops.filter((stop: unknown) => object(stop) && stop.technicianId === technician).length) return false;
+    }
+  }
   return value.stops.every((stop: unknown) => object(stop) && typeof stop.id === "string" &&
     typeof stop.technicianId === "string" && Number.isInteger(stop.sequence) &&
     typeof stop.plannedStart === "string" && Number.isFinite(Date.parse(stop.plannedStart)) &&

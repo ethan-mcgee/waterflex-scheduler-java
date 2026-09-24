@@ -17,6 +17,15 @@ test("accepts road coordinates and empty schedules", () => {
   assert.ok(isDispatchGeometry({ ...payload(), features: [], stops: [] }, "2026-09-22", "current"));
 });
 
+test("validates saved segment timing and coverage before rendering", () => {
+  const segment = { departure: "2026-09-22T14:50:00Z", returnedAt: "2026-09-22T16:10:00Z", visitIds: ["visit"] };
+  assert.ok(isDispatchGeometry({ ...payload(), segments: { tech: [segment] } }, "2026-09-22", "current"));
+  for (const segments of [null, [], { tech: null }, { tech: [] }, { tech: [segment, segment] },
+    { tech: [{ ...segment, visitIds: ["hold"] }] }, { tech: [{ ...segment, departure: "2026-09-22T15:10:00Z" }] },
+    { tech: [{ ...segment, returnedAt: "invalid" }] }])
+    assert.equal(isDispatchGeometry({ ...payload(), segments }, "2026-09-22", "current"), false);
+});
+
 test("rejects Java tree metadata and malformed coordinates before map rendering", () => {
   for (const geometry of [
     { nodeType: "OBJECT", object: true, array: false },

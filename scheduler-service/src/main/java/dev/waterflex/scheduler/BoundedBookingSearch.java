@@ -42,6 +42,26 @@ public final class BoundedBookingSearch {
     private final Request request;
     private final Limits limits;
     private final Runnable checkpoint;
+    private final Map<LocalDate, DayContext> contexts = new TreeMap<>();
+    private final class DayContext {
+        final Day day;
+        final BookingEvaluation evaluation;
+        final RouteEvaluator.Result baseline;
+        final BigDecimal fairness;
+        final List<String> eligible;
+        DayContext(LocalDate date) {
+            day = Required.value(snapshot.days().get(date), "snapshot service date");
+            evaluation = new BookingEvaluation(day, snapshot.rates(), request.serviceId(), checkpoint);
+            baseline = evaluation.evaluate(day.baseline(), day.visits(), false);
+            if (!baseline.feasible()) throw new BookingSnapshot.Incomplete("Reservation baseline is infeasible");
+            fairness = evaluation.fairness(day.baseline(), day.visits());
+            eligible = Required.value(day.technicians().values().stream().filter(t -> t.services().contains(request.serviceId())
+                    && evaluation.capacity(t.id()) > 0).<String>map((Technician t) -> t.id()).sorted().toList());
+        }
+    }
+    private DayContext context(LocalDate date) { return Required.value(contexts.computeIfAbsent(date, key -> new DayContext(Required.value(key)))); }
+    public long evaluatedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.evaluations()).sum(); }
+    public long reusedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.hits()).sum(); }
 
     public BoundedBookingSearch(BookingSnapshot snapshot, Request request, Limits limits, Runnable checkpoint) {
         this.snapshot = snapshot; this.request = request; this.limits = limits; this.checkpoint = checkpoint;
@@ -90,16 +110,14 @@ public final class BoundedBookingSearch {
             // Confirmed demand is measured once per eligible technician/date, across all services.
             for (var entry : snapshot.days().entrySet()) {
                 checkpoint.run();
-                Day day = Required.value(entry.getValue());
-                var confirmedPlan = day.plan(day.actualArrangement(), day.visits(), snapshot.rates(), true);
-                for (var route : confirmedPlan.getRoutes()) {
-                    if (!route.getQualifiedServiceIds().contains(request.serviceId())) continue;
-                    long available = SchedulingPolicy.regularCapacity(Required.value(route));
+                DayContext context = context(Required.value(entry.getKey()));
+                Day day = context.day;
+                Arrangement actual = day.actualArrangement();
+                for (Technician technician : day.technicians().values()) {
+                    if (!technician.services().contains(request.serviceId())) continue;
+                    long available = context.evaluation.capacity(technician.id());
                     if (available == 0) continue;
-                    var plan = new dev.waterflex.scheduler.optimizer.DayPlan(Required.value(List.of(route)), route.getVisits(),
-                            confirmedPlan.getMatrix(), confirmedPlan.getRegularHourly(), confirmedPlan.getOvertimeHourly(),
-                            confirmedPlan.getMileagePerMile(), confirmedPlan.getTravelBufferPct(), confirmedPlan.getTravelBufferMinutes());
-                    var measured = RouteEvaluator.evaluate(plan);
+                    var measured = context.evaluation.route(technician.id(), Required.value(actual.routes().get(technician.id())), day.visits(), true);
                     if (!measured.feasible()) throw new BookingSnapshot.Incomplete("Confirmed route is infeasible");
                     capacity = Math.addExact(capacity, available);
                     confirmed = Math.addExact(confirmed, Math.min(available, measured.paidMinutes() - measured.overtimeMinutes()));
@@ -121,7 +139,10 @@ public final class BoundedBookingSearch {
                 }
             } while (work);
             int regular = regularWindows(states);
-            if (regular <= snapshot.policy().regularWindowThreshold()) {
+            // Abundant insertion choices finish the scarcity pass. Remaining bounded work may
+            // improve cost/fairness, but its timeout cannot erase that completed pass or its offers.
+            complete = regular > snapshot.policy().regularWindowThreshold();
+            if (!complete || rearrangementEnabled) {
                 if (!rearrangementEnabled) stopped = "REARRANGEMENT_DISABLED";
                 else {
                     for (State state : states) state.startNeighborhood();
@@ -134,7 +155,7 @@ public final class BoundedBookingSearch {
                     } while (work);
                     complete = true;
                 }
-            } else complete = true;
+            }
         } catch (SearchDeadline.Expired expired) { stopped = "DEADLINE"; }
         List<Candidate> candidates = new ArrayList<>();
         List<Coverage> coverage = new ArrayList<>();
@@ -173,6 +194,7 @@ public final class BoundedBookingSearch {
     private final class State {
         final Window window;
         final Day day;
+        final BookingEvaluation evaluation;
         final RouteEvaluator.Result baseline;
         final BigDecimal baselineFairness;
         final List<String> eligible;
@@ -188,19 +210,16 @@ public final class BoundedBookingSearch {
 
         State(Window window) {
             this.window = window;
-            day = Required.value(snapshot.days().get(window.day()), "snapshot service date");
-            baseline = day.evaluate(day.baseline(), day.visits(), snapshot.rates());
-            if (!baseline.feasible()) throw new BookingSnapshot.Incomplete("Reservation baseline is infeasible");
-            baselineFairness = fairness(day.plan(day.baseline(), day.visits(), snapshot.rates(), true));
-            eligible = Required.value(day.technicians().values().stream().filter(t -> t.services().contains(request.serviceId())
-                            && t.regularCapacity() > 0).<String>map((Technician t) -> t.id()).sorted().toList());
+            DayContext context = context(window.day());
+            day = context.day; evaluation = context.evaluation;
+            baseline = context.baseline; baselineFairness = context.fairness; eligible = context.eligible;
             seen.add(day.baseline());
         }
 
         void insert(Arrangement arrangement, List<String> targets, String source) {
             for (String tech : targets) {
                 Technician technician = Required.value(day.technicians().get(tech), "insertion technician");
-                if (!technician.services().contains(request.serviceId()) || technician.regularCapacity() == 0) continue;
+                if (!technician.services().contains(request.serviceId()) || evaluation.capacity(technician.id()) == 0) continue;
                 List<String> route = Required.value(arrangement.routes().get(tech), "insertion route");
                 for (int position = 0; position <= route.size(); position++) {
                     checkpoint.run();
@@ -210,11 +229,10 @@ public final class BoundedBookingSearch {
                     Map<String, Visit> facts = new HashMap<>(day.visits());
                     if (facts.putIfAbsent(visit.id(), visit) != null) throw new BookingSnapshot.Incomplete("Request already present in snapshot");
                     Arrangement proposal = arrangement.insert(Required.value(tech), visit.id(), position);
-                    var result = day.evaluate(proposal, facts, snapshot.rates());
+                    var result = evaluation.evaluate(proposal, facts, false);
                     if (!result.feasible()) continue;
-                    var confirmed = day.plan(proposal, facts, snapshot.rates(), true);
-                    if (!RouteEvaluator.evaluate(confirmed).feasible()) continue;
-                    BigDecimal fairness = fairness(confirmed);
+                    if (!evaluation.evaluate(proposal, facts, true).feasible()) continue;
+                    BigDecimal fairness = evaluation.fairness(proposal, facts);
                     retain(new Candidate(window, Required.value(tech), proposal, result.overtimeMinutes() - baseline.overtimeMinutes(),
                             result.costCents() - baseline.costCents(), Required.value(fairness.subtract(baselineFairness)),
                             changes(arrangement), position, source, result));
@@ -268,7 +286,7 @@ public final class BoundedBookingSearch {
         void chooseRoutes() {
             // Idle, qualified capacity must not disappear from a cost-oriented shortlist.
             List<String> all = new ArrayList<>(day.technicians().keySet());
-            all.removeIf(id -> Required.value(day.technicians().get(id)).regularCapacity() == 0);
+            all.removeIf(id -> evaluation.capacity(Required.value(id)) == 0);
             Map<String, RouteRank> ranks = new HashMap<>();
             for (String id : all) ranks.put(id, rank(Required.value(id)));
             all.sort(Comparator.comparingLong((String id) -> Required.value(ranks.get(id)).roadDeltaSeconds())
@@ -297,8 +315,8 @@ public final class BoundedBookingSearch {
             for (String stop : stops) services.add(Required.value(day.visits().get(stop)).serviceId());
             int scarcity = Integer.MAX_VALUE;
             for (String service : services) scarcity = Math.min(scarcity, (int) day.technicians().values().stream()
-                    .filter(tech -> tech.regularCapacity() > 0 && tech.services().contains(service)).count());
-            long capacity = Required.value(day.technicians().get(id)).regularCapacity();
+                    .filter(tech -> evaluation.capacity(tech.id()) > 0 && tech.services().contains(service)).count());
+            long capacity = evaluation.capacity(id);
             double utilized = utilization(id);
             return new RouteRank(roadDelta, scarcity, capacity - Math.round(utilized * capacity), utilized);
         }
@@ -312,33 +330,11 @@ public final class BoundedBookingSearch {
         double utilization(String id) {
             Double cached = utilizations.get(id);
             if (cached != null) return cached;
-            Technician tech = Required.value(day.technicians().get(id), "shortlist technician");
-            long capacity = tech.regularCapacity();
+            long capacity = evaluation.capacity(id);
             if (capacity == 0) return Double.POSITIVE_INFINITY;
-            var plan = day.plan(day.baseline(), day.visits(), snapshot.rates(), true);
-            var route = plan.getRoutes().stream().filter(r -> r.getId().equals(id)).findFirst().orElseThrow();
-            var single = new dev.waterflex.scheduler.optimizer.DayPlan(Required.value(List.of(route)), route.getVisits(), plan.getMatrix(),
-                    plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes());
-            double value = RouteEvaluator.evaluate(single).paidMinutes() / (double) capacity;
+            double value = evaluation.route(id, Required.value(day.baseline().routes().get(id)), day.visits(), true).paidMinutes() / (double) capacity;
             utilizations.put(id, value);
             return value;
-        }
-
-        BigDecimal fairness(dev.waterflex.scheduler.optimizer.DayPlan plan) {
-            Set<String> services = new HashSet<>();
-            services.add(request.serviceId());
-            plan.getVisits().forEach(visit -> services.add(visit.getServiceId()));
-            List<SchedulingPolicy.Workload> workload = new ArrayList<>();
-            for (var route : plan.getRoutes()) {
-                long capacity = SchedulingPolicy.regularCapacity(Required.value(route));
-                if (capacity == 0 || Collections.disjoint(services, route.getQualifiedServiceIds())) continue;
-                var single = new dev.waterflex.scheduler.optimizer.DayPlan(Required.value(List.of(route)), route.getVisits(), plan.getMatrix(),
-                        plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes());
-                var metrics = RouteEvaluator.evaluate(single);
-                if (!metrics.feasible()) throw new BookingSnapshot.Incomplete("Confirmed workload cannot be evaluated");
-                workload.add(new SchedulingPolicy.Workload(route.getId(), metrics.paidMinutes(), capacity, Required.value(BigDecimal.ZERO)));
-            }
-            return SchedulingPolicy.fairness(workload).variance();
         }
 
         boolean step() {
@@ -357,11 +353,10 @@ public final class BoundedBookingSearch {
             Arrangement arrangement = Required.value(pending.next());
             if (!seen.add(arrangement)) return true;
             arrangements++;
-            var result = day.evaluate(arrangement, day.visits(), snapshot.rates());
+            var result = evaluation.evaluate(arrangement, day.visits(), false);
             if (result.feasible()) {
-                var confirmed = day.plan(arrangement, day.visits(), snapshot.rates(), true);
-                if (RouteEvaluator.evaluate(confirmed).feasible()) {
-                    ranked.add(new Ranked(arrangement, result.overtimeMinutes(), result.costCents(), fairness(confirmed)));
+                if (evaluation.evaluate(arrangement, day.visits(), true).feasible()) {
+                    ranked.add(new Ranked(arrangement, result.overtimeMinutes(), result.costCents(), evaluation.fairness(arrangement, day.visits())));
                     insert(arrangement, shortlist, "REARRANGEMENT");
                 }
             }

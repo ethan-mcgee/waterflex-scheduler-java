@@ -11,6 +11,54 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoundedBookingSearchTest {
+    @Test void optionalRefinementTimeoutKeepsCompletedRegularChoicesWithoutUnlockingOvertime() {
+        var snapshot = fixture(30, false, false, 60);
+        var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
+                BoundedBookingSearch.Limits.defaults(), () -> { });
+        var one = Required.value(search.search(false).candidates().getFirst());
+        List<BoundedBookingSearch.Candidate> candidates = new ArrayList<>();
+        for (int index = 0; index < 3; index++) {
+            var window = new BoundedBookingSearch.Window(DAY, Required.value(START.plusSeconds(index * 7200L)), Required.value(END.plusSeconds(index * 7200L)));
+            candidates.add(new BoundedBookingSearch.Candidate(window, one.technicianId(), one.arrangement(), 0, one.costDeltaCents(),
+                    one.fairnessDelta(), one.changedAssignments(), one.insertionPosition(), one.source(), one.validation()));
+        }
+        var insertion = new BoundedBookingSearch.Result(candidates, Required.value(List.of()), true, 3, 108, 120, false, "COMPLETED");
+        var timedOut = new BoundedBookingSearch.Result(Required.value(List.of()), Required.value(List.of()), false, 0, 0, 0, false, "DEADLINE");
+        var combined = BookingSearchPipeline.combine(insertion, timedOut, snapshot.policy());
+        assertEquals(candidates, combined.candidates());
+        assertTrue(combined.complete());
+        assertEquals(3, combined.distinctRegularWindows());
+        assertEquals(108, combined.confirmedRegularMinutes());
+        assertFalse(combined.overtimeAuthorized());
+    }
+
+    @Test void cachedRoutesMatchFullEvaluationAcrossReassignmentUndoAndChangedPromises() {
+        for (boolean hold : List.of(false, true)) {
+            Day day = Required.value(fixture(30, hold, true, 60).days().get(DAY));
+            var evaluation = new BookingEvaluation(day, RATES, "new-service", () -> { });
+            for (int repetition = 0; repetition < 3; repetition++) for (String assigned : List.of("a", "b"))
+                for (String inserted : List.of("a", "b")) for (boolean reversed : List.of(false, true)) {
+                    Map<String, Visit> facts = new HashMap<>(day.visits());
+                    // Reusing an ID with a changed promise must not reuse its old route metrics.
+                    Instant start = Required.value(START.plusSeconds(repetition * 1200L));
+                    facts.put("new", new Visit("new", "new", "new-service", start, END, 20, POINT, Required.value(inserted), start, false));
+                    Map<String, List<String>> routes = new TreeMap<>(); routes.put("a", new ArrayList<>()); routes.put("b", new ArrayList<>());
+                    Required.value(routes.get(assigned)).add("old"); Required.value(routes.get(inserted)).add("new");
+                    if (reversed) routes.values().forEach(Collections::reverse);
+                    var arrangement = new Arrangement(routes);
+                    for (boolean confirmedOnly : List.of(false, true)) {
+                        var full = dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(arrangement, facts, RATES, confirmedOnly));
+                        assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));
+                        long evaluated = evaluation.evaluations();
+                        assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));
+                        assertEquals(evaluated, evaluation.evaluations(), "Repeated arrangement must reuse immutable metrics");
+                    }
+                }
+            assertTrue(evaluation.hits() > evaluation.evaluations());
+            assertEquals(day.evaluate(day.baseline(), day.visits(), RATES), evaluation.evaluate(day.baseline(), day.visits(), false));
+        }
+    }
+
     private static final Instant CAPTURED = Required.value(Instant.parse("2026-10-25T17:00:00Z"));
     private static final LocalDate DAY = Required.value(LocalDate.parse("2026-10-26"));
     private static final Instant START = Required.value(Instant.parse("2026-10-26T14:00:00Z"));
