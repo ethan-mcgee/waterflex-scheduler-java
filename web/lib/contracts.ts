@@ -25,6 +25,9 @@ export const appointmentSearch = z.object({
   prescribedSearchCompleted: z.boolean(), elapsedMs: z.int().nonnegative(), retryable: z.boolean(),
   apiElapsedMs: z.int().nonnegative().optional(),
   queueMs: z.int().nonnegative().optional(),
+  measurements: z.object({ databaseExecutions: z.int().nonnegative(), databaseNanos: z.int().nonnegative(), lockStatementNanos: z.int().nonnegative(),
+    routingPairs: z.int().nonnegative(), memoryHits: z.int().nonnegative(), persistentHits: z.int().nonnegative(), sharedRoutingPairs: z.int().nonnegative(),
+    foregroundCpuNanos: z.int().nonnegative().nullable(), }).nullish(),
 }).superRefine((value, context) => {
   if (value.outcome === "NO_CANDIDATE_FOUND" && !value.prescribedSearchCompleted)
     context.addIssue({ code: "custom", message: "An incomplete search cannot establish no candidate found" });

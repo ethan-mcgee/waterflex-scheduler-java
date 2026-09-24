@@ -75,7 +75,17 @@ public final class BookingSearchPipeline {
         boolean complete = insertion.complete() || refined.complete();
         // The completed insertion pass already measured the full horizon's confirmed utilization.
         long confirmed = insertion.confirmedRegularMinutes(), capacity = insertion.regularCapacityMinutes();
-        return new BoundedBookingSearch.Result(Required.value(java.util.List.copyOf(candidates)), refined.coverage(), complete, regular,
+        java.util.Map<BoundedBookingSearch.Window, BoundedBookingSearch.Coverage> coverage = new java.util.LinkedHashMap<>();
+        insertion.coverage().forEach(item -> coverage.put(item.window(), item));
+        for (var item : refined.coverage()) {
+            var previous = coverage.get(item.window());
+            coverage.put(item.window(), previous == null ? item : new BoundedBookingSearch.Coverage(item.window(),
+                    Math.max(previous.routesExamined(), item.routesExamined()),
+                    previous.arrangementsExamined() + Math.max(0, item.arrangementsExamined() - 1),
+                    previous.movesGenerated() + item.movesGenerated(), previous.candidateEvaluations() + item.candidateEvaluations(),
+                    previous.complete() || item.complete(), item.stopReason()));
+        }
+        return new BoundedBookingSearch.Result(Required.value(java.util.List.copyOf(candidates)), Required.value(java.util.List.copyOf(coverage.values())), complete, regular,
                 confirmed, capacity, policy.authorizeOvertime(regular, confirmed, capacity, complete), refined.stopReason());
     }
 }

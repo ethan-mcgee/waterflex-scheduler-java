@@ -43,6 +43,26 @@ test("appointment search shows indeterminate progress and retains inputs after f
       await expect(page.getByRole("button", { name: /see available times/i })).toBeEnabled();
       await page.unroute("**/api/book");
     }
+    const measurements = await page.evaluate(() => performance.getEntriesByName("waterflex.booking-api", "measure")
+      .map(entry => ({ duration: entry.duration, detail: (entry as PerformanceMeasure).detail })));
+    expect(measurements).toHaveLength(5);
+    for (const measurement of measurements) {
+      expect(measurement.duration).toBeGreaterThanOrEqual(0);
+      expect(measurement.detail).toEqual({ flow: "initial", includesAddressValidation: true });
+    }
+    await page.evaluate(() => {
+      const original = window.fetch.bind(window);
+      window.fetch = (input, init) => input === "/api/book" ? new Promise<Response>((_, reject) => {
+        init?.signal?.addEventListener("abort", () => {
+          document.documentElement.dataset.bookingAborted = "true";
+          reject(new DOMException("Abandoned fixture search", "AbortError"));
+        }, { once: true });
+      }) : original(input, init);
+    });
+    await page.getByRole("button", { name: /see available times/i }).click();
+    await expect(progress).toBeVisible();
+    await page.getByRole("link", { name: "Technicians", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-booking-aborted", "true");
   } finally {
     finish?.();
     await prisma.serviceCatalog.delete({ where: { id: service.id } });

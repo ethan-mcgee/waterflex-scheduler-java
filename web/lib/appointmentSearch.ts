@@ -1,6 +1,13 @@
 import type { z } from "zod";
 import type { appointmentSearch } from "./contracts";
 
+/** Browser API duration includes transport; initial/pin calls also include address validation. No customer data. */
+export function recordBookingApiDuration(start: number, flow: "initial" | "pin" | "refresh" | "selection") {
+  const name = "waterflex.booking-api";
+  if (performance.getEntriesByName(name, "measure").length >= 128) performance.clearMeasures(name);
+  performance.measure(name, { start, end: performance.now(), detail: { flow, includesAddressValidation: flow === "initial" || flow === "pin" } });
+}
+
 export function appointmentSearchMessage(search: z.infer<typeof appointmentSearch>): string | null {
   switch (search.outcome) {
     case "AVAILABLE": return null;

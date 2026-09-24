@@ -41,7 +41,16 @@ public class BookingController {
     public record ConfirmRequest(String holdId) { public ConfirmRequest { holdId = RequestChecks.text(holdId, "holdId"); } }
     public record CancelRequest(String appointment_id, String reason) { public CancelRequest { appointment_id = RequestChecks.text(appointment_id, "appointment_id"); reason = RequestChecks.text(reason, "reason"); } }
     public enum SearchOutcome { AVAILABLE, SEARCH_INCOMPLETE, NO_CANDIDATE_FOUND, ROUTING_UNAVAILABLE, SCHEDULE_CONFLICT, SERVICE_BUSY }
-    public record SearchStatus(SearchOutcome outcome, boolean prescribedSearchCompleted, long elapsedMs, boolean retryable, long queueMs) { }
+    public record SearchStatus(SearchOutcome outcome, boolean prescribedSearchCompleted, long elapsedMs, boolean retryable, long queueMs,
+            SearchTelemetry.@Nullable Measurements measurements) {
+        public SearchStatus(SearchOutcome outcome, boolean completed, long elapsedMs, boolean retryable, long queueMs) {
+            this(outcome, completed, elapsedMs, retryable, queueMs, measurementsNow());
+        }
+        private static SearchTelemetry.@Nullable Measurements measurementsNow() {
+            SearchDeadline current = SearchDeadline.current();
+            return current == null ? null : current.telemetry().snapshot();
+        }
+    }
     public record SearchResponse(String jobId, List<BookingService.Offer> offers, SearchStatus search) { }
 
     @PostMapping("/v1/offers")
