@@ -63,6 +63,7 @@ public final class BookingCoordinator {
                     jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND \"supersededAt\" IS NULL", jobId);
                     jdbc.update("INSERT INTO booking_offer_set (id,\"jobId\",\"expiresAt\",\"searchDiagnostics\") VALUES (?,?,?,?::jsonb)",
                             setId, jobId, stamp(prepared.expiresAt()), diagnostics(prepared));
+                    SearchDeadline.reservedSet(setId);
                     List<BookingService.Offer> offers = new ArrayList<>();
                     for (ReservationOffers.Reserved reserved : bundle.offers()) {
                         var candidate = reserved.candidate();

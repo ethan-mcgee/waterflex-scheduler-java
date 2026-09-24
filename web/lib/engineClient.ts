@@ -56,8 +56,28 @@ export async function requestSlots(jobId: string, refresh = false, timeoutMs = 5
   const started = performance.now();
   const budgetMs = Math.min(5000, timeoutMs);
   if (!Number.isInteger(budgetMs) || budgetMs <= 0) throw new EngineError(400, "Invalid appointment search budget");
-  const result = await request("/v1/offers", offersResponse, { jobId, refresh, deadlineEpochMs: Date.now() + budgetMs }, budgetMs, signal);
-  return { ...result, search: { ...result.search, apiElapsedMs: Math.ceil(performance.now() - started) } };
+  const searchRequestId = crypto.randomUUID();
+  let cancellation: Promise<void> | undefined;
+  const cancel = () => {
+    cancellation ??= (async () => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try { await request("/v1/offers/cancel-search", success, { jobId, searchRequestId }, 2000); return; }
+        catch (error) { if (attempt === 1) console.error("Search cancellation could not be acknowledged", { searchRequestId, error }); }
+      }
+    })();
+  };
+  signal?.addEventListener("abort", cancel, { once: true });
+  try {
+    if (signal?.aborted) { cancel(); throw new EngineError(499, "Appointment search cancelled"); }
+    const result = await request("/v1/offers", offersResponse, { jobId, refresh, searchRequestId, deadlineEpochMs: Date.now() + budgetMs }, budgetMs, signal);
+    if (result.offers.length) {
+      const remaining = Math.floor(budgetMs - (performance.now() - started));
+      if (remaining <= 0) throw new EngineError(504, "Appointment search deadline exhausted");
+      await request("/v1/offers/acknowledge-search", success, { jobId, searchRequestId }, remaining, signal);
+    }
+    return { ...result, search: { ...result.search, apiElapsedMs: Math.ceil(performance.now() - started) } };
+  } catch (error) { cancel(); throw error; }
+  finally { signal?.removeEventListener("abort", cancel); }
 }
 
 export function selectOffer(jobId: string, offerId: string, timeoutMs?: number): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {

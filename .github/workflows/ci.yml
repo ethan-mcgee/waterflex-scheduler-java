@@ -163,6 +163,14 @@ jobs:
           SCHEDULER_TEST_URL: http://127.0.0.1:18002
           SCHEDULER_RESERVATIONS_TEST: 'true'
         run: npm run test:booking:integration
+      - name: Cross-instance search cancellation and lost response cleanup
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_CANCEL_URL: http://127.0.0.1:18000
+        run: |
+          npm run test:search-cancellation:integration
+          SCHEDULER_TEST_URL=http://127.0.0.1:18000 SCHEDULER_CANCEL_URL=http://127.0.0.1:18002 npm run test:search-cancellation:integration
       - name: Bounded rearrangement and concurrency with rollout disabled at confirmation
         working-directory: web
         env:

@@ -44,7 +44,7 @@ public final class BookingSnapshotLoader {
     }
     private record Base(String id, boolean active, RouteEndpoints endpoints, int maxDaily, int maxOvertime, long version) { }
     private record Saved(int version, @Nullable ReservationState state) { }
-    private record Stop(Visit visit, @Nullable Hold hold) { }
+    private record Stop(Visit visit, @Nullable Hold hold, boolean managed) { }
     private final JdbcTemplate jdbc;
     private final TransactionTemplate reads;
     private final ObjectMapper json = new ObjectMapper();
@@ -133,7 +133,9 @@ public final class BookingSnapshotLoader {
             Map<String, ReservationState.Hold> reservations = new TreeMap<>();
             Map<String, List<String>> routeIds = new TreeMap<>();
             technicians.keySet().forEach(id -> routeIds.put(id, new ArrayList<>()));
+            boolean managedReservations = false;
             for (Stop stop : stops(ids, day, requestingJobId)) {
+                managedReservations |= stop.managed();
                 Visit visit = stop.visit();
                 if (!technicians.containsKey(visit.originalTechnicianId())) throw conflict("An appointment or reservation has no active working technician");
                 if (visits.putIfAbsent(visit.id(), visit) != null) throw conflict("Duplicate appointment/reservation identifier");
@@ -144,7 +146,10 @@ public final class BookingSnapshotLoader {
             Saved saved = saved(metroId, day);
             Arrangement baseline = new Arrangement(routeIds);
             ReservationState prior = saved.state();
-            if (prior != null && !reservations.isEmpty()) baseline = restore(prior, technicians, visits, requestingJobId);
+            if (managedReservations) {
+                if (prior == null) throw conflict("Managed reservations have no common arrangement");
+                baseline = restore(prior, technicians, visits, requestingJobId);
+            }
             days.put(day, new Day(technicians, visits, baseline, saved.version(),
                     new Roads(Required.value(Map.of()), Required.value(Set.of()))));
             holds.put(day, reservations);
@@ -170,10 +175,10 @@ public final class BookingSnapshotLoader {
         List<Object> args = new ArrayList<>();
         args.add(stamp(day)); args.addAll(technicians);
         args.add(stamp(day)); args.add(excludedJob); args.addAll(technicians);
-        return Required.value(jdbc.query("SELECT a.id,a.\"jobId\",j.\"serviceId\",a.\"windowStart\",a.\"windowEnd\",j.\"durationMin\",ad.lat,ad.lng,a.\"technicianId\",a.\"plannedStart\",false,NULL::timestamp,NULL::text,NULL::boolean "
+        return Required.value(jdbc.query("SELECT a.id,a.\"jobId\",j.\"serviceId\",a.\"windowStart\",a.\"windowEnd\",j.\"durationMin\",ad.lat,ad.lng,a.\"technicianId\",a.\"plannedStart\",false,NULL::timestamp,NULL::text,NULL::boolean,false "
                         + "FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL AND a.\"technicianId\" IN (" + placeholders(technicians.size()) + ") UNION ALL "
-                        + "SELECT h.id,h.\"jobId\",j.\"serviceId\",h.\"windowStart\",h.\"windowEnd\",j.\"durationMin\",h.\"locationLat\",h.\"locationLng\",h.\"technicianId\",h.\"plannedStart\",true,h.\"expiresAt\",h.\"offerToken\",o.\"overtimeAuthorized\" "
-                        + "FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" LEFT JOIN booking_offer o ON o.id=h.\"offerToken\" AND o.\"jobId\"=h.\"jobId\" WHERE h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP AND h.\"technicianId\" IN (" + placeholders(technicians.size()) + ") ORDER BY 10,1",
+                        + "SELECT h.id,h.\"jobId\",j.\"serviceId\",h.\"windowStart\",h.\"windowEnd\",j.\"durationMin\",h.\"locationLat\",h.\"locationLng\",h.\"technicianId\",h.\"plannedStart\",true,h.\"expiresAt\",h.\"offerToken\",o.\"overtimeAuthorized\",(s.\"searchDiagnostics\" IS NOT NULL OR EXISTS (SELECT 1 FROM reservation_dependency dependency WHERE dependency.\"holdId\"=h.id)) "
+                        + "FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" LEFT JOIN booking_offer o ON o.id=h.\"offerToken\" AND o.\"jobId\"=h.\"jobId\" LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP AND h.\"technicianId\" IN (" + placeholders(technicians.size()) + ") ORDER BY 10,1",
                 (rs, _) -> {
                     boolean reserved = Required.bool(rs, 11);
                     Visit visit = new Visit(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3),
@@ -182,7 +187,7 @@ public final class BookingSnapshotLoader {
                             Required.value(Required.timestamp(rs, 10).toInstant()), reserved);
                     ReservationState.Hold hold = reserved ? new ReservationState.Hold(visit.jobId(), Required.string(rs, 13),
                             Required.value(Required.timestamp(rs, 12).toInstant()), Required.bool(rs, 14)) : null;
-                    return new Stop(visit, hold);
+                    return new Stop(visit, hold, Required.bool(rs, 15));
                 }, Required.value(args.toArray(new @Nullable Object[0]))));
     }
 

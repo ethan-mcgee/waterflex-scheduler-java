@@ -245,6 +245,7 @@ model Job {
   bookingOptimizations BookingOptimization[]
   bookingOffers BookingOffer[]
   offerSets BookingOfferSet[]
+  searchRequests BookingSearchRequest[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
 
@@ -383,6 +384,7 @@ model BookingOfferSet {
   supersededAt DateTime?
   selectedOfferId String?
   searchDiagnostics Json?
+  searchRequests BookingSearchRequest[]
   createdAt DateTime @default(now())
   offers BookingOffer[]
   holds SlotHold[]
@@ -670,4 +672,21 @@ model OutboundEvent {
 
   @@index([deliveredAt])
   @@map("outbound_event")
+}
+
+model BookingSearchRequest {
+  id String @id
+  jobId String
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  deadlineAt DateTime
+  cancelledAt DateTime?
+  acknowledgedAt DateTime?
+  offerSetId String?
+  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id], onDelete: SetNull)
+  cleanedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([cancelledAt, cleanedAt], map: "booking_search_request_cleanup_idx")
+  @@index([deadlineAt], map: "booking_search_request_deadline_idx")
+  @@map("booking_search_request")
 }
