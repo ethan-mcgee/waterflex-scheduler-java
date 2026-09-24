@@ -1,0 +1,447 @@
+{
+  "inputs": [
+    {
+      "report": "booking-original-corrected-2026-09-24.json",
+      "sha256": "6c7222b7a493423708efd111054e0786077853d939e5cef0a90ca0cf82cc62da"
+    },
+    {
+      "report": "booking-stage30-policy-insertion-2026-09-24.json",
+      "sha256": "13788b2d22dd223d50ff597144a2a5c4e2f781e3c1aaeb517a881d9173743660"
+    },
+    {
+      "report": "booking-stage30-snapshot-insertion-2026-09-24.json",
+      "sha256": "499d08a86ebfd5e69d2b6e4b3395091485cffaad4d3b347fdb6c8725931ba63d"
+    },
+    {
+      "report": "booking-stage30-bounded-early-2026-09-24.json",
+      "sha256": "0dcfadbebb40f20f72a3fd1c504570adaae218b2d97441a0461484fd3b8e3fe4"
+    },
+    {
+      "report": "booking-stage30-flexible-final-2026-09-24.json",
+      "sha256": "c3a5c5c57940db718cd71f4d1ab369b40a459c9cb84ac2c01fb668ce9baad718"
+    },
+    {
+      "report": "booking-confirmation-final-2026-09-24.json",
+      "sha256": "d32906776437bebd248e9c26df8aeae692f8c59f85647becdd954d253fe38516"
+    }
+  ],
+  "variants": [
+    {
+      "source": 0,
+      "variant": "original-baseline-explicit-connection-rechecks",
+      "cases": 126,
+      "requests": 3780,
+      "served": 3752,
+      "incomplete": 0,
+      "unknownSearchCompletion": 3780,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "LEGACY_AVAILABLE": 3752,
+        "SEARCH_ERROR": 9,
+        "SELECTION_CONFLICT": 19
+      },
+      "p50Ms": 14737.625200000126,
+      "p95Ms": 52619.63309999928,
+      "p99Ms": 72970.40020000003,
+      "sourceReport": "booking-original-corrected-2026-09-24.json",
+      "revision": "2d17885141d4a901b06b3f9732530db85c951568",
+      "artifactSha256": "773b2f2e282f4eb361ce1065cc8dce7a8510c4562d7aff0b37181068c0823691",
+      "unserved": 28,
+      "maximumCaseP95Ms": 163777.6396999997,
+      "casesAboveFiveSecondP95": 125,
+      "incrementalModeledCostCents": 7097152,
+      "incrementalModeledCostPerServedCents": 1891.5650319829424,
+      "overtimeDeltaMinutes": 5400,
+      "waitingDeltaMinutes": 0,
+      "roadDeltaSeconds": 289200,
+      "configuredBufferDeltaSeconds": 1239540,
+      "meanDailyVarianceBefore": 0.005530539421651013,
+      "meanDailyVarianceAfter": 0.007299121794638376,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 12338,
+      "concurrency": [
+        {
+          "concurrency": 1,
+          "requests": 1260,
+          "served": 1260,
+          "maximumCaseP95Ms": 72963.90289999964,
+          "incrementalModeledCostCents": 2320094,
+          "overtimeDeltaMinutes": 1800,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.007258360134539473
+        },
+        {
+          "concurrency": 5,
+          "requests": 1260,
+          "served": 1250,
+          "maximumCaseP95Ms": 115879.8713,
+          "incrementalModeledCostCents": 2403405,
+          "overtimeDeltaMinutes": 1800,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.007324966334338432
+        },
+        {
+          "concurrency": 10,
+          "requests": 1260,
+          "served": 1242,
+          "maximumCaseP95Ms": 163777.6396999997,
+          "incrementalModeledCostCents": 2373653,
+          "overtimeDeltaMinutes": 1800,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.007314038915037225
+        }
+      ]
+    },
+    {
+      "source": 0,
+      "variant": "stage30-policy-insertion",
+      "cases": 126,
+      "requests": 3780,
+      "served": 1995,
+      "incomplete": 1812,
+      "unknownSearchCompletion": 0,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "AVAILABLE": 1995,
+        "SCHEDULE_CONFLICT": 677,
+        "SERVICE_BUSY": 537,
+        "SEARCH_INCOMPLETE": 571
+      },
+      "p50Ms": 1418.5862000000197,
+      "p95Ms": 3952.4232999999076,
+      "p99Ms": 4317.935000000056,
+      "sourceReport": "booking-stage30-policy-insertion-2026-09-24.json",
+      "revision": "90f407e0935455b627d2ddeea98c11dc5e223cdf",
+      "artifactSha256": "539648a71b80d384572022940313fb40f44f0589029377738eb9d65fcbd182c3",
+      "unserved": 1785,
+      "maximumCaseP95Ms": 4455.971400000155,
+      "casesAboveFiveSecondP95": 0,
+      "incrementalModeledCostCents": 766085,
+      "incrementalModeledCostPerServedCents": 384.0025062656642,
+      "overtimeDeltaMinutes": 0,
+      "waitingDeltaMinutes": -57860,
+      "roadDeltaSeconds": 105600,
+      "configuredBufferDeltaSeconds": 667920,
+      "meanDailyVarianceBefore": 0.01491258060277488,
+      "meanDailyVarianceAfter": 0.015016128172257125,
+      "maximumUtilization": 0.9509803921568627,
+      "changedAssignments": 0,
+      "retimedAppointments": 9426,
+      "concurrency": [
+        {
+          "concurrency": 1,
+          "requests": 1260,
+          "served": 1080,
+          "maximumCaseP95Ms": 2036.373199999798,
+          "incrementalModeledCostCents": 366094,
+          "overtimeDeltaMinutes": 0,
+          "waitingDeltaMinutes": -31880,
+          "meanDailyVarianceAfter": 0.01507572689943407
+        },
+        {
+          "concurrency": 5,
+          "requests": 1260,
+          "served": 566,
+          "maximumCaseP95Ms": 4453.511799999978,
+          "incrementalModeledCostCents": 232893,
+          "overtimeDeltaMinutes": 0,
+          "waitingDeltaMinutes": -16350,
+          "meanDailyVarianceAfter": 0.015000721531313646
+        },
+        {
+          "concurrency": 10,
+          "requests": 1260,
+          "served": 349,
+          "maximumCaseP95Ms": 4455.971400000155,
+          "incrementalModeledCostCents": 167098,
+          "overtimeDeltaMinutes": 0,
+          "waitingDeltaMinutes": -9630,
+          "meanDailyVarianceAfter": 0.014971936086023657
+        }
+      ]
+    },
+    {
+      "source": 0,
+      "variant": "stage30-snapshot-insertion",
+      "cases": 126,
+      "requests": 3780,
+      "served": 2136,
+      "incomplete": 1645,
+      "unknownSearchCompletion": 0,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "AVAILABLE": 2136,
+        "SCHEDULE_CONFLICT": 810,
+        "SERVICE_BUSY": 287,
+        "SEARCH_INCOMPLETE": 547
+      },
+      "p50Ms": 934.7546000001021,
+      "p95Ms": 3778.777199999895,
+      "p99Ms": 4041.3854999998584,
+      "sourceReport": "booking-stage30-snapshot-insertion-2026-09-24.json",
+      "revision": "90f407e0935455b627d2ddeea98c11dc5e223cdf",
+      "artifactSha256": "a898eb9e0809a1f800e1ffd5e56b02017ec307d4d9a55e6e7601cd1de535dc38",
+      "unserved": 1644,
+      "maximumCaseP95Ms": 4331.423699999694,
+      "casesAboveFiveSecondP95": 0,
+      "incrementalModeledCostCents": 772384,
+      "incrementalModeledCostPerServedCents": 361.60299625468167,
+      "overtimeDeltaMinutes": 0,
+      "waitingDeltaMinutes": -62610,
+      "roadDeltaSeconds": 104400,
+      "configuredBufferDeltaSeconds": 708180,
+      "meanDailyVarianceBefore": 0.01491258060277488,
+      "meanDailyVarianceAfter": 0.015021984864519968,
+      "maximumUtilization": 0.9509803921568627,
+      "changedAssignments": 0,
+      "retimedAppointments": 9933,
+      "concurrency": [
+        {
+          "concurrency": 1,
+          "requests": 1260,
+          "served": 1080,
+          "maximumCaseP95Ms": 1139.7270999997854,
+          "incrementalModeledCostCents": 366094,
+          "overtimeDeltaMinutes": 0,
+          "waitingDeltaMinutes": -31880,
+          "meanDailyVarianceAfter": 0.01507572689943407
+        },
+        {
+          "concurrency": 5,
+          "requests": 1260,
+          "served": 632,
+          "maximumCaseP95Ms": 4331.423699999694,
+          "incrementalModeledCostCents": 228794,
+          "overtimeDeltaMinutes": 0,
+          "waitingDeltaMinutes": -18630,
+          "meanDailyVarianceAfter": 0.015007993263265077
+        },
+        {
+          "concurrency": 10,
+          "requests": 1260,
+          "served": 424,
+          "maximumCaseP95Ms": 4297.484699999914,
+          "incrementalModeledCostCents": 177496,
+          "overtimeDeltaMinutes": 0,
+          "waitingDeltaMinutes": -12100,
+          "meanDailyVarianceAfter": 0.014982234430860754
+        }
+      ]
+    },
+    {
+      "source": 0,
+      "variant": "stage30-bounded-early",
+      "cases": 126,
+      "requests": 3780,
+      "served": 2285,
+      "incomplete": 1495,
+      "unknownSearchCompletion": 0,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "AVAILABLE": 2285,
+        "SCHEDULE_CONFLICT": 769,
+        "SERVICE_BUSY": 595,
+        "SEARCH_INCOMPLETE": 131
+      },
+      "p50Ms": 1689.2565000000177,
+      "p95Ms": 4006.6384999998845,
+      "p99Ms": 4239.534299999941,
+      "sourceReport": "booking-stage30-bounded-early-2026-09-24.json",
+      "revision": "90f407e0935455b627d2ddeea98c11dc5e223cdf",
+      "artifactSha256": "43745c813f3f592b59693d358e92438a2b3c9f904d663eecfc17c1b2e524383a",
+      "unserved": 1495,
+      "maximumCaseP95Ms": 4423.879900000058,
+      "casesAboveFiveSecondP95": 0,
+      "incrementalModeledCostCents": -3802802,
+      "incrementalModeledCostPerServedCents": -1664.2459518599562,
+      "overtimeDeltaMinutes": 2020,
+      "waitingDeltaMinutes": -157685,
+      "roadDeltaSeconds": 390600,
+      "configuredBufferDeltaSeconds": 235920,
+      "meanDailyVarianceBefore": 0.01491258060277488,
+      "meanDailyVarianceAfter": 0.017545134915666206,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 4263,
+      "retimedAppointments": 19677,
+      "concurrency": [
+        {
+          "concurrency": 1,
+          "requests": 1260,
+          "served": 1228,
+          "maximumCaseP95Ms": 4423.879900000058,
+          "incrementalModeledCostCents": -1822920,
+          "overtimeDeltaMinutes": 1480,
+          "waitingDeltaMinutes": -81264,
+          "meanDailyVarianceAfter": 0.01857047498528067
+        },
+        {
+          "concurrency": 5,
+          "requests": 1260,
+          "served": 672,
+          "maximumCaseP95Ms": 4345.024699999951,
+          "incrementalModeledCostCents": -1312032,
+          "overtimeDeltaMinutes": 360,
+          "waitingDeltaMinutes": -49724,
+          "meanDailyVarianceAfter": 0.01754700800699196
+        },
+        {
+          "concurrency": 10,
+          "requests": 1260,
+          "served": 385,
+          "maximumCaseP95Ms": 4414.528099999763,
+          "incrementalModeledCostCents": -667850,
+          "overtimeDeltaMinutes": 180,
+          "waitingDeltaMinutes": -26697,
+          "meanDailyVarianceAfter": 0.016517921754726
+        }
+      ]
+    },
+    {
+      "source": 0,
+      "variant": "stage30-flexible-final",
+      "cases": 126,
+      "requests": 3780,
+      "served": 2327,
+      "incomplete": 1452,
+      "unknownSearchCompletion": 0,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "AVAILABLE": 2327,
+        "SCHEDULE_CONFLICT": 784,
+        "SERVICE_BUSY": 564,
+        "SEARCH_INCOMPLETE": 104,
+        "SELECTION_CONFLICT": 1
+      },
+      "p50Ms": 1667.5899999999674,
+      "p95Ms": 4004.850000000093,
+      "p99Ms": 4233.474299999885,
+      "sourceReport": "booking-stage30-flexible-final-2026-09-24.json",
+      "revision": "2902c87da885bae0b1c9eaee5d90e8592a1f0b7a",
+      "artifactSha256": "9d019e5568c8d4c39f37f3c4887eb611b3309c7ba8a0380d4dec55dc26bb0d8c",
+      "unserved": 1453,
+      "maximumCaseP95Ms": 4399.526199999731,
+      "casesAboveFiveSecondP95": 0,
+      "incrementalModeledCostCents": 3558425,
+      "incrementalModeledCostPerServedCents": 1529.1899441340781,
+      "overtimeDeltaMinutes": 2080,
+      "waitingDeltaMinutes": 0,
+      "roadDeltaSeconds": 55800,
+      "configuredBufferDeltaSeconds": -50640,
+      "meanDailyVarianceBefore": 0.005530539421651013,
+      "meanDailyVarianceAfter": 0.009480400182747376,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 2694,
+      "retimedAppointments": 39490,
+      "concurrency": [
+        {
+          "concurrency": 1,
+          "requests": 1260,
+          "served": 1245,
+          "maximumCaseP95Ms": 4399.526199999731,
+          "incrementalModeledCostCents": 1901825,
+          "overtimeDeltaMinutes": 1650,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.011769855643298308
+        },
+        {
+          "concurrency": 5,
+          "requests": 1260,
+          "served": 676,
+          "maximumCaseP95Ms": 4351.852099999785,
+          "incrementalModeledCostCents": 1027600,
+          "overtimeDeltaMinutes": 300,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.008960360414329746
+        },
+        {
+          "concurrency": 10,
+          "requests": 1260,
+          "served": 406,
+          "maximumCaseP95Ms": 4287.919000000227,
+          "incrementalModeledCostCents": 629000,
+          "overtimeDeltaMinutes": 130,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.007710984490614073
+        }
+      ]
+    },
+    {
+      "source": 0,
+      "variant": "final-confirmation-fixture-diagnostics",
+      "cases": 126,
+      "requests": 3780,
+      "served": 2331,
+      "incomplete": 1449,
+      "unknownSearchCompletion": 0,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "AVAILABLE": 2331,
+        "SCHEDULE_CONFLICT": 815,
+        "SERVICE_BUSY": 587,
+        "SEARCH_INCOMPLETE": 47
+      },
+      "p50Ms": 1624.3802000000142,
+      "p95Ms": 3975.507799999963,
+      "p99Ms": 4150.336799999699,
+      "sourceReport": "booking-confirmation-final-2026-09-24.json",
+      "revision": "43e9147a1cc2ae63cf2cb64fca772f9a530df39f",
+      "artifactSha256": "585705ad3851c11264b4a636b9d89923dce6f88d5ca8213a5e9dc5124e15dd52",
+      "unserved": 1449,
+      "maximumCaseP95Ms": 4351.975499999709,
+      "casesAboveFiveSecondP95": 0,
+      "incrementalModeledCostCents": 3520400,
+      "incrementalModeledCostPerServedCents": 1510.2531102531102,
+      "overtimeDeltaMinutes": 2520,
+      "waitingDeltaMinutes": 0,
+      "roadDeltaSeconds": 56400,
+      "configuredBufferDeltaSeconds": -117420,
+      "meanDailyVarianceBefore": 0.005530539421651013,
+      "meanDailyVarianceAfter": 0.0098070311054046,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 2920,
+      "retimedAppointments": 42967,
+      "concurrency": [
+        {
+          "concurrency": 1,
+          "requests": 1260,
+          "served": 1260,
+          "maximumCaseP95Ms": 1994.9806999997236,
+          "incrementalModeledCostCents": 1903300,
+          "overtimeDeltaMinutes": 1800,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.0120533858793646
+        },
+        {
+          "concurrency": 5,
+          "requests": 1260,
+          "served": 670,
+          "maximumCaseP95Ms": 4351.975499999709,
+          "incrementalModeledCostCents": 1009475,
+          "overtimeDeltaMinutes": 480,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.009398947681054629
+        },
+        {
+          "concurrency": 10,
+          "requests": 1260,
+          "served": 401,
+          "maximumCaseP95Ms": 4349.766800000332,
+          "incrementalModeledCostCents": 607625,
+          "overtimeDeltaMinutes": 240,
+          "waitingDeltaMinutes": 0,
+          "meanDailyVarianceAfter": 0.007968759755794577
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Same input streams do not imply the same accepted demand. Read served counts alongside cost, overtime and fairness.",
+    "Mean variance averages daily capacity-weighted variances; it is not a new fleet-wide fairness objective.",
+    "Original audits use canonical timing. Early-departure ablations use their recorded timing model.",
+    "Local processes shared hardware and routing. This is not a production capacity guarantee.",
+    "Unknown legacy search completion remains unknown. Unserved is not interchangeable with incomplete.",
+    "Per-case p95 uses 30 requests; maximum case p95 is distinct from pooled p95."
+  ],
+  "summarizerSha256": "d4ecb666c1646a40f7beb05e1d3dbd14850d3dcf71c3ca127148a4421314343a"
+}

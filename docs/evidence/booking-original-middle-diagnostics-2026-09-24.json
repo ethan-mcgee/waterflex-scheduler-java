@@ -10,5 +10,13 @@
     "cause": "PostgreSQL deadlock while inserting an index tuple in road_route_cache",
     "stack": "RoadClient.matrix -> BookingService.evaluate -> offers"
   },
-  "treatment": "Retained as a measured original behavior, not replaced by the separate connection-incident correction."
+  "treatment": "Retained as a measured original behavior, not replaced by the separate connection-incident correction.",
+  "additionalSourceLogs": [
+    {
+      "sourceLog": "waterflex-booking-original-v2.jsonl.legacy-server.log",
+      "archive": "booking-original-primary-server-2026-09-24.log.gz",
+      "rawSha256": "bad38da9b8d728e51bb08771774679d3bb63d609ba5ff776d120f458136de63f",
+      "scope": "Unchanged original primary run, including retained deadlock diagnostics and earlier incidents. Each child contributes a bounded log tail, not a complete server log."
+    }
+  ]
 }

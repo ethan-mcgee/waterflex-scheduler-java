@@ -1,6 +1,6 @@
 # Scheduler acceptance evidence
 
-Acceptance is still being reconciled with the complete original plan. The final production-artifact fixture matrix and unchanged original matrix are complete; the final two matched component comparisons are still running. This document does not authorize deployment or replace the [requirement checklist](scheduler-plan-checklist.md).
+Implementation, local engineering gates and the planned benchmark comparisons are complete. This report records the scoped acceptance results and material tradeoffs against the [original requirement checklist](scheduler-plan-checklist.md). Final-head CI and review readiness are recorded on [PR #28](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/28). No production deployment or rollout enablement was performed.
 
 ## Final artifact and latency
 
@@ -27,6 +27,25 @@ The local latency gate passes with served demand reported. Concurrent requests t
 The reference workstation is an AMD Ryzen 9 7900X, 24 logical processors and 67,870,916,608 bytes of RAM. The scheduler had a 768 MiB heap. Other isolated benchmarks shared this machine, PostgreSQL and the fixture provider. This is a documented local reference, not dedicated hardware or hosted production evidence.
 
 The [actual Omaha browser matrix](evidence/booking-browser-final-2026-09-24.json) separately measured 3,780 searches at pooled p95 3,943.7 ms, largest case p95 4,387.8 ms, 2,396 served and 1,384 retryable outcomes, with zero independently audited violations. Its scheduler is `971b0b9` and portal is `0629445`; it is not relabeled as the final artifact. The later production fix concerns reserved-offer confirmation. Portal application/library code is unchanged from that measured portal revision, and [final-artifact real-road integration reruns](evidence/confirmation-verification-2026-09-24.json) passed. Its maximum measured request was 4,514 ms, with no request above five seconds. Browser timings cover validated-job refresh transport, excluding address entry, geocoding and rendering.
+
+## Matched component comparisons
+
+The [six-variant summary](evidence/booking-matched-acceptance-2026-09-24.json) verifies identical 126-case matrices, thirty-request streams, fixture fingerprints, horizon dates, seed and routing identity. Each source report preserves its own artifact and raw observations.
+
+| Configuration | Served / 3,780 | Pooled p95 | Pooled p99 | Cases above five-second p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Original with explicit connection rechecks | 3,752 | 52,619.6 ms | 72,970.4 ms | 125 |
+| Policy/insertion, full matrices and full evaluation | 1,995 | 3,952.4 ms | 4,317.9 ms | 0 |
+| Sparse routing and affected-route evaluation | 2,136 | 3,778.8 ms | 4,041.4 ms | 0 |
+| Bounded search, early departures | 2,285 | 4,006.6 ms | 4,239.5 ms | 0 |
+| Flexible departures, matching component source | 2,327 | 4,004.9 ms | 4,233.5 ms | 0 |
+| Final artifact with later search and confirmation fixes | 2,331 | 3,975.5 ms | 4,150.3 ms | 0 |
+
+These reconstructed component experiments retain shared immutable snapshot, reservation, deadline and independent-validation infrastructure. They isolate full versus sparse route materialization, full versus affected-route scoring, bounded moves and departure timing; they do not separately attribute every snapshot or safety-infrastructure refactor. The four component variants use four-connection pools; original and final instances use ten. All have 768 MiB heaps and shared workstation activity. No significance or production-throughput claim is inferred from small differences between pooled results.
+
+The policy/insertion and sparse variants each serve 1,080/1,260 sequential requests, bounded early timing serves 1,228, flexible timing 1,245, and the final artifact 1,260. The older flexible artifact retains one selection conflict. For the 50-technician near-capacity cold sequential case, bounded early timing serves 10/30, flexible timing 24/30 and final 30/30. Insertion-only variants cannot establish overtime scarcity without the prescribed bounded pass. Their quick incomplete responses are not successful bookings.
+
+Early-departure variants have different baseline paid waiting from canonical-timing variants. Their negative incremental modeled costs can reflect removing existing waiting through rearrangement; they are not revenue or directly comparable payroll savings. Source reports retain before/after cost, waiting, road/buffer seconds, workload, service delay and fairness for every case.
 
 ## Original baseline and matched demand
 
@@ -57,6 +76,6 @@ Lock-statement duration includes execution and bounds lock wait; it is not an is
 
 ## Engineering and rollout
 
-The [final verification receipt](evidence/confirmation-verification-2026-09-24.json) records 135 standard and strict-nullability unit tests, locked PostgreSQL confirmation metadata regression, reservation/cancellation lifecycle, optimizer, time-off, depot and sequential actual-road gates. Portal lint, typecheck, production build, schema contracts and 22 browser tests have passed, with older unchanged-component evidence retained at its actual revision. Final-head hosted CI remains a delivery gate.
+The [final verification receipt](evidence/confirmation-verification-2026-09-24.json) records 135 standard and strict-nullability unit tests, locked PostgreSQL confirmation metadata regression, reservation/cancellation lifecycle, optimizer, time-off, depot and sequential actual-road gates. Portal lint, typecheck, production build, schema contracts and 22 browser tests have passed, with older unchanged-component evidence retained at its actual revision. Final-head hosted CI is a delivery gate checked on the PR; older successful runs are not substituted for that check.
 
 Apply the eight additive migrations before starting the new binaries. Keep the common-reservation and bounded-search issuance flags disabled until rollout is deliberately approved. Preserve this version's confirmation, release and expiry support for every outstanding managed offer when disabling new issuance. Never downgrade to a binary that cannot honor those arrangements. The [operations guide](scheduler-policy.md) documents configuration, historical metrics, manual optimizer apply and rollback boundaries. No production services, data, travel buffers or default booking rollout flags were changed during verification.
