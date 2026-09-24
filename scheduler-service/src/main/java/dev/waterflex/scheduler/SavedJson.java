@@ -90,6 +90,17 @@ public final class SavedJson {
             for (String key : new String[]{"stop_count", "route_minutes", "drive_minutes", "waiting_minutes", "distance_meters", "modeled_cost_cents", "workload_minutes", "overtime_minutes"})
                 if (integer(Required.value(route), Required.value(key)) < 0) throw invalid();
             for (JsonNode id : array(Required.value(route.path("appointment_ids")))) if (!id.isTextual() || id.asText().isBlank()) throw invalid();
+            if (route.hasNonNull("travel_breakdown")) {
+                JsonNode travel = object(Required.value(route.path("travel_breakdown")));
+                long road = integer(travel, "road_seconds"), modeled = integer(travel, "modeled_travel_minutes");
+                if (road < 0 || modeled < 0 || integer(travel, "leg_count") < 0 || modeled != integer(Required.value(route), "drive_minutes")) throw invalid();
+                for (String key : new String[]{"configured_buffer_seconds", "rounding_seconds"}) {
+                    JsonNode number = Required.value(travel.path(key));
+                    if (!number.isNumber() || !Double.isFinite(number.doubleValue()) || number.decimalValue().signum() < 0) throw invalid();
+                }
+                var total = java.math.BigDecimal.valueOf(road).add(travel.path("configured_buffer_seconds").decimalValue()).add(travel.path("rounding_seconds").decimalValue());
+                if (total.compareTo(java.math.BigDecimal.valueOf(modeled).multiply(java.math.BigDecimal.valueOf(60))) != 0) throw invalid();
+            }
             if (route.hasNonNull("segments")) for (JsonNode segment : array(Required.value(route.path("segments")))) {
                 JsonNode value = object(Required.value(segment));
                 try {

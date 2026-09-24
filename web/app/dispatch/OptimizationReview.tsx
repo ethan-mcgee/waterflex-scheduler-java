@@ -54,7 +54,7 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
     <div className={styles.fleetTotals}>
       <span title={run.routing_identity}>Routing graph: {run.routing_identity.slice(0, 12)}</span>
       <span title={run.configuration_version}>Configuration: {run.configuration_version.slice(0, 12)}</span>
-      <span>Drive: {total(run.route_summary_before, "drive_minutes")} to {total(run.route_summary_after, "drive_minutes")} min</span>
+      <span>Travel including buffers: {total(run.route_summary_before, "drive_minutes")} to {total(run.route_summary_after, "drive_minutes")} min</span>
       <span>Paid route: {total(run.route_summary_before, "route_minutes")} to {total(run.route_summary_after, "route_minutes")} min</span>
       <span>Overtime: {total(run.route_summary_before, "overtime_minutes")} to {total(run.route_summary_after, "overtime_minutes")} min</span>
       <span>Waiting: {total(run.route_summary_before, "waiting_minutes")} to {total(run.route_summary_after, "waiting_minutes")} min</span>
@@ -66,6 +66,10 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
       return <div className={styles.routeComparison} key={before.technician_id}><strong>{technicianName?.(before.technician_id) ?? before.technician_id}</strong>
         <span>{before.stop_count} to {after?.stop_count ?? 0} stops</span><span>{before.drive_minutes} to {after?.drive_minutes ?? 0} drive min</span>
         <span>{before.workload_minutes} to {after?.workload_minutes ?? 0} paid min</span>
+        {after?.travel_breakdown ? <span>Proposed road travel: {(after.travel_breakdown.road_seconds / 60).toFixed(1)} min;
+          {" "}configured buffer: {(after.travel_breakdown.configured_buffer_seconds / 60).toFixed(1)} min;
+          {" "}rounding: {(after.travel_breakdown.rounding_seconds / 60).toFixed(1)} min</span>
+          : <span>Separate road and buffer metrics unavailable.</span>}
         {after?.segments?.map((segment, index) => <span key={index}>Segment {index + 1}: depart {new Date(segment.departure).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })},
           {" "}return {new Date(segment.returned_at).toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" })}</span>)}</div>;
     })}</div>

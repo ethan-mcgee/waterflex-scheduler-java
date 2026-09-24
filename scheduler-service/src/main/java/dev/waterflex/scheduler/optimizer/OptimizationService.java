@@ -43,7 +43,8 @@ public class OptimizationService {
     public record SegmentSummary(String departure, String returned_at, List<String> appointment_ids) { }
     public record RouteSummary(String technician_id, int stop_count, long route_minutes, long drive_minutes,
             long waiting_minutes, long distance_meters, long modeled_cost_cents, long workload_minutes,
-            long overtime_minutes, List<String> appointment_ids, @Nullable List<SegmentSummary> segments) { }
+            long overtime_minutes, List<String> appointment_ids, @Nullable List<SegmentSummary> segments,
+            @Nullable TravelBreakdown travel_breakdown) { }
     private record Assignment(String appointmentId, String technicianId, int sequence, String plannedStart, String plannedEnd, String windowStart, String windowEnd, double locationLat, double locationLng) { }
     private record ExistingPreview(String id, String metroId, LocalDate day) { }
     private record SavedRun(String metroId, Instant day, String versions, String assignments, String weights, String status) { }
@@ -522,10 +523,9 @@ public class OptimizationService {
         roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
         Map<String, Double> settings = new HashMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(Required.string(rs, 1), Required.number(rs, 2)));
+        var rates = dev.waterflex.scheduler.BookingSnapshot.Rates.read(settings);
         DayPlan plan = new DayPlan(Required.value(techs.stream().<TechRoute>map((TechData tech) -> tech.route()).toList()), Required.value(visits.stream().<PlanVisit>map((VisitData visit) -> visit.visit()).toList()), matrix,
-                settings.getOrDefault("regular_hourly_dollars", 30.0), settings.getOrDefault("overtime_hourly_dollars", 45.0),
-                settings.getOrDefault("mileage_dollars_per_mile", 0.67), settings.getOrDefault("travel_buffer_pct", 0.2),
-                Math.round(settings.getOrDefault("travel_buffer_minutes_per_leg", 5.0)));
+                rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
         Map<String, Integer> versions = new LinkedHashMap<>();
         for (TechData tech : techs) {
             jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING",
@@ -552,6 +552,8 @@ public class OptimizationService {
             item.put("workload_minutes", routeMetrics.paidMinutes()); item.put("overtime_minutes", routeMetrics.overtimeMinutes());
             var independent = RouteEvaluator.evaluate(new DayPlan(Required.value(List.of(route)), route.getVisits(), plan.getMatrix(),
                     plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes()));
+            if (independent.feasible()) item.put("travel_breakdown", TravelBreakdown.forRoute(plan, route,
+                    Required.value(independent.segments().get(route.getId()), "reported working segments")));
             item.put("segments", Required.value(independent.segments().get(route.getId()), "working segments").stream().map(segment ->
                     new SegmentSummary(Required.value(segment.departure().toString()), Required.value(segment.returnedAt().toString()), segment.visitIds())).toList());
             result.add(item);

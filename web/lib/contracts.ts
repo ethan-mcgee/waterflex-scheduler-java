@@ -41,12 +41,18 @@ export const selection = confirmation.extend({ holdId: text, expiresAt: instant 
 export const success = z.object({ success: z.boolean() });
 export const timeOffResult = z.object({ requestId: text, status: text });
 export const routabilityResponse = z.object({ results: z.array(z.object({ id: text, routable: z.boolean() })) });
+export const travelBreakdown = z.object({ road_seconds: z.int().nonnegative(), configured_buffer_seconds: finite.nonnegative(),
+  rounding_seconds: finite.nonnegative(), modeled_travel_minutes: z.int().nonnegative(), leg_count: z.int().nonnegative(),
+}).refine(value => Math.abs(value.road_seconds + value.configured_buffer_seconds + value.rounding_seconds - value.modeled_travel_minutes * 60) < 0.000001,
+  "Travel components must equal modeled travel");
 const routeSummary = z.object({
   technician_id: text, stop_count: z.int().nonnegative(), route_minutes: finite, drive_minutes: finite,
   waiting_minutes: finite, distance_meters: finite, modeled_cost_cents: finite, workload_minutes: finite,
   overtime_minutes: finite, appointment_ids: z.array(text),
   segments: z.array(z.object({ departure: instant, returned_at: instant, appointment_ids: z.array(text) })).nullish(),
-});
+  travel_breakdown: travelBreakdown.nullish(),
+}).refine(value => value.travel_breakdown == null || value.travel_breakdown.modeled_travel_minutes === value.drive_minutes,
+  "Travel breakdown must match reported driving");
 const policyMetrics = z.object({ overtimeMinutes: z.int().nonnegative(), costCents: z.int().nonnegative(),
   fairness: z.object({ variance: finite.nonnegative(), maximumUtilization: finite.nonnegative(),
     workloads: z.array(z.object({ technicianId: text, paidMinutes: z.int().nonnegative(),
