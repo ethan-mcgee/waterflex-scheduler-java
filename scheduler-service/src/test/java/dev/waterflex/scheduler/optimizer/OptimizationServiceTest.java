@@ -2,7 +2,6 @@ package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
 
-import ai.timefold.solver.core.api.solver.SolverFactory;
 import dev.waterflex.scheduler.RoadClient;
 import org.junit.jupiter.api.Test;
 import org.jspecify.annotations.NonNull;
@@ -20,11 +19,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class OptimizationServiceTest {
-    private interface DaySolverFactory extends SolverFactory<DayPlan> { }
+    @Test void repairRequiresExplicitApprovalOnlyForAdditionalOvertime() {
+        assertThrows(RepairOvertimeApprovalRequired.class, () -> OptimizationService.requireRepairOvertimeApproval(10, 11, false));
+        OptimizationService.requireRepairOvertimeApproval(10, 10, false);
+        OptimizationService.requireRepairOvertimeApproval(10, 0, false);
+        OptimizationService.requireRepairOvertimeApproval(10, 11, true);
+        assertThrows(IllegalArgumentException.class, () -> OptimizationService.requireRepairOvertimeApproval(-1, 1, true));
+    }
     @Test
     void frozenPreviewIsAScheduleConflict() {
         OptimizationService service = new OptimizationService(
-                mock(JdbcTemplate.class), mock(RoadClient.class), mock(DaySolverFactory.class));
+                mock(JdbcTemplate.class), mock(RoadClient.class), mock(DailySolver.class),
+                new dev.waterflex.scheduler.SearchAdmission(2, 16), mock(org.springframework.transaction.PlatformTransactionManager.class));
 
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
                 () -> service.preview(new OptimizationService.Request("metro", "2000-01-01")));

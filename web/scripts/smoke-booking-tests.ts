@@ -1,9 +1,10 @@
-import { offer, optimization, required } from "../lib/contracts";
+import { currentRouteTiming } from "../lib/currentRouteTiming";
+import { offer, optimization, required, testAttempt } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
 import { advanceTestRun, controlTestRun, createTestRun, purgeTestRun, readTestRun, testEngine } from "../lib/bookingTestRunner";
-import { dispatchGeometry, EngineError } from "../lib/engineClient";
+import { dispatchGeometry, EngineError, releaseOffers } from "../lib/engineClient";
 import type { SlotOffer } from "../lib/engineClient";
 import { validateTestConfig } from "../lib/bookingTestCore";
 import { OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
@@ -166,12 +167,23 @@ async function main() {
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async () => { throw new Error("Must reconcile before offers"); } });
   assert.equal(required(run.requests[1]).status, "BOOKED");
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
-  // No capacity is a completed outcome and does not stop progression.
+  // Exercise retry independently of whether this server enables bounded search.
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async jobId => {
     // A deliberately oversized isolated fixture job has no feasible shift.
     await prisma.job.update({ where: { id: jobId }, data: { durationMin: 10000 } });
-    return testEngine.offers(jobId);
+    const result = await testEngine.offers(jobId);
+    assert.equal(result.offers.length, 0);
+    const search = required(result.search);
+    assert.ok(["SEARCH_INCOMPLETE", "NO_CANDIDATE_FOUND"].includes(search.outcome));
+    assert.equal(search.prescribedSearchCompleted, search.outcome === "NO_CANDIDATE_FOUND");
+    return { ...result, search: { outcome: "SEARCH_INCOMPLETE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: true } };
   } });
+  assert.equal(required(run.requests[2]).status, "ERROR"); assert.equal(run.status, "PAUSED");
+  assert.equal(required(testAttempt.array().parse(required(run.requests[2]).attempts).at(-1)).search?.outcome, "SEARCH_INCOMPLETE");
+  run = await resumed(id);
+  // Inject a completed bounded-search result to exercise the eventual no-candidate contract.
+  run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async jobId => ({ jobId, offers: [],
+    search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 1, retryable: false } }) });
   assert.equal(required(run.requests[2]).status, "NO_OFFER"); assert.equal(run.status, "RUNNING");
   const appointments = () => prisma.appointment.findMany({ orderBy: { id: "asc" } });
   const before = await appointments();
@@ -205,12 +217,14 @@ async function main() {
   run = await resumed(errors.id);
   run = await advanceTestRun(run.id, run.revision, { ...testEngine, select: async () => { throw new EngineError(409, "Injected confirmation conflict"); } });
   assert.equal(run.status, "PAUSED"); assert.equal(required(run.requests[0]).selected, null);
+  const conflictHold = await prisma.slotHold.findFirst({ where: { jobId: required(run.requests[0]).id, releasedAt: null, expiresAt: { gt: new Date() } } });
+  if (conflictHold) await releaseOffers(conflictHold.jobId, conflictHold.offerToken);
   run = await resumed(errors.id);
   // Hold an operation while a second caller attempts to advance or resume.
   let entered!: () => void; let release!: () => void;
   const inOffers = new Promise<void>(resolve => { entered = resolve; });
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const operation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { entered(); await gate; return { jobId, offers: [] }; } });
+  const operation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { entered(); await gate; return { jobId, offers: [], search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 1, retryable: false } }; } });
   await inOffers;
   try {
     await assert.rejects(advanceTestRun(run.id, run.revision), /Another test operation/);
@@ -224,7 +238,7 @@ async function main() {
   let stopping!: () => void; let finish!: () => void;
   const inFlight = new Promise<void>(resolve => { stopping = resolve; });
   const finishGate = new Promise<void>(resolve => { finish = resolve; });
-  const stoppedOperation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { stopping(); await finishGate; return { jobId, offers: [] }; } });
+  const stoppedOperation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { stopping(); await finishGate; return { jobId, offers: [], search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 1, retryable: false } }; } });
   await inFlight;
   try { await controlTestRun(run.id, "stop"); } finally { finish(); }
   run = await stoppedOperation;
@@ -263,6 +277,8 @@ async function main() {
   assert.ok(retainedGeometry.stops.some(stop => stop.id === first.id), "Saved geometry retains a purged appointment snapshot");
   const survivors = await prisma.appointment.findMany({ where: { technicianId: first.technicianId, serviceDate: first.serviceDate, cancelledAt: null }, orderBy: [{ plannedStart: "asc" }, { id: "asc" }] });
   assert.deepEqual(survivors.map(item => item.sequence), survivors.map((_, index) => index), "Surviving appointments are resequenced");
+  const survivingDay = await prisma.scheduleDay.findUniqueOrThrow({ where: { technicianId_serviceDate: { technicianId: first.technicianId, serviceDate: first.serviceDate } } });
+  assert.equal(currentRouteTiming(survivingDay.routeTiming, survivingDay.version, survivors).status, "AVAILABLE", "Purge persists independently validated surviving route segments");
   const purgedAgain = await purgeTestRun(id);
   assert.equal(purgedAgain.purgedAt?.toISOString(), purged.purgedAt?.toISOString()); assert.equal(purgedAgain.purgedCount, purged.purgedCount);
   assert.deepEqual(await configuration(), configurationBefore, "Runs never rewrite Omaha configuration");

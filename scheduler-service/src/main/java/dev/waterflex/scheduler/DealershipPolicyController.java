@@ -52,7 +52,7 @@ public class DealershipPolicyController {
         LocalDate effectiveDate = nextPolicy == null ? proposedDate : Required.value(nextPolicy.toInstant().atZone(ZoneOffset.UTC).toLocalDate());
         List<BookedDay> booked = new ArrayList<>();
         for (String techId : technicians) {
-            var days = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM (SELECT \"serviceDate\" FROM appointment WHERE \"technicianId\"=? AND \"cancelledAt\" IS NULL UNION ALL SELECT \"serviceDate\" FROM slot_hold WHERE \"technicianId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP) affected WHERE \"serviceDate\">=? ORDER BY \"serviceDate\"",
+            var days = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM (SELECT \"serviceDate\" FROM appointment WHERE \"technicianId\"=? AND \"cancelledAt\" IS NULL UNION ALL SELECT \"serviceDate\" FROM reservation_obligation WHERE \"technicianId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP) affected WHERE \"serviceDate\">=? ORDER BY \"serviceDate\"",
                     (rs, _) -> Required.value(Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()),
                     techId, techId, Timestamp.from(today.atStartOfDay(ZoneOffset.UTC).toInstant()));
             for (LocalDate day : days) {
@@ -64,7 +64,7 @@ public class DealershipPolicyController {
                 jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING",
                         UUID.randomUUID().toString(), techId, date);
                 jdbc.queryForList("SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", techId, date);
-                if (Required.query(jdbc, "SELECT count(*) FROM slot_hold WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP", Integer.class, techId, date) > 0)
+                if (Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP", Integer.class, techId, date) > 0)
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Active hold on a booked day");
                 if (Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, techId, date) > 0)
                     booked.add(new BookedDay(Required.value(techId), serviceDay));

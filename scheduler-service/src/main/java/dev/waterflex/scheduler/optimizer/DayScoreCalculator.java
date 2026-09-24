@@ -1,24 +1,17 @@
 package dev.waterflex.scheduler.optimizer;
 
-import org.jspecify.annotations.Nullable;
 import dev.waterflex.scheduler.Required;
 
-import ai.timefold.solver.core.api.score.HardSoftScore;
-import ai.timefold.solver.core.api.score.calculator.EasyScoreCalculator;
 
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DayScoreCalculator implements EasyScoreCalculator<DayPlan, HardSoftScore> {
+/** Full recomputation oracle and reporting metrics, outside the solver move loop. */
+public final class DayScoreCalculator {
+    private DayScoreCalculator() { }
     public record Evaluation(long hardPenalty, long costCents, Map<String, Instant> arrivals, long paidMinutes,
                              long overtimeMinutes, long meters, long driveMinutes, long waitingMinutes) { }
-
-    @Override
-    public HardSoftScore calculateScore(@Nullable DayPlan plan) {
-        Evaluation result = evaluate(Required.value(plan, "solver plan"));
-        return HardSoftScore.of(-result.hardPenalty(), -result.costCents());
-    }
 
     public static Evaluation evaluate(DayPlan plan) {
         long hard = 0, paid = 0, overtime = 0, meters = 0, drive = 0, waiting = 0;

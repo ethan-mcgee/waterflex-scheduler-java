@@ -28,6 +28,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Validate Compose configuration
         run: docker compose --profile map-import config --quiet
+      - name: Verify benchmark evidence assembly
+        run: python3 infra/test_booking_baseline_assembly.py
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
       - name: Verify Java nullability contracts
@@ -43,7 +45,7 @@ jobs:
         run: npm run typecheck
       - name: Portal unit tests
         working-directory: web
-        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests && npm run test:nullability
+        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests && npm run test:nullability && npm run test:benchmark-diagnostics
       - name: Build portal
         working-directory: web
         run: npm run build
@@ -95,6 +97,8 @@ jobs:
       - name: Migrate, seed, and check schema
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+      - name: Immutable snapshot, reservation and database admission gates
+        run: ./mvnw -Pnullability -pl scheduler-service clean package -Dtest=BookingSnapshotDatabaseIT,SearchDatabaseAdmissionIT --batch-mode --no-transfer-progress
       - name: Browser nullability regressions in an isolated schema
         working-directory: web
         env:
@@ -126,6 +130,9 @@ jobs:
       - name: Booking smoke
         working-directory: web
         run: npm run test:booking:integration
+      - name: Pending reservation dependency guards
+        working-directory: web
+        run: npm run test:reservation:integration
       - name: Optimizer smoke
         working-directory: web
         run: npm run test:optimizer:integration
@@ -144,6 +151,41 @@ jobs:
       - name: Sequential booking and preview smoke
         working-directory: web
         run: npm run test:booking-tests:integration
+      - name: Start common-reservation rollout test instance
+        run: |
+          java -Xmx512m -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --server.port=18002 --booking.reservations.enabled=true --booking.search.bounded=true > "$RUNNER_TEMP/reservation-scheduler.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:18002/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Common reservation booking lifecycle
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_RESERVATIONS_TEST: 'true'
+        run: npm run test:booking:integration
+      - name: Cross-instance search cancellation and lost response cleanup
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_CANCEL_URL: http://127.0.0.1:18000
+        run: |
+          npm run test:search-cancellation:integration
+          SCHEDULER_TEST_URL=http://127.0.0.1:18000 SCHEDULER_CANCEL_URL=http://127.0.0.1:18002 npm run test:search-cancellation:integration
+      - name: Bounded rearrangement and concurrency with rollout disabled at confirmation
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
+        run: npm run test:bounded-booking:integration
+      - name: Cancellation preserves a pending rearranged reservation
+        working-directory: web
+        env:
+          SCHEDULER_TEST_URL: http://127.0.0.1:18002
+          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
+          SCHEDULER_CANCEL_PENDING_TEST: 'true'
+        run: npm run test:bounded-booking:integration
       - name: Print service logs on failure
         if: failure()
         run: |
@@ -151,3 +193,4 @@ jobs:
           cat "$RUNNER_TEMP/fixture-routing.log" 2>/dev/null || true
           echo 'Scheduler log:'
           cat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true

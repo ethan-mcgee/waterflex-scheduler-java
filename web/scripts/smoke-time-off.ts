@@ -18,9 +18,9 @@ function localToday(): Date {
 
 async function post(path: string, body: unknown) {
   const response = await fetch(`${base}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const payload = timeOffResult.parse(await response.json());
+  const payload: unknown = await response.json();
   assert.equal(response.status, 200, `${path}: ${JSON.stringify(payload)}`);
-  return payload;
+  return timeOffResult.parse(payload);
 }
 
 async function main() {
@@ -36,6 +36,7 @@ async function main() {
   const techA = `timeoff-tech-a-${suffix}`, techB = `timeoff-tech-b-${suffix}`, techC = `timeoff-tech-c-${suffix}`;
   const customerId = `timeoff-customer-${suffix}`, addressId = `timeoff-address-${suffix}`, jobId = `timeoff-job-${suffix}`;
   const heldJobId = `timeoff-held-job-${suffix}`, impossibleJobId = `timeoff-impossible-job-${suffix}`;
+  const overtimeJobId = `timeoff-overtime-job-${suffix}`;
   const requestIds: string[] = [];
   try {
     for (const id of [techA, techB]) await prisma.technician.create({ data: {
@@ -64,6 +65,36 @@ async function main() {
     assert.equal(appointment.technicianId, techB, "Repair must reassign the affected visit");
     const report = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId } });
     assert.equal(report.status, "APPLIED");
+    // Even with enough notice for automatic approval, additional overtime needs review.
+    const overtimeDay = new Date(day); overtimeDay.setUTCDate(overtimeDay.getUTCDate() + 7);
+    const overtimeDate = overtimeDay.toISOString().slice(0, 10);
+    await prisma.technician.updateMany({ where: { id: { in: [techA, techB] } }, data: { maxOvertimeMinutes: 120 } });
+    await prisma.technicianShiftOverride.create({ data: { technicianId: techB, serviceDate: overtimeDay, available: true, shiftStartMin: 480, shiftEndMin: 960 } });
+    await prisma.job.create({ data: { id: overtimeJobId, customerId, addressId, serviceId: service.id, durationMin: 90, status: "SCHEDULED" } });
+    const overtimeAppointment = await prisma.appointment.create({ data: { jobId: overtimeJobId, technicianId: techA, serviceDate: overtimeDay,
+      windowStart: new Date(`${overtimeDate}T21:00:00Z`), windowEnd: new Date(`${overtimeDate}T23:00:00Z`),
+      plannedStart: new Date(`${overtimeDate}T21:00:00Z`), plannedEnd: new Date(`${overtimeDate}T22:30:00Z`), sequence: 0 } });
+    const overtimeRequest = await post("/v1/time-off/request", { technicianId: techA, firstDate: overtimeDate, lastDate: overtimeDate,
+      startMin: 480, endMin: 1020, category: "Other", reason: "Fixture overtime approval" });
+    requestIds.push(overtimeRequest.requestId);
+    let overtimeReview = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId }, include: { report: true } });
+    for (let attempt = 0; attempt < 45 && overtimeReview.status === "PENDING"; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      overtimeReview = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId }, include: { report: true } });
+    }
+    assert.equal(overtimeReview.status, "READY", JSON.stringify(overtimeReview.report?.data));
+    const parsedOvertime = parseTimeOffReport(overtimeReview.report?.data);
+    assert.equal(parsedOvertime.kind, "complete");
+    if (parsedOvertime.kind !== "complete") throw new Error("Overtime report missing");
+    const overtimeRepair = required(parsedOvertime.summary.days[0]);
+    assert.ok(required(overtimeRepair.daily_after).overtime_minutes > required(overtimeRepair.daily_before).overtime_minutes);
+    const noApproval = await fetch(`${base}/v1/time-off/${overtimeRequest.requestId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(noApproval.status, 409);
+    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId } })).status, "READY");
+    assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } }), overtimeAppointment);
+    await post(`/v1/time-off/${overtimeRequest.requestId}/approve`, { allowAdditionalOvertime: true, approvedRepairIds: [required(overtimeRepair.run_id)] });
+    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId } })).additionalOvertimeApproved, true);
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } })).technicianId, techB);
     const shortDate = localToday();
     shortDate.setUTCDate(shortDate.getUTCDate() + 13);
     const shortKey = shortDate.toISOString().slice(0, 10);
@@ -201,7 +232,7 @@ async function main() {
     await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techB, serviceDate: nearSaturday } });
     const cannotDeny = await fetch(`${base}/v1/time-off/${offDays.requestId}/deny`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(cannotDeny.status, 409);
-    console.log("Time-off repair, weekend range, failure detail, retry, denial, and overlap eligibility passed");
+    console.log("Time-off repair, explicit overtime approval, weekend range, failure detail, retry, denial, and overlap eligibility passed");
   } finally {
     await prisma.slotHold.deleteMany({ where: { jobId: heldJobId } });
     await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });
@@ -213,8 +244,8 @@ async function main() {
     }
     await prisma.optimizationChange.deleteMany({ where: { run: { metroId: metro.id } } });
     await prisma.optimizationRun.deleteMany({ where: { metroId: metro.id } });
-    await prisma.appointment.deleteMany({ where: { jobId: { in: [jobId, impossibleJobId] } } });
-    await prisma.job.deleteMany({ where: { id: { in: [jobId, impossibleJobId] } } });
+    await prisma.appointment.deleteMany({ where: { jobId: { in: [jobId, impossibleJobId, overtimeJobId] } } });
+    await prisma.job.deleteMany({ where: { id: { in: [jobId, impossibleJobId, overtimeJobId] } } });
     await prisma.address.deleteMany({ where: { id: addressId } });
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await prisma.scheduleDay.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });

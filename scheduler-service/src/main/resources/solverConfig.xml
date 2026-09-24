@@ -5,7 +5,7 @@
   <entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass>
   <entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>
   <scoreDirectorFactory>
-    <easyScoreCalculatorClass>dev.waterflex.scheduler.optimizer.DayScoreCalculator</easyScoreCalculatorClass>
+    <constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass>
   </scoreDirectorFactory>
   <termination><spentLimit>15s</spentLimit><stepCountLimit>1000</stepCountLimit></termination>
   <localSearch>

@@ -21,8 +21,9 @@ const serviceDate = new Date(`${day}T00:00:00Z`);
 
 async function post(path: string, body: unknown) {
   const response = await fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(30_000) });
-  const data = optimization.parse(await response.json());
-  assert.equal(response.status, 200, `${path}: ${JSON.stringify(data)}`);
+  const raw: unknown = await response.json();
+  assert.equal(response.status, 200, `${path}: ${JSON.stringify(raw)}`);
+  const data = optimization.parse(raw);
   return data;
 }
 
@@ -84,6 +85,21 @@ async function main() {
     runId = preview.run_id;
     assert.equal(preview.status, "PREVIEW", JSON.stringify(preview));
     assert.ok(preview.objective_improvement > 0);
+    const solver = required(preview.solver_analysis);
+    assert.equal(solver.engine, "Timefold-2.6.0");
+    assert.ok(solver.phases.some(phase => phase.name === "REFERENCE"));
+    assert.ok(solver.phases.every(phase => phase.statistics.scoreCalculations > 0));
+    for (const route of [...preview.route_summary_before, ...preview.route_summary_after]) {
+      const travel = required(route.travel_breakdown);
+      assert.equal(travel.modeled_travel_minutes, route.drive_minutes);
+      assert.ok(Math.abs(travel.road_seconds + travel.configured_buffer_seconds + travel.rounding_seconds - route.drive_minutes * 60) < .000001);
+    }
+    const policy = required(preview.policy_analysis);
+    assert.equal(policy.version, "overtime-fairness-v1");
+    assert.ok(policy.decision.accepted);
+    assert.ok(policy.after.overtimeMinutes <= policy.before.overtimeMinutes);
+    assert.ok(policy.after.costCents <= policy.decision.costCeilingCents);
+    assert.equal(policy.costChangeCents, -preview.objective_improvement);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}`, "current", [7.420, 43.735]);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=before`, "before", [7.420, 43.735]);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=after`, "after", [7.438, 43.748]);
@@ -94,6 +110,15 @@ async function main() {
     assert.equal(invalidApply.status, 409);
     assert.deepEqual(await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } }, orderBy: { id: "asc" } }), beforeInvalidApply);
     await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { scheduleVersions: required(savedRun.scheduleVersions) } });
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { policyAnalysis: {} } });
+    const invalidPolicy = await fetch(`${base}/v1/optimize/runs/${runId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(invalidPolicy.status, 409);
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { policyAnalysis: required(savedRun.policyAnalysis),
+      weights: { mapVersion: preview.routing_identity, configVersion: preview.configuration_version } } });
+    const legacyPolicy = await fetch(`${base}/v1/optimize/runs/${runId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(legacyPolicy.status, 409);
+    assert.deepEqual(await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } }, orderBy: { id: "asc" } }), beforeInvalidApply);
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { weights: required(savedRun.weights) } });
     const applied = await post(`/v1/optimize/runs/${runId}/apply`, {});
     assert.equal(applied.status, "APPLIED");
     const appointments = await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } } });

@@ -12,16 +12,35 @@ final class RouteTimeline {
                   long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) { }
     private record Segment(String previous, Instant departure, Instant done) { }
     private record Block(Instant start, Instant end) { }
+    private record Timing(PlanVisit visit, long waitingBefore) { }
 
     private RouteTimeline() { }
 
     static Result evaluate(DayPlan plan, TechRoute route) {
+        List<RouteTimingSearch.Block> intervals = new ArrayList<>();
+        for (Block block : available(route)) intervals.add(new RouteTimingSearch.Block(block.start(), block.end()));
+        var canonical = RouteTimingSearch.solve(plan, route, intervals);
+        if (canonical == null) {
+            Result invalid = infeasibleTiming(plan, route);
+            return new Result(Math.max(1, invalid.hardPenalty()), invalid.costCents(), invalid.arrivals(), invalid.paidMinutes(),
+                    invalid.overtimeMinutes(), invalid.driveMinutes(), invalid.waitingMinutes(), invalid.meters());
+        }
+        long hard = 0;
+        for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) hard += 1_000_000;
+        long cost = Math.round((canonical.paid() - canonical.overtime()) * plan.getRegularHourly() * 100 / 60.0
+                + canonical.overtime() * plan.getOvertimeHourly() * 100 / 60.0 + canonical.meters() / 1609.344 * plan.getMileagePerMile() * 100);
+        return new Result(hard, cost, Required.value(Map.copyOf(canonical.arrivals())), canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
+    }
+
+    private static Result infeasibleTiming(DayPlan plan, TechRoute route) {
         List<Block> blocks = available(route);
         Map<String, Instant> arrivals = new HashMap<>();
         long hard = 0, paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;
         int blockIndex = 0;
         Segment segment = null;
         long segmentMeters = 0, segmentDrive = 0, segmentWaiting = 0;
+        List<Timing> timings = new ArrayList<>();
+        long departureSlack = Long.MAX_VALUE;
         for (PlanVisit visit : route.getVisits()) {
             if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) hard += 1_000_000;
             boolean placed = false;
@@ -40,6 +59,8 @@ final class RouteTimeline {
                 if (arrival.isBefore(visit.getWindowEnd()) && !homeReturn.isAfter(block.end())) {
 
                     segmentWaiting += Math.max(0, Duration.between(start.plus(Duration.ofMinutes(travel)), arrival).toMinutes());
+                    departureSlack = Math.min(departureSlack, Duration.between(arrival, visit.getWindowEnd().minusNanos(1)).toMinutes() + segmentWaiting);
+                    timings.add(new Timing(visit, segmentWaiting));
                     segmentDrive += travel;
                     segmentMeters += leg.meters();
                     segment = new Segment(visit.getId(), proposedDeparture, Required.value(arrival.plus(Duration.ofMinutes(visit.getDurationMinutes()))));
@@ -52,10 +73,14 @@ final class RouteTimeline {
                     if (returnHome == null) { hard += 1_000_000; break; }
                     Instant finish = segment.done().plus(Duration.ofMinutes(buffered(plan, returnHome)));
                     if (finish.isAfter(block.end())) hard += 1_000_000;
-                    paid += Duration.between(segment.departure(), finish).toMinutes();
-                    overtime += overtime(segment.departure(), finish, route.getShiftEnd());
+                    long delay = Math.max(0, Math.min(departureSlack, segmentWaiting));
+                    retime(timings, delay, arrivals);
+                    Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
+                    paid += Duration.between(departure, finish).toMinutes();
+                    overtime += overtime(departure, finish, route.getShiftEnd());
                     drive += segmentDrive + buffered(plan, returnHome);
-                    waiting += segmentWaiting;
+                    waiting += segmentWaiting - delay;
+                    timings.clear(); departureSlack = Long.MAX_VALUE;
                     meters += segmentMeters + returnHome.meters();
                     segment = null;
                     segmentMeters = segmentDrive = segmentWaiting = 0;
@@ -70,10 +95,13 @@ final class RouteTimeline {
             else {
                 Instant finish = segment.done().plus(Duration.ofMinutes(buffered(plan, home)));
                 if (finish.isAfter(blocks.get(blockIndex).end())) hard += 1_000_000;
-                paid += Duration.between(segment.departure(), finish).toMinutes();
-                overtime += overtime(segment.departure(), finish, route.getShiftEnd());
+                long delay = Math.max(0, Math.min(departureSlack, segmentWaiting));
+                retime(timings, delay, arrivals);
+                Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
+                paid += Duration.between(departure, finish).toMinutes();
+                overtime += overtime(departure, finish, route.getShiftEnd());
                 drive += segmentDrive + buffered(plan, home);
-                waiting += segmentWaiting;
+                waiting += segmentWaiting - delay;
                 meters += segmentMeters + home.meters();
             }
         }
@@ -83,6 +111,13 @@ final class RouteTimeline {
                 + overtime * plan.getOvertimeHourly() * 100 / 60.0
                 + meters / 1609.344 * plan.getMileagePerMile() * 100);
         return new Result(hard, cents, arrivals, paid, overtime, drive, waiting, meters);
+    }
+
+    private static void retime(List<Timing> timings, long delay, Map<String, Instant> arrivals) {
+        for (Timing timing : timings) {
+            Instant arrival = Required.value(arrivals.get(timing.visit().getId()), "scored arrival");
+            arrivals.put(timing.visit().getId(), Required.value(arrival.plus(Duration.ofMinutes(Math.max(0, delay - timing.waitingBefore())))));
+        }
     }
 
     private static List<Block> available(TechRoute route) {
