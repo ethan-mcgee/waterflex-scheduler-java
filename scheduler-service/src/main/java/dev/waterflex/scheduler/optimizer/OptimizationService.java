@@ -160,6 +160,8 @@ public class OptimizationService {
 
     private Map<String, Object> createRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
         if (ScheduleCutoff.frozen(day, Required.value(Instant.now()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination");
+        if (hasHolds(Required.value(Set.of(absentTechnicianId)), day))
+            return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", "ACTIVE_RESERVATIONS"));
         if (WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) == null) {
             int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class,
                     absentTechnicianId, dayStamp(day));
@@ -546,7 +548,7 @@ public class OptimizationService {
         String placeholders = String.join(",", Collections.nCopies(techIds.size(), "?"));
         List<Object> args = new ArrayList<>();
         args.add(dayStamp(day)); args.addAll(techIds);
-        return Required.query(jdbc, "SELECT count(*) FROM slot_hold WHERE \"serviceDate\"=? AND \"technicianId\" IN (" + placeholders + ") AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
+        return Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"serviceDate\"=? AND \"technicianId\" IN (" + placeholders + ") AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
                 Integer.class, Required.value(args.toArray(new @Nullable Object[0]))) > 0;
     }
     private String configurationVersion(String metroId, LocalDate day) {

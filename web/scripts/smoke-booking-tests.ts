@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
 import { advanceTestRun, controlTestRun, createTestRun, purgeTestRun, readTestRun, testEngine } from "../lib/bookingTestRunner";
-import { dispatchGeometry, EngineError } from "../lib/engineClient";
+import { dispatchGeometry, EngineError, releaseOffers } from "../lib/engineClient";
 import type { SlotOffer } from "../lib/engineClient";
 import { validateTestConfig } from "../lib/bookingTestCore";
 import { OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
@@ -211,6 +211,8 @@ async function main() {
   run = await resumed(errors.id);
   run = await advanceTestRun(run.id, run.revision, { ...testEngine, select: async () => { throw new EngineError(409, "Injected confirmation conflict"); } });
   assert.equal(run.status, "PAUSED"); assert.equal(required(run.requests[0]).selected, null);
+  const conflictHold = await prisma.slotHold.findFirst({ where: { jobId: required(run.requests[0]).id, releasedAt: null, expiresAt: { gt: new Date() } } });
+  if (conflictHold) await releaseOffers(conflictHold.jobId, conflictHold.offerToken);
   run = await resumed(errors.id);
   // Hold an operation while a second caller attempts to advance or resume.
   let entered!: () => void; let release!: () => void;

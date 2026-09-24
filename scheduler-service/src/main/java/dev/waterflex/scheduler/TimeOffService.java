@@ -221,7 +221,10 @@ public class TimeOffService {
         if (reports.isEmpty() || !reports.getFirst().status().equals("READY")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Fresh feasible report required");
         try {
             List<Interval> intervals = intervals(id);
-            for (Interval interval : intervals) guard.unfrozen(interval.day());
+            for (Interval interval : intervals) {
+                guard.unfrozen(interval.day());
+                guard.noHolds(owner.getFirst().technicianId(), interval.day());
+            }
             JsonNode report = SavedJson.readyReport(Required.value(mapper.readTree(reports.getFirst().data())));
             JsonNode days = report.path("days");
             if (allowAdditionalOvertime) {

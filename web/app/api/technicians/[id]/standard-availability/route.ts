@@ -39,15 +39,22 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       const future = current.filter(version => version.effectiveDate.toISOString().slice(0, 10) <= today);
       if (future.length === 0) throw new Error("Technician weekly availability is missing for the current date");
       const proposed = validateVersions([...future, { effectiveDate: dayStamp(effectiveDate), days: parsed.data.days }]);
-      const [appointments, holds, exceptions] = await Promise.all([
+      const [appointments, holds, exceptions, dependencies] = await Promise.all([
         tx.appointment.findMany({ where: { technicianId: params.id, serviceDate: { gte: dayStamp(today) }, cancelledAt: null },
           select: { serviceDate: true, windowStart: true, windowEnd: true, plannedStart: true, plannedEnd: true } }),
         tx.slotHold.findMany({ where: { technicianId: params.id, serviceDate: { gte: dayStamp(today) }, releasedAt: null, expiresAt: { gt: new Date() } },
           select: { serviceDate: true, windowStart: true, windowEnd: true, plannedStart: true, plannedEnd: true } }),
         tx.technicianShiftOverride.findMany({ where: { technicianId: params.id, serviceDate: { gte: dayStamp(today) } },
           select: { serviceDate: true } }),
+        tx.reservationDependency.findMany({ where: { technicianId: params.id, serviceDate: { gte: dayStamp(today) },
+          hold: { releasedAt: null, expiresAt: { gt: now } } }, select: { serviceDate: true } }),
       ]);
       const excepted = new Set(exceptions.map(item => item.serviceDate.toISOString().slice(0, 10)));
+      for (const dependency of dependencies) {
+        const date = dependency.serviceDate.toISOString().slice(0, 10);
+        if (!excepted.has(date) && JSON.stringify(resolveWeeklyDay(current, date)) !== JSON.stringify(resolveWeeklyDay(proposed, date)))
+          throw new Error(`Existing appointment or hold depends on the reserved arrangement on ${date}`);
+      }
       for (const item of [...appointments, ...holds]) {
         const date = item.serviceDate.toISOString().slice(0, 10);
         if (excepted.has(date)) continue;

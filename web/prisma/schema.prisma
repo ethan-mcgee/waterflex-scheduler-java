@@ -23,6 +23,7 @@ model Metro {
 
   depots           Depot[]
   optimizationRuns OptimizationRun[]
+  reservationArrangements ReservationArrangement[]
 
   @@map("metro")
 }
@@ -111,6 +112,7 @@ model Technician {
   availabilityVersions TechnicianAvailabilityVersion[]
   timeOffRequests TimeOffRequest[]
   depotAssignments TechnicianDepotAssignment[]
+  reservationDependencies ReservationDependency[]
 
   @@index([active])
   @@map("technician")
@@ -170,6 +172,8 @@ model ServiceCatalog {
 
   jobs Job[]
   qualifications TechnicianQualification[]
+
+  reservationDependencies ReservationDependency[]
 
   @@map("service_catalog")
 }
@@ -309,12 +313,44 @@ model SlotHold {
   bookingOptimization   BookingOptimization? @relation(fields: [bookingOptimizationId], references: [id])
   offerSetId String?
   offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
+  reservationDependencies ReservationDependency[]
 
   @@index([technicianId, serviceDate])
   @@index([expiresAt])
   @@index([jobId])
   @@index([bookingOptimizationId])
   @@map("slot_hold")
+}
+
+model ReservationArrangement {
+  id String @id @default(cuid())
+  metroId String
+  metro Metro @relation(fields: [metroId], references: [id])
+  serviceDate DateTime
+  version Int @default(0)
+  state Json? // null means the lock row has not yet received a validated arrangement
+  updatedAt DateTime @updatedAt
+  dependencies ReservationDependency[]
+
+  @@unique([metroId, serviceDate])
+  @@map("reservation_arrangement")
+}
+
+model ReservationDependency {
+  arrangementId String
+  arrangement ReservationArrangement @relation(fields: [arrangementId], references: [id], onDelete: Cascade)
+  holdId String
+  hold SlotHold @relation(fields: [holdId], references: [id], onDelete: Cascade)
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id])
+  serviceId String
+  service ServiceCatalog @relation(fields: [serviceId], references: [id])
+  serviceDate DateTime
+
+  @@id([holdId, technicianId, serviceId])
+  @@index([technicianId, serviceDate])
+  @@index([arrangementId])
+  @@map("reservation_dependency")
 }
 
 model BookingOffer {

@@ -23,6 +23,9 @@ const expected: Record<string, string[]> = {
   optimization_run: ["id", "serviceDate", "scheduleVersions", "proposedAssignments", "endpointSnapshots", "objectiveImprovement", "status", "policyAnalysis"],
   optimization_change: ["runId", "appointmentId", "fromTechnicianId", "toTechnicianId"],
   time_off_request: ["id", "technicianId", "status", "additionalOvertimeApproved"],
+  reservation_arrangement: ["id", "metroId", "serviceDate", "version", "state", "updatedAt"],
+  reservation_dependency: ["arrangementId", "holdId", "technicianId", "serviceId", "serviceDate"],
+  reservation_obligation: ["id", "jobId", "technicianId", "serviceId", "serviceDate", "expiresAt", "releasedAt"],
 };
 
 const prisma = new PrismaClient();
