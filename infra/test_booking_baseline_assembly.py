@@ -73,6 +73,19 @@ class AssemblyTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "artifact hash"):
             assembly.assemble(self.primary, self.tail, self.output)
 
+    def test_separate_absence_group_preserves_the_same_complete_matrix(self):
+        absence = self.root / "absence.jsonl"
+        rows = [row for row in self.primary_cases if row["size"] == 50 and row["workload"] == "ABSENCE"]
+        self.primary_cases = [row for row in self.primary_cases if row not in rows]
+        self.write_sources()
+        provenance = {**self.provenance, "sizes": [50], "workloads": ["ABSENCE"]}
+        absence.write_text("".join(json.dumps(row) + "\n" for row in [provenance] + rows), encoding="utf8")
+        assembly.assemble(self.primary, self.tail, self.output, absence)
+        combined = [json.loads(line) for line in self.output.read_text().splitlines()]
+        self.assertEqual(127, len(combined))
+        self.assertEqual(3, len(combined[0]["assembly"]["sources"]))
+        self.assertEqual(6, sum(row.get("sourceRunIndex") == 2 for row in combined[1:]))
+
 
 if __name__ == "__main__":
     unittest.main()
