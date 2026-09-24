@@ -8,6 +8,16 @@ assert.ok(prefix && paths.length, "Pass output prefix followed by completed JSON
 const sources = []; const cases = []; const summaries = [];
 const quantile = (values, fraction) => values.length ? [...values].sort((a, b) => a - b)[Math.ceil(fraction * values.length) - 1] : null;
 const total = (audit, field) => audit.days.reduce((sum, day) => sum + field(day), 0);
+const sumObserved = (rows, field) => {
+  const values = rows.map(field).filter(value => value != null);
+  for (const value of values) assert.ok(Number.isFinite(value) && value >= 0);
+  return { observed: values.length, total: values.length ? values.reduce((sum, value) => sum + value, 0) : null };
+};
+const difference = (before, after) => {
+  if (before == null || after == null) return null;
+  assert.ok(Number.isFinite(before) && Number.isFinite(after) && after >= before);
+  return after - before;
+};
 for (const [source, path] of paths.entries()) {
   const raw = await readFile(path); const rows = raw.toString("utf8").trim().split(/\r?\n/).map(line => JSON.parse(line));
   const provenance = rows.find(row => row.type === "provenance"); assert.ok(provenance);
@@ -41,7 +51,27 @@ for (const [source, path] of paths.entries()) {
       meanDailyVarianceBefore: total(row.before, day => day.policy.fairness.variance) / row.before.days.length,
       meanDailyVarianceAfter: total(row.after, day => day.policy.fairness.variance) / row.after.days.length,
       maximumUtilization: Math.max(...row.after.days.map(day => day.policy.fairness.maximumUtilization)),
-      changedAssignments: row.changedAssignments, retimedAppointments: row.retimedAppointments });
+      changedAssignments: row.changedAssignments, retimedAppointments: row.retimedAppointments,
+      queueMs: sumObserved(row.attempts, item => item.search?.queueMs),
+      databaseExecutions: sumObserved(row.attempts, item => item.search?.measurements?.databaseExecutions),
+      databaseNanos: sumObserved(row.attempts, item => item.search?.measurements?.databaseNanos),
+      lockingStatementNanos: sumObserved(row.attempts, item => item.search?.measurements?.lockStatementNanos),
+      foregroundCpuNanos: sumObserved(row.attempts, item => item.search?.measurements?.foregroundCpuNanos),
+      memoryCacheHits: sumObserved(row.attempts, item => item.search?.measurements?.memoryHits),
+      persistentCacheHits: sumObserved(row.attempts, item => item.search?.measurements?.persistentHits),
+      providerLegRequests: difference(row.processBefore?.routing.legRequests, row.processAfter?.routing.legRequests),
+      providerRequestedPairs: difference(row.processBefore?.routing.requestedPairs, row.processAfter?.routing.requestedPairs),
+      providerIdentityRequests: difference(row.processBefore?.routing.identityRequests, row.processAfter?.routing.identityRequests),
+      providerGeometryRequests: difference(row.processBefore?.routing.geometryRequests, row.processAfter?.routing.geometryRequests),
+      processCpuNanos: difference(row.processBefore?.processCpuNanos, row.processAfter?.processCpuNanos),
+      peakHeapUsedBytes: row.processAfter?.peakHeapUsedBytes ?? null,
+      preparationDiagnostics: row.diagnostics == null ? null : { observations: row.diagnostics.attempts.length,
+        unavailableJobs: row.diagnostics.unavailableJobIds.length,
+        stopReasons: Object.fromEntries([...new Set(row.diagnostics.attempts.map(item => item.diagnostic.stopReason))]
+          .map(reason => [reason, row.diagnostics.attempts.filter(item => item.diagnostic.stopReason === reason).length])),
+        evaluatedRoutes: sumObserved(row.diagnostics.attempts, item => item.diagnostic.evaluatedRoutes),
+        candidateEvaluations: sumObserved(row.diagnostics.attempts, item => item.diagnostic.coverage.reduce((sum, window) => sum + window.candidateEvaluations, 0)),
+        movesGenerated: sumObserved(row.diagnostics.attempts, item => item.diagnostic.coverage.reduce((sum, window) => sum + window.moves, 0)) } });
   }
   const archive = `${prefix}-source-${source}.jsonl.gz`;
   await writeFile(archive, gzipSync(raw), { flag: "wx" });
