@@ -8,22 +8,22 @@ Audit update: September 24. Checked boxes describe implemented behavior with rel
 
 | Requirement | State / remaining acceptance |
 | --- | --- |
-| Two-hour promises, ten-weekday horizon including supported weekends, ten-minute offers, service-date 06:00 Chicago cutoff | Existing behavior retained; add lifecycle and concurrency regression coverage |
-| Qualifications, approved absences, daily/overtime limits, dated depots and endpoints | Existing checks retained; extend to pending rearrangement dependencies |
-| Regular candidate means no added overtime relative to a consistent reservation baseline | Connected common-arrangement path independently validates incremental overtime; rollout acceptance remains open |
+| Two-hour promises, ten-weekday horizon including supported weekends, ten-minute offers, service-date 06:00 Chicago cutoff | Retained and covered by cutoff, booking, cancellation/expiry and cross-instance lifecycle gates |
+| Qualifications, approved absences, daily/overtime limits, dated depots and endpoints | Enforced for confirmed and pending dependencies; reservation, time-off, multi-depot, home-pin and endpoint gates pass |
+| Regular candidate means no added overtime relative to a consistent reservation baseline | Independent common-baseline comparison plus explicit existing-overtime/zero-added-overtime regression; rollout remains gated |
 | Distinct `(date,start,end)` regular choices counted before four-offer truncation | Connected search core counts distinct windows before preparing up to four compatible offers |
-| Overtime requires at most two regular choices and at least 90% confirmed utilization | Connected behind rollout flags; threshold unit tests pass, full API overtime/lifecycle matrix remains open |
-| Qualified, metro/date eligible capacity, absence union, maxDaily cap, zero-capacity exclusion | Implemented in horizon snapshots and optimization; broaden constructed and load scenarios |
+| Overtime requires at most two regular choices and at least 90% confirmed utilization | Exact threshold tests, full-horizon bounded search, persisted authorization and API lifecycle coverage pass; issuance remains behind rollout flags |
+| Qualified, metro/date eligible capacity, absence union, maxDaily cap, zero-capacity exclusion | Implemented in snapshots and optimization; unequal-capacity, idle, absence, scarce-skill and zero-capacity scenarios covered |
 | Confirmed demand includes all services, caps consumed regular minutes per tech/date, excludes holds and old alternatives | Uses persisted confirmed assignments, excluding holds and pending reassignment; refresh releases old alternatives through validation |
 | Routing failures, incomplete snapshots, deadlines never establish scarcity | Deployed insertion path cannot authorize new overtime; search core requires full horizon/window coverage and completed search |
-| Regular offers first, authorized overtime fills at most four slots | Implemented in common offer bundle; broader overtime API acceptance remains open |
+| Regular offers first, authorized overtime fills at most four slots | Implemented in independently validated common bundles; constructed thresholds and near-capacity workload matrices exercise authorization |
 | Persist overtime authorization; later demand drop does not revoke it | Implemented for managed reservations; `ReservedOvertimeTest` confirms zero-current-demand authorization persistence and rejects unauthorized or over-limit confirmation |
 | Decimal capacity-weighted variance including idle eligible techs; paid work includes service/drive/wait | Implemented for optimization and booking core, now connected to offers behind rollout flags |
 | Fairness excludes sibling offers and uses canonical timing | Holds excluded from confirmed fairness; independent interval-placement and departure algorithms match exhaustive minute-grid cases |
-| Hard feasibility, lowest found overtime, lowest found cost, fairness within floor(reference*1.02) | Implemented for optimization and connected booking search; expand quality and compatibility oracles |
+| Hard feasibility, lowest found overtime, lowest found cost, fairness within floor(reference*1.02) | Implemented for optimization and booking; exact assignment/order, minute-grid timing and incremental/full differential oracles pass |
 | Zero/negative incremental cost gets no positive fairness allowance | Implemented and unit tested in connected booking candidate comparison |
 | Remaining ties: cost, changed assignments, earlier window, technician ID, insertion/order | Booking candidate dominance and final selection implement this order; daily validated candidates use stable disruption/window/route comparison |
-| Preview and locked apply share policy, no ordinary overtime increase, retain baseline without improvement | Implemented; broaden quality oracles |
+| Preview and locked apply share policy, no ordinary overtime increase, retain baseline without improvement | Implemented; comparator boundary tests, independently validated solver quality fixtures and guarded preview/apply gates pass |
 | Disruption repair explicitly labels and requires approval of extra overtime | Implemented with locked recomputation, reviewed preview identities and persisted approval; unit/browser/integration covered |
 
 ## A. Snapshots and deadline
@@ -59,7 +59,7 @@ Audit update: September 24. Checked boxes describe implemented behavior with rel
 - [x] Coverage, pruning, configured limits, moves, stop reason and insertion/rearrangement provenance are recorded.
 - [x] Application shortlists use no Enterprise nearby selection. Disabled bounded search cannot establish scarcity and already-issued managed offers retain their confirmation path across instances and rollout changes.
 
-The immutable `BookingSnapshot` and `BoundedBookingSearch` core implement these moves and limits, horizon rounds, application shortlists including idle capacity, confirmed utilization, distinct windows, incremental fairness and candidate policy comparison. Tests cover relocation versus insertion, a tiny exact assignment/order oracle, duplicate technician windows, idle capacity, holds, thresholds, cost ceilings and incomplete inputs. The public path now connects this core to common reservation bundles and atomic confirmation behind disabled rollout flags. API tests demonstrate actual relocation, concurrent reservation protection and confirmation with the flags disabled. Acceptance remains open for full coverage, budget refinement and representative performance evidence.
+The immutable `BookingSnapshot` and `BoundedBookingSearch` core implement these moves and limits, horizon rounds, application shortlists including idle capacity, confirmed utilization, distinct windows, incremental fairness and candidate policy comparison. Tests cover relocation versus insertion, a tiny exact assignment/order oracle, duplicate technician windows, idle capacity, holds, thresholds, cost ceilings and incomplete inputs. The public path now connects this core to common reservation bundles and atomic confirmation behind disabled rollout flags. API tests demonstrate actual relocation, concurrent reservation protection and confirmation with the flags disabled. Independent bounds, overlay and timing oracles, API lifecycle gates and final actual-road browser matrices now cover this path. Latest fixture observability and original-baseline comparisons remain tracked below.
 
 ## E. Routing
 
@@ -104,15 +104,15 @@ Versioned reservation storage, strict restart decoding, relational dependencies,
 ## Verification, delivery and boundaries
 
 - [x] Overtime threshold boundaries/duplicates/holds/existing OT/authorization persistence/deadline failures: `SchedulingPolicyTest`, `BoundedBookingSearchTest`, `ReservedOvertimeTest`, deadline/routing suites. An existing-overtime day still accepts a zero-added-overtime booking.
-- [x] Search relocation/swap oracles, unequal capacity/idle/scarce skills/absences, cost-ceiling boundaries, no artificial waiting. The explicit pair-swap fixture succeeds where insertion and both single relocations fail; small exact assignment/order and minute-grid timing oracles independently check outcomes.
+- [x] Search relocation/swap oracles, unequal capacity/idle/scarce skills/absences, cost-ceiling boundaries, no artificial waiting. A FULL_ASSERT solver fixture reduces 60 overtime minutes to zero using available regular capacity, with independent feasibility and unchanged reference checks. The explicit pair-swap fixture succeeds where insertion and both single relocations fail; small exact assignment/order and minute-grid timing oracles independently check outcomes.
 - [x] Timing exclusive ends/absence segments/endpoints/return, move undo/reassignment differential coverage, directed sparse/full/missing/identity/malformed routing: timing/bounds/Constraint Streams tests, routing contracts and real Omaha parity evidence.
 - [x] Concurrent reservation compatibility, atomic confirmation, lifecycle/guard/restart/configuration cases and explicit repair approval: PostgreSQL snapshot gate; reservation, bounded-booking, cross-instance cancellation/expiry, optimizer and time-off integration gates; approval browser tests.
 - [x] Queue/routing/scoring/lock/persistence deadlines and actual malformed/null external/database/JSON paths: admission, telemetry, routing, nullability, reservation decoding, PostgreSQL and browser suites. Hosted CI now includes the real exhausted-pool regression. Performance acceptance remains open.
-- [ ] Isolated reproducible 20/30/50-tech sparse/clustered/dispersed/mixed-skill/tight-window/absence/near-capacity datasets.
+- [x] Isolated reproducible 20/30/50-tech sparse/clustered/dispersed/mixed-skill/tight-window/absence/near-capacity datasets. Completed four-stage and actual-road browser matrices archive all 126 cases with fingerprints and request streams.
 - [ ] Ablations: baseline, insertion policy/fairness, snapshot/routing/scoring, bounded search, timing, solver/optional acceleration.
 - [ ] Cold/warm with concurrency 1/5/10: p50/p95/p99, incomplete rate, coverage/served demand/delay, overtime/wait/fairness/max utilization/cost, churn/retiming, moves/time-to-best, routing/cache/DB/locks/CPU/memory/queue.
-- [ ] Documented hardware, exact revision/configuration/dataset/graph; actual Omaha appointment workloads; p95 <=5 seconds plus served-demand and zero hard-constraint/reservation violations.
-- [ ] Final Java, nullability, lint, typecheck/build, schema and contracts, unit/browser, booking/optimizer/time-off/depot/sequential integration gates; distinguish fixture/local/road/CI evidence.
+- [x] Documented hardware, exact revision/configuration/dataset/graph and actual Omaha appointment workloads. Final browser matrix: 3,780 searches, 2,396 served, 1,384 retryable outcomes, pooled p95 3,943.7 ms, worst case p95 4,387.8 ms; all independently audited with zero violations. Shared workstation and validated-job refresh scope are explicit.
+- [x] Final local Java (134 tests), strict nullability, PostgreSQL snapshot/admission (2 tests), lint, typecheck/build, schema/contracts, unit/browser (22 tests), booking/optimizer/time-off/depot/sequential integration gates pass. Real-road and deterministic-fixture evidence are separate; final hosted CI remains part of delivery below.
 - [ ] Complete policy/lifecycle/API/operations/benchmark/rollout/rollback documentation; enable only passing configurations.
 - [ ] Detailed PR with final behavior, migrations, evidence, risks and actual CI; wait for review without merging.
 

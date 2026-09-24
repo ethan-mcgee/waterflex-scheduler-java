@@ -74,6 +74,28 @@ class DayConstraintProviderTest {
         assertEquals(0, result.fairness().variance().compareTo(BigDecimal.ZERO));
         assertTrue(result.fairness().variance().compareTo(baseline.fairness().variance()) < 0);
     }
+    @Test void constructedOvertimeRouteMovesWorkIntoAvailableRegularCapacity() {
+        var overloaded = new TechRoute("a", at(8), at(9), 120, 60, Required.value(Set.of("service")));
+        var available = new TechRoute("b", at(8), at(10), 120, 0, Required.value(Set.of("service")));
+        var one = new PlanVisit("one", "service", at(8), at(10), 60, "a", at(8));
+        var two = new PlanVisit("two", "service", at(8), at(10), 60, "a", at(9));
+        overloaded.getVisits().addAll(Required.value(List.of(one, two)));
+        Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
+        for (String from : List.of("a", "b", "one", "two")) for (String to : List.of("one", "two", "a:return", "b:return"))
+            matrix.put(from + ">" + to, new DayPlan.RoadLeg(0, 0));
+        DayPlan seed = new DayPlan(Required.value(List.<TechRoute>of(overloaded, available)),
+                Required.value(List.<PlanVisit>of(one, two)), matrix, 30, 45, 0, 0, 0);
+        var before = RouteEvaluator.evaluate(seed);
+        assertTrue(before.feasible());
+        assertEquals(60, before.overtimeMinutes());
+        DayPlan solved = solve(PlanCopies.copy(seed));
+        var after = RouteEvaluator.evaluate(solved);
+        assertTrue(after.feasible());
+        assertEquals(0, after.overtimeMinutes());
+        assertEquals(6000, after.costCents());
+        assertEquals(before.arrivals().keySet(), after.arrivals().keySet());
+        assertEquals(before, RouteEvaluator.evaluate(seed), "The reference schedule remains unchanged");
+    }
     private static DayPlan solve(DayPlan seed) {
         SolverConfig config = SolverConfig.createFromXmlResource("solverConfig.xml")
                 .withEnvironmentMode(EnvironmentMode.FULL_ASSERT).withRandomSeed(17L)
