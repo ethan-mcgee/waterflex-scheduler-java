@@ -14,6 +14,7 @@ import { technicianColor } from "../lib/technicianColor";
 import { createSeededRandom, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
 import { legacyBenchmarkServer, legacyOffers, LegacyRequestUncertain } from "./benchmarkLegacy";
 import { browserBenchmark, BrowserSearchError } from "./benchmarkBrowser";
+import { benchmarkDiagnostics } from "./benchmarkDiagnostics";
 
 async function main() {
 const database = new URL(required(process.env.DATABASE_URL));
@@ -22,7 +23,7 @@ assert.ok(required(database.searchParams.get("schema")).startsWith("benchmark_")
 const revision = required(process.env.BENCHMARK_REVISION, "Exact server revision");
 const variant = required(process.env.BENCHMARK_VARIANT, "Named implementation/configuration stage");
 const harnessRevision = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "scripts/benchmarkLegacy.ts", "scripts/benchmarkBrowser.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
+const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "scripts/benchmarkLegacy.ts", "scripts/benchmarkBrowser.ts", "scripts/benchmarkDiagnostics.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
 execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
 const harnessSources = await Promise.all(sourcePaths.map(async path => ({ path, sha256: createHash("sha256").update(await readFile(path)).digest("hex") })));
 const artifactSha256 = process.env.BENCHMARK_ARTIFACT_SHA256 == null ? null : z.string().regex(/^[a-f0-9]{64}$/i).parse(process.env.BENCHMARK_ARTIFACT_SHA256);
@@ -223,12 +224,13 @@ try {
     }
     if (legacyServer) { await legacyServer.stop(); legacyServer = null; }
     const processAfter = await statistics(false);
+    const diagnostics = await benchmarkDiagnostics(process.env.BENCHMARK_LOG_PATH, data.jobIds);
     const after = await audit(data.metroId);
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);
     const percentile = (p: number) => required(ordered[Math.min(ordered.length - 1, Math.ceil(p * ordered.length) - 1)]);
-    await record({ type: "case", revision, variant, caseId, size, workload, concurrency, cache, datasetFingerprint: data.fingerprint, before, after, attempts, processBefore, processAfter,
+    await record({ type: "case", revision, variant, caseId, size, workload, concurrency, cache, datasetFingerprint: data.fingerprint, before, after, attempts, processBefore, processAfter, diagnostics,
       served: attempts.filter(item => item.served).length, incomplete: attempts.filter(item => item.completed === false).length,
       unknownSearchCompletion: attempts.filter(item => item.completed === null).length,
       p50Ms: percentile(.5), p95Ms: percentile(.95), p99Ms: percentile(.99),

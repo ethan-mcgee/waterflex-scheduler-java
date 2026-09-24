@@ -43,7 +43,7 @@ jobs:
         run: npm run typecheck
       - name: Portal unit tests
         working-directory: web
-        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests && npm run test:nullability
+        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests && npm run test:nullability && npm run test:benchmark-diagnostics
       - name: Build portal
         working-directory: web
         run: npm run build

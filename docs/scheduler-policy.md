@@ -36,6 +36,8 @@ Refresh, release, expiry, cancellation and test purges also validate the remaini
 
 The five-second search budget starts with a validated job/address. Exploratory work ends by four seconds, leaving the final second for independent validation and publication. Queueing, routing waits, pool admission, SQL locks/statements and commit acknowledgement share the deadline. Expensive work is admitted at two searches per instance, or one on a single available CPU, with a queue of at most 16 and one background optimizer. Bookings have priority over queued background work. Snapshots and solvers are never shared mutably.
 
+Browser refresh requests carry an optional absolute `deadlineEpochMs` through the portal so browser connection queueing does not restart the budget. Missing deadlines preserve compatibility for existing callers; malformed values fail validation and future deadlines cannot grant more than five seconds. An already-expired refresh returns retryable `SEARCH_INCOMPLETE` without invoking scheduling. That early response reports actual portal handling duration because no scheduler call occurred. The wizard aborts an expired refresh and retains retry/input state.
+
 Durable search IDs propagate cancellation across scheduler instances. Publication checks cancellation under locks; acknowledgement distinguishes delivered offers from abandoned responses. An abandoned search cannot later publish a usable reservation. An uncertain commit acknowledgement requires the durable cancellation/cleanup path, rather than assuming a transport timeout proves rollback.
 
 ## Interfaces and diagnostics
@@ -74,6 +76,8 @@ Spring properties can be supplied as command-line arguments or their standard en
 | `spring.datasource.hikari.validation-timeout` | 250 ms |
 
 Keep rollout disabled until the relevant correctness, latency and quality gates pass. With new issuance disabled, the fallback cannot authorize new overtime from an incomplete scarcity search. Already-issued managed offers still use the durable confirmation/release path. Start with the default admission capacity and benchmark before raising it. Budget database connections across scheduler instances, portals and benchmark clients; application search admission alone does not bound every instance's idle pool.
+
+Compose exposes `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `SCHEDULER_SEARCH_CAPACITY`, `ROUTING_PREWARM_ENABLED` and `ROUTING_CH_ENABLED` with the defaults above. Supplying these changes configuration only when the relevant containers are recreated; this implementation does not deploy or enable them automatically.
 
 The eight additive September 24 migrations cover policy/default validation, offer overtime authorization, repair approval, common reservation arrangements/dependencies, reservation obligations, diagnostics, current segment timing and durable cancellation. Apply all migrations before starting the new binaries. Historical timing/policy/solver fields are nullable and displayed as unavailable. Legacy optimization proposals require a fresh preview before apply.
 

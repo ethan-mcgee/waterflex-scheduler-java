@@ -65,10 +65,16 @@ if args.stage == "policy-insertion":
             "        return RouteEvaluator.evaluate(day.plan(arrangement, facts, rates, confirmedOnly));\n"
             "    }\n\n")
     replace("SnapshotRouting.java", "            add(pairs, date, day, points, request.jobId(), request.jobId());",
-            "            // Benchmark ablation: materialize the complete directed matrix.\n"
-            "            for (String from : points.keySet()) for (String to : points.keySet()) {\n"
-            "                SearchDeadline.checkpoint();\n"
-            "                add(pairs, date, day, points, Required.value(from), Required.value(to));\n"
+            "            // Benchmark ablation: complete matrices per route, matching original insertion scope.\n"
+            "            Arrangement actual = day.actualArrangement();\n"
+            "            for (String technician : day.technicians().keySet()) {\n"
+            "                Set<String> routePoints = new HashSet<>(Required.value(day.baseline().routes().get(technician)));\n"
+            "                routePoints.addAll(Required.value(actual.routes().get(technician)));\n"
+            "                routePoints.add(technician); routePoints.add(technician + \":return\"); routePoints.add(request.jobId());\n"
+            "                for (String from : routePoints) for (String to : routePoints) {\n"
+            "                    SearchDeadline.checkpoint();\n"
+            "                    add(pairs, date, day, points, Required.value(from), Required.value(to));\n"
+            "                }\n"
             "            }\n"
             "            add(pairs, date, day, points, request.jobId(), request.jobId());")
 
