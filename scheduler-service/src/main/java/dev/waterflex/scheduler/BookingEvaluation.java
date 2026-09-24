@@ -17,6 +17,8 @@ final class BookingEvaluation {
     private final BookingRouteBounds bounds;
     private final Map<String, Long> capacities = new HashMap<>();
     private final Map<String, RouteEvaluator.Result> emptyRoutes = new HashMap<>();
+    private record Baseline(RouteEvaluator.Result total, Map<String, RouteEvaluator.Result> parts, int infeasibleRoutes) { }
+    private final Map<Boolean, Baseline> baselines = new HashMap<>();
     private record Load(long paid, long capacity) { }
     private final Map<Map<Load, Integer>, BigDecimal> fairnessResults = new LinkedHashMap<>(128, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Map<Load, Integer>, BigDecimal> eldest) { return size() > 2048; }
@@ -79,19 +81,64 @@ final class BookingEvaluation {
     }
 
     RouteEvaluator.Result evaluate(Arrangement arrangement, Map<String, Visit> facts, boolean confirmedOnly) {
+        coverage(arrangement, facts);
+        Baseline baseline = baseline(confirmedOnly);
+        if (arrangement.equals(day.baseline()) && facts.equals(day.visits())) return baseline.total();
+        var total = baseline.total();
+        long paid = total.paidMinutes(), overtime = total.overtimeMinutes(), driving = total.driveMinutes();
+        long waiting = total.waitingMinutes(), meters = total.meters();
+        int infeasible = baseline.infeasibleRoutes();
+        Map<String, Instant> arrivals = new HashMap<>(total.arrivals());
+        Map<String, List<RouteEvaluator.WorkingSegment>> segments = new TreeMap<>(total.segments());
+        List<RouteEvaluator.Result> changed = new ArrayList<>();
+        for (var entry : arrangement.routes().entrySet()) {
+            checkpoint.run();
+            String technician = Required.value(entry.getKey());
+            List<String> order = Required.value(entry.getValue());
+            List<String> original = Required.value(day.baseline().routes().get(technician));
+            if (order.equals(original) && order.stream().allMatch(id -> Objects.equals(facts.get(id), day.visits().get(id)))) continue;
+            var before = Required.value(baseline.parts().get(technician));
+            var after = route(technician, order, facts, confirmedOnly);
+            changed.add(after);
+            paid += after.paidMinutes() - before.paidMinutes(); overtime += after.overtimeMinutes() - before.overtimeMinutes();
+            driving += after.driveMinutes() - before.driveMinutes(); waiting += after.waitingMinutes() - before.waitingMinutes();
+            meters += after.meters() - before.meters();
+            infeasible += (after.feasible() ? 0 : 1) - (before.feasible() ? 0 : 1);
+            before.arrivals().keySet().forEach(arrivals::remove);
+            segments.putAll(after.segments());
+        }
+        // Add arrivals after every changed route's old visits have been removed; reassignment may
+        // move a visit from a route that sorts later to one that sorts earlier.
+        changed.forEach(route -> arrivals.putAll(route.arrivals()));
+        return result(infeasible == 0, paid, overtime, driving, waiting, meters, arrivals, segments);
+    }
+
+    private Baseline baseline(boolean confirmedOnly) {
+        Baseline cached = baselines.get(confirmedOnly);
+        if (cached != null) return cached;
+        Map<String, RouteEvaluator.Result> parts = new TreeMap<>();
+        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0; int infeasible = 0;
+        Map<String, Instant> arrivals = new HashMap<>();
+        Map<String, List<RouteEvaluator.WorkingSegment>> segments = new TreeMap<>();
+        for (var entry : day.baseline().routes().entrySet()) {
+            var measured = route(Required.value(entry.getKey()), Required.value(entry.getValue()), day.visits(), confirmedOnly);
+            parts.put(entry.getKey(), measured);
+            if (!measured.feasible()) infeasible++;
+            paid += measured.paidMinutes(); overtime += measured.overtimeMinutes(); driving += measured.driveMinutes();
+            waiting += measured.waitingMinutes(); meters += measured.meters(); arrivals.putAll(measured.arrivals()); segments.putAll(measured.segments());
+        }
+        var baseline = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, arrivals, segments), Required.value(Map.copyOf(parts)), infeasible);
+        baselines.put(confirmedOnly, baseline); return baseline;
+    }
+
+    private void coverage(Arrangement arrangement, Map<String, Visit> facts) {
         if (!arrangement.routes().keySet().equals(day.technicians().keySet())) throw new Incomplete("Arrangement technician coverage changed");
         Set<String> coverage = new HashSet<>(); arrangement.routes().values().forEach(coverage::addAll);
         if (!coverage.equals(facts.keySet())) throw new Incomplete("Arrangement visit coverage changed");
-        long paid = 0, overtime = 0, driving = 0, waiting = 0, meters = 0;
-        boolean feasible = true;
-        Map<String, Instant> arrivals = new HashMap<>();
-        Map<String, List<RouteEvaluator.WorkingSegment>> segments = new TreeMap<>();
-        for (var entry : arrangement.routes().entrySet()) {
-            var evaluated = route(Required.value(entry.getKey()), Required.value(entry.getValue()), facts, confirmedOnly);
-            feasible &= evaluated.feasible(); paid += evaluated.paidMinutes(); overtime += evaluated.overtimeMinutes();
-            driving += evaluated.driveMinutes(); waiting += evaluated.waitingMinutes(); meters += evaluated.meters();
-            arrivals.putAll(evaluated.arrivals()); segments.putAll(evaluated.segments());
-        }
+    }
+
+    private RouteEvaluator.Result result(boolean feasible, long paid, long overtime, long driving, long waiting, long meters,
+            Map<String, Instant> arrivals, Map<String, List<RouteEvaluator.WorkingSegment>> segments) {
         long cents = Math.round((paid - overtime) * rates.regularHourly() * 100 / 60.0
                 + overtime * rates.overtimeHourly() * 100 / 60.0 + meters / 1609.344 * rates.mileagePerMile() * 100);
         return new RouteEvaluator.Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, driving, waiting, meters,
