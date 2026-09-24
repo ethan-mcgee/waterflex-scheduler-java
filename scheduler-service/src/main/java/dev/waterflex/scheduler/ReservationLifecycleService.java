@@ -17,7 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 public final class ReservationLifecycleService {
     private record Offer(String holdId, String offerId, String jobId, LocalDate day, String metroId, Instant expiresAt,
             @Nullable Instant releasedAt, @Nullable String setId, @Nullable String selectedOfferId,
-            @Nullable Instant supersededAt, String status, RoadClient.Point address) { }
+            @Nullable Instant supersededAt, String status, RoadClient.Point address, @Nullable Integer reservedOvertimeDelta) { }
     private record Cancellation(String jobId, LocalDate day, String metroId, boolean cancelled) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
@@ -54,7 +54,7 @@ public final class ReservationLifecycleService {
         String identity = roads.activeIdentity();
         var facts = loader.loadDates(offer.metroId(), dates, Required.value(Instant.now()), identity);
         String id = Required.value(UUID.randomUUID().toString());
-        var proposals = transitions.prepare(facts, offer.jobId(), new ReservationTransition.Confirmation(offer.holdId(), id));
+        var proposals = transitions.prepare(facts, offer.jobId(), new ReservationTransition.Confirmation(offer.holdId(), id, offer.reservedOvertimeDelta()));
         var selected = Required.value(proposals.get(offer.day()), "selected date");
         Visit visit = Required.value(selected.day().visits().get(id), "selected appointment");
         if (!visit.location().equals(offer.address())) throw conflict("Job location changed after reservation");
@@ -131,13 +131,14 @@ public final class ReservationLifecycleService {
     }
 
     private Offer offer(String predicate, @Nullable Object... parameters) {
-        var rows = jdbc.query("SELECT h.id,h.\"offerToken\",h.\"jobId\",h.\"serviceDate\",p.\"metroId\",h.\"expiresAt\",h.\"releasedAt\",s.id,s.\"selectedOfferId\",s.\"supersededAt\",j.status::text,ad.lat,ad.lng "
+        var rows = jdbc.query("SELECT h.id,h.\"offerToken\",h.\"jobId\",h.\"serviceDate\",p.\"metroId\",h.\"expiresAt\",h.\"releasedAt\",s.id,s.\"selectedOfferId\",s.\"supersededAt\",j.status::text,ad.lat,ad.lng,o.\"incrementalOvertimeMinutes\" "
                 + "FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" "
+                + "LEFT JOIN booking_offer o ON o.id=h.\"offerToken\" AND o.\"jobId\"=h.\"jobId\" "
                 + "JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=h.\"technicianId\" AND \"effectiveDate\"<=h.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) a ON true JOIN depot p ON p.id=a.\"depotId\" WHERE " + predicate,
                 (rs, _) -> new Offer(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3),
                         Required.value(Required.timestamp(rs, 4).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), Required.string(rs, 5),
                         Required.value(Required.timestamp(rs, 6).toInstant()), instant(rs.getTimestamp(7)), rs.getString(8), rs.getString(9),
-                        instant(rs.getTimestamp(10)), Required.string(rs, 11), Required.location(rs, 12, 13, HttpStatus.CONFLICT)), parameters);
+                        instant(rs.getTimestamp(10)), Required.string(rs, 11), Required.location(rs, 12, 13, HttpStatus.CONFLICT), rs.getObject(14, Integer.class)), parameters);
         if (rows.size() != 1) throw conflict("Reserved offer is missing or ambiguous");
         return Required.value(rows.getFirst());
     }

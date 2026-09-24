@@ -104,6 +104,7 @@ class BookingSnapshotDatabaseIT {
             jdbc.update("UPDATE slot_hold SET \"expiresAt\"=? WHERE id=?", expiry, prefix + "-held");
             var facts = loader.loadDates(prefix, Required.value(List.of(day)), captured, "fixture-roads");
             RoadClient deterministic = new RoadClient(jdbc, "unused", 100, 60, manager) {
+                @Override public String activeIdentity() { return "fixture-roads"; }
                 @Override public Map<String, Leg> sparse(List<Pair> pairs, String identity) {
                     assertEquals("fixture-roads", identity);
                     Map<String, Leg> result = new HashMap<>();
@@ -171,6 +172,29 @@ class BookingSnapshotDatabaseIT {
                 staleMutation.set(true); return "unexpected";
             }));
             assertFalse(staleMutation.get());
+            // A different confirmation may already have applied the regular-capacity
+            // reassignment. Confirm the remaining regular offer using its persisted
+            // issuance delta, not the marginal overtime of removing its placeholder.
+            jdbc.update("UPDATE technician SET \"shiftStartMin\"=720,\"shiftEndMin\"=750,\"maxDailyMinutes\"=180,\"maxOvertimeMinutes\"=150 WHERE id=?", prefix + "-a");
+            jdbc.update("UPDATE technician_availability_day SET \"shiftStartMin\"=720,\"shiftEndMin\"=750 WHERE \"versionId\"=?", prefix + "-a");
+            jdbc.update("UPDATE slot_hold SET \"releasedAt\"=NULL,\"windowStart\"=?::timestamp+INTERVAL '30 minutes',\"windowEnd\"=?::timestamp+INTERVAL '150 minutes',\"plannedStart\"=?::timestamp+INTERVAL '30 minutes',\"plannedEnd\"=?::timestamp+INTERVAL '60 minutes' WHERE id=?",
+                    afternoon, afternoon, afternoon, afternoon, prefix + "-request");
+            var regularFacts = loader.loadDates(prefix, Required.value(List.of(day)), captured, "fixture-roads");
+            Day regularDay = Required.value(regularFacts.days().get(day));
+            Day regularRouted = new SnapshotRouting(deterministic).arrangements(day, regularDay, regularDay.visits(),
+                    Required.value(List.of(regularDay.baseline())), "fixture-roads");
+            transaction.executeWithoutResult(_ -> store.save(Required.value(store.lock(prefix, Required.value(List.of(day))).getFirst()),
+                    regularRouted, regularFacts.rates(), regularDay.baseline(), regularDay.visits(), Required.value(regularFacts.holds().get(day)),
+                    regularFacts.configurationFingerprint(), "fixture-roads"));
+            var lifecycle = new ReservationLifecycleService(jdbc, deterministic, loader, transition, commit);
+            assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"),
+                    "A missing historical delta cannot authorize the transferred overtime");
+            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
+            jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-30 WHERE id=?", prefix + "-request");
+            var selectedRegular = lifecycle.select(prefix + "-request", prefix + "-request");
+            assertEquals(selectedRegular.appointmentId(), Required.query(jdbc, "SELECT id FROM appointment WHERE \"jobId\"=?", String.class, prefix + "-request"));
+            assertFalse(Required.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=?", Boolean.class, prefix + "-request"));
+            assertTrue(Required.query(jdbc, "SELECT \"releasedAt\" IS NOT NULL FROM slot_hold WHERE id=?", Boolean.class, prefix + "-request"));
         } finally {
             jdbc.update("DELETE FROM reservation_arrangement WHERE \"metroId\"=?", prefix);
             jdbc.update("DELETE FROM appointment WHERE id=?", prefix + "-appointment");
