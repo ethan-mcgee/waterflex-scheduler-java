@@ -7,6 +7,14 @@ const [prefix, ...paths] = process.argv.slice(2);
 assert.ok(prefix && paths.length, "Pass output prefix followed by completed JSONL runs");
 const sources = []; const cases = []; const summaries = [];
 const quantile = (values, fraction) => values.length ? [...values].sort((a, b) => a - b)[Math.ceil(fraction * values.length) - 1] : null;
+const distribution = values => ({ observed: values.length, p50: quantile(values, .5), p95: quantile(values, .95),
+  maximum: values.length ? Math.max(...values) : null });
+const calendarDate = value => {
+  assert.match(value, /^\d{4}-\d{2}-\d{2}$/);
+  const parsed = Date.parse(`${value}T00:00:00Z`);
+  assert.ok(Number.isFinite(parsed) && new Date(parsed).toISOString().slice(0, 10) === value);
+  return parsed;
+};
 const total = (audit, field) => audit.days.reduce((sum, day) => sum + field(day), 0);
 const sumObserved = (rows, field) => {
   const values = rows.map(field).filter(value => value != null);
@@ -30,6 +38,11 @@ for (const [source, path] of paths.entries()) {
     assert.ok(!seen.has(key)); seen.add(key);
     assert.equal(row.independentlyValidated, true); assert.equal(row.promiseViolations, 0);
     assert.equal(row.attempts.length, provenance.requests);
+    for (const audit of [row.before, row.after]) {
+      assert.equal(audit.independentlyValidated, true);
+      assert.deepEqual(audit.days.map(day => day.date).sort(), [...provenance.dates].sort(), "Audit horizon coverage changed");
+    }
+    assert.equal(row.before.routingIdentity, row.after.routingIdentity, "Routing identity changed during a case");
     const samples = [];
     for (const attempt of row.attempts) {
       outcomeCounts[attempt.outcome] = (outcomeCounts[attempt.outcome] ?? 0) + 1;
@@ -42,12 +55,26 @@ for (const [source, path] of paths.entries()) {
     }
     const beforeCost = total(row.before, day => day.policy.costCents), afterCost = total(row.after, day => day.policy.costCents);
     const confirmed = total(row.after, day => day.confirmedAppointments);
+    const firstDate = calendarDate(provenance.dates[0]);
+    const delays = row.attempts.filter(item => item.served).map(item => {
+      const delay = (calendarDate(item.serviceDate) - firstDate) / 86400000;
+      assert.ok(Number.isInteger(delay) && delay >= 0);
+      return delay;
+    });
     cases.push({ source, key, datasetFingerprint: row.datasetFingerprint, routingIdentity: row.after.routingIdentity,
       served: row.served, requests: row.attempts.length, p50Ms: quantile(samples, .5), p95Ms: quantile(samples, .95), p99Ms: quantile(samples, .99),
+      incomplete: row.attempts.filter(item => item.completed === false).length,
+      unknownSearchCompletion: row.attempts.filter(item => item.completed == null).length,
+      serviceDelayCalendarDaysFromFirstHorizonDate: distribution(delays),
       beforeCost, afterCost, costPerConfirmedAppointmentCents: confirmed ? afterCost / confirmed : null,
       incrementalCostPerServedCents: row.served ? (afterCost - beforeCost) / row.served : null,
       overtimeBefore: total(row.before, day => day.policy.overtimeMinutes), overtimeAfter: total(row.after, day => day.policy.overtimeMinutes),
       waitingBefore: total(row.before, day => day.waitingMinutes), waitingAfter: total(row.after, day => day.waitingMinutes),
+      roadSecondsBefore: total(row.before, day => day.roadSeconds), roadSecondsAfter: total(row.after, day => day.roadSeconds),
+      configuredBufferSecondsBefore: total(row.before, day => day.configuredBufferSeconds),
+      configuredBufferSecondsAfter: total(row.after, day => day.configuredBufferSeconds),
+      utilizationBefore: distribution(row.before.days.flatMap(day => day.policy.fairness.workloads.map(item => item.utilization))),
+      utilizationAfter: distribution(row.after.days.flatMap(day => day.policy.fairness.workloads.map(item => item.utilization))),
       meanDailyVarianceBefore: total(row.before, day => day.policy.fairness.variance) / row.before.days.length,
       meanDailyVarianceAfter: total(row.after, day => day.policy.fairness.variance) / row.after.days.length,
       maximumUtilization: Math.max(...row.after.days.map(day => day.policy.fairness.maximumUtilization)),
@@ -67,6 +94,7 @@ for (const [source, path] of paths.entries()) {
       peakHeapUsedBytes: row.processAfter?.peakHeapUsedBytes ?? null,
       preparationDiagnostics: row.diagnostics == null ? null : { observations: row.diagnostics.attempts.length,
         unavailableJobs: row.diagnostics.unavailableJobIds.length,
+        distinctRegularWindows: distribution(row.diagnostics.attempts.map(item => item.diagnostic.distinctRegularWindows)),
         stopReasons: Object.fromEntries([...new Set(row.diagnostics.attempts.map(item => item.diagnostic.stopReason))]
           .map(reason => [reason, row.diagnostics.attempts.filter(item => item.diagnostic.stopReason === reason).length])),
         evaluatedRoutes: sumObserved(row.diagnostics.attempts, item => item.diagnostic.evaluatedRoutes),
