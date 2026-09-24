@@ -1,0 +1,14 @@
+{
+  "sourceLog": "waterflex-original-middle-tail.jsonl.legacy-server.log",
+  "archive": "booking-original-middle-server-2026-09-24.log.gz",
+  "rawSha256": "83525c169d479b49e08d314731fcfc39604c4a4d9f6332591ecc618349250542",
+  "scope": "Unchanged original 2d17885 benchmark JVM logs, isolated waterflex_test schema benchmark_original_middle_tail",
+  "observedFailure": {
+    "case": "50/TIGHT_WINDOW/10/cold",
+    "requestIndex": 6,
+    "httpStatus": 500,
+    "cause": "PostgreSQL deadlock while inserting an index tuple in road_route_cache",
+    "stack": "RoadClient.matrix -> BookingService.evaluate -> offers"
+  },
+  "treatment": "Retained as a measured original behavior, not replaced by the separate connection-incident correction."
+}

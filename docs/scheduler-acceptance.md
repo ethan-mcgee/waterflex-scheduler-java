@@ -1,6 +1,6 @@
 # Scheduler acceptance evidence
 
-Acceptance is still being reconciled with the complete original plan. The final production-artifact fixture matrix is complete; the matched component comparisons and unchanged original continuation are still running. This document does not authorize deployment or replace the [requirement checklist](scheduler-plan-checklist.md).
+Acceptance is still being reconciled with the complete original plan. The final production-artifact fixture matrix and unchanged original matrix are complete; the final two matched component comparisons are still running. This document does not authorize deployment or replace the [requirement checklist](scheduler-plan-checklist.md).
 
 ## Final artifact and latency
 
@@ -11,6 +11,7 @@ The [final fixture report](evidence/booking-confirmation-final-2026-09-24.json) 
 | HTTP p50 / p95 / p99 | 1,624.4 / 3,975.5 / 4,150.3 ms |
 | Largest case p95 | 4,352.0 ms |
 | Cases exceeding five-second p95 | 0 / 126 |
+| Maximum measured request / requests over five seconds | 4,525.5 ms / 0 |
 | Served | 2,331 / 3,780 |
 | Retryable schedule conflict / busy / incomplete | 815 / 587 / 47 |
 | Independently audited promise, reservation, qualification or limit violations | 0 |
@@ -25,11 +26,28 @@ The local latency gate passes with served demand reported. Concurrent requests t
 
 The reference workstation is an AMD Ryzen 9 7900X, 24 logical processors and 67,870,916,608 bytes of RAM. The scheduler had a 768 MiB heap. Other isolated benchmarks shared this machine, PostgreSQL and the fixture provider. This is a documented local reference, not dedicated hardware or hosted production evidence.
 
-The [actual Omaha browser matrix](evidence/booking-browser-final-2026-09-24.json) separately measured 3,780 searches at pooled p95 3,943.7 ms, largest case p95 4,387.8 ms, 2,396 served and 1,384 retryable outcomes, with zero independently audited violations. Its scheduler is `971b0b9` and portal is `0629445`; it is not relabeled as the final artifact. The later production fix concerns reserved-offer confirmation. Portal application/library code is unchanged from that measured portal revision, and [final-artifact real-road integration reruns](evidence/confirmation-verification-2026-09-24.json) passed. Browser timings cover validated-job refresh transport, excluding address entry, geocoding and rendering.
+The [actual Omaha browser matrix](evidence/booking-browser-final-2026-09-24.json) separately measured 3,780 searches at pooled p95 3,943.7 ms, largest case p95 4,387.8 ms, 2,396 served and 1,384 retryable outcomes, with zero independently audited violations. Its scheduler is `971b0b9` and portal is `0629445`; it is not relabeled as the final artifact. The later production fix concerns reserved-offer confirmation. Portal application/library code is unchanged from that measured portal revision, and [final-artifact real-road integration reruns](evidence/confirmation-verification-2026-09-24.json) passed. Its maximum measured request was 4,514 ms, with no request above five seconds. Browser timings cover validated-job refresh transport, excluding address entry, geocoding and rendering.
+
+## Original baseline and matched demand
+
+The [uncorrected original matrix](evidence/booking-original-assembled-2026-09-24.json) preserves all five declared source partitions, both transport timeouts and the earlier connection incident. It served 3,669/3,780 requests. The [separate connection-corrected comparison](evidence/booking-original-corrected-2026-09-24.json) replaces only four explicitly identified cases with matching clean rechecks and serves 3,752/3,780. Both have pooled p95 52,619.6 ms and p99 72,970.4 ms. The corrected result retains nine search errors and nineteen selection conflicts; legacy search completion remains unknown. One retained search error in the final continuation is a [documented original road-cache deadlock](evidence/booking-original-middle-diagnostics-2026-09-24.json), not a replacement candidate.
+
+For the sequential subset, both the corrected original and final implementation serve all 1,260 requests:
+
+| Sequential measure | Original | Final |
+| --- | ---: | ---: |
+| Largest case p95 | 72,963.9 ms | 1,995.0 ms |
+| Incremental modeled operating cost | $23,200.94 | $19,033.00 |
+| Added overtime | 1,800 minutes | 1,800 minutes |
+| Mean daily capacity-weighted variance after booking | 0.00725836 | 0.01205339 |
+
+This matched-demand comparison shows lower modeled cost and latency, but **does not show an overall booking fairness or overtime improvement**. Fairness is worse on this aggregate measure, consistent with the agreed priority placing operating cost before fairness outside the 2 percent allowance. The independently validated constructed cases and repeated daily solver experiments below establish the required feasible fairness/overtime improvements. No broad booking fairness gain is claimed. The lower total overtime in all final concurrent experiments also reflects fewer served requests and must not be called a matched-demand overtime saving.
+
+Cost, overtime and variance remain available for every case in the source reports. Aggregate buffer seconds can decrease when rearrangement removes route legs; the per-leg configured buffer policy did not change. The timing model used by independent original audits is canonical, so this comparison does not recover historical payroll or original persisted waiting.
 
 ## Quality and observability
 
-Constructed correctness oracles demonstrate useful regular capacity revealed by relocation and a pair swap that neither insertion nor single relocation finds. The independently validated FULL_ASSERT optimizer case reduces 60 overtime minutes to zero. Equal-capacity fairness improves at unchanged modeled cost in a separate fixture. Exact threshold, 2 percent ceiling, unequal capacity, scarce skill, absence, idle technician, nonmetric travel and no-artificial-waiting regressions pass. These are reproducible quality cases, not claimed fleet-wide percentage savings.
+Constructed correctness oracles demonstrate useful regular capacity revealed by relocation and a pair swap that neither insertion nor single relocation finds. The independently validated FULL_ASSERT optimizer case reduces 60 overtime minutes to zero. Equal-capacity fairness improves at unchanged modeled cost in a separate fixture. Exact threshold, 2 percent ceiling, unequal capacity, scarce skill, absence, idle technician, nonmetric travel and no-artificial-waiting regressions pass. These are reproducible quality cases, not claimed fleet-wide percentage savings. In the final full fixture matrix, all six non-scarce workload groups add zero overtime; only near-capacity cases add overtime (2,520 minutes across the independent experiments). All 466 preparation observations authorizing overtime have completed the prescribed search, at most two distinct regular windows and at least 90 percent confirmed utilization. None of the 18 incomplete preparations or 23 deadline-stopped preparations authorizes overtime. Preparation observations can include retries and are not counts of confirmed jobs.
 
 The [solver comparison](solver-benchmarks.md) retains 294 independently validated results and three seeds for the selected alternatives. Uncapped Tabu with relocation/swaps improves aggregate reference cost and accepted fairness against the retained alternatives in all three seeds. Those comparative datasets finish with zero overtime, so they cannot establish a comparative overtime reduction. Optional CH routing improves isolated road query latency but produces little booking throughput gain; CH and prewarming remain disabled.
 
