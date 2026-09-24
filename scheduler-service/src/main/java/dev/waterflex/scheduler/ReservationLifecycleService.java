@@ -121,7 +121,7 @@ public final class ReservationLifecycleService {
     }
 
     private List<LocalDate> dates(String jobId) {
-        return Required.value(jdbc.query("SELECT DISTINCT \"serviceDate\" FROM slot_hold WHERE \"jobId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">clock_timestamp() ORDER BY \"serviceDate\"",
+        return Required.value(jdbc.query("SELECT DISTINCT \"serviceDate\" FROM slot_hold WHERE \"jobId\"=? AND \"releasedAt\" IS NULL ORDER BY \"serviceDate\"",
                 (rs, _) -> Required.value(Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), jobId));
     }
 

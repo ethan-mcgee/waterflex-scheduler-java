@@ -78,7 +78,7 @@ The immutable `BookingSnapshot` and `BoundedBookingSearch` core implement these 
 - [ ] Extend availability, qualification, depot, endpoint, time-off and purge guards to pending reassignment dependencies.
 - [ ] Block ordinary optimization with relevant active holds, including pending route dependencies.
 
-Versioned reservation storage, strict restart decoding, relational dependencies, guard integration and public lifecycle wiring are implemented behind rollout flags. Sparse snapshot routing, common offer bundles, confirmation/release and cancellation use independent validation and short atomic commits. PostgreSQL and API gates cover actual reassignment, stale versions, rollback after route updates, concurrent customers, pending cancellation and confirmation with flags disabled. Expiry, restart and configuration race coverage still need expansion before enabling rollout generally.
+Versioned reservation storage, strict restart decoding, relational dependencies, guard integration and public lifecycle wiring are implemented behind rollout flags. Sparse snapshot routing, common offer bundles, confirmation/release and cancellation use independent validation and short atomic commits. PostgreSQL and API gates cover actual reassignment, stale versions, rollback after route updates, concurrent customers, pending cancellation and confirmation with flags disabled. A bounded background expiry transition now revalidates all sibling dates, with enabled and disabled rollout fixtures. Overlapping-customer expiry, restart and configuration race coverage still need expansion before enabling rollout generally.
 
 ## G. Daily optimization and H. concurrency
 
@@ -95,7 +95,7 @@ Versioned reservation storage, strict restart decoding, relational dependencies,
 - [ ] Reservation schema and policy/configuration fingerprints across the complete lifecycle.
 - [ ] Booking diagnostics: windows/utilization/gate, coverage, moves, snapshot age, pairs/cache, queue/lock times, conflict/failure reason.
 - [x] Optimization workload/utilization, fairness/max utilization, overtime/cost, signed change, reference/ceiling/reason and preview segment times.
-- [ ] Repair overtime approval UI implemented and browser-tested; current-segment geometry/timeline still missing.
+- [x] Repair overtime approval UI is implemented and browser-tested; versioned current segment geometry/timeline is implemented and checked separately.
 - [x] Accessible indeterminate "Finding available appointments"; entered values retained on errors.
 - [x] Typed outcomes/retry through initial booking, refresh, conflict and testing UI; unit, browser and sequential integration checks pass.
 
