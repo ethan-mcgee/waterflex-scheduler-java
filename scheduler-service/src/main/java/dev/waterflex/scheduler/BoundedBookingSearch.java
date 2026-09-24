@@ -67,6 +67,17 @@ public final class BoundedBookingSearch {
 
     public Result search(boolean rearrangementEnabled) { return search(windows(), rearrangementEnabled); }
 
+    public Map<LocalDate, Set<String>> neighborhoodRoutes() {
+        Map<LocalDate, Set<String>> result = new TreeMap<>();
+        for (Window window : windows()) if (!result.containsKey(window.day())) {
+            checkpoint.run();
+            State state = new State(Required.value(window));
+            state.chooseRoutes();
+            result.put(window.day(), Required.value(Set.copyOf(state.shortlist)));
+        }
+        return Required.value(Map.copyOf(result));
+    }
+
     public Result search(List<Window> windows, boolean rearrangementEnabled) {
         if (new HashSet<>(windows).size() != windows.size()) throw new IllegalArgumentException("Duplicate booking window");
         if (!new HashSet<>(windows).equals(new HashSet<>(windows())))
@@ -247,6 +258,14 @@ public final class BoundedBookingSearch {
         }
 
         void startNeighborhood() {
+            chooseRoutes();
+            examinedRoutes.addAll(shortlist);
+            depth = 1;
+            pending = Required.value(neighbors(day.baseline()).iterator());
+            reason = "NEIGHBORHOOD_COMPLETED";
+        }
+
+        void chooseRoutes() {
             // Idle, qualified capacity must not disappear from a cost-oriented shortlist.
             List<String> all = new ArrayList<>(day.technicians().keySet());
             all.removeIf(id -> Required.value(day.technicians().get(id)).regularCapacity() == 0);
@@ -259,10 +278,6 @@ public final class BoundedBookingSearch {
             String least = eligible.stream().min(Comparator.comparingDouble((String id) -> utilization(Required.value(id))).thenComparing(id -> id)).orElse(null);
             if (least != null) { all.remove(least); all.addFirst(least); }
             shortlist = new ArrayList<>(all.subList(0, Math.min(limits.routes(), all.size())));
-            examinedRoutes.addAll(shortlist);
-            depth = 1;
-            pending = Required.value(neighbors(day.baseline()).iterator());
-            reason = "NEIGHBORHOOD_COMPLETED";
         }
 
         RouteRank rank(String id) {

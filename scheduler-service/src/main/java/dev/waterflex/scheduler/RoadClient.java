@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -34,14 +37,18 @@ public class RoadClient {
     private final HttpClient http = Required.value(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
     private final Map<String, Cached> memory;
     private final Duration cacheTtl;
+    private final TransactionTemplate cacheTransactions;
     private volatile String routingIdentity = "";
 
     public RoadClient(JdbcTemplate jdbc, @Value("${routing.url}") String url,
                       @Value("${routing.cache.max-entries:100000}") int maxEntries,
-                      @Value("${routing.cache.ttl-minutes:60}") int ttlMinutes) {
+                      @Value("${routing.cache.ttl-minutes:60}") int ttlMinutes, PlatformTransactionManager transactions) {
         this.jdbc = jdbc;
         this.url = url;
         this.cacheTtl = Required.value(Duration.ofMinutes(Math.max(1, ttlMinutes)));
+        cacheTransactions = new TransactionTemplate(transactions);
+        cacheTransactions.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        cacheTransactions.setTimeout(5);
         int limit = Math.max(1, maxEntries);
         this.memory = Required.value(Collections.synchronizedMap(new LinkedHashMap<>(limit, .75f, true) {
             @Override protected boolean removeEldestEntry(Map.@Nullable Entry<String, Cached> eldest) { return size() > limit; }
@@ -105,23 +112,24 @@ public class RoadClient {
             else missing.add(pair);
         }
         for (int offset = 0; offset < missing.size(); offset += 256) {
-            SearchDeadline.database(jdbc);
             List<Pair> batch = missing.subList(offset, Math.min(offset + 256, missing.size()));
             List<Object> arguments = new ArrayList<>();
             arguments.add(identity);
             for (Pair pair : batch) { arguments.add(key(pair.origin())); arguments.add(key(pair.destination())); }
             String values = String.join(",", Collections.nCopies(batch.size(), "(?,?)"));
-            jdbc.query("SELECT \"originKey\",\"destinationKey\",seconds,meters,routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND (\"originKey\",\"destinationKey\") IN (" + values + ") AND \"fetchedAt\">CURRENT_TIMESTAMP-INTERVAL '30 days'",
+            cache(() -> jdbc.query("SELECT \"originKey\",\"destinationKey\",seconds,meters,routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND (\"originKey\",\"destinationKey\") IN (" + values + ") AND \"fetchedAt\">CURRENT_TIMESTAMP-INTERVAL '30 days'",
                     (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
                         String id = Required.string(rs, 1) + ">" + Required.string(rs, 2);
                         boolean routable = Required.bool(rs, 5);
                         Long seconds = Required.nullableLong(rs, 3), meters = Required.nullableLong(rs, 4);
-                        if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0))
-                            throw new RoadUnavailable("Malformed persisted road leg");
+                        if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0)) {
+                            org.slf4j.LoggerFactory.getLogger(RoadClient.class).warn("Discarding malformed cached directed leg for routing identity {}", identity);
+                            return;
+                        }
                         Cached cached = new Cached(routable ? new Leg(Required.value(seconds), Required.value(meters)) : null,
                                 Required.value(Instant.now().plus(cacheTtl)));
                         found.put(id, cached); memory.put(id + ":" + identity, cached);
-                    }, Required.value(arguments.toArray(new @Nullable Object[0])));
+                    }, Required.value(arguments.toArray(new @Nullable Object[0]))));
             List<Pair> requested = batch.stream().filter(pair -> !found.containsKey(pair.id())).toList();
             if (requested.isEmpty()) continue;
             try {
@@ -155,7 +163,7 @@ public class RoadClient {
                     writes.add(new @Nullable Object[]{UUID.randomUUID().toString(), key(pair.origin()), key(pair.destination()), identity,
                             value == null ? null : value.seconds(), value == null ? null : value.meters(), value != null});
                 }
-                jdbc.batchUpdate("INSERT INTO road_route_cache (id,\"originKey\",\"destinationKey\",profile,\"mapVersion\",seconds,meters,routable) VALUES (?,?,?,'car',?,?,?,?) ON CONFLICT (\"originKey\",\"destinationKey\",profile,\"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds,meters=EXCLUDED.meters,routable=EXCLUDED.routable,\"fetchedAt\"=CURRENT_TIMESTAMP", writes);
+                cache(() -> jdbc.batchUpdate("INSERT INTO road_route_cache (id,\"originKey\",\"destinationKey\",profile,\"mapVersion\",seconds,meters,routable) VALUES (?,?,?,'car',?,?,?,?) ON CONFLICT (\"originKey\",\"destinationKey\",profile,\"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds,meters=EXCLUDED.meters,routable=EXCLUDED.routable,\"fetchedAt\"=CURRENT_TIMESTAMP", writes));
                 for (Pair pair : requested) memory.put(pair.id() + ":" + identity, Required.value(found.get(pair.id()), "resolved road pair"));
             } catch (RoadUnavailable e) { throw e; }
               catch (org.springframework.dao.DataAccessException e) { throw e; }
@@ -177,7 +185,7 @@ public class RoadClient {
     }
 
     public Map<String, Leg> matrix(Map<String, Point> locations, String identity) {
-        SearchDeadline.database(jdbc);
+        SearchDeadline.checkpoint();
         if (identity.isBlank()) throw new RoadUnavailable("Routing identity required");
         Map<String, Point> unique = new LinkedHashMap<>();
         Map<String, String> locationKeys = new LinkedHashMap<>();
@@ -208,21 +216,25 @@ public class RoadClient {
                 String destinationSlots = String.join(",", Collections.nCopies(destinations.size(), "?"));
                 List<Object> args = new ArrayList<>();
                 args.add(identity); args.addAll(origins); args.addAll(destinations);
-                jdbc.query("SELECT \"originKey\", \"destinationKey\", seconds, meters, routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND \"originKey\" IN (" + originSlots + ") AND \"destinationKey\" IN (" + destinationSlots + ")",
+                cache(() -> jdbc.query("SELECT \"originKey\", \"destinationKey\", seconds, meters, routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND \"originKey\" IN (" + originSlots + ") AND \"destinationKey\" IN (" + destinationSlots + ") AND \"fetchedAt\">CURRENT_TIMESTAMP-INTERVAL '30 days'",
                         (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
                             String from = Required.string(rs, 1), to = Required.string(rs, 2), pair = from + ">" + to;
                             if (!missing.contains(pair)) return;
                             boolean routable = Required.bool(rs, 5);
                             Long seconds = Required.nullableLong(rs, 3), meters = Required.nullableLong(rs, 4);
-                            if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0)) return;
+                            if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0)) {
+                                org.slf4j.LoggerFactory.getLogger(RoadClient.class).warn("Discarding malformed cached directed leg for routing identity {}", identity);
+                                return;
+                            }
                             Leg leg = routable ? new Leg(Required.value(seconds), Required.value(meters)) : null;
                             missing.remove(pair);
                             memory.put(pair + ":" + identity, new Cached(leg, Required.value(Instant.now().plus(cacheTtl))));
                             if (leg != null) byCoordinate.put(pair, leg);
-                        }, Required.value(args.toArray(new @Nullable Object[0])));
+                        }, Required.value(args.toArray(new @Nullable Object[0]))));
                 needed = origins.stream().anyMatch(from -> destinations.stream().anyMatch(to -> missing.contains(from + ">" + to)));
                 if (!needed) continue;
                 JsonNode rows = requestMatrix(origins, destinations, unique, identity);
+                List<@Nullable Object[]> writes = new ArrayList<>();
                 for (int i = 0; i < origins.size(); i++) for (int j = 0; j < destinations.size(); j++) {
                     String from = origins.get(i), to = destinations.get(j), pair = from + ">" + to;
                     if (!missing.contains(pair)) continue;
@@ -238,10 +250,11 @@ public class RoadClient {
                         byCoordinate.put(pair, leg);
                     }
                     memory.put(pair + ":" + identity, new Cached(leg, Required.value(Instant.now().plus(cacheTtl))));
-                    jdbc.update("INSERT INTO road_route_cache (id, \"originKey\", \"destinationKey\", profile, \"mapVersion\", seconds, meters, routable) VALUES (?, ?, ?, 'car', ?, ?, ?, ?) ON CONFLICT (\"originKey\", \"destinationKey\", profile, \"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds, meters=EXCLUDED.meters, routable=EXCLUDED.routable, \"fetchedAt\"=CURRENT_TIMESTAMP",
+                    writes.add(new @Nullable Object[]{
                             UUID.randomUUID().toString(), from, to, identity,
-                            leg == null ? null : leg.seconds(), leg == null ? null : leg.meters(), leg != null);
+                            leg == null ? null : leg.seconds(), leg == null ? null : leg.meters(), leg != null});
                 }
+                if (!writes.isEmpty()) cache(() -> jdbc.batchUpdate("INSERT INTO road_route_cache (id, \"originKey\", \"destinationKey\", profile, \"mapVersion\", seconds, meters, routable) VALUES (?, ?, ?, 'car', ?, ?, ?, ?) ON CONFLICT (\"originKey\", \"destinationKey\", profile, \"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds, meters=EXCLUDED.meters, routable=EXCLUDED.routable, \"fetchedAt\"=CURRENT_TIMESTAMP", writes));
             }
         }
         Map<String, Leg> result = new HashMap<>();
@@ -306,6 +319,14 @@ public class RoadClient {
     private static Point normalized(String key) {
         String[] parts = key.split(",");
         return new Point(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]));
+    }
+
+    private void cache(Runnable operation) {
+        cacheTransactions.executeWithoutResult(_ -> {
+            SearchDeadline.database(jdbc);
+            operation.run();
+            SearchDeadline.checkpoint();
+        });
     }
 
     @Scheduled(cron = "0 30 3 * * SUN", zone = "America/Chicago")

@@ -78,7 +78,7 @@ The immutable `BookingSnapshot` and `BoundedBookingSearch` core now implement th
 - [ ] Extend availability, qualification, depot, endpoint, time-off and purge guards to pending reassignment dependencies.
 - [ ] Block ordinary optimization with relevant active holds, including pending route dependencies.
 
-Versioned reservation storage, strict restart decoding, relational dependencies and guard integration are implemented. A PostgreSQL integration gate covers shadow reassignment persistence and stale versions; a separate API gate covers dependent qualifications, availability, depot assignment and purge protection. Public offer/confirmation/expiry lifecycle integration is still missing, so reservation guarantees for newly rearranged offers are not yet enabled.
+Versioned reservation storage, strict restart decoding, relational dependencies and guard integration are implemented. Sparse snapshot routing, common offer bundle validation, confirmation/release preparation and a short locked atomic commit component are also implemented. The PostgreSQL integration gate covers shadow reassignment persistence, actual confirmation reassignment, stale versions and rollback after route updates; a separate API gate covers dependent qualifications, availability, depot assignment and purge protection. Public offer/confirmation/expiry lifecycle integration is still missing, so reservation guarantees for newly rearranged offers are not yet enabled.
 
 ## G. Daily optimization and H. concurrency
 
