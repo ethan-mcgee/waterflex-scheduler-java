@@ -39,8 +39,17 @@ public final class BoundedBookingSearch {
                          boolean overtimeAuthorized, String stopReason) { }
     private record Ranked(Arrangement arrangement, long overtime, long cost, BigDecimal fairness) { }
     /** Delay route-map copies until a move is actually examined within the deadline. */
-    private record Move(Arrangement base, String from, int index, String to, int position, int kind) {
+    private static final class Move {
+        private final Arrangement base;
+        private final String from, to;
+        private final int index, position, kind;
+        private @Nullable Arrangement applied;
+        Move(Arrangement base, String from, int index, String to, int position, int kind) {
+            this.base = base; this.from = from; this.index = index; this.to = to; this.position = position; this.kind = kind;
+        }
         Arrangement apply() {
+            Arrangement previous = applied;
+            if (previous != null) return previous;
             Map<String, List<String>> copy = new TreeMap<>(base.routes());
             List<String> source = new ArrayList<>(Required.value(copy.get(from)));
             copy.put(from, source);
@@ -53,7 +62,7 @@ public final class BoundedBookingSearch {
                 String visit = Required.value(source.get(index));
                 source.set(index, Required.value(target.get(position))); target.set(position, visit);
             } else Collections.reverse(source.subList(index, position));
-            return new Arrangement(copy);
+            Arrangement result = new Arrangement(copy); applied = result; return result;
         }
     }
     private record RouteRank(long roadDeltaSeconds, int qualificationScarcity, long slackMinutes, double utilization) { }
@@ -68,6 +77,13 @@ public final class BoundedBookingSearch {
         final RouteEvaluator.Result baseline;
         final BigDecimal fairness;
         final List<String> eligible;
+        @Nullable List<String> shortlist;
+        final Map<Arrangement, List<Move>> neighborhoods = new LinkedHashMap<>(16, .75f, true) {
+            @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Arrangement, List<Move>> eldest) { return size() > 32; }
+        };
+        final Map<Arrangement, Optional<Ranked>> arrangements = new LinkedHashMap<>(128, .75f, true) {
+            @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Arrangement, Optional<Ranked>> eldest) { return size() > 1024; }
+        };
         DayContext(LocalDate date) {
             day = Required.value(snapshot.days().get(date), "snapshot service date");
             evaluation = new BookingEvaluation(day, snapshot.rates(), request.serviceId(), checkpoint);
@@ -322,6 +338,9 @@ public final class BoundedBookingSearch {
         }
 
         void chooseRoutes() {
+            var shared = context(window.day());
+            List<String> cached = shared.shortlist;
+            if (cached != null) { shortlist = cached; return; }
             // Idle, qualified capacity must not disappear from a cost-oriented shortlist.
             List<String> all = new ArrayList<>(day.technicians().keySet());
             all.removeIf(id -> evaluation.capacity(Required.value(id)) == 0);
@@ -333,7 +352,8 @@ public final class BoundedBookingSearch {
                     .thenComparingDouble(id -> Required.value(ranks.get(id)).utilization()).thenComparing(id -> id));
             String least = eligible.stream().min(Comparator.comparingDouble((String id) -> utilization(Required.value(id))).thenComparing(id -> id)).orElse(null);
             if (least != null) { all.remove(least); all.addFirst(least); }
-            shortlist = new ArrayList<>(all.subList(0, Math.min(limits.routes(), all.size())));
+            shortlist = Required.value(List.copyOf(all.subList(0, Math.min(limits.routes(), all.size()))));
+            shared.shortlist = shortlist;
         }
 
         RouteRank rank(String id) {
@@ -391,18 +411,25 @@ public final class BoundedBookingSearch {
             Arrangement arrangement = Required.value(pending.next()).apply();
             if (!seen.add(arrangement)) return true;
             arrangements++;
-            if (!evaluation.possible(arrangement, day.visits())) return true;
-            var result = evaluation.evaluate(arrangement, day.visits(), false);
-            if (result.feasible()) {
-                if (evaluation.evaluate(arrangement, day.visits(), true).feasible()) {
-                    ranked.add(new Ranked(arrangement, result.overtimeMinutes(), result.costCents(), evaluation.fairness(arrangement, day.visits())));
-                    insert(arrangement, shortlist, "REARRANGEMENT");
+            var shared = context(window.day());
+            Optional<Ranked> cached = shared.arrangements.get(arrangement);
+            if (cached == null) {
+                cached = Optional.empty();
+                if (evaluation.possible(arrangement, day.visits())) {
+                    var result = evaluation.evaluate(arrangement, day.visits(), false);
+                    if (result.feasible() && evaluation.evaluate(arrangement, day.visits(), true).feasible())
+                        cached = Optional.of(new Ranked(arrangement, result.overtimeMinutes(), result.costCents(), evaluation.fairness(arrangement, day.visits())));
                 }
+                shared.arrangements.put(arrangement, Required.value(cached));
             }
+            if (cached.isPresent()) { ranked.add(cached.orElseThrow()); insert(arrangement, shortlist, "REARRANGEMENT"); }
             return true;
         }
 
         List<Move> neighbors(Arrangement base) {
+            var shared = context(window.day());
+            List<Move> cached = shared.neighborhoods.get(base);
+            if (cached != null) { generated += cached.size(); return cached; }
             List<Move> relocation = new ArrayList<>(), swaps = new ArrayList<>(), reversals = new ArrayList<>();
             int cap = limits.arrangementsPerWindow();
             for (String from : shortlist) {
@@ -434,6 +461,7 @@ public final class BoundedBookingSearch {
                 if (index < reversals.size() && result.size() < cap) result.add(Required.value(reversals.get(index)));
             }
             generated += result.size();
+            shared.neighborhoods.put(base, Required.value(List.copyOf(result)));
             return result;
         }
         boolean qualifies(String technician, String visit) {
