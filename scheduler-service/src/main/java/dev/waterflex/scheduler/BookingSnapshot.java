@@ -85,8 +85,15 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
         }
     }
 
-    public record Arrangement(Map<String, List<String>> routes) {
-        public Arrangement {
+    public static final class Arrangement {
+        private final Map<String, List<String>> routes;
+        private final Set<String> originalVisits;
+        private final @org.jspecify.annotations.Nullable Arrangement parent;
+        private final @org.jspecify.annotations.Nullable String insertedVisit;
+        private final int hash;
+        private @org.jspecify.annotations.Nullable String signature;
+
+        public Arrangement(Map<String, List<String>> routes) {
             Map<String, List<String>> copy = new TreeMap<>();
             Set<String> seen = new HashSet<>();
             for (var entry : routes.entrySet()) {
@@ -98,16 +105,43 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
                 }
                 copy.put(entry.getKey(), ids);
             }
+            this.routes = Required.value(Collections.unmodifiableMap(copy));
+            originalVisits = Required.value(Set.copyOf(seen));
+            parent = null; insertedVisit = null; hash = this.routes.hashCode();
+        }
+        private Arrangement(Arrangement parent, String technician, String visit, List<String> order) {
+            Map<String, List<String>> copy = new TreeMap<>(parent.routes);
+            List<String> previous = Required.value(copy.put(technician, order));
             routes = Required.value(Collections.unmodifiableMap(copy));
+            originalVisits = parent.originalVisits; this.parent = parent; insertedVisit = visit;
+            hash = parent.hash - (technician.hashCode() ^ previous.hashCode()) + (technician.hashCode() ^ order.hashCode());
+        }
+        public Map<String, List<String>> routes() { return routes; }
+        private boolean containsVisit(String visit) {
+            for (Arrangement current = this; ; ) {
+                if (visit.equals(current.insertedVisit)) return true;
+                Arrangement previous = current.parent;
+                if (previous == null) return current.originalVisits.contains(visit);
+                current = previous;
+            }
         }
         public Arrangement insert(String technician, String visit, int position) {
-            Map<String, List<String>> copy = new TreeMap<>(routes);
+            text(technician); text(visit);
+            if (containsVisit(visit)) throw new IllegalArgumentException("Visit assigned more than once");
             List<String> ids = new ArrayList<>(Required.value(routes.get(technician), "arrangement route"));
             ids.add(position, visit);
-            copy.put(technician, ids);
-            return new Arrangement(copy);
+            return new Arrangement(this, technician, visit, Required.value(List.copyOf(ids)));
         }
-        public String signature() { return Required.value(routes.toString()); }
+        public String signature() {
+            String cached = signature;
+            if (cached == null) { cached = Required.value(routes.toString()); signature = cached; }
+            return cached;
+        }
+        @Override public int hashCode() { return hash; }
+        @Override public boolean equals(@org.jspecify.annotations.Nullable Object other) {
+            return this == other || other instanceof Arrangement arrangement && hash == arrangement.hash && routes.equals(arrangement.routes);
+        }
+        @Override public String toString() { return "Arrangement[routes=" + signature() + "]"; }
     }
 
     public record Day(Map<String, Technician> technicians, Map<String, Visit> visits,

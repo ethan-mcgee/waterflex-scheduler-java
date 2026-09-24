@@ -1,6 +1,24 @@
 # Scheduler policy and routing implementation progress
 
-This is a partial implementation of the consolidated scheduler plan. It is not ready for the plan's production rollout. In particular, the booking overtime gate and five-second appointment-search guarantee are **not implemented**. The PR must remain a draft until the outstanding work and acceptance gates below are completed.
+The implementation remains under acceptance testing and the PR remains a draft. The overtime gate, five-second deadline propagation, bounded search, durable reservation lifecycle, flexible timing, incremental scoring, sparse routing, customer feedback and daily policy comparison are implemented. This does not establish that the complete original plan or its performance acceptance is finished. The current requirement audit is [scheduler-plan-checklist.md](scheduler-plan-checklist.md).
+
+## Current evidence and remaining acceptance, September 24
+
+The latest comparative fixture matrix improved from 515 to 741 served requests out of 1,260, with pooled HTTP p95 changing from 4,310.6 to 4,160.0 ms. See [raw-source archives and per-case measurements](evidence/booking-shared-2026-09-24.json). Every case independently validates the confirmed schedule and conservative common reservation arrangement. These are shared-workstation measurements with ten requests per case. Fast incomplete responses do not satisfy the served-demand requirement: the 50-technician near-capacity cases still need improvement. The original baseline and all six isolated implementation-stage ablations have not yet been measured.
+
+The [actual Omaha comparison](evidence/booking-omaha-routing-2026-09-24.json) uses identical scheduler artifacts and request fixtures with flexible routing versus CH. It served 379 versus 383 of 720 requests, with pooled HTTP p95 of 4,162.9 versus 4,166.6 ms. The much faster direct CH road queries did not translate into a substantial booking throughput gain in this run. CH and prewarming remain disabled by default. These measurements exclude browser address validation and are not production tail-latency guarantees.
+
+[Repeated solver experiments](solver-benchmarks.md) selected uncapped Tabu with ordinary single-visit moves and swaps. The recorded reference cost and accepted fairness improved over capped and uncapped comparison configurations at all three retained seeds. Every case still enforces its own overtime target and 2 percent cost ceiling; no fleet-wide percentage saving is promised.
+
+Booking diagnostics now record foreground database executions/time, lock-statement duration, directed pairs, memory/persistent/shared-pair reuse, queue time and supported foreground thread CPU time. Lock-statement duration is an upper bound on lock wait, not an isolated wait measurement. Shared-pair counts are not provider HTTP-call counts. Browser performance measures separately record API duration, flow and whether address validation is included, without customer data. JDBC statement and COMMIT network bounds share the original deadline; cancellation and rollback retain explicit failure handling.
+
+The latest complete strict Java gate passed at `0d873cc`; all 22 browser tests passed after browser cancellation and duration instrumentation. Portal lint/typecheck/build, schema validation/contracts and relevant unit suites passed. Actual-road dealership, technician-home, depot-setup and sequential-booking integration gates passed. The sequential fixture explicitly injects an incomplete result to test retry; a real completed bounded miss remains a distinct `NO_CANDIDATE_FOUND` outcome. PostgreSQL snapshot/version/atomic rollback/restart checks passed with the subsequent structural-insertion changes. Later edits require their own complete final gate and hosted CI result.
+
+Remaining acceptance includes the original baseline and stage ablations, a final representative matrix with exact artifact/harness provenance, dense-case served demand, broader overlapping reservation lifecycle races, complete final gates, documentation reconciliation and PR review. No production services or travel buffers have been changed.
+
+## Historical implementation checkpoints
+
+The sections below preserve evidence at earlier revisions. Their statements about missing features and then-current test counts apply to those checkpoints, not to the current implementation.
 
 Initial foundation revision: `7109c2d248d07d2a4e6a5d75b1fda19ab312cafc`.
 Inspected baseline: `2d17885141d4a901b06b3f9732530db85c951568`.

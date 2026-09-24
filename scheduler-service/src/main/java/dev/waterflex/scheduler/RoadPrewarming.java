@@ -75,18 +75,25 @@ public final class RoadPrewarming {
         Completed prior = completed.get(day.id());
         if (prior != null && prior.snapshot().equals(snapshot) && prior.identity().equals(identity) && prior.expires().isAfter(Instant.now())) return;
         var pairs = pairs(snapshot.endpoints(), snapshot.stops());
-        for (int offset = 0; offset < pairs.size(); offset += 32) {
-            if (admission.state().queuedBookings() > 0 || admission.state().active() > 1) return;
-            SearchDeadline.checkpoint();
-            boolean unchanged = Required.value(reads.execute(_ -> { SearchDeadline.database(jdbc); return version(day) == snapshot.day().version(); }));
-            if (!unchanged) return;
-            roads.sparse(Required.value(pairs.subList(offset, Math.min(offset + 32, pairs.size()))), identity);
-        }
-        boolean unchanged = Required.value(reads.execute(_ -> { SearchDeadline.database(jdbc); return version(day) == snapshot.day().version(); }));
-        if (unchanged && identity.equals(roads.currentVersion())) {
+        boolean warmed = warmBatches(pairs, identity, roads, () -> {
+            if (admission.state().queuedBookings() > 0 || admission.state().active() > 1) return false;
+            return Required.value(reads.execute(_ -> { SearchDeadline.database(jdbc); return version(day) == snapshot.day().version(); }));
+        });
+        if (warmed) {
             completed.put(day.id(), new Completed(snapshot, identity, Required.value(Instant.now().plusSeconds(1800))));
             while (completed.size() > 2048) completed.remove(completed.keySet().iterator().next());
         }
+    }
+
+    /** Recheck after each network batch as well as before it; obsolete work is never marked complete. */
+    static boolean warmBatches(List<RoadClient.Pair> pairs, String identity, RoadClient roads,
+            java.util.function.BooleanSupplier currentAndIdle) {
+        for (int offset = 0; offset < pairs.size(); offset += 32) {
+            SearchDeadline.checkpoint();
+            if (!currentAndIdle.getAsBoolean()) return false;
+            roads.sparse(Required.value(pairs.subList(offset, Math.min(offset + 32, pairs.size()))), identity);
+        }
+        return currentAndIdle.getAsBoolean() && identity.equals(roads.currentVersion());
     }
 
     static List<RoadClient.Pair> pairs(RouteEndpoints endpoints, List<RoadClient.Point> stops) {

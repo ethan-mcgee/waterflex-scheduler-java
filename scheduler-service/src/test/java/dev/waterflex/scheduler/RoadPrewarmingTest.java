@@ -9,6 +9,40 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class RoadPrewarmingTest {
+    @Test void versionChangesAndBookingArrivalStopRemainingBatches() {
+        var origin = new RoadClient.Point(41, -96);
+        var pairs = new java.util.ArrayList<RoadClient.Pair>();
+        for (int i = 0; i < 65; i++) pairs.add(new RoadClient.Pair("pair-" + i, origin, new RoadClient.Point(41.01 + i * .001, -96)));
+        var firstBatch = Required.value(List.copyOf(pairs.subList(0, 32)));
+        for (boolean versionChanged : List.of(true, false)) {
+            var roads = mock(RoadClient.class);
+            var version = new java.util.concurrent.atomic.AtomicInteger(7);
+            var bookingWaiting = new java.util.concurrent.atomic.AtomicBoolean();
+            when(roads.sparse(firstBatch, "roads")).thenAnswer(_ -> {
+                if (versionChanged) version.incrementAndGet(); else bookingWaiting.set(true);
+                return java.util.Map.of();
+            });
+            assertFalse(RoadPrewarming.warmBatches(pairs, "roads", roads, () -> version.get() == 7 && !bookingWaiting.get()));
+            verify(roads).sparse(firstBatch, "roads");
+            verifyNoMoreInteractions(roads);
+        }
+    }
+
+    @Test void finalBatchVersionAndRoutingChangesCannotMarkPrewarmingComplete() {
+        var point = new RoadClient.Point(41, -96);
+        var pairs = Required.value(List.of(new RoadClient.Pair("one", point, point)));
+        var roads = mock(RoadClient.class);
+        var current = new java.util.concurrent.atomic.AtomicBoolean(true);
+        when(roads.sparse(pairs, "roads")).thenAnswer(_ -> { current.set(false); return java.util.Map.of(); });
+        assertFalse(RoadPrewarming.warmBatches(pairs, "roads", roads, current::get));
+        when(roads.sparse(pairs, "roads")).thenReturn(java.util.Map.of());
+        current.set(true);
+        when(roads.currentVersion()).thenReturn("replacement");
+        assertFalse(RoadPrewarming.warmBatches(pairs, "roads", roads, current::get));
+        when(roads.currentVersion()).thenReturn("roads");
+        assertTrue(RoadPrewarming.warmBatches(pairs, "roads", roads, current::get));
+    }
+
     @Test void disabledAndBusyPrewarmingPerformNoDatabaseOrNetworkWork() {
         var jdbc = mock(JdbcTemplate.class); var roads = mock(RoadClient.class);
         var transactions = mock(PlatformTransactionManager.class);
