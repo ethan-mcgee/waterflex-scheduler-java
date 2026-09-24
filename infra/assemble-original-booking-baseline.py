@@ -27,10 +27,14 @@ def key(row):
     return row["size"], row["workload"], row["concurrency"], row["cache"]
 
 
-def assemble(primary, tail, output, absence_tail=None):
+def assemble(primary, tail, output, absence_tail=None, middle_tail=None):
     inputs = [load(primary), load(tail)]
     if absence_tail is not None:
         inputs.append(load(absence_tail))
+    if middle_tail is not None:
+        if absence_tail is None:
+            raise ValueError("The middle continuation requires the declared absence partition")
+        inputs.append(load(middle_tail))
     first, second = inputs[0][2], inputs[1][2]
     if first["revision"] != "2d17885141d4a901b06b3f9732530db85c951568":
         raise ValueError("This assembly is restricted to the unchanged original baseline")
@@ -46,6 +50,9 @@ def assemble(primary, tail, output, absence_tail=None):
         raise ValueError("Unexpected original-baseline partition")
     if absence_tail is not None and (inputs[2][2]["sizes"] != [50] or inputs[2][2]["workloads"] != ["ABSENCE"]):
         raise ValueError("Unexpected absence partition")
+    middle_groups = {"DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW"}
+    if middle_tail is not None and (inputs[3][2]["sizes"] != [50] or set(inputs[3][2]["workloads"]) != middle_groups):
+        raise ValueError("Unexpected middle continuation partition")
     if first["sizes"] != [20, 30, 50] or set(first["workloads"]) != {
             "SPARSE", "CLUSTERED", "DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW", "ABSENCE", "NEAR_CAPACITY"}:
         raise ValueError("The primary source must configure the full planned matrix")
@@ -65,7 +72,8 @@ def assemble(primary, tail, output, absence_tail=None):
             if case not in expected:
                 raise ValueError("Unexpected source case: " + str(case))
             partition = 1 if case[0] == 50 and case[1] == "NEAR_CAPACITY" else (
-                2 if absence_tail is not None and case[0] == 50 and case[1] == "ABSENCE" else 0)
+                2 if absence_tail is not None and case[0] == 50 and case[1] == "ABSENCE" else (
+                    3 if middle_tail is not None and case[0] == 50 and case[1] in middle_groups else 0))
             if partition != index:
                 if index > 0:
                     raise ValueError("The tail contains a case outside its declared partition")
@@ -92,11 +100,13 @@ def assemble(primary, tail, output, absence_tail=None):
                   "assembly": {"revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
                                "scriptSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                                "partition": "Primary except 50/NEAR_CAPACITY; separate tail supplies that entire six-case group"
-                                            + ("; third source supplies the entire 50/ABSENCE six-case group" if absence_tail is not None else ""),
+                                            + ("; third source supplies the entire 50/ABSENCE six-case group" if absence_tail is not None else "")
+                                            + ("; fourth source supplies all 18 cases in 50/DISPERSED, 50/MIXED_SKILL and 50/TIGHT_WINDOW after the primary transport timeout" if middle_tail is not None else ""),
                                "sources": sources,
                                "limitations": ["Independent schemas and processes shared hardware and the fixture provider.",
                                                 "Source provenance retains different harness and read-only audit revisions.",
                                                 "Primary interruption or duplicate tail observations are retained explicitly.",
+                                                "Each source retains its measurement timeout; longer observation does not change the original server.",
                                                 "This assembly does not correct the earlier database connection incident; rechecks remain separate."]}}
     # Validate every input before producing output. Never replace earlier evidence.
     targets = [output] + [output.with_name(source["archive"]) for source in sources]
@@ -118,5 +128,6 @@ if __name__ == "__main__":
     parser.add_argument("tail", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--absence-tail", type=Path)
+    parser.add_argument("--middle-tail", type=Path)
     args = parser.parse_args()
-    assemble(args.primary, args.tail, args.output, args.absence_tail)
+    assemble(args.primary, args.tail, args.output, args.absence_tail, args.middle_tail)
