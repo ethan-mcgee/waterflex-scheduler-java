@@ -112,7 +112,7 @@ Versioned reservation storage, strict restart decoding, relational dependencies,
 - [ ] Ablations: baseline, insertion policy/fairness, snapshot/routing/scoring, bounded search, timing, solver/optional acceleration.
 - [ ] Cold/warm with concurrency 1/5/10: p50/p95/p99, incomplete rate, coverage/served demand/delay, overtime/wait/fairness/max utilization/cost, churn/retiming, moves/time-to-best, routing/cache/DB/locks/CPU/memory/queue.
 - [x] Documented hardware, exact revision/configuration/dataset/graph and actual Omaha appointment workloads. Final browser matrix: 3,780 searches, 2,396 served, 1,384 retryable outcomes, pooled p95 3,943.7 ms, worst case p95 4,387.8 ms; all independently audited with zero violations. Shared workstation and validated-job refresh scope are explicit.
-- [x] Final local Java (134 tests), strict nullability, PostgreSQL snapshot/admission (2 tests), lint, typecheck/build, schema/contracts, unit/browser (22 tests), booking/optimizer/time-off/depot/sequential integration gates pass. Real-road and deterministic-fixture evidence are separate; final hosted CI remains part of delivery below.
+- [x] Final local Java (135 tests), strict nullability, PostgreSQL snapshot/admission and locked-issuance regression, lint, typecheck/build, schema/contracts, unit/browser (22 tests), booking/optimizer/time-off/depot/sequential integration gates pass. Real-road and deterministic-fixture evidence are separate; final hosted CI remains part of delivery below.
 - [ ] Complete policy/lifecycle/API/operations/benchmark/rollout/rollback documentation; enable only passing configurations.
 - [ ] Detailed PR with final behavior, migrations, evidence, risks and actual CI; wait for review without merging.
 
