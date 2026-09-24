@@ -127,6 +127,27 @@ async function main() {
       const differentSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: required(refreshed.offers[1]).offerId }) });
       assert.equal(differentSelection.status, 409);
     }
+    const booked = await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } });
+    const survivorStart = new Date(booked.windowEnd.getTime());
+    await prisma.appointment.create({ data: { jobId: otherJobId, technicianId: techId, serviceDate: booked.serviceDate,
+      windowStart: survivorStart, windowEnd: new Date(survivorStart.getTime() + 7200000), plannedStart: survivorStart,
+      plannedEnd: new Date(survivorStart.getTime() + 3000000), sequence: 1 } });
+    await prisma.job.update({ where: { id: otherJobId }, data: { status: "SCHEDULED" } });
+    // Deliberately bypass edit guards to cover damaged persisted scheduling facts.
+    await prisma.technicianShiftOverride.create({ data: { technicianId: techId, serviceDate: booked.serviceDate, available: false } });
+    const missingShiftCancellation = await fetch(`${base}/v1/appointments/cancel`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointment_id: selected.appointmentId, reason: "Missing remaining shift" }) });
+    assert.equal(missingShiftCancellation.status, 409);
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt, null,
+      "Failed remaining-route validation rolls back cancellation");
+    assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: jobId } })).status, "SCHEDULED");
+    await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techId } });
+    await prisma.technician.update({ where: { id: techId }, data: { maxDailyMinutes: 1 } });
+    const infeasibleCancellation = await fetch(`${base}/v1/appointments/cancel`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointment_id: selected.appointmentId, reason: "Infeasible remaining route" }) });
+    assert.equal(infeasibleCancellation.status, 409);
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt, null);
+    await prisma.technician.update({ where: { id: techId }, data: { maxDailyMinutes: 600 } });
     const cancelled = await post(success.extend({ alreadyCancelled: z.boolean() }), "/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
     assert.equal(cancelled.success, true);
     const cancelledAgain = await post(success.extend({ alreadyCancelled: z.boolean() }), "/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
@@ -134,7 +155,7 @@ async function main() {
     assert.ok((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt);
     console.log("Java reservations, release, selection, legacy confirmation, and cancellation passed");
   } finally {
-    await prisma.appointment.deleteMany({ where: { jobId } });
+    await prisma.appointment.deleteMany({ where: { jobId: { in: [jobId, otherJobId] } } });
     await prisma.slotHold.deleteMany({ where: { jobId } });
     await prisma.bookingOffer.deleteMany({ where: { jobId } });
     await prisma.bookingOfferSet.deleteMany({ where: { jobId } });
@@ -143,6 +164,7 @@ async function main() {
     await prisma.address.deleteMany({ where: { id: addressId } });
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await prisma.technicianQualification.deleteMany({ where: { technicianId: techId } });
+    await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techId } });
     await prisma.scheduleDay.deleteMany({ where: { technicianId: techId } });
     await prisma.technician.deleteMany({ where: { id: techId } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });

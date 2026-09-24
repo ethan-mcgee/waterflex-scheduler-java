@@ -15,13 +15,14 @@ const expected: Record<string, string[]> = {
   technician_shift_override: ["technicianId", "serviceDate", "available", "shiftStartMin", "shiftEndMin"],
   technician_availability_version: ["id", "technicianId", "effectiveDate"],
   technician_availability_day: ["versionId", "dayOfWeek", "available", "shiftStartMin", "shiftEndMin"],
-  booking_offer: ["id", "jobId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "incrementalRegularMinutes", "incrementalOvertimeMinutes", "incrementalRoadMeters", "incrementalCostDollars"],
+  booking_offer: ["id", "jobId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "incrementalRegularMinutes", "incrementalOvertimeMinutes", "incrementalRoadMeters", "incrementalCostDollars", "overtimeAuthorized"],
   slot_hold: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "expiresAt", "releasedAt"],
   schedule_day: ["technicianId", "serviceDate", "version"],
   road_route_cache: ["originKey", "destinationKey", "profile", "mapVersion", "seconds", "meters", "routable"],
   omaha_setting: ["key", "value"],
-  optimization_run: ["id", "serviceDate", "scheduleVersions", "proposedAssignments", "endpointSnapshots", "objectiveImprovement", "status"],
+  optimization_run: ["id", "serviceDate", "scheduleVersions", "proposedAssignments", "endpointSnapshots", "objectiveImprovement", "status", "policyAnalysis"],
   optimization_change: ["runId", "appointmentId", "fromTechnicianId", "toTechnicianId"],
+  time_off_request: ["id", "technicianId", "status", "additionalOvertimeApproved"],
 };
 
 const prisma = new PrismaClient();
@@ -29,7 +30,7 @@ async function main() {
 try {
   const column = z.object({ table_name: z.string(), column_name: z.string(), data_type: z.string(), udt_name: z.string(), is_nullable: z.enum(["YES", "NO"]) });
   const actual = z.array(column).parse(await prisma.$queryRaw`
-    SELECT table_name, column_name, data_type, udt_name, is_nullable FROM information_schema.columns WHERE table_schema = 'public'
+    SELECT table_name, column_name, data_type, udt_name, is_nullable FROM information_schema.columns WHERE table_schema = current_schema()
   `);
   const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt"]);
   const sqlTypes: Record<string, string> = { String: "text", Int: "integer", BigInt: "bigint", Float: "double precision", Decimal: "numeric", Boolean: "boolean", DateTime: "timestamp without time zone", Json: "jsonb", Bytes: "bytea" };
