@@ -44,7 +44,11 @@ test("appointment search shows indeterminate progress and retains inputs after f
       await page.unroute("**/api/book");
     }
     const measurements = await page.evaluate(() => performance.getEntriesByName("waterflex.booking-api", "measure")
-      .map(entry => ({ duration: entry.duration, detail: (entry as PerformanceMeasure).detail })));
+      .map(entry => {
+        if (!(entry instanceof PerformanceMeasure)) throw new Error("Expected a browser duration measurement");
+        const detail: unknown = entry.detail;
+        return { duration: entry.duration, detail };
+      }));
     expect(measurements).toHaveLength(5);
     for (const measurement of measurements) {
       expect(measurement.duration).toBeGreaterThanOrEqual(0);
