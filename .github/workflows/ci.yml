@@ -28,6 +28,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Validate Compose configuration
         run: docker compose --profile map-import config --quiet
+      - name: Verify benchmark evidence assembly
+        run: python3 infra/test_booking_baseline_assembly.py
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
       - name: Verify Java nullability contracts
