@@ -11,6 +11,21 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoundedBookingSearchTest {
+    @Test void structuralInsertionPreservesImmutableCoverageEqualityAndHashing() {
+        var original = new Arrangement(Required.value(Map.of("a", List.of("one"), "b", List.of("two"))));
+        var first = original.insert("a", "three", 0);
+        var second = first.insert("b", "four", 1);
+        var rebuilt = new Arrangement(second.routes());
+        assertEquals(rebuilt, second); assertEquals(rebuilt.hashCode(), second.hashCode());
+        assertEquals(rebuilt.signature(), second.signature());
+        assertEquals(List.of("one"), original.routes().get("a"));
+        assertEquals(List.of("two"), first.routes().get("b"));
+        assertThrows(IllegalArgumentException.class, () -> second.insert("a", "four", 0));
+        assertThrows(IllegalArgumentException.class, () -> second.insert("a", "one", 0));
+        assertThrows(UnsupportedOperationException.class, () -> Required.value(second.routes().get("b")).add("five"));
+        assertThrows(UnsupportedOperationException.class, () -> second.routes().put("c", List.of()));
+    }
+
     @Test void sharedNeighborhoodsRemainWindowIndependentAndPreserveIndependentValidation() {
         var original = fixture(60, false, true, 0);
         var oldDay = Required.value(original.days().get(DAY));
