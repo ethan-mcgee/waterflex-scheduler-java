@@ -9,12 +9,14 @@ import org.jspecify.annotations.Nullable;
 
 /** Request-local reuse of independently evaluated immutable route arrangements. No I/O. */
 final class BookingEvaluation {
+    record Metrics(boolean feasible, long costCents, long overtimeMinutes) { }
     private record Key(String technician, List<Visit> visits) { }
     private final Day day;
     private final Rates rates;
     private final String requestedService;
     private final Runnable checkpoint;
     private final BookingRouteBounds bounds;
+    private final boolean reservations;
     private final Map<String, Long> capacities = new HashMap<>();
     private final Map<String, RouteEvaluator.Result> emptyRoutes = new HashMap<>();
     private record Baseline(RouteEvaluator.Result total, Map<String, RouteEvaluator.Result> parts, int infeasibleRoutes) { }
@@ -31,6 +33,7 @@ final class BookingEvaluation {
     BookingEvaluation(Day day, Rates rates, String requestedService, Runnable checkpoint) {
         this.day = day; this.rates = rates; this.requestedService = requestedService; this.checkpoint = checkpoint;
         this.bounds = new BookingRouteBounds(day, rates);
+        this.reservations = day.visits().values().stream().anyMatch(visit -> visit.reservation());
         day.technicians().forEach((id, technician) -> capacities.put(id, technician.regularCapacity()));
     }
     long capacity(String technician) { return Required.value(capacities.get(technician), "regular capacity"); }
@@ -81,6 +84,18 @@ final class BookingEvaluation {
     }
 
     RouteEvaluator.Result evaluate(Arrangement arrangement, Map<String, Visit> facts, boolean confirmedOnly) {
+        return aggregate(arrangement, facts, confirmedOnly, true);
+    }
+
+    /** Ranking needs scalar resources only. Timeline maps are materialized for retained candidates. */
+    Metrics metrics(Arrangement arrangement, Map<String, Visit> facts, boolean confirmedOnly) {
+        var measured = aggregate(arrangement, facts, confirmedOnly, false);
+        return new Metrics(measured.feasible(), measured.costCents(), measured.overtimeMinutes());
+    }
+
+    boolean hasReservations() { return reservations; }
+
+    private RouteEvaluator.Result aggregate(Arrangement arrangement, Map<String, Visit> facts, boolean confirmedOnly, boolean timeline) {
         coverage(arrangement, facts);
         Baseline baseline = baseline(confirmedOnly);
         if (arrangement.equals(day.baseline()) && facts.equals(day.visits())) return baseline.total();
@@ -88,8 +103,8 @@ final class BookingEvaluation {
         long paid = total.paidMinutes(), overtime = total.overtimeMinutes(), driving = total.driveMinutes();
         long waiting = total.waitingMinutes(), meters = total.meters();
         int infeasible = baseline.infeasibleRoutes();
-        Map<String, Instant> arrivals = new HashMap<>(total.arrivals());
-        Map<String, List<RouteEvaluator.WorkingSegment>> segments = new TreeMap<>(total.segments());
+        Map<String, Instant> arrivals = timeline ? new HashMap<>(total.arrivals()) : new HashMap<>();
+        Map<String, List<RouteEvaluator.WorkingSegment>> segments = timeline ? new TreeMap<>(total.segments()) : new TreeMap<>();
         List<RouteEvaluator.Result> changed = new ArrayList<>();
         for (var entry : arrangement.routes().entrySet()) {
             checkpoint.run();
@@ -104,12 +119,14 @@ final class BookingEvaluation {
             driving += after.driveMinutes() - before.driveMinutes(); waiting += after.waitingMinutes() - before.waitingMinutes();
             meters += after.meters() - before.meters();
             infeasible += (after.feasible() ? 0 : 1) - (before.feasible() ? 0 : 1);
-            before.arrivals().keySet().forEach(arrivals::remove);
-            segments.putAll(after.segments());
+            if (timeline) {
+                before.arrivals().keySet().forEach(arrivals::remove);
+                segments.putAll(after.segments());
+            }
         }
         // Add arrivals after every changed route's old visits have been removed; reassignment may
         // move a visit from a route that sorts later to one that sorts earlier.
-        changed.forEach(route -> arrivals.putAll(route.arrivals()));
+        if (timeline) changed.forEach(route -> arrivals.putAll(route.arrivals()));
         return result(infeasible == 0, paid, overtime, driving, waiting, meters, arrivals, segments);
     }
 
