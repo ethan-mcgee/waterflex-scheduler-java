@@ -73,7 +73,29 @@ async function main() {
   await cancel(delivered);
   await until(async () => (await prisma.bookingSearchRequest.findUniqueOrThrow({ where: { id: delivered } })).cleanedAt !== null);
   assert.equal(await prisma.slotHold.count({ where: { offerToken: selected.offerId, releasedAt: null } }), 0);
+  // Force conservative sibling alternatives onto different dates, then shorten the fixture expiry
+  // consistently in the database and its durable arrangement snapshot instead of waiting ten minutes.
+  const previousOffer = await prisma.bookingOffer.findUniqueOrThrow({ where: { id: selected.offerId } });
+  const singleVisitMinutes = required(previousOffer.incrementalRegularMinutes, "Fixture paid route minutes");
+  assert.ok(Number.isInteger(singleVisitMinutes) && singleVisitMinutes > 0);
+  await prisma.technician.update({ where: { id }, data: { maxDailyMinutes: singleVisitMinutes } });
+  await prisma.technicianAvailabilityDay.updateMany({ where: { version: { technicianId: id }, available: true }, data: { shiftEndMin: 480 + Math.max(120, singleVisitMinutes) } });
+  const expiring = offersResponse.parse(await post(base, "/v1/offers", { jobId, refresh: true }));
+  assert.ok(new Set(expiring.offers.map(offer => offer.date)).size > 1, `Expiry covers multiple reserved dates: ${JSON.stringify(expiring)}`);
+  const holds = await prisma.slotHold.findMany({ where: { jobId, releasedAt: null } });
+  const expiresAt = new Date(Date.now() + 700);
+  await prisma.$transaction(async tx => {
+    await tx.bookingOfferSet.updateMany({ where: { jobId, supersededAt: null }, data: { expiresAt } });
+    await tx.bookingOffer.updateMany({ where: { id: { in: expiring.offers.map(offer => offer.offerId) } }, data: { expiresAt } });
+    await tx.slotHold.updateMany({ where: { id: { in: holds.map(hold => hold.id) } }, data: { expiresAt } });
+    for (const hold of holds) await tx.$executeRaw`UPDATE reservation_arrangement SET state=jsonb_set(state, ARRAY['holds',${hold.id},'expiresAt'],to_jsonb(${expiresAt.toISOString()}::text)) WHERE "metroId"=${id} AND "serviceDate"=${hold.serviceDate} AND state->'holds' ? ${hold.id}`;
+  });
+  await until(async () => await prisma.slotHold.count({ where: { id: { in: holds.map(hold => hold.id) }, releasedAt: null } }) === 0, 15000);
+  const arrangements = await prisma.reservationArrangement.findMany({ where: { metroId: id } });
+  for (const arrangement of arrangements) for (const hold of holds)
+    assert.ok(!JSON.stringify(arrangement.state).includes(JSON.stringify(hold.id)), "Every sibling date is revalidated and expired placeholders are removed");
   console.log("Cancellation before admission, during locked publication, lost response cleanup, cross-instance acknowledgement and validated release passed.");
+  console.log("Expiry independently revalidates every affected sibling date and removes durable placeholders.");
 }
 main().finally(async () => {
   await prisma.reservationArrangement.deleteMany({ where: { metroId: id } });
