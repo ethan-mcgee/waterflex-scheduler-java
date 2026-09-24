@@ -86,6 +86,30 @@ class AssemblyTest(unittest.TestCase):
         self.assertEqual(3, len(combined[0]["assembly"]["sources"]))
         self.assertEqual(6, sum(row.get("sourceRunIndex") == 2 for row in combined[1:]))
 
+    def test_timeout_continuation_preserves_failure_and_excluded_observations(self):
+        absence, middle = self.root / "absence.jsonl", self.root / "middle.jsonl"
+        for path, workloads in [(absence, ["ABSENCE"]), (middle, ["DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW"])]:
+            cases = [row for row in self.primary_cases if row["size"] == 50 and row["workload"] in workloads]
+            provenance = {**self.provenance, "sizes": [50], "workloads": workloads, "legacyMeasurementTimeoutMs": 600000}
+            path.write_text("".join(json.dumps(row) + "\n" for row in [provenance] + cases), encoding="utf8")
+        self.primary_cases = self.primary_cases[:98]
+        failure = {"type": "failure", "message": "Original server transport ended without a complete response"}
+        self.write_sources()
+        with self.primary.open("a", encoding="utf8") as stream:
+            stream.write(json.dumps(failure) + "\n")
+        assembly.assemble(self.primary, self.tail, self.output, absence, middle)
+        combined = [json.loads(line) for line in self.output.read_text().splitlines()]
+        self.assertEqual(127, len(combined))
+        self.assertEqual(18, sum(row.get("sourceRunIndex") == 3 for row in combined[1:]))
+        source = combined[0]["assembly"]["sources"][0]
+        self.assertEqual([failure], source["failureRecords"])
+        self.assertEqual(2, len(source["excludedCaseKeys"]))
+
+    def test_middle_continuation_cannot_implicitly_replace_other_partitions(self):
+        self.write_sources()
+        with self.assertRaisesRegex(ValueError, "requires the declared absence"):
+            assembly.assemble(self.primary, self.tail, self.output, middle_tail=self.tail)
+
 
 if __name__ == "__main__":
     unittest.main()
