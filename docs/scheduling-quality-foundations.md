@@ -1,5 +1,7 @@
 # Scheduling quality foundation
 
+Historical checkpoint: this document describes the initial quality foundation before the consolidated scheduling policy. Its cost-only acceptance and outstanding-work statements do not describe the current implementation. See [current policy and operations](scheduler-policy.md) and [acceptance checklist](scheduler-plan-checklist.md).
+
 This change strengthens the existing local scheduler without changing the booking or Timefold search configuration. The ten weekday horizon, two hour customer windows, ten minute offer expiry, local cutoff, and dispatcher approval policy remain in force.
 
 ## Cost and acceptance

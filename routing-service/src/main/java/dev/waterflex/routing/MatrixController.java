@@ -5,6 +5,7 @@ import java.util.Objects;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.config.Profile;
+import com.graphhopper.config.CHProfile;
 import com.graphhopper.util.shapes.GHPoint;
 import com.graphhopper.util.GHUtility;
 import com.graphhopper.util.DistanceCalcEarth;
@@ -43,6 +44,23 @@ public class MatrixController {
     }
     public record Leg(boolean routable, @Nullable Long seconds, @Nullable Long meters) { }
     public record Matrix(String mapVersion, String routingIdentity, List<List<Leg>> legs) { }
+    public record Pair(String id, Point origin, Point destination) {
+        public Pair {
+            if (id == null || id.isBlank() || id.length() > 300) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pair ID");
+            validatePoint(origin); validatePoint(destination);
+        }
+    }
+    public record SparseRequest(List<Pair> pairs, String expectedRoutingIdentity) {
+        public SparseRequest {
+            if (pairs == null || pairs.isEmpty() || pairs.size() > 256 || expectedRoutingIdentity == null || expectedRoutingIdentity.isBlank())
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pairs and routing identity required");
+            var ids = new java.util.HashSet<String>();
+            for (Pair pair : pairs) if (pair == null || !ids.add(pair.id())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate or missing pair");
+            pairs = Required.value(List.copyOf(pairs));
+        }
+    }
+    public record PairResult(String id, Leg leg) { }
+    public record SparseResponse(String routingIdentity, List<PairResult> pairs) { }
     public record Geometry(String type, List<List<Double>> coordinates) { }
     public record RouteLeg(long seconds, long meters, Geometry geometry) { }
     public record RouteResponse(String routingIdentity, List<RouteLeg> legs) { }
@@ -53,15 +71,25 @@ public class MatrixController {
     private final @Nullable GraphHopper hopper;
     private final String mapVersion;
     private final String routingIdentity;
+    private final boolean chEnabled;
     private record Cached(Leg leg, Instant expiresAt) { }
     private final Map<String, Cached> cache;
     private final Duration cacheTtl;
 
+    public MatrixController(String osmFile, String graphDir, String mapVersion, int cacheEntries, int cacheMinutes) {
+        this(osmFile, graphDir, mapVersion, cacheEntries, cacheMinutes, false);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
     public MatrixController(@Value("${routing.osm-file:/data/omaha.osm.pbf}") String osmFile,
                             @Value("${routing.graph-dir:/data/graph}") String graphDir,
                             @Value("${routing.map-version:unprepared}") String mapVersion,
                             @Value("${routing.cache.max-entries:100000}") int cacheEntries,
-                            @Value("${routing.cache.ttl-minutes:60}") int cacheMinutes) {
+                            @Value("${routing.cache.ttl-minutes:60}") int cacheMinutes,
+                            @Value("${routing.ch.enabled:false}") boolean chEnabled) {
+        this.chEnabled = chEnabled;
+        // Preparation is isolated from the existing flexible graph, including rollback.
+        if (chEnabled) graphDir = graphDir + "-ch-car-v1";
         int limit = Math.max(1, cacheEntries);
         this.cacheTtl = Required.value(Duration.ofMinutes(Math.max(1, cacheMinutes)));
         this.cache = Required.value(Collections.synchronizedMap(new LinkedHashMap<>(limit, .75f, true) {
@@ -73,7 +101,7 @@ public class MatrixController {
             catch (Exception ignored) { }
         }
         this.mapVersion = Required.value(activeVersion);
-        this.routingIdentity = identity(graphDir, Required.value(activeVersion));
+        this.routingIdentity = identity(graphDir, Required.value(activeVersion), chEnabled);
         if (!new File(osmFile).isFile() && !new File(graphDir, "properties").isFile()) {
             this.hopper = null;
             return;
@@ -84,6 +112,10 @@ public class MatrixController {
         active.setGraphHopperLocation(graphDir);
         active.setEncodedValuesString("car_access, car_average_speed, road_access, road_environment, max_speed, ferry_speed");
         active.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
+        if (chEnabled) {
+            active.getCHPreparationHandler().setCHProfiles(new CHProfile("car"));
+            active.getCHPreparationHandler().setPreparationThreads(1);
+        }
         active.importOrLoad();
     }
 
@@ -131,6 +163,23 @@ public class MatrixController {
         return new RouteResponse(routingIdentity, Required.value(legs));
     }
 
+    @PostMapping("/internal/legs")
+    public SparseResponse sparse(@RequestBody SparseRequest request) {
+        checkIdentity(request.expectedRoutingIdentity());
+        if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
+        List<PairResult> results = new ArrayList<>();
+        for (Pair pair : request.pairs()) {
+            String key = pair.origin().lat() + "," + pair.origin().lng() + ">" + pair.destination().lat() + "," + pair.destination().lng();
+            Cached hit = cache.get(key);
+            if (hit == null || !hit.expiresAt().isAfter(Instant.now())) {
+                hit = new Cached(route(pair.origin(), pair.destination()), Required.value(Instant.now().plus(cacheTtl)));
+                cache.put(key, hit);
+            }
+            results.add(new PairResult(pair.id(), hit.leg()));
+        }
+        return new SparseResponse(routingIdentity, results);
+    }
+
     private void checkIdentity(@Nullable String expected) {
         if (expected != null && !expected.isBlank() && !expected.equals(routingIdentity))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing identity changed");
@@ -157,7 +206,7 @@ public class MatrixController {
                 DistanceCalcEarth.DIST_EARTH.calcDist(destination.lat(), destination.lng(), snapped.getLat(snapped.size() - 1), snapped.getLon(snapped.size() - 1)) <= 1000;
     }
 
-    private static String identity(String graphDir, String mapVersion) {
+    private static String identity(String graphDir, String mapVersion, boolean chEnabled) {
         try {
             Path graph = Path.of(graphDir).toAbsolutePath();
             Path manifest = (Files.exists(graph) ? graph.toRealPath() : graph).getParent().resolve("manifest.json");
@@ -165,6 +214,7 @@ public class MatrixController {
                     ? new ObjectMapper().readTree(Files.readString(manifest)).path("mergedSha256").asText("") : "";
             if (checksum.isBlank()) checksum = mapVersion;
             String settings = checksum + "|car|car_access,car_average_speed,road_access,road_environment,max_speed,ferry_speed|car.json|GraphHopper-11.0|snap-1000m";
+            if (chEnabled) settings += "|CH-car-v1";
             return Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(settings.getBytes(StandardCharsets.UTF_8))));
         } catch (Exception e) { throw new IllegalStateException("Cannot identify routing graph", e); }
     }
@@ -180,7 +230,8 @@ public class MatrixController {
 
     @GetMapping("/health")
     public Map<String, Object> health() { return Required.value(Map.<String, Object>of("ready", hopper != null, "mapVersion", mapVersion,
-            "routingIdentity", routingIdentity, "profile", "car", "engineVersion", "11.0")); }
+            "routingIdentity", routingIdentity, "profile", "car", "engineVersion", "11.0",
+            "preparedConfiguration", chEnabled ? "CH-car-v1" : "flexible")); }
 
     @PreDestroy
     public void close() { GraphHopper active = hopper; if (active != null) active.close(); }

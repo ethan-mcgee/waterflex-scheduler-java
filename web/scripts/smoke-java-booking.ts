@@ -9,6 +9,7 @@ import { technicianColor } from "../lib/technicianColor";
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
 const suffix = randomUUID();
+const commonReservations = process.env.SCHEDULER_RESERVATIONS_TEST === "true";
 
 async function post<T>(schema: z.ZodType<T>, path: string, body: unknown) {
   const response = await fetch(`${base}${path}`, {
@@ -53,8 +54,34 @@ async function main() {
     await prisma.roadRouteCache.upsert({ where: { originKey_destinationKey_profile_mapVersion: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2" } },
       create: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2", routable: true, seconds: null, meters: null },
       update: { routable: true, seconds: null, meters: null } });
+    const expired = await post(offersResponse, "/v1/offers", { jobId, deadlineEpochMs: Date.now() - 1 });
+    assert.equal(expired.search.outcome, "SEARCH_INCOMPLETE");
+    assert.equal(await prisma.slotHold.count({ where: { jobId } }), 0);
+    let unlock: () => void = () => { throw new Error("Lock was not initialized"); };
+    let locked: () => void = () => { throw new Error("Lock signal was not initialized"); };
+    const released = new Promise<void>(resolve => { unlock = resolve; });
+    const acquired = new Promise<void>(resolve => { locked = resolve; });
+    const held = prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM job WHERE id=${jobId} FOR UPDATE`;
+      locked();
+      await released;
+    }, { timeout: 10000 });
+    await acquired;
+    try {
+      const started = performance.now();
+      const blocked = await post(offersResponse, "/v1/offers", { jobId, deadlineEpochMs: Date.now() + 1500 });
+      assert.ok(["SEARCH_INCOMPLETE", "SERVICE_BUSY"].includes(blocked.search.outcome));
+      assert.equal(blocked.search.prescribedSearchCompleted, false);
+      assert.equal(blocked.search.retryable, true);
+      assert.ok(performance.now() - started < 4000, "The database lock must not consume an unbounded wait");
+    } finally { unlock(); await held; }
+    assert.equal(await prisma.slotHold.count({ where: { jobId } }), 0, "Expired lock wait must not create late reservations");
     const offered = await post(offersResponse, "/v1/offers", { jobId });
     assert.equal(offered.jobId, jobId);
+    assert.equal(offered.search.outcome, "AVAILABLE");
+    assert.equal(offered.search.prescribedSearchCompleted, commonReservations);
+    assert.equal(await prisma.bookingOffer.count({ where: { jobId, overtimeAuthorized: true } }), 0,
+      "Incomplete scarcity search cannot authorize overtime");
     const repairedCache = await prisma.roadRouteCache.findUniqueOrThrow({ where: { originKey_destinationKey_profile_mapVersion: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2" } } });
     assert.notEqual(repairedCache.seconds, null); assert.notEqual(repairedCache.meters, null);
     await prisma.address.update({ where: { id: addressId }, data: { lat: null } });
@@ -101,6 +128,27 @@ async function main() {
       const differentSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: required(refreshed.offers[1]).offerId }) });
       assert.equal(differentSelection.status, 409);
     }
+    const booked = await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } });
+    const survivorStart = new Date(booked.windowEnd.getTime());
+    await prisma.appointment.create({ data: { jobId: otherJobId, technicianId: techId, serviceDate: booked.serviceDate,
+      windowStart: survivorStart, windowEnd: new Date(survivorStart.getTime() + 7200000), plannedStart: survivorStart,
+      plannedEnd: new Date(survivorStart.getTime() + 3000000), sequence: 1 } });
+    await prisma.job.update({ where: { id: otherJobId }, data: { status: "SCHEDULED" } });
+    // Deliberately bypass edit guards to cover damaged persisted scheduling facts.
+    await prisma.technicianShiftOverride.create({ data: { technicianId: techId, serviceDate: booked.serviceDate, available: false } });
+    const missingShiftCancellation = await fetch(`${base}/v1/appointments/cancel`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointment_id: selected.appointmentId, reason: "Missing remaining shift" }) });
+    assert.equal(missingShiftCancellation.status, 409);
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt, null,
+      "Failed remaining-route validation rolls back cancellation");
+    assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: jobId } })).status, "SCHEDULED");
+    await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techId } });
+    await prisma.technician.update({ where: { id: techId }, data: { maxDailyMinutes: 1 } });
+    const infeasibleCancellation = await fetch(`${base}/v1/appointments/cancel`, { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointment_id: selected.appointmentId, reason: "Infeasible remaining route" }) });
+    assert.equal(infeasibleCancellation.status, 409);
+    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt, null);
+    await prisma.technician.update({ where: { id: techId }, data: { maxDailyMinutes: 600 } });
     const cancelled = await post(success.extend({ alreadyCancelled: z.boolean() }), "/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
     assert.equal(cancelled.success, true);
     const cancelledAgain = await post(success.extend({ alreadyCancelled: z.boolean() }), "/v1/appointments/cancel", { appointment_id: selected.appointmentId, reason: "Fixture cancellation" });
@@ -108,8 +156,9 @@ async function main() {
     assert.ok((await prisma.appointment.findUniqueOrThrow({ where: { id: selected.appointmentId } })).cancelledAt);
     console.log("Java reservations, release, selection, legacy confirmation, and cancellation passed");
   } finally {
-    await prisma.appointment.deleteMany({ where: { jobId } });
+    await prisma.appointment.deleteMany({ where: { jobId: { in: [jobId, otherJobId] } } });
     await prisma.slotHold.deleteMany({ where: { jobId } });
+    await prisma.reservationArrangement.deleteMany({ where: { metroId: metro.id } });
     await prisma.bookingOffer.deleteMany({ where: { jobId } });
     await prisma.bookingOfferSet.deleteMany({ where: { jobId } });
     await prisma.job.deleteMany({ where: { id: jobId } });
@@ -117,6 +166,7 @@ async function main() {
     await prisma.address.deleteMany({ where: { id: addressId } });
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await prisma.technicianQualification.deleteMany({ where: { technicianId: techId } });
+    await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techId } });
     await prisma.scheduleDay.deleteMany({ where: { technicianId: techId } });
     await prisma.technician.deleteMany({ where: { id: techId } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });

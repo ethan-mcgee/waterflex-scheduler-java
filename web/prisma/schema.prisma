@@ -23,6 +23,7 @@ model Metro {
 
   depots           Depot[]
   optimizationRuns OptimizationRun[]
+  reservationArrangements ReservationArrangement[]
 
   @@map("metro")
 }
@@ -111,6 +112,7 @@ model Technician {
   availabilityVersions TechnicianAvailabilityVersion[]
   timeOffRequests TimeOffRequest[]
   depotAssignments TechnicianDepotAssignment[]
+  reservationDependencies ReservationDependency[]
 
   @@index([active])
   @@map("technician")
@@ -170,6 +172,8 @@ model ServiceCatalog {
 
   jobs Job[]
   qualifications TechnicianQualification[]
+
+  reservationDependencies ReservationDependency[]
 
   @@map("service_catalog")
 }
@@ -241,6 +245,7 @@ model Job {
   bookingOptimizations BookingOptimization[]
   bookingOffers BookingOffer[]
   offerSets BookingOfferSet[]
+  searchRequests BookingSearchRequest[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
 
@@ -282,6 +287,7 @@ model ScheduleDay {
   technician   Technician @relation(fields: [technicianId], references: [id])
   serviceDate  DateTime
   version      Int        @default(0) // bumped on every committed change; the lock row
+  routeTiming  Json?      // independently validated current segment timing at the recorded version
 
   @@unique([technicianId, serviceDate])
   @@map("schedule_day")
@@ -309,12 +315,44 @@ model SlotHold {
   bookingOptimization   BookingOptimization? @relation(fields: [bookingOptimizationId], references: [id])
   offerSetId String?
   offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
+  reservationDependencies ReservationDependency[]
 
   @@index([technicianId, serviceDate])
   @@index([expiresAt])
   @@index([jobId])
   @@index([bookingOptimizationId])
   @@map("slot_hold")
+}
+
+model ReservationArrangement {
+  id String @id @default(cuid())
+  metroId String
+  metro Metro @relation(fields: [metroId], references: [id])
+  serviceDate DateTime
+  version Int @default(0)
+  state Json? // null means the lock row has not yet received a validated arrangement
+  updatedAt DateTime @updatedAt
+  dependencies ReservationDependency[]
+
+  @@unique([metroId, serviceDate])
+  @@map("reservation_arrangement")
+}
+
+model ReservationDependency {
+  arrangementId String
+  arrangement ReservationArrangement @relation(fields: [arrangementId], references: [id], onDelete: Cascade)
+  holdId String
+  hold SlotHold @relation(fields: [holdId], references: [id], onDelete: Cascade)
+  technicianId String
+  technician Technician @relation(fields: [technicianId], references: [id])
+  serviceId String
+  service ServiceCatalog @relation(fields: [serviceId], references: [id])
+  serviceDate DateTime
+
+  @@id([holdId, technicianId, serviceId])
+  @@index([technicianId, serviceDate])
+  @@index([arrangementId])
+  @@map("reservation_dependency")
 }
 
 model BookingOffer {
@@ -327,6 +365,7 @@ model BookingOffer {
   expiresAt DateTime
   incrementalRegularMinutes Int?
   incrementalOvertimeMinutes Int?
+  overtimeAuthorized Boolean @default(false)
   incrementalRoadMeters Int?
   incrementalCostDollars Float?
   createdAt DateTime @default(now())
@@ -344,6 +383,8 @@ model BookingOfferSet {
   expiresAt DateTime
   supersededAt DateTime?
   selectedOfferId String?
+  searchDiagnostics Json?
+  searchRequests BookingSearchRequest[]
   createdAt DateTime @default(now())
   offers BookingOffer[]
   holds SlotHold[]
@@ -361,6 +402,7 @@ model TimeOffRequest {
   status String @default("PENDING")
   createdAt DateTime @default(now())
   decidedAt DateTime?
+  additionalOvertimeApproved Boolean @default(false)
   intervals TimeOffInterval[]
   report TimeOffReport?
 
@@ -477,6 +519,7 @@ model OptimizationRun {
   proposedAssignments  Json
   baselineAssignments  Json                 @default("[]")
   endpointSnapshots    Json?
+  policyAnalysis       Json?
   objectiveImprovement Int
   churnCost            Int
   status               String
@@ -629,4 +672,21 @@ model OutboundEvent {
 
   @@index([deliveredAt])
   @@map("outbound_event")
+}
+
+model BookingSearchRequest {
+  id String @id
+  jobId String
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  deadlineAt DateTime
+  cancelledAt DateTime?
+  acknowledgedAt DateTime?
+  offerSetId String?
+  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id], onDelete: SetNull)
+  cleanedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([cancelledAt, cleanedAt], map: "booking_search_request_cleanup_idx")
+  @@index([deadlineAt], map: "booking_search_request_deadline_idx")
+  @@map("booking_search_request")
 }

@@ -1,0 +1,179 @@
+{
+  "verifiedAt": "2026-09-24",
+  "productionSchedulerRevision": "43e9147a1cc2ae63cf2cb64fca772f9a530df39f",
+  "databaseRegressionRevision": "1ea251b875490957f04849828369651d2ad71e8c",
+  "schedulerArtifactSha256": "585705ad3851c11264b4a636b9d89923dce6f88d5ca8213a5e9dc5124e15dd52",
+  "database": "waterflex_test",
+  "fixtureRoutingIdentity": "ci-monaco-omaha-car-v2",
+  "actualRoutingIdentity": "d4a7c8575bad71445a7f745383e1466de88552a81db580196a4c62916acdcbaf",
+  "gates": [
+    {
+      "gate": "standard",
+      "scope": "local unit",
+      "result": "passed",
+      "tests": 135,
+      "logFile": "waterflex-confirmation-standard.log",
+      "logSha256": "bbcc82fac20a3fe7d0f24b43e1d4ea5bf331fbcc0cf483f46141587f0b91750a"
+    },
+    {
+      "gate": "nullability",
+      "scope": "local unit",
+      "result": "passed",
+      "tests": 135,
+      "logFile": "waterflex-confirmation-nullability.log",
+      "logSha256": "d727709ab627d1f0792867ca17bb7beb2a0274e72182664e79a90f5b600f6a3f"
+    },
+    {
+      "gate": "database-race",
+      "scope": "waterflex_test PostgreSQL",
+      "result": "passed",
+      "tests": 4,
+      "logFile": "waterflex-confirmation-database-race.log",
+      "logSha256": "161fb053a3a70d4fac3b33cd29ccdc727288ddee2dd833698c2adbb2c7a259ab"
+    },
+    {
+      "gate": "managed-booking-cold",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-managed-booking-cold.log",
+      "logSha256": "fc711afb0728d6177a6a63ff81e92fbd77c0b775baa429fb8451578eb182716b"
+    },
+    {
+      "gate": "bounded-booking",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-bounded-booking.log",
+      "logSha256": "d285084bb3f19f3a252a9552019e24e2fc3a8dd3710762b69e7fc012a9f2e3df"
+    },
+    {
+      "gate": "bounded-cancel",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-bounded-cancel.log",
+      "logSha256": "3fa9972d1086041bcffeefd49d5756b6423ecdede03a87a5556ade07b654c8fb"
+    },
+    {
+      "gate": "search-cancel",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-search-cancel.log",
+      "logSha256": "4adc6b25f17762c31ad5c9b0eb4d44745ef4df8bbcb77b563bfe0c185874e439"
+    },
+    {
+      "gate": "search-cancel-disabled",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-search-cancel-disabled.log",
+      "logSha256": "4adc6b25f17762c31ad5c9b0eb4d44745ef4df8bbcb77b563bfe0c185874e439"
+    },
+    {
+      "gate": "reservation",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-reservation.log",
+      "logSha256": "b05f1c77602b0b099a9e2c6083e3e50ed78c27386c4437305645716dc3c2ae3d"
+    },
+    {
+      "gate": "optimizer",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-optimizer.log",
+      "logSha256": "60d2c8c054a25766af8b38760ff98e297661bac32129dc6943886c09a4c5ab2d"
+    },
+    {
+      "gate": "multi-depot",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-multi-depot.log",
+      "logSha256": "0c1132cfaae8d87bc3a597dcb6accc7fdb42e0d86caed2951fa0294e28a33e77"
+    },
+    {
+      "gate": "time-off",
+      "scope": "deterministic fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-time-off.log",
+      "logSha256": "391a5181eca384ac12bc1fc6f06ed697bb2c43ac7a109488cab9a90797dca9ab"
+    },
+    {
+      "gate": "road-dealership",
+      "scope": "actual Omaha graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-road-dealership.log",
+      "logSha256": "661e8efcf44760960491ece1fb371a698c9dafda5f41952513076e9ac186e9bf"
+    },
+    {
+      "gate": "road-technician-home",
+      "scope": "actual Omaha graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-road-technician-home.log",
+      "logSha256": "3c2b789b388489dee72ba57668ca3fb54c90e298f146d4e1d19aa1751f969048"
+    },
+    {
+      "gate": "road-depot-setup",
+      "scope": "actual Omaha graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-road-depot-setup.log",
+      "logSha256": "7e670370fb89926c838efb9beebf4ed324e55961211f53fa5de0034fe8b9ed71"
+    },
+    {
+      "gate": "road-booking-tests-configured",
+      "scope": "actual Omaha graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-road-booking-tests-configured.log",
+      "logSha256": "80299fba840abd1f151a289f26bc01932ddacd1a4e22eddf9f3fd235f3b7315f"
+    },
+    {
+      "gate": "lint",
+      "scope": "local portal",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-lint.log",
+      "logSha256": "eda915d8da378f98daa58c7dc74ad00c0bdacc595c0488f4dd9dde471819d65c"
+    },
+    {
+      "gate": "schema-contract-configured",
+      "scope": "waterflex_test schema",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-schema-contract-configured.log",
+      "logSha256": "9d3a1f332bbb2d48d3765e18e39b2a48874db52bab3abcbab1b7bf032beba511"
+    },
+    {
+      "gate": "schema-validate",
+      "scope": "local schema",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-confirmation-schema-validate.log",
+      "logSha256": "eb1058955969f6e1ff9441fba31b5b912e647e75d96311ed5093dd1d649c9617"
+    },
+    {
+      "gate": "typecheck",
+      "scope": "local portal",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-continuation-typecheck.log",
+      "logSha256": "06590b6d79f253b2b81b09e2578e8d6ab7221a047d6fbe6d61c65288551af5ad"
+    }
+  ],
+  "unchangedPortalBuildAndBrowserEvidence": "final-verification-2026-09-24.json",
+  "limitations": [
+    "Local results do not imply hosted CI or production deployment.",
+    "The first managed launch omitted its enabled-mode expectation; a fresh correctly configured process passed.",
+    "Schema and sequential runner first launches omitted DATABASE_URL and ENGINE_URL respectively; correctly configured isolated reruns passed.",
+    "The sequential test intentionally exercises and handles a duplicate run identifier.",
+    "Earlier browser and performance archives retain their own measured artifact revisions."
+  ]
+}

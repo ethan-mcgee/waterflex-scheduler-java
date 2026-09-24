@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
-import { testInput, testConfig, offer, testAttempt, errorMessage, optimization, date } from "./contracts";
+import { testInput, testConfig, offer, testAttempt, errorMessage, optimization, date, appointmentSearch, offersResponse } from "./contracts";
+import { appointmentSearchMessage } from "./appointmentSearch";
 import { Prisma, type BookingTestGeneration } from "@prisma/client";
 import { prisma } from "./prisma";
+import { lockPurgeDays, purgeHasReservations, preparePurgeRoutes, applyPurgeRoutes } from "./reservationGuards";
 import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestConfig, validateTestConfigInput, type TestConfig, type TestConfigInput } from "./bookingTestCore";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
 import { EngineError, previewOptimization, requestSlots, selectOffer, checkTestAddressRoutability } from "./engineClient";
@@ -117,17 +119,14 @@ export async function purgeTestRun(id: string) {
     });
     const jobs = candidates.filter(job => /^\d+$/.test(job.id.slice(prefix.length)));
     const jobIds = jobs.map(job => job.id);
-    const appointmentIds = jobs.flatMap(job => job.appointment ? [job.appointment.id] : []);
     const customerIds = [...new Set(jobs.map(job => job.customerId))];
     const addressIds = [...new Set(jobs.map(job => job.addressId))];
-    const affected = [...new Map(jobs.flatMap(job => job.appointment ? [[`${job.appointment.technicianId}|${job.appointment.serviceDate.toISOString()}`, {
-      technicianId: job.appointment.technicianId, serviceDate: job.appointment.serviceDate,
-    }] as const] : [])).values()].sort((left, right) => left.technicianId.localeCompare(right.technicianId) || left.serviceDate.getTime() - right.serviceDate.getTime());
     await prisma.$transaction(async tx => {
-      for (const day of affected) {
-        await tx.scheduleDay.upsert({ where: { technicianId_serviceDate: day }, update: {}, create: { ...day } });
-        await tx.$queryRaw`SELECT version FROM schedule_day WHERE "technicianId"=${day.technicianId} AND "serviceDate"=${day.serviceDate} FOR UPDATE`;
-      }
+      const lockedDays = await lockPurgeDays(tx, jobIds);
+      if (await purgeHasReservations(tx, jobIds, lockedDays))
+        throw new TestRunError("Active reservations depend on this schedule. Release or expire the offers before purging.");
+      const preparedRoutes = await preparePurgeRoutes(tx, jobIds, lockedDays);
+      const appointmentIds = (await tx.appointment.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } })).map(item => item.id);
       if (jobIds.length) {
         await tx.outboundEvent.deleteMany({ where: { aggregateId: { in: [...jobIds, ...appointmentIds, ...customerIds] } } });
         await tx.slotHold.deleteMany({ where: { jobId: { in: jobIds } } });
@@ -139,11 +138,7 @@ export async function purgeTestRun(id: string) {
         await tx.address.deleteMany({ where: { id: { in: addressIds } } });
         await tx.customer.deleteMany({ where: { id: { in: customerIds } } });
       }
-      for (const day of affected) {
-        const survivors = await tx.appointment.findMany({ where: { ...day, cancelledAt: null }, orderBy: [{ plannedStart: "asc" }, { id: "asc" }], select: { id: true } });
-        for (const [sequence, survivor] of survivors.entries()) await tx.appointment.update({ where: { id: survivor.id }, data: { sequence } });
-        await tx.scheduleDay.update({ where: { technicianId_serviceDate: day }, data: { version: { increment: 1 } } });
-      }
+    await applyPurgeRoutes(tx, preparedRoutes);
       await tx.bookingTestRun.update({ where: { id }, data: { status: "PURGED", purgedAt: new Date(), purgedCount: appointmentIds.length, error: null, revision: { increment: 1 } } });
     }, { timeout: 180_000, maxWait: 5_000 });
     return readTestRun(id);
@@ -303,6 +298,7 @@ export async function advanceTestRun(id: string, revision: number, engine: Advan
       let offers = z.array(offer).parse(request.offers);
       let selected = offer.nullable().parse(request.selected);
       let errorMessage: string | null = null;
+      let search: z.infer<typeof appointmentSearch> | null = null;
       let outcome = "ERROR";
       try {
         await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { status: "PROCESSING", startedAt: request.startedAt ?? new Date(), error: null } });
@@ -311,7 +307,13 @@ export async function advanceTestRun(id: string, revision: number, engine: Advan
         if (appointment?.cancelledAt) throw new Error("The test appointment was cancelled. Review the schedule before continuing.");
         if (!appointment) {
           if (!selected) {
-            offers = (await engine.offers(request.id)).offers;
+            const result = offersResponse.parse(await engine.offers(request.id));
+            search = result.search;
+            offers = result.offers;
+            if (search.outcome !== "AVAILABLE" && search.outcome !== "NO_CANDIDATE_FOUND") {
+              outcome = search.outcome;
+              throw new Error(appointmentSearchMessage(search) ?? "Appointment search did not complete");
+            }
             const input = testInput.parse(request.input);
             selected = chooseTestOffer(offers, validateTestConfig(run.config).policy, input.selectionUnit);
             await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { offers: json(offers), selected: selected ? json(selected) : Prisma.DbNull } });
@@ -334,7 +336,7 @@ export async function advanceTestRun(id: string, revision: number, engine: Advan
       } finally {
         const elapsedMs = Date.now() - started;
         await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { elapsedMs: { increment: elapsedMs },
-          attempts: json([...z.array(testAttempt).parse(request.attempts), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage }]) } });
+          attempts: json([...z.array(testAttempt).parse(request.attempts), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage, search }]) } });
       }
     } else {
       const dates = [...new Set(run.requests.flatMap(r => r.serviceDate ? [r.serviceDate] : []))].sort();

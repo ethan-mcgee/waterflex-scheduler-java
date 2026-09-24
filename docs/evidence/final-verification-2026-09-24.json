@@ -1,0 +1,253 @@
+{
+  "verifiedAt": "2026-09-24",
+  "checkoutRevision": "94a4827d2c42042b5d311f5e0597fdae239d768c",
+  "productionSchedulerRevision": "971b0b9f115e557f81925e57ae5ebba0d52eead2",
+  "portalBehaviorRevision": "0629445b03f6795704e23fb66ae6a9ed62b27df9",
+  "database": "waterflex_test",
+  "fixtureRoutingIdentity": "ci-monaco-omaha-car-v2",
+  "actualRoutingIdentity": "d4a7c8575bad71445a7f745383e1466de88552a81db580196a4c62916acdcbaf",
+  "gates": [
+    {
+      "gate": "Java clean verify",
+      "scope": "local unit",
+      "result": "passed",
+      "tests": 134,
+      "logFile": "waterflex-final-quality-standard.log",
+      "logSha256": "9b5ec195d8b0a0179422ba3182060fbd0f5b7a5bf024393a2c8b5241dbf14724"
+    },
+    {
+      "gate": "Strict nullability clean verify",
+      "scope": "local unit",
+      "result": "passed",
+      "tests": 134,
+      "logFile": "waterflex-final-quality-nullability.log",
+      "logSha256": "6a05441ed42c1c87e59814fb65a44bdbb338eb1df556610983f762fddb5ca1f5"
+    },
+    {
+      "gate": "PostgreSQL snapshot and admission",
+      "scope": "local waterflex_test",
+      "result": "passed",
+      "tests": 2,
+      "logFile": "waterflex-final-postgres-0629445.log",
+      "logSha256": "45f03e4e669265c38434721bdd0ab96fda5d7723f92409157807a8da95cb6d70"
+    },
+    {
+      "gate": "Portal browser regressions",
+      "scope": "local Chromium isolated schema",
+      "result": "passed",
+      "tests": 22,
+      "logFile": "waterflex-final-browser-03eac84.log",
+      "logSha256": "9347963697648d75eeabfafba03112c5e6b0fe34261e838873981d3b60e409f5"
+    },
+    {
+      "gate": "Portal production build",
+      "scope": "local build",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-portal-build-03eac84.log",
+      "logSha256": "c2614fdf8e7243297e6a45df8215b58f77aae11127595f0c63974bfd518bec65"
+    },
+    {
+      "gate": "Booking fallback lifecycle",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-booking-integration.log",
+      "logSha256": "fc711afb0728d6177a6a63ff81e92fbd77c0b775baa429fb8451578eb182716b"
+    },
+    {
+      "gate": "Managed booking lifecycle cold cache",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-managed-booking-cold.log",
+      "logSha256": "fc711afb0728d6177a6a63ff81e92fbd77c0b775baa429fb8451578eb182716b"
+    },
+    {
+      "gate": "Pending dependency guards",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-reservation-integration.log",
+      "logSha256": "b05f1c77602b0b099a9e2c6083e3e50ed78c27386c4437305645716dc3c2ae3d"
+    },
+    {
+      "gate": "Preview and guarded apply",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-optimizer-integration.log",
+      "logSha256": "60d2c8c054a25766af8b38760ff98e297661bac32129dc6943886c09a4c5ab2d"
+    },
+    {
+      "gate": "Dated multi-depot assignments",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-multi-depot-integration.log",
+      "logSha256": "0c1132cfaae8d87bc3a597dcb6accc7fdb42e0d86caed2951fa0294e28a33e77"
+    },
+    {
+      "gate": "Time-off repair and explicit overtime approval",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-time-off-integration.log",
+      "logSha256": "391a5181eca384ac12bc1fc6f06ed697bb2c43ac7a109488cab9a90797dca9ab"
+    },
+    {
+      "gate": "Cross-instance cancellation enabled",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-cancellation-enabled.log",
+      "logSha256": "4adc6b25f17762c31ad5c9b0eb4d44745ef4df8bbcb77b563bfe0c185874e439"
+    },
+    {
+      "gate": "Cross-instance cancellation disabled",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-cancellation-disabled.log",
+      "logSha256": "4adc6b25f17762c31ad5c9b0eb4d44745ef4df8bbcb77b563bfe0c185874e439"
+    },
+    {
+      "gate": "Bounded booking and flag-disabled confirmation",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-bounded-booking.log",
+      "logSha256": "805d4b5714d180617c2a58ce3a1fdcfbadbabc63c6eb3079584f5f15390e54f5"
+    },
+    {
+      "gate": "Cancellation preserves pending rearrangement",
+      "scope": "deterministic road fixture",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-bounded-pending-cancel.log",
+      "logSha256": "05642381ed92b8e5df580d8d66249bb91dd09f6ba9498a60a3d7d7703ae138b3"
+    },
+    {
+      "gate": "Dealership endpoint combinations",
+      "scope": "actual Omaha road graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-road-dealership.log",
+      "logSha256": "661e8efcf44760960491ece1fb371a698c9dafda5f41952513076e9ac186e9bf"
+    },
+    {
+      "gate": "Technician home pin",
+      "scope": "actual Omaha road graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-road-technician-home.log",
+      "logSha256": "3c2b789b388489dee72ba57668ca3fb54c90e298f146d4e1d19aa1751f969048"
+    },
+    {
+      "gate": "Depot pin",
+      "scope": "actual Omaha road graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-road-depot-setup.log",
+      "logSha256": "7e670370fb89926c838efb9beebf4ed324e55961211f53fa5de0034fe8b9ed71"
+    },
+    {
+      "gate": "Sequential booking and test purge",
+      "scope": "actual Omaha road graph",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-road-booking-tests.log",
+      "logSha256": "80299fba840abd1f151a289f26bc01932ddacd1a4e22eddf9f3fd235f3b7315f"
+    },
+    {
+      "gate": "Portal geocode",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-geocode.log",
+      "logSha256": "1f151e858d100650662e2516263d998c3a8c10b242c52362b09200aeb9b0d526"
+    },
+    {
+      "gate": "Portal fake-data",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-fake-data.log",
+      "logSha256": "04c3674f91ed3d1cbe612fe78b88bb6087be94e3dd27be3ba8265ea85bd282ef"
+    },
+    {
+      "gate": "Portal optimization",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-optimization.log",
+      "logSha256": "0ef190921c1d8437140af0e19e09b4f9bf025fe916f97a71499334875ee77aaa"
+    },
+    {
+      "gate": "Portal dispatch-geometry",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-dispatch-geometry.log",
+      "logSha256": "ca3ddc1bebe594dac2b6d9aea04dcc0c127c7b3ca5edc3331ec0e521e36642da"
+    },
+    {
+      "gate": "Portal booking-tests",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-booking-tests.log",
+      "logSha256": "d8187e2cd1c337c926b23563db234296e6db16dd27ec5046c956d95700905bbc"
+    },
+    {
+      "gate": "Portal nullability",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-nullability.log",
+      "logSha256": "e8865217c50267fa22f38de1aa53d4a900c254352534170245c3a67ad86baaa5"
+    },
+    {
+      "gate": "Portal benchmark-diagnostics",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-benchmark-diagnostics.log",
+      "logSha256": "ac6148e2bc75e72da71c0933f5fdc7d410afdf7712c70e2b5c8a15f2d4c074a9"
+    },
+    {
+      "gate": "Portal schema-contract",
+      "scope": "local portal unit/contract",
+      "result": "passed",
+      "tests": null,
+      "logFile": "waterflex-final-test-schema-contract.log",
+      "logSha256": "9d3a1f332bbb2d48d3765e18e39b2a48874db52bab3abcbab1b7bf032beba511"
+    }
+  ],
+  "additionalPassedChecks": [
+    "Portal lint and typecheck",
+    "Prisma validate",
+    "Compose configuration validation",
+    "git diff --check",
+    "Git object integrity: no corruption; existing dangling objects retained",
+    "No em dash in added patch lines",
+    "35 gzip evidence files decoded, 31 recorded source hashes verified, and added documentation local links resolved"
+  ],
+  "caveats": [
+    "The first managed-booking rerun used a routing cache warmed by a prior time-off worker. Its persistent-cache repair assertion failed. A fresh instance passed the required cold-cache test; no product fallback was added.",
+    "The sequential integration intentionally exercises a duplicate-id race; its logged Prisma constraint error is handled and the gate passed.",
+    "Local logs are identified by their hashes and filenames. Hosted CI provides separately retained build and integration logs. Performance matrices are separate evidence, not inferred from unit tests."
+  ],
+  "hostedCI": [
+    {
+      "revision": "03eac84c21be9624b51e53b992edc9490ea38041",
+      "run": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/35998976088",
+      "result": "success"
+    },
+    {
+      "revision": "94a4827d2c42042b5d311f5e0597fdae239d768c",
+      "run": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/36000034937",
+      "result": "success"
+    }
+  ]
+}

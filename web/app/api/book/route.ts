@@ -113,17 +113,9 @@ export async function POST(req: NextRequest) {
   ]);
 
   try {
-    const { offers } = await requestSlots(job.id);
-    if (offers.length === 0) await prisma.job.update({ where: { id: job.id }, data: {
-      manualFollowUpStatus: "PENDING", manualFollowUpReason: "NO_CAPACITY",
-    } });
-    return NextResponse.json({ jobId: job.id, offers });
+    return NextResponse.json(await requestSlots(job.id, false, 5000, req.signal));
   } catch (err) {
     if (err instanceof EngineError) {
-      if (err.status === 503) {
-        await prisma.job.update({ where: { id: job.id }, data: { manualFollowUpStatus: "PENDING", manualFollowUpReason: "ROAD_ROUTING_UNAVAILABLE" } });
-        return NextResponse.json({ jobId: job.id, pendingReference: job.id, offers: [] });
-      }
       return NextResponse.json({ error: err.message }, { status: err.status === 404 ? 500 : err.status });
     }
     throw err;

@@ -20,23 +20,66 @@ export const depotDetails = z.object({ name: text.max(120), address: depotSetup.
 });
 export const technicianDepotAssignment = z.object({ depotId: text, effectiveDate: date }).strict();
 export const offer = z.object({ offerId: text, date, windowStart: instant, windowEnd: instant, expiresAt: instant });
-export const offersResponse = z.object({ jobId: text, offers: z.array(offer) });
+export const appointmentSearch = z.object({
+  outcome: z.enum(["AVAILABLE", "SEARCH_INCOMPLETE", "NO_CANDIDATE_FOUND", "ROUTING_UNAVAILABLE", "SCHEDULE_CONFLICT", "SERVICE_BUSY"]),
+  prescribedSearchCompleted: z.boolean(), elapsedMs: z.int().nonnegative(), retryable: z.boolean(),
+  apiElapsedMs: z.int().nonnegative().optional(),
+  queueMs: z.int().nonnegative().optional(),
+  measurements: z.object({ databaseExecutions: z.int().nonnegative(), databaseNanos: z.int().nonnegative(), lockStatementNanos: z.int().nonnegative(),
+    routingPairs: z.int().nonnegative(), memoryHits: z.int().nonnegative(), persistentHits: z.int().nonnegative(), sharedRoutingPairs: z.int().nonnegative(),
+    foregroundCpuNanos: z.int().nonnegative().nullable(), }).nullish(),
+}).superRefine((value, context) => {
+  if (value.outcome === "NO_CANDIDATE_FOUND" && !value.prescribedSearchCompleted)
+    context.addIssue({ code: "custom", message: "An incomplete search cannot establish no candidate found" });
+  if (["SEARCH_INCOMPLETE", "ROUTING_UNAVAILABLE", "SCHEDULE_CONFLICT", "SERVICE_BUSY"].includes(value.outcome)
+      && (!value.retryable || value.prescribedSearchCompleted))
+    context.addIssue({ code: "custom", message: "Failed searches must remain incomplete and retryable" });
+});
+export const offersResponse = z.object({ jobId: text, offers: z.array(offer), search: appointmentSearch }).superRefine((value, context) => {
+  if ((value.search.outcome === "AVAILABLE") !== (value.offers.length > 0))
+    context.addIssue({ code: "custom", message: "Search outcome does not match committed offers" });
+});
 export const confirmation = z.object({ appointmentId: text, windowStart: instant, windowEnd: instant });
 export const selection = confirmation.extend({ holdId: text, expiresAt: instant });
 export const success = z.object({ success: z.boolean() });
 export const timeOffResult = z.object({ requestId: text, status: text });
 export const routabilityResponse = z.object({ results: z.array(z.object({ id: text, routable: z.boolean() })) });
+export const travelBreakdown = z.object({ road_seconds: z.int().nonnegative(), configured_buffer_seconds: finite.nonnegative(),
+  rounding_seconds: finite.nonnegative(), modeled_travel_minutes: z.int().nonnegative(), leg_count: z.int().nonnegative(),
+}).refine(value => Math.abs(value.road_seconds + value.configured_buffer_seconds + value.rounding_seconds - value.modeled_travel_minutes * 60) < 0.000001,
+  "Travel components must equal modeled travel");
 const routeSummary = z.object({
   technician_id: text, stop_count: z.int().nonnegative(), route_minutes: finite, drive_minutes: finite,
   waiting_minutes: finite, distance_meters: finite, modeled_cost_cents: finite, workload_minutes: finite,
   overtime_minutes: finite, appointment_ids: z.array(text),
-});
+  segments: z.array(z.object({ departure: instant, returned_at: instant, appointment_ids: z.array(text) })).nullish(),
+  travel_breakdown: travelBreakdown.nullish(),
+}).refine(value => value.travel_breakdown == null || value.travel_breakdown.modeled_travel_minutes === value.drive_minutes,
+  "Travel breakdown must match reported driving");
+const policyMetrics = z.object({ overtimeMinutes: z.int().nonnegative(), costCents: z.int().nonnegative(),
+  fairness: z.object({ variance: finite.nonnegative(), maximumUtilization: finite.nonnegative(),
+    workloads: z.array(z.object({ technicianId: text, paidMinutes: z.int().nonnegative(),
+      regularCapacityMinutes: z.int().positive(), utilization: finite.nonnegative() })) }) });
+export const policyAnalysis = z.object({ version: z.literal("overtime-fairness-v1"), before: policyMetrics, after: policyMetrics,
+  decision: z.object({ accepted: z.boolean(), reason: text, referenceCostCents: z.int().nonnegative(),
+    overtimeTargetMinutes: z.int().nonnegative(), costCeilingCents: z.int().nonnegative() }),
+  rules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: finite.min(0).max(1),
+    fairnessAllowance: finite.min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }), costChangeCents: z.int() });
+export const solverAnalysis = z.object({ engine: text, configurationXml: text, phases: z.array(z.object({
+  name: text, statistics: z.object({ variant: text, seed: z.int(), configurationFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED"]),
+    budgetMs: z.int().positive(), stepLimit: z.int().positive().nullable(), steps: z.int().nonnegative(),
+    moveEvaluations: z.int().nonnegative(), scoreCalculations: z.int().nonnegative(), solveMs: z.int().nonnegative(), timeToBestMs: z.int().nonnegative().nullable(),
+  }),
+})).min(1) });
 export const optimization = z.object({
   run_id: text, metro_id: text, service_date: date, status: text, reason: z.string().nullable(),
   solver_status: text, solve_ms: finite.nonnegative(), routing_identity: text, configuration_version: text,
   objective_improvement: finite, churn_penalty_minutes: finite, optimized: z.boolean(),
   appointments_moved: z.int().nonnegative(), created_at: instant, applied_at: instant.nullable(), warnings: z.array(z.string()),
   route_summary_before: z.array(routeSummary), route_summary_after: z.array(routeSummary),
+  policy_analysis: policyAnalysis.nullish(),
+  solver_analysis: solverAnalysis.nullish(),
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
 });
@@ -45,6 +88,7 @@ export const bookingRequest = z.object({ requestId: text.min(16), firstName: tex
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
   confirmedPin: point.optional() });
 export const jobRequest = z.object({ jobId: text });
+export const refreshRequest = jobRequest.extend({ deadlineEpochMs: z.int().positive().optional() });
 export const selectRequest = jobRequest.extend({ offerId: text });
 export const confirmRequest = z.object({ holdId: text });
 export const previewRequest = z.object({ metroId: text, date });
@@ -106,11 +150,12 @@ export function required<T>(value: T | undefined | null, label = "Required value
 }
 
 export const bookingResponse = z.object({ jobId: text, offers: z.array(offer).optional(), pendingReference: text.optional(),
+  search: appointmentSearch.optional(),
   pinRequired: z.boolean().optional(), candidates: z.array(point.extend({ precision: z.enum(["ROOFTOP", "APPROXIMATE"]) })).optional()
-}).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || v.offers !== undefined, "Incomplete booking response");
-export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional() });
+}).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || offersResponse.safeParse(v).success, "Incomplete booking response");
+export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional(), search: appointmentSearch.optional() });
 export const testAttempt = z.object({ at: instant, horizon: z.array(date), elapsedMs: finite.nonnegative(), offers: z.array(offer),
-  selected: offer.nullable(), outcome: text, error: z.string().nullable() });
+  selected: offer.nullable(), outcome: text, error: z.string().nullable(), search: appointmentSearch.nullish() });
 export const testGeneration = z.object({ acceptedCount: z.int().nonnegative(), targetCount: z.int().positive(), candidatesTried: z.int().nonnegative(),
   batches: z.int().nonnegative(), elapsedMs: z.int().nonnegative(), completedAt: instant.nullable(), consecutiveNoProgressBatches: z.int().nonnegative() });
 export const runSummary = z.object({ id: text, status: text, createdAt: instant, config: testConfig,

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.jspecify.annotations.Nullable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.optimizer.OptimizationService;
+import dev.waterflex.scheduler.optimizer.TravelBreakdown;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -108,6 +109,7 @@ public class TimeOffService {
         List<Map<String, Object>> days = new ArrayList<>();
         boolean feasible = !intervals.isEmpty();
         List<Map<String, Long>> beforeMetrics = new ArrayList<>(), afterMetrics = new ArrayList<>();
+        List<TravelBreakdown> beforeTravel = new ArrayList<>(), afterTravel = new ArrayList<>();
         int reassignedJobs = 0;
         for (Interval interval : intervals) {
             Map<String, Object> preview;
@@ -136,6 +138,11 @@ public class TimeOffService {
                 int moved = reassigned(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("changes"))));
                 saved.put("daily_before", before); saved.put("daily_after", after); saved.put("reassigned_jobs", moved);
                 beforeMetrics.add(before); afterMetrics.add(after); reassignedJobs += moved;
+                var roadBefore = travelTotals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("before"))));
+                var roadAfter = travelTotals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("after"))));
+                saved.put("travel_before", roadBefore); saved.put("travel_after", roadAfter);
+                if (roadBefore != null) beforeTravel.add(roadBefore);
+                if (roadAfter != null) afterTravel.add(roadAfter);
             }
             days.add(saved);
             feasible &= "REPAIR_PREVIEW".equals(preview.get("status")) || "NO_SHIFT".equals(preview.get("status"));
@@ -148,6 +155,8 @@ public class TimeOffService {
         data.put("days", days);
         data.put("total_before", beforeMetrics.size() == days.size() ? combined(beforeMetrics) : null);
         data.put("total_after", afterMetrics.size() == days.size() ? combined(afterMetrics) : null);
+        data.put("travel_before", beforeTravel.size() == days.size() ? combineTravel(beforeTravel) : null);
+        data.put("travel_after", afterTravel.size() == days.size() ? combineTravel(afterTravel) : null);
         data.put("reassigned_jobs", reassignedJobs);
         String reportJson = mapper.writeValueAsString(data);
         boolean ready = feasible;
@@ -162,12 +171,14 @@ public class TimeOffService {
         }));
         if (committed && feasible) {
             if (automaticEligible(intervals.getFirst().day(), Required.value(LocalDate.now(LOCAL))))
-                try { tryApprove(id); }
+                try { tryApprove(id, false, Required.value(List.of())); }
                 catch (ResponseStatusException ignored) { /* Stale reports are queued for another analysis. */ }
         }
     }
 
-    public Map<String, Object> approve(String id) { return tryApprove(id); }
+    public Map<String, Object> approve(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
+        return tryApprove(id, allowAdditionalOvertime, approvedRepairIds);
+    }
 
     public Map<String, Object> retry(String id) {
         return Required.value(transactions.execute(_ -> {
@@ -193,9 +204,10 @@ public class TimeOffService {
         }));
     }
 
-    private Map<String, Object> tryApprove(String id) {
-        try { return Required.value(transactions.execute(_ -> approveLocked(id))); }
+    private Map<String, Object> tryApprove(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
+        try { return Required.value(transactions.execute(_ -> approveLocked(id, allowAdditionalOvertime, approvedRepairIds))); }
         catch (ResponseStatusException e) {
+            if (e instanceof dev.waterflex.scheduler.optimizer.RepairOvertimeApprovalRequired) throw e;
             if (e.getStatusCode() == HttpStatus.CONFLICT) {
                 boolean frozen = String.valueOf(e.getReason()).contains("Frozen date");
                 jdbc.update("UPDATE time_off_request SET status='PENDING' WHERE id=? AND status='READY'", id);
@@ -206,7 +218,7 @@ public class TimeOffService {
         }
     }
 
-    private Map<String, Object> approveLocked(String id) {
+    private Map<String, Object> approveLocked(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
         var owner = jdbc.query("SELECT \"technicianId\", status FROM time_off_request WHERE id=? FOR UPDATE",
                 (rs, _) -> new ApprovalOwner(Required.string(rs, 1), Required.string(rs, 2)), id);
         if (owner.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
@@ -218,9 +230,19 @@ public class TimeOffService {
         if (reports.isEmpty() || !reports.getFirst().status().equals("READY")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Fresh feasible report required");
         try {
             List<Interval> intervals = intervals(id);
-            for (Interval interval : intervals) guard.unfrozen(interval.day());
+            for (Interval interval : intervals) {
+                guard.unfrozen(interval.day());
+                guard.noHolds(owner.getFirst().technicianId(), interval.day());
+            }
             JsonNode report = SavedJson.readyReport(Required.value(mapper.readTree(reports.getFirst().data())));
             JsonNode days = report.path("days");
+            if (allowAdditionalOvertime) {
+                java.util.Set<String> currentRepairs = new java.util.HashSet<>();
+                for (JsonNode repair : days) if ("REPAIR_PREVIEW".equals(repair.path("status").asText()))
+                    currentRepairs.add(SavedJson.text(Required.value(repair), "run_id"));
+                if (!currentRepairs.equals(new java.util.HashSet<>(approvedRepairIds)))
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Repair preview changed; review the latest report");
+            }
             if (!owner.getFirst().technicianId().equals(report.path("technician_id").asText()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Request changed");
             if (!days.isArray() || intervals.isEmpty() || days.size() != intervals.size()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Incomplete report");
@@ -238,9 +260,9 @@ public class TimeOffService {
                     continue;
                 }
                 SavedJson.text(Required.value(days.path(i)), "run_id");
-                optimizer.applyRepair(Required.value(days.get(i).path("run_id").asText()), owner.getFirst().technicianId(), intervals.get(i).day(), intervals.get(i).start(), intervals.get(i).end());
+                optimizer.applyRepair(Required.value(days.get(i).path("run_id").asText()), owner.getFirst().technicianId(), intervals.get(i).day(), intervals.get(i).start(), intervals.get(i).end(), allowAdditionalOvertime);
             }
-            jdbc.update("UPDATE time_off_request SET status='APPROVED', \"decidedAt\"=CURRENT_TIMESTAMP WHERE id=?", id);
+            jdbc.update("UPDATE time_off_request SET status='APPROVED', \"decidedAt\"=CURRENT_TIMESTAMP, \"additionalOvertimeApproved\"=? WHERE id=?", allowAdditionalOvertime, id);
             jdbc.update("UPDATE time_off_report SET status='APPLIED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=?", id);
             return Required.value(Map.<String, Object>of("requestId", id, "status", "APPROVED"));
         } catch (ResponseStatusException e) { throw e; }
@@ -253,6 +275,31 @@ public class TimeOffService {
     }
 
     private static final List<String> METRICS = Required.value(List.of("route_minutes", "overtime_minutes", "drive_minutes", "waiting_minutes", "distance_meters", "modeled_cost_cents"));
+
+    static @Nullable TravelBreakdown travelTotals(JsonNode routes) {
+        SavedJson.summary(routes);
+        List<TravelBreakdown> values = new ArrayList<>();
+        for (JsonNode route : routes) {
+            if (!route.hasNonNull("travel_breakdown")) return null;
+            JsonNode travel = Required.value(route.path("travel_breakdown"));
+            values.add(new TravelBreakdown(SavedJson.integer(travel, "road_seconds"),
+                    Required.value(travel.path("configured_buffer_seconds").decimalValue()),
+                    Required.value(travel.path("rounding_seconds").decimalValue()),
+                    SavedJson.integer(travel, "modeled_travel_minutes"), Math.toIntExact(SavedJson.integer(travel, "leg_count"))));
+        }
+        return combineTravel(values);
+    }
+
+    private static TravelBreakdown combineTravel(List<TravelBreakdown> values) {
+        long road = 0, modeled = 0; int legs = 0;
+        java.math.BigDecimal buffer = java.math.BigDecimal.ZERO, rounding = java.math.BigDecimal.ZERO;
+        for (TravelBreakdown value : values) {
+            road = Math.addExact(road, value.road_seconds()); modeled = Math.addExact(modeled, value.modeled_travel_minutes());
+            legs = Math.addExact(legs, value.leg_count()); buffer = buffer.add(value.configured_buffer_seconds());
+            rounding = rounding.add(value.rounding_seconds());
+        }
+        return new TravelBreakdown(road, Required.value(buffer), Required.value(rounding), modeled, legs);
+    }
 
     private static Map<String, Long> totals(JsonNode routes) {
         Map<String, Long> values = new LinkedHashMap<>();

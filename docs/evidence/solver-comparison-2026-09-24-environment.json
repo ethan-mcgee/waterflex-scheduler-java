@@ -1,0 +1,39 @@
+{
+    "hardware":  {
+                     "Name":  "AMD Ryzen 9 7900X 12-Core Processor            ",
+                     "NumberOfCores":  12,
+                     "NumberOfLogicalProcessors":  24
+                 },
+    "initialArtifacts":  {
+                             "value":  [
+                                           {
+                                               "Algorithm":  "SHA256",
+                                               "Hash":  "BA185D9F752D19DE76CBCF47C61862CC15B1AB89649D0AFCEA0E4F9B5C4D081C",
+                                               "Path":  "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-solver-18a9f0b\\main.jar"
+                                           },
+                                           {
+                                               "Algorithm":  "SHA256",
+                                               "Hash":  "001319785C75D20FDC65DFB0E05B03E8A64EAEED44AA20E50AE185B0D2FB1449",
+                                               "Path":  "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-solver-18a9f0b\\tests.jar"
+                                           }
+                                       ],
+                             "Count":  2
+                         },
+    "correctedArtifacts":  {
+                               "value":  [
+                                             {
+                                                 "Algorithm":  "SHA256",
+                                                 "Hash":  "5CFD264579718A3FFA5F56F78BD07CF80ED1FC7898398ED66CF65411F0DE3DEF",
+                                                 "Path":  "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-solver-5b2fe5f\\main.jar"
+                                             },
+                                             {
+                                                 "Algorithm":  "SHA256",
+                                                 "Hash":  "0239F9E8C14F94EAA3EFB2C930424F90B344FEA0820BF7A291E83657BE3D73B8",
+                                                 "Path":  "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-solver-5b2fe5f\\tests.jar"
+                                             }
+                                         ],
+                               "Count":  2
+                           },
+    "heapLimitMiB":  512,
+    "evidence":  "Windows Java 25, shared local Ryzen 9 7900X hardware. Concurrent fixture booking, Java verification and separate Omaha routing processes. Repeated seed processes overlapped. Solver timing is not isolated hardware acceptance."
+}

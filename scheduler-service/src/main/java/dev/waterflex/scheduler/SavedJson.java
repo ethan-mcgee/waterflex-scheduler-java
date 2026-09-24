@@ -27,6 +27,59 @@ public final class SavedJson {
         return node;
     }
     public static JsonNode provenance(JsonNode node) { object(node); text(node, "mapVersion"); text(node, "configVersion"); return node; }
+    public static JsonNode solverAnalysis(JsonNode node) {
+        object(node); text(node, "engine"); text(node, "configurationXml");
+        JsonNode phases = array(Required.value(node.path("phases"))); if (phases.isEmpty()) throw invalid();
+        for (JsonNode phase : phases) {
+            text(Required.value(phase), "name"); JsonNode statistics = object(Required.value(phase.path("statistics")));
+            text(statistics, "variant");
+            if (!text(statistics, "configurationFingerprint").matches("[a-f0-9]{64}")) throw invalid();
+            if (!java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED").contains(text(statistics, "termination"))) throw invalid();
+            integer(statistics, "seed");
+            for (String key : new String[]{"budgetMs", "steps", "moveEvaluations", "scoreCalculations", "solveMs"})
+                if (integer(statistics, Required.value(key)) < 0) throw invalid();
+            if (integer(statistics, "budgetMs") == 0) throw invalid();
+            for (String key : new String[]{"stepLimit", "timeToBestMs"}) {
+                if (!statistics.has(key)) throw invalid();
+                if (statistics.hasNonNull(key) && integer(statistics, Required.value(key)) < 0) throw invalid();
+            }
+            if (statistics.hasNonNull("stepLimit") && integer(statistics, "stepLimit") == 0) throw invalid();
+        }
+        return node;
+    }
+    public static JsonNode policyAnalysis(JsonNode node) {
+        object(node);
+        if (!dev.waterflex.scheduler.optimizer.SchedulingPolicy.VERSION.equals(text(node, "version"))) throw invalid();
+        integer(node, "costChangeCents");
+        JsonNode rules = object(Required.value(node.path("rules")));
+        new dev.waterflex.scheduler.optimizer.SchedulingPolicy.Rules(
+                Math.toIntExact(integer(rules, "regularWindowThreshold")),
+                decimal(rules, "utilizationThreshold"), decimal(rules, "fairnessAllowance"),
+                Math.toIntExact(integer(rules, "bookingDeadlineMs")));
+        JsonNode decision = object(Required.value(node.path("decision")));
+        if (!decision.path("accepted").isBoolean()) throw invalid();
+        text(decision, "reason");
+        for (String key : new String[]{"referenceCostCents", "overtimeTargetMinutes", "costCeilingCents"})
+            if (integer(decision, Required.value(key)) < 0) throw invalid();
+        for (String phase : new String[]{"before", "after"}) {
+            JsonNode metrics = object(Required.value(node.path(phase)));
+            if (integer(metrics, "overtimeMinutes") < 0 || integer(metrics, "costCents") < 0) throw invalid();
+            JsonNode fairness = object(Required.value(metrics.path("fairness")));
+            if (decimal(fairness, "variance").signum() < 0 || decimal(fairness, "maximumUtilization").signum() < 0) throw invalid();
+            var technicians = new HashSet<String>();
+            for (JsonNode workload : array(Required.value(fairness.path("workloads")))) {
+                JsonNode item = Required.value(workload);
+                if (!technicians.add(text(item, "technicianId")) || integer(item, "paidMinutes") < 0
+                        || integer(item, "regularCapacityMinutes") <= 0 || decimal(item, "utilization").signum() < 0) throw invalid();
+            }
+        }
+        return node;
+    }
+    private static java.math.BigDecimal decimal(JsonNode node, String key) {
+        JsonNode value = node.path(key);
+        if (!value.isNumber() || !Double.isFinite(value.asDouble())) throw invalid();
+        return Required.value(value.decimalValue());
+    }
     public static JsonNode assignments(JsonNode node) {
         array(node);
         var ids = new HashSet<String>();
@@ -39,6 +92,8 @@ public final class SavedJson {
             if (sequence < 0 || sequence > Integer.MAX_VALUE || !positions.add(tech + ":" + sequence)) throw invalid();
             try {
                 Instant.parse(text(Required.value(item), "plannedStart"));
+                if (item.has("plannedEnd") && !Instant.parse(text(Required.value(item), "plannedStart"))
+                        .isBefore(Instant.parse(text(Required.value(item), "plannedEnd")))) throw invalid();
                 if (!Instant.parse(text(Required.value(item), "windowStart")).isBefore(Instant.parse(text(Required.value(item), "windowEnd")))) throw invalid();
             } catch (RuntimeException e) { throw invalid(); }
             for (String key : new String[]{"locationLat", "locationLng"}) {
@@ -55,6 +110,25 @@ public final class SavedJson {
             for (String key : new String[]{"stop_count", "route_minutes", "drive_minutes", "waiting_minutes", "distance_meters", "modeled_cost_cents", "workload_minutes", "overtime_minutes"})
                 if (integer(Required.value(route), Required.value(key)) < 0) throw invalid();
             for (JsonNode id : array(Required.value(route.path("appointment_ids")))) if (!id.isTextual() || id.asText().isBlank()) throw invalid();
+            if (route.hasNonNull("travel_breakdown")) {
+                JsonNode travel = object(Required.value(route.path("travel_breakdown")));
+                long road = integer(travel, "road_seconds"), modeled = integer(travel, "modeled_travel_minutes");
+                if (road < 0 || modeled < 0 || integer(travel, "leg_count") < 0 || modeled != integer(Required.value(route), "drive_minutes")) throw invalid();
+                for (String key : new String[]{"configured_buffer_seconds", "rounding_seconds"}) {
+                    JsonNode number = Required.value(travel.path(key));
+                    if (!number.isNumber() || !Double.isFinite(number.doubleValue()) || number.decimalValue().signum() < 0) throw invalid();
+                }
+                var total = java.math.BigDecimal.valueOf(road).add(travel.path("configured_buffer_seconds").decimalValue()).add(travel.path("rounding_seconds").decimalValue());
+                if (total.compareTo(java.math.BigDecimal.valueOf(modeled).multiply(java.math.BigDecimal.valueOf(60))) != 0) throw invalid();
+            }
+            if (route.hasNonNull("segments")) for (JsonNode segment : array(Required.value(route.path("segments")))) {
+                JsonNode value = object(Required.value(segment));
+                try {
+                    if (Instant.parse(text(value, "departure")).isAfter(Instant.parse(text(value, "returned_at")))) throw invalid();
+                } catch (RuntimeException e) { throw invalid(); }
+                for (JsonNode id : array(Required.value(value.path("appointment_ids"))))
+                    if (!id.isTextual() || id.asText().isBlank()) throw invalid();
+            }
         }
         return node;
     }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult } from "./contracts";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis, solverAnalysis } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
@@ -52,8 +52,42 @@ export interface SlotOffer {
   expiresAt: string;
 }
 
-export function requestSlots(jobId: string, refresh = false, timeoutMs?: number): Promise<{ jobId: string; offers: SlotOffer[] }> {
-  return request("/v1/offers", offersResponse, { jobId, refresh }, timeoutMs);
+export async function requestSlots(jobId: string, refresh = false, timeoutMs = 5000, signal?: AbortSignal, deadlineEpochMs?: number): Promise<z.infer<typeof offersResponse>> {
+  const started = performance.now();
+  if (deadlineEpochMs != null && (!Number.isSafeInteger(deadlineEpochMs) || deadlineEpochMs <= 0))
+    throw new EngineError(400, "Invalid appointment search deadline");
+  const remaining = deadlineEpochMs == null ? 5000 : deadlineEpochMs - Date.now();
+  if (remaining <= 0) throw new EngineError(504, "Appointment search deadline exhausted. Please retry.");
+  const budgetMs = Math.min(5000, timeoutMs, remaining);
+  if (!Number.isInteger(budgetMs) || budgetMs <= 0) throw new EngineError(400, "Invalid appointment search budget");
+  const searchRequestId = crypto.randomUUID();
+  let cancellation: Promise<void> | undefined;
+  const cancel = () => {
+    cancellation ??= (async () => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try { await request("/v1/offers/cancel-search", success, { jobId, searchRequestId }, 2000); return; }
+        catch (error) { if (attempt === 1) console.error("Search cancellation could not be acknowledged", { searchRequestId, error }); }
+      }
+    })();
+  };
+  signal?.addEventListener("abort", cancel, { once: true });
+  try {
+    if (signal?.aborted) { cancel(); throw new EngineError(499, "Appointment search cancelled"); }
+    const result = await request("/v1/offers", offersResponse, { jobId, refresh, searchRequestId,
+      deadlineEpochMs: Math.min(deadlineEpochMs ?? Number.MAX_SAFE_INTEGER, Date.now() + budgetMs) }, budgetMs, signal);
+    if (result.offers.length) {
+      const remaining = Math.floor(budgetMs - (performance.now() - started));
+      if (remaining <= 0) throw new EngineError(504, "Appointment search deadline exhausted");
+      await request("/v1/offers/acknowledge-search", success, { jobId, searchRequestId }, remaining, signal);
+    }
+    return { ...result, search: { ...result.search, apiElapsedMs: Math.ceil(performance.now() - started) } };
+  } catch (error) {
+    cancel();
+    if (!signal?.aborted && performance.now() - started >= budgetMs)
+      throw new EngineError(504, "Appointment search deadline exhausted. Please retry.");
+    throw error;
+  }
+  finally { signal?.removeEventListener("abort", cancel); }
 }
 
 export function selectOffer(jobId: string, offerId: string, timeoutMs?: number): Promise<{ holdId: string; expiresAt: string; appointmentId: string; windowStart: string; windowEnd: string }> {
@@ -68,7 +102,18 @@ export function confirmHold(holdId: string): Promise<{ appointmentId: string; wi
   return request("/v1/holds/confirm", confirmation, { holdId });
 }
 
+const purgeRoute = z.object({ technicianId: z.string().min(1), serviceDate: z.iso.date(), version: z.int().nonnegative(),
+  routingIdentity: z.string().min(1).nullable(),
+  stops: z.array(z.object({ id: z.string().min(1), plannedStart: z.iso.datetime(), plannedEnd: z.iso.datetime() })),
+  segments: z.array(z.object({ departure: z.iso.datetime(), returnedAt: z.iso.datetime(), appointmentIds: z.array(z.string().min(1)).min(1) })),
+});
+export function validatePurgeRoutes(jobIds: string[], days: Array<{ technicianId: string; serviceDate: string }>) {
+  return request("/v1/purge/validate-routes", z.array(purgeRoute), { jobIds, days });
+}
+
 export interface OptimizationRun {
+  policy_analysis?: z.infer<typeof policyAnalysis> | null;
+  solver_analysis?: z.infer<typeof solverAnalysis> | null;
   run_id: string;
   metro_id: string;
   service_date: string;
@@ -90,24 +135,28 @@ export interface OptimizationRun {
     stop_count: number;
     route_minutes: number;
     drive_minutes: number;
+    travel_breakdown?: { road_seconds: number; configured_buffer_seconds: number; rounding_seconds: number; modeled_travel_minutes: number; leg_count: number } | null;
     waiting_minutes: number;
     distance_meters: number;
     modeled_cost_cents: number;
     workload_minutes: number;
     overtime_minutes: number;
     appointment_ids: string[];
+    segments?: Array<{ departure: string; returned_at: string; appointment_ids: string[] }> | null;
   }>;
   route_summary_after: Array<{
     technician_id: string;
     stop_count: number;
     route_minutes: number;
     drive_minutes: number;
+    travel_breakdown?: { road_seconds: number; configured_buffer_seconds: number; rounding_seconds: number; modeled_travel_minutes: number; leg_count: number } | null;
     waiting_minutes: number;
     distance_meters: number;
     modeled_cost_cents: number;
     workload_minutes: number;
     overtime_minutes: number;
     appointment_ids: string[];
+    segments?: Array<{ departure: string; returned_at: string; appointment_ids: string[] }> | null;
   }>;
   changes: Array<{
     appointment_id: string;
@@ -160,8 +209,8 @@ export function submitTimeOff(request: { technicianId: string; firstDate: string
   return requestEngine("/v1/time-off/request", timeOffResult, request);
 }
 
-export function approveTimeOff(id: string): Promise<{ requestId: string; status: string }> {
-  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, {});
+export function approveTimeOff(id: string, allowAdditionalOvertime = false, approvedRepairIds: string[] = []): Promise<{ requestId: string; status: string }> {
+  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, { allowAdditionalOvertime, approvedRepairIds });
 }
 
 export function retryTimeOff(id: string): Promise<{ requestId: string; status: string }> {

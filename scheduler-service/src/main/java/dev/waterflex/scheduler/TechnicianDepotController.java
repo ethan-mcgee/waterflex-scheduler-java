@@ -71,10 +71,13 @@ public class TechnicianDepotController {
         List<LocalDate> booked = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\">=? AND \"cancelledAt\" IS NULL ORDER BY \"serviceDate\"",
                 (rs, _) -> Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate(), id, stamp);
         if (crossMetro && !booked.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Booked appointments conflict with the metro move");
-        List<LocalDate> held = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM slot_hold WHERE \"technicianId\"=? AND \"serviceDate\">=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP ORDER BY \"serviceDate\"",
+        List<LocalDate> held = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\">=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP ORDER BY \"serviceDate\"",
                 (rs, _) -> Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate(), id, stamp);
         if (crossMetro && !held.isEmpty())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Active holds conflict with the depot move");
+        if (Required.query(jdbc, "SELECT count(*) FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE d.\"technicianId\"=? AND h.\"serviceDate\">=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP",
+                Integer.class, id, stamp) > 0)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A reserved route arrangement depends on this depot assignment");
 
         jdbc.update("INSERT INTO technician_depot_assignment (\"technicianId\",\"effectiveDate\",\"depotId\") VALUES (?,?,?)", id, stamp, target.id());
         if (!crossMetro) {

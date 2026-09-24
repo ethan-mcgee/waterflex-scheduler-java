@@ -1,7 +1,8 @@
 "use client";
 
 import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
-import { useEffect, useMemo, useState } from "react";
+import { appointmentSearchMessage, recordBookingApiDuration } from "@/lib/appointmentSearch";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/book/booking.module.css";
 import AddressPinMap, { type PinCandidate } from "@/app/book/AddressPinMap";
 
@@ -85,6 +86,13 @@ function formatCountdown(seconds: number): string {
 }
 
 export default function BookingWizard({ services }: { services: ServiceOption[] }) {
+  const activeRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => activeRequest.current?.abort(), []);
+  function requestSignal() {
+    activeRequest.current?.abort();
+    activeRequest.current = new AbortController();
+    return activeRequest.current.signal;
+  }
   const [step, setStep] = useState<Step>("form");
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [requestId, setRequestId] = useState(() => newRequestId());
@@ -118,11 +126,13 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   }
 
   async function handleSubmit(e: React.FormEvent) {
+    const started = performance.now();
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
       const res = await fetch("/api/book", {
+        signal: requestSignal(),
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, requestId }),
@@ -139,11 +149,9 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         setStep("pending");
         return;
       }
-      if (!data.offers || data.offers.length === 0) {
-        setStep("pending");
-        return;
-      }
-      setOffers(data.offers);
+      const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
+      if (problem) { setError(problem); return; }
+      setOffers(required(data.offers, "Appointment offers"));
       setInvalidOffers(false);
       setNow(Date.now());
       setStep("slots");
@@ -151,15 +159,18 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       setError(errorMessage(error));
       setInvalidOffers(true);
     } finally {
+      recordBookingApiDuration(started, "initial");
       setSubmitting(false);
     }
   }
 
   async function handleSelectSlot(offerId: string) {
+    const started = performance.now();
     setError(null);
     setConfirmingHoldId(offerId);
     try {
       const selection = await fetch("/api/book/select", {
+        signal: requestSignal(),
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId, offerId }),
       });
@@ -169,6 +180,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         if (selected.pendingReference) { setJobId(selected.pendingReference); setStep("pending"); return; }
         setError(selected.error ?? "That window is no longer available. Please refresh your options.");
         if (selection.status === 409 && selected.offers) setOffers(selected.offers);
+        setInvalidOffers(selected.search?.outcome !== "AVAILABLE");
         return;
       }
       const selected = selectionSchema.parse(raw);
@@ -179,6 +191,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       setError(errorMessage(error));
       setInvalidOffers(true);
     } finally {
+      recordBookingApiDuration(started, "selection");
       setConfirmingHoldId(null);
     }
   }
@@ -207,38 +220,54 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
 
   async function refreshOffers() {
     if (!jobId) return;
+    const started = performance.now();
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
+      const response = await fetch("/api/book/refresh", { signal: AbortSignal.any([requestSignal(), AbortSignal.timeout(5000)]), method: "POST",
+        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, deadlineEpochMs: Date.now() + 5000 }) });
       const data = await readResponse(response, offersResponse);
+      const problem = appointmentSearchMessage(data.search);
+      if (problem) { setOffers([]); setInvalidOffers(true); setError(problem); return; }
       setOffers(data.offers);
       setInvalidOffers(false);
       setNow(Date.now());
-      if (!data.offers.length) setStep("pending");
-    } catch (error) { setInvalidOffers(true); setError(error instanceof Error ? error.message : "Could not refresh times."); }
-    finally { setSubmitting(false); }
+    } catch (error) {
+      setInvalidOffers(true);
+      setError(error instanceof DOMException && error.name === "TimeoutError"
+        ? "The appointment search did not finish. Please retry to check available times."
+        : errorMessage(error, "Could not refresh times."));
+    }
+    finally { recordBookingApiDuration(started, "refresh"); setSubmitting(false); }
   }
 
   async function handlePinConfirmation() {
     const pin = pinCandidates[selectedPinIndex];
     if (!pin) return;
+    const started = performance.now();
     setSubmitting(true);
     setError(null);
     try {
       const response = await fetch("/api/book", {
+        signal: requestSignal(),
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, requestId, confirmedPin: { lat: pin.lat, lng: pin.lng } }),
       });
       const data = await readResponse(response, bookingResponse);
       if (data.pendingReference) { setStep("pending"); return; }
-      if (!data.offers?.length) { setStep("pending"); return; }
-      setOffers(data.offers);
+      const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
+      if (problem) { setError(problem); return; }
+      setOffers(required(data.offers, "Appointment offers"));
       setInvalidOffers(false);
       setStep("slots");
     } catch (error) { setError(errorMessage(error)); }
-    finally { setSubmitting(false); }
+    finally { recordBookingApiDuration(started, "pin"); setSubmitting(false); }
   }
+
+  const searchProgress = submitting ? <div role="status">
+    <label htmlFor="appointment-search-progress">Finding available appointments</label>
+    <progress id="appointment-search-progress" aria-label="Finding available appointments" />
+  </div> : null;
 
   if (step === "pending") {
     return <main className={styles.wrap}><div className={styles.card}>
@@ -251,7 +280,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     return <main className={styles.wrap}>
       <h1 className={styles.title}>Confirm your service location</h1>
       <p className={styles.subtitle}>We found more than one possible match. Select the pin that marks your home.</p>
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div role="alert" className={styles.error}>{error}</div>}
+      {searchProgress}
       <AddressPinMap candidates={pinCandidates} selected={selectedPinIndex} onSelect={setSelectedPinIndex} />
       <div className={styles.card}>
         {pinCandidates.map((candidate, index) => <label key={`${candidate.lat}-${candidate.lng}`} className={styles.serviceOption}>
@@ -291,7 +321,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         <p className={styles.subtitle}>
           {selectedService?.name} &mdash; pick whichever works best for you.
         </p>
-        {error && <div className={styles.error}>{error}</div>}
+        {error && <div role="alert" className={styles.error}>{error}</div>}
+      {searchProgress}
         <div className={styles.slotGrid}>
           {offers.map((offer) => {
             const remaining = secondsRemaining(offer.expiresAt, now);
@@ -335,7 +366,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     <main className={styles.wrap}>
       <h1 className={styles.title}>Book a service visit</h1>
       <p className={styles.subtitle}>Tell us what you need and we&apos;ll find the soonest good time.</p>
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div role="alert" className={styles.error}>{error}</div>}
+      {searchProgress}
       <form className={styles.card} onSubmit={handleSubmit}>
         <fieldset className={styles.serviceFieldset}>
           <legend className={styles.label}>What type of service do you need?</legend>

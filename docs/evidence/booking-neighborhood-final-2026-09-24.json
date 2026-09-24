@@ -1,0 +1,609 @@
+{
+  "sources": [
+    {
+      "source": 0,
+      "provenance": {
+        "type": "provenance",
+        "revision": "971b0b9f115e557f81925e57ae5ebba0d52eead2",
+        "artifactSha256": "d0a34e72d61395fe39730cb7e8a498a7dd6fb3817146f6404e92f2f4047586ad",
+        "ablationManifest": null,
+        "harnessRevision": "0629445b03f6795704e23fb66ae6a9ed62b27df9",
+        "harnessSources": [
+          {
+            "path": "lib/appointmentSearch.ts",
+            "sha256": "70f6f808a243be22ee4b6e7774e38dd4656d6f609e3b581661874bac33eb356c"
+          },
+          {
+            "path": "lib/bookingTestAccess.ts",
+            "sha256": "4a00669c0ce029c2856bce7d1d58fa45d657563b6f50e2591ce9e0bfeea3a733"
+          },
+          {
+            "path": "lib/bookingTestAddresses.test.ts",
+            "sha256": "9324882d799ac7aa761f263d1dc4968b643a97e8bd62dfdbc1c3c5ddd4989f8e"
+          },
+          {
+            "path": "lib/bookingTestAddresses.ts",
+            "sha256": "ed017421839a9e88374c2338415f2ed584fe874680a7d28f05b5bfd2118a6b75"
+          },
+          {
+            "path": "lib/bookingTestCore.test.ts",
+            "sha256": "a716147bb9e3e52dc8bf546ad55012f42b00cb38a26d14feba33ffa9bfa88c1a"
+          },
+          {
+            "path": "lib/bookingTestCore.ts",
+            "sha256": "2c4ba01e0ef0363601da5b7e4b0db6b38ba7588fc87cf8cc4f1e7c215ffcde2e"
+          },
+          {
+            "path": "lib/bookingTestRunner.ts",
+            "sha256": "a75091c27ab21730cbaf84bbe863db2f0de36fc7bfe3fbb4b8c56b7045208498"
+          },
+          {
+            "path": "lib/contracts.ts",
+            "sha256": "3e999fb8fa8028ec1ed30a073bfc6b2b459fa4e6ca2e4c5232f124483d8a6a29"
+          },
+          {
+            "path": "lib/currentRouteTiming.test.ts",
+            "sha256": "5027f7cfa97102f54ca40b03e3f091107f9552a0494489ca22bc31d48e6b0e69"
+          },
+          {
+            "path": "lib/currentRouteTiming.ts",
+            "sha256": "1cc17618e4f37839a326f41d7850f59c3587ba0133de8facb1177be116d9998d"
+          },
+          {
+            "path": "lib/date.ts",
+            "sha256": "6191cc01ba484e35bf560f23eaaf3ef85b16beabf7d86d716e21ee2f43765788"
+          },
+          {
+            "path": "lib/depotPin.ts",
+            "sha256": "8058ba638e3d0d97543481a8b7c3b544acff3d66e56efe4ec35462c12047d2ba"
+          },
+          {
+            "path": "lib/dispatchGeometry.test.ts",
+            "sha256": "13cdc6ca0770876d43860f14aa75a8276e51d49af032d02e5ecd2e5341e4861f"
+          },
+          {
+            "path": "lib/dispatchGeometry.ts",
+            "sha256": "5ba61e2438c2f4bae8d5a76db20822e67ddb83efb6b472f686d8e1717f55b11c"
+          },
+          {
+            "path": "lib/engineClient.ts",
+            "sha256": "5bf942352423faa1f62837656c0c94bfdca0bd5f6b5e5e7c04fa6f3d1c2a9345"
+          },
+          {
+            "path": "lib/fakeData.ts",
+            "sha256": "3bf10f85d0711497586b08bf147f8c6b508f0c9f37c089c9d1e370cc10c259fb"
+          },
+          {
+            "path": "lib/fakeDataCore.test.ts",
+            "sha256": "9bed42fc0eb66c652516d9167d31d7ab0e2134ee4ad453c196ed7d38491b6dee"
+          },
+          {
+            "path": "lib/fakeDataCore.ts",
+            "sha256": "fc976765aa2edf64237bfa64d5f6ab9282f8e559fc1230520091792a039a8466"
+          },
+          {
+            "path": "lib/geo.ts",
+            "sha256": "3fdeca545070b70be2f5d613a4851a78a4e195d915728bd3adaf3d1308dc414c"
+          },
+          {
+            "path": "lib/geocode.test.ts",
+            "sha256": "9897aca620356ba771c5e57a0832b2fd025bedbf93490ab90f15b314b4b2c4a5"
+          },
+          {
+            "path": "lib/geocode.ts",
+            "sha256": "fdd47ade39cb3ae12c8289d617279639ca0a5b37cf011bb653a71265959b16eb"
+          },
+          {
+            "path": "lib/localMapStyle.ts",
+            "sha256": "589aab26019468c3883597a79eadd7db9d8d04b723127335b34d3b6248244daf"
+          },
+          {
+            "path": "lib/nullability.test.ts",
+            "sha256": "ffd75a8a28d22cd6b4a3e9c120de1703ae639abae1678213c4256cc22bb071a5"
+          },
+          {
+            "path": "lib/omahaConfiguration.ts",
+            "sha256": "477e9df7cba3dfa03ccad73843aa4d02b07d1f331531b641919559748d87c497"
+          },
+          {
+            "path": "lib/optimizationAnalysis.test.ts",
+            "sha256": "8e59c4ea833cfc96d93a6a7ad204efa5ed7a71dfbb2a0aeb2c11b8326277f153"
+          },
+          {
+            "path": "lib/optimizationAnalysis.ts",
+            "sha256": "24f788fbe54fbeaa69d3f16d89d7ff11d9b27f48cad693cac0c30adf7237fa90"
+          },
+          {
+            "path": "lib/optimizationExport.test.ts",
+            "sha256": "5917a6fbd7a84f54c9d0957248900d12dec7bd358b85798ea3af5a2cdce68955"
+          },
+          {
+            "path": "lib/optimizationExport.ts",
+            "sha256": "ecea09411cd02a28f65edc9498a477da9683ed4a5a09ff6ccc629b7adb5a7b6b"
+          },
+          {
+            "path": "lib/optimizationSimulationTypes.ts",
+            "sha256": "c5a3fc47e40e4109fb00e973098d1da11393747b340412c70518851d13e2d338"
+          },
+          {
+            "path": "lib/prisma.ts",
+            "sha256": "9c9ef1049b6b540513deed4e4704624213648b6ce724326592987c4cbe046439"
+          },
+          {
+            "path": "lib/reservationGuards.ts",
+            "sha256": "d24ade7fce8a1e71306adf923eff6e7ddfba3ded8cbaa04a62c2d41f2519ee78"
+          },
+          {
+            "path": "lib/serviceArea.ts",
+            "sha256": "fcd2383f0545b2d2f043b4424e9819ee1ed54161881b18b44e2b45eb5955b95d"
+          },
+          {
+            "path": "lib/technicianAvailability.test.ts",
+            "sha256": "ebcb7aac05a86a610a68346fa75d641f173b7c54dcdf66979ab1eb08d6ae615a"
+          },
+          {
+            "path": "lib/technicianAvailability.ts",
+            "sha256": "e7002b497f72b359131b4bf9f246975fac18954bc9714d90b5b74bff7a725d89"
+          },
+          {
+            "path": "lib/technicianColor.ts",
+            "sha256": "a568cf2d9f6134dafb4428d5c198014159fdc71d1122d930e3b6b5f70998ea6e"
+          },
+          {
+            "path": "lib/technicianHomePin.ts",
+            "sha256": "9b6ddc759b9defc606609133720938d9bcd1efea36ac7c17d2e7c55c7774a68b"
+          },
+          {
+            "path": "lib/timeOffView.ts",
+            "sha256": "86679798e278ebcbb06cf3a03aa95b73dd3744c689292b6b133a1dfd22139369"
+          },
+          {
+            "path": "prisma/schema.prisma",
+            "sha256": "ed25550d6510a07b7c2c9ad9202f1b5c23f5002e221a1c5b14816cb424eae1a5"
+          },
+          {
+            "path": "scripts/benchmark-scheduling.ts",
+            "sha256": "7f8aa43a13af9f62c56d33632ce8e1d5d61d998b6c6707330429c58f8c711814"
+          },
+          {
+            "path": "scripts/benchmarkBrowser.ts",
+            "sha256": "7f593252048e8f25e63cc1eac43235f9bcb961a1e10807a5fa806b374727c4af"
+          },
+          {
+            "path": "scripts/benchmarkLegacy.ts",
+            "sha256": "8f3a54e0bfd025f1a92b25ec8203f58a35e5492be04cd6d4faf0b6810facdce3"
+          }
+        ],
+        "variant": "neighborhood-insertion-dense",
+        "seed": 17,
+        "startedAt": "2026-09-24T08:56:49.637Z",
+        "dates": [
+          "2026-09-25",
+          "2026-09-28",
+          "2026-09-29",
+          "2026-09-30",
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08"
+        ],
+        "sizes": [
+          50
+        ],
+        "workloads": [
+          "NEAR_CAPACITY"
+        ],
+        "concurrencyValues": [
+          1,
+          5,
+          10
+        ],
+        "caches": [
+          "cold",
+          "warm"
+        ],
+        "requests": 30,
+        "browser": null,
+        "serverMode": "current",
+        "auditRevision": "971b0b9f115e557f81925e57ae5ebba0d52eead2",
+        "legacyLimitations": null,
+        "scope": "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport",
+        "hardware": {
+          "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "logicalProcessors": 24,
+          "memoryBytes": 67870916608
+        }
+      },
+      "archive": "booking-neighborhood-final-2026-09-24-source-0.jsonl.gz",
+      "sha256": "fbc9aef0d646e8dc260d128d103fc06fbe2ba43d671293ea8dfd3c614b8d64ff"
+    }
+  ],
+  "summaries": [
+    {
+      "source": 0,
+      "variant": "neighborhood-insertion-dense",
+      "cases": 6,
+      "requests": 180,
+      "served": 78,
+      "incomplete": 102,
+      "unknownSearchCompletion": 0,
+      "excludedTiming": 0,
+      "outcomeCounts": {
+        "AVAILABLE": 78,
+        "SCHEDULE_CONFLICT": 17,
+        "SEARCH_INCOMPLETE": 16,
+        "SERVICE_BUSY": 69
+      },
+      "p50Ms": 3871.003700000001,
+      "p95Ms": 4193.223499999964,
+      "p99Ms": 4371.403300000005
+    }
+  ],
+  "cases": [
+    {
+      "source": 0,
+      "key": "50/NEAR_CAPACITY/1/cold",
+      "datasetFingerprint": "e46ae2e617d08f2d7b21c111b3edb258130640b78354d3cdd40e18d761b40e10",
+      "routingIdentity": "ci-monaco-omaha-car-v2",
+      "served": 30,
+      "requests": 30,
+      "p50Ms": 1644.4695000000065,
+      "p95Ms": 2214.666300000001,
+      "p99Ms": 2360.821499999991,
+      "beforeCost": 12125000,
+      "afterCost": 12185000,
+      "costPerConfirmedAppointmentCents": 3023.573200992556,
+      "incrementalCostPerServedCents": 2000,
+      "overtimeBefore": 0,
+      "overtimeAfter": 300,
+      "waitingBefore": 0,
+      "waitingAfter": 0,
+      "meanDailyVarianceBefore": 0,
+      "meanDailyVarianceAfter": 0.00013413302575932334,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 231,
+      "queueMs": {
+        "observed": 30,
+        "total": 0
+      },
+      "databaseExecutions": {
+        "observed": 30,
+        "total": 14478
+      },
+      "databaseNanos": {
+        "observed": 30,
+        "total": 14882030400
+      },
+      "lockingStatementNanos": {
+        "observed": 30,
+        "total": 691828700
+      },
+      "foregroundCpuNanos": {
+        "observed": 30,
+        "total": 34125000000
+      },
+      "memoryCacheHits": {
+        "observed": 30,
+        "total": 881
+      },
+      "persistentCacheHits": {
+        "observed": 30,
+        "total": 0
+      },
+      "providerLegRequests": 9,
+      "providerRequestedPairs": 100,
+      "providerIdentityRequests": 60,
+      "providerGeometryRequests": 0,
+      "processCpuNanos": 98093750000,
+      "peakHeapUsedBytes": 465250064,
+      "preparationDiagnostics": null
+    },
+    {
+      "source": 0,
+      "key": "50/NEAR_CAPACITY/1/warm",
+      "datasetFingerprint": "e46ae2e617d08f2d7b21c111b3edb258130640b78354d3cdd40e18d761b40e10",
+      "routingIdentity": "ci-monaco-omaha-car-v2",
+      "served": 30,
+      "requests": 30,
+      "p50Ms": 1787.8463000000047,
+      "p95Ms": 2009.769100000005,
+      "p99Ms": 2095.2764000000025,
+      "beforeCost": 12125000,
+      "afterCost": 12185000,
+      "costPerConfirmedAppointmentCents": 3023.573200992556,
+      "incrementalCostPerServedCents": 2000,
+      "overtimeBefore": 0,
+      "overtimeAfter": 300,
+      "waitingBefore": 0,
+      "waitingAfter": 0,
+      "meanDailyVarianceBefore": 0,
+      "meanDailyVarianceAfter": 0.00013413302575932334,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 239,
+      "queueMs": {
+        "observed": 30,
+        "total": 0
+      },
+      "databaseExecutions": {
+        "observed": 30,
+        "total": 14460
+      },
+      "databaseNanos": {
+        "observed": 30,
+        "total": 15007063000
+      },
+      "lockingStatementNanos": {
+        "observed": 30,
+        "total": 687282000
+      },
+      "foregroundCpuNanos": {
+        "observed": 30,
+        "total": 36593750000
+      },
+      "memoryCacheHits": {
+        "observed": 30,
+        "total": 981
+      },
+      "persistentCacheHits": {
+        "observed": 30,
+        "total": 0
+      },
+      "providerLegRequests": 0,
+      "providerRequestedPairs": 0,
+      "providerIdentityRequests": 60,
+      "providerGeometryRequests": 0,
+      "processCpuNanos": 77718750000,
+      "peakHeapUsedBytes": 382730240,
+      "preparationDiagnostics": null
+    },
+    {
+      "source": 0,
+      "key": "50/NEAR_CAPACITY/5/cold",
+      "datasetFingerprint": "e46ae2e617d08f2d7b21c111b3edb258130640b78354d3cdd40e18d761b40e10",
+      "routingIdentity": "ci-monaco-omaha-car-v2",
+      "served": 6,
+      "requests": 30,
+      "p50Ms": 4005.710699999996,
+      "p95Ms": 4371.403300000005,
+      "p99Ms": 4377.314700000046,
+      "beforeCost": 12125000,
+      "afterCost": 12137000,
+      "costPerConfirmedAppointmentCents": 3029.705441837244,
+      "incrementalCostPerServedCents": 2000,
+      "overtimeBefore": 0,
+      "overtimeAfter": 60,
+      "waitingBefore": 0,
+      "waitingAfter": 0,
+      "meanDailyVarianceBefore": 0,
+      "meanDailyVarianceAfter": 0.00004973471741637832,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 48,
+      "queueMs": {
+        "observed": 30,
+        "total": 60130
+      },
+      "databaseExecutions": {
+        "observed": 30,
+        "total": 6982
+      },
+      "databaseNanos": {
+        "observed": 30,
+        "total": 15093026800
+      },
+      "lockingStatementNanos": {
+        "observed": 30,
+        "total": 3485377900
+      },
+      "foregroundCpuNanos": {
+        "observed": 30,
+        "total": 32125000000
+      },
+      "memoryCacheHits": {
+        "observed": 30,
+        "total": 670
+      },
+      "persistentCacheHits": {
+        "observed": 30,
+        "total": 0
+      },
+      "providerLegRequests": 8,
+      "providerRequestedPairs": 98,
+      "providerIdentityRequests": 31,
+      "providerGeometryRequests": 0,
+      "processCpuNanos": 60453125000,
+      "peakHeapUsedBytes": 653997472,
+      "preparationDiagnostics": null
+    },
+    {
+      "source": 0,
+      "key": "50/NEAR_CAPACITY/5/warm",
+      "datasetFingerprint": "e46ae2e617d08f2d7b21c111b3edb258130640b78354d3cdd40e18d761b40e10",
+      "routingIdentity": "ci-monaco-omaha-car-v2",
+      "served": 6,
+      "requests": 30,
+      "p50Ms": 3918.6098000000347,
+      "p95Ms": 4247.648099999991,
+      "p99Ms": 4359.810699999973,
+      "beforeCost": 12125000,
+      "afterCost": 12137000,
+      "costPerConfirmedAppointmentCents": 3029.705441837244,
+      "incrementalCostPerServedCents": 2000,
+      "overtimeBefore": 0,
+      "overtimeAfter": 60,
+      "waitingBefore": 0,
+      "waitingAfter": 0,
+      "meanDailyVarianceBefore": 0,
+      "meanDailyVarianceAfter": 0.00004973471741637832,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 48,
+      "queueMs": {
+        "observed": 30,
+        "total": 58311
+      },
+      "databaseExecutions": {
+        "observed": 30,
+        "total": 7104
+      },
+      "databaseNanos": {
+        "observed": 30,
+        "total": 15549563500
+      },
+      "lockingStatementNanos": {
+        "observed": 30,
+        "total": 3634980900
+      },
+      "foregroundCpuNanos": {
+        "observed": 30,
+        "total": 30281250000
+      },
+      "memoryCacheHits": {
+        "observed": 30,
+        "total": 768
+      },
+      "persistentCacheHits": {
+        "observed": 30,
+        "total": 0
+      },
+      "providerLegRequests": 0,
+      "providerRequestedPairs": 0,
+      "providerIdentityRequests": 31,
+      "providerGeometryRequests": 0,
+      "processCpuNanos": 56656250000,
+      "peakHeapUsedBytes": 662485792,
+      "preparationDiagnostics": null
+    },
+    {
+      "source": 0,
+      "key": "50/NEAR_CAPACITY/10/cold",
+      "datasetFingerprint": "e46ae2e617d08f2d7b21c111b3edb258130640b78354d3cdd40e18d761b40e10",
+      "routingIdentity": "ci-monaco-omaha-car-v2",
+      "served": 3,
+      "requests": 30,
+      "p50Ms": 3935.144800000009,
+      "p95Ms": 4165.423099999956,
+      "p99Ms": 4336.914499999955,
+      "beforeCost": 12125000,
+      "afterCost": 12131000,
+      "costPerConfirmedAppointmentCents": 3030.4771421433925,
+      "incrementalCostPerServedCents": 2000,
+      "overtimeBefore": 0,
+      "overtimeAfter": 30,
+      "waitingBefore": 0,
+      "waitingAfter": 0,
+      "meanDailyVarianceBefore": 0,
+      "meanDailyVarianceAfter": 0.000026562860438292963,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 24,
+      "queueMs": {
+        "observed": 30,
+        "total": 89458
+      },
+      "databaseExecutions": {
+        "observed": 30,
+        "total": 3626
+      },
+      "databaseNanos": {
+        "observed": 30,
+        "total": 7664123000
+      },
+      "lockingStatementNanos": {
+        "observed": 30,
+        "total": 1840022300
+      },
+      "foregroundCpuNanos": {
+        "observed": 30,
+        "total": 15468750000
+      },
+      "memoryCacheHits": {
+        "observed": 30,
+        "total": 274
+      },
+      "persistentCacheHits": {
+        "observed": 30,
+        "total": 0
+      },
+      "providerLegRequests": 7,
+      "providerRequestedPairs": 94,
+      "providerIdentityRequests": 15,
+      "providerGeometryRequests": 0,
+      "processCpuNanos": 29609375000,
+      "peakHeapUsedBytes": 649068544,
+      "preparationDiagnostics": null
+    },
+    {
+      "source": 0,
+      "key": "50/NEAR_CAPACITY/10/warm",
+      "datasetFingerprint": "e46ae2e617d08f2d7b21c111b3edb258130640b78354d3cdd40e18d761b40e10",
+      "routingIdentity": "ci-monaco-omaha-car-v2",
+      "served": 3,
+      "requests": 30,
+      "p50Ms": 3951.1790000000037,
+      "p95Ms": 4120.009099999967,
+      "p99Ms": 4124.805300000007,
+      "beforeCost": 12125000,
+      "afterCost": 12131000,
+      "costPerConfirmedAppointmentCents": 3030.4771421433925,
+      "incrementalCostPerServedCents": 2000,
+      "overtimeBefore": 0,
+      "overtimeAfter": 30,
+      "waitingBefore": 0,
+      "waitingAfter": 0,
+      "meanDailyVarianceBefore": 0,
+      "meanDailyVarianceAfter": 0.000026562860438292963,
+      "maximumUtilization": 1.0196078431372548,
+      "changedAssignments": 0,
+      "retimedAppointments": 24,
+      "queueMs": {
+        "observed": 30,
+        "total": 87679
+      },
+      "databaseExecutions": {
+        "observed": 30,
+        "total": 3612
+      },
+      "databaseNanos": {
+        "observed": 30,
+        "total": 7891184300
+      },
+      "lockingStatementNanos": {
+        "observed": 30,
+        "total": 1806576700
+      },
+      "foregroundCpuNanos": {
+        "observed": 30,
+        "total": 14843750000
+      },
+      "memoryCacheHits": {
+        "observed": 30,
+        "total": 384
+      },
+      "persistentCacheHits": {
+        "observed": 30,
+        "total": 0
+      },
+      "providerLegRequests": 0,
+      "providerRequestedPairs": 0,
+      "providerIdentityRequests": 16,
+      "providerGeometryRequests": 0,
+      "processCpuNanos": 28953125000,
+      "peakHeapUsedBytes": 680525824,
+      "preparationDiagnostics": null
+    }
+  ],
+  "comparisons": [],
+  "limitations": [
+    "Ten-request case p95 is the maximum sample, not a stable production tail estimate. Read sample counts.",
+    "Search HTTP measurements exclude browser address validation; actual-road and deterministic-fixture evidence are separate.",
+    "Concurrent local benchmarks and verification shared hardware. No production capacity or payroll savings claim.",
+    "Accepted request streams can diverge after failures; compare served demand with latency and cost per confirmed appointment.",
+    "Legacy selection-conflict rows have unavailable search timing/completion and are excluded only from those statistics.",
+    "Earlier runs did not capture harness source hashes or provider HTTP counters. Server revisions and available artifact manifests remain explicit."
+  ]
+}
