@@ -283,8 +283,7 @@ public final class BoundedBookingSearch {
                 List<String> route = Required.value(arrangement.routes().get(tech), "insertion route");
                 var visit = new Visit(request.jobId(), request.jobId(), request.serviceId(), window.start(), window.end(),
                         request.durationMinutes(), request.location(), Required.value(tech), window.start(), false);
-                Map<String, Visit> facts = new HashMap<>(day.visits());
-                if (facts.putIfAbsent(visit.id(), visit) != null) throw new BookingSnapshot.Incomplete("Request already present in snapshot");
+                Map<String, Visit> facts = new InsertionFacts(day, visit);
                 for (int position = 0; position <= route.size(); position++) {
                     checkpoint.run();
                     evaluations++;

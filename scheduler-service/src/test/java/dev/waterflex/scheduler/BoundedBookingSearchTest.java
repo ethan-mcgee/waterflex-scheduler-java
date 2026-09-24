@@ -11,6 +11,33 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoundedBookingSearchTest {
+    @Test void immutableInsertionOverlayAndAffectedRouteMetricsMatchFullRecomputation() {
+        for (boolean hold : List.of(false, true)) {
+            Day day = Required.value(fixture(30, hold, true, 60).days().get(DAY));
+            var evaluation = new BookingEvaluation(day, RATES, "new-service", () -> { });
+            for (String technician : List.of("a", "b")) for (int delay : List.of(0, 20, 50)) {
+                Instant start = Required.value(START.plusSeconds(delay * 60L));
+                var visit = new Visit("new", "new", "new-service", start, END, 20, POINT, Required.value(technician), start, false);
+                var facts = new InsertionFacts(day, visit);
+                Map<String, Visit> copied = new HashMap<>(day.visits()); copied.put(visit.id(), visit);
+                assertEquals(copied, facts); assertEquals(copied.hashCode(), facts.hashCode());
+                assertThrows(UnsupportedOperationException.class, () -> facts.put("other", visit));
+                assertThrows(UnsupportedOperationException.class, () -> facts.entrySet().iterator().next().setValue(visit));
+                assertThrows(BookingSnapshot.Incomplete.class, () -> new InsertionFacts(day, Required.value(day.visits().get("old"))));
+                for (int position = 0; position <= Required.value(day.baseline().routes().get(technician)).size(); position++) {
+                    var arrangement = day.baseline().insert(Required.value(technician), visit.id(), position);
+                    for (boolean confirmed : List.of(false, true)) {
+                        var full = dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(arrangement, copied, RATES, confirmed));
+                        assertEquals(full, evaluation.evaluate(arrangement, facts, confirmed));
+                        assertEquals(new BookingEvaluation.Metrics(full.feasible(), full.costCents(), full.overtimeMinutes()), evaluation.metrics(arrangement, facts, confirmed));
+                        if (confirmed && full.feasible()) assertEquals(SchedulingPolicy.measure(day.plan(arrangement, copied, RATES, true)).fairness().variance(),
+                                evaluation.fairness(arrangement, facts));
+                    }
+                }
+            }
+        }
+    }
+
     @Test void structuralInsertionPreservesImmutableCoverageEqualityAndHashing() {
         var original = new Arrangement(Required.value(Map.of("a", List.of("one"), "b", List.of("two"))));
         var first = original.insert("a", "three", 0);

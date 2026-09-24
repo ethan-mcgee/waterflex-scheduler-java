@@ -90,6 +90,7 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
         private final Set<String> originalVisits;
         private final @org.jspecify.annotations.Nullable Arrangement parent;
         private final @org.jspecify.annotations.Nullable String insertedVisit;
+        private final @org.jspecify.annotations.Nullable String insertedTechnician;
         private final int hash;
         private @org.jspecify.annotations.Nullable String signature;
 
@@ -107,16 +108,20 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
             }
             this.routes = Required.value(Collections.unmodifiableMap(copy));
             originalVisits = Required.value(Set.copyOf(seen));
-            parent = null; insertedVisit = null; hash = this.routes.hashCode();
+            parent = null; insertedVisit = null; insertedTechnician = null; hash = this.routes.hashCode();
         }
         private Arrangement(Arrangement parent, String technician, String visit, List<String> order) {
             Map<String, List<String>> copy = new TreeMap<>(parent.routes);
             List<String> previous = Required.value(copy.put(technician, order));
             routes = Required.value(Collections.unmodifiableMap(copy));
             originalVisits = parent.originalVisits; this.parent = parent; insertedVisit = visit;
+            insertedTechnician = technician;
             hash = parent.hash - (technician.hashCode() ^ previous.hashCode()) + (technician.hashCode() ^ order.hashCode());
         }
         public Map<String, List<String>> routes() { return routes; }
+        @org.jspecify.annotations.Nullable String insertionTechnician(Arrangement original, String visit) {
+            return parent == original && visit.equals(insertedVisit) ? insertedTechnician : null;
+        }
         private boolean containsVisit(String visit) {
             for (Arrangement current = this; ; ) {
                 if (visit.equals(current.insertedVisit)) return true;
@@ -142,6 +147,33 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
             return this == other || other instanceof Arrangement arrangement && hash == arrangement.hash && routes.equals(arrangement.routes);
         }
         @Override public String toString() { return "Arrangement[routes=" + signature() + "]"; }
+    }
+
+    /** Immutable one-visit overlay; the day already owns an immutable, validated facts map. */
+    static final class InsertionFacts extends AbstractMap<String, Visit> {
+        final Day day;
+        final Visit visit;
+        private @org.jspecify.annotations.Nullable Set<Map.Entry<String, Visit>> entries;
+        InsertionFacts(Day day, Visit visit) {
+            if (day.visits().containsKey(visit.id())) throw new Incomplete("Request already present in snapshot");
+            this.day = day; this.visit = visit;
+        }
+        @Override public @org.jspecify.annotations.Nullable Visit get(@org.jspecify.annotations.Nullable Object key) {
+            return visit.id().equals(key) ? visit : day.visits().get(key);
+        }
+        @Override public boolean containsKey(@org.jspecify.annotations.Nullable Object key) {
+            return visit.id().equals(key) || day.visits().containsKey(key);
+        }
+        @Override public int size() { return day.visits().size() + 1; }
+        @Override public Set<Map.Entry<String, Visit>> entrySet() {
+            Set<Map.Entry<String, Visit>> cached = entries;
+            if (cached == null) {
+                Set<Map.Entry<String, Visit>> copy = new HashSet<>(day.visits().entrySet());
+                copy.add(new SimpleImmutableEntry<>(visit.id(), visit));
+                cached = Required.value(Set.copyOf(copy)); entries = cached;
+            }
+            return cached;
+        }
     }
 
     public record Day(Map<String, Technician> technicians, Map<String, Visit> visits,
