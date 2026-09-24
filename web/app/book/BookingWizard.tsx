@@ -1,6 +1,7 @@
 "use client";
 
 import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
+import { appointmentSearchMessage } from "@/lib/appointmentSearch";
 import { useEffect, useMemo, useState } from "react";
 import styles from "@/app/book/booking.module.css";
 import AddressPinMap, { type PinCandidate } from "@/app/book/AddressPinMap";
@@ -139,11 +140,9 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         setStep("pending");
         return;
       }
-      if (!data.offers || data.offers.length === 0) {
-        setStep("pending");
-        return;
-      }
-      setOffers(data.offers);
+      const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
+      if (problem) { setError(problem); return; }
+      setOffers(required(data.offers, "Appointment offers"));
       setInvalidOffers(false);
       setNow(Date.now());
       setStep("slots");
@@ -169,6 +168,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         if (selected.pendingReference) { setJobId(selected.pendingReference); setStep("pending"); return; }
         setError(selected.error ?? "That window is no longer available. Please refresh your options.");
         if (selection.status === 409 && selected.offers) setOffers(selected.offers);
+        setInvalidOffers(selected.search?.outcome !== "AVAILABLE");
         return;
       }
       const selected = selectionSchema.parse(raw);
@@ -212,10 +212,11 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     try {
       const response = await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId }) });
       const data = await readResponse(response, offersResponse);
+      const problem = appointmentSearchMessage(data.search);
+      if (problem) { setOffers([]); setInvalidOffers(true); setError(problem); return; }
       setOffers(data.offers);
       setInvalidOffers(false);
       setNow(Date.now());
-      if (!data.offers.length) setStep("pending");
     } catch (error) { setInvalidOffers(true); setError(error instanceof Error ? error.message : "Could not refresh times."); }
     finally { setSubmitting(false); }
   }
@@ -232,8 +233,9 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       });
       const data = await readResponse(response, bookingResponse);
       if (data.pendingReference) { setStep("pending"); return; }
-      if (!data.offers?.length) { setStep("pending"); return; }
-      setOffers(data.offers);
+      const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
+      if (problem) { setError(problem); return; }
+      setOffers(required(data.offers, "Appointment offers"));
       setInvalidOffers(false);
       setStep("slots");
     } catch (error) { setError(errorMessage(error)); }

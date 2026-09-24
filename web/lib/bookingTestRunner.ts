@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { randomBytes } from "node:crypto";
-import { testInput, testConfig, offer, testAttempt, errorMessage, optimization, date } from "./contracts";
+import { testInput, testConfig, offer, testAttempt, errorMessage, optimization, date, appointmentSearch, offersResponse } from "./contracts";
+import { appointmentSearchMessage } from "./appointmentSearch";
 import { Prisma, type BookingTestGeneration } from "@prisma/client";
 import { prisma } from "./prisma";
 import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestConfig, validateTestConfigInput, type TestConfig, type TestConfigInput } from "./bookingTestCore";
@@ -303,6 +304,7 @@ export async function advanceTestRun(id: string, revision: number, engine: Advan
       let offers = z.array(offer).parse(request.offers);
       let selected = offer.nullable().parse(request.selected);
       let errorMessage: string | null = null;
+      let search: z.infer<typeof appointmentSearch> | null = null;
       let outcome = "ERROR";
       try {
         await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { status: "PROCESSING", startedAt: request.startedAt ?? new Date(), error: null } });
@@ -311,7 +313,13 @@ export async function advanceTestRun(id: string, revision: number, engine: Advan
         if (appointment?.cancelledAt) throw new Error("The test appointment was cancelled. Review the schedule before continuing.");
         if (!appointment) {
           if (!selected) {
-            offers = (await engine.offers(request.id)).offers;
+            const result = offersResponse.parse(await engine.offers(request.id));
+            search = result.search;
+            offers = result.offers;
+            if (search.outcome !== "AVAILABLE" && search.outcome !== "NO_CANDIDATE_FOUND") {
+              outcome = search.outcome;
+              throw new Error(appointmentSearchMessage(search) ?? "Appointment search did not complete");
+            }
             const input = testInput.parse(request.input);
             selected = chooseTestOffer(offers, validateTestConfig(run.config).policy, input.selectionUnit);
             await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { offers: json(offers), selected: selected ? json(selected) : Prisma.DbNull } });
@@ -334,7 +342,7 @@ export async function advanceTestRun(id: string, revision: number, engine: Advan
       } finally {
         const elapsedMs = Date.now() - started;
         await prisma.bookingTestRequest.update({ where: { id: request.id }, data: { elapsedMs: { increment: elapsedMs },
-          attempts: json([...z.array(testAttempt).parse(request.attempts), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage }]) } });
+          attempts: json([...z.array(testAttempt).parse(request.attempts), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage, search }]) } });
       }
     } else {
       const dates = [...new Set(run.requests.flatMap(r => r.serviceDate ? [r.serviceDate] : []))].sort();

@@ -38,7 +38,7 @@ class NullabilityTest {
     }
     @Test void malformedRequestsNeverReachBooking() throws Exception {
         BookingService booking = mock(BookingService.class);
-        var http = MockMvcBuilders.standaloneSetup(new BookingController(booking))
+        var http = MockMvcBuilders.standaloneSetup(new BookingController(booking, new SearchAdmission(2, 16)))
                 .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
         for (String path : List.of("/v1/offers", "/v1/offers/select", "/v1/holds/confirm", "/v1/appointments/cancel")) {
             for (String body : List.of("null", "[]", "{}", "{", "false", "{\"jobId\":12,\"holdId\":false}", "{\"jobId\":\"\",\"holdId\":\" \"}"))
@@ -46,6 +46,20 @@ class NullabilityTest {
                         .andExpect(status().isBadRequest());
         }
         verifyNoInteractions(booking);
+    }
+
+    @Test void overtimeApprovalRequiresReviewedRepairIdentities() throws Exception {
+        TimeOffService timeOff = mock(TimeOffService.class);
+        var http = MockMvcBuilders.standaloneSetup(new TimeOffController(timeOff))
+                .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
+        for (String body : List.of("{\"allowAdditionalOvertime\":true}",
+                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":null}",
+                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[]}",
+                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[null]}",
+                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[\"same\",\"same\"]}"))
+            http.perform(Required.value(post("/v1/time-off/request/approve").contentType("application/json").content(Required.value(body))))
+                    .andExpect(status().isBadRequest());
+        verifyNoInteractions(timeOff);
     }
 
     @Test void sqlNullIsDifferentFromLegitimateZeroAndFalse() throws Exception {

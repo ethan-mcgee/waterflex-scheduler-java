@@ -2,6 +2,8 @@ package dev.waterflex.scheduler.optimizer;
 
 
 import org.springframework.web.bind.annotation.*;
+import dev.waterflex.scheduler.SearchAdmission;
+import dev.waterflex.scheduler.SearchDeadline;
 import java.util.Map;
 
 @RestController
@@ -9,7 +11,13 @@ public class OptimizationController {
     private final OptimizationService service;
     public OptimizationController(OptimizationService service) { this.service = service; }
     @PostMapping("/v1/optimize/day/preview")
-    public Map<String, Object> preview(@RequestBody OptimizationService.Request request) { return service.preview(request); }
+    public Map<String, Object> preview(@RequestBody OptimizationService.Request request) {
+        try { return service.preview(request); }
+        catch (SearchAdmission.Busy | SearchDeadline.Expired exception) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                    "Optimization service temporarily busy; retry", exception);
+        }
+    }
     @PostMapping("/v1/optimize/runs/{id}/apply")
     public Map<String, Object> apply(@PathVariable String id, @RequestBody dev.waterflex.scheduler.RequestChecks.Empty request) { return service.apply(id); }
     @GetMapping("/v1/optimize/runs/{id}")

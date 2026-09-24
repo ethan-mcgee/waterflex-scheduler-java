@@ -53,8 +53,34 @@ async function main() {
     await prisma.roadRouteCache.upsert({ where: { originKey_destinationKey_profile_mapVersion: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2" } },
       create: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2", routable: true, seconds: null, meters: null },
       update: { routable: true, seconds: null, meters: null } });
+    const expired = await post(offersResponse, "/v1/offers", { jobId, deadlineEpochMs: Date.now() - 1 });
+    assert.equal(expired.search.outcome, "SEARCH_INCOMPLETE");
+    assert.equal(await prisma.slotHold.count({ where: { jobId } }), 0);
+    let unlock: () => void = () => { throw new Error("Lock was not initialized"); };
+    let locked: () => void = () => { throw new Error("Lock signal was not initialized"); };
+    const released = new Promise<void>(resolve => { unlock = resolve; });
+    const acquired = new Promise<void>(resolve => { locked = resolve; });
+    const held = prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM job WHERE id=${jobId} FOR UPDATE`;
+      locked();
+      await released;
+    }, { timeout: 10000 });
+    await acquired;
+    try {
+      const started = performance.now();
+      const blocked = await post(offersResponse, "/v1/offers", { jobId, deadlineEpochMs: Date.now() + 1500 });
+      assert.ok(["SEARCH_INCOMPLETE", "SERVICE_BUSY"].includes(blocked.search.outcome));
+      assert.equal(blocked.search.prescribedSearchCompleted, false);
+      assert.equal(blocked.search.retryable, true);
+      assert.ok(performance.now() - started < 4000, "The database lock must not consume an unbounded wait");
+    } finally { unlock(); await held; }
+    assert.equal(await prisma.slotHold.count({ where: { jobId } }), 0, "Expired lock wait must not create late reservations");
     const offered = await post(offersResponse, "/v1/offers", { jobId });
     assert.equal(offered.jobId, jobId);
+    assert.equal(offered.search.outcome, "AVAILABLE");
+    assert.equal(offered.search.prescribedSearchCompleted, false);
+    assert.equal(await prisma.bookingOffer.count({ where: { jobId, overtimeAuthorized: true } }), 0,
+      "Incomplete scarcity search cannot authorize overtime");
     const repairedCache = await prisma.roadRouteCache.findUniqueOrThrow({ where: { originKey_destinationKey_profile_mapVersion: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2" } } });
     assert.notEqual(repairedCache.seconds, null); assert.notEqual(repairedCache.meters, null);
     await prisma.address.update({ where: { id: addressId }, data: { lat: null } });

@@ -12,6 +12,24 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 class RoadClientTest {
+    @Test void slowRoutingConsumesExplorationBudgetWithoutCachingAFailure() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
+        server.createContext("/health", exchange -> {
+            try { release.await(2, java.util.concurrent.TimeUnit.SECONDS); }
+            catch (InterruptedException exception) { Thread.currentThread().interrupt(); }
+            finally { exchange.close(); }
+        });
+        server.start();
+        try {
+            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10);
+            SearchDeadline deadline = new SearchDeadline(Required.value(java.time.Duration.ofMillis(1200)));
+            assertThrows(SearchDeadline.Expired.class, () -> deadline.within(roads::activeIdentity));
+            assertTrue(deadline.remainingNanos() > 0, "The final second remains available for validation and persistence");
+            assertEquals("", roads.currentVersion());
+            assertNull(SearchDeadline.current());
+        } finally { release.countDown(); server.stop(0); }
+    }
     @Test void sparsePairsKeepDirectionAndRejectMalformedResultsWithoutCachingThem() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         AtomicInteger requests = new AtomicInteger();

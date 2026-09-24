@@ -1,0 +1,76 @@
+package dev.waterflex.scheduler;
+
+import java.time.Duration;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+/** One monotonic budget, including admission time. Instances belong to one request. */
+public final class SearchDeadline {
+    private static final ThreadLocal<SearchDeadline> CURRENT = new ThreadLocal<>();
+    public static final class Expired extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        public Expired() { super("Appointment search deadline exhausted"); }
+    }
+    private final LongSupplier clock;
+    private final long started;
+    private long durationNanos;
+    private boolean committing;
+
+    public SearchDeadline(Duration duration) { this(duration, System::nanoTime); }
+    SearchDeadline(Duration duration, LongSupplier clock) {
+        if (duration.isNegative() || duration.isZero() || duration.compareTo(Duration.ofMinutes(2)) > 0)
+            throw new IllegalArgumentException("Invalid search duration");
+        this.clock = clock;
+        this.started = clock.getAsLong();
+        this.durationNanos = duration.toNanos();
+    }
+    public long elapsedMillis() { return Math.max(0, clock.getAsLong() - started) / 1_000_000; }
+    public long remainingNanos() { return Math.max(0, durationNanos - (clock.getAsLong() - started)); }
+    public long explorationNanos() { return Math.max(0, remainingNanos() - 1_000_000_000L); }
+    public void requireTime() {
+        if (remainingNanos() == 0 || Thread.currentThread().isInterrupted()) throw new Expired();
+    }
+    public Duration timeout(Duration maximum) {
+        requireTime();
+        long remaining = committing ? remainingNanos() : explorationNanos();
+        if (remaining == 0) throw new Expired();
+        return Required.value(Duration.ofNanos(Math.min(remaining, maximum.toNanos())));
+    }
+    public <T> T within(Supplier<T> work) {
+        if (CURRENT.get() != null) throw new IllegalStateException("Nested booking deadline");
+        CURRENT.set(this);
+        try { return work.get(); }
+        finally { CURRENT.remove(); }
+    }
+    public static @Nullable SearchDeadline current() { return CURRENT.get(); }
+    public static Duration networkTimeout(Duration maximum) {
+        SearchDeadline current = CURRENT.get();
+        return current == null ? maximum : current.timeout(maximum);
+    }
+    public static void checkpoint() {
+        SearchDeadline current = CURRENT.get();
+        if (current != null) current.timeout(Required.value(Duration.ofMinutes(1)));
+    }
+    public static void beginCommit() {
+        SearchDeadline current = CURRENT.get();
+        if (current != null) { current.committing = true; current.requireTime(); }
+    }
+    public static void policyLimit(int millis) {
+        if (millis < 1000 || millis > 5000) throw new IllegalArgumentException("Invalid booking deadline policy");
+        SearchDeadline current = CURRENT.get();
+        if (current != null) {
+            current.durationNanos = Math.min(current.durationNanos, millis * 1_000_000L);
+            current.requireTime();
+        }
+    }
+    /** Apply a PostgreSQL millisecond timeout on the request's existing transaction. */
+    public static void database(JdbcTemplate jdbc) {
+        SearchDeadline current = CURRENT.get();
+        if (current == null) return;
+        long millis = Math.max(1, current.timeout(Required.value(Duration.ofSeconds(5))).toMillis());
+        jdbc.queryForList("SELECT set_config('statement_timeout', ?, true), set_config('lock_timeout', ?, true)",
+                Long.toString(millis), Long.toString(millis));
+    }
+}

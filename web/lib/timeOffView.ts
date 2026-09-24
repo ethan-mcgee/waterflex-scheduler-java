@@ -3,8 +3,8 @@ import { date, minute, text } from "./contracts";
 
 export const timeOffIntervalView = z.object({ date, startMin: minute, endMin: minute }).refine(value => value.startMin < value.endMin);
 const metrics = z.object({
-  route_minutes: z.number().finite(), overtime_minutes: z.number().finite(), drive_minutes: z.number().finite(),
-  waiting_minutes: z.number().finite(), distance_meters: z.number().finite(), modeled_cost_cents: z.number().finite(),
+  route_minutes: z.number().finite().nonnegative(), overtime_minutes: z.int().nonnegative(), drive_minutes: z.number().finite().nonnegative(),
+  waiting_minutes: z.number().finite().nonnegative(), distance_meters: z.number().finite().nonnegative(), modeled_cost_cents: z.number().finite().nonnegative(),
 });
 const reportDay = z.object({
   service_date: date, start_min: minute, end_min: minute, status: text, run_id: text.optional(), reason: z.string().nullable().optional(),
@@ -21,6 +21,17 @@ export type ParsedTimeOffReport =
   | { kind: "malformed" }
   | { kind: "failure"; reason: string }
   | { kind: "complete"; summary: TimeOffReportSummary };
+
+export function additionalRepairOvertime(report: ParsedTimeOffReport): number | null {
+  if (report.kind !== "complete") return null;
+  let additional = 0;
+  for (const day of report.summary.days) {
+    if (day.status === "NO_SHIFT") continue;
+    if (day.status !== "REPAIR_PREVIEW" || !day.daily_before || !day.daily_after) return null;
+    additional += Math.max(0, day.daily_after.overtime_minutes - day.daily_before.overtime_minutes);
+  }
+  return additional;
+}
 
 export function parseTimeOffReport(value: unknown): ParsedTimeOffReport {
   if (value == null) return { kind: "missing" };

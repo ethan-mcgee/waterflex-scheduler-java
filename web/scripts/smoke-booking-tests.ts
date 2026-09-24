@@ -1,4 +1,4 @@
-import { offer, optimization, required } from "../lib/contracts";
+import { offer, optimization, required, testAttempt } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
@@ -166,12 +166,18 @@ async function main() {
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async () => { throw new Error("Must reconcile before offers"); } });
   assert.equal(required(run.requests[1]).status, "BOOKED");
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
-  // No capacity is a completed outcome and does not stop progression.
+  // An insertion miss is incomplete and pauses the journal for retry.
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async jobId => {
     // A deliberately oversized isolated fixture job has no feasible shift.
     await prisma.job.update({ where: { id: jobId }, data: { durationMin: 10000 } });
     return testEngine.offers(jobId);
   } });
+  assert.equal(required(run.requests[2]).status, "ERROR"); assert.equal(run.status, "PAUSED");
+  assert.equal(required(testAttempt.array().parse(required(run.requests[2]).attempts).at(-1)).search?.outcome, "SEARCH_INCOMPLETE");
+  run = await resumed(id);
+  // Inject a completed bounded-search result to exercise the eventual no-candidate contract.
+  run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async jobId => ({ jobId, offers: [],
+    search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 1, retryable: false } }) });
   assert.equal(required(run.requests[2]).status, "NO_OFFER"); assert.equal(run.status, "RUNNING");
   const appointments = () => prisma.appointment.findMany({ orderBy: { id: "asc" } });
   const before = await appointments();
@@ -210,7 +216,7 @@ async function main() {
   let entered!: () => void; let release!: () => void;
   const inOffers = new Promise<void>(resolve => { entered = resolve; });
   const gate = new Promise<void>(resolve => { release = resolve; });
-  const operation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { entered(); await gate; return { jobId, offers: [] }; } });
+  const operation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { entered(); await gate; return { jobId, offers: [], search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 1, retryable: false } }; } });
   await inOffers;
   try {
     await assert.rejects(advanceTestRun(run.id, run.revision), /Another test operation/);
@@ -224,7 +230,7 @@ async function main() {
   let stopping!: () => void; let finish!: () => void;
   const inFlight = new Promise<void>(resolve => { stopping = resolve; });
   const finishGate = new Promise<void>(resolve => { finish = resolve; });
-  const stoppedOperation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { stopping(); await finishGate; return { jobId, offers: [] }; } });
+  const stoppedOperation = advanceTestRun(run.id, run.revision, { ...testEngine, offers: async jobId => { stopping(); await finishGate; return { jobId, offers: [], search: { outcome: "NO_CANDIDATE_FOUND", prescribedSearchCompleted: true, elapsedMs: 1, retryable: false } }; } });
   await inFlight;
   try { await controlTestRun(run.id, "stop"); } finally { finish(); }
   run = await stoppedOperation;

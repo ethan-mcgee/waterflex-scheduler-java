@@ -327,6 +327,7 @@ model BookingOffer {
   expiresAt DateTime
   incrementalRegularMinutes Int?
   incrementalOvertimeMinutes Int?
+  overtimeAuthorized Boolean @default(false)
   incrementalRoadMeters Int?
   incrementalCostDollars Float?
   createdAt DateTime @default(now())
@@ -361,6 +362,7 @@ model TimeOffRequest {
   status String @default("PENDING")
   createdAt DateTime @default(now())
   decidedAt DateTime?
+  additionalOvertimeApproved Boolean @default(false)
   intervals TimeOffInterval[]
   report TimeOffReport?
 
