@@ -103,10 +103,13 @@ class BookingSnapshotDatabaseIT {
             jdbc.update("UPDATE schedule_day SET version=0 WHERE \"technicianId\"=? AND \"serviceDate\"=?", prefix + "-b", date);
             jdbc.update("UPDATE slot_hold SET \"expiresAt\"=? WHERE id=?", expiry, prefix + "-held");
             var facts = loader.loadDates(prefix, Required.value(List.of(day)), captured, "fixture-roads");
+            var changeIssuanceDuringPreparation = new java.util.concurrent.atomic.AtomicBoolean();
             RoadClient deterministic = new RoadClient(jdbc, "unused", 100, 60, manager) {
                 @Override public String activeIdentity() { return "fixture-roads"; }
                 @Override public Map<String, Leg> sparse(List<Pair> pairs, String identity) {
                     assertEquals("fixture-roads", identity);
+                    if (changeIssuanceDuringPreparation.getAndSet(false))
+                        jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-29 WHERE id=?", prefix + "-request");
                     Map<String, Leg> result = new HashMap<>();
                     pairs.forEach(pair -> result.put(pair.id(), new Leg(0, 0)));
                     return result;
@@ -189,6 +192,11 @@ class BookingSnapshotDatabaseIT {
             var lifecycle = new ReservationLifecycleService(jdbc, deterministic, loader, transition, commit);
             assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"),
                     "A missing historical delta cannot authorize the transferred overtime");
+            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
+            jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-30 WHERE id=?", prefix + "-request");
+            changeIssuanceDuringPreparation.set(true);
+            var changedOffer = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
+            assertEquals("Selected offer changed", changedOffer.getReason());
             assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
             jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-30 WHERE id=?", prefix + "-request");
             var selectedRegular = lifecycle.select(prefix + "-request", prefix + "-request");
