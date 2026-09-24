@@ -9,6 +9,45 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RouteTimelineTest {
+    @Test void choosesLaterWorkingIntervalToAvoidAnExtraDepotTrip() {
+        DayPlan day = intervalChoicePlan();
+        var result = RouteEvaluator.evaluate(day);
+        assertTrue(result.feasible());
+        assertEquals(150, result.paidMinutes());
+        assertEquals(30, result.driveMinutes());
+        assertEquals(1, Required.value(result.segments().get("home")).size());
+        assertEquals(at("12:00:00"), Required.value(result.segments().get("home")).getFirst().departure());
+        assertEquals(at("12:10:00"), result.arrivals().get("first"));
+        assertEquals(at("13:20:00"), result.arrivals().get("second"));
+        assertEquals(result.arrivals(), DayScoreCalculator.evaluate(day).arrivals());
+        assertEquals(result.costCents(), DayScoreCalculator.evaluate(day).costCents());
+    }
+
+    @Test void doesNotPruneAGroupBecauseAnIntermediateStopCannotReturnDirectly() {
+        for (boolean unreachable : List.of(false, true)) {
+            DayPlan day = intervalChoicePlan();
+            if (unreachable) day.getMatrix().remove("first>home:return");
+            else day.getMatrix().put("first>home:return", new DayPlan.RoadLeg(36000, 100000));
+            var result = RouteEvaluator.evaluate(day);
+            assertTrue(result.feasible());
+            assertEquals(150, result.paidMinutes());
+            assertEquals(0, DayScoreCalculator.evaluate(day).hardPenalty());
+            assertEquals(result.arrivals(), DayScoreCalculator.evaluate(day).arrivals());
+        }
+    }
+
+    private static DayPlan intervalChoicePlan() {
+        TechRoute route = new TechRoute("home", at("09:00:00"), at("17:00:00"), 150, 0, Required.value(Set.of("service")));
+        route.getUnavailable().add(new TechRoute.Unavailable(at("11:00:00"), at("12:00:00")));
+        PlanVisit first = new PlanVisit("first", "service", at("09:00:00"), at("15:00:00"), 60, "home", at("09:00:00"));
+        PlanVisit second = new PlanVisit("second", "service", at("13:00:00"), at("15:00:00"), 60, "home", at("13:00:00"));
+        route.getVisits().addAll(Required.value(List.of(first, second)));
+        Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
+        for (String from : List.of("home", "first", "second")) for (String to : List.of("first", "second", "home:return"))
+            matrix.put(from + ">" + to, new DayPlan.RoadLeg(600, 3000));
+        return new DayPlan(Required.value(List.of(route)), Required.value(List.of(first, second)), matrix, 30, 45, 0.67, 0, 0);
+    }
+
     private static Instant at(String value) { return Required.value(Instant.parse("2026-09-21T" + value + "Z")); }
 
     private static DayPlan plan(int maxDaily, Instant absenceStart, Instant absenceEnd) {

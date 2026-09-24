@@ -55,7 +55,7 @@ class BookingWeeklyAvailabilityTest {
 
     @Test void batchedAvailabilityPreservesExplicitOffDaysAndRejectsMissingTechnicians() throws Exception {
         LocalDate day = Required.value(LocalDate.parse("2026-10-26"));
-        var jdbc = new AvailabilityJdbc(Required.value(List.of(availabilityRow("working", true, 480, 1020), availabilityRow("off", false, null, null))));
+        var jdbc = new AvailabilityJdbc(Required.value(List.<ResultSet>of(availabilityRow("working", true, 480, 1020), availabilityRow("off", false, null, null))));
         Map<String, WeeklyAvailability.Availability> result = WeeklyAvailability.resolveAll(jdbc, Required.value(List.of("working", "off")), day);
         assertEquals(new WeeklyAvailability.Shift(480, 1020), Required.value(result.get("working")).shift());
         assertNull(Required.value(result.get("off")).shift());

@@ -487,7 +487,7 @@ public class BookingService {
                 (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), serviceId, metroId);
         List<Tech> result = new ArrayList<>();
         Map<String, WeeklyAvailability.Availability> availability = WeeklyAvailability.resolveAll(jdbc,
-                Required.value(rows.stream().map((TechBase row) -> row.id()).toList()), day);
+                Required.value(rows.stream().<String>map((TechBase row) -> row.id()).toList()), day);
         for (TechBase row : rows) {
             TechBase technician = Required.value(row);
             WeeklyAvailability.Shift shift = Required.value(availability.get(technician.id()), "technician availability").shift();

@@ -108,7 +108,7 @@ public final class ReservationLifecycleService {
                         Required.string(rs, 3), Required.bool(rs, 4)), appointmentId);
         if (rows.size() != 1) throw conflict("Appointment or dated depot is missing");
         Cancellation cancellation = Required.value(rows.getFirst());
-        if (cancellation.cancelled()) return Required.value(Map.of("success", true, "appointmentId", appointmentId, "alreadyCancelled", true));
+        if (cancellation.cancelled()) return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", true));
         List<LocalDate> dates = new ArrayList<>(); dates.add(cancellation.day());
         var facts = loader.loadDates(cancellation.metroId(), dates, Required.value(Instant.now()), roads.activeIdentity());
         var proposals = transitions.cancel(facts, appointmentId);
@@ -116,7 +116,7 @@ public final class ReservationLifecycleService {
             if (jdbc.update("UPDATE appointment SET \"cancelledAt\"=CURRENT_TIMESTAMP,\"cancellationReason\"=?,\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=? AND \"cancelledAt\" IS NULL",
                     reason.trim(), appointmentId) != 1) throw conflict("Appointment changed during cancellation");
             jdbc.update("UPDATE job SET status='CANCELLED',\"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", cancellation.jobId());
-            return Required.value(Map.of("success", true, "appointmentId", appointmentId, "alreadyCancelled", false));
+            return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", false));
         });
     }
 

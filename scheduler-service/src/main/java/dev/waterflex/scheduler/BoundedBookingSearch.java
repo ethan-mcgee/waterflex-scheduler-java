@@ -193,7 +193,7 @@ public final class BoundedBookingSearch {
             if (!baseline.feasible()) throw new BookingSnapshot.Incomplete("Reservation baseline is infeasible");
             baselineFairness = fairness(day.plan(day.baseline(), day.visits(), snapshot.rates(), true));
             eligible = Required.value(day.technicians().values().stream().filter(t -> t.services().contains(request.serviceId())
-                            && t.regularCapacity() > 0).map((Technician t) -> t.id()).sorted().toList());
+                            && t.regularCapacity() > 0).<String>map((Technician t) -> t.id()).sorted().toList());
             seen.add(day.baseline());
         }
 

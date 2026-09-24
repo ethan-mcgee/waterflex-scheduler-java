@@ -22,7 +22,7 @@ public final class WeeklyAvailability {
     private WeeklyAvailability() { }
 
     public static @Nullable Shift resolve(JdbcTemplate jdbc, String technicianId, LocalDate day) {
-        return Required.value(resolveAll(jdbc, List.of(technicianId), day).get(technicianId), "technician availability").shift();
+        return Required.value(resolveAll(jdbc, Required.value(List.<String>of(technicianId)), day).get(technicianId), "technician availability").shift();
     }
 
     public static Map<String, Availability> resolveAll(JdbcTemplate jdbc, List<String> technicianIds, LocalDate day) {
