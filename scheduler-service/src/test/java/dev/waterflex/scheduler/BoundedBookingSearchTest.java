@@ -11,6 +11,30 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoundedBookingSearchTest {
+    @Test void sharedNeighborhoodsRemainWindowIndependentAndPreserveIndependentValidation() {
+        var original = fixture(60, false, true, 0);
+        var oldDay = Required.value(original.days().get(DAY));
+        Map<String, Technician> technicians = new HashMap<>();
+        oldDay.technicians().forEach((id, tech) -> technicians.put(id, new Technician(tech.id(), tech.shiftStart(),
+                Required.value(START.plusSeconds(21600)), 360, 0, tech.services(), tech.absences(), tech.departure(), tech.returnTo(), tech.scheduleVersion())));
+        var day = new Day(technicians, oldDay.visits(), oldDay.baseline(), oldDay.reservationVersion(), oldDay.roads());
+        Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
+        var request = new BoundedBookingSearch.Request("new", "new-service", 30, POINT);
+        var search = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { });
+        var first = search.search(true);
+        assertTrue(first.distinctRegularWindows() > 2);
+        var reverse = new ArrayList<>(search.windows()); Collections.reverse(reverse);
+        var second = search.search(reverse, true);
+        assertEquals(new HashSet<>(first.candidates()), new HashSet<>(second.candidates()));
+        for (var candidate : first.candidates()) {
+            Map<String, Visit> facts = new HashMap<>(day.visits());
+            facts.put("new", new Visit("new", "new", "new-service", candidate.window().start(), candidate.window().end(), 30,
+                    POINT, candidate.technicianId(), candidate.window().start(), false));
+            assertEquals(day.evaluate(candidate.arrangement(), facts, RATES), candidate.validation());
+        }
+    }
+
     @Test void reusedInsertionStillCompletesScarcityNeighborhoodAndFindsRelocation() {
         var snapshot = fixture(60, false, true, 0);
         var request = new BoundedBookingSearch.Request("new", "new-service", 60, POINT);
@@ -77,6 +101,8 @@ class BoundedBookingSearchTest {
                     var arrangement = new Arrangement(routes);
                     for (boolean confirmedOnly : List.of(false, true)) {
                         var full = dev.waterflex.scheduler.optimizer.RouteEvaluator.evaluate(day.plan(arrangement, facts, RATES, confirmedOnly));
+                        if (confirmedOnly && full.feasible()) assertEquals(SchedulingPolicy.measure(day.plan(arrangement, facts, RATES, true)).fairness().variance(),
+                                evaluation.fairness(arrangement, facts));
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));
                         long evaluated = evaluation.evaluations();
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));

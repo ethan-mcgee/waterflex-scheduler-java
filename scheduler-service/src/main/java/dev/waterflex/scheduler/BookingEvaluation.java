@@ -16,6 +16,11 @@ final class BookingEvaluation {
     private final Runnable checkpoint;
     private final BookingRouteBounds bounds;
     private final Map<String, Long> capacities = new HashMap<>();
+    private final Map<String, RouteEvaluator.Result> emptyRoutes = new HashMap<>();
+    private record Load(long paid, long capacity) { }
+    private final Map<Map<Load, Integer>, BigDecimal> fairnessResults = new LinkedHashMap<>(128, .75f, true) {
+        @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Map<Load, Integer>, BigDecimal> eldest) { return size() > 2048; }
+    };
     private final Map<Key, RouteEvaluator.Result> routes = new LinkedHashMap<>(128, .75f, true) {
         @Override protected boolean removeEldestEntry(Map.@Nullable Entry<Key, RouteEvaluator.Result> eldest) { return size() > 2048; }
     };
@@ -46,6 +51,10 @@ final class BookingEvaluation {
 
     RouteEvaluator.Result route(String technician, List<String> order, Map<String, Visit> facts, boolean confirmedOnly) {
         checkpoint.run();
+        if (order.isEmpty()) {
+            RouteEvaluator.Result empty = emptyRoutes.get(technician);
+            if (empty != null) { hits++; return empty; }
+        }
         List<Visit> visits = new ArrayList<>();
         for (String id : order) {
             Visit visit = Required.value(facts.get(id), "evaluated visit");
@@ -65,6 +74,7 @@ final class BookingEvaluation {
         var plan = new DayPlan(Required.value(List.<TechRoute>of(route)), route.getVisits(), day.roads().legs(),
                 rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
         RouteEvaluator.Result result = RouteEvaluator.evaluate(plan);
+        if (order.isEmpty()) emptyRoutes.put(technician, result);
         evaluations++; routes.put(key, result); return result;
     }
 
@@ -92,6 +102,7 @@ final class BookingEvaluation {
         Set<String> services = new HashSet<>(); services.add(requestedService);
         facts.values().stream().filter(visit -> !visit.reservation()).forEach(visit -> services.add(visit.serviceId()));
         List<SchedulingPolicy.Workload> workloads = new ArrayList<>();
+        Map<Load, Integer> histogram = new HashMap<>();
         for (var entry : arrangement.routes().entrySet()) {
             Technician technician = Required.value(day.technicians().get(entry.getKey()));
             long capacity = capacity(technician.id());
@@ -99,7 +110,12 @@ final class BookingEvaluation {
             var measured = route(technician.id(), Required.value(entry.getValue()), facts, true);
             if (!measured.feasible()) throw new Incomplete("Confirmed workload cannot be evaluated");
             workloads.add(new SchedulingPolicy.Workload(technician.id(), measured.paidMinutes(), capacity, Required.value(BigDecimal.ZERO)));
+            histogram.merge(new Load(measured.paidMinutes(), capacity), 1, (a, b) -> Required.value(a) + Required.value(b));
         }
-        return SchedulingPolicy.fairness(workloads).variance();
+        BigDecimal cached = fairnessResults.get(histogram);
+        if (cached != null) return cached;
+        BigDecimal variance = SchedulingPolicy.fairness(workloads).variance();
+        fairnessResults.put(Required.value(Map.copyOf(histogram)), variance);
+        return variance;
     }
 }
