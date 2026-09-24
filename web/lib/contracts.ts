@@ -88,6 +88,7 @@ export const bookingRequest = z.object({ requestId: text.min(16), firstName: tex
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
   confirmedPin: point.optional() });
 export const jobRequest = z.object({ jobId: text });
+export const refreshRequest = jobRequest.extend({ deadlineEpochMs: z.int().positive().optional() });
 export const selectRequest = jobRequest.extend({ offerId: text });
 export const confirmRequest = z.object({ holdId: text });
 export const previewRequest = z.object({ metroId: text, date });

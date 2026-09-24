@@ -52,9 +52,13 @@ export interface SlotOffer {
   expiresAt: string;
 }
 
-export async function requestSlots(jobId: string, refresh = false, timeoutMs = 5000, signal?: AbortSignal): Promise<z.infer<typeof offersResponse>> {
+export async function requestSlots(jobId: string, refresh = false, timeoutMs = 5000, signal?: AbortSignal, deadlineEpochMs?: number): Promise<z.infer<typeof offersResponse>> {
   const started = performance.now();
-  const budgetMs = Math.min(5000, timeoutMs);
+  if (deadlineEpochMs != null && (!Number.isSafeInteger(deadlineEpochMs) || deadlineEpochMs <= 0))
+    throw new EngineError(400, "Invalid appointment search deadline");
+  const remaining = deadlineEpochMs == null ? 5000 : deadlineEpochMs - Date.now();
+  if (remaining <= 0) throw new EngineError(504, "Appointment search deadline exhausted. Please retry.");
+  const budgetMs = Math.min(5000, timeoutMs, remaining);
   if (!Number.isInteger(budgetMs) || budgetMs <= 0) throw new EngineError(400, "Invalid appointment search budget");
   const searchRequestId = crypto.randomUUID();
   let cancellation: Promise<void> | undefined;
@@ -69,14 +73,20 @@ export async function requestSlots(jobId: string, refresh = false, timeoutMs = 5
   signal?.addEventListener("abort", cancel, { once: true });
   try {
     if (signal?.aborted) { cancel(); throw new EngineError(499, "Appointment search cancelled"); }
-    const result = await request("/v1/offers", offersResponse, { jobId, refresh, searchRequestId, deadlineEpochMs: Date.now() + budgetMs }, budgetMs, signal);
+    const result = await request("/v1/offers", offersResponse, { jobId, refresh, searchRequestId,
+      deadlineEpochMs: Math.min(deadlineEpochMs ?? Number.MAX_SAFE_INTEGER, Date.now() + budgetMs) }, budgetMs, signal);
     if (result.offers.length) {
       const remaining = Math.floor(budgetMs - (performance.now() - started));
       if (remaining <= 0) throw new EngineError(504, "Appointment search deadline exhausted");
       await request("/v1/offers/acknowledge-search", success, { jobId, searchRequestId }, remaining, signal);
     }
     return { ...result, search: { ...result.search, apiElapsedMs: Math.ceil(performance.now() - started) } };
-  } catch (error) { cancel(); throw error; }
+  } catch (error) {
+    cancel();
+    if (!signal?.aborted && performance.now() - started >= budgetMs)
+      throw new EngineError(504, "Appointment search deadline exhausted. Please retry.");
+    throw error;
+  }
   finally { signal?.removeEventListener("abort", cancel); }
 }
 
