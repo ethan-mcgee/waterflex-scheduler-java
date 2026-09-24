@@ -37,6 +37,7 @@ const ablationManifest = process.env.BENCHMARK_ABLATION_MANIFEST == null ? null 
 if (ablationManifest != null) assert.equal(ablationManifest.revision, revision, "Ablation source must match server revision");
 const engine = required(process.env.ENGINE_URL);
 const legacy = z.enum(["current", "legacy"]).parse(process.env.BENCHMARK_SERVER_MODE ?? "current") === "legacy";
+const legacyMeasurementTimeoutMs = z.int().min(120000).max(600000).parse(Number(process.env.BENCHMARK_LEGACY_TIMEOUT_MS ?? "120000"));
 const auditEngine = legacy ? required(process.env.BENCHMARK_AUDIT_URL) : engine;
 if (legacy) assert.notEqual(auditEngine, engine, "Legacy audits require a separate current read-only evaluator");
 let legacyServer: Awaited<ReturnType<typeof legacyBenchmarkServer>> | null = null;
@@ -176,7 +177,8 @@ try {
   await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
     browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: "validated-job refresh" },
     serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
-    legacyLimitations: legacy ? "Original unchanged server: 120-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics." : null,
+    legacyMeasurementTimeoutMs: legacy ? legacyMeasurementTimeoutMs : null,
+    legacyLimitations: legacy ? `Original unchanged server: ${legacyMeasurementTimeoutMs / 1000}-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics.` : null,
     scope: browser == null ? "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport"
       : "Browser HTTP through the portal including scheduler cancellation/acknowledgement; starts with validated job/address; excludes address entry/geocoding and rendering", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
   for (const size of sizes) for (const workload of workloads) for (const concurrency of concurrencyValues) for (const cache of caches) {
@@ -199,7 +201,7 @@ try {
         let searched: Attempt | null = null; let selectionStarted: number | null = null;
         try {
           const browserResult = browser == null ? null : await browser.search(jobId);
-          const response = browserResult?.response ?? (legacy ? { ...await legacyOffers(engine, jobId), search: undefined } : await requestSlots(jobId));
+          const response = browserResult?.response ?? (legacy ? { ...await legacyOffers(engine, jobId, legacyMeasurementTimeoutMs), search: undefined } : await requestSlots(jobId));
           const elapsedMs = browserResult?.elapsedMs ?? performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
           const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search,
