@@ -10,3 +10,4 @@ infra/fixtures/
 optimizer-start.log
 .env
 web/playwright-report/
+.scratch/

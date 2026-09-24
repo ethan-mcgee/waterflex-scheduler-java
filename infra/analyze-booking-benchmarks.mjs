@@ -27,7 +27,8 @@ for (const [source, path] of paths.entries()) {
       // Old harness selection errors included selection/release in elapsed time and marked
       // search incomplete. Neither measurement can be recovered from that row alone.
       if (attempt.outcome === "SELECTION_CONFLICT" && attempt.selectionElapsedMs == null) { unknown++; excludedTiming++; continue; }
-      incomplete += Number(!attempt.completed); samples.push(attempt.elapsedMs); elapsed.push(attempt.elapsedMs);
+      if (attempt.completed == null) unknown++; else incomplete += Number(!attempt.completed);
+      samples.push(attempt.elapsedMs); elapsed.push(attempt.elapsedMs);
     }
     const beforeCost = total(row.before, day => day.policy.costCents), afterCost = total(row.after, day => day.policy.costCents);
     const confirmed = total(row.after, day => day.confirmedAppointments);
