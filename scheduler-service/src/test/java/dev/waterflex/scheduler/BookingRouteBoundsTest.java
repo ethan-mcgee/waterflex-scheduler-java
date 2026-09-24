@@ -45,9 +45,11 @@ class BookingRouteBoundsTest {
                 for (int position = 0; position <= order.size(); position++) {
                     var inserted = baseline.insert("tech", "new", position);
                     boolean allowed = bounds.insertion("tech", order, facts, visit, position);
+                    assertEquals(allowed, bounds.insertion("tech", order, day.visits(), visit, position), "Immutable-facts cache must match general bounds");
                     if (!allowed) pruned++;
                     var full = day.evaluate(inserted, insertedFacts, rates);
                     assertEquals(full, incremental.evaluate(inserted, insertedFacts, false));
+                    assertEquals(full, incremental.evaluate(inserted, new InsertionFacts(day, visit), false));
                     assertEquals(day.evaluate(baseline, facts, rates), incremental.evaluate(baseline, facts, false), "Move undo must restore the baseline");
                     if (full.feasible()) {
                         feasible++; assertTrue(allowed, "False pruning at sample " + sample + " promise " + promise + " position " + position);
