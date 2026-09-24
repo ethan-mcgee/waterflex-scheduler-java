@@ -14,7 +14,7 @@ class SchedulingPolicyTest {
         return new SchedulingPolicy.Workload(id, paid, capacity, Required.value(BigDecimal.ZERO));
     }
     private static SchedulingPolicy.Metrics metrics(long overtime, long cost, long a, long b) {
-        return new SchedulingPolicy.Metrics(overtime, cost, SchedulingPolicy.fairness(Required.value(List.of(work("a", a, 480), work("b", b, 480)))));
+        return new SchedulingPolicy.Metrics(overtime, cost, SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", a, 480), work("b", b, 480)))));
     }
     @Test void scarcityRequiresBothThresholdsAndCompletedSearch() {
         assertFalse(RULES.authorizeOvertime(3, 100, 100, true));
@@ -26,9 +26,9 @@ class SchedulingPolicyTest {
         assertThrows(IllegalArgumentException.class, () -> RULES.authorizeOvertime(0, 101, 100, true));
     }
     @Test void fairnessUsesCapacityWeightsAndIncludesIdleTechnicians() {
-        var equal = SchedulingPolicy.fairness(Required.value(List.of(work("a", 240, 480), work("b", 120, 240))));
+        var equal = SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", 240, 480), work("b", 120, 240))));
         assertEquals(0, equal.variance().compareTo(BigDecimal.ZERO));
-        var idle = SchedulingPolicy.fairness(Required.value(List.of(work("a", 240, 480), work("b", 0, 480))));
+        var idle = SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", 240, 480), work("b", 0, 480))));
         assertEquals(0, idle.variance().compareTo(new BigDecimal("0.0625")));
         assertEquals(0, idle.maximumUtilization().compareTo(new BigDecimal("0.5")));
     }
@@ -57,7 +57,7 @@ class SchedulingPolicyTest {
     }
     @Test void invalidOrUninitializedCapacityFailsExplicitly() {
         assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> SchedulingPolicy.regularCapacity(new TechRoute()));
-        assertThrows(IllegalArgumentException.class, () -> SchedulingPolicy.fairness(Required.value(List.of(work("a", 0, 0)))));
+        assertThrows(IllegalArgumentException.class, () -> SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", 0, 0)))));
     }
     private static Instant at(String hour) { return Required.value(Instant.parse("2026-09-23T" + hour + ":00:00Z")); }
 }

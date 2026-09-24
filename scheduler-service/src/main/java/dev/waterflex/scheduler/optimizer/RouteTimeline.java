@@ -17,6 +17,22 @@ final class RouteTimeline {
     private RouteTimeline() { }
 
     static Result evaluate(DayPlan plan, TechRoute route) {
+        List<RouteTimingSearch.Block> intervals = new ArrayList<>();
+        for (Block block : available(route)) intervals.add(new RouteTimingSearch.Block(block.start(), block.end()));
+        var canonical = RouteTimingSearch.solve(plan, route, intervals);
+        if (canonical == null) {
+            Result invalid = infeasibleTiming(plan, route);
+            return new Result(Math.max(1, invalid.hardPenalty()), invalid.costCents(), invalid.arrivals(), invalid.paidMinutes(),
+                    invalid.overtimeMinutes(), invalid.driveMinutes(), invalid.waitingMinutes(), invalid.meters());
+        }
+        long hard = 0;
+        for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) hard += 1_000_000;
+        long cost = Math.round((canonical.paid() - canonical.overtime()) * plan.getRegularHourly() * 100 / 60.0
+                + canonical.overtime() * plan.getOvertimeHourly() * 100 / 60.0 + canonical.meters() / 1609.344 * plan.getMileagePerMile() * 100);
+        return new Result(hard, cost, Required.value(Map.copyOf(canonical.arrivals())), canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
+    }
+
+    private static Result infeasibleTiming(DayPlan plan, TechRoute route) {
         List<Block> blocks = available(route);
         Map<String, Instant> arrivals = new HashMap<>();
         long hard = 0, paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;

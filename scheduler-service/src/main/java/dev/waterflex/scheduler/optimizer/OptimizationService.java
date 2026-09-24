@@ -160,7 +160,7 @@ public class OptimizationService {
 
     private Map<String, Object> createRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
         if (ScheduleCutoff.frozen(day, Required.value(Instant.now()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination");
-        if (hasHolds(Required.value(Set.of(absentTechnicianId)), day))
+        if (hasHolds(Required.value(Set.<String>of(absentTechnicianId)), day))
             return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", "ACTIVE_RESERVATIONS"));
         if (WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) == null) {
             int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class,

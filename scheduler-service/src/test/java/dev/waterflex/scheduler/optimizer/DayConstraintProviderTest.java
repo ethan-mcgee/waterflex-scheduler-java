@@ -65,7 +65,7 @@ class DayConstraintProviderTest {
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
         for (String from : List.of("a", "b", "one", "two")) for (String to : List.of("one", "two", "a:return", "b:return"))
             matrix.put(from + ">" + to, new DayPlan.RoadLeg(0, 0));
-        DayPlan seed = new DayPlan(Required.value(List.of(first, idle)), Required.value(List.of(one, two)), matrix, 30, 45, 0, 0, 0);
+        DayPlan seed = new DayPlan(Required.value(List.<TechRoute>of(first, idle)), Required.value(List.<PlanVisit>of(one, two)), matrix, 30, 45, 0, 0, 0);
         var baseline = SchedulingPolicy.measure(seed);
         seed.setScoringFacts(seed.getScoringFacts().withTarget(new RouteScoringFacts.Target(0, 6000)));
         var result = SchedulingPolicy.measure(solve(seed));

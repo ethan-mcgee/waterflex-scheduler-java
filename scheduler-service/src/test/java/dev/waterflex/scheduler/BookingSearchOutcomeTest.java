@@ -32,7 +32,7 @@ class BookingSearchOutcomeTest {
         BookingService service = mock(BookingService.class);
         var start = Required.value(Instant.parse("2099-10-05T14:00:00Z"));
         var end = Required.value(start.plusSeconds(7200));
-        var offers = Required.value(List.of(new BookingService.Offer("offer", "2099-10-05", start, end, end)));
+        var offers = Required.value(List.<BookingService.Offer>of(new BookingService.Offer("offer", "2099-10-05", start, end, end)));
         when(service.offers("job", true)).thenReturn(new BookingService.Offers("job", offers));
         var response = new BookingController(service, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), false).offers(new BookingController.JobRequest("job", true));
         assertEquals(offers, response.offers());
@@ -42,7 +42,7 @@ class BookingSearchOutcomeTest {
     }
 
     @Test void failuresRemainDistinctAndDoNotProduceOffers() {
-        List<RuntimeException> failures = List.of(new RoadClient.RoadUnavailable("Road unavailable"),
+        List<RuntimeException> failures = List.<RuntimeException>of(new RoadClient.RoadUnavailable("Road unavailable"),
                 new CannotAcquireLockException("Busy"), new QueryTimeoutException("Timed out"),
                 new ResponseStatusException(HttpStatus.CONFLICT, "Changed"));
         List<BookingController.SearchOutcome> outcomes = List.of(BookingController.SearchOutcome.ROUTING_UNAVAILABLE,

@@ -99,16 +99,16 @@ class BoundedBookingSearchTest {
         var reference = candidate(base, 100, "0.2");
         var allowed = candidate(base, 102, "0.1");
         var expensive = candidate(base, 103, "0");
-        assertEquals(allowed, BoundedBookingSearch.choose(Required.value(List.of(reference, allowed, expensive)), snapshot.policy()));
+        assertEquals(allowed, BoundedBookingSearch.choose(Required.value(List.<BoundedBookingSearch.Candidate>of(reference, allowed, expensive)), snapshot.policy()));
         for (long cost : List.of(0L, -100L)) {
             var nonpositive = candidate(base, cost, "0.2");
-            assertEquals(nonpositive, BoundedBookingSearch.choose(Required.value(List.of(nonpositive, candidate(base, cost + 1, "0"))), snapshot.policy()));
+            assertEquals(nonpositive, BoundedBookingSearch.choose(Required.value(List.<BoundedBookingSearch.Candidate>of(nonpositive, candidate(base, cost + 1, "0"))), snapshot.policy()));
         }
     }
 
     @Test void snapshotAndArrangementCopiesCannotBeMutatedAndMissingRatesFail() {
         var source = new ArrayList<>(List.of("old"));
-        var arrangement = new Arrangement(Required.value(Map.of("a", source)));
+        var arrangement = new Arrangement(Required.value(Map.<String, List<String>>of("a", source)));
         source.clear();
         assertEquals(List.of("old"), arrangement.routes().get("a"));
         assertThrows(UnsupportedOperationException.class, () -> Required.value(arrangement.routes().get("a")).clear());
@@ -180,7 +180,7 @@ class BoundedBookingSearchTest {
         Map<String, DayPlan.RoadLeg> legs = new HashMap<>();
         for (String from : List.of("a", "b", "old", "new")) for (String to : List.of("old", "new", "a:return", "b:return"))
             if (!from.equals(to)) legs.put(from + ">" + to, new DayPlan.RoadLeg(60, 100));
-        Day day = new Day(technicians, Required.value(Map.of("old", visit)), new Arrangement(routes), 1, new Roads(legs, Required.value(Set.of())));
+        Day day = new Day(technicians, Required.value(Map.<String, Visit>of("old", visit)), new Arrangement(routes), 1, new Roads(legs, Required.value(Set.of())));
         Day empty = new Day(Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0,
                 new Roads(Required.value(Map.of()), Required.value(Set.of())));
         Map<LocalDate, Day> days = new HashMap<>();

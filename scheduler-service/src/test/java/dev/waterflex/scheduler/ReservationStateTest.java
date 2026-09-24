@@ -76,7 +76,7 @@ class ReservationStateTest {
         var segment = new RouteEvaluator.WorkingSegment(departure, Required.value(departure.plusSeconds(7200)), visits);
         return new ReservationState("configuration", "roads", Required.value(Map.of("tech", 2L)),
                 new Arrangement(Required.value(Map.of("tech", visits))),
-                Required.value(Map.of("hold", new ReservationState.Hold("job", "offer", Required.value(departure.plusSeconds(600)), true))),
-                Required.value(Map.of("tech", List.of(segment))));
+                Required.value(Map.<String, ReservationState.Hold>of("hold", new ReservationState.Hold("job", "offer", Required.value(departure.plusSeconds(600)), true))),
+                Required.value(Map.<String, List<RouteEvaluator.WorkingSegment>>of("tech", List.<RouteEvaluator.WorkingSegment>of(segment))));
     }
 }

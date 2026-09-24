@@ -71,7 +71,7 @@ class SnapshotRoutingTest {
         remaining.remove("hold");
         routes.put("a", Required.value(List.of()));
         var removed = new Arrangement(routes);
-        Day lifecycle = routing.arrangements(DATE, day, remaining, Required.value(List.of(removed)), "roads");
+        Day lifecycle = routing.arrangements(DATE, day, remaining, Required.value(List.<Arrangement>of(removed)), "roads");
         assertDoesNotThrow(() -> lifecycle.evaluate(removed, remaining, RATES));
     }
 
@@ -83,7 +83,7 @@ class SnapshotRoutingTest {
         Map<LocalDate, Map<String, ReservationState.Hold>> holds = new TreeMap<>();
         Instant expiry = Required.value(CAPTURED.plusSeconds(600));
         for (LocalDate date : snapshot.days().keySet()) holds.put(date, date.equals(DATE)
-                ? Required.value(Map.of("hold", new ReservationState.Hold("hold-job", "old-offer", expiry, false))) : Required.value(Map.of()));
+                ? Required.value(Map.<String, ReservationState.Hold>of("hold", new ReservationState.Hold("hold-job", "old-offer", expiry, false))) : Required.value(Map.of()));
         var bundle = ReservationOffers.prepare(snapshot, request, holds, result, expiry, () -> { });
         assertEquals(4, bundle.offers().size());
         var common = Required.value(bundle.dates().get(DATE));
@@ -92,8 +92,9 @@ class SnapshotRoutingTest {
         assertTrue(common.validation().feasible());
         assertEquals(0, common.validation().overtimeMinutes());
         assertEquals(4, bundle.offers().stream().map(offer -> offer.candidate().window()).distinct().count());
-        assertEquals(Required.value(snapshot.days().get(DATE)).baseline(), ReservationOffers.without(common.day().baseline(),
-                Required.value(bundle.offers().stream().map(offer -> offer.holdId()).collect(java.util.stream.Collectors.toSet()))));
+        Set<String> siblingIds = new HashSet<>();
+        bundle.offers().forEach(offer -> siblingIds.add(offer.holdId()));
+        assertEquals(Required.value(snapshot.days().get(DATE)).baseline(), ReservationOffers.without(common.day().baseline(), siblingIds));
         assertTrue(bundle.offers().stream().noneMatch(offer -> offer.overtimeAuthorized()));
         Map<LocalDate, Day> reservedDays = new TreeMap<>(); reservedDays.put(DATE, common.day());
         Map<LocalDate, Map<String, ReservationState.Hold>> reservedHolds = new TreeMap<>(); reservedHolds.put(DATE, common.state().holds());

@@ -109,8 +109,8 @@ public final class BookingSnapshotLoader {
                         return new Base(Required.string(rs, 1), Required.bool(rs, 2), RouteEndpoints.from(rs, 3),
                                 Required.integer(rs, 9), Required.integer(rs, 10), version == null ? 0 : version);
                     }, stamp(day), stamp(day), stamp(day), metroId, requestingJobId);
-            List<String> ids = Required.value(bases.stream().map((Base base) -> base.id()).toList());
-            List<String> activeIds = Required.value(bases.stream().filter((Base base) -> base.active()).map((Base base) -> base.id()).toList());
+            List<String> ids = Required.value(bases.stream().<String>map((Base base) -> base.id()).toList());
+            List<String> activeIds = Required.value(bases.stream().filter((Base base) -> base.active()).<String>map((Base base) -> base.id()).toList());
             Map<String, WeeklyAvailability.Availability> availability = WeeklyAvailability.resolveAll(jdbc, activeIds, day);
             Map<String, List<TechRoute.Unavailable>> absences = absences(ids, day);
             Map<String, Technician> technicians = new TreeMap<>();

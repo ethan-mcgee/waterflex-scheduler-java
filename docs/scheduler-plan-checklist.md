@@ -17,7 +17,7 @@ This checklist tracks the original consolidated specification, not a reduced rep
 | Regular offers first, authorized overtime fills at most four slots | Implemented in common offer bundle; broader overtime API acceptance remains open |
 | Persist overtime authorization; later demand drop does not revoke it | Offer authorization migrated and rechecked at select/confirm; only known legacy overtime offers authorized until complete search integration |
 | Decimal capacity-weighted variance including idle eligible techs; paid work includes service/drive/wait | Implemented for optimization and booking core, now connected to offers behind rollout flags |
-| Fairness excludes sibling offers and uses canonical timing | Holds excluded from confirmed fairness; full alternative interval timing remains incomplete |
+| Fairness excludes sibling offers and uses canonical timing | Holds excluded from confirmed fairness; independent interval-placement and departure algorithms match exhaustive minute-grid cases |
 | Hard feasibility, lowest found overtime, lowest found cost, fairness within floor(reference*1.02) | Implemented for optimization and connected booking search; expand quality and compatibility oracles |
 | Zero/negative incremental cost gets no positive fairness allowance | Implemented and unit tested in connected booking candidate comparison |
 | Remaining ties: cost, changed assignments, earlier window, technician ID, insertion/order | Partial; disruption and consistent route tie-breaking missing |
@@ -42,7 +42,7 @@ This checklist tracks the original consolidated specification, not a reduced rep
 - [x] Named Constraint Streams replace whole-plan EasyScoreCalculator move scoring; route-level metrics and decimal fairness.
 - [x] Keep independent RouteEvaluator for acceptance; move/undo FULL_ASSERT differential tests.
 - [ ] Expand differential tests: repeated reassignment, absences, waiting, departure changes, exact enumeration.
-- [ ] Canonical forward/backward timing across feasible interval placements, minimizing overtime then cost then earliest equivalent departure. Fixed-segment waiting absorption implemented.
+- [x] Canonical forward/backward timing across feasible interval placements, minimizing overtime then cost and removing avoidable waiting before earliest equivalent departure. Scoring and independent validation match a 200-case exhaustive minute-grid oracle, including nonmetric directed legs.
 - [ ] Persist current departure/return per working segment through booking, confirmation, cancellation and repair. Preview summaries persist them today.
 - [ ] Dispatch geometry and timeline consume the persisted current timings.
 - [ ] Report modeled operating cost, separate road time from configured buffers, never claim unsupported payroll savings.
@@ -64,7 +64,7 @@ The immutable `BookingSnapshot` and `BoundedBookingSearch` core implement these 
 - [x] Full matrix retained; sparse directed pairs with explicit IDs, expected identity, individual routability and strict malformed-result handling.
 - [x] Insertion requests relevant missing pairs; batch persistent reads/upserts; bounded expiring memory cache.
 - [ ] Batch selected cross-route neighborhood legs; resolve identity once per entire request snapshot.
-- [ ] Coalesce identical directed-leg requests; isolate caller cancellation/deadlines.
+- [x] Coalesce identical directed-leg requests by identity across sparse and full-matrix callers; isolate caller cancellation/deadlines. Bounded worker queue and HTTP concurrency tests pass; representative load acceptance remains open.
 - [ ] Versioned low-priority prewarming after schedule mutations; bookings take priority.
 - [ ] Benchmark CH on separate fixed-car graph artifact; correctness, startup, memory, latency, provenance gates before enablement.
 - [x] No straight-line fallback; actual Omaha sparse/full directed-pair check recorded.

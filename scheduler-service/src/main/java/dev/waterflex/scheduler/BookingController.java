@@ -62,7 +62,7 @@ public class BookingController {
         } catch (RoadClient.RoadUnavailable exception) {
             org.slf4j.LoggerFactory.getLogger(BookingController.class).warn("Booking routing failure for job {}", request.jobId(), exception);
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.ROUTING_UNAVAILABLE, started, queueMs);
-        } catch (PessimisticLockingFailureException | org.springframework.transaction.CannotCreateTransactionException
+        } catch (SearchAdmission.Busy | PessimisticLockingFailureException | org.springframework.transaction.CannotCreateTransactionException
                  | org.springframework.jdbc.CannotGetJdbcConnectionException exception) {
             return searchResult(request.jobId(), Required.value(List.of()), SearchOutcome.SERVICE_BUSY, started, queueMs);
         } catch (QueryTimeoutException | org.springframework.transaction.TransactionTimedOutException | SearchDeadline.Expired exception) {

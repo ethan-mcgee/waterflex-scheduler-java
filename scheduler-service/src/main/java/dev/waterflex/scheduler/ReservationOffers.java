@@ -37,7 +37,7 @@ public final class ReservationOffers {
             Day original = Required.value(snapshot.days().get(date), "offer date");
             Prepared previous = prepared.get(date);
             Day current = previous == null ? original : previous.day();
-            Arrangement proposedExisting = without(candidate.arrangement(), Required.value(Set.of(request.jobId())));
+            Arrangement proposedExisting = without(candidate.arrangement(), Required.value(Set.<String>of(request.jobId())));
             if (previous != null) {
                 Set<String> siblings = new HashSet<>(current.visits().keySet()); siblings.removeAll(original.visits().keySet());
                 if (!without(current.baseline(), siblings).equals(proposedExisting)) continue;
@@ -89,7 +89,7 @@ public final class ReservationOffers {
     public static Arrangement replace(Arrangement source, String oldId, String newId) {
         Map<String, List<String>> routes = new TreeMap<>();
         source.routes().forEach((technician, visits) -> routes.put(technician,
-                Required.value(visits.stream().map(id -> oldId.equals(id) ? newId : id).toList())));
+                Required.value(visits.stream().<String>map(id -> oldId.equals(id) ? newId : id).toList())));
         return new Arrangement(routes);
     }
 
