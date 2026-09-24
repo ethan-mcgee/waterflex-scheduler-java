@@ -176,6 +176,53 @@ class BoundedBookingSearchTest {
         }
     }
 
+    @Test void existingOvertimeDoesNotExcludeAZeroAddedOvertimeBooking() {
+        var original = fixture(130, false, true, 60);
+        var before = Required.value(original.days().get(DAY));
+        Map<String, Technician> technicians = new HashMap<>(before.technicians());
+        var idle = Required.value(technicians.get("b"));
+        technicians.put("b", new Technician(idle.id(), idle.shiftStart(), idle.shiftEnd(), idle.maxDailyMinutes(), idle.maxOvertimeMinutes(),
+                Required.value(Set.of("old-service", "new-service")), idle.absences(), idle.departure(), idle.returnTo(), idle.scheduleVersion()));
+        var day = new Day(technicians, before.visits(), before.baseline(), before.reservationVersion(), before.roads());
+        Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
+        long existingOvertime = day.evaluate(day.baseline(), day.visits(), RATES).overtimeMinutes();
+        assertTrue(existingOvertime > 0);
+        var result = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 10, POINT),
+                BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
+        assertTrue(result.complete()); assertFalse(result.overtimeAuthorized());
+        var chosen = Required.value(BoundedBookingSearch.choose(result.candidates(), snapshot.policy()));
+        assertEquals("b", chosen.technicianId()); assertEquals(0, chosen.overtimeDelta());
+        assertEquals(existingOvertime, chosen.validation().overtimeMinutes());
+    }
+
+    @Test void pairSwapFindsRegularCapacityWhenNeitherSingleRelocationFits() {
+        var original = fixture(90, false, true, 0);
+        var before = Required.value(original.days().get(DAY));
+        Map<String, Visit> visits = new HashMap<>(before.visits());
+        visits.put("other", new Visit("other", "other-job", "old-service", START, END, 60, POINT, "b", START, false));
+        Map<String, DayPlan.RoadLeg> legs = new HashMap<>();
+        for (String from : List.of("a", "b", "old", "other", "new")) for (String to : List.of("old", "other", "new", "a:return", "b:return"))
+            legs.put(from + ">" + to, new DayPlan.RoadLeg(60, 100));
+        var baseline = new Arrangement(Required.value(Map.of("a", List.of("old"), "b", List.of("other"))));
+        var day = new Day(before.technicians(), visits, baseline, before.reservationVersion(), new Roads(legs, Required.value(Set.of())));
+        for (String target : List.of("a", "b")) {
+            var both = new Arrangement(Required.value(Map.of("a", target.equals("a") ? List.of("old", "other") : List.of(),
+                    "b", target.equals("b") ? List.of("old", "other") : List.of())));
+            assertFalse(day.evaluate(both, visits, RATES).feasible(), "An intermediate single relocation exceeds the shift");
+        }
+        Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
+        var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 50, POINT),
+                BoundedBookingSearch.Limits.defaults(), () -> { });
+        assertTrue(search.search(false).candidates().isEmpty());
+        var chosen = Required.value(BoundedBookingSearch.choose(search.search(true).candidates(), snapshot.policy()));
+        assertEquals("REARRANGEMENT", chosen.source()); assertEquals(2, chosen.changedAssignments());
+        assertEquals(List.of("old"), chosen.arrangement().routes().get("b"));
+        assertTrue(Required.value(chosen.arrangement().routes().get("a")).containsAll(List.of("other", "new")));
+        assertEquals(0, chosen.overtimeDelta()); assertTrue(chosen.validation().feasible());
+    }
+
     @Test void missingRoadAndDeadlineCannotEstablishScarcity() {
         BookingSnapshot snapshot = fixture(106, false, false, 60);
         var request = new BoundedBookingSearch.Request("new", "new-service", 13, POINT);
