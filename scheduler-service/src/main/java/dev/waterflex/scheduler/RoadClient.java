@@ -39,6 +39,14 @@ public class RoadClient {
     private final Duration cacheTtl;
     private final TransactionTemplate cacheTransactions;
     private volatile String routingIdentity = "";
+    private final java.util.concurrent.atomic.AtomicLong legRequests = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong requestedPairs = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong identityRequests = new java.util.concurrent.atomic.AtomicLong();
+    private final java.util.concurrent.atomic.AtomicLong geometryRequests = new java.util.concurrent.atomic.AtomicLong();
+    public record HttpMeasurements(long legRequests, long requestedPairs, long identityRequests, long geometryRequests) { }
+    public HttpMeasurements httpMeasurements() {
+        return new HttpMeasurements(legRequests.get(), requestedPairs.get(), identityRequests.get(), geometryRequests.get());
+    }
 
     public RoadClient(JdbcTemplate jdbc, @Value("${routing.url}") String url,
                       @Value("${routing.cache.max-entries:100000}") int maxEntries,
@@ -70,6 +78,7 @@ public class RoadClient {
             var request = HttpRequest.newBuilder(URI.create(url + "/internal/route"))
                     .timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10)))).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
+            geometryRequests.incrementAndGet();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             SearchDeadline.checkpoint();
             if (response.statusCode() == 409) throw new RoadUnavailable("Routing identity changed");
@@ -165,6 +174,7 @@ public class RoadClient {
                 byte[] body = mapper.writeValueAsBytes(Map.of("pairs", requested, "expectedRoutingIdentity", identity));
                 var request = HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10))))
                         .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
+                legRequests.incrementAndGet(); requestedPairs.addAndGet(requested.size());
                 var response = http.send(request, HttpResponse.BodyHandlers.ofString());
                 SearchDeadline.checkpoint();
                 if (response.statusCode() != 200) throw new RoadUnavailable("Sparse routing unavailable: HTTP " + response.statusCode());
@@ -224,6 +234,7 @@ public class RoadClient {
     private String healthIdentity() {
         try {
             var request = HttpRequest.newBuilder(URI.create(url + "/health")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(5)))).GET().build();
+            identityRequests.incrementAndGet();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             SearchDeadline.checkpoint();
             if (response.statusCode() != 200) throw new RoadUnavailable("Road routing unavailable");
