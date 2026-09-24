@@ -124,6 +124,7 @@ export interface OptimizationRun {
     stop_count: number;
     route_minutes: number;
     drive_minutes: number;
+    travel_breakdown?: { road_seconds: number; configured_buffer_seconds: number; rounding_seconds: number; modeled_travel_minutes: number; leg_count: number } | null;
     waiting_minutes: number;
     distance_meters: number;
     modeled_cost_cents: number;
@@ -137,6 +138,7 @@ export interface OptimizationRun {
     stop_count: number;
     route_minutes: number;
     drive_minutes: number;
+    travel_breakdown?: { road_seconds: number; configured_buffer_seconds: number; rounding_seconds: number; modeled_travel_minutes: number; leg_count: number } | null;
     waiting_minutes: number;
     distance_meters: number;
     modeled_cost_cents: number;

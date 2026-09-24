@@ -9,11 +9,19 @@ import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
 import { POST as qualification } from "../app/api/dispatch/qualification/route";
 import { EngineError, requestSlots } from "./engineClient";
-import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment } from "./contracts";
+import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment, travelBreakdown } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime } from "./timeOffView";
 import { nearbyCandidate } from "./depotPin";
+
+test("road travel and buffer reporting rejects missing or inconsistent components", () => {
+  const valid = { road_seconds: 180, configured_buffer_seconds: 636, rounding_seconds: 84, modeled_travel_minutes: 15, leg_count: 2 };
+  assert.deepEqual(travelBreakdown.parse(valid), valid);
+  for (const value of [null, {}, { ...valid, road_seconds: null }, { ...valid, rounding_seconds: -1 },
+    { ...valid, configured_buffer_seconds: Infinity }, { ...valid, modeled_travel_minutes: 14 }])
+    assert.equal(travelBreakdown.safeParse(value).success, false);
+});
 
 test("depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates", () => {
   const candidate = { lat: 41.256, lng: -95.934, precision: "ROOFTOP" as const };
