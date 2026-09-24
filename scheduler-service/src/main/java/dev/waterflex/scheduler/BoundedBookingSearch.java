@@ -38,6 +38,12 @@ public final class BoundedBookingSearch {
                          int distinctRegularWindows, long confirmedRegularMinutes, long regularCapacityMinutes,
                          boolean overtimeAuthorized, String stopReason) { }
     private record Ranked(Arrangement arrangement, long overtime, long cost, BigDecimal fairness) { }
+    private record Merit(long cost, BigDecimal fairness, int changes, String technician, int position, Arrangement arrangement) {
+        static Merit of(Candidate candidate) {
+            return new Merit(candidate.costDeltaCents(), candidate.fairnessDelta(), candidate.changedAssignments(),
+                    candidate.technicianId(), candidate.insertionPosition(), candidate.arrangement());
+        }
+    }
     /** Delay route-map copies until a move is actually examined within the deadline. */
     private static final class Move {
         private final Arrangement base;
@@ -270,53 +276,59 @@ public final class BoundedBookingSearch {
         }
 
         void insert(Arrangement arrangement, List<String> targets, String source) {
+            int changedAssignments = changes(arrangement);
             for (String tech : targets) {
                 Technician technician = Required.value(day.technicians().get(tech), "insertion technician");
                 if (!technician.services().contains(request.serviceId()) || evaluation.capacity(technician.id()) == 0) continue;
                 List<String> route = Required.value(arrangement.routes().get(tech), "insertion route");
+                var visit = new Visit(request.jobId(), request.jobId(), request.serviceId(), window.start(), window.end(),
+                        request.durationMinutes(), request.location(), Required.value(tech), window.start(), false);
+                Map<String, Visit> facts = new HashMap<>(day.visits());
+                if (facts.putIfAbsent(visit.id(), visit) != null) throw new BookingSnapshot.Incomplete("Request already present in snapshot");
                 for (int position = 0; position <= route.size(); position++) {
                     checkpoint.run();
                     evaluations++;
-                    var visit = new Visit(request.jobId(), request.jobId(), request.serviceId(), window.start(), window.end(),
-                            request.durationMinutes(), request.location(), Required.value(tech), window.start(), false);
                     if (!evaluation.possibleInsertion(Required.value(tech), route, visit, position)) continue;
-                    Map<String, Visit> facts = new HashMap<>(day.visits());
-                    if (facts.putIfAbsent(visit.id(), visit) != null) throw new BookingSnapshot.Incomplete("Request already present in snapshot");
                     Arrangement proposal = arrangement.insert(Required.value(tech), visit.id(), position);
-                    var result = evaluation.evaluate(proposal, facts, false);
+                    var result = evaluation.metrics(proposal, facts, false);
                     if (!result.feasible()) continue;
-                    if (!evaluation.evaluate(proposal, facts, true).feasible()) continue;
+                    if (evaluation.hasReservations() && !evaluation.metrics(proposal, facts, true).feasible()) continue;
                     BigDecimal fairness = evaluation.fairness(proposal, facts);
-                    retain(new Candidate(window, Required.value(tech), proposal, result.overtimeMinutes() - baseline.overtimeMinutes(),
-                            result.costCents() - baseline.costCents(), Required.value(fairness.subtract(baselineFairness)),
-                            changes(arrangement), position, source, result));
+                    var merit = new Merit(result.costCents() - baseline.costCents(), Required.value(fairness.subtract(baselineFairness)),
+                            changedAssignments, Required.value(tech), position, proposal);
+                    retain(merit, result.overtimeMinutes() - baseline.overtimeMinutes(), source, facts);
                 }
             }
         }
 
-        void retain(Candidate candidate) {
+        void retain(Merit merit, long overtimeDelta, String source, Map<String, Visit> facts) {
             // A falling reference cost can only tighten the ceiling. Proven dominated
             // candidates cannot become the policy winner later in this same snapshot.
-            long overtime = candidates.isEmpty() ? candidate.overtimeDelta() : candidates.getFirst().overtimeDelta();
-            if (candidate.overtimeDelta() > overtime) return;
-            if (candidate.overtimeDelta() < overtime) candidates.clear();
-            long reference = Math.min(candidate.costDeltaCents(), candidates.stream()
-                    .mapToLong((Candidate item) -> item.costDeltaCents()).min().orElse(candidate.costDeltaCents()));
+            long overtime = candidates.isEmpty() ? overtimeDelta : candidates.getFirst().overtimeDelta();
+            if (overtimeDelta > overtime) return;
+            long reference = overtimeDelta < overtime ? merit.cost() : Math.min(merit.cost(), candidates.stream()
+                    .mapToLong((Candidate item) -> item.costDeltaCents()).min().orElse(merit.cost()));
             long ceiling = snapshot.policy().costCeiling(reference);
+            if (merit.cost() > ceiling) return;
+            if (overtimeDelta == overtime)
+                for (Candidate item : candidates) if (dominates(Merit.of(Required.value(item)), merit)) return;
+            // Keep the previously validated frontier if a deadline interrupts materialization.
+            var validation = evaluation.evaluate(merit.arrangement(), facts, false);
+            if (!validation.feasible()) throw new BookingSnapshot.Incomplete("Ranking and validation disagree");
+            if (overtimeDelta < overtime) candidates.clear();
             candidates.removeIf(item -> item.costDeltaCents() > ceiling);
-            if (candidate.costDeltaCents() > ceiling) return;
-            for (Candidate item : candidates) if (dominates(Required.value(item), candidate)) return;
-            candidates.removeIf(item -> dominates(candidate, Required.value(item)));
-            candidates.add(candidate);
+            candidates.removeIf(item -> dominates(merit, Merit.of(Required.value(item))));
+            candidates.add(new Candidate(window, merit.technician(), merit.arrangement(), overtimeDelta, merit.cost(),
+                    merit.fairness(), merit.changes(), merit.position(), source, validation));
         }
 
-        boolean dominates(Candidate first, Candidate second) {
-            if (first.costDeltaCents() > second.costDeltaCents() || first.fairnessDelta().compareTo(second.fairnessDelta()) > 0) return false;
-            if (first.costDeltaCents() < second.costDeltaCents() || first.fairnessDelta().compareTo(second.fairnessDelta()) < 0) return true;
-            if (first.changedAssignments() != second.changedAssignments()) return first.changedAssignments() < second.changedAssignments();
-            int technician = first.technicianId().compareTo(second.technicianId());
+        boolean dominates(Merit first, Merit second) {
+            if (first.cost() > second.cost() || first.fairness().compareTo(second.fairness()) > 0) return false;
+            if (first.cost() < second.cost() || first.fairness().compareTo(second.fairness()) < 0) return true;
+            if (first.changes() != second.changes()) return first.changes() < second.changes();
+            int technician = first.technician().compareTo(second.technician());
             if (technician != 0) return technician < 0;
-            if (first.insertionPosition() != second.insertionPosition()) return first.insertionPosition() < second.insertionPosition();
+            if (first.position() != second.position()) return first.position() < second.position();
             return first.arrangement().signature().compareTo(second.arrangement().signature()) <= 0;
         }
 

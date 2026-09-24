@@ -104,6 +104,8 @@ class BoundedBookingSearchTest {
                         if (confirmedOnly && full.feasible()) assertEquals(SchedulingPolicy.measure(day.plan(arrangement, facts, RATES, true)).fairness().variance(),
                                 evaluation.fairness(arrangement, facts));
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));
+                        assertEquals(new BookingEvaluation.Metrics(full.feasible(), full.costCents(), full.overtimeMinutes()),
+                                evaluation.metrics(arrangement, facts, confirmedOnly));
                         long evaluated = evaluation.evaluations();
                         assertEquals(full, evaluation.evaluate(arrangement, facts, confirmedOnly));
                         assertEquals(evaluated, evaluation.evaluations(), "Repeated arrangement must reuse immutable metrics");

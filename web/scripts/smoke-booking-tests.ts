@@ -167,11 +167,16 @@ async function main() {
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async () => { throw new Error("Must reconcile before offers"); } });
   assert.equal(required(run.requests[1]).status, "BOOKED");
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
-  // An insertion miss is incomplete and pauses the journal for retry.
+  // Exercise retry independently of whether this server enables bounded search.
   run = await advanceTestRun(id, run.revision, { ...testEngine, offers: async jobId => {
     // A deliberately oversized isolated fixture job has no feasible shift.
     await prisma.job.update({ where: { id: jobId }, data: { durationMin: 10000 } });
-    return testEngine.offers(jobId);
+    const result = await testEngine.offers(jobId);
+    assert.equal(result.offers.length, 0);
+    const search = required(result.search);
+    assert.ok(["SEARCH_INCOMPLETE", "NO_CANDIDATE_FOUND"].includes(search.outcome));
+    assert.equal(search.prescribedSearchCompleted, search.outcome === "NO_CANDIDATE_FOUND");
+    return { ...result, search: { outcome: "SEARCH_INCOMPLETE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: true } };
   } });
   assert.equal(required(run.requests[2]).status, "ERROR"); assert.equal(run.status, "PAUSED");
   assert.equal(required(testAttempt.array().parse(required(run.requests[2]).attempts).at(-1)).search?.outcome, "SEARCH_INCOMPLETE");
