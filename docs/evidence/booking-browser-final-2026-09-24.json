@@ -264,6 +264,14 @@
       "p50Ms": 361.3999999985099,
       "p95Ms": 552.6999999992549,
       "p99Ms": 707.8999999985099,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 55000,
       "costPerConfirmedAppointmentCents": 1833.3333333333333,
@@ -272,6 +280,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 12000,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 20,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0012054183813443072,
       "maximumUtilization": 0.26851851851851855,
@@ -323,6 +347,14 @@
       "p50Ms": 311,
       "p95Ms": 465.3999999985099,
       "p99Ms": 475.19999999925494,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 55000,
       "costPerConfirmedAppointmentCents": 1833.3333333333333,
@@ -331,6 +363,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 12000,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 20,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0012054183813443072,
       "maximumUtilization": 0.26851851851851855,
@@ -382,6 +430,14 @@
       "p50Ms": 870.3000000007451,
       "p95Ms": 1537.2999999970198,
       "p99Ms": 1886,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 33750,
       "costPerConfirmedAppointmentCents": 1875,
@@ -390,6 +446,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 8100,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 20,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0006874785665294924,
       "maximumUtilization": 0.26851851851851855,
@@ -441,6 +513,14 @@
       "p50Ms": 756.5,
       "p95Ms": 1411.9000000022352,
       "p99Ms": 1449,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 33500,
       "costPerConfirmedAppointmentCents": 1861.111111111111,
@@ -449,6 +529,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 7800,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 20,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0007348251028806584,
       "maximumUtilization": 0.26851851851851855,
@@ -500,6 +596,14 @@
       "p50Ms": 1618.5,
       "p95Ms": 2985.300000000745,
       "p99Ms": 3378.89999999851,
+      "incomplete": 15,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 15,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 28250,
       "costPerConfirmedAppointmentCents": 1883.3333333333333,
@@ -508,6 +612,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 6900,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 20,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0005969435871056242,
       "maximumUtilization": 0.26851851851851855,
@@ -559,6 +679,14 @@
       "p50Ms": 1463.699999999255,
       "p95Ms": 2707.89999999851,
       "p99Ms": 3013,
+      "incomplete": 15,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 15,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 28250,
       "costPerConfirmedAppointmentCents": 1883.3333333333333,
@@ -567,6 +695,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 6900,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 20,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0005129243827160494,
       "maximumUtilization": 0.2037037037037037,
@@ -618,6 +762,14 @@
       "p50Ms": 563.8999999985099,
       "p95Ms": 596.3000000007451,
       "p99Ms": 597.0999999977648,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 790750,
       "costPerConfirmedAppointmentCents": 1838.953488372093,
@@ -626,6 +778,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 174900,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.0070539909122085045,
       "maximumUtilization": 0.26851851851851855,
@@ -677,6 +845,14 @@
       "p50Ms": 551.8999999985099,
       "p95Ms": 582.2000000029802,
       "p99Ms": 584,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 791000,
       "costPerConfirmedAppointmentCents": 1839.5348837209303,
@@ -685,6 +861,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 175200,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.00687525720164609,
       "maximumUtilization": 0.2037037037037037,
@@ -736,6 +928,14 @@
       "p50Ms": 1584,
       "p95Ms": 2665.5,
       "p99Ms": 2705.5,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 772000,
       "costPerConfirmedAppointmentCents": 1846.88995215311,
@@ -744,6 +944,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 174000,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.0061150548696845,
       "maximumUtilization": 0.2037037037037037,
@@ -795,6 +1011,14 @@
       "p50Ms": 1600.9000000022352,
       "p95Ms": 2756.10000000149,
       "p99Ms": 2757.400000002235,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 5,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 771500,
       "costPerConfirmedAppointmentCents": 1845.6937799043062,
@@ -803,6 +1027,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 173400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006269718792866941,
       "maximumUtilization": 0.2037037037037037,
@@ -854,6 +1094,14 @@
       "p50Ms": 2615.60000000149,
       "p95Ms": 3760.800000000745,
       "p99Ms": 3797.099999997765,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 765000,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -862,6 +1110,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005280006858710563,
       "maximumUtilization": 0.2037037037037037,
@@ -913,6 +1177,14 @@
       "p50Ms": 2869,
       "p95Ms": 3897.10000000149,
       "p99Ms": 3931.900000002235,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 5,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 765000,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -921,6 +1193,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005280907064471879,
       "maximumUtilization": 0.2037037037037037,
@@ -972,6 +1260,14 @@
       "p50Ms": 575.1000000014901,
       "p95Ms": 766.8999999985099,
       "p99Ms": 789.6999999992549,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 10,
+        "maximum": 13
+      },
       "beforeCost": 750000,
       "afterCost": 788750,
       "costPerConfirmedAppointmentCents": 1834.3023255813953,
@@ -980,6 +1276,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 172500,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3333333333333333,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.01461601937585734,
       "maximumUtilization": 0.3333333333333333,
@@ -1031,6 +1343,14 @@
       "p50Ms": 551.3999999985099,
       "p95Ms": 590.5,
       "p99Ms": 597.6000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 788500,
       "costPerConfirmedAppointmentCents": 1833.7209302325582,
@@ -1039,6 +1359,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 172200,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.3333333333333333,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.014988554526748974,
       "maximumUtilization": 0.3333333333333333,
@@ -1090,6 +1426,14 @@
       "p50Ms": 1647.8999999985099,
       "p95Ms": 2829.39999999851,
       "p99Ms": 2937,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 773000,
       "costPerConfirmedAppointmentCents": 1849.2822966507176,
@@ -1098,6 +1442,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 175200,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3333333333333333,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.010608967764060357,
       "maximumUtilization": 0.3333333333333333,
@@ -1149,6 +1509,14 @@
       "p50Ms": 1683.2000000029802,
       "p95Ms": 2789,
       "p99Ms": 2907.5,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 773000,
       "costPerConfirmedAppointmentCents": 1849.2822966507176,
@@ -1157,6 +1525,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 175200,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3333333333333333,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.010612611454046638,
       "maximumUtilization": 0.3333333333333333,
@@ -1208,6 +1592,14 @@
       "p50Ms": 3028.89999999851,
       "p95Ms": 3704.1999999955297,
       "p99Ms": 3899.8000000044703,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 750000,
       "afterCost": 765000,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -1216,6 +1608,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.3333333333333333,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.008731910150891632,
       "maximumUtilization": 0.3333333333333333,
@@ -1267,6 +1675,14 @@
       "p50Ms": 2707.7000000029802,
       "p95Ms": 3852.89999999851,
       "p99Ms": 3860,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 7,
+        "maximum": 7
+      },
       "beforeCost": 750000,
       "afterCost": 765000,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -1275,6 +1691,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3333333333333333,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.0086190414951989,
       "maximumUtilization": 0.3333333333333333,
@@ -1326,6 +1758,14 @@
       "p50Ms": 545.8999999985099,
       "p95Ms": 764.6999999955297,
       "p99Ms": 864.6999999955297,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 13
+      },
       "beforeCost": 750000,
       "afterCost": 798296,
       "costPerConfirmedAppointmentCents": 1856.5023255813953,
@@ -1334,6 +1774,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 3438,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 177387.6,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3333333333333333,
+        "maximum": 0.42962962962962964
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.011458737139917696,
       "maximumUtilization": 0.42962962962962964,
@@ -1385,6 +1841,14 @@
       "p50Ms": 552.7999999970198,
       "p95Ms": 599.7000000029802,
       "p99Ms": 614.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 797796,
       "costPerConfirmedAppointmentCents": 1855.339534883721,
@@ -1393,6 +1857,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 3438,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176787.6,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3333333333333333,
+        "maximum": 0.42962962962962964
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.011907674039780521,
       "maximumUtilization": 0.42962962962962964,
@@ -1444,6 +1924,14 @@
       "p50Ms": 1580.6000000014901,
       "p95Ms": 2612.89999999851,
       "p99Ms": 2846.7999999970198,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 780796,
       "costPerConfirmedAppointmentCents": 1867.933014354067,
@@ -1452,6 +1940,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 3438,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 177987.59999999998,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.26851851851851855,
+        "maximum": 0.42962962962962964
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.00890812842935528,
       "maximumUtilization": 0.42962962962962964,
@@ -1503,6 +2007,14 @@
       "p50Ms": 1603.3999999985099,
       "p95Ms": 2723.5,
       "p99Ms": 2810.60000000149,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 778540,
       "costPerConfirmedAppointmentCents": 1862.5358851674641,
@@ -1511,6 +2023,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 2002,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 178300.4,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.26851851851851855,
+        "maximum": 0.40925925925925927
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.008657822359396434,
       "maximumUtilization": 0.40925925925925927,
@@ -1562,6 +2090,14 @@
       "p50Ms": 2979.2999999970198,
       "p95Ms": 3741.39999999851,
       "p99Ms": 3806.89999999851,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 750000,
       "afterCost": 772357,
       "costPerConfirmedAppointmentCents": 1874.6529126213593,
@@ -1570,6 +2106,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 2504,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 180500.8,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.26851851851851855,
+        "maximum": 0.42962962962962964
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.00631644890260631,
       "maximumUtilization": 0.42962962962962964,
@@ -1621,6 +2173,14 @@
       "p50Ms": 2607.3000000044703,
       "p95Ms": 3953.89999999851,
       "p99Ms": 3961.10000000149,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 767500,
       "costPerConfirmedAppointmentCents": 1862.8640776699028,
@@ -1629,6 +2189,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 179400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.26851851851851855,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006520704732510288,
       "maximumUtilization": 0.3333333333333333,
@@ -1680,6 +2256,14 @@
       "p50Ms": 552.7999999970198,
       "p95Ms": 731.3000000044703,
       "p99Ms": 835.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 788250,
       "costPerConfirmedAppointmentCents": 1833.139534883721,
@@ -1688,6 +2272,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 171900,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.4583333333333333,
+        "p95": 0.75,
+        "maximum": 0.75
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.06793956163194445,
       "maximumUtilization": 0.75,
@@ -1739,6 +2339,14 @@
       "p50Ms": 522,
       "p95Ms": 566,
       "p99Ms": 566.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 788750,
       "costPerConfirmedAppointmentCents": 1834.3023255813953,
@@ -1747,6 +2355,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 172500,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.4583333333333333,
+        "p95": 0.75,
+        "maximum": 0.75
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.06652202690972224,
       "maximumUtilization": 0.75,
@@ -1798,6 +2422,14 @@
       "p50Ms": 1517.3999999985099,
       "p95Ms": 2678.60000000149,
       "p99Ms": 2863.5,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 772250,
       "costPerConfirmedAppointmentCents": 1847.488038277512,
@@ -1806,6 +2438,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 174300,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.4583333333333333,
+        "p95": 0.6041666666666666,
+        "maximum": 0.75
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.05041438802083333,
       "maximumUtilization": 0.75,
@@ -1857,6 +2505,14 @@
       "p50Ms": 1557.6999999955297,
       "p95Ms": 2602,
       "p99Ms": 2678.39999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 772750,
       "costPerConfirmedAppointmentCents": 1848.6842105263158,
@@ -1865,6 +2521,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 174900,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.4583333333333333,
+        "p95": 0.6041666666666666,
+        "maximum": 0.75
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.04835188802083333,
       "maximumUtilization": 0.75,
@@ -1916,6 +2588,14 @@
       "p50Ms": 2861.5,
       "p95Ms": 3854.1999999955297,
       "p99Ms": 3954.3000000044703,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 764750,
       "costPerConfirmedAppointmentCents": 1856.1893203883494,
@@ -1924,6 +2604,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176100,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.3125,
+        "p95": 0.6041666666666666,
+        "maximum": 0.75
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.03998057725694444,
       "maximumUtilization": 0.75,
@@ -1975,6 +2671,14 @@
       "p50Ms": 2660.0999999940395,
       "p95Ms": 3777.10000000149,
       "p99Ms": 3843.60000000149,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 5,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 765000,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -1983,6 +2687,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.3125,
+        "p95": 0.6041666666666666,
+        "maximum": 0.75
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.038634982638888885,
       "maximumUtilization": 0.75,
@@ -2034,6 +2754,14 @@
       "p50Ms": 590.7999999970198,
       "p95Ms": 715.6000000014901,
       "p99Ms": 728.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 788000,
       "costPerConfirmedAppointmentCents": 1832.5581395348838,
@@ -2042,6 +2770,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 171600,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.375,
+        "maximum": 0.375
+      },
       "meanDailyVarianceBefore": 0.004801171557947798,
       "meanDailyVarianceAfter": 0.0171500598060575,
       "maximumUtilization": 0.375,
@@ -2093,6 +2837,14 @@
       "p50Ms": 573.3999999985099,
       "p95Ms": 609.3000000044703,
       "p99Ms": 644.2999999970198,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 788500,
       "costPerConfirmedAppointmentCents": 1833.7209302325582,
@@ -2101,6 +2853,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 172200,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.15625,
+        "p95": 0.375,
+        "maximum": 0.375
+      },
       "meanDailyVarianceBefore": 0.004801171557947798,
       "meanDailyVarianceAfter": 0.016680769148618053,
       "maximumUtilization": 0.375,
@@ -2152,6 +2920,14 @@
       "p50Ms": 1608.7000000029802,
       "p95Ms": 2733.5,
       "p99Ms": 3101.1999999955297,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 772500,
       "costPerConfirmedAppointmentCents": 1848.0861244019138,
@@ -2160,6 +2936,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 174600,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.3333333333333333,
+        "maximum": 0.375
+      },
       "meanDailyVarianceBefore": 0.004801171557947798,
       "meanDailyVarianceAfter": 0.01253601312529369,
       "maximumUtilization": 0.375,
@@ -2211,6 +3003,14 @@
       "p50Ms": 1611.1000000014901,
       "p95Ms": 2679.2000000029802,
       "p99Ms": 2749.6999999955297,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 750000,
       "afterCost": 772500,
       "costPerConfirmedAppointmentCents": 1848.0861244019138,
@@ -2219,6 +3019,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 174600,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.375,
+        "maximum": 0.375
+      },
       "meanDailyVarianceBefore": 0.004801171557947798,
       "meanDailyVarianceAfter": 0.01239277895253962,
       "maximumUtilization": 0.375,
@@ -2270,6 +3086,14 @@
       "p50Ms": 3039.7000000029802,
       "p95Ms": 3928.2999999970198,
       "p99Ms": 3949.7000000029802,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 750000,
       "afterCost": 765000,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -2278,6 +3102,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176400,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3020833333333333,
+        "maximum": 0.375
+      },
       "meanDailyVarianceBefore": 0.004801171557947798,
       "meanDailyVarianceAfter": 0.00965528616130548,
       "maximumUtilization": 0.375,
@@ -2329,6 +3169,14 @@
       "p50Ms": 2610.0999999940395,
       "p95Ms": 3772.89999999851,
       "p99Ms": 3773.7999999970198,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 4,
+        "p95": 13,
+        "maximum": 13
+      },
       "beforeCost": 750000,
       "afterCost": 765250,
       "costPerConfirmedAppointmentCents": 1857.4029126213593,
@@ -2337,6 +3185,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 180000,
+      "configuredBufferSecondsAfter": 176700,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.1388888888888889,
+        "p95": 0.3020833333333333,
+        "maximum": 0.375
+      },
       "meanDailyVarianceBefore": 0.004801171557947798,
       "meanDailyVarianceAfter": 0.009691481508180614,
       "maximumUtilization": 0.375,
@@ -2388,6 +3252,14 @@
       "p50Ms": 971.8999999985099,
       "p95Ms": 1100,
       "p99Ms": 1308.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 4,
+        "maximum": 5
+      },
       "beforeCost": 4850000,
       "afterCost": 4910000,
       "costPerConfirmedAppointmentCents": 3012.269938650307,
@@ -2396,6 +3268,22 @@
       "overtimeAfter": 300,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 540000,
+      "configuredBufferSecondsAfter": 549000,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00024255094194540564,
       "maximumUtilization": 1.0196078431372548,
@@ -2447,6 +3335,14 @@
       "p50Ms": 937.1999999955297,
       "p95Ms": 1060.7999999970198,
       "p99Ms": 1089.5,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 4,
+        "maximum": 5
+      },
       "beforeCost": 4850000,
       "afterCost": 4910000,
       "costPerConfirmedAppointmentCents": 3012.269938650307,
@@ -2455,6 +3351,22 @@
       "overtimeAfter": 300,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 540000,
+      "configuredBufferSecondsAfter": 549000,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00024255094194540564,
       "maximumUtilization": 1.0196078431372548,
@@ -2506,6 +3418,14 @@
       "p50Ms": 2805.7000000029802,
       "p95Ms": 4004.10000000149,
       "p99Ms": 4042,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 4850000,
       "afterCost": 4874000,
       "costPerConfirmedAppointmentCents": 3023.573200992556,
@@ -2514,6 +3434,22 @@
       "overtimeAfter": 120,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 540000,
+      "configuredBufferSecondsAfter": 543600,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00017661476355247983,
       "maximumUtilization": 1.0196078431372548,
@@ -2565,6 +3501,14 @@
       "p50Ms": 2710.9000000059605,
       "p95Ms": 4173.70000000298,
       "p99Ms": 4222.80000000447,
+      "incomplete": 17,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 13,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 4850000,
       "afterCost": 4876000,
       "costPerConfirmedAppointmentCents": 3022.938623682579,
@@ -2573,6 +3517,22 @@
       "overtimeAfter": 130,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 540000,
+      "configuredBufferSecondsAfter": 543900,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00017779219530949635,
       "maximumUtilization": 1.0196078431372548,
@@ -2624,6 +3584,14 @@
       "p50Ms": 3754,
       "p95Ms": 4067,
       "p99Ms": 4192.80000000447,
+      "incomplete": 24,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 6,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 4850000,
       "afterCost": 4862000,
       "costPerConfirmedAppointmentCents": 3027.3972602739727,
@@ -2632,6 +3600,22 @@
       "overtimeAfter": 60,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 540000,
+      "configuredBufferSecondsAfter": 541800,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00011067858515955403,
       "maximumUtilization": 1.0196078431372548,
@@ -2683,6 +3667,14 @@
       "p50Ms": 3584.7999999970198,
       "p95Ms": 3963.39999999851,
       "p99Ms": 4080.3000000044703,
+      "incomplete": 24,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 6,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 4850000,
       "afterCost": 4862000,
       "costPerConfirmedAppointmentCents": 3027.3972602739727,
@@ -2691,6 +3683,22 @@
       "overtimeAfter": 60,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 540000,
+      "configuredBufferSecondsAfter": 541800,
+      "utilizationBefore": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 200,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00011067858515955403,
       "maximumUtilization": 1.0196078431372548,
@@ -2742,6 +3750,14 @@
       "p50Ms": 320.8999999985099,
       "p95Ms": 464.30000000447035,
       "p99Ms": 560.7999999970198,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 55000,
       "costPerConfirmedAppointmentCents": 1833.3333333333333,
@@ -2750,6 +3766,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 12000,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0010341411370217955,
       "maximumUtilization": 0.26851851851851855,
@@ -2801,6 +3833,14 @@
       "p50Ms": 310.80000000447035,
       "p95Ms": 394,
       "p99Ms": 447.90000000596046,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 55000,
       "costPerConfirmedAppointmentCents": 1833.3333333333333,
@@ -2809,6 +3849,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 12000,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0010341411370217955,
       "maximumUtilization": 0.26851851851851855,
@@ -2860,6 +3916,14 @@
       "p50Ms": 935.6000000014901,
       "p95Ms": 1719,
       "p99Ms": 1747.2000000029802,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 33250,
       "costPerConfirmedAppointmentCents": 1847.2222222222222,
@@ -2868,6 +3932,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 7500,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0007176973784484073,
       "maximumUtilization": 0.3333333333333333,
@@ -2919,6 +3999,14 @@
       "p50Ms": 859.1000000014901,
       "p95Ms": 1460,
       "p99Ms": 1499.1999999955297,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 33500,
       "costPerConfirmedAppointmentCents": 1861.111111111111,
@@ -2927,6 +4015,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 7800,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0006874333180917543,
       "maximumUtilization": 0.3333333333333333,
@@ -2978,6 +4082,14 @@
       "p50Ms": 1997.5999999940395,
       "p95Ms": 3375.3000000044703,
       "p99Ms": 3423.89999999851,
+      "incomplete": 15,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 15,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 28250,
       "costPerConfirmedAppointmentCents": 1883.3333333333333,
@@ -2986,6 +4098,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 6900,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0004587810547172687,
       "maximumUtilization": 0.26851851851851855,
@@ -3037,6 +4165,14 @@
       "p50Ms": 1710.7999999970198,
       "p95Ms": 3155,
       "p99Ms": 3543.8000000044703,
+      "incomplete": 15,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 15,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 28250,
       "costPerConfirmedAppointmentCents": 1883.3333333333333,
@@ -3045,6 +4181,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 6900,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0004027682517908855,
       "maximumUtilization": 0.2037037037037037,
@@ -3096,6 +4248,14 @@
       "p50Ms": 617.6000000014901,
       "p95Ms": 997.7999999970198,
       "p99Ms": 1018.3000000044703,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 5,
+        "p95": 12,
+        "maximum": 13
+      },
       "beforeCost": 1125000,
       "afterCost": 1160500,
       "costPerConfirmedAppointmentCents": 1842.063492063492,
@@ -3104,6 +4264,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 258600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006742226794695929,
       "maximumUtilization": 0.26851851851851855,
@@ -3155,6 +4331,14 @@
       "p50Ms": 606.3000000044703,
       "p95Ms": 631.8000000044703,
       "p99Ms": 848.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 13
+      },
       "beforeCost": 1125000,
       "afterCost": 1160000,
       "costPerConfirmedAppointmentCents": 1841.2698412698412,
@@ -3163,6 +4347,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 258000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.0069584476451760415,
       "maximumUtilization": 0.26851851851851855,
@@ -3214,6 +4414,14 @@
       "p50Ms": 1749.3999999985099,
       "p95Ms": 3068.39999999851,
       "p99Ms": 3203.89999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 5,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1147500,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -3222,6 +4430,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 264600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.1388888888888889,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005238397347965249,
       "maximumUtilization": 0.2037037037037037,
@@ -3273,6 +4497,14 @@
       "p50Ms": 1779.3999999985099,
       "p95Ms": 3012.10000000149,
       "p99Ms": 3040.7999999970198,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1146250,
       "costPerConfirmedAppointmentCents": 1854.7734627831715,
@@ -3281,6 +4513,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 263100,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005507020652339582,
       "maximumUtilization": 0.2037037037037037,
@@ -3332,6 +4580,14 @@
       "p50Ms": 3039.5,
       "p95Ms": 3727.2000000029802,
       "p99Ms": 4033.60000000149,
+      "incomplete": 20,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 10,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1137500,
       "costPerConfirmedAppointmentCents": 1864.7540983606557,
@@ -3340,6 +4596,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.1388888888888889,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004777091906721536,
       "maximumUtilization": 0.2037037037037037,
@@ -3391,6 +4663,14 @@
       "p50Ms": 3011.6999999955297,
       "p95Ms": 3685.3000000044703,
       "p99Ms": 3698,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1136250,
       "costPerConfirmedAppointmentCents": 1865.7635467980297,
@@ -3399,6 +4679,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267300,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.1388888888888889,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004719888355433623,
       "maximumUtilization": 0.2037037037037037,
@@ -3450,6 +4746,14 @@
       "p50Ms": 655.3999999985099,
       "p95Ms": 802,
       "p99Ms": 803.8000000044703,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 13
+      },
       "beforeCost": 1125000,
       "afterCost": 1167500,
       "costPerConfirmedAppointmentCents": 1853.1746031746031,
@@ -3458,6 +4762,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006939376619417771,
       "maximumUtilization": 0.26851851851851855,
@@ -3509,6 +4829,14 @@
       "p50Ms": 649.6000000014901,
       "p95Ms": 730.6000000014901,
       "p99Ms": 732.8000000044703,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 13
+      },
       "beforeCost": 1125000,
       "afterCost": 1167500,
       "costPerConfirmedAppointmentCents": 1853.1746031746031,
@@ -3517,6 +4845,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006939376619417771,
       "maximumUtilization": 0.26851851851851855,
@@ -3568,6 +4912,14 @@
       "p50Ms": 1979.2000000029802,
       "p95Ms": 3737.5,
       "p99Ms": 3871,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1149250,
       "costPerConfirmedAppointmentCents": 1859.6278317152103,
@@ -3576,6 +4928,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 266700,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005813662170400852,
       "maximumUtilization": 0.26851851851851855,
@@ -3627,6 +4995,14 @@
       "p50Ms": 1855.5,
       "p95Ms": 3080.2000000029802,
       "p99Ms": 3190.39999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1149250,
       "costPerConfirmedAppointmentCents": 1859.6278317152103,
@@ -3635,6 +5011,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 266700,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005869941700960219,
       "maximumUtilization": 0.26851851851851855,
@@ -3686,6 +5078,14 @@
       "p50Ms": 3226.8000000044703,
       "p95Ms": 3820.60000000149,
       "p99Ms": 3945.6999999955297,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 4,
+        "maximum": 4
+      },
       "beforeCost": 1125000,
       "afterCost": 1137000,
       "costPerConfirmedAppointmentCents": 1866.9950738916257,
@@ -3694,6 +5094,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 268200,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005077655845145556,
       "maximumUtilization": 0.26851851851851855,
@@ -3745,6 +5161,14 @@
       "p50Ms": 3243.7000000029802,
       "p95Ms": 4019.1999999955297,
       "p99Ms": 4123.80000000447,
+      "incomplete": 19,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 11,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1140000,
       "costPerConfirmedAppointmentCents": 1865.7937806873977,
@@ -3753,6 +5177,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 268200,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005295438957475994,
       "maximumUtilization": 0.26851851851851855,
@@ -3804,6 +5244,14 @@
       "p50Ms": 660.2000000029802,
       "p95Ms": 907.2999999970198,
       "p99Ms": 919.0999999940395,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1174169,
       "costPerConfirmedAppointmentCents": 1863.7603174603175,
@@ -3812,6 +5260,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 4334,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 266666.8,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.26851851851851855,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.007280357033988721,
       "maximumUtilization": 0.3333333333333333,
@@ -3863,6 +5327,14 @@
       "p50Ms": 640.2999999970198,
       "p95Ms": 682.2999999970198,
       "p99Ms": 696.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1177297,
       "costPerConfirmedAppointmentCents": 1868.7253968253967,
@@ -3871,6 +5343,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 6202,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 266740.39999999997,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.26851851851851855,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.007295627190976986,
       "maximumUtilization": 0.3333333333333333,
@@ -3922,6 +5410,14 @@
       "p50Ms": 1875.9000000059605,
       "p95Ms": 3395.10000000149,
       "p99Ms": 3514.7000000029802,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1160547,
       "costPerConfirmedAppointmentCents": 1877.9077669902913,
@@ -3930,6 +5426,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 6202,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 268240.39999999997,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006062718716659045,
       "maximumUtilization": 0.3333333333333333,
@@ -3981,6 +5493,14 @@
       "p50Ms": 1781.1000000014901,
       "p95Ms": 3071.39999999851,
       "p99Ms": 3154.10000000149,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 13,
+        "maximum": 13
+      },
       "beforeCost": 1125000,
       "afterCost": 1157669,
       "costPerConfirmedAppointmentCents": 1873.2508090614888,
@@ -3989,6 +5509,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 4334,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 268466.8,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.24074074074074073,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006095617664990093,
       "maximumUtilization": 0.3333333333333333,
@@ -4040,6 +5576,14 @@
       "p50Ms": 3305.89999999851,
       "p95Ms": 3838.2000000029802,
       "p99Ms": 3943.7000000029802,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 7,
+        "maximum": 7
+      },
       "beforeCost": 1125000,
       "afterCost": 1140646,
       "costPerConfirmedAppointmentCents": 1872.9819376026273,
@@ -4048,6 +5592,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 1909,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 268881.8,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005140746456332875,
       "maximumUtilization": 0.3333333333333333,
@@ -4099,6 +5659,14 @@
       "p50Ms": 3148.1999999955297,
       "p95Ms": 3823.5,
       "p99Ms": 4008.39999999851,
+      "incomplete": 20,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 10,
+        "p50": 0,
+        "p95": 7,
+        "maximum": 7
+      },
       "beforeCost": 1125000,
       "afterCost": 1138750,
       "costPerConfirmedAppointmentCents": 1866.8032786885246,
@@ -4107,6 +5675,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 268500,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005431193796677334,
       "maximumUtilization": 0.3333333333333333,
@@ -4158,6 +5742,14 @@
       "p50Ms": 654,
       "p95Ms": 851.3000000044703,
       "p99Ms": 854.5,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1163250,
       "costPerConfirmedAppointmentCents": 1846.4285714285713,
@@ -4166,6 +5758,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 261900,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.4583333333333333,
+        "p95": 0.6041666666666666,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.041952015817901235,
       "maximumUtilization": 0.6041666666666666,
@@ -4217,6 +5825,14 @@
       "p50Ms": 606.1999999955297,
       "p95Ms": 641.7000000029802,
       "p99Ms": 651.6000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1163000,
       "costPerConfirmedAppointmentCents": 1846.031746031746,
@@ -4225,6 +5841,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 261600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.4583333333333333,
+        "p95": 0.6041666666666666,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.042423611111111106,
       "maximumUtilization": 0.6041666666666666,
@@ -4276,6 +5908,14 @@
       "p50Ms": 1781.2999999970198,
       "p95Ms": 3063.89999999851,
       "p99Ms": 3235.60000000149,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1147500,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -4284,6 +5924,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 264600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.031878665123456794,
       "maximumUtilization": 0.6041666666666666,
@@ -4335,6 +5991,14 @@
       "p50Ms": 1985.5,
       "p95Ms": 3358.5,
       "p99Ms": 3510.1999999955297,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1147500,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -4343,6 +6007,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 264600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.4583333333333333,
+        "p95": 0.6041666666666666,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.03511757330246913,
       "maximumUtilization": 0.6041666666666666,
@@ -4394,6 +6074,14 @@
       "p50Ms": 3765.9000000059605,
       "p95Ms": 3978.2000000029802,
       "p99Ms": 4016.39999999851,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1125000,
       "afterCost": 1136250,
       "costPerConfirmedAppointmentCents": 1865.7635467980297,
@@ -4402,6 +6090,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267300,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.027143084490740745,
       "maximumUtilization": 0.6041666666666666,
@@ -4453,6 +6157,14 @@
       "p50Ms": 3222.5,
       "p95Ms": 4049.89999999851,
       "p99Ms": 4058.10000000149,
+      "incomplete": 19,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 11,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1125000,
       "afterCost": 1138750,
       "costPerConfirmedAppointmentCents": 1863.747954173486,
@@ -4461,6 +6173,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 266700,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.02854528356481481,
       "maximumUtilization": 0.6041666666666666,
@@ -4512,6 +6240,14 @@
       "p50Ms": 746.2000000029802,
       "p95Ms": 1103.6999999955297,
       "p99Ms": 1227.7000000029802,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1164750,
       "costPerConfirmedAppointmentCents": 1848.8095238095239,
@@ -4520,6 +6256,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 263700,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.3020833333333333,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004880601478063991,
       "meanDailyVarianceAfter": 0.009308906296723483,
       "maximumUtilization": 0.3020833333333333,
@@ -4571,6 +6323,14 @@
       "p50Ms": 750.2000000029802,
       "p95Ms": 768.5,
       "p99Ms": 797.6000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 13
+      },
       "beforeCost": 1125000,
       "afterCost": 1165000,
       "costPerConfirmedAppointmentCents": 1849.2063492063492,
@@ -4579,6 +6339,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 264000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.3020833333333333,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004880601478063991,
       "meanDailyVarianceAfter": 0.00915716978512538,
       "maximumUtilization": 0.3020833333333333,
@@ -4630,6 +6406,14 @@
       "p50Ms": 1876.8000000044703,
       "p95Ms": 3594.60000000149,
       "p99Ms": 3734.89999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1125000,
       "afterCost": 1148250,
       "costPerConfirmedAppointmentCents": 1858.009708737864,
@@ -4638,6 +6422,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 265500,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.3020833333333333,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004880601478063991,
       "meanDailyVarianceAfter": 0.007442157663719083,
       "maximumUtilization": 0.3020833333333333,
@@ -4689,6 +6489,14 @@
       "p50Ms": 1836.2999999970198,
       "p95Ms": 3189.2000000029802,
       "p99Ms": 3306.39999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1125000,
       "afterCost": 1148000,
       "costPerConfirmedAppointmentCents": 1857.6051779935276,
@@ -4697,6 +6505,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 265200,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.26851851851851855,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004880601478063991,
       "meanDailyVarianceAfter": 0.007343490128440627,
       "maximumUtilization": 0.3020833333333333,
@@ -4748,6 +6572,14 @@
       "p50Ms": 3185.10000000149,
       "p95Ms": 3904.2000000029802,
       "p99Ms": 3990.5,
+      "incomplete": 20,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 10,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1125000,
       "afterCost": 1137500,
       "costPerConfirmedAppointmentCents": 1864.7540983606557,
@@ -4756,6 +6588,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004880601478063991,
       "meanDailyVarianceAfter": 0.006328248038503709,
       "maximumUtilization": 0.3020833333333333,
@@ -4807,6 +6655,14 @@
       "p50Ms": 3114.8000000044703,
       "p95Ms": 3813.10000000149,
       "p99Ms": 4020,
+      "incomplete": 20,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 10,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1125000,
       "afterCost": 1137500,
       "costPerConfirmedAppointmentCents": 1864.7540983606557,
@@ -4815,6 +6671,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 270000,
+      "configuredBufferSecondsAfter": 267000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004880601478063991,
       "meanDailyVarianceAfter": 0.006345382206985916,
       "maximumUtilization": 0.3020833333333333,
@@ -4866,6 +6738,14 @@
       "p50Ms": 1096.6000000014901,
       "p95Ms": 1250,
       "p99Ms": 1259.3999999985099,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 4
+      },
       "beforeCost": 7275000,
       "afterCost": 7335000,
       "costPerConfirmedAppointmentCents": 3018.5185185185187,
@@ -4874,6 +6754,22 @@
       "overtimeAfter": 300,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 810000,
+      "configuredBufferSecondsAfter": 819000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0001559442949293007,
       "maximumUtilization": 1.0196078431372548,
@@ -4925,6 +6821,14 @@
       "p50Ms": 1084.7000000029802,
       "p95Ms": 1208.3000000044703,
       "p99Ms": 1398,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 4
+      },
       "beforeCost": 7275000,
       "afterCost": 7335000,
       "costPerConfirmedAppointmentCents": 3018.5185185185187,
@@ -4933,6 +6837,22 @@
       "overtimeAfter": 300,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 810000,
+      "configuredBufferSecondsAfter": 819000,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0001559442949293007,
       "maximumUtilization": 1.0196078431372548,
@@ -4984,6 +6904,14 @@
       "p50Ms": 3349.5,
       "p95Ms": 4387.80000000447,
       "p99Ms": 4514,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 7275000,
       "afterCost": 7299000,
       "costPerConfirmedAppointmentCents": 3026.1194029850744,
@@ -4992,6 +6920,22 @@
       "overtimeAfter": 120,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 810000,
+      "configuredBufferSecondsAfter": 813600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00011303344867358708,
       "maximumUtilization": 1.0196078431372548,
@@ -5043,6 +6987,14 @@
       "p50Ms": 3202.2000000029802,
       "p95Ms": 4199.80000000447,
       "p99Ms": 4201.60000000149,
+      "incomplete": 18,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 12,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 7275000,
       "afterCost": 7299000,
       "costPerConfirmedAppointmentCents": 3026.1194029850744,
@@ -5051,6 +7003,22 @@
       "overtimeAfter": 120,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 810000,
+      "configuredBufferSecondsAfter": 813600,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00012454611474219316,
       "maximumUtilization": 1.0196078431372548,
@@ -5102,6 +7070,14 @@
       "p50Ms": 3581.89999999851,
       "p95Ms": 4008.2999999970198,
       "p99Ms": 4379.29999999702,
+      "incomplete": 24,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 6,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 7275000,
       "afterCost": 7287000,
       "costPerConfirmedAppointmentCents": 3028.6783042394013,
@@ -5110,8 +7086,24 @@
       "overtimeAfter": 60,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 810000,
+      "configuredBufferSecondsAfter": 811800,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
-      "meanDailyVarianceAfter": 0.00007535563244905805,
+      "meanDailyVarianceAfter": 7.535563244905805e-05,
       "maximumUtilization": 1.0196078431372548,
       "changedAssignments": 0,
       "retimedAppointments": 47,
@@ -5161,6 +7153,14 @@
       "p50Ms": 4004.1999999955297,
       "p95Ms": 4008.5999999940395,
       "p99Ms": 4188.69999999553,
+      "incomplete": 24,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 6,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 7275000,
       "afterCost": 7287000,
       "costPerConfirmedAppointmentCents": 3028.6783042394013,
@@ -5169,8 +7169,24 @@
       "overtimeAfter": 60,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 810000,
+      "configuredBufferSecondsAfter": 811800,
+      "utilizationBefore": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 300,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
-      "meanDailyVarianceAfter": 0.00007535563244905805,
+      "meanDailyVarianceAfter": 7.535563244905805e-05,
       "maximumUtilization": 1.0196078431372548,
       "changedAssignments": 0,
       "retimedAppointments": 48,
@@ -5220,6 +7236,14 @@
       "p50Ms": 356,
       "p95Ms": 523,
       "p99Ms": 556.7999999970198,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 55000,
       "costPerConfirmedAppointmentCents": 1833.3333333333333,
@@ -5228,6 +7252,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 12000,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 50,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0007311385459533607,
       "maximumUtilization": 0.26851851851851855,
@@ -5279,6 +7319,14 @@
       "p50Ms": 347.8999999985099,
       "p95Ms": 413.30000000447035,
       "p99Ms": 495,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 55000,
       "costPerConfirmedAppointmentCents": 1833.3333333333333,
@@ -5287,6 +7335,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 12000,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 50,
+        "p50": 0,
+        "p95": 0.26851851851851855,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0007311385459533607,
       "maximumUtilization": 0.26851851851851855,
@@ -5338,6 +7402,14 @@
       "p50Ms": 1049.9000000059605,
       "p95Ms": 1800.2999999970198,
       "p99Ms": 2044.6999999955297,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 33750,
       "costPerConfirmedAppointmentCents": 1875,
@@ -5346,6 +7418,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 8100,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 50,
+        "p50": 0,
+        "p95": 0.1388888888888889,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0003855452674897119,
       "maximumUtilization": 0.3333333333333333,
@@ -5397,6 +7485,14 @@
       "p50Ms": 1146.6999999955297,
       "p95Ms": 2137.7000000029802,
       "p99Ms": 2138,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 34000,
       "costPerConfirmedAppointmentCents": 1888.888888888889,
@@ -5405,6 +7501,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 8400,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 50,
+        "p50": 0,
+        "p95": 0.1388888888888889,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00038478737997256517,
       "maximumUtilization": 0.3333333333333333,
@@ -5456,6 +7568,14 @@
       "p50Ms": 1992.2000000029802,
       "p95Ms": 3758.10000000149,
       "p99Ms": 3822.39999999851,
+      "incomplete": 15,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 15,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 28250,
       "costPerConfirmedAppointmentCents": 1883.3333333333333,
@@ -5464,6 +7584,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 6900,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 50,
+        "p50": 0,
+        "p95": 0.1388888888888889,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.0003044615912208505,
       "maximumUtilization": 0.26851851851851855,
@@ -5515,6 +7651,14 @@
       "p50Ms": 1969.5,
       "p95Ms": 3627,
       "p99Ms": 3647,
+      "incomplete": 15,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 15,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 0,
       "afterCost": 28500,
       "costPerConfirmedAppointmentCents": 1900,
@@ -5523,6 +7667,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 0,
+      "configuredBufferSecondsAfter": 7200,
+      "utilizationBefore": {
+        "observed": 0,
+        "p50": null,
+        "p95": null,
+        "maximum": null
+      },
+      "utilizationAfter": {
+        "observed": 50,
+        "p50": 0,
+        "p95": 0.1388888888888889,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00025344307270233195,
       "maximumUtilization": 0.2037037037037037,
@@ -5574,6 +7734,14 @@
       "p50Ms": 744.0999999940395,
       "p95Ms": 809.3000000044703,
       "p99Ms": 853,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1905250,
       "costPerConfirmedAppointmentCents": 1849.7572815533981,
@@ -5582,6 +7750,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 432300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006393672839506173,
       "maximumUtilization": 0.26851851851851855,
@@ -5633,6 +7817,14 @@
       "p50Ms": 728.5,
       "p95Ms": 748.6000000014901,
       "p99Ms": 754.6999999955297,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1905750,
       "costPerConfirmedAppointmentCents": 1850.2427184466019,
@@ -5641,6 +7833,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 432900,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006451210562414267,
       "maximumUtilization": 0.26851851851851855,
@@ -5692,6 +7900,14 @@
       "p50Ms": 2009.8999999985099,
       "p95Ms": 3567.7000000029802,
       "p99Ms": 4208.39999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1896750,
       "costPerConfirmedAppointmentCents": 1863.212180746562,
@@ -5700,6 +7916,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 443700,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005005840192043896,
       "maximumUtilization": 0.26851851851851855,
@@ -5751,6 +7983,14 @@
       "p50Ms": 2285.6999999955297,
       "p95Ms": 3997.1999999955297,
       "p99Ms": 4148.39999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1896750,
       "costPerConfirmedAppointmentCents": 1863.212180746562,
@@ -5759,6 +7999,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 443700,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004972026748971193,
       "maximumUtilization": 0.26851851851851855,
@@ -5810,6 +8066,14 @@
       "p50Ms": 3469.7999999970198,
       "p95Ms": 4140.29999999702,
       "p99Ms": 4174.20000000298,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1886250,
       "costPerConfirmedAppointmentCents": 1869.4251734390486,
@@ -5818,6 +8082,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.1388888888888889,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.0045110733882030175,
       "maximumUtilization": 0.2037037037037037,
@@ -5869,6 +8149,14 @@
       "p50Ms": 3408.2000000029802,
       "p95Ms": 4002.2999999970198,
       "p99Ms": 4058.7999999970198,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1875000,
       "afterCost": 1886000,
       "costPerConfirmedAppointmentCents": 1869.177403369673,
@@ -5877,6 +8165,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447000,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004584156378600823,
       "maximumUtilization": 0.26851851851851855,
@@ -5928,6 +8232,14 @@
       "p50Ms": 712.7999999970198,
       "p95Ms": 814.4000000059605,
       "p99Ms": 839.3999999985099,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1913000,
       "costPerConfirmedAppointmentCents": 1857.2815533980583,
@@ -5936,6 +8248,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 441600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005545644718792866,
       "maximumUtilization": 0.26851851851851855,
@@ -5987,6 +8315,14 @@
       "p50Ms": 712.0999999940395,
       "p95Ms": 740.1000000014901,
       "p99Ms": 741.1999999955297,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1913000,
       "costPerConfirmedAppointmentCents": 1857.2815533980583,
@@ -5995,6 +8331,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 441600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005545644718792866,
       "maximumUtilization": 0.26851851851851855,
@@ -6046,6 +8398,14 @@
       "p50Ms": 2143.10000000149,
       "p95Ms": 3557.89999999851,
       "p99Ms": 3608,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 4,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1897500,
       "costPerConfirmedAppointmentCents": 1863.9489194499017,
@@ -6054,6 +8414,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 444600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004940685871056241,
       "maximumUtilization": 0.2037037037037037,
@@ -6105,6 +8481,14 @@
       "p50Ms": 2014.1000000014901,
       "p95Ms": 3432,
       "p99Ms": 3442.39999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1897500,
       "costPerConfirmedAppointmentCents": 1863.9489194499017,
@@ -6113,6 +8497,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 444600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004940836762688615,
       "maximumUtilization": 0.2037037037037037,
@@ -6164,6 +8564,14 @@
       "p50Ms": 3541.39999999851,
       "p95Ms": 3962.39999999851,
       "p99Ms": 4070.39999999851,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1875000,
       "afterCost": 1887250,
       "costPerConfirmedAppointmentCents": 1870.416253716551,
@@ -6172,6 +8580,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 448500,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004473796296296296,
       "maximumUtilization": 0.2037037037037037,
@@ -6223,6 +8647,14 @@
       "p50Ms": 3432.0999999940395,
       "p95Ms": 4099.29999999702,
       "p99Ms": 4126.79999999702,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 6,
+        "maximum": 6
+      },
       "beforeCost": 1875000,
       "afterCost": 1886750,
       "costPerConfirmedAppointmentCents": 1869.9207135777997,
@@ -6231,6 +8663,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447900,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004536779835390947,
       "maximumUtilization": 0.2037037037037037,
@@ -6282,6 +8730,14 @@
       "p50Ms": 708.3000000044703,
       "p95Ms": 830.1000000014901,
       "p99Ms": 906.2000000029802,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1920436,
       "costPerConfirmedAppointmentCents": 1864.5009708737864,
@@ -6290,6 +8746,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 3911,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 443282.2,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.006020449108367628,
       "maximumUtilization": 0.3333333333333333,
@@ -6341,6 +8813,14 @@
       "p50Ms": 704.3999999985099,
       "p95Ms": 743.0999999940395,
       "p99Ms": 743.5999999940395,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 4,
+        "p95": 10,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1920686,
       "costPerConfirmedAppointmentCents": 1864.7436893203883,
@@ -6349,6 +8829,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 3911,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 443582.2,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.3333333333333333
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005998093141289438,
       "maximumUtilization": 0.3333333333333333,
@@ -6400,6 +8896,14 @@
       "p50Ms": 2022.6999999955297,
       "p95Ms": 3460.2999999970198,
       "p99Ms": 3495,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1905389,
       "costPerConfirmedAppointmentCents": 1871.6984282907663,
@@ -6408,6 +8912,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 3935,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 446587,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005239414403292182,
       "maximumUtilization": 0.26851851851851855,
@@ -6459,6 +8979,14 @@
       "p50Ms": 2076.39999999851,
       "p95Ms": 3711.5,
       "p99Ms": 3973,
+      "incomplete": 13,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 17,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1898804,
       "costPerConfirmedAppointmentCents": 1867.0639134709932,
@@ -6467,6 +8995,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 1092,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 446018.4,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.005079201783264746,
       "maximumUtilization": 0.26851851851851855,
@@ -6518,6 +9062,14 @@
       "p50Ms": 3545.2999999970198,
       "p95Ms": 4040.10000000149,
       "p99Ms": 4169.70000000298,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 6,
+        "maximum": 6
+      },
       "beforeCost": 1875000,
       "afterCost": 1886500,
       "costPerConfirmedAppointmentCents": 1869.6729435084242,
@@ -6526,6 +9078,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004625164609053498,
       "maximumUtilization": 0.26851851851851855,
@@ -6577,6 +9145,14 @@
       "p50Ms": 3451.9000000059605,
       "p95Ms": 4044.39999999851,
       "p99Ms": 4156.5,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1886250,
       "costPerConfirmedAppointmentCents": 1869.4251734390486,
@@ -6585,6 +9161,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.07407407407407407,
+        "p95": 0.2037037037037037,
+        "maximum": 0.2037037037037037
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.2037037037037037,
+        "maximum": 0.26851851851851855
+      },
       "meanDailyVarianceBefore": 0.004200960219478738,
       "meanDailyVarianceAfter": 0.004629927983539095,
       "maximumUtilization": 0.26851851851851855,
@@ -6636,6 +9228,14 @@
       "p50Ms": 665.5,
       "p95Ms": 839.2999999970198,
       "p99Ms": 864.1000000014901,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1912500,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -6644,6 +9244,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 441000,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.028469479166666666,
       "maximumUtilization": 0.6041666666666666,
@@ -6695,6 +9311,14 @@
       "p50Ms": 674.6000000014901,
       "p95Ms": 700.3000000044703,
       "p99Ms": 768.5,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 3,
+        "p95": 11,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1912500,
       "costPerConfirmedAppointmentCents": 1856.7961165048544,
@@ -6703,6 +9327,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 441000,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.028469479166666666,
       "maximumUtilization": 0.6041666666666666,
@@ -6754,6 +9394,14 @@
       "p50Ms": 1983.2000000029802,
       "p95Ms": 3311,
       "p99Ms": 3362.5,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1875000,
       "afterCost": 1897500,
       "costPerConfirmedAppointmentCents": 1863.9489194499017,
@@ -6762,6 +9410,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 444600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.6041666666666666
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.025704618055555555,
       "maximumUtilization": 0.6041666666666666,
@@ -6813,6 +9477,14 @@
       "p50Ms": 1990.6999999955297,
       "p95Ms": 3362.2000000029802,
       "p99Ms": 3401.60000000149,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1897500,
       "costPerConfirmedAppointmentCents": 1863.9489194499017,
@@ -6821,6 +9493,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 444600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.02518590277777778,
       "maximumUtilization": 0.4583333333333333,
@@ -6872,6 +9560,14 @@
       "p50Ms": 3392.39999999851,
       "p95Ms": 3997.60000000149,
       "p99Ms": 4078.60000000149,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 12,
+        "maximum": 12
+      },
       "beforeCost": 1875000,
       "afterCost": 1886250,
       "costPerConfirmedAppointmentCents": 1869.4251734390486,
@@ -6880,6 +9576,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.02317758680555555,
       "maximumUtilization": 0.4583333333333333,
@@ -6931,6 +9643,14 @@
       "p50Ms": 3282.2000000029802,
       "p95Ms": 3972.1999999955297,
       "p99Ms": 4073.5,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1886250,
       "costPerConfirmedAppointmentCents": 1869.4251734390486,
@@ -6939,6 +9659,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.16666666666666666,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.4583333333333333,
+        "p95": 0.4583333333333333,
+        "maximum": 0.4583333333333333
+      },
       "meanDailyVarianceBefore": 0.02126736111111111,
       "meanDailyVarianceAfter": 0.02326911458333333,
       "maximumUtilization": 0.4583333333333333,
@@ -6990,6 +9726,14 @@
       "p50Ms": 771.6999999955297,
       "p95Ms": 963.1000000014901,
       "p99Ms": 1010.8000000044703,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 5,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1912750,
       "costPerConfirmedAppointmentCents": 1857.0388349514562,
@@ -6998,6 +9742,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 441300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004848829510017514,
       "meanDailyVarianceAfter": 0.006467896215130933,
       "maximumUtilization": 0.3020833333333333,
@@ -7049,6 +9809,14 @@
       "p50Ms": 726.1000000014901,
       "p95Ms": 755.1999999955297,
       "p99Ms": 773.4000000059605,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 5,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1912750,
       "costPerConfirmedAppointmentCents": 1857.0388349514562,
@@ -7057,6 +9825,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 441300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.3020833333333333
+      },
       "meanDailyVarianceBefore": 0.004848829510017514,
       "meanDailyVarianceAfter": 0.006467896215130933,
       "maximumUtilization": 0.3020833333333333,
@@ -7108,6 +9892,14 @@
       "p50Ms": 2113.10000000149,
       "p95Ms": 3564,
       "p99Ms": 3684.3000000044703,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 0,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1897500,
       "costPerConfirmedAppointmentCents": 1863.9489194499017,
@@ -7116,6 +9908,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 444600,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
       "meanDailyVarianceBefore": 0.004848829510017514,
       "meanDailyVarianceAfter": 0.005746294587551796,
       "maximumUtilization": 0.22916666666666666,
@@ -7167,6 +9975,14 @@
       "p50Ms": 2135.89999999851,
       "p95Ms": 3554.5,
       "p99Ms": 3557.89999999851,
+      "incomplete": 12,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 18,
+        "p50": 3,
+        "p95": 10,
+        "maximum": 10
+      },
       "beforeCost": 1875000,
       "afterCost": 1898000,
       "costPerConfirmedAppointmentCents": 1864.4400785854616,
@@ -7175,6 +9991,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 445200,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
       "meanDailyVarianceBefore": 0.004848829510017514,
       "meanDailyVarianceAfter": 0.005658081774103978,
       "maximumUtilization": 0.22916666666666666,
@@ -7226,6 +10058,14 @@
       "p50Ms": 3638.39999999851,
       "p95Ms": 3932.39999999851,
       "p99Ms": 4042.7999999970198,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 11,
+        "maximum": 11
+      },
       "beforeCost": 1875000,
       "afterCost": 1886250,
       "costPerConfirmedAppointmentCents": 1869.4251734390486,
@@ -7234,6 +10074,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 447300,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
       "meanDailyVarianceBefore": 0.004848829510017514,
       "meanDailyVarianceAfter": 0.005281924313298306,
       "maximumUtilization": 0.22916666666666666,
@@ -7285,6 +10141,14 @@
       "p50Ms": 3702.7000000029802,
       "p95Ms": 3881.5,
       "p99Ms": 3942.2999999970198,
+      "incomplete": 21,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 9,
+        "p50": 0,
+        "p95": 5,
+        "maximum": 5
+      },
       "beforeCost": 1875000,
       "afterCost": 1887250,
       "costPerConfirmedAppointmentCents": 1870.416253716551,
@@ -7293,6 +10157,22 @@
       "overtimeAfter": 0,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 450000,
+      "configuredBufferSecondsAfter": 448500,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.08333333333333333,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.2037037037037037,
+        "p95": 0.22916666666666666,
+        "maximum": 0.22916666666666666
+      },
       "meanDailyVarianceBefore": 0.004848829510017514,
       "meanDailyVarianceAfter": 0.0051775406894784045,
       "maximumUtilization": 0.22916666666666666,
@@ -7344,6 +10224,14 @@
       "p50Ms": 1511.3000000044703,
       "p95Ms": 1717.2999999970198,
       "p99Ms": 1795.2000000029802,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 12125000,
       "afterCost": 12185000,
       "costPerConfirmedAppointmentCents": 3023.573200992556,
@@ -7352,6 +10240,22 @@
       "overtimeAfter": 300,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 1350000,
+      "configuredBufferSecondsAfter": 1359000,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00013413302575932334,
       "maximumUtilization": 1.0196078431372548,
@@ -7403,6 +10307,14 @@
       "p50Ms": 1606.1999999955297,
       "p95Ms": 1821.7999999970198,
       "p99Ms": 1826.2000000029802,
+      "incomplete": 0,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 30,
+        "p50": 0,
+        "p95": 3,
+        "maximum": 3
+      },
       "beforeCost": 12125000,
       "afterCost": 12185000,
       "costPerConfirmedAppointmentCents": 3023.573200992556,
@@ -7411,6 +10323,22 @@
       "overtimeAfter": 300,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 1350000,
+      "configuredBufferSecondsAfter": 1359000,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 1.0196078431372548,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
       "meanDailyVarianceAfter": 0.00013413302575932334,
       "maximumUtilization": 1.0196078431372548,
@@ -7462,6 +10390,14 @@
       "p50Ms": 4003.4000000059605,
       "p95Ms": 4323.80000000447,
       "p99Ms": 4488.79999999702,
+      "incomplete": 24,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 6,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 12125000,
       "afterCost": 12137000,
       "costPerConfirmedAppointmentCents": 3029.705441837244,
@@ -7470,8 +10406,24 @@
       "overtimeAfter": 60,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 1350000,
+      "configuredBufferSecondsAfter": 1351800,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
-      "meanDailyVarianceAfter": 0.00004973471741637832,
+      "meanDailyVarianceAfter": 4.973471741637832e-05,
       "maximumUtilization": 1.0196078431372548,
       "changedAssignments": 0,
       "retimedAppointments": 48,
@@ -7521,6 +10473,14 @@
       "p50Ms": 3728.2000000029802,
       "p95Ms": 4047.5,
       "p99Ms": 4160.30000000447,
+      "incomplete": 24,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 6,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 12125000,
       "afterCost": 12137000,
       "costPerConfirmedAppointmentCents": 3029.705441837244,
@@ -7529,8 +10489,24 @@
       "overtimeAfter": 60,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 1350000,
+      "configuredBufferSecondsAfter": 1351800,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
-      "meanDailyVarianceAfter": 0.00004973471741637832,
+      "meanDailyVarianceAfter": 4.973471741637832e-05,
       "maximumUtilization": 1.0196078431372548,
       "changedAssignments": 0,
       "retimedAppointments": 46,
@@ -7580,6 +10556,14 @@
       "p50Ms": 3691,
       "p95Ms": 4009.5,
       "p99Ms": 4010,
+      "incomplete": 27,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 3,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 12125000,
       "afterCost": 12131000,
       "costPerConfirmedAppointmentCents": 3030.4771421433925,
@@ -7588,8 +10572,24 @@
       "overtimeAfter": 30,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 1350000,
+      "configuredBufferSecondsAfter": 1350900,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
-      "meanDailyVarianceAfter": 0.000026562860438292963,
+      "meanDailyVarianceAfter": 2.6562860438292963e-05,
       "maximumUtilization": 1.0196078431372548,
       "changedAssignments": 0,
       "retimedAppointments": 24,
@@ -7639,6 +10639,14 @@
       "p50Ms": 3619.60000000149,
       "p95Ms": 4010.10000000149,
       "p99Ms": 4010.4000000059605,
+      "incomplete": 27,
+      "unknownSearchCompletion": 0,
+      "serviceDelayCalendarDaysFromFirstHorizonDate": {
+        "observed": 3,
+        "p50": 0,
+        "p95": 0,
+        "maximum": 0
+      },
       "beforeCost": 12125000,
       "afterCost": 12131000,
       "costPerConfirmedAppointmentCents": 3030.4771421433925,
@@ -7647,8 +10655,24 @@
       "overtimeAfter": 30,
       "waitingBefore": 0,
       "waitingAfter": 0,
+      "roadSecondsBefore": 0,
+      "roadSecondsAfter": 0,
+      "configuredBufferSecondsBefore": 1350000,
+      "configuredBufferSecondsAfter": 1350900,
+      "utilizationBefore": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 0.9509803921568627
+      },
+      "utilizationAfter": {
+        "observed": 500,
+        "p50": 0.9509803921568627,
+        "p95": 0.9509803921568627,
+        "maximum": 1.0196078431372548
+      },
       "meanDailyVarianceBefore": 0,
-      "meanDailyVarianceAfter": 0.000026562860438292963,
+      "meanDailyVarianceAfter": 2.6562860438292963e-05,
       "maximumUtilization": 1.0196078431372548,
       "changedAssignments": 0,
       "retimedAppointments": 24,
