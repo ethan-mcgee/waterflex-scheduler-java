@@ -95,8 +95,8 @@ jobs:
       - name: Migrate, seed, and check schema
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
-      - name: Immutable snapshot and reservation database gate
-        run: ./mvnw -Pnullability -pl scheduler-service clean package -Dtest=BookingSnapshotDatabaseIT --batch-mode --no-transfer-progress
+      - name: Immutable snapshot, reservation and database admission gates
+        run: ./mvnw -Pnullability -pl scheduler-service clean package -Dtest=BookingSnapshotDatabaseIT,SearchDatabaseAdmissionIT --batch-mode --no-transfer-progress
       - name: Browser nullability regressions in an isolated schema
         working-directory: web
         env:

@@ -25,6 +25,14 @@ const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchm
 execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
 const harnessSources = await Promise.all(sourcePaths.map(async path => ({ path, sha256: createHash("sha256").update(await readFile(path)).digest("hex") })));
 const artifactSha256 = process.env.BENCHMARK_ARTIFACT_SHA256 == null ? null : z.string().regex(/^[a-f0-9]{64}$/i).parse(process.env.BENCHMARK_ARTIFACT_SHA256);
+const ablationManifest = process.env.BENCHMARK_ABLATION_MANIFEST == null ? null : z.object({
+  revision: z.string().regex(/^[a-f0-9]{40}$/), stage: z.enum(["policy-insertion", "snapshot-insertion", "bounded-early"]),
+  patchSha256: z.string().regex(/^[a-f0-9]{64}$/), guardSha256: z.string().regex(/^[a-f0-9]{64}$/),
+  generatorSha256: z.string().regex(/^[a-f0-9]{64}$/), timingTestSha256: z.string().regex(/^[a-f0-9]{64}$/),
+  boundedSearch: z.boolean(), flexibleDeparture: z.literal(false), fullMatrixAndFullEvaluation: z.boolean(),
+  retainedSafetyInfrastructure: z.array(z.string().min(1)).nonempty(), limitation: z.string().min(1),
+}).parse(JSON.parse(await readFile(process.env.BENCHMARK_ABLATION_MANIFEST, "utf8")));
+if (ablationManifest != null) assert.equal(ablationManifest.revision, revision, "Ablation source must match server revision");
 const engine = required(process.env.ENGINE_URL);
 const legacy = z.enum(["current", "legacy"]).parse(process.env.BENCHMARK_SERVER_MODE ?? "current") === "legacy";
 const auditEngine = legacy ? required(process.env.BENCHMARK_AUDIT_URL) : engine;
@@ -66,7 +74,12 @@ async function statistics(resetPeak: boolean) {
     body: JSON.stringify({ resetPeak }), signal: AbortSignal.timeout(5000) });
   if (response.status === 404) return null; // Earlier frozen artifacts explicitly lack this instrumentation.
   const body: unknown = await response.json(); assert.equal(response.status, 200, JSON.stringify(body));
-  return statisticsContract.parse(body);
+  const measured = statisticsContract.parse(body);
+  if (ablationManifest != null) {
+    assert.equal(measured.configuration["booking.reservations.enabled"], "true");
+    assert.equal(measured.configuration["booking.search.bounded"], String(ablationManifest.boundedSearch));
+  }
+  return measured;
 }
 function at(date: string, minute: number) { return new Date(localMidnightUtc(date, "America/Chicago").getTime() + minute * 60000); }
 type Workload = z.infer<typeof workloadSchema>;
@@ -153,7 +166,7 @@ async function removeSuccessfulCase(caseId: string) {
 }
 try {
   assert.equal(await prisma.metro.count(), 0, "Start with a freshly migrated, unseeded benchmark schema; failed datasets are retained for inspection");
-  await record({ type: "provenance", revision, artifactSha256, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
+  await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
     serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
     legacyLimitations: legacy ? "Original unchanged server: 120-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics." : null,
     scope: "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
