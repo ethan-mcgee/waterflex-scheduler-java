@@ -1,1 +1,3 @@
 routing-service/src/test/resources/fixture-roads.osm text eol=lf
+docs/evidence/*.json text eol=lf
+infra/summarize-booking-acceptance.py text eol=lf
