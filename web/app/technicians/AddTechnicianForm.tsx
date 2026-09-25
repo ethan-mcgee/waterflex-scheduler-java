@@ -40,6 +40,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
   const [pinMoved, setPinMoved] = useState(false);
   const [mapAvailable, setMapAvailable] = useState(false);
   const [lookup, setLookup] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [lookupError, setLookupError] = useState("");
   const lookupVersion = useRef(0);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
 
@@ -59,7 +60,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
     if (!addressComplete) { setLookup("idle"); return; }
     const controller = new AbortController();
     const timer = setTimeout(() => {
-      setLookup("loading"); setMessage("");
+      setLookup("loading"); setLookupError("");
       fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address), signal: controller.signal })
         .then(response => readResponse(response, candidatesResponse))
         .then(result => {
@@ -68,7 +69,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
           if (!best) { setSelectedCandidate(null); setPin(null); setLookup("error"); return; }
           setSelectedCandidate(best); setPin({ lat: best.lat, lng: best.lng }); setPinConfirmed(false); setPinMoved(false); setMapAvailable(false); setLookup("done");
         })
-        .catch(error => { if (!controller.signal.aborted && version === lookupVersion.current) { setSelectedCandidate(null); setPin(null); setLookup("error"); setMessage(errorMessage(error)); } });
+        .catch(error => { if (!controller.signal.aborted && version === lookupVersion.current) { setSelectedCandidate(null); setPin(null); setLookup("error"); setLookupError(errorMessage(error)); } });
     }, LOOKUP_DEBOUNCE_MS);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [address, addressComplete]);
@@ -76,7 +77,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
   function updateAddress(field: keyof typeof address, value: string) {
     ++lookupVersion.current;
     setAddress(current => ({ ...current, [field]: value }));
-    setSelectedCandidate(null); setPin(null); setPinConfirmed(false); setPinMoved(false); setMapAvailable(false); setLookup("idle"); setMessage("");
+    setSelectedCandidate(null); setPin(null); setPinConfirmed(false); setPinMoved(false); setMapAvailable(false); setLookup("idle"); setLookupError(""); setMessage("");
   }
   async function createTechnician() {
     if (invalid || !pin) return;
@@ -110,7 +111,7 @@ export default function AddTechnicianForm({ services, metros, dealerships, depot
               <div key={field}><label className={ui.sectionLabel} htmlFor={`new-${field}`}>{field === "line1" ? "Street address" : field === "postalCode" ? "Postal code" : field}</label>
                 <input id={`new-${field}`} value={address[field]} onChange={event => updateAddress(field, event.target.value)} style={inputStyle} /></div>)}</div>
             <div style={{ margin: "12px 0" }}>
-              <p>{lookup === "loading" ? "Locating home address…" : lookup === "error" ? "No verified pin found for this address." : selectedCandidate?.precision === "APPROXIMATE" ? `This street was found, but house number ${address.line1.match(/^\s*\d+[A-Za-z]?/)?.[0]?.trim() ?? ""} was not verified. Move the home pin to the correct house and confirm it.` : selectedCandidate ? "Review the located home pin. Drag it to adjust the location." : "Fill in the complete home address to locate it on the map."}</p>
+              <p>{lookup === "loading" ? "Locating home address…" : lookup === "error" ? lookupError || "No verified pin found for this address." : selectedCandidate?.precision === "APPROXIMATE" ? `This street was found, but house number ${address.line1.match(/^\s*\d+[A-Za-z]?/)?.[0]?.trim() ?? ""} was not verified. Move the home pin to the correct house and confirm it.` : selectedCandidate ? "Review the located home pin. Drag it to adjust the location." : "Fill in the complete home address to locate it on the map."}</p>
               {pin && selectedCandidate && <>
               <div style={{ height: 280, border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden" }}>
                 <DepotPinMap key={`${selectedCandidate.lat}-${selectedCandidate.lng}`} lat={pin.lat} lng={pin.lng} requireInteractive onAvailableChange={setMapAvailable}

@@ -5,9 +5,53 @@ import { confirmedHomePin } from "./technicianHomePin";
 import { NextRequest } from "next/server";
 import { POST as lookupRoute } from "../app/api/technicians/geocode/route";
 import { z } from "zod";
+import { normalizeStreet, STREET_SUFFIX_PAIRS } from "./streetNormalization";
+
+test("all 206 USPS primary suffix pairs work only in suffix position", () => {
+  assert.equal(STREET_SUFFIX_PAIRS.length, 206);
+  for (const [name, abbreviation] of STREET_SUFFIX_PAIRS) {
+    assert.equal(normalizeStreet(`Example ${name}`), normalizeStreet(`Example ${abbreviation}`));
+    assert.equal(normalizeStreet(`N Example ${name} SE`), normalizeStreet(`North Example ${abbreviation}. Southeast`));
+  }
+  for (const [short, full] of [["St", "Street"], ["Cir", "Circle"], ["Plz", "Plaza"], ["Ter", "Terrace"], ["Trl", "Trail"], ["Hwy", "Highway"]] as const) {
+    assert.equal(normalizeStreet(`Main ${short}`), `main ${short.toLowerCase()}`);
+    assert.equal(normalizeStreet(`Main ${short}`), normalizeStreet(`Main ${full}`));
+  }
+  for (const [short, full] of [["N", "North"], ["S", "South"], ["E", "East"], ["W", "West"], ["NE", "Northeast"], ["NW", "Northwest"], ["SE", "Southeast"], ["SW", "Southwest"]] as const) {
+    assert.equal(normalizeStreet(`${short}. Main Rd.`), normalizeStreet(`${full} Main Road`));
+    assert.equal(normalizeStreet(`Main Rd. ${short}.`), normalizeStreet(`Main Road ${full}`));
+  }
+  assert.equal(normalizeStreet("  St Charles Rd.  "), "st charles rd");
+  assert.equal(normalizeStreet("Circle Dr"), "circle dr");
+  assert.notEqual(normalizeStreet("St Charles Rd"), normalizeStreet("Saint Charles Rd"));
+  assert.notEqual(normalizeStreet("Circle Dr"), normalizeStreet("Cir Dr"));
+  assert.notEqual(normalizeStreet("Main St"), normalizeStreet("Main Cir"));
+  assert.notEqual(normalizeStreet("St"), normalizeStreet("Street"));
+  assert.equal(normalizeStreet("N"), "n");
+});
 
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
+
+test("Omaha direction and plaza spellings agree, with strict ZIP and road checks", async () => {
+  globalThis.fetch = async () => Response.json([{ lat: "41.23", lon: "-96.18", address: {
+    house_number: "2825", road: "South 170th Plaza", city: "Omaha", state: "Nebraska", postcode: "68130", country_code: "us",
+  } }]);
+  for (const line1 of ["2825 S 170th Plz", "2825 S 170th Plaza", "2825 South 170th Plaza", " 2825  s.  170TH  plz. "]) {
+    assert.equal((await geocodeAddress({ line1, city: "Omaha", state: "NE", postalCode: "68130" }))?.precision, "ROOFTOP");
+    assert.equal(await geocodeAddress({ line1, city: "Omaha", state: "NE", postalCode: "68103" }), null);
+  }
+  for (const line1 of ["2825 N 170th Plz", "2825 170th Plz", "2826 S 170th Plz", "2825 S 170th Cir", "2825 S 171st Plz"]) {
+    assert.equal(await geocodeAddress({ line1, city: "Omaha", state: "NE", postalCode: "68130" }), null);
+  }
+});
+
+test("invalid coordinates and null address data remain malformed", async () => {
+  for (const changed of [{ address: null }, { lat: null }, { lat: "NaN" }, { lon: "181" }, { boundingbox: ["42", "41", "-97", "-96"] }]) {
+    globalThis.fetch = async () => Response.json([{ ...street, ...changed }]);
+    await assert.rejects(searchAddress(address), error => error instanceof GeocoderError && error.kind === "malformed");
+  }
+});
 const address = { line1: "2125 Crest Ridge Dr", city: "Papillion", state: "NE", postalCode: "68133" };
 const street = { lat: "41.1637462", lon: "-96.0079032", address: {
   road: "Crest Ridge Drive", town: "Papillion", postcode: "68133", country_code: "us",
@@ -85,4 +129,10 @@ test("technician lookup API reports misses and geocoder failures separately", as
     const body: unknown = await response.json();
     assert.equal(z.object({ error: z.string() }).safeParse(body).success, true);
   }
+});
+
+
+test("street abbreviations never normalize locality names", async () => {
+  globalThis.fetch = async () => Response.json([{ ...street, address: { ...street.address, town: "Circle" } }]);
+  assert.deepEqual(await searchAddress({ ...address, city: "Cir" }), []);
 });

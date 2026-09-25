@@ -41,6 +41,8 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
   const [address, setAddress] = useState<Address>(EMPTY_ADDRESS);
   const [pin, setPin] = useState<Pin | null>(null);
   const [lookup, setLookup] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [lookupError, setLookupError] = useState("");
+  const lookupVersion = useRef(0);
   const [departure, setDeparture] = useState<Anchor>("HOME");
   const [returnTo, setReturnTo] = useState<Anchor>("HOME");
   const [editingDepotId, setEditingDepotId] = useState<string | null>(null);
@@ -56,6 +58,8 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
   const depotFieldsReady = Boolean(dealershipId) && Boolean(metroId) && depotName.trim().length > 0 && addressComplete;
 
   useEffect(() => {
+    const version = ++lookupVersion.current;
+    setLookupError("");
     if (!depotFieldsReady) { setLookup("idle"); setPin(null); return; }
     const controller = new AbortController();
     setPin(null);
@@ -65,17 +69,18 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
       fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address), signal: controller.signal })
         .then(response => readResponse(response, pinsResponse))
         .then(result => {
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted || version !== lookupVersion.current) return;
           const best = result.candidates.find(candidate => candidate.precision === "ROOFTOP") ?? result.candidates[0];
           if (best) { setPin({ lat: best.lat, lng: best.lng }); setLookup("done"); }
           else { setPin(null); setLookup("error"); }
         })
-        .catch(() => { if (!controller.signal.aborted) { setPin(null); setLookup("error"); } });
+        .catch(failure => { if (!controller.signal.aborted && version === lookupVersion.current) { setPin(null); setLookup("error"); setLookupError(errorMessage(failure)); } });
     }, LOOKUP_DEBOUNCE_MS);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [depotFieldsReady, address]);
 
   function updateAddress(field: keyof Address, value: string) {
+    ++lookupVersion.current; setLookupError(""); setError(null);
     setAddress(current => ({ ...current, [field]: value }));
     setPin(null);
     setLookup("idle");
@@ -212,7 +217,7 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
                 Located automatically from the address above
               </span>
             )}
-            {lookup === "error" && <span className={`${styles.mapStatus} ${styles.mapStatusError}`}>No verified pin found for this address.</span>}
+            {lookup === "error" && <span className={`${styles.mapStatus} ${styles.mapStatusError}`}>{lookupError || "No verified pin found for this address."}</span>}
           </div>
           <div className={styles.mapBoxWrap}>
             {pin ? (
@@ -289,7 +294,7 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
                 onSave={savePolicy}
                 onEditDetails={() => { setEditingDetailsId(current => current === depot.id ? null : depot.id); setError(null); }}
               />
-              {editingDetailsId === depot.id && <DepotDetailsEditor key={depot.id} depot={depot} busy={busy}
+              {editingDetailsId === depot.id && <DepotDetailsEditor onAddressChange={() => setError(null)} key={depot.id} depot={depot} busy={busy}
                 error={error?.area === "depotEdit" ? error.text : null} onCancel={() => setEditingDetailsId(null)} onSave={details => saveDepot(depot, details)} />}
               </div>
             ))}
@@ -315,8 +320,8 @@ function AnchorToggle({ label, value, onChange }: { label: string; value: Anchor
   );
 }
 
-function DepotDetailsEditor({ depot, busy, error, onCancel, onSave }: {
-  depot: Depot; busy: boolean; error: string | null; onCancel: () => void;
+function DepotDetailsEditor({ depot, busy, error, onCancel, onSave, onAddressChange }: {
+  depot: Depot; busy: boolean; error: string | null; onCancel: () => void; onAddressChange: () => void;
   onSave: (details: { name: string; address?: Address; confirmedPin?: Pin }) => Promise<void>;
 }) {
   const [name, setName] = useState(depot.name);
@@ -324,10 +329,14 @@ function DepotDetailsEditor({ depot, busy, error, onCancel, onSave }: {
   const [pin, setPin] = useState<Pin | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [lookup, setLookup] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [lookupError, setLookupError] = useState("");
+  const lookupVersion = useRef(0);
   const addressChanged = address.line1 !== depot.address.line1 || address.city !== depot.address.city ||
     address.state !== depot.address.state || address.postalCode !== depot.address.postalCode;
   const complete = Object.values(address).every(value => value.trim().length > 0);
   useEffect(() => {
+    const version = ++lookupVersion.current;
+    setLookupError("");
     if (!addressChanged || !complete) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
@@ -335,15 +344,16 @@ function DepotDetailsEditor({ depot, busy, error, onCancel, onSave }: {
       fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address), signal: controller.signal })
         .then(response => readResponse(response, pinsResponse))
         .then(result => {
-          if (controller.signal.aborted) return;
+          if (controller.signal.aborted || version !== lookupVersion.current) return;
           const best = result.candidates.find(candidate => candidate.precision === "ROOFTOP") ?? result.candidates[0];
           if (best) { setPin({ lat: best.lat, lng: best.lng }); setLookup("done"); }
           else setLookup("error");
-        }).catch(() => { if (!controller.signal.aborted) setLookup("error"); });
+        }).catch(failure => { if (!controller.signal.aborted && version === lookupVersion.current) { setLookup("error"); setLookupError(errorMessage(failure)); } });
     }, LOOKUP_DEBOUNCE_MS);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [address, addressChanged, complete]);
   function changeAddress(field: keyof Address, value: string) {
+    ++lookupVersion.current; setLookupError(""); onAddressChange();
     setAddress(current => ({ ...current, [field]: value })); setPin(null); setConfirmed(false); setLookup("idle");
   }
   return <div className={styles.policyPanel}>
@@ -355,7 +365,7 @@ function DepotDetailsEditor({ depot, busy, error, onCancel, onSave }: {
     {addressChanged && <div className={styles.mapSection}>
       <p className={ui.sectionLabel}>Confirm new depot pin</p>
       {lookup === "loading" && <p>Locating address...</p>}
-      {lookup === "error" && <p role="alert">No verified pin found for this address.</p>}
+      {lookup === "error" && <p role="alert">{lookupError || "No verified pin found for this address."}</p>}
       {pin && <><div className={styles.mapBoxWrap}><DepotPinMap lat={pin.lat} lng={pin.lng} onDrag={(lat, lng) => { setPin({ lat, lng }); setConfirmed(false); }} /></div>
         <button type="button" className={ui.button} onClick={() => setConfirmed(true)}>Confirm pin</button>
         {confirmed && <span className={styles.mapStatus}>Pin confirmed</span>}</>}

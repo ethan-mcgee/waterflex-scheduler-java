@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeStreet } from "./streetNormalization";
 
 export type GeocodePrecision = "ROOFTOP" | "APPROXIMATE";
 export interface GeocodeResult { lat: number; lng: number; precision: GeocodePrecision; bounds?: { south: number; north: number; west: number; east: number } }
@@ -19,7 +20,6 @@ const resultSchema = z.object({
     .refine(detail => [detail.city, detail.town, detail.village].some(value => value?.trim()), "Missing city or town"),
   boundingbox: z.tuple([coordinateString(90), coordinateString(90), coordinateString(180), coordinateString(180)]).optional(),
 });
-const suffixes: Record<string, string> = { dr: "drive", st: "street", rd: "road", ave: "avenue", blvd: "boulevard", ln: "lane", ct: "court", pl: "place", cir: "circle", pkwy: "parkway" };
 const states: Record<string, string> = {
   AL: "alabama", AK: "alaska", AZ: "arizona", AR: "arkansas", CA: "california", CO: "colorado",
   CT: "connecticut", DE: "delaware", FL: "florida", GA: "georgia", HI: "hawaii", ID: "idaho",
@@ -33,7 +33,7 @@ const states: Record<string, string> = {
   WA: "washington", WV: "west virginia", WI: "wisconsin", WY: "wyoming", DC: "district of columbia",
 };
 function normalize(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim().split(/\s+/).map(word => suffixes[word] ?? word).join(" ");
+  return value.toLowerCase().replace(/[^a-z0-9 ]/g, " ").trim().split(/\s+/).join(" ");
 }
 function streetName(line1: string): string { return line1.replace(/^\s*\d+[a-z]?\s+/i, ""); }
 function matches(value: string | undefined, expected: string): boolean { return value != null && normalize(value) === normalize(expected); }
@@ -66,7 +66,7 @@ async function query(address: AddressInput, withState: boolean): Promise<Geocode
     if (!matches(detail.country_code, "us") || !matches(detail.postcode, address.postalCode) ||
       ![detail.city, detail.town, detail.village].some(city => matches(city, address.city)) ||
       (detail.state != null && !matches(detail.state, expectedState) && !matches(detail.state, address.state)) ||
-      !matches(detail.road, streetName(address.line1)) ||
+      normalizeStreet(detail.road) !== normalizeStreet(streetName(address.line1)) ||
       (detail.house_number != null && !matches(detail.house_number, requestedNumber ?? ""))) return [];
     const bounds = result.boundingbox;
     const validBounds = bounds && bounds[0] <= bounds[1] && bounds[2] <= bounds[3];
