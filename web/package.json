@@ -9,6 +9,7 @@
     "lint": "eslint app lib scripts prisma tests playwright.config.ts --ext .ts,.tsx --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test:schema-contract": "tsx scripts/check-java-schema-contract.ts",
+    "test:address-matching:integration": "tsx scripts/smoke-address-matching.ts",
     "test:geocode": "tsx --test lib/geocode.test.ts",
     "test:fake-data": "tsx --test lib/fakeDataCore.test.ts",
     "test:optimization": "tsx --test lib/optimizationAnalysis.test.ts lib/optimizationExport.test.ts",
