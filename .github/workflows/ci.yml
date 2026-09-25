@@ -142,6 +142,9 @@ jobs:
       - name: Depot pin setup smoke
         working-directory: web
         run: npm run test:depot-setup:integration
+      - name: Shared address matching smoke
+        working-directory: web
+        run: npm run test:address-matching:integration
       - name: Technician home pin smoke
         working-directory: web
         run: npm run test:technician-home:integration
