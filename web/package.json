@@ -35,7 +35,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
     "test:nullability": "tsx --test lib/nullability.test.ts",
-    "test:ui": "playwright test"
+    "test:ui": "playwright test",
+    "test:unit": "tsx scripts/run-unit-tests.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
