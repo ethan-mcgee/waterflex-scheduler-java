@@ -16,6 +16,7 @@ class DurableBookingSearchIT {
     @Test void idempotencyCancellationPublicationAndRestartRecoveryUseDatabaseOwnership() throws Exception {
         String url = Required.value(System.getenv("JDBC_DATABASE_URL"));
         assertEquals("/waterflex_test", URI.create(url.substring(5)).getPath());
+        assertEquals("currentSchema=durable_contracts", URI.create(url.substring(5)).getQuery(), "Worker ownership test needs a schema without application workers");
         var source = new DriverManagerDataSource(url, "waterflex", "waterflex");
         var jdbc = new JdbcTemplate(source); var manager = new DataSourceTransactionManager(source);
         String prefix = "durable-it-" + UUID.randomUUID();
