@@ -21,6 +21,7 @@ public class BookingService {
     private static final ZoneId CHICAGO = Required.value(ZoneId.of("America/Chicago"));
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
+    private final BookingOfferLimit offerLimit;
 
     public record Offer(String offerId, String date, Instant windowStart, Instant windowEnd, Instant expiresAt) { }
     public record Offers(String jobId, List<Offer> offers) { }
@@ -49,7 +50,9 @@ public class BookingService {
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
                            long meters, long costCents, Map<String, Instant> arrivals, List<RouteEvaluator.WorkingSegment> segments) { }
 
-    public BookingService(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
+    public BookingService(JdbcTemplate jdbc, RoadClient roads, BookingOfferLimit offerLimit) {
+        this.jdbc = jdbc; this.roads = roads; this.offerLimit = offerLimit;
+    }
 
     @Transactional(readOnly = true, timeout = 4)
     public SearchContext searchContext(String jobId) {
@@ -93,7 +96,7 @@ public class BookingService {
         jdbc.update("INSERT INTO booking_offer_set (id, \"jobId\", \"expiresAt\") VALUES (?, ?, ?)", setId, jobId, stamp(Required.value(expiry)));
         SearchDeadline.reservedSet(Required.value(setId));
         for (Candidate c : windows.values()) {
-            if (result.size() == 4) break;
+            if (result.size() == offerLimit.value()) break;
             SearchDeadline.database(jdbc);
             lockDay(c.techId(), c.day());
             if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_arrangement r JOIN reservation_dependency d ON d.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=d.\"holdId\" WHERE r.\"metroId\"=? AND r.\"serviceDate\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
