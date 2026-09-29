@@ -76,7 +76,7 @@ public class TimeOffService {
         return Required.value(Map.<String, Object>of("requestId", id, "status", "PENDING"));
     }
 
-    @Scheduled(fixedDelay = 30000)
+    @Scheduled(fixedDelayString = "#{@timeOffPolling.delayMs()}")
     public void processQueued() {
         var ids = jdbc.query("SELECT p.\"requestId\" FROM time_off_report p JOIN time_off_request r ON r.id=p.\"requestId\" WHERE p.status='QUEUED' AND r.status='PENDING' ORDER BY p.\"createdAt\" LIMIT 3", (rs, _) -> Required.string(rs, 1));
         for (String id : ids) {
