@@ -9,6 +9,17 @@ import { haversineMiles } from "./geo";
 const originalFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = originalFetch; });
 const bounds = { south: 40, north: 43, west: -98, east: -94 };
+test("a valid locality-only response is not malformed address evidence", async () => {
+  globalThis.fetch = async () => Response.json([{ lat: "41.2", lon: "-96.1", address: { city: "Omaha" } }]);
+  assert.deepEqual(await searchAddress({ line1: "123 Valley Street", city: "Omaha", state: "NE", postalCode: "68130" }), []);
+});
+test("North 169th Street's Jefferson Precinct is approximate evidence for postal Bennington", async () => {
+  globalThis.fetch = async () => Response.json([{ lat: "41.3378806", lon: "-96.1792532", address: {
+    road: "North 169th Street", municipality: "Jefferson Precinct", postcode: "68007", country_code: "us",
+  }, boundingbox: ["41.3361939", "41.3391880", "-96.1800051", "-96.1782502"] }]);
+  const results = await searchAddress({ line1: "123 N 169th St", city: "Bennington", state: "NE", postalCode: "68007" });
+  assert.equal(results.length, 1); assert.equal(results[0]?.precision, "APPROXIMATE");
+});
 for (const road of ["North 169th Street", "Reflection Circle", "Appaloosa Drive", "Valley Street", "Grandview Avenue", "Cascio Drive"]) {
   test(`${road}: incomplete street evidence is a manual starting point, never an exact house`, async () => {
     const queries: URL[] = []; const signals: Array<AbortSignal | null | undefined> = [];

@@ -72,7 +72,7 @@ test("booking displays lookup failures and retains the submitted address", async
   const service = await prisma.serviceCatalog.create({ data: { code: `LOOKUP_${Date.now()}`, name: "Lookup browser service", estDurationMin: 60 } });
   try {
     let message = "Address lookup timed out. Try again.";
-    await page.route("**/api/book", route => route.fulfill({ status: 504, json: { error: message } }));
+    await page.route("**/api/book/location", route => route.fulfill({ status: 504, json: { error: message } }));
     await page.goto("/book");
     await page.getByRole("radio", { name: /Lookup browser service/ }).check();
     for (const [label, value] of Object.entries({ "First name": "Lookup", "Last name": "Fixture", Email: "lookup@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68130" }))
@@ -80,7 +80,7 @@ test("booking displays lookup failures and retains the submitted address", async
     await page.getByPlaceholder("Street address").fill("2825 S 170th Plz");
     for (const failure of ["Address lookup timed out. Try again.", "Address lookup is unavailable. Try again later.", "Address lookup returned invalid data. Try again later."]) {
       message = failure;
-      await page.getByRole("button", { name: /see available times/i }).click();
+      await page.getByRole("button", { name: /review service location/i }).click();
       await expect(page.getByText(message, { exact: true })).toBeVisible();
       await expect(page.getByPlaceholder("Street address")).toHaveValue("2825 S 170th Plz");
     }

@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9._-]+$')][string]
 if ($Version -in @('.', '..')) { throw 'Invalid version' }
 if (-not $env:DATABASE_URL) { throw 'Set DATABASE_URL for current depot coverage validation' }
 $env:PREVIEW_MAP_VERSION = $Version
+docker compose --profile map-import run --rm map-import verify $Version
+if ($LASTEXITCODE -ne 0) { throw 'Prepared artifact checksums failed' }
 $previewId = docker compose -f docker-compose.yml -f docker-compose.map-preview.yml ps -q routing-preview
 if ($LASTEXITCODE -ne 0 -or -not $previewId) { throw 'Routing preview is not running' }
 $directory = Join-Path $PSScriptRoot "../.scratch/map-$Version"
