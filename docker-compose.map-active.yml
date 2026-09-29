@@ -1,0 +1,19 @@
+# Activate only after preview validation and review. Keep base volumes for rollback.
+services:
+  nominatim:
+    environment:
+      PBF_PATH: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/omaha.osm.pbf
+    volumes:
+      - map-data:/maps:ro
+      - nominatim-active-db:/var/lib/postgresql/16/main
+  routing-service:
+    environment:
+      ROUTING_OSM_FILE: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/omaha.osm.pbf
+      ROUTING_GRAPH_DIR: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/graph
+      ROUTING_MAP_VERSION: ${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}
+  tiles:
+    command: ["serve", "/maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}", "--public-url=http://localhost:8083", "--cors=http://localhost:3001"]
+volumes:
+  nominatim-active-db:
+    external: true
+    name: waterflex-nominatim-preview-${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}

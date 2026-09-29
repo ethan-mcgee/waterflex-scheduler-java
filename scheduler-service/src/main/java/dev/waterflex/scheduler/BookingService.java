@@ -500,7 +500,7 @@ public class BookingService {
             double lat = Math.toRadians(depot.lat() - point.lat());
             double lng = Math.toRadians(depot.lng() - point.lng());
             double a = Math.pow(Math.sin(lat / 2), 2) + Math.cos(Math.toRadians(point.lat())) * Math.cos(Math.toRadians(depot.lat())) * Math.pow(Math.sin(lng / 2), 2);
-            double miles = 3958.7613 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
+            double miles = 3958.8 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
             if (miles <= depot.radiusMi() && miles < bestMiles) { best = depot.metroId(); bestMiles = miles; }
         }
         if (best == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job location is outside configured metros");

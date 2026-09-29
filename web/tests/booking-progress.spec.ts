@@ -1,3 +1,4 @@
+import { mockBookingLocation } from "./bookingLocationFixture";
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 
@@ -13,12 +14,14 @@ test("appointment search shows indeterminate progress and retains inputs after f
       await pending;
       await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Search incomplete. Please retry." }) });
     });
+    await mockBookingLocation(page);
     await page.goto("/book");
     await page.getByRole("radio", { name: /Progress test service/ }).check();
     for (const [label, value] of Object.entries({ "First name": "Keep", "Last name": "Details", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
     await page.getByPlaceholder("Street address").fill("1 Main St");
-    await page.getByRole("button", { name: /see available times/i }).click();
+    await page.getByRole("button", { name: /review service location/i }).click();
+    await page.getByRole("button", { name: "Confirm pin and see times" }).click();
     const progress = page.getByRole("progressbar", { name: "Finding available appointments" });
     await expect(progress).toBeVisible();
     await expect(progress).not.toHaveAttribute("value");
@@ -26,8 +29,8 @@ test("appointment search shows indeterminate progress and retains inputs after f
     finish?.();
     await expect(page.getByRole("main").getByRole("alert")).toHaveText("Search incomplete. Please retry.");
     await expect(progress).not.toBeVisible();
-    await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
-    await expect(page.getByRole("button", { name: /see available times/i })).toBeEnabled();
+    await expect(page.getByText("1 Main St, Omaha, NE 68102")).toBeVisible();
+    await expect(page.getByRole("button", { name: /confirm pin and see times/i })).toBeEnabled();
     await page.unroute("**/api/book");
     for (const [outcome, message] of [
       ["SEARCH_INCOMPLETE", "The appointment search did not finish. Please retry to check available times."],
@@ -37,10 +40,10 @@ test("appointment search shows indeterminate progress and retains inputs after f
     ] as const) {
       await page.route("**/api/book", route => route.fulfill({ status: 200, contentType: "application/json",
         body: JSON.stringify({ jobId: "search-job", offers: [], search: { outcome, prescribedSearchCompleted: false, elapsedMs: 5, retryable: true } }) }));
-      await page.getByRole("button", { name: /see available times/i }).click();
+      await page.getByRole("button", { name: "Confirm pin and see times" }).click();
       await expect(page.getByRole("main").getByRole("alert")).toHaveText(message);
-      await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
-      await expect(page.getByRole("button", { name: /see available times/i })).toBeEnabled();
+      await expect(page.getByText("1 Main St, Omaha, NE 68102")).toBeVisible();
+      await expect(page.getByRole("button", { name: /confirm pin and see times/i })).toBeEnabled();
       await page.unroute("**/api/book");
     }
     const measurements = await page.evaluate(() => performance.getEntriesByName("waterflex.booking-api", "measure")
@@ -52,7 +55,7 @@ test("appointment search shows indeterminate progress and retains inputs after f
     expect(measurements).toHaveLength(5);
     for (const measurement of measurements) {
       expect(measurement.duration).toBeGreaterThanOrEqual(0);
-      expect(measurement.detail).toEqual({ flow: "initial", includesAddressValidation: true });
+      expect(measurement.detail).toEqual({ flow: "pin", includesAddressValidation: true });
     }
     await page.evaluate(() => {
       const original = window.fetch.bind(window);
@@ -63,7 +66,7 @@ test("appointment search shows indeterminate progress and retains inputs after f
         }, { once: true });
       }) : original(input, init);
     });
-    await page.getByRole("button", { name: /see available times/i }).click();
+    await page.getByRole("button", { name: "Confirm pin and see times" }).click();
     await expect(progress).toBeVisible();
     await page.getByRole("link", { name: "Technicians", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-booking-aborted", "true");

@@ -64,7 +64,7 @@ test("retries without state and labels the Papillion street result approximate",
     return Response.json(url.searchParams.has("state") ? [] : [street]);
   };
   const results = await searchAddress(address);
-  assert.equal(queries.length, 2);
+  assert.equal(queries.length, 3);
   assert.equal(queries[0]?.searchParams.get("state"), "NE");
   assert.equal(queries[1]?.searchParams.has("state"), false);
   assert.deepEqual(results, [{ lat: 41.1637462, lng: -96.0079032, precision: "APPROXIMATE",

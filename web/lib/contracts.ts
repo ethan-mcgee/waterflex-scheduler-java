@@ -86,7 +86,16 @@ export const optimization = z.object({
 export const optimizationRuns = z.object({ runs: z.array(optimization) });
 export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
-  confirmedPin: point.optional() });
+  confirmedPin: point.extend({ manuallyConfirmed: z.boolean().optional() }).optional(), followUp: z.boolean().optional() })
+  .refine(v => !v.followUp || !v.confirmedPin, "Follow-up cannot include a confirmed pin");
+export const bookingAddress = z.object({ line1: text, city: text, state: text, postalCode: text });
+export const locationBounds = z.object({ south: finite.min(-90).max(90), north: finite.min(-90).max(90),
+  west: finite.min(-180).max(180), east: finite.min(-180).max(180) }).refine(b => b.south < b.north && b.west < b.east);
+export const serviceAreaCircle = point.extend({ radiusMi: finite.positive() });
+export const bookingLocationResponse = z.object({ status: z.enum(["MATCHED", "NEEDS_PLACEMENT", "NO_MATCH"]),
+  candidates: z.array(point.extend({ precision: z.enum(["ROOFTOP", "APPROXIMATE"]), bounds: locationBounds.optional() })),
+  serviceArea: z.object({ circles: z.array(serviceAreaCircle).min(1), bounds: locationBounds }) });
+export const locationValidation = z.object({ status: z.enum(["VALID", "OUTSIDE_COVERAGE", "UNROUTABLE", "ROUTING_UNAVAILABLE"]) });
 export const jobRequest = z.object({ jobId: text });
 export const refreshRequest = jobRequest.extend({ deadlineEpochMs: z.int().positive().optional() });
 export const selectRequest = jobRequest.extend({ offerId: text });
