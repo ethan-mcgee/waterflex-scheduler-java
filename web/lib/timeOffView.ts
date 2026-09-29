@@ -24,6 +24,18 @@ export type ParsedTimeOffReport =
   | { kind: "failure"; reason: string }
   | { kind: "complete"; summary: TimeOffReportSummary };
 
+/** Approval requires absolute zero overtime, including unchanged historical overtime. */
+export function repairOvertimeMinutes(report: ParsedTimeOffReport): number | null {
+  if (report.kind !== "complete") return null;
+  let overtime = 0;
+  for (const day of report.summary.days) {
+    if (day.status === "NO_SHIFT") continue;
+    if (day.status !== "REPAIR_PREVIEW" || !day.daily_after) return null;
+    overtime += day.daily_after.overtime_minutes;
+  }
+  return overtime;
+}
+
 export function additionalRepairOvertime(report: ParsedTimeOffReport): number | null {
   if (report.kind !== "complete") return null;
   let additional = 0;
