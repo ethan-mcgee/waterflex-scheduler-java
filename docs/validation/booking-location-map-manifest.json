@@ -1,0 +1,60 @@
+{
+  "version": "2026-09-29-booking-coverage",
+  "preparedAt": "2026-09-29T17:55:32.263042+00:00",
+  "coverage": {
+    "circles": [
+      {
+        "lat": 41.21479191716162,
+        "lng": -96.11773549999936,
+        "radiusMi": 65
+      },
+      {
+        "lat": 41.1592165,
+        "lng": -95.9361545,
+        "radiusMi": 65
+      }
+    ],
+    "marginMi": 10,
+    "bounds": {
+      "south": 40.0737402285336,
+      "north": 42.30026818862802,
+      "west": -97.5607844313063,
+      "east": -94.49433010934285
+    }
+  },
+  "mergedSha256": "9822e8444ec5dbbe2335e8b3251eaa5a26f613e4c97bf892b96a9192f8d672c8",
+  "sources": {
+    "nebraska": {
+      "url": "https://download.geofabrik.de/north-america/us/nebraska-latest.osm.pbf",
+      "sourceTimestamp": "2026-09-28T20:15:33Z",
+      "sha256": "5214262c6050211027a95aa40ecbfc6b68e153cbef1720fdf5096580d3244cf5"
+    },
+    "iowa": {
+      "url": "https://download.geofabrik.de/north-america/us/iowa-latest.osm.pbf",
+      "sourceTimestamp": "2026-09-28T20:20:12Z",
+      "sha256": "cd1340892ed5da2b74725aa5893d9e5e30a7bce6dd9827be274bd291a64328be"
+    },
+    "missouri": {
+      "url": "https://download.geofabrik.de/north-america/us/missouri-latest.osm.pbf",
+      "sourceTimestamp": "2026-09-28T20:21:10Z",
+      "sha256": "6300274c551a55ab45e4c93bdc60da4ab68c6d30a4bf7383bedaa21fe83fd937"
+    }
+  },
+  "artifacts": {
+    "omaha.pmtiles": "d4e7c38874eef5ccf7c8a3599195d0f924650c6f75d45066a457d4da3e426d79",
+    "graph/edgekv_keys": "8fc408e52ca5660d26983d5cec732d50e4c0105a691e231b3e63e138286642b0",
+    "graph/edgekv_vals": "be9678fd2e7484ed7827a0224788e05dd549cf2f0c51b5b730357e1bf437b126",
+    "graph/edges": "b6f0f6814a63ea8af4c9d47095d37ac18c9c10f37f36e778e99000861ba1db95",
+    "graph/geometry": "50440a02224fbe78a033e7595b376a924cdafd3cec75cae847b92d00e7d5cc71",
+    "graph/location_index": "df639b9ea81ec87abb4bb310a3308faded122ac57b4b7b1086a2f74f15210292",
+    "graph/nodes": "bb90ee50e2ff74d704cdf05533106a7a0ea440662b2d7e0d2fed76f36f6c2033",
+    "graph/properties": "663d2566ee36d7ec21a455e455fe7b6f91ddbc4589d389ef58b6b7f3a5d17a62",
+    "graph/properties.txt": "010a0198848f23298b470b4b5ccfc7fbd72dface8813bd129dbd7154f8ea996d"
+  },
+  "tools": {
+    "planetiler": "0.9.0",
+    "graphhopper": "11.0",
+    "nominatim": "5.3",
+    "importStyle": "address"
+  }
+}

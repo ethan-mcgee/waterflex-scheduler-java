@@ -1,0 +1,205 @@
+{
+  "version": "2026-09-29-booking-coverage",
+  "validatedAt": "2026-09-29T18:17:51.745456+00:00",
+  "manifestSha256": "c48081c6e73f4cf20e6e78ca208ed3af8ce00f811e75ad6b5811e27dc344021d",
+  "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+  "geocoder": {
+    "status": 0,
+    "message": "OK",
+    "data_updated": "2026-09-28T20:21:10+00:00",
+    "software_version": "5.3.2",
+    "database_version": "5.3.2-0"
+  },
+  "samples": [
+    {
+      "name": "Omaha",
+      "lat": 41.25855,
+      "lng": -95.92929,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Omaha",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "Lincoln",
+      "lat": 40.81362,
+      "lng": -96.7026,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Lincoln",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "Fremont",
+      "lat": 41.4333,
+      "lng": -96.498,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Fremont",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "Tekamah",
+      "lat": 41.7783,
+      "lng": -96.2211,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Tekamah",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "West Point",
+      "lat": 41.8417,
+      "lng": -96.7086,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "West Point",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "Oakland Iowa",
+      "lat": 41.309,
+      "lng": -95.3967,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Oakland Iowa",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "Atlantic Iowa",
+      "lat": 41.4036,
+      "lng": -95.0139,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Atlantic Iowa",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    },
+    {
+      "name": "Rock Port Missouri",
+      "lat": 40.4111,
+      "lng": -95.5169,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Rock Port Missouri",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": "Missouri"
+    },
+    {
+      "name": "Tarkio Missouri",
+      "lat": 40.4403,
+      "lng": -95.3775,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Tarkio Missouri",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": "Missouri"
+    },
+    {
+      "name": "Auburn",
+      "lat": 40.3931,
+      "lng": -95.838,
+      "routing": {
+        "routingIdentity": "9e8aee9ad582cf5a762f0d6c0badbfc0e0873e39284f081e3f8d3e7821d3a436",
+        "pairs": [
+          {
+            "id": "Auburn",
+            "leg": {
+              "routable": true,
+              "seconds": 0,
+              "meters": 0
+            }
+          }
+        ]
+      },
+      "state": null
+    }
+  ]
+}

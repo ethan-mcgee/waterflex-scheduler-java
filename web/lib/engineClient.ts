@@ -1,4 +1,9 @@
 import { z } from "zod";
+import { locationValidation } from "./contracts";
+
+export function validateBookingLocation(point: { lat: number; lng: number }, signal?: AbortSignal) {
+  return request("/v1/book/location/validate", locationValidation, point, 8000, signal);
+}
 import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis, solverAnalysis } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import

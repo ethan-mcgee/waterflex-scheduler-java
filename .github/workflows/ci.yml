@@ -149,6 +149,28 @@ jobs:
       - name: Booking smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration
+      - name: Booking location contracts with reservations and isolated data
+        working-directory: web
+        env:
+          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=booking_location_it
+          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=booking_location_it
+          ENGINE_URL: http://127.0.0.1:18002
+          SERVER_PORT: '18002'
+          BOOKING_RESERVATIONS_ENABLED: 'true'
+          BOOKING_OFFER_LIMIT: '1'
+          BOOKING_SEARCH_BOUNDED: 'true'
+          SCHEDULER_SEARCH_CAPACITY: '2'
+          ROUTING_PREWARM_ENABLED: 'true'
+        run: |
+          npx prisma migrate deploy
+          java -jar ../scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/location-scheduler.log" 2>&1 &
+          location_pid=$!
+          trap 'kill "$location_pid"' EXIT
+          for _attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:18002/health > /dev/null; then break; fi
+            sleep 2
+          done
+          node ../infra/run-check.mjs test:booking-location:integration npx tsx scripts/smoke-booking-location.ts
       - name: Configurable offer limits across both booking paths
         run: node infra/run-check.mjs offer-limits node infra/test-booking-offer-limits.mjs
       - name: Pending reservation dependency guards

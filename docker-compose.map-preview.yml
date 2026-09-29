@@ -1,0 +1,32 @@
+# Use with the base Compose file. These services never replace active map services.
+services:
+  nominatim-preview:
+    image: mediagis/nominatim:5.3
+    environment:
+      PBF_PATH: /maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}/omaha.osm.pbf
+      IMPORT_STYLE: address
+      IMPORT_WIKIPEDIA: "false"
+      UPDATE_MODE: none
+      THREADS: "4"
+    shm_size: 1g
+    volumes:
+      - map-data:/maps:ro
+      - nominatim-preview-db:/var/lib/postgresql/16/main
+    ports: ["127.0.0.1:18082:8080"]
+  routing-preview:
+    image: waterflex-scheduler-routing:local
+    environment:
+      ROUTING_OSM_FILE: /maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}/omaha.osm.pbf
+      ROUTING_GRAPH_DIR: /maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}/graph
+      ROUTING_CH_ENABLED: "false"
+      ROUTING_MAP_VERSION: ${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}
+    volumes: ["map-data:/maps"]
+    ports: ["127.0.0.1:18001:8001"]
+  tiles-preview:
+    image: protomaps/go-pmtiles:v1.22.1
+    command: ["serve", "/maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}", "--public-url=http://localhost:18083", "--cors=http://localhost:13000"]
+    volumes: ["map-data:/maps:ro"]
+    ports: ["127.0.0.1:18083:8080"]
+volumes:
+  nominatim-preview-db:
+    name: waterflex-nominatim-preview-${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}

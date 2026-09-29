@@ -208,8 +208,9 @@ model Address {
   postalCode       String
   lat              Float?
   lng              Float?
-  geocodePrecision String? // ROOFTOP | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE | SYNTHETIC
+  geocodePrecision String? // ROOFTOP | RANGE_INTERPOLATED | GEOMETRIC_CENTER | APPROXIMATE | SYNTHETIC | MANUALLY_CONFIRMED
   geocodedAt       DateTime?
+  pinConfirmedAt  DateTime?
   createdAt        DateTime  @default(now())
 
   jobs Job[]
@@ -237,6 +238,7 @@ model Job {
   priority         Int            @default(0)
   externalId       String?        @unique
   bookingRequestId String?        @unique // client retry key for the slot-search attempt
+  bookingRequestFingerprint String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
