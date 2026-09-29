@@ -43,7 +43,7 @@ export const durableSearchStart = z.object({ jobId: text, requestId: z.uuid(), r
 export const durableSearchStatus = z.object({ id: z.uuid(), jobId: text,
   state: z.enum(["QUEUED", "RUNNING", "AVAILABLE", "NO_CANDIDATE", "INCOMPLETE", "FAILED", "CANCELLED"]),
   phase: text, elapsedMs: z.int().nonnegative(), queueMs: z.int().nonnegative().nullable(),
-  completedWork: z.int().nonnegative(), stopReason: text.nullable(), offers: z.array(offer).max(1),
+  completedWork: z.int().nonnegative(), bestCostDeltaCents: z.int().nullable().optional(), stopReason: text.nullable(), offers: z.array(offer).max(1),
 }).refine(v => (v.state === "AVAILABLE") === (v.offers.length > 0), "Invalid search result");
 export const savedBookingSearch = z.object({ id: z.uuid(), jobId: text });
 export const confirmation = z.object({ appointmentId: text, windowStart: instant, windowEnd: instant });

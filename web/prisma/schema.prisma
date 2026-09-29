@@ -679,6 +679,7 @@ model OutboundEvent {
 }
 
 model BookingSearchRequest {
+  bestCostDeltaCents BigInt?
   state String?
   refresh Boolean @default(false)
   owner String?

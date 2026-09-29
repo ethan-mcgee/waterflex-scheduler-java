@@ -20,6 +20,15 @@ public final class SearchDeadline {
     private long durationNanos;
     private boolean committing;
     private boolean durable;
+    private volatile @Nullable Long bestCostDeltaCents;
+    public @Nullable Long bestCostDeltaCents() { return bestCostDeltaCents; }
+    public static void incumbent(long costDeltaCents) {
+        SearchDeadline value = CURRENT.get();
+        if (value != null) {
+            Long previous = value.bestCostDeltaCents;
+            if (previous == null || costDeltaCents < previous) value.bestCostDeltaCents = costDeltaCents;
+        }
+    }
     private final java.util.concurrent.atomic.AtomicLong work = new java.util.concurrent.atomic.AtomicLong();
     private volatile String phase = "SNAPSHOT";
     public long completedWork() { return work.get(); }
@@ -85,7 +94,7 @@ public final class SearchDeadline {
     }
     public static void beginExploration() {
         SearchDeadline current = CURRENT.get();
-        if (current != null) { current.committing = false; checkpoint(); }
+        if (current != null) { current.committing = false; current.bestCostDeltaCents = null; checkpoint(); }
     }
     public static void policyLimit(int millis) {
         if (millis < 1000 || millis > 5000) throw new IllegalArgumentException("Invalid booking deadline policy");

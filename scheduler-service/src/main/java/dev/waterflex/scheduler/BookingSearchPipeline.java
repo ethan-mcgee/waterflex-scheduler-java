@@ -73,12 +73,12 @@ public final class BookingSearchPipeline {
                 reconstructionAttempts += neighborhood.reconstructionAttempts(); reconstructionEvaluations += neighborhood.reconstructionEvaluations();
                 reason = result.stopReason();
             } catch (BoundedBookingSearch.RefinementLimit exception) {
-                reason = "REFINEMENT_TIME_LIMIT";
+                reason = "REFINEMENT_TIME_LIMIT"; result = incomplete(result, reason);
             } catch (SearchDeadline.Expired exception) {
-                reason = "DEADLINE";
+                reason = "DEADLINE"; result = incomplete(result, reason);
             } catch (RoadClient.RoadUnavailable exception) {
                 // Completed insertion candidates remain independently valid. Failure never establishes scarcity.
-                reason = "ROUTING_UNAVAILABLE";
+                reason = "ROUTING_UNAVAILABLE"; result = incomplete(result, reason);
             }
         }
         if (result.complete() && result.candidates().isEmpty()) {
@@ -101,6 +101,11 @@ public final class BookingSearchPipeline {
         return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements, SearchDeadline.isDurable() ? 0 : refinementMillis, reconstructionAttempts, reconstructionEvaluations, bounded ? variant : "INSERTION");
     }
 
+    private static BoundedBookingSearch.Result incomplete(BoundedBookingSearch.Result result, String reason) {
+        return new BoundedBookingSearch.Result(result.candidates(), result.coverage(), false, result.distinctRegularWindows(),
+                result.confirmedRegularMinutes(), result.regularCapacityMinutes(), false, reason);
+    }
+
     /** Preserve independently validated insertion offers when later optional refinement runs out of time. */
     static BoundedBookingSearch.Result combine(BoundedBookingSearch.Result insertion, BoundedBookingSearch.Result refined,
             dev.waterflex.scheduler.optimizer.SchedulingPolicy.Rules policy) {
@@ -119,7 +124,7 @@ public final class BookingSearchPipeline {
                     Math.max(previous.routesExamined(), item.routesExamined()),
                     previous.arrangementsExamined() + Math.max(0, item.arrangementsExamined() - 1),
                     previous.movesGenerated() + item.movesGenerated(), previous.candidateEvaluations() + item.candidateEvaluations(),
-                    previous.complete() || item.complete(), item.stopReason()));
+                    previous.complete() && item.complete(), item.stopReason()));
         }
         return new BoundedBookingSearch.Result(Required.value(java.util.List.copyOf(candidates)), Required.value(java.util.List.copyOf(coverage.values())), complete, regular,
                 confirmed, capacity, policy.authorizeOvertime(regular, confirmed, capacity, complete), refined.stopReason());

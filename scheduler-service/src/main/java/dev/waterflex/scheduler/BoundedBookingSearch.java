@@ -353,6 +353,7 @@ public final class BoundedBookingSearch {
             if (overtimeDelta < overtime) candidates.clear();
             candidates.removeIf(item -> item.costDeltaCents() > ceiling);
             candidates.removeIf(item -> dominates(merit, Merit.of(Required.value(item))));
+            SearchDeadline.incumbent(merit.cost());
             candidates.add(new Candidate(window, merit.technician(), merit.arrangement(), overtimeDelta, merit.cost(),
                     merit.fairness(), merit.changes(), merit.position(), source, validation));
         }
@@ -360,7 +361,6 @@ public final class BoundedBookingSearch {
         boolean dominates(Merit first, Merit second) {
             if (first.cost() > second.cost() || first.fairness().compareTo(second.fairness()) > 0) return false;
             if (first.cost() < second.cost() || first.fairness().compareTo(second.fairness()) < 0) return true;
-            if (first.changes() != second.changes()) return first.changes() < second.changes();
             int technician = first.technician().compareTo(second.technician());
             if (technician != 0) return technician < 0;
             if (first.position() != second.position()) return first.position() < second.position();
@@ -604,7 +604,7 @@ public final class BoundedBookingSearch {
                         || (evaluation.hasReservations() && !evaluation.metrics(arrangement, facts, true).feasible())) continue;
                 String assigned = arrangement.routes().entrySet().stream().filter(route -> route.getValue().contains(request.jobId()))
                         .map(route -> route.getKey()).findFirst().orElseThrow();
-                Arrangement existing = ReservationOffers.without(arrangement, Required.value(Set.of(request.jobId())));
+                Arrangement existing = ReservationOffers.without(arrangement, Required.value(Set.<String>of(request.jobId())));
                 retain(new Merit(result.costCents() - baseline.costCents(), Required.value(evaluation.fairness(arrangement, facts).subtract(baselineFairness)),
                         changes(existing), Required.value(assigned), Required.value(arrangement.routes().get(assigned)).indexOf(request.jobId()), arrangement),
                         result.overtimeMinutes() - baseline.overtimeMinutes(), "RUIN_RECREATE", facts);
