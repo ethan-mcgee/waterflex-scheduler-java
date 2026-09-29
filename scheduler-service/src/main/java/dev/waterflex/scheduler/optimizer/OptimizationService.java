@@ -185,7 +185,8 @@ public class OptimizationService {
         DayPlan solved = repairSearch.plan();
         int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
         var after = DayScoreCalculator.evaluate(Required.value(solved));
-        String status = after.hardPenalty() == 0 && RouteEvaluator.evaluate(Required.value(solved)).feasible() ? "REPAIR_PREVIEW" : "SKIPPED";
+        var repairValidation = RouteEvaluator.evaluate(Required.value(solved));
+        String status = after.hardPenalty() == 0 && repairValidation.feasible() && repairValidation.overtimeMinutes() == 0 ? "REPAIR_PREVIEW" : "SKIPPED";
         String reason = null;
         if (!status.equals("REPAIR_PREVIEW"))
             reason = after.hardPenalty() == 0 ? "VALIDATED_CONSTRAINT_CONFLICT"

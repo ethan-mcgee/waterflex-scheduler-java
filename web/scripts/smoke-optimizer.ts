@@ -95,7 +95,7 @@ async function main() {
       assert.ok(Math.abs(travel.road_seconds + travel.configured_buffer_seconds + travel.rounding_seconds - route.drive_minutes * 60) < .000001);
     }
     const policy = required(preview.policy_analysis);
-    assert.equal(policy.version, "overtime-fairness-v1");
+    assert.equal(policy.version, "zero-overtime-four-hour-v2");
     assert.ok(policy.decision.accepted);
     assert.ok(policy.after.overtimeMinutes <= policy.before.overtimeMinutes);
     assert.ok(policy.after.costCents <= policy.decision.costCeilingCents);
