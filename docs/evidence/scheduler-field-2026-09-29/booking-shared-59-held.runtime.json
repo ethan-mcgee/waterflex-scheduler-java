@@ -1,0 +1,15 @@
+{
+  "revision": "adcda9a0563aa6e52a00a81905b6af17e460ce7d",
+  "jarSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+  "schema": "benchmark_field_shared_59_1790721120437",
+  "port": 18034,
+  "variant": "SHARED",
+  "seed": "59",
+  "routingUrl": "http://127.0.0.1:8001",
+  "sizes": "5,10,20,50",
+  "concurrency": "1,5,10",
+  "caches": "cold,warm",
+  "requests": "10",
+  "startedAt": "2026-09-29T22:32:14.521Z",
+  "concurrentLocalBenchmarks": true
+}

@@ -1,0 +1,334 @@
+<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Scheduler field validation</title><style>body{font:16px/1.55 system-ui;max-width:1180px;margin:40px auto;padding:0 24px;color:#172b3a}h1,h2,h3{line-height:1.2}h2{margin-top:2em;border-top:1px solid #cbd5df;padding-top:1em}table{border-collapse:collapse;font-size:13px;width:100%}th,td{padding:9px;border:1px solid #cbd5df;text-align:left}th{background:#e8f2f4}tr:nth-child(even){background:#f7f9fb}.scroll{overflow-x:auto}pre{background:#f0f4f7;padding:20px;overflow:auto}svg{width:100%;height:auto}svg text{font-size:12px}</style><main><h1>Scheduler policy, search, and field validation</h1>
+<p>Execution status: complete. Retained 218/218 validated booking cases and 240/240 daily-solver cases. Every raw case remains included in its stage. Separately retained failures are disclosed below.</p>
+<h2>Decision and scope</h2>
+<p>Adopt the single-offer, four-hour, zero-new-overtime safety policy and durable search lifecycle. Retain the existing production search selection and daily TABU default. Expanded search remains experimental. No algorithm promotion is justified by this evidence alone: concurrent service outcomes, limited independent geography, and runtime remain material constraints. These are modeled fixture results, not operational savings or a reproduction from customer production records.</p><h2>Screening cost versus runtime</h2><svg viewBox='0 0 800 340' role='img' aria-label='Mean case p95 versus paired savings from insertion'><circle cx='156.5101221441293' cy='145.0' r='6' fill='#087e8b'/><text x='165.5101221441293' y='145.0'>BOUNDED</text><circle cx='534.3309707578886' cy='120.0' r='6' fill='#087e8b'/><text x='543.3309707578886' y='134.0'>EXPANDED</text><circle cx='97.00270916090307' cy='270.0' r='6' fill='#087e8b'/><text x='106.00270916090307' y='270.0'>INSERTION</text><circle cx='610.0' cy='70.0' r='6' fill='#087e8b'/><text x='619.0' y='84.0'>RUIN_RECREATE</text><circle cx='522.4529703471412' cy='70.0' r='6' fill='#087e8b'/><text x='531.4529703471412' y='70.0'>SHARED</text><text x='80' y='297'>0.0s</text><text x='15' y='274'>$0</text><text x='186' y='297'>4.7s</text><text x='15' y='234'>$4</text><text x='292' y='297'>9.3s</text><text x='15' y='194'>$8</text><text x='398' y='297'>14.0s</text><text x='15' y='154'>$12</text><text x='504' y='297'>18.7s</text><text x='15' y='114'>$16</text><text x='610' y='297'>23.4s</text><text x='15' y='74'>$20</text><path d='M65 25V280H750' fill='none' stroke='#555'/><text x='250' y='330'>Mean case p95 latency</text><text x='75' y='20'>Paired modeled savings versus insertion per stream</text></svg><p>Baseline checkout: <code>c28a24c4c0c1b4614b442c7a362d205cfa7e0db3</code>. Original behavior is rebuilt in an isolated checkout and recorded separately as <code>original</code>; <code>screen</code> and <code>held</code> use the new policy. Historical reports and artifacts remain unchanged. Algorithm rollback continues through the common policy and reservation validation layer.</p>
+<p><a href="evidence/scheduler-field-2026-09-29/summary.json">Machine-readable totals and raw-file checksums</a>, <a href="evidence/scheduler-field-2026-09-29/experiment-manifest.json">experiment manifest</a>, and <a href="evidence/scheduler-field-2026-09-29/validation.json">validation checks</a> back this report. Gzip archives preserve the exact original JSONL/log bytes. Algorithm rollback means selecting the earlier algorithm in this policy release, not deploying a pre-policy binary.</p>
+<h2>Policy and implementation</h2>
+<p>New bookings reserve one best-found offer ranked by incremental operating cost, workload balance, earlier promise, and stable identifiers. Arrival promises span four hours and start hourly. Service and return travel must fit regular availability. Existing confirmed dates/windows, actual dated home/depot endpoints, absences, skills, directed routing, holds, and the 06:00 America/Chicago freeze remain hard boundaries. Existing overtime routes retain their facts and are excluded from new work and flagged for follow-up. An already infeasible snapshot still fails closed; it is not silently repaired during booking.</p>
+<p>Insertion covers the normal horizon first, including weekend availability inside the weekday-counted horizon. The search only enters five additional weekdays after a completed normal search finds no candidate, then selects the cheapest candidate on the first feasible overflow date. An interrupted search does not establish infeasibility.</p>
+<p>Durable start/status/cancel operations use idempotent UUIDs, one active search per job, a database admission cap of 16, two workers per instance, a 15-second lease renewed each second, and a finite two-minute work lifetime. Search runs outside transactions. Publication revalidates under short transactions and permits one fresh-snapshot retry. Offer TTL starts at publication. Browser reload reconnects using an opaque saved pointer; explicit cancellation releases capacity. Lost ownership becomes a terminal incomplete result. Completed-no-candidate, incomplete, cancelled, and failed results remain distinct.</p>
+<h2>Tested algorithms and hypotheses</h2>
+<div class='scroll'><table>
+<tr><th>Variant</th><th>Work limits / intended effect</th><th>Decision</th></tr>
+<tr><td>INSERTION</td><td>Every eligible route and insertion position; policy-only control</td><td>Retain control</td></tr>
+<tr><td>BOUNDED</td><td>6 routes, depth 2, beam 8, 500 arrangements/window; relocation, swap, reversal</td><td>Retain existing option</td></tr>
+<tr><td>EXPANDED</td><td>12 routes, depth 3, beam 16, 2,000 arrangements/window; rank moves before truncation</td><td>Screened out in favor of stronger shared variant; not promoted</td></tr>
+<tr><td>RUIN_RECREATE</td><td>Expanded plus removal of 2/3 related visits, constrained/regret-first complete reconstruction</td><td>Screened out in favor of shared variant with equal screen cost and lower runtime</td></tr>
+<tr><td>SHARED</td><td>Same reconstruction search with shared route evaluation across windows</td><td>Reject promotion: high-concurrency latency, served-demand deterioration, and retained audit failure</td></tr>
+</table></div>
+<p>Ruin-and-recreate counts reconstruction attempts and route/candidate work separately from arrangement limits. Incomplete reconstruction is rejected. Shared evaluation isolates route-evaluation caching; neighborhood ranking caches still exist in the expanded control. Stronger variants are never attributed to an individual move type solely from a combined result. Daily configurations retain their exact XML and phase counters in raw artifacts.</p>
+<h2>Booking results</h2>
+<div class='scroll'><table>
+<tr><th>Stage</th><th>Variant</th><th>Cases</th><th>Served / requests</th><th>Incomplete</th><th>Mean case p95, ms</th><th>Total modeled final cost</th></tr>
+<tr><td>browser</td><td>INSERTION</td><td>24</td><td>141/240</td><td>53</td><td>3,526</td><td>$195,066.06</td></tr>
+<tr><td>held</td><td>BOUNDED</td><td>48</td><td>360/480</td><td>120</td><td>15,708</td><td>$390,664.31</td></tr>
+<tr><td>held</td><td>INSERTION</td><td>48</td><td>346/480</td><td>132</td><td>2,877</td><td>$391,365.76</td></tr>
+<tr><td>held</td><td>SHARED</td><td>48</td><td>334/480</td><td>153</td><td>64,149</td><td>$390,248.13</td></tr>
+<tr><td>original</td><td>BOUNDED</td><td>6</td><td>18/18</td><td>0</td><td>845</td><td>$33,992.50</td></tr>
+<tr><td>original</td><td>INSERTION</td><td>6</td><td>18/18</td><td>0</td><td>608</td><td>$34,065.00</td></tr>
+<tr><td>screen</td><td>BOUNDED</td><td>6</td><td>18/18</td><td>0</td><td>3,373</td><td>$33,990.00</td></tr>
+<tr><td>screen</td><td>EXPANDED</td><td>6</td><td>18/18</td><td>0</td><td>20,029</td><td>$33,975.00</td></tr>
+<tr><td>screen</td><td>INSERTION</td><td>6</td><td>18/18</td><td>0</td><td>750</td><td>$34,065.00</td></tr>
+<tr><td>screen</td><td>RUIN_RECREATE</td><td>6</td><td>18/18</td><td>0</td><td>23,365</td><td>$33,945.00</td></tr>
+<tr><td>screen</td><td>SHARED</td><td>6</td><td>18/18</td><td>0</td><td>19,506</td><td>$33,945.00</td></tr>
+<tr><td>stress</td><td>BOUNDED</td><td>4</td><td>18/40</td><td>11</td><td>7,855</td><td>$145,500.00</td></tr>
+<tr><td>stress</td><td>INSERTION</td><td>4</td><td>22/40</td><td>5</td><td>4,725</td><td>$145,500.00</td></tr>
+</table></div>
+<p>Final-cost totals include the existing ten-day workload and differing served customers. They are inventory totals, not a causal savings comparison. The screen has only three requests per case. Clustered jobs coincide with technician homes and have zero routed road seconds; improvements there describe modeled buffer/waiting cleanup. Held-out dispersed cases use GraphHopper 11 and actual nonzero directed road travel where endpoints differ.</p>
+<h3>Original baseline versus policy-only controls</h3>
+<div class='scroll'><table>
+<tr><th>Variant</th><th>Seed / technicians</th><th>Original / new served</th><th>Original cost</th><th>New policy cost</th><th>Same customers</th></tr>
+<tr><td>BOUNDED</td><td>17/10</td><td>3/3</td><td>$3,792.50</td><td>$3,792.50</td><td>True</td></tr>
+<tr><td>BOUNDED</td><td>17/20</td><td>3/3</td><td>$7,537.50</td><td>$7,537.50</td><td>True</td></tr>
+<tr><td>BOUNDED</td><td>23/10</td><td>3/3</td><td>$3,792.50</td><td>$3,792.50</td><td>True</td></tr>
+<tr><td>BOUNDED</td><td>23/20</td><td>3/3</td><td>$7,537.50</td><td>$7,537.50</td><td>True</td></tr>
+<tr><td>BOUNDED</td><td>41/10</td><td>3/3</td><td>$3,795.00</td><td>$3,792.50</td><td>True</td></tr>
+<tr><td>BOUNDED</td><td>41/20</td><td>3/3</td><td>$7,537.50</td><td>$7,537.50</td><td>True</td></tr>
+<tr><td>INSERTION</td><td>17/10</td><td>3/3</td><td>$3,802.50</td><td>$3,802.50</td><td>True</td></tr>
+<tr><td>INSERTION</td><td>17/20</td><td>3/3</td><td>$7,552.50</td><td>$7,552.50</td><td>True</td></tr>
+<tr><td>INSERTION</td><td>23/10</td><td>3/3</td><td>$3,802.50</td><td>$3,802.50</td><td>True</td></tr>
+<tr><td>INSERTION</td><td>23/20</td><td>3/3</td><td>$7,552.50</td><td>$7,552.50</td><td>True</td></tr>
+<tr><td>INSERTION</td><td>41/10</td><td>3/3</td><td>$3,802.50</td><td>$3,802.50</td><td>True</td></tr>
+<tr><td>INSERTION</td><td>41/20</td><td>3/3</td><td>$7,552.50</td><td>$7,552.50</td><td>True</td></tr>
+</table></div>
+<p>These pairs have identical seeded fixture fingerprints and request streams. The original policy includes two-hour promises and multiple choices; the new policy uses four-hour promises, one choice, no new overtime, and durable search. This bundled policy/lifecycle comparison cannot attribute its difference to a single policy. The independent field two-by-two experiment isolates promise width from insertion versus rearrangement. Immediate snapshots are compared there; sequential histories are allowed to diverge in this replay.</p>
+<h3>Resource and route diagnostics</h3>
+<div class='scroll'><table>
+<tr><th>Stage / variant</th><th>CPU sec</th><th>Peak heap MiB</th><th>Requested road pairs</th><th>Road min</th><th>Paid waiting min</th><th>Mean variance</th></tr>
+<tr><td>browser/INSERTION</td><td>71.4</td><td>371.7</td><td>0</td><td>289.5</td><td>0</td><td>0.004291</td></tr>
+<tr><td>held/BOUNDED</td><td>2,581.2</td><td>682.0</td><td>2098</td><td>501.9</td><td>0</td><td>0.005199</td></tr>
+<tr><td>held/INSERTION</td><td>135.4</td><td>379.4</td><td>2014</td><td>687.2</td><td>0</td><td>0.004259</td></tr>
+<tr><td>held/SHARED</td><td>29,390.9</td><td>2,498.0</td><td>2096</td><td>527.8</td><td>0</td><td>0.005059</td></tr>
+<tr><td>original/BOUNDED</td><td>34.9</td><td>365.1</td><td>0</td><td>0.0</td><td>0</td><td>0.004526</td></tr>
+<tr><td>original/INSERTION</td><td>22.7</td><td>93.5</td><td>0</td><td>0.0</td><td>0</td><td>0.004083</td></tr>
+<tr><td>screen/BOUNDED</td><td>93.9</td><td>578.7</td><td>0</td><td>0.0</td><td>0</td><td>0.004690</td></tr>
+<tr><td>screen/EXPANDED</td><td>671.5</td><td>1,166.4</td><td>0</td><td>0.0</td><td>0</td><td>0.004676</td></tr>
+<tr><td>screen/INSERTION</td><td>19.2</td><td>97.8</td><td>0</td><td>0.0</td><td>0</td><td>0.004083</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>782.7</td><td>1,173.2</td><td>0</td><td>0.0</td><td>0</td><td>0.005611</td></tr>
+<tr><td>screen/SHARED</td><td>625.7</td><td>904.0</td><td>0</td><td>0.0</td><td>0</td><td>0.005611</td></tr>
+<tr><td>stress/BOUNDED</td><td>131.5</td><td>551.6</td><td>0</td><td>0.0</td><td>0</td><td>0.000000</td></tr>
+<tr><td>stress/INSERTION</td><td>49.5</td><td>442.4</td><td>0</td><td>0.0</td><td>0</td><td>0.000000</td></tr>
+</table></div>
+<p>Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. <a href="scheduler-field-cost-runtime.svg">Cost versus runtime chart</a>.</p>
+<div class='scroll'><table>
+<tr><th>Stage / variant</th><th>Mean queue ms</th><th>Mean lead days</th><th>Overflow</th><th>Candidate / route evaluations</th><th>Reconstructions</th><th>Prepared snapshots</th></tr>
+<tr><td>browser/INSERTION</td><td>1,009</td><td>1.35</td><td>0</td><td>1,329,924/777,268</td><td>0</td><td>339</td></tr>
+<tr><td>held/BOUNDED</td><td>4,973</td><td>1.52</td><td>0</td><td>225,038,628/27,891,583</td><td>0</td><td>636</td></tr>
+<tr><td>held/INSERTION</td><td>999</td><td>1.33</td><td>0</td><td>2,682,282/1,568,214</td><td>0</td><td>653</td></tr>
+<tr><td>held/SHARED</td><td>18,073</td><td>1.85</td><td>0</td><td>1,120,949,301/90,154,822</td><td>676164</td><td>502</td></tr>
+<tr><td>original/BOUNDED</td><td>0</td><td>2.00</td><td>0</td><td>690,940/140,087</td><td>0</td><td>18</td></tr>
+<tr><td>original/INSERTION</td><td>0</td><td>1.00</td><td>0</td><td>64,944/31,104</td><td>0</td><td>18</td></tr>
+<tr><td>screen/BOUNDED</td><td>99</td><td>1.33</td><td>0</td><td>6,657,120/696,951</td><td>0</td><td>18</td></tr>
+<tr><td>screen/EXPANDED</td><td>79</td><td>2.00</td><td>0</td><td>48,517,890/4,103,306</td><td>0</td><td>18</td></tr>
+<tr><td>screen/INSERTION</td><td>99</td><td>1.00</td><td>0</td><td>48,708/27,714</td><td>0</td><td>18</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>94</td><td>1.67</td><td>0</td><td>48,148,380/4,691,775</td><td>25920</td><td>18</td></tr>
+<tr><td>screen/SHARED</td><td>87</td><td>1.67</td><td>0</td><td>48,148,380/4,271,895</td><td>25920</td><td>18</td></tr>
+<tr><td>stress/BOUNDED</td><td>2,209</td><td>15.00</td><td>18</td><td>59,505/392,561</td><td>0</td><td>66</td></tr>
+<tr><td>stress/INSERTION</td><td>1,301</td><td>15.00</td><td>22</td><td>6,210/73,965</td><td>0</td><td>68</td></tr>
+</table></div>
+<p>Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates. Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.</p>
+<h3>Paired comparison against new-policy insertion</h3>
+<div class='scroll'><table>
+<tr><th>Stage</th><th>Variant</th><th>Same customers / different customers</th><th>Stream units</th><th>Served delta</th><th>Mean savings per stream</th><th>Exploratory 95% interval</th></tr>
+<tr><td>screen</td><td>BOUNDED</td><td>6/0</td><td>1</td><td>0</td><td>$12.50</td><td>n/a</td></tr>
+<tr><td>screen</td><td>EXPANDED</td><td>6/0</td><td>1</td><td>0</td><td>$15.00</td><td>n/a</td></tr>
+<tr><td>screen</td><td>RUIN_RECREATE</td><td>6/0</td><td>1</td><td>0</td><td>$20.00</td><td>n/a</td></tr>
+<tr><td>screen</td><td>SHARED</td><td>6/0</td><td>1</td><td>0</td><td>$20.00</td><td>n/a</td></tr>
+<tr><td>held</td><td>BOUNDED</td><td>15/33</td><td>2</td><td>14</td><td>$23.44</td><td>$23.28 to $23.59</td></tr>
+<tr><td>held</td><td>EXPANDED</td><td>0/0</td><td>0</td><td>0</td><td>n/a</td><td>n/a</td></tr>
+<tr><td>held</td><td>RUIN_RECREATE</td><td>0/0</td><td>0</td><td>0</td><td>n/a</td><td>n/a</td></tr>
+<tr><td>held</td><td>SHARED</td><td>16/32</td><td>2</td><td>-12</td><td>$31.36</td><td>$29.84 to $32.87</td></tr>
+</table></div>
+<p>Customer identity is the stable request index within an identical seeded dataset, not a random database UUID. Cost pairs with different served identities are excluded from savings estimates and counted explicitly. Fleet sizes, cache modes, and concurrency repetitions are averaged within a seeded request stream before a deterministic 10,000-resample percentile bootstrap. Clustered seeds generate the same request sequence and collapse to one stream, so no interval is reported there. Held-out dispersed evidence has only two independent seeded streams. These intervals are exploratory, not population confidence or independent operational replication. Served-demand deterioration blocks promotion even when equal-customer cost improves.</p>
+<h3>Search quality over time</h3>
+<div class='scroll'><table>
+<tr><th>Stage / variant</th><th>Seconds</th><th>Visible incumbent / searches</th><th>Mean visible incremental cost</th></tr>
+<tr><td>browser/INSERTION</td><td>1</td><td>93/240</td><td>$19.39</td></tr>
+<tr><td>browser/INSERTION</td><td>5</td><td>231/240</td><td>$19.15</td></tr>
+<tr><td>browser/INSERTION</td><td>15</td><td>240/240</td><td>$19.37</td></tr>
+<tr><td>browser/INSERTION</td><td>30</td><td>240/240</td><td>$19.37</td></tr>
+<tr><td>browser/INSERTION</td><td>60</td><td>240/240</td><td>$19.37</td></tr>
+<tr><td>held/BOUNDED</td><td>1</td><td>180/480</td><td>$18.56</td></tr>
+<tr><td>held/BOUNDED</td><td>5</td><td>305/480</td><td>$17.69</td></tr>
+<tr><td>held/BOUNDED</td><td>15</td><td>423/480</td><td>$17.30</td></tr>
+<tr><td>held/BOUNDED</td><td>30</td><td>466/480</td><td>$17.02</td></tr>
+<tr><td>held/BOUNDED</td><td>60</td><td>478/480</td><td>$16.94</td></tr>
+<tr><td>held/INSERTION</td><td>1</td><td>254/480</td><td>$20.00</td></tr>
+<tr><td>held/INSERTION</td><td>5</td><td>459/480</td><td>$19.45</td></tr>
+<tr><td>held/INSERTION</td><td>15</td><td>478/480</td><td>$19.37</td></tr>
+<tr><td>held/INSERTION</td><td>30</td><td>478/480</td><td>$19.37</td></tr>
+<tr><td>held/INSERTION</td><td>60</td><td>478/480</td><td>$19.37</td></tr>
+<tr><td>held/SHARED</td><td>1</td><td>188/480</td><td>$18.84</td></tr>
+<tr><td>held/SHARED</td><td>5</td><td>256/480</td><td>$17.95</td></tr>
+<tr><td>held/SHARED</td><td>15</td><td>293/480</td><td>$17.83</td></tr>
+<tr><td>held/SHARED</td><td>30</td><td>336/480</td><td>$17.65</td></tr>
+<tr><td>held/SHARED</td><td>60</td><td>399/480</td><td>$17.22</td></tr>
+<tr><td>screen/BOUNDED</td><td>1</td><td>14/18</td><td>$15.71</td></tr>
+<tr><td>screen/BOUNDED</td><td>5</td><td>18/18</td><td>$13.33</td></tr>
+<tr><td>screen/BOUNDED</td><td>15</td><td>18/18</td><td>$13.33</td></tr>
+<tr><td>screen/BOUNDED</td><td>30</td><td>18/18</td><td>$13.33</td></tr>
+<tr><td>screen/BOUNDED</td><td>60</td><td>18/18</td><td>$13.33</td></tr>
+<tr><td>screen/EXPANDED</td><td>1</td><td>11/18</td><td>$21.72</td></tr>
+<tr><td>screen/EXPANDED</td><td>5</td><td>18/18</td><td>$15.00</td></tr>
+<tr><td>screen/EXPANDED</td><td>15</td><td>18/18</td><td>$12.50</td></tr>
+<tr><td>screen/EXPANDED</td><td>30</td><td>18/18</td><td>$12.50</td></tr>
+<tr><td>screen/EXPANDED</td><td>60</td><td>18/18</td><td>$12.50</td></tr>
+<tr><td>screen/INSERTION</td><td>1</td><td>18/18</td><td>$17.50</td></tr>
+<tr><td>screen/INSERTION</td><td>5</td><td>18/18</td><td>$17.50</td></tr>
+<tr><td>screen/INSERTION</td><td>15</td><td>18/18</td><td>$17.50</td></tr>
+<tr><td>screen/INSERTION</td><td>30</td><td>18/18</td><td>$17.50</td></tr>
+<tr><td>screen/INSERTION</td><td>60</td><td>18/18</td><td>$17.50</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>1</td><td>13/18</td><td>$17.50</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>5</td><td>18/18</td><td>$15.00</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>15</td><td>18/18</td><td>$12.22</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>30</td><td>18/18</td><td>$10.83</td></tr>
+<tr><td>screen/RUIN_RECREATE</td><td>60</td><td>18/18</td><td>$10.83</td></tr>
+<tr><td>screen/SHARED</td><td>1</td><td>15/18</td><td>$17.50</td></tr>
+<tr><td>screen/SHARED</td><td>5</td><td>18/18</td><td>$15.00</td></tr>
+<tr><td>screen/SHARED</td><td>15</td><td>18/18</td><td>$12.08</td></tr>
+<tr><td>screen/SHARED</td><td>30</td><td>18/18</td><td>$10.83</td></tr>
+<tr><td>screen/SHARED</td><td>60</td><td>18/18</td><td>$10.83</td></tr>
+<tr><td>stress/BOUNDED</td><td>1</td><td>0/40</td><td>n/a</td></tr>
+<tr><td>stress/BOUNDED</td><td>5</td><td>22/40</td><td>$19.32</td></tr>
+<tr><td>stress/BOUNDED</td><td>15</td><td>40/40</td><td>$19.44</td></tr>
+<tr><td>stress/BOUNDED</td><td>30</td><td>40/40</td><td>$19.44</td></tr>
+<tr><td>stress/BOUNDED</td><td>60</td><td>40/40</td><td>$19.44</td></tr>
+<tr><td>stress/INSERTION</td><td>1</td><td>10/40</td><td>$19.75</td></tr>
+<tr><td>stress/INSERTION</td><td>5</td><td>39/40</td><td>$19.29</td></tr>
+<tr><td>stress/INSERTION</td><td>15</td><td>40/40</td><td>$19.31</td></tr>
+<tr><td>stress/INSERTION</td><td>30</td><td>40/40</td><td>$19.31</td></tr>
+<tr><td>stress/INSERTION</td><td>60</td><td>40/40</td><td>$19.31</td></tr>
+</table></div>
+<p>This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent. API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.</p>
+<h2>Daily solvers</h2>
+<p>All eight existing configurations are rerun under the new zero-overtime policy. Fixture roads are deterministic directed legs, not GraphHopper. Development seeds 17/23/41 screen 10/20 technicians; held-out seeds 59/83 cover 5/10/20/50 at equal total 15/30/60-second budgets. A capped solver may finish early. The cost-reference and fairness phases share the total budget. No-new-request daily optimization is the cleanup control.</p>
+<div class='scroll'><table>
+<tr><th>Configuration</th><th>Mechanism / hypothesis</th><th>Decision</th></tr>
+<tr><td>CURRENT_CAPPED</td><td>Relocation and swap; 100 selected/accepted, 1,000 steps. Test inexpensive bounded work.</td><td>Retain diagnostic control</td></tr>
+<tr><td>CURRENT_UNCAPPED</td><td>Same moves and counts without step cap. Isolate additional work.</td><td>Retain rollback comparison</td></tr>
+<tr><td>LATE_ACCEPTANCE_CHANGE</td><td>Relocation only; history 400, 10,000 selected, 1 accepted. Escape local minima.</td><td>Inconclusive for promotion</td></tr>
+<tr><td>LATE_ACCEPTANCE</td><td>Add swap to the same late-acceptance configuration.</td><td>Inconclusive for promotion</td></tr>
+<tr><td>TABU</td><td>Relocation/swap; entity tabu 7, 10,000 selected, 1,000 accepted. Diversify search.</td><td>Retain production baseline</td></tr>
+<tr><td>SUBLIST</td><td>Late acceptance plus sublist movement/reversal. Move related visits together.</td><td>Inconclusive for promotion</td></tr>
+<tr><td>KOPT</td><td>Sublist configuration plus k-opt list moves. Explore coordinated order changes.</td><td>Inconclusive for promotion</td></tr>
+<tr><td>RUIN_RECREATE</td><td>K-opt configuration plus list ruin/recreate. Escape larger local minima.</td><td>Inconclusive for promotion</td></tr>
+</table></div>
+<div class='scroll'><table>
+<tr><th>Stage</th><th>Seconds</th><th>Variant</th><th>Cases</th><th>Mean accepted cost change</th><th>Mean elapsed, ms</th><th>Violations</th></tr>
+<tr><td>held</td><td>15</td><td>CURRENT_CAPPED</td><td>8</td><td>$-54.46</td><td>3,244</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>CURRENT_UNCAPPED</td><td>8</td><td>$-62.02</td><td>15,005</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>KOPT</td><td>8</td><td>$-40.28</td><td>15,005</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>LATE_ACCEPTANCE</td><td>8</td><td>$-42.55</td><td>15,005</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>LATE_ACCEPTANCE_CHANGE</td><td>8</td><td>$-33.78</td><td>15,005</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>RUIN_RECREATE</td><td>8</td><td>$-15.66</td><td>15,015</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>SUBLIST</td><td>8</td><td>$-40.58</td><td>15,005</td><td>0</td></tr>
+<tr><td>held</td><td>15</td><td>TABU</td><td>8</td><td>$-55.64</td><td>15,005</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>CURRENT_CAPPED</td><td>8</td><td>$-54.46</td><td>2,924</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>CURRENT_UNCAPPED</td><td>8</td><td>$-62.94</td><td>30,004</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>KOPT</td><td>8</td><td>$-55.92</td><td>30,004</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>LATE_ACCEPTANCE</td><td>8</td><td>$-59.56</td><td>30,004</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>LATE_ACCEPTANCE_CHANGE</td><td>8</td><td>$-48.84</td><td>30,004</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>RUIN_RECREATE</td><td>8</td><td>$-22.54</td><td>30,011</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>SUBLIST</td><td>8</td><td>$-52.58</td><td>30,005</td><td>0</td></tr>
+<tr><td>held</td><td>30</td><td>TABU</td><td>8</td><td>$-59.26</td><td>30,005</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>CURRENT_CAPPED</td><td>8</td><td>$-54.46</td><td>2,824</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>CURRENT_UNCAPPED</td><td>8</td><td>$-63.25</td><td>60,005</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>KOPT</td><td>8</td><td>$-67.64</td><td>60,005</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>LATE_ACCEPTANCE</td><td>8</td><td>$-64.73</td><td>60,005</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>LATE_ACCEPTANCE_CHANGE</td><td>8</td><td>$-58.52</td><td>60,005</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>RUIN_RECREATE</td><td>8</td><td>$-34.85</td><td>60,009</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>SUBLIST</td><td>8</td><td>$-65.92</td><td>60,004</td><td>0</td></tr>
+<tr><td>held</td><td>60</td><td>TABU</td><td>8</td><td>$-59.26</td><td>60,005</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>CURRENT_CAPPED</td><td>6</td><td>$-37.46</td><td>1,890</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>CURRENT_UNCAPPED</td><td>6</td><td>$-40.12</td><td>15,003</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>KOPT</td><td>6</td><td>$-40.13</td><td>15,003</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>LATE_ACCEPTANCE</td><td>6</td><td>$-39.54</td><td>15,003</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>LATE_ACCEPTANCE_CHANGE</td><td>6</td><td>$-36.05</td><td>15,003</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>RUIN_RECREATE</td><td>6</td><td>$-31.82</td><td>15,004</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>SUBLIST</td><td>6</td><td>$-40.11</td><td>15,003</td><td>0</td></tr>
+<tr><td>screen</td><td>15</td><td>TABU</td><td>6</td><td>$-33.15</td><td>15,002</td><td>0</td></tr>
+</table></div>
+<div class='scroll'><table>
+<tr><th>Held budget</th><th>Variant vs TABU</th><th>Independent seeds</th><th>Mean modeled savings</th><th>Exploratory 95% interval</th></tr>
+<tr><td>15</td><td>CURRENT_CAPPED</td><td>2</td><td>$-1.18</td><td>$-5.15 to $2.80</td></tr>
+<tr><td>15</td><td>CURRENT_UNCAPPED</td><td>2</td><td>$6.38</td><td>$2.35 to $10.41</td></tr>
+<tr><td>15</td><td>KOPT</td><td>2</td><td>$-15.36</td><td>$-17.73 to $-12.98</td></tr>
+<tr><td>15</td><td>LATE_ACCEPTANCE</td><td>2</td><td>$-13.09</td><td>$-16.25 to $-9.92</td></tr>
+<tr><td>15</td><td>LATE_ACCEPTANCE_CHANGE</td><td>2</td><td>$-21.85</td><td>$-25.66 to $-18.05</td></tr>
+<tr><td>15</td><td>RUIN_RECREATE</td><td>2</td><td>$-39.98</td><td>$-42.82 to $-37.14</td></tr>
+<tr><td>15</td><td>SUBLIST</td><td>2</td><td>$-15.06</td><td>$-16.82 to $-13.30</td></tr>
+<tr><td>30</td><td>CURRENT_CAPPED</td><td>2</td><td>$-4.80</td><td>$-8.00 to $-1.60</td></tr>
+<tr><td>30</td><td>CURRENT_UNCAPPED</td><td>2</td><td>$3.68</td><td>$-0.51 to $7.88</td></tr>
+<tr><td>30</td><td>KOPT</td><td>2</td><td>$-3.35</td><td>$-5.75 to $-0.94</td></tr>
+<tr><td>30</td><td>LATE_ACCEPTANCE</td><td>2</td><td>$0.30</td><td>$-1.11 to $1.71</td></tr>
+<tr><td>30</td><td>LATE_ACCEPTANCE_CHANGE</td><td>2</td><td>$-10.42</td><td>$-10.60 to $-10.24</td></tr>
+<tr><td>30</td><td>RUIN_RECREATE</td><td>2</td><td>$-36.72</td><td>$-39.43 to $-34.02</td></tr>
+<tr><td>30</td><td>SUBLIST</td><td>2</td><td>$-6.68</td><td>$-8.30 to $-5.07</td></tr>
+<tr><td>60</td><td>CURRENT_CAPPED</td><td>2</td><td>$-4.79</td><td>$-8.00 to $-1.59</td></tr>
+<tr><td>60</td><td>CURRENT_UNCAPPED</td><td>2</td><td>$3.99</td><td>$0.05 to $7.93</td></tr>
+<tr><td>60</td><td>KOPT</td><td>2</td><td>$8.38</td><td>$5.59 to $11.17</td></tr>
+<tr><td>60</td><td>LATE_ACCEPTANCE</td><td>2</td><td>$5.48</td><td>$3.26 to $7.70</td></tr>
+<tr><td>60</td><td>LATE_ACCEPTANCE_CHANGE</td><td>2</td><td>$-0.74</td><td>$-2.31 to $0.83</td></tr>
+<tr><td>60</td><td>RUIN_RECREATE</td><td>2</td><td>$-24.41</td><td>$-25.02 to $-23.80</td></tr>
+<tr><td>60</td><td>SUBLIST</td><td>2</td><td>$6.67</td><td>$5.13 to $8.20</td></tr>
+</table></div>
+<p>Daily pairs match the exact dataset fingerprint and budget, average fleet sizes within each seed, then bootstrap seed units. Two held-out seeds cannot establish broad generalization. Conditional configuration comparisons are available for capped/uncapped work, change-only/change-plus-swap, sublist, k-opt, and ruin/recreate additions. They do not establish an isolated causal effect for a move type across different acceptors or combined neighborhoods. Raw reference/fairness phase records retain score calculations, time to best, termination, CPU, heap, and waiting/fairness outcomes.</p>
+<h2>Field scenarios</h2>
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 600' role='img' aria-label='Actual selected routes before and after sequential bookings'><defs><marker id='arrow' markerWidth='6' markerHeight='6' refX='5' refY='3' orient='auto'><path d='M0 0L6 3L0 6' fill='#475569'/></marker></defs><rect width='960' height='600' fill='white'/><style>text{font-family:system-ui;font-size:13px;fill:#172b3a}.title{font-size:16px;font-weight:600}</style><text x='25' y='45' class='title'>After confirming A: $100.81, driving 85 min</text><circle cx='95' cy='85' r='21' fill='#087e8b'/><text x='95' y='89' text-anchor='middle' style='fill:white'>Home</text><text x='95' y='123' text-anchor='middle'>Omaha</text><path d='M123 85H245' stroke='#475569' marker-end='url(#arrow)'/><text x='160' y='76'>40 min</text><circle cx='275' cy='85' r='21' fill='#c86b23'/><text x='275' y='89' text-anchor='middle' style='fill:white'>A</text><text x='275' y='123' text-anchor='middle'>Town</text><text x='275' y='142' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M303 85H425' stroke='#475569' marker-end='url(#arrow)'/><text x='340' y='76'>45 min</text><circle cx='455' cy='85' r='21' fill='#087e8b'/><text x='455' y='89' text-anchor='middle' style='fill:white'>Home</text><text x='455' y='123' text-anchor='middle'>Omaha</text><text x='25' y='190' class='title'>After confirming B: $134.97, driving 90 min</text><circle cx='95' cy='230' r='21' fill='#087e8b'/><text x='95' y='234' text-anchor='middle' style='fill:white'>Home</text><text x='95' y='268' text-anchor='middle'>Omaha</text><path d='M123 230H245' stroke='#475569' marker-end='url(#arrow)'/><text x='160' y='221'>5 min</text><circle cx='275' cy='230' r='21' fill='#087e8b'/><text x='275' y='234' text-anchor='middle' style='fill:white'>B</text><text x='275' y='268' text-anchor='middle'>Omaha</text><text x='275' y='287' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M303 230H425' stroke='#475569' marker-end='url(#arrow)'/><text x='340' y='221'>40 min</text><circle cx='455' cy='230' r='21' fill='#c86b23'/><text x='455' y='234' text-anchor='middle' style='fill:white'>A</text><text x='455' y='268' text-anchor='middle'>Town</text><text x='455' y='287' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M483 230H605' stroke='#475569' marker-end='url(#arrow)'/><text x='520' y='221'>45 min</text><circle cx='635' cy='230' r='21' fill='#087e8b'/><text x='635' y='234' text-anchor='middle' style='fill:white'>Home</text><text x='635' y='268' text-anchor='middle'>Omaha</text><text x='25' y='335' class='title'>After confirming C: $169.14, driving 95 min</text><circle cx='95' cy='375' r='21' fill='#087e8b'/><text x='95' y='379' text-anchor='middle' style='fill:white'>Home</text><text x='95' y='413' text-anchor='middle'>Omaha</text><path d='M123 375H245' stroke='#475569' marker-end='url(#arrow)'/><text x='160' y='366'>40 min</text><circle cx='275' cy='375' r='21' fill='#c86b23'/><text x='275' y='379' text-anchor='middle' style='fill:white'>C</text><text x='275' y='413' text-anchor='middle'>Town</text><text x='275' y='432' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M303 375H425' stroke='#475569' marker-end='url(#arrow)'/><text x='340' y='366'>5 min</text><circle cx='455' cy='375' r='21' fill='#c86b23'/><text x='455' y='379' text-anchor='middle' style='fill:white'>A</text><text x='455' y='413' text-anchor='middle'>Town</text><text x='455' y='432' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M483 375H605' stroke='#475569' marker-end='url(#arrow)'/><text x='520' y='366'>45 min</text><circle cx='635' cy='375' r='21' fill='#087e8b'/><text x='635' y='379' text-anchor='middle' style='fill:white'>B</text><text x='635' y='413' text-anchor='middle'>Omaha</text><text x='635' y='432' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M663 375H785' stroke='#475569' marker-end='url(#arrow)'/><text x='700' y='366'>5 min</text><circle cx='815' cy='375' r='21' fill='#087e8b'/><text x='815' y='379' text-anchor='middle' style='fill:white'>Home</text><text x='815' y='413' text-anchor='middle'>Omaha</text><text x='25' y='480' class='title'>A protected Omaha promise requires backtracking: $184.62, driving 170 min</text><circle cx='95' cy='520' r='21' fill='#087e8b'/><text x='95' y='524' text-anchor='middle' style='fill:white'>Home</text><text x='95' y='558' text-anchor='middle'>Omaha</text><path d='M123 520H245' stroke='#475569' marker-end='url(#arrow)'/><text x='160' y='511'>40 min</text><circle cx='275' cy='520' r='21' fill='#c86b23'/><text x='275' y='524' text-anchor='middle' style='fill:white'>A</text><text x='275' y='558' text-anchor='middle'>Town</text><text x='275' y='577' text-anchor='middle'>13:40 to 14:00 UTC</text><path d='M303 520H425' stroke='#475569' marker-end='url(#arrow)'/><text x='340' y='511'>45 min</text><circle cx='455' cy='520' r='21' fill='#087e8b'/><text x='455' y='524' text-anchor='middle' style='fill:white'>B</text><text x='455' y='558' text-anchor='middle'>Omaha</text><text x='455' y='577' text-anchor='middle'>15:00 to 15:10 UTC</text><path d='M483 520H605' stroke='#475569' marker-end='url(#arrow)'/><text x='520' y='511'>40 min</text><circle cx='635' cy='520' r='21' fill='#c86b23'/><text x='635' y='524' text-anchor='middle' style='fill:white'>C</text><text x='635' y='558' text-anchor='middle'>Town</text><text x='635' y='577' text-anchor='middle'>13:00 to 17:00 UTC</text><path d='M663 520H785' stroke='#475569' marker-end='url(#arrow)'/><text x='700' y='511'>45 min</text><circle cx='815' cy='520' r='21' fill='#087e8b'/><text x='815' y='524' text-anchor='middle' style='fill:white'>Home</text><text x='815' y='558' text-anchor='middle'>Omaha</text></svg>
+<p>The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha. Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.</p>
+<p>All 180 sequential steps match their exact optimum: all six booking orders, two/four-hour promises, five variants, and three confirmed requests. Earlier promises remain fixed while internal order/time may change. This simple fixture is already solved by insertion, so it does not reproduce a failure of insertion. Both wider promises and stronger search are separately varied; neither is required for this fixture&#x27;s optimal grouping.</p>
+<h3>A, then B, then C</h3>
+<div class='scroll'><table>
+<tr><th>Promise</th><th>Search</th><th>After request</th><th>Route (actual endpoints included)</th><th>Cost</th><th>Drive / wait min</th><th>Return (UTC)</th><th>Crossings</th></tr>
+<tr><td>120</td><td>INSERTION</td><td>A</td><td>Omaha &gt; A &gt; Omaha</td><td>$100.81</td><td>85/0</td><td>2026-10-26T15:25:00Z</td><td>2</td></tr>
+<tr><td>120</td><td>INSERTION</td><td>B</td><td>Omaha &gt; B &gt; A &gt; Omaha</td><td>$134.97</td><td>90/0</td><td>2026-10-26T16:30:00Z</td><td>2</td></tr>
+<tr><td>120</td><td>INSERTION</td><td>C</td><td>Omaha &gt; B &gt; A &gt; C &gt; Omaha</td><td>$169.14</td><td>95/0</td><td>2026-10-26T17:35:00Z</td><td>2</td></tr>
+<tr><td>120</td><td>BOUNDED</td><td>A</td><td>Omaha &gt; A &gt; Omaha</td><td>$100.81</td><td>85/0</td><td>2026-10-26T15:25:00Z</td><td>2</td></tr>
+<tr><td>120</td><td>BOUNDED</td><td>B</td><td>Omaha &gt; B &gt; A &gt; Omaha</td><td>$134.97</td><td>90/0</td><td>2026-10-26T16:30:00Z</td><td>2</td></tr>
+<tr><td>120</td><td>BOUNDED</td><td>C</td><td>Omaha &gt; B &gt; A &gt; C &gt; Omaha</td><td>$169.14</td><td>95/0</td><td>2026-10-26T17:35:00Z</td><td>2</td></tr>
+<tr><td>240</td><td>INSERTION</td><td>A</td><td>Omaha &gt; A &gt; Omaha</td><td>$100.81</td><td>85/0</td><td>2026-10-26T15:25:00Z</td><td>2</td></tr>
+<tr><td>240</td><td>INSERTION</td><td>B</td><td>Omaha &gt; B &gt; A &gt; Omaha</td><td>$134.97</td><td>90/0</td><td>2026-10-26T16:30:00Z</td><td>2</td></tr>
+<tr><td>240</td><td>INSERTION</td><td>C</td><td>Omaha &gt; B &gt; C &gt; A &gt; Omaha</td><td>$169.14</td><td>95/0</td><td>2026-10-26T17:35:00Z</td><td>2</td></tr>
+<tr><td>240</td><td>BOUNDED</td><td>A</td><td>Omaha &gt; A &gt; Omaha</td><td>$100.81</td><td>85/0</td><td>2026-10-26T15:25:00Z</td><td>2</td></tr>
+<tr><td>240</td><td>BOUNDED</td><td>B</td><td>Omaha &gt; B &gt; A &gt; Omaha</td><td>$134.97</td><td>90/0</td><td>2026-10-26T16:30:00Z</td><td>2</td></tr>
+<tr><td>240</td><td>BOUNDED</td><td>C</td><td>Omaha &gt; C &gt; A &gt; B &gt; Omaha</td><td>$169.14</td><td>95/0</td><td>2026-10-26T17:35:00Z</td><td>2</td></tr>
+</table></div>
+<pre>
+Arrival history: A (town), B (Omaha), C (town)
+
+Before C: Omaha home -&gt; A town -&gt; B Omaha -&gt; Omaha home
+
+After C:  Omaha home -&gt; A/C town together -&gt; B Omaha -&gt; Omaha home
+
+Protected tight B: Omaha home -&gt; A town -&gt; B Omaha -&gt; C town -&gt; Omaha home
+
+</pre>
+<p>A and C can exchange order in an equivalent optimum. Region crossings are diagnostic only. The protected Omaha case correctly makes grouping lose: its narrow existing promise forces a return before C. Removing that appointment or releasing its reservation restores flexibility without phantom capacity.</p>
+<div class='scroll'><table>
+<tr><th>Booking order</th><th>Width</th><th>Final route</th><th>Final promises (UTC)</th><th>Final cost</th></tr>
+<tr><td>A/B/C</td><td>120</td><td>B/A/C</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; C: 2026-10-26T14:00:00Z to 2026-10-26T16:00:00Z</td><td>$169.14</td></tr>
+<tr><td>A/B/C</td><td>240</td><td>C/A/B</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>$169.14</td></tr>
+<tr><td>A/C/B</td><td>120</td><td>A/C/B</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; B: 2026-10-26T15:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>$169.14</td></tr>
+<tr><td>A/C/B</td><td>240</td><td>B/A/C</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>$169.14</td></tr>
+<tr><td>B/A/C</td><td>120</td><td>B/A/C</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; C: 2026-10-26T14:00:00Z to 2026-10-26T16:00:00Z</td><td>$169.14</td></tr>
+<tr><td>B/A/C</td><td>240</td><td>C/A/B</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>$169.14</td></tr>
+<tr><td>B/C/A</td><td>120</td><td>B/C/A</td><td>A: 2026-10-26T14:00:00Z to 2026-10-26T16:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>$169.14</td></tr>
+<tr><td>B/C/A</td><td>240</td><td>A/C/B</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>$169.14</td></tr>
+<tr><td>C/A/B</td><td>120</td><td>A/C/B</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; B: 2026-10-26T15:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>$169.14</td></tr>
+<tr><td>C/A/B</td><td>240</td><td>B/A/C</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>$169.14</td></tr>
+<tr><td>C/B/A</td><td>120</td><td>B/C/A</td><td>A: 2026-10-26T14:00:00Z to 2026-10-26T16:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>$169.14</td></tr>
+<tr><td>C/B/A</td><td>240</td><td>A/C/B</td><td>A: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; B: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z; C: 2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>$169.14</td></tr>
+</table></div>
+<p>The order table reports each history&#x27;s actual promises. Equal final cost does not require equal promises or an identical optimal route order.</p>
+<div class='scroll'><table>
+<tr><th>Promise width</th><th>After request</th><th>Visit</th><th>Promised arrival interval (UTC)</th><th>Planned arrival (UTC)</th></tr>
+<tr><td>120</td><td>A</td><td>A</td><td>2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>2026-10-26T13:40:00Z</td></tr>
+<tr><td>120</td><td>B</td><td>A</td><td>2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>2026-10-26T14:45:00Z</td></tr>
+<tr><td>120</td><td>B</td><td>B</td><td>2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>2026-10-26T13:05:00Z</td></tr>
+<tr><td>120</td><td>C</td><td>A</td><td>2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>2026-10-26T14:45:00Z</td></tr>
+<tr><td>120</td><td>C</td><td>B</td><td>2026-10-26T13:00:00Z to 2026-10-26T15:00:00Z</td><td>2026-10-26T13:05:00Z</td></tr>
+<tr><td>120</td><td>C</td><td>C</td><td>2026-10-26T14:00:00Z to 2026-10-26T16:00:00Z</td><td>2026-10-26T15:50:00Z</td></tr>
+<tr><td>240</td><td>A</td><td>A</td><td>2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>2026-10-26T13:40:00Z</td></tr>
+<tr><td>240</td><td>B</td><td>A</td><td>2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>2026-10-26T14:45:00Z</td></tr>
+<tr><td>240</td><td>B</td><td>B</td><td>2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>2026-10-26T13:05:00Z</td></tr>
+<tr><td>240</td><td>C</td><td>A</td><td>2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>2026-10-26T14:45:00Z</td></tr>
+<tr><td>240</td><td>C</td><td>B</td><td>2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>2026-10-26T16:30:00Z</td></tr>
+<tr><td>240</td><td>C</td><td>C</td><td>2026-10-26T13:00:00Z to 2026-10-26T17:00:00Z</td><td>2026-10-26T13:40:00Z</td></tr>
+</table></div>
+<div class='scroll'><table>
+<tr><th>Companion</th><th>Selected routes</th><th>Cost</th><th>Drive / wait min</th><th>Crossings</th><th>Source</th></tr>
+<tr><td>active-hold</td><td>omaha: A,B,C</td><td>$184.62</td><td>170/6</td><td>4</td><td>INSERTION</td></tr>
+<tr><td>alternating-120-A</td><td>omaha: A</td><td>$85.81</td><td>85/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>alternating-120-B</td><td>omaha: B,A</td><td>$104.97</td><td>90/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>alternating-120-C</td><td>omaha: B,C,A</td><td>$124.14</td><td>95/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>alternating-120-D</td><td>omaha: B,A,C,D</td><td>$143.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>alternating-120-E</td><td>omaha: B,A,C,E,D</td><td>$162.47</td><td>105/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>alternating-240-A</td><td>omaha: A</td><td>$85.81</td><td>85/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>alternating-240-B</td><td>omaha: B,A</td><td>$104.97</td><td>90/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>alternating-240-C</td><td>omaha: C,A,B</td><td>$124.14</td><td>95/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>alternating-240-D</td><td>omaha: D,A,C,B</td><td>$143.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>alternating-240-E</td><td>omaha: E,A,C,B,D</td><td>$162.47</td><td>105/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>cancelled-omaha</td><td>omaha: A,C</td><td>$109.97</td><td>90/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>nearby-qualified-false</td><td>nearby: ; omaha: A</td><td>$100.81</td><td>85/0</td><td>2</td><td>INSERTION</td></tr>
+<tr><td>nearby-qualified-true</td><td>nearby: A; omaha: </td><td>$38.33</td><td>10/0</td><td>0</td><td>INSERTION</td></tr>
+<tr><td>protected-omaha</td><td>omaha: A,B,C</td><td>$184.62</td><td>170/6</td><td>4</td><td>INSERTION</td></tr>
+<tr><td>reassignment-120-BOUNDED</td><td>nearby: A; omaha: B,C</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-120-EXPANDED</td><td>nearby: A; omaha: B,C</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-120-RUIN_RECREATE</td><td>nearby: A; omaha: B,C</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-120-SHARED</td><td>nearby: A; omaha: B,C</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-240-BOUNDED</td><td>nearby: A; omaha: C,B</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-240-EXPANDED</td><td>nearby: A; omaha: C,B</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-240-RUIN_RECREATE</td><td>nearby: A; omaha: C,B</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>reassignment-240-SHARED</td><td>nearby: A; omaha: C,B</td><td>$183.31</td><td>100/0</td><td>2</td><td>REARRANGEMENT</td></tr>
+<tr><td>released-hold</td><td>omaha: A,C</td><td>$109.97</td><td>90/0</td><td>2</td><td>INSERTION</td></tr>
+</table></div>
+<p>The reassignment fixture gives the Omaha technician 220 paid minutes and the nearby technician 160 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible with the same directed rural travel. The retained no-new-request oracle cost separates preexisting cleanup from insertion effects. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow. Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.</p>
+<p>Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times. Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.</p>
+<h2>Reproducibility and limitations</h2>
+<h3>Failed concurrency audit and retained evidence</h3>
+<p>The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory. A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved. This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See <a href="evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json">investigation</a>.</p>
+<p>Booking artifact <code>1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b</code> was built from <code>2258b2a14e8a9ecd085c79ec377448c0555c2b1e</code>. Some held runtime headers name the later harness checkout <code>adcda9a</code>; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from <code>6da6d9341815d7f290cfe34190974fef1ffe2ff3</code>. Subsequent preview/contract/migration and bounded worker-query fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.</p>
+<p>Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm. No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.</p>
+<p>Reproduce booking runs with <code>node infra/run-field-booking-benchmarks.mjs</code> and the FIELD_* settings in each runtime manifest. Use only fresh schemas in waterflex_test. Run the field oracle with <code>mvnw -Pnullability -pl scheduler-service clean test -Dtest=FieldScenarioTest</code>. Rebuild this report with <code>python infra/report-field-validation.py --require-complete</code>. The generator verifies complete case counts, served totals, zero reported promise/constraint violations, and all exact-case cost equalities. Raw failed and incomplete outcomes are retained. Unmeasured cases are not assigned fabricated zero metrics.</p>
+<h2>Gates and remaining acceptance boundaries</h2>
+<p>See <code>validation.json</code> for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. The browser stage measures Chromium HTTP through an isolated production-built portal at concurrency 1/5/10, 5/10/20/50 technicians, and held-out seeds 59/83 with the retained insertion baseline. It uses actual durable start/poll endpoints and 750ms polling, starting from validated jobs. Confirmation uses the API harness; address entry, rendering, and geocoding time are excluded. Broad production representativeness and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion.</p></main></html>

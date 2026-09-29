@@ -43,6 +43,10 @@ jobs:
         run: node infra/test-booking-offer-limit-compose.mjs
       - name: Verify benchmark evidence assembly
         run: python3 infra/test_booking_baseline_assembly.py
+      - name: Verify retained field evidence and generated reports
+        run: |
+          python3 infra/report-field-validation.py --require-complete
+          git diff --exit-code -- docs/scheduler-field-validation.md docs/scheduler-field-validation.html docs/scheduler-field-cost-runtime.svg docs/scheduler-field-routes.svg docs/evidence/scheduler-field-2026-09-29/summary.json
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
       - name: Summarize javac tests before clean

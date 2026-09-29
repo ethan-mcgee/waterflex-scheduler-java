@@ -1,0 +1,251 @@
+{
+  "scenario" : "alternating-120-B",
+  "before" : {
+    "omaha" : [ "A" ]
+  },
+  "after" : {
+    "omaha" : [ "B", "A" ]
+  },
+  "costCents" : 10497,
+  "drivingMinutes" : 90,
+  "meters" : 72000,
+  "noNewRequestOracleCostCents" : 8581,
+  "directedRoads" : {
+    "omaha>nearby:return" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "D>A" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "D>B" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "D>C" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "D>D" : {
+      "seconds" : 0,
+      "meters" : 0
+    },
+    "D>E" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "A>nearby:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "E>nearby:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "omaha>omaha:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "D>omaha:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "B>omaha:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "C>A" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "C>B" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "C>C" : {
+      "seconds" : 0,
+      "meters" : 0
+    },
+    "C>D" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "C>E" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "D>nearby:return" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "omaha>A" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "omaha>B" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "omaha>C" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "nearby>A" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "B>A" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "B>B" : {
+      "seconds" : 0,
+      "meters" : 0
+    },
+    "B>C" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "B>D" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "B>E" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "nearby>B" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "nearby>C" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "nearby>D" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "nearby>E" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "nearby>nearby:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "omaha>D" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "omaha>E" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "nearby>omaha:return" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "A>A" : {
+      "seconds" : 0,
+      "meters" : 0
+    },
+    "A>B" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "A>C" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "A>D" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "A>E" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "A>omaha:return" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "C>nearby:return" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "E>omaha:return" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "C>omaha:return" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "B>nearby:return" : {
+      "seconds" : 2400,
+      "meters" : 32000
+    },
+    "E>A" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "E>B" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "E>C" : {
+      "seconds" : 300,
+      "meters" : 4000
+    },
+    "E>D" : {
+      "seconds" : 2700,
+      "meters" : 36000
+    },
+    "E>E" : {
+      "seconds" : 0,
+      "meters" : 0
+    }
+  },
+  "endpoints" : [ {
+    "return" : {
+      "lat" : 41.2565,
+      "lng" : -95.9345
+    },
+    "maxOvertimeMinutes" : 60,
+    "departure" : {
+      "lat" : 41.2565,
+      "lng" : -95.9345
+    },
+    "maxDailyMinutes" : 600,
+    "id" : "omaha",
+    "shiftEnd" : "2026-10-26T21:00:00Z",
+    "shiftStart" : "2026-10-26T13:00:00Z"
+  } ],
+  "waitingMinutes" : 0,
+  "crossings" : 2,
+  "overtimeMinutes" : 0,
+  "source" : "INSERTION",
+  "visits" : [ {
+    "end" : "2026-10-26T15:00:00Z",
+    "planned" : "2026-10-26T14:15:00Z",
+    "id" : "A",
+    "serviceMinutes" : 30,
+    "start" : "2026-10-26T13:00:00Z"
+  }, {
+    "end" : "2026-10-26T15:00:00Z",
+    "planned" : "2026-10-26T13:05:00Z",
+    "id" : "B",
+    "serviceMinutes" : 30,
+    "start" : "2026-10-26T13:00:00Z"
+  } ],
+  "segments" : [ {
+    "technician" : "omaha",
+    "segments" : [ {
+      "departure" : "2026-10-26T13:00:00Z",
+      "order" : [ "B", "A" ],
+      "return" : "2026-10-26T15:30:00Z"
+    } ]
+  } ]
+}

@@ -223,9 +223,16 @@ def main():
                     meanSavingsCents=mean(values), exploratory95PercentInterval=bootstrap(values)))
     expected = {"screen": 30, "original": 12, "held": 144, "stress": 8, "browser": 24}
     actual = dict(Counter(r["stage"] for r in booking))
+    case_keys = [(r["stage"], r["variant"], r["seed"], r["size"], r["workload"], r["concurrency"], r["cache"]) for r in booking]
+    assert len(case_keys) == len(set(case_keys)), "Duplicate booking matrix cells"
+    daily_keys = [(r["stage"], r["budget"], r["variant"], r["seed"], r["technicians"], r["workload"]) for r in daily]
+    assert len(daily_keys) == len(set(daily_keys)), "Duplicate daily matrix cells"
     complete = actual == expected and len(daily) == 240
     if "--require-complete" in sys.argv:
         assert complete, {"expectedBookingCases": expected, "actualBookingCases": actual, "dailyCases": len(daily)}
+        assert len(failures) == 1 and failures[0]["file"] == "booking-shared-83-held.jsonl.gz", "Unexpected or unreviewed failed experiment"
+        manifest = load(DATA / "experiment-manifest.json")
+        assert all(manifest["expectedCases"][stage] == count for stage, count in expected.items())
     summary = {"executionComplete": complete, "expectedBookingCases": expected, "actualBookingCases": actual,
                "booking": summaries, "paired": paired, "dailyPaired": daily_pairs, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
                "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions), "rejectionFixtures": rejected,
@@ -245,9 +252,9 @@ def main():
       table(["Variant", "Work limits / intended effect", "Decision"], [
         ["INSERTION", "Every eligible route and insertion position; policy-only control", "Retain control"],
         ["BOUNDED", "6 routes, depth 2, beam 8, 500 arrangements/window; relocation, swap, reversal", "Retain existing option"],
-        ["EXPANDED", "12 routes, depth 3, beam 16, 2,000 arrangements/window; rank moves before truncation", "Experimental"],
-        ["RUIN_RECREATE", "Expanded plus removal of 2/3 related visits, constrained/regret-first complete reconstruction", "Experimental"],
-        ["SHARED", "Same reconstruction search with shared route evaluation across windows", "Experimental"],
+        ["EXPANDED", "12 routes, depth 3, beam 16, 2,000 arrangements/window; rank moves before truncation", "Screened out in favor of stronger shared variant; not promoted"],
+        ["RUIN_RECREATE", "Expanded plus removal of 2/3 related visits, constrained/regret-first complete reconstruction", "Screened out in favor of shared variant with equal screen cost and lower runtime"],
+        ["SHARED", "Same reconstruction search with shared route evaluation across windows", "Reject promotion: high-concurrency latency, served-demand deterioration, and retained audit failure"],
       ]),
       "Ruin-and-recreate counts reconstruction attempts and route/candidate work separately from arrangement limits. Incomplete reconstruction is rejected. Shared evaluation isolates route-evaluation caching; neighborhood ranking caches still exist in the expanded control. Stronger variants are never attributed to an individual move type solely from a combined result. Daily configurations retain their exact XML and phase counters in raw artifacts.",
       "## Booking results",

@@ -1,0 +1,16 @@
+{
+  "revision": "c28a24c4c0c1b4614b442c7a362d205cfa7e0db3",
+  "checkoutRevision": "da0eb6ab766c25f0ba26f061cfbb83436b467742",
+  "jarSha256": "70d50a77036fabdaea08e4e026c7d56293eecabd3848899265b3ec5ca76421fd",
+  "schema": "benchmark_field_bounded_23_1790721530066",
+  "port": 18041,
+  "variant": "BOUNDED",
+  "seed": "23",
+  "routingUrl": "http://127.0.0.1:8001",
+  "sizes": "10,20",
+  "concurrency": "1",
+  "caches": "warm",
+  "requests": "3",
+  "startedAt": "2026-09-29T22:39:01.578Z",
+  "concurrentLocalBenchmarks": true
+}

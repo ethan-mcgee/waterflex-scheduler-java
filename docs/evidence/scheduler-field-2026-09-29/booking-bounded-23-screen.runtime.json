@@ -1,0 +1,15 @@
+{
+  "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+  "jarSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+  "schema": "benchmark_field_bounded_23_1790720621426",
+  "port": 18021,
+  "variant": "BOUNDED",
+  "seed": "23",
+  "routingUrl": "http://127.0.0.1:8001",
+  "sizes": "10,20",
+  "concurrency": "1",
+  "caches": "warm",
+  "requests": "3",
+  "startedAt": "2026-09-29T22:23:47.845Z",
+  "concurrentLocalBenchmarks": true
+}

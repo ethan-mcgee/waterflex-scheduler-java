@@ -1,0 +1,22 @@
+{
+  "rejections" : [ {
+    "regularMinutes" : 480,
+    "scenario" : "long-rural-return",
+    "serviceMinutes" : 420,
+    "maximumPaidMinutes" : 600,
+    "legacyOvertimeMinutes" : 25,
+    "directedReturnMinutes" : 45,
+    "expected" : "NO_CANDIDATE"
+  }, {
+    "expected" : "NO_CANDIDATE",
+    "scenario" : "split-availability",
+    "serviceMinutes" : 240,
+    "absenceEnd" : "2026-10-26T18:00:00Z",
+    "absenceStart" : "2026-10-26T16:00:00Z"
+  }, {
+    "scenario" : "unreachable-directed-return",
+    "expected" : "NO_CANDIDATE",
+    "serviceMinutes" : 60,
+    "unreachableLeg" : "town > Omaha home"
+  } ]
+}
