@@ -200,7 +200,17 @@ def main():
             [[q["stage"] + "/" + q["variant"], q["seconds"], f'{q["visibleIncumbents"]}/{q["searches"]}', "n/a" if q["meanVisibleCostDeltaCents"] is None else money(q["meanVisibleCostDeltaCents"])] for q in quality if q["stage"] != "original"]),
       "This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent. API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.",
       "## Daily solvers",
-      "All eight existing configurations are rerun under the new zero-overtime policy. Fixture roads are deterministic directed legs, not GraphHopper. Development seeds 17/23/41 screen 10/20 technicians; held-out seeds 59/83 cover 5/10/20/50 at equal total 15/30/60-second budgets. A capped solver may finish early. The cost-reference and fairness phases share the total budget. No-new-request daily optimization is the cleanup control."]
+      "All eight existing configurations are rerun under the new zero-overtime policy. Fixture roads are deterministic directed legs, not GraphHopper. Development seeds 17/23/41 screen 10/20 technicians; held-out seeds 59/83 cover 5/10/20/50 at equal total 15/30/60-second budgets. A capped solver may finish early. The cost-reference and fairness phases share the total budget. No-new-request daily optimization is the cleanup control.",
+      table(["Configuration", "Mechanism / hypothesis", "Decision"], [
+        ["CURRENT_CAPPED", "Relocation and swap; 100 selected/accepted, 1,000 steps. Test inexpensive bounded work.", "Retain diagnostic control"],
+        ["CURRENT_UNCAPPED", "Same moves and counts without step cap. Isolate additional work.", "Retain rollback comparison"],
+        ["LATE_ACCEPTANCE_CHANGE", "Relocation only; history 400, 10,000 selected, 1 accepted. Escape local minima.", "Inconclusive for promotion"],
+        ["LATE_ACCEPTANCE", "Add swap to the same late-acceptance configuration.", "Inconclusive for promotion"],
+        ["TABU", "Relocation/swap; entity tabu 7, 10,000 selected, 1,000 accepted. Diversify search.", "Retain production baseline"],
+        ["SUBLIST", "Late acceptance plus sublist movement/reversal. Move related visits together.", "Inconclusive for promotion"],
+        ["KOPT", "Sublist configuration plus k-opt list moves. Explore coordinated order changes.", "Inconclusive for promotion"],
+        ["RUIN_RECREATE", "K-opt configuration plus list ruin/recreate. Escape larger local minima.", "Inconclusive for promotion"],
+      ])]
     dg = defaultdict(list)
     for row in daily:
         dg[row["stage"], row["budget"], row["variant"]].append(row)
@@ -217,6 +227,11 @@ def main():
              for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] in ("INSERTION", "BOUNDED")]),
       "```text\nArrival history: A (town), B (Omaha), C (town)\nBefore C: Omaha home -> A town -> B Omaha -> Omaha home\nAfter C:  Omaha home -> A/C town together -> B Omaha -> Omaha home\nProtected tight B: Omaha home -> A town -> B Omaha -> C town -> Omaha home\n```",
       "A and C can exchange order in an equivalent optimum. Region crossings are diagnostic only. The protected Omaha case correctly makes grouping lose: its narrow existing promise forces a return before C. Removing that appointment or releasing its reservation restores flexibility without phantom capacity.",
+      table(["Booking order", "Width", "Final route", "Final promises (UTC)", "Final cost"],
+            [["/".join(r["bookingOrder"]), r["promiseMinutes"], "/".join(r["routes"]["omaha"]),
+              "; ".join(v["id"] + ": " + v["windowStart"] + " to " + v["windowEnd"] for v in r["visits"]), money(r["costCents"])]
+             for r in field["rows"] if r["variant"] == "BOUNDED" and len(r["visits"]) == 3]),
+      "The order table reports each history's actual promises. Equal final cost does not require equal promises or an identical optimal route order.",
       table(["Promise width", "After request", "Visit", "Promised arrival interval (UTC)", "Planned arrival (UTC)"],
             [[r["promiseMinutes"], r["request"], v["id"], v["windowStart"] + " to " + v["windowEnd"], v["planned"]]
              for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] == "BOUNDED" for v in r["visits"]]),
