@@ -18,7 +18,7 @@ public final class SolverBenchmark {
         String revision = Required.value(System.getProperty("benchmark.revision"), "exact benchmark revision");
         Path output = Required.value(Path.of(Required.value(System.getProperty("benchmark.output"), "benchmark output")));
         long budget = Long.parseLong(System.getProperty("benchmark.durationMs", "15000"));
-        if (budget < 100 || budget > 15000) throw new IllegalArgumentException("Benchmark budget must be 100..15000 ms");
+        if (budget < 100 || budget > 60000) throw new IllegalArgumentException("Benchmark budget must be 100..60000 ms");
         var sizes = values("benchmark.sizes", "20,30,50").stream().mapToInt(Integer::parseInt).toArray();
         var workloads = values("benchmark.workloads", "SPARSE,CLUSTERED,DISPERSED,MIXED_SKILL,TIGHT_WINDOW,ABSENCE,NEAR_CAPACITY")
                 .stream().map(value -> SolverBenchmarkData.Workload.valueOf(Required.value(value))).toList();

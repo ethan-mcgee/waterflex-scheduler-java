@@ -1,6 +1,6 @@
 "use client";
 
-import { bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
+import { durableSearchStatus, savedBookingSearch, bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { appointmentSearchMessage, recordBookingApiDuration } from "@/lib/appointmentSearch";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/book/booking.module.css";
@@ -106,6 +106,54 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const [confirmedOffer, setConfirmedOffer] = useState<SlotOffer | null>(null);
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [searchCursor, setSearchCursor] = useState<{ id: string; jobId: string } | null>(null);
+  const [searchElapsed, setSearchElapsed] = useState(0);
+  const [searchWork, setSearchWork] = useState(0);
+  const [searchPhase, setSearchPhase] = useState("QUEUED");
+  useEffect(() => {
+    const saved = localStorage.getItem("waterflex.bookingSearch");
+    if (!saved) return;
+    try {
+      const cursor = savedBookingSearch.parse(JSON.parse(saved));
+      setJobId(cursor.jobId); setSearchCursor(cursor); setStep("slots");
+    } catch { localStorage.removeItem("waterflex.bookingSearch"); }
+  }, []);
+  useEffect(() => {
+    if (!searchCursor) return;
+    localStorage.setItem("waterflex.bookingSearch", JSON.stringify(searchCursor));
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    setSubmitting(true);
+    async function poll() {
+      if (!searchCursor) return;
+      try {
+        const response = await fetch(`/api/book/search?id=${encodeURIComponent(searchCursor.id)}&jobId=${encodeURIComponent(searchCursor.jobId)}`, { signal: controller.signal });
+        const status = await readResponse(response, durableSearchStatus);
+        if (controller.signal.aborted) return;
+        setSearchElapsed(status.elapsedMs); setSearchWork(status.completedWork); setSearchPhase(status.phase);
+        if (status.state === "QUEUED" || status.state === "RUNNING") { timer = setTimeout(() => { void poll(); }, 750); return; }
+        setSearchCursor(null); setSubmitting(false);
+        if (status.state === "AVAILABLE") { setOffers(status.offers); setInvalidOffers(false); setStep("slots"); setNow(Date.now()); return; }
+        localStorage.removeItem("waterflex.bookingSearch");
+        setOffers([]); setInvalidOffers(true); setStep("slots");
+        const messages = { NO_CANDIDATE: "The completed search found no available appointment.", INCOMPLETE: "The search stopped before all work finished. Please retry.",
+          FAILED: "The appointment search failed. Please retry.", CANCELLED: "The appointment search was cancelled." };
+        setError(messages[status.state]);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setError(errorMessage(error, "Could not reconnect to the search. Reload to retry.")); setSubmitting(false); setSearchCursor(null);
+      }
+    }
+    void poll();
+    return () => { controller.abort(); if (timer) clearTimeout(timer); };
+  }, [searchCursor]);
+  async function cancelSearch() {
+    if (!searchCursor) return;
+    try {
+      await readResponse(await fetch(`/api/book/search?id=${encodeURIComponent(searchCursor.id)}&jobId=${encodeURIComponent(searchCursor.jobId)}`, { method: "DELETE" }), durableSearchStatus);
+      localStorage.removeItem("waterflex.bookingSearch"); setSearchCursor(null); setSubmitting(false); setInvalidOffers(true); setError("The appointment search was cancelled.");
+    } catch (error) { setError(errorMessage(error, "Could not cancel search. Please retry.")); }
+  }
   const [pinCandidates, setPinCandidates] = useState<PinCandidate[]>([]);
   const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
   const [serviceArea, setServiceArea] = useState<ServiceArea | null>(null);
@@ -114,6 +162,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const revision = useRef(0);
   const submittedMode = useRef<"pin" | "followUp" | null>(null);
   function clearLocation() {
+    localStorage.removeItem("waterflex.bookingSearch");
     revision.current++; submittedMode.current = null;
     activeRequest.current?.abort();
     setPinCandidates([]); setPin(null); setServiceArea(null); setMapAvailable(false); setSubmitting(false);
@@ -178,6 +227,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
         return;
       }
       const selected = selectionSchema.parse(raw);
+      localStorage.removeItem("waterflex.bookingSearch");
       setConfirmedOffer(offers.find((o) => o.offerId === offerId) ?? null);
       setAppointmentId(selected.appointmentId);
       setStep("confirmed");
@@ -216,25 +266,13 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
 
   async function refreshOffers() {
     if (!jobId) return;
-    const started = performance.now();
-    setSubmitting(true);
-    setError(null);
+    setSubmitting(true); setError(null);
     try {
-      const response = await fetch("/api/book/refresh", { signal: AbortSignal.any([requestSignal(), AbortSignal.timeout(5000)]), method: "POST",
-        headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, deadlineEpochMs: Date.now() + 5000 }) });
-      const data = await readResponse(response, offersResponse);
-      const problem = appointmentSearchMessage(data.search);
-      if (problem) { setOffers([]); setInvalidOffers(true); setError(problem); return; }
-      setOffers(data.offers);
-      setInvalidOffers(false);
-      setNow(Date.now());
-    } catch (error) {
-      setInvalidOffers(true);
-      setError(error instanceof DOMException && error.name === "TimeoutError"
-        ? "The appointment search did not finish. Please retry to check available times."
-        : errorMessage(error, "Could not refresh times."));
-    }
-    finally { recordBookingApiDuration(started, "refresh"); setSubmitting(false); }
+      const response = await fetch("/api/book/search", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId, requestId: crypto.randomUUID(), refresh: true }) });
+      const status = await readResponse(response, durableSearchStatus);
+      setSearchCursor({ id: status.id, jobId });
+    } catch (error) { setSubmitting(false); setError(errorMessage(error, "Could not start search.")); }
   }
 
   async function handlePinConfirmation(followUp = false) {
@@ -250,12 +288,13 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       const response = await fetch("/api/book", {
         signal: requestSignal(),
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, requestId: submissionId, ...(followUp ? { followUp: true } : { confirmedPin: { ...pin, manuallyConfirmed: true } }) }),
+        body: JSON.stringify({ ...form, requestId: submissionId, backgroundSearch: true, ...(followUp ? { followUp: true } : { confirmedPin: { ...pin, manuallyConfirmed: true } }) }),
       });
       const data = await readResponse(response, bookingResponse);
       if (current !== revision.current) return;
       setJobId(data.jobId);
       if (data.pendingReference) { setStep("pending"); return; }
+      if (data.searchRequestId) { setSearchCursor({ id: data.searchRequestId, jobId: data.jobId }); setStep("slots"); return; }
       const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
       if (problem) { setError(problem); return; }
       setOffers(required(data.offers, "Appointment offers"));
@@ -265,9 +304,11 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     finally { recordBookingApiDuration(started, "pin"); if (current === revision.current) setSubmitting(false); }
   }
 
-  const searchProgress = submitting ? <div role="status">
+  const searchProgress = submitting || searchCursor ? <div role="status">
     <label htmlFor="appointment-search-progress">Finding available appointments</label>
     <progress id="appointment-search-progress" aria-label="Finding available appointments" />
+    {searchCursor && <><p>{Math.floor(searchElapsed / 1000)} seconds elapsed. {searchWork} options evaluated. {searchPhase === "QUEUED" ? "Waiting to start." : "Checking routes."}</p>
+      <button type="button" onClick={() => { void cancelSearch(); }}>Cancel search</button></>}
   </div> : null;
 
   if (step === "pending") {

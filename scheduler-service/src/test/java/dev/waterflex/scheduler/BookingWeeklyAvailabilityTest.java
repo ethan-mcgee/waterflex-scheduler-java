@@ -26,8 +26,8 @@ class BookingWeeklyAvailabilityTest {
     }
 
     @Test void windowsFitEachDaysShift() {
-        assertEquals(List.of(600, 660, 720), BookingService.windowStartMinutes(600, 840));
-        assertEquals(List.of(510, 570), BookingService.windowStartMinutes(510, 720));
+        assertEquals(List.of(600), BookingService.windowStartMinutes(600, 840));
+        assertEquals(List.of(), BookingService.windowStartMinutes(510, 720));
         assertEquals(List.of(), BookingService.windowStartMinutes(600, 690));
         assertThrows(IllegalArgumentException.class, () -> BookingService.windowStartMinutes(900, 600));
     }

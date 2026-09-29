@@ -29,7 +29,7 @@ public final class BookingCoordinator {
     }
 
     public Result offers(String jobId, boolean refresh) {
-        var context = booking.searchContext(jobId);
+        booking.searchContext(jobId);
         var active = jdbc.query("SELECT id,\"searchDiagnostics\"::text FROM booking_offer_set WHERE \"jobId\"=? AND \"expiresAt\">clock_timestamp() AND \"supersededAt\" IS NULL ORDER BY \"createdAt\" DESC LIMIT 1",
                 (rs, _) -> new Active(Required.string(rs, 1), rs.getString(2)), jobId);
         if (!active.isEmpty()) {
@@ -41,6 +41,7 @@ public final class BookingCoordinator {
         }
         // One stale retry at most, using the same request deadline and admission lease.
         for (int attempt = 0; attempt < 2; attempt++) {
+            var context = booking.searchContext(jobId);
             SearchDeadline.beginExploration();
             var prepared = search.prepare(context.metroId(), context.request());
             var bundle = prepared.reservations();
@@ -55,6 +56,15 @@ public final class BookingCoordinator {
             String setId = Required.value(UUID.randomUUID().toString());
             try {
                 return commits.commit(facts, jobId, jobId, true, proposals, false, () -> {
+                    Instant publicationExpiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
+                    java.util.Set<String> newHolds = new java.util.HashSet<>();
+                    bundle.offers().forEach(offer -> newHolds.add(offer.holdId()));
+                    proposals.replaceAll((_, proposal) -> {
+                        Map<String, ReservationState.Hold> metadata = new TreeMap<>(proposal.holds());
+                        metadata.replaceAll((id, hold) -> newHolds.contains(id)
+                                ? new ReservationState.Hold(hold.jobId(), hold.offerId(), publicationExpiry, false) : hold);
+                        return new ReservationTransition.Prepared(proposal.day(), metadata, proposal.validation());
+                    });
                     var lockedContext = booking.searchContext(jobId);
                     if (!context.equals(lockedContext)) throw conflict("Job or service location changed");
                     jdbc.update("UPDATE booking_offer_set s SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE s.\"jobId\"=? AND s.\"supersededAt\" IS NULL AND NOT EXISTS (SELECT 1 FROM booking_offer o WHERE o.\"offerSetId\"=s.id)", jobId);
@@ -62,7 +72,7 @@ public final class BookingCoordinator {
                         throw conflict("Another search reserved offers for this job");
                     jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND \"supersededAt\" IS NULL", jobId);
                     jdbc.update("INSERT INTO booking_offer_set (id,\"jobId\",\"expiresAt\",\"searchDiagnostics\") VALUES (?,?,?,?::jsonb)",
-                            setId, jobId, stamp(prepared.expiresAt()), diagnostics(prepared));
+                            setId, jobId, stamp(publicationExpiry), diagnostics(prepared));
                     SearchDeadline.reservedSet(setId);
                     List<BookingService.Offer> offers = new ArrayList<>();
                     for (ReservationOffers.Reserved reserved : bundle.offers()) {
@@ -77,12 +87,12 @@ public final class BookingCoordinator {
                         int position = Required.value(day.day().baseline().routes().get(candidate.technicianId())).indexOf(reserved.holdId());
                         if (position < 0) throw conflict("Reserved placeholder is unassigned");
                         jdbc.update("INSERT INTO booking_offer (id,\"jobId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"expiresAt\",\"incrementalRegularMinutes\",\"incrementalOvertimeMinutes\",\"incrementalRoadMeters\",\"incrementalCostDollars\",\"offerSetId\",\"overtimeAuthorized\") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                                reserved.offerId(), jobId, stamp(date), stamp(candidate.window().start()), stamp(candidate.window().end()), stamp(prepared.expiresAt()),
+                                reserved.offerId(), jobId, stamp(date), stamp(candidate.window().start()), stamp(candidate.window().end()), stamp(publicationExpiry),
                                 regularDelta, candidate.overtimeDelta(), proposed.meters() - baseline.meters(), candidate.costDeltaCents() / 100.0, setId, reserved.overtimeAuthorized());
                         jdbc.update("INSERT INTO slot_hold (id,\"offerToken\",\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",\"insertPosition\",\"locationLat\",\"locationLng\",\"expiresAt\",\"offerSetId\") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                                 reserved.holdId(), reserved.offerId(), jobId, candidate.technicianId(), stamp(date), stamp(candidate.window().start()), stamp(candidate.window().end()), stamp(arrival),
-                                stamp(Required.value(arrival.plusSeconds(context.request().durationMinutes() * 60L))), position, context.request().location().lat(), context.request().location().lng(), stamp(prepared.expiresAt()), setId);
-                        offers.add(new BookingService.Offer(reserved.offerId(), Required.value(date.toString()), candidate.window().start(), candidate.window().end(), prepared.expiresAt()));
+                                stamp(Required.value(arrival.plusSeconds(context.request().durationMinutes() * 60L))), position, context.request().location().lat(), context.request().location().lng(), stamp(publicationExpiry), setId);
+                        offers.add(new BookingService.Offer(reserved.offerId(), Required.value(date.toString()), candidate.window().start(), candidate.window().end(), publicationExpiry));
                     }
                     return new Result(new BookingService.Offers(jobId, offers), prepared.search().complete() && bundle.completed(), prepared.stopReason());
                 });
@@ -134,7 +144,10 @@ public final class BookingCoordinator {
         if (deadline != null) { data.put("elapsedMs", deadline.elapsedMillis()); data.put("measurements", deadline.telemetry().snapshot()); }
         data.put("distinctRegularWindows", result.distinctRegularWindows()); data.put("confirmedRegularMinutes", result.confirmedRegularMinutes());
         data.put("regularCapacityMinutes", result.regularCapacityMinutes()); data.put("overtimeAuthorized", result.overtimeAuthorized());
-        data.put("limits", BoundedBookingSearch.Limits.defaults());
+        data.put("variant", prepared.variant());
+        data.put("policyVersion", dev.waterflex.scheduler.optimizer.SchedulingPolicy.VERSION);
+        data.put("reconstructionAttempts", prepared.reconstructionAttempts()); data.put("reconstructionEvaluations", prepared.reconstructionEvaluations());
+        data.put("limits", java.util.Set.of("EXPANDED", "RUIN_RECREATE", "SHARED").contains(prepared.variant()) ? BoundedBookingSearch.Limits.expanded() : BoundedBookingSearch.Limits.defaults());
         List<Map<String, Object>> coverage = new ArrayList<>();
         for (var item : result.coverage()) {
             Map<String, Object> value = new LinkedHashMap<>();

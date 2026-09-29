@@ -21,7 +21,7 @@ public final class ReservationOffers {
             Map<LocalDate, Map<String, ReservationState.Hold>> existingHolds, BoundedBookingSearch.Result search,
             Instant expiresAt, BookingOfferLimit offerLimit, Runnable checkpoint) {
         List<Candidate> pending = new ArrayList<>(search.candidates());
-        pending.removeIf(candidate -> candidate.overtimeDelta() > 0 && !search.overtimeAuthorized());
+        pending.removeIf(candidate -> candidate.overtimeDelta() > 0);
         List<Reserved> offers = new ArrayList<>();
         Map<LocalDate, Prepared> prepared = new TreeMap<>();
         Set<BoundedBookingSearch.Window> chosen = new HashSet<>();
@@ -61,9 +61,18 @@ public final class ReservationOffers {
             Day day = new Day(current.technicians(), facts, arrangement, current.reservationVersion(), aliased);
             var validated = day.evaluate(arrangement, facts, snapshot.rates());
             if (!validated.feasible()) continue;
+            var evaluation = new BookingEvaluation(day, snapshot.rates(), request.serviceId(), checkpoint);
+            boolean regularRoutes = true;
+            for (var route : arrangement.routes().entrySet()) {
+                List<String> before = Required.value(current.baseline().routes().get(route.getKey()));
+                if (before.equals(route.getValue())) continue;
+                if (evaluation.route(Required.value(route.getKey()), before, current.visits(), false).overtimeMinutes() != 0
+                        || evaluation.route(Required.value(route.getKey()), Required.value(route.getValue()), facts, false).overtimeMinutes() != 0) regularRoutes = false;
+            }
+            if (!regularRoutes) continue;
             var baseline = previous == null ? original.evaluate(original.baseline(), original.visits(), snapshot.rates()) : previous.validation();
             if (!baseline.feasible()) throw new BookingSnapshot.Incomplete("Reservation baseline is infeasible");
-            boolean overtime = candidate.overtimeDelta() > 0 && search.overtimeAuthorized();
+            boolean overtime = false;
             if (validated.overtimeMinutes() > baseline.overtimeMinutes() && !overtime) continue;
             Map<String, ReservationState.Hold> holds = new TreeMap<>(previous == null
                     ? Required.value(existingHolds.get(date), "existing reservation metadata") : previous.state().holds());

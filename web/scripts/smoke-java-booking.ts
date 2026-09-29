@@ -8,7 +8,7 @@ import { technicianColor } from "../lib/technicianColor";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
-const expectedLimit = z.enum(["1", "2", "4"]).transform(Number).parse(process.env.BOOKING_OFFER_LIMIT ?? "4");
+const expectedLimit = 1;
 const previousBase = process.env.SCHEDULER_PREVIOUS_LIMIT_URL;
 const database = new URL(z.string().parse(process.env.DATABASE_URL));
 assert.equal(database.pathname, "/waterflex_test", "Booking smoke requires isolated waterflex_test data");

@@ -15,7 +15,9 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
     public BookingSnapshot {
         text(metroId); text(configurationFingerprint); text(routingIdentity);
         days = Required.value(Map.copyOf(days));
-        if (!days.keySet().equals(new HashSet<>(BookingService.bookingDates(capturedAt))))
+        Set<LocalDate> normal = new HashSet<>(BookingService.bookingDates(capturedAt));
+        Set<LocalDate> extended = new HashSet<>(normal); extended.addAll(BookingService.overflowDates(capturedAt));
+        if (!days.keySet().equals(normal) && !days.keySet().equals(extended))
             throw new Incomplete("Snapshot does not cover the complete booking horizon");
     }
 
