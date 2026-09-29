@@ -9,6 +9,7 @@ import json
 import gzip
 import random
 import re
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "docs/evidence/scheduler-field-2026-09-29"
@@ -59,6 +60,7 @@ def main():
                 row["stage"] = next((stage for stage in ("original", "held", "stress") if stage in path.stem), "screen")
                 row["seed"] = metadata["seed"]
                 assert row["served"] == len(served_ids(row))
+                assert row["independentlyValidated"]
                 assert row["promiseViolations"] == 0
                 assert all(d["policy"]["overtimeMinutes"] == 0 for d in row["after"]["days"]), path
                 booking.append(row)
@@ -151,11 +153,18 @@ def main():
         policy_pairs.append(dict(variant=row["variant"], seed=row["seed"], size=row["size"], originalServed=row["served"],
                                  policyServed=current["served"], originalCostCents=cost(row), policyCostCents=cost(current),
                                  sameCustomers=served_ids(row) == served_ids(current)))
-    summary = {"booking": summaries, "paired": paired, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
+    expected = {"screen": 30, "original": 12, "held": 144, "stress": 8}
+    actual = dict(Counter(r["stage"] for r in booking))
+    complete = actual == expected and len(daily) == 240
+    if "--require-complete" in sys.argv:
+        assert complete, {"expectedBookingCases": expected, "actualBookingCases": actual, "dailyCases": len(daily)}
+    summary = {"executionComplete": complete, "expectedBookingCases": expected, "actualBookingCases": actual,
+               "booking": summaries, "paired": paired, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
                "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions),
                "failures": failures, "provenance": provenance}
     (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     sections = ["# Scheduler policy, search, and field validation",
+      "Execution status: " + ("complete" if complete else "in progress") + f". Retained {len(booking)}/194 booking cases and {len(daily)}/240 daily-solver cases. Every raw case remains included in its stage.",
       "## Decision and scope",
       "Adopt the single-offer, four-hour, zero-new-overtime safety policy and durable search lifecycle. Retain the existing production search selection and daily TABU default. Expanded search remains experimental. No algorithm promotion is justified by this evidence alone: concurrent service outcomes, limited independent geography, and runtime remain material constraints. These are modeled fixture results, not operational savings or a reproduction from customer production records.",
       "Baseline checkout: `c28a24c4c0c1b4614b442c7a362d205cfa7e0db3`. Original behavior is rebuilt in an isolated checkout and recorded separately as `original`; `screen` and `held` use the new policy. Historical reports and artifacts remain unchanged. Algorithm rollback continues through the common policy and reservation validation layer.",
@@ -242,7 +251,7 @@ def main():
       "## Reproducibility and limitations",
       "Booking artifact `1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b` was built from `2258b2a14e8a9ecd085c79ec377448c0555c2b1e`. Some held runtime headers name the later harness checkout `adcda9a`; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from `6da6d9341815d7f290cfe34190974fef1ffe2ff3`. Subsequent preview/contract/migration fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.",
       "Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm. No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.",
-      "Reproduce booking runs with `node infra/run-field-booking-benchmarks.mjs` and the FIELD_* settings in each runtime manifest. Use only fresh schemas in waterflex_test. Run the field oracle with `mvnw -Pnullability -pl scheduler-service clean test -Dtest=FieldScenarioTest`. Rebuild this report with `python infra/report-field-validation.py`. The generator verifies served totals, zero reported promise/constraint violations, and all exact-case cost equalities. Raw failed and incomplete outcomes are retained. Unmeasured cases are not assigned fabricated zero metrics.",
+      "Reproduce booking runs with `node infra/run-field-booking-benchmarks.mjs` and the FIELD_* settings in each runtime manifest. Use only fresh schemas in waterflex_test. Run the field oracle with `mvnw -Pnullability -pl scheduler-service clean test -Dtest=FieldScenarioTest`. Rebuild this report with `python infra/report-field-validation.py --require-complete`. The generator verifies complete case counts, served totals, zero reported promise/constraint violations, and all exact-case cost equalities. Raw failed and incomplete outcomes are retained. Unmeasured cases are not assigned fabricated zero metrics.",
       "## Gates and remaining acceptance boundaries",
       "See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. Broad production representativeness, true browser concurrency latency, and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion."]
     text = "\n\n".join(sections) + "\n"
