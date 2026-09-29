@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -75,7 +77,8 @@ class SnapshotRoutingTest {
         assertDoesNotThrow(() -> lifecycle.evaluate(removed, remaining, RATES));
     }
 
-    @Test void offerBundleReservesSiblingAlternativesTogetherWithoutMutatingConfirmedAssignments() {
+    @ParameterizedTest @ValueSource(ints = {1, 2, 4})
+    void offerBundleReservesSiblingAlternativesTogetherWithoutMutatingConfirmedAssignments(int limit) {
         var routing = new SnapshotRouting(new DirectedRoads());
         var request = new BoundedBookingSearch.Request("new", "service", 15, point(3));
         var snapshot = routing.insertion(snapshot(), request);
@@ -84,14 +87,20 @@ class SnapshotRoutingTest {
         Instant expiry = Required.value(CAPTURED.plusSeconds(600));
         for (LocalDate date : snapshot.days().keySet()) holds.put(date, date.equals(DATE)
                 ? Required.value(Map.<String, ReservationState.Hold>of("hold", new ReservationState.Hold("hold-job", "old-offer", expiry, false))) : Required.value(Map.of()));
-        var bundle = ReservationOffers.prepare(snapshot, request, holds, result, expiry, () -> { });
-        assertEquals(4, bundle.offers().size());
+        var bundle = ReservationOffers.prepare(snapshot, request, holds, result, expiry, new BookingOfferLimit(Integer.toString(limit)), () -> { });
+        assertEquals(limit, bundle.offers().size());
+        assertTrue(result.complete());
+        assertTrue(result.distinctRegularWindows() > 2, "The display cap must not establish overtime scarcity");
+        assertFalse(result.overtimeAuthorized());
+        var full = ReservationOffers.prepare(snapshot, request, holds, result, expiry, new BookingOfferLimit("4"), () -> { });
+        assertEquals(full.offers().stream().limit(limit).map(offer -> offer.candidate()).toList(),
+                bundle.offers().stream().map(offer -> offer.candidate()).toList(), "Reduced limits preserve candidate ranking");
         var common = Required.value(bundle.dates().get(DATE));
-        assertEquals(5, common.state().holds().size());
-        assertEquals(7, common.day().visits().size());
+        assertEquals(limit + 1, common.state().holds().size());
+        assertEquals(limit + 3, common.day().visits().size());
         assertTrue(common.validation().feasible());
         assertEquals(0, common.validation().overtimeMinutes());
-        assertEquals(4, bundle.offers().stream().map(offer -> offer.candidate().window()).distinct().count());
+        assertEquals(limit, bundle.offers().stream().map(offer -> offer.candidate().window()).distinct().count());
         Set<String> siblingIds = new HashSet<>();
         bundle.offers().forEach(offer -> siblingIds.add(offer.holdId()));
         assertEquals(Required.value(snapshot.days().get(DATE)).baseline(), ReservationOffers.without(common.day().baseline(), siblingIds));
@@ -108,7 +117,7 @@ class SnapshotRoutingTest {
         assertFalse(Required.value(confirmed.day().visits().get("appointment")).reservation());
         assertEquals(selected.visit().windowStart(), Required.value(confirmed.day().visits().get("appointment")).windowStart());
         assertTrue(confirmed.validation().feasible());
-        assertEquals(7, common.day().visits().size(), "Preparing confirmation must not mutate the reservation snapshot");
+        assertEquals(limit + 3, common.day().visits().size(), "Preparing confirmation must not mutate the reservation snapshot");
         var released = Required.value(transition.prepare(facts, "new", null).get(DATE));
         assertEquals(Required.value(snapshot.days().get(DATE)).baseline(), released.day().baseline());
         assertEquals(1, released.holds().size());

@@ -12,3 +12,4 @@ optimizer-start.log
 web/playwright-report/
 .scratch/
 **/__pycache__/
+**/artifacts/

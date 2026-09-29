@@ -15,12 +15,14 @@ public final class BookingSearchPipeline {
     private final SnapshotRouting routing;
     private final boolean bounded;
     private final int refinementMillis;
+    private final BookingOfferLimit offerLimit;
     public BookingSearchPipeline(BookingSnapshotLoader loader, RoadClient roads, SnapshotRouting routing,
             @Value("${booking.search.bounded:false}") boolean bounded,
-            @Value("${booking.search.refinement-ms:250}") int refinementMillis) {
+            @Value("${booking.search.refinement-ms:250}") int refinementMillis, BookingOfferLimit offerLimit) {
         if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid optional refinement budget");
         this.loader = loader; this.roads = roads; this.routing = routing; this.bounded = bounded;
         this.refinementMillis = refinementMillis;
+        this.offerLimit = offerLimit;
     }
 
     public Prepared prepare(String metroId, BoundedBookingSearch.Request request) {
@@ -61,7 +63,7 @@ public final class BookingSearchPipeline {
         }
         SearchDeadline.beginCommit();
         Instant expiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
-        var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, SearchDeadline::checkpoint);
+        var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, offerLimit, SearchDeadline::checkpoint);
         return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements, refinementMillis);
     }
 
