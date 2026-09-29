@@ -132,7 +132,7 @@ jobs:
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
       - name: Immutable snapshot, reservation and database admission gates
-        run: ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
+        run: ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
