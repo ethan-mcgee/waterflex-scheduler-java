@@ -10,7 +10,8 @@ python infra/report-field-validation.py --require-complete
 - `booking-*-original.jsonl.gz`: unchanged original-policy comparison.
 - `booking-*-screen.jsonl.gz`: five search variants on development seeds.
 - `booking-*-held*.jsonl.gz`: dispersed real-road cases on held-out seeds, including the separately identified recovery run.
-- `booking-*-stress.jsonl.gz`: capacity pressure, delayed confirmation, and abandonment.
+- `booking-*-stress-final.jsonl.gz`: capacity pressure, delayed confirmation, and abandonment, with every overflow confirmation included in the route audit.
+- `booking-*-stress-normal-only.jsonl.gz`: retained initial stress runs whose aggregate audit omitted overflow dates; excluded from validated cost/route summaries and rerun above.
 - `booking-*-browser.jsonl.gz`: Chromium through an isolated production-built portal, durable start/poll, and API confirmation.
 - `screen-15.jsonl.gz`, `held-{15,30,60}-{59,83}.jsonl.gz`: all eight daily solvers with exact configuration and phase diagnostics. These use deterministic fixture roads.
 - `field-*.json`: independent exact-case oracle results, directed roads, service facts, promises, planned times, endpoints, and rejection fixtures.

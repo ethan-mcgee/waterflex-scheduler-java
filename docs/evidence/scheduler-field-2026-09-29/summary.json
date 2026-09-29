@@ -325,58 +325,58 @@
       "variant": "BOUNDED",
       "cases": 4,
       "requests": 40,
-      "served": 18,
-      "incomplete": 11,
-      "finalCostCents": 14550000,
-      "meanCaseP95Ms": 7854.950400000001,
+      "served": 21,
+      "incomplete": 9,
+      "finalCostCents": 14591250,
+      "meanCaseP95Ms": 6355.597325,
       "conflicts": 0,
       "outcomes": {
-        "AVAILABLE": 18,
-        "ABANDONED": 10,
-        "SEARCH_INCOMPLETE": 11,
-        "SELECTION_CONFLICT": 1
+        "AVAILABLE": 21,
+        "SEARCH_INCOMPLETE": 7,
+        "ABANDONED": 7,
+        "SELECTION_CONFLICT": 5
       },
-      "cpuSeconds": 131.546875,
-      "peakHeapBytes": 578438696,
+      "cpuSeconds": 116.875,
+      "peakHeapBytes": 625250656,
       "routingPairs": 0,
       "roadMinutes": 0.0,
       "waitingMinutes": 0,
-      "meanVariance": 0,
-      "meanQueueMs": 2208.65,
+      "meanVariance": 0.0001706074586697424,
+      "meanQueueMs": 1767.657894736842,
       "meanLeadDays": 15,
-      "overflow": 18,
-      "candidateEvaluations": 59505,
-      "routeEvaluations": 392561,
+      "overflow": 21,
+      "candidateEvaluations": 30555,
+      "routeEvaluations": 395769,
       "reconstructionAttempts": 0,
-      "preparationRecords": 66
+      "preparationRecords": 68
     },
     {
       "stage": "stress",
       "variant": "INSERTION",
       "cases": 4,
       "requests": 40,
-      "served": 22,
-      "incomplete": 5,
-      "finalCostCents": 14550000,
-      "meanCaseP95Ms": 4724.509600000001,
+      "served": 17,
+      "incomplete": 12,
+      "finalCostCents": 14583500,
+      "meanCaseP95Ms": 3610.662149999999,
       "conflicts": 0,
       "outcomes": {
-        "AVAILABLE": 22,
-        "ABANDONED": 12,
-        "SEARCH_INCOMPLETE": 5,
-        "SELECTION_CONFLICT": 1
+        "AVAILABLE": 17,
+        "SEARCH_INCOMPLETE": 9,
+        "SELECTION_CONFLICT": 8,
+        "ABANDONED": 6
       },
-      "cpuSeconds": 49.546875,
-      "peakHeapBytes": 463876616,
+      "cpuSeconds": 46.984375,
+      "peakHeapBytes": 464876496,
       "routingPairs": 0,
       "roadMinutes": 0.0,
       "waitingMinutes": 0,
-      "meanVariance": 0,
-      "meanQueueMs": 1300.75,
+      "meanVariance": 0.00015413652091852785,
+      "meanQueueMs": 1146.7837837837837,
       "meanLeadDays": 15,
-      "overflow": 22,
-      "candidateEvaluations": 6210,
-      "routeEvaluations": 73965,
+      "overflow": 17,
+      "candidateEvaluations": 5995,
+      "routeEvaluations": 73868,
       "reconstructionAttempts": 0,
       "preparationRecords": 68
     }
@@ -1248,81 +1248,81 @@
       "stage": "stress",
       "variant": "BOUNDED",
       "seconds": 1,
-      "visibleIncumbents": 0,
+      "visibleIncumbents": 1,
       "searches": 40,
-      "meanVisibleCostDeltaCents": null
+      "meanVisibleCostDeltaCents": 1750
     },
     {
       "stage": "stress",
       "variant": "BOUNDED",
       "seconds": 5,
-      "visibleIncumbents": 22,
+      "visibleIncumbents": 27,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1931.8181818181818
+      "meanVisibleCostDeltaCents": 1962.962962962963
     },
     {
       "stage": "stress",
       "variant": "BOUNDED",
       "seconds": 15,
-      "visibleIncumbents": 40,
+      "visibleIncumbents": 38,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1943.75
+      "meanVisibleCostDeltaCents": 1947.3684210526317
     },
     {
       "stage": "stress",
       "variant": "BOUNDED",
       "seconds": 30,
-      "visibleIncumbents": 40,
+      "visibleIncumbents": 38,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1943.75
+      "meanVisibleCostDeltaCents": 1947.3684210526317
     },
     {
       "stage": "stress",
       "variant": "BOUNDED",
       "seconds": 60,
-      "visibleIncumbents": 40,
+      "visibleIncumbents": 38,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1943.75
+      "meanVisibleCostDeltaCents": 1947.3684210526317
     },
     {
       "stage": "stress",
       "variant": "INSERTION",
       "seconds": 1,
-      "visibleIncumbents": 10,
+      "visibleIncumbents": 8,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1975
+      "meanVisibleCostDeltaCents": 2000
     },
     {
       "stage": "stress",
       "variant": "INSERTION",
       "seconds": 5,
-      "visibleIncumbents": 39,
+      "visibleIncumbents": 37,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1929.4871794871794
+      "meanVisibleCostDeltaCents": 1952.7027027027027
     },
     {
       "stage": "stress",
       "variant": "INSERTION",
       "seconds": 15,
-      "visibleIncumbents": 40,
+      "visibleIncumbents": 37,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1931.25
+      "meanVisibleCostDeltaCents": 1952.7027027027027
     },
     {
       "stage": "stress",
       "variant": "INSERTION",
       "seconds": 30,
-      "visibleIncumbents": 40,
+      "visibleIncumbents": 37,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1931.25
+      "meanVisibleCostDeltaCents": 1952.7027027027027
     },
     {
       "stage": "stress",
       "variant": "INSERTION",
       "seconds": 60,
-      "visibleIncumbents": 40,
+      "visibleIncumbents": 37,
       "searches": 40,
-      "meanVisibleCostDeltaCents": 1931.25
+      "meanVisibleCostDeltaCents": 1952.7027027027027
     }
   ],
   "rawFiles": [
@@ -1376,7 +1376,14 @@
       "uncompressedSha256": "57864818c141ae103b4ead45be6e7934ff06f83500e8f55b72814e66dc1e77f4"
     },
     {
-      "file": "booking-bounded-59-stress.jsonl.gz",
+      "file": "booking-bounded-59-stress-final.jsonl.gz",
+      "bytes": 16708,
+      "sha256": "d82dcc3693b430464ce719de3c6b27bba29addf002cbd138193e047ea42456c0",
+      "uncompressedBytes": 219743,
+      "uncompressedSha256": "7c8060dfbe14fbd90bb17ba51bb68322cc2b8400ac75e0227cba5fa5214213fb"
+    },
+    {
+      "file": "booking-bounded-59-stress-normal-only.jsonl.gz",
       "bytes": 18126,
       "sha256": "a3c270ea3cbd168929d98ca90d287754dfb4789f6ec38049cc4de1dee70fe805",
       "uncompressedBytes": 228372,
@@ -1390,7 +1397,14 @@
       "uncompressedSha256": "83bf7be13fafaaeccbc84c4a220e2586320e18b6a44442435378e717f06a21b8"
     },
     {
-      "file": "booking-bounded-83-stress.jsonl.gz",
+      "file": "booking-bounded-83-stress-final.jsonl.gz",
+      "bytes": 17745,
+      "sha256": "1679b2f601e32751270895695fb659077492e8a96e6f21e0364e48b18c5bc7ba",
+      "uncompressedBytes": 232221,
+      "uncompressedSha256": "260e81b1fa88dd4b2ffce0444a166ffde626926693f4fea56c0bf4ba9f245553"
+    },
+    {
+      "file": "booking-bounded-83-stress-normal-only.jsonl.gz",
       "bytes": 18443,
       "sha256": "9324f7f2d6127a99ee34a53edcfd3b6e5b7d5f5d11d277c57f835e460b63d106",
       "uncompressedBytes": 229912,
@@ -1474,7 +1488,14 @@
       "uncompressedSha256": "0640ac3e70cbc00783fd979b0c28c5c9410918130d8bd969595766e4cc989756"
     },
     {
-      "file": "booking-insertion-59-stress.jsonl.gz",
+      "file": "booking-insertion-59-stress-final.jsonl.gz",
+      "bytes": 14532,
+      "sha256": "3d82a161c825ab385483da8769ed12bfc6978c76a40b490249cc9dcb8b518295",
+      "uncompressedBytes": 209968,
+      "uncompressedSha256": "63752d4e77507f87dae3f2cfdc8576ef44d5fff9b1c1bacd5a3d26dacfbf00ce"
+    },
+    {
+      "file": "booking-insertion-59-stress-normal-only.jsonl.gz",
       "bytes": 14849,
       "sha256": "7b52f8f2d2f7a2320adaf1ba1785b3a479b8a4c07e3f3f645c388cfacea72fd0",
       "uncompressedBytes": 207417,
@@ -1495,7 +1516,14 @@
       "uncompressedSha256": "79a50dd7adfc305c16a3d7262e9a22cf25ac018514683b206666bf84022f1a3b"
     },
     {
-      "file": "booking-insertion-83-stress.jsonl.gz",
+      "file": "booking-insertion-83-stress-final.jsonl.gz",
+      "bytes": 14570,
+      "sha256": "5d4b785fd1b8cfb18a0b5acb4158366d71c102aef46fc992db33718c5b65712a",
+      "uncompressedBytes": 210339,
+      "uncompressedSha256": "f11ea510023cae72da5d60c042dea58061ff317f3b10c99ed71ec1ae5610e39e"
+    },
+    {
+      "file": "booking-insertion-83-stress-normal-only.jsonl.gz",
       "bytes": 15363,
       "sha256": "f14690f57b93ab2d7481fdfe11850a804a64600e453d9e8387318308775037e3",
       "uncompressedBytes": 214106,
@@ -1612,6 +1640,11 @@
       "sha256": "41e919abbf19f92dacfa580b17f959f6d111706447d8077ac027e302af9048ec",
       "uncompressedBytes": 370110,
       "uncompressedSha256": "4d519d145598f481b7f2abc641f1ee90c32488fd0a70755fbc75340aa04ab1eb"
+    },
+    {
+      "file": "README.md",
+      "bytes": 2411,
+      "sha256": "cd47f645af6e053457592f55b5633ef9bf6c793b2df46410aeafe662d88906af"
     },
     {
       "file": "booking-bounded-17-original.client.log.gz",
@@ -1754,22 +1787,42 @@
       "sha256": "8985af357217e5a4abc697bc30ddd8f9907b36a040875ae4f3380eee249b13af"
     },
     {
-      "file": "booking-bounded-59-stress.client.log.gz",
+      "file": "booking-bounded-59-stress-final.client.log.gz",
+      "bytes": 83,
+      "sha256": "e5a9d3a3f62534f736028f3b138dfa535ed69c7ce6961ca919d810a5d5ff8a2e"
+    },
+    {
+      "file": "booking-bounded-59-stress-final.migrate.log.gz",
+      "bytes": 958,
+      "sha256": "fd2afa305a6d99c5e99279b5d8c024b088c2102749aaf36910346356f51ef4ae"
+    },
+    {
+      "file": "booking-bounded-59-stress-final.runtime.json",
+      "bytes": 525,
+      "sha256": "c380c61e10122f1b94c0015cb86e037c3d8738682ac6a39bac520527362e68d7"
+    },
+    {
+      "file": "booking-bounded-59-stress-final.server.log.gz",
+      "bytes": 5934,
+      "sha256": "e9ba2d8a362156f75f4bb86fa9dd43e3f9b68a4da57e09dcfcfdeb0f544ac156"
+    },
+    {
+      "file": "booking-bounded-59-stress-normal-only.client.log.gz",
       "bytes": 82,
       "sha256": "06320fafc2c5a11e933249dcf9ef14b655e3b79bb36fce395b2d9674d25d5e73"
     },
     {
-      "file": "booking-bounded-59-stress.migrate.log.gz",
+      "file": "booking-bounded-59-stress-normal-only.migrate.log.gz",
       "bytes": 938,
       "sha256": "5d27f286dca7ca7e907da6e7e71df2fb03e5a91eb4c02685f5a5ad401f46fbfb"
     },
     {
-      "file": "booking-bounded-59-stress.runtime.json",
+      "file": "booking-bounded-59-stress-normal-only.runtime.json",
       "bytes": 525,
       "sha256": "7b4b504eaea48cb4140c2fabd9e5b205a060b0f5a40e80bb4b7a37455c90de8a"
     },
     {
-      "file": "booking-bounded-59-stress.server.log.gz",
+      "file": "booking-bounded-59-stress-normal-only.server.log.gz",
       "bytes": 6139,
       "sha256": "51e2db89fa9bcf9847c5799d2597aef81381bc39b2b4148809aa781bb2bb5b30"
     },
@@ -1794,22 +1847,42 @@
       "sha256": "8616fe1f85b4792a8e203058a512e5d7032f9fda8e26e6019b8f764876aea546"
     },
     {
-      "file": "booking-bounded-83-stress.client.log.gz",
+      "file": "booking-bounded-83-stress-final.client.log.gz",
+      "bytes": 82,
+      "sha256": "6e3c4bde31455eac69346cbea0e6cc2b1140ffe5583f5bf6cd46f072a9346db3"
+    },
+    {
+      "file": "booking-bounded-83-stress-final.migrate.log.gz",
+      "bytes": 958,
+      "sha256": "dd3cd2b35ed403d3ff2f4e068887a1c0e5c99cc64a71449a612714730251a042"
+    },
+    {
+      "file": "booking-bounded-83-stress-final.runtime.json",
+      "bytes": 525,
+      "sha256": "e011cdc9c632b4a00d49e8aa6890bd0245ffaca100c4edbe329faba4be37deff"
+    },
+    {
+      "file": "booking-bounded-83-stress-final.server.log.gz",
+      "bytes": 6795,
+      "sha256": "704460d39efc00c32b7713101598557c8881f6182ef13d163b5558be87968d78"
+    },
+    {
+      "file": "booking-bounded-83-stress-normal-only.client.log.gz",
       "bytes": 81,
       "sha256": "06ca1596444ef3ea62434150e49d65e45607e4afcfb75be11826a26d9ea28779"
     },
     {
-      "file": "booking-bounded-83-stress.migrate.log.gz",
+      "file": "booking-bounded-83-stress-normal-only.migrate.log.gz",
       "bytes": 937,
       "sha256": "b45dba7c97ecebcc112d62db20dd6b44aec11d3c6340a1d05b70a22ca508a05c"
     },
     {
-      "file": "booking-bounded-83-stress.runtime.json",
+      "file": "booking-bounded-83-stress-normal-only.runtime.json",
       "bytes": 525,
       "sha256": "3fcb4ca91aa3be1d8cf18f1910fb2b0f1a84509a99d02f4439f72cd4269658ab"
     },
     {
-      "file": "booking-bounded-83-stress.server.log.gz",
+      "file": "booking-bounded-83-stress-normal-only.server.log.gz",
       "bytes": 6213,
       "sha256": "cb7b3807fbc1211bb1074058f22809f741f8a5397be3795901f7593ae2ec7e98"
     },
@@ -2039,22 +2112,42 @@
       "sha256": "6ac26b6c2f7eee411f2aaf8d10560b18dbaa2a828d058cf9db926fffbe94a109"
     },
     {
-      "file": "booking-insertion-59-stress.client.log.gz",
+      "file": "booking-insertion-59-stress-final.client.log.gz",
+      "bytes": 85,
+      "sha256": "02f4e9e6ab3c849b0fe5020494d42839afe3028e9aa3c31aa98a10e635c0866f"
+    },
+    {
+      "file": "booking-insertion-59-stress-final.migrate.log.gz",
+      "bytes": 960,
+      "sha256": "b88573eace73ba5d6241f0484a87a5a79d1f2b93b42235bccd6eda5093b660e4"
+    },
+    {
+      "file": "booking-insertion-59-stress-final.runtime.json",
+      "bytes": 529,
+      "sha256": "87a17e5e6f6e034a16ee90e921d3d065bedb0110e55da2e731c4a59de4846f20"
+    },
+    {
+      "file": "booking-insertion-59-stress-final.server.log.gz",
+      "bytes": 6283,
+      "sha256": "098c01b52c8d6be56b176e0598b48b295913536a32fa68bec3e7f928cb43e0ab"
+    },
+    {
+      "file": "booking-insertion-59-stress-normal-only.client.log.gz",
       "bytes": 86,
       "sha256": "98ccf28f66e9aa017f91426339bae642add4785bfbd5514db9f3ce5684867ff1"
     },
     {
-      "file": "booking-insertion-59-stress.migrate.log.gz",
+      "file": "booking-insertion-59-stress-normal-only.migrate.log.gz",
       "bytes": 936,
       "sha256": "4dc9950bc0d96c0e05f3927f549e371cd6b83c48c0e9d8fafec9316c66bcd3f8"
     },
     {
-      "file": "booking-insertion-59-stress.runtime.json",
+      "file": "booking-insertion-59-stress-normal-only.runtime.json",
       "bytes": 529,
       "sha256": "a2cda34a462170c77f97a2351e99708d27bd94cf5004dd7732f7ebb53c7f6b35"
     },
     {
-      "file": "booking-insertion-59-stress.server.log.gz",
+      "file": "booking-insertion-59-stress-normal-only.server.log.gz",
       "bytes": 5739,
       "sha256": "bf5e640cd610796fc021a2175554bb0e65ec65cc534345a31311ce82dfde903a"
     },
@@ -2104,22 +2197,42 @@
       "sha256": "5e5b5e9c4a2f790b2f095b1d163db8415a4d3606984eef2d13892fb2299fe5b8"
     },
     {
-      "file": "booking-insertion-83-stress.client.log.gz",
+      "file": "booking-insertion-83-stress-final.client.log.gz",
+      "bytes": 85,
+      "sha256": "7dc6e0847e2171a4b591dfcdebd1259558b38b933d41f5ad363bb80026e4a4a5"
+    },
+    {
+      "file": "booking-insertion-83-stress-final.migrate.log.gz",
+      "bytes": 960,
+      "sha256": "e05caeafab98efb5b7a5e6688e4f1f44118fd4ac531b792676824cfdbba6c437"
+    },
+    {
+      "file": "booking-insertion-83-stress-final.runtime.json",
+      "bytes": 529,
+      "sha256": "7f8a87c00a4fea03f3763f01fdf2de535da8605c92a431abdb09f061161538a8"
+    },
+    {
+      "file": "booking-insertion-83-stress-final.server.log.gz",
+      "bytes": 6245,
+      "sha256": "99ffdcbc71bb00b029ea61689313a62b3116024bed32fd4d4d34c8c7177286d5"
+    },
+    {
+      "file": "booking-insertion-83-stress-normal-only.client.log.gz",
       "bytes": 86,
       "sha256": "96ed6aa974f851428fca451289f88d80f441a2a0c364440df3eeb32af2158a66"
     },
     {
-      "file": "booking-insertion-83-stress.migrate.log.gz",
+      "file": "booking-insertion-83-stress-normal-only.migrate.log.gz",
       "bytes": 938,
       "sha256": "b75492c233e8a7e1057b5dfff65799024ec5280ceca0230dd8b0ba8cfb082b9a"
     },
     {
-      "file": "booking-insertion-83-stress.runtime.json",
+      "file": "booking-insertion-83-stress-normal-only.runtime.json",
       "bytes": 529,
       "sha256": "dd23338918d52e754673ce3665da8409e5032dabb89a9c8861c6a17d2b365534"
     },
     {
-      "file": "booking-insertion-83-stress.server.log.gz",
+      "file": "booking-insertion-83-stress-normal-only.server.log.gz",
       "bytes": 5735,
       "sha256": "3ff30d8846791f8afa7ef843697ee9fb1526559461636c48c543a1c4a09e980c"
     },
@@ -2539,14 +2652,9 @@
       "sha256": "19cdc6abd0b86c4b928d8c1f471534cf87d18318407ae7b41f212e7d022f1559"
     },
     {
-      "file": "README.md",
-      "bytes": 2163,
-      "sha256": "b02517cb16a707ce66a36ffb4082e155936c16f813a9bfec27c15eb91877e140"
-    },
-    {
       "file": "validation.json",
-      "bytes": 6133,
-      "sha256": "125d77a34387e8838f7dffcd4db70765a5d6505ed43d364d04e4c0b53dd894d2"
+      "bytes": 5970,
+      "sha256": "c0fddf941dda4bcc465f519a3aa9b0f7e5b9c085a83c21e6251570a9321fda49"
     }
   ],
   "dailyResults": 240,
@@ -2582,6 +2690,72 @@
       "message": "{\"timestamp\":\"2026-09-29T23:23:23.203Z\",\"status\":409,\"error\":\"Conflict\",\"path\":\"/internal/benchmark/audit\"}\n\n409 !== 200\n",
       "at": "2026-09-29T23:23:23.212Z",
       "file": "booking-shared-83-held.jsonl.gz"
+    }
+  ],
+  "auditScopeExclusions": [
+    {
+      "file": "booking-bounded-59-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-c5c9eae0-9808-4b26-b8a5-aa18b0edff76",
+      "variant": "BOUNDED",
+      "size": 10,
+      "served": 5,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-bounded-59-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-13a10c53-5e61-4603-96e3-1ab7c5b79166",
+      "variant": "BOUNDED",
+      "size": 20,
+      "served": 5,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-bounded-83-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-1a27bacd-e83c-4206-a683-9489cd5c3c71",
+      "variant": "BOUNDED",
+      "size": 10,
+      "served": 4,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-bounded-83-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-4cf845b1-def2-4497-bc78-64e1a1c04f1b",
+      "variant": "BOUNDED",
+      "size": 20,
+      "served": 4,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-insertion-59-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-a100af1c-588f-4942-b786-781f3b925f10",
+      "variant": "INSERTION",
+      "size": 10,
+      "served": 6,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-insertion-59-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-cc246e30-9298-4d7f-ae7e-cfda05b1bf4e",
+      "variant": "INSERTION",
+      "size": 20,
+      "served": 4,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-insertion-83-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-063c1c90-f57a-4a38-93ac-f571dba2d266",
+      "variant": "INSERTION",
+      "size": 10,
+      "served": 5,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
+    },
+    {
+      "file": "booking-insertion-83-stress-normal-only.jsonl.gz",
+      "caseId": "benchmark-d9f577a6-1c7a-48eb-9e32-5d0725c874e4",
+      "variant": "INSERTION",
+      "size": 20,
+      "served": 7,
+      "reason": "Final audit omitted overflow dates; separately rerun with all served dates"
     }
   ],
   "provenance": [
@@ -4243,7 +4417,243 @@
       }
     },
     {
-      "file": "booking-bounded-59-stress.jsonl.gz",
+      "file": "booking-bounded-59-stress-final.jsonl.gz",
+      "metadata": {
+        "type": "provenance",
+        "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "artifactSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+        "ablationManifest": null,
+        "harnessRevision": "97b47f48a30df1c0d3f958f788ad39377754bad9",
+        "harnessSources": [
+          {
+            "path": "lib/appointmentSearch.ts",
+            "sha256": "89a3eacadc3e365474d676894414e3de7231aedfc7bd84beaad7d0afbbab588b"
+          },
+          {
+            "path": "lib/bookingIdentity.ts",
+            "sha256": "fe9cd663fcbeec86d96a371a956f70be7f58f1e938ffe78a82df50fe988f08aa"
+          },
+          {
+            "path": "lib/bookingLocation.test.ts",
+            "sha256": "ba5a95e51ad284d5b453d98fe3694573c1e8ac6704e1867a67eb47838c759fbd"
+          },
+          {
+            "path": "lib/bookingTestAccess.ts",
+            "sha256": "4a00669c0ce029c2856bce7d1d58fa45d657563b6f50e2591ce9e0bfeea3a733"
+          },
+          {
+            "path": "lib/bookingTestAddresses.test.ts",
+            "sha256": "9324882d799ac7aa761f263d1dc4968b643a97e8bd62dfdbc1c3c5ddd4989f8e"
+          },
+          {
+            "path": "lib/bookingTestAddresses.ts",
+            "sha256": "ed017421839a9e88374c2338415f2ed584fe874680a7d28f05b5bfd2118a6b75"
+          },
+          {
+            "path": "lib/bookingTestCore.test.ts",
+            "sha256": "a716147bb9e3e52dc8bf546ad55012f42b00cb38a26d14feba33ffa9bfa88c1a"
+          },
+          {
+            "path": "lib/bookingTestCore.ts",
+            "sha256": "2c4ba01e0ef0363601da5b7e4b0db6b38ba7588fc87cf8cc4f1e7c215ffcde2e"
+          },
+          {
+            "path": "lib/bookingTestRunner.ts",
+            "sha256": "a75091c27ab21730cbaf84bbe863db2f0de36fc7bfe3fbb4b8c56b7045208498"
+          },
+          {
+            "path": "lib/contracts.ts",
+            "sha256": "bfd138268f61d3192fff7e55a403e2f8a814cbdfaa4c98513681e76e04a0606a"
+          },
+          {
+            "path": "lib/coverage.ts",
+            "sha256": "71f39f0047cfc2ba907d31551f52c892f27237927f865134dca93c856f9cb187"
+          },
+          {
+            "path": "lib/currentRouteTiming.test.ts",
+            "sha256": "3d6a8470219c2b10feb6ab26acc2859f3abb8b9f8c42ab13f0d9d80195fbd2bd"
+          },
+          {
+            "path": "lib/currentRouteTiming.ts",
+            "sha256": "59454bb423e71a4a1ce33f8fe99aacaa066020aca7c5f7d6586f3947d0a636d1"
+          },
+          {
+            "path": "lib/date.ts",
+            "sha256": "6191cc01ba484e35bf560f23eaaf3ef85b16beabf7d86d716e21ee2f43765788"
+          },
+          {
+            "path": "lib/depotPin.ts",
+            "sha256": "8058ba638e3d0d97543481a8b7c3b544acff3d66e56efe4ec35462c12047d2ba"
+          },
+          {
+            "path": "lib/dispatchGeometry.test.ts",
+            "sha256": "77ab3996ef9935480a68fa1b7d1b90077439e23f83c4e55bae63742e256a2974"
+          },
+          {
+            "path": "lib/dispatchGeometry.ts",
+            "sha256": "04055f35eee2d222da293c9fe2d175209ccf1a7040b6c72880d60bf158d6df25"
+          },
+          {
+            "path": "lib/engineClient.ts",
+            "sha256": "f313a9eb50ea4cff93a3856085f40b2cd595780c1a596a6c5e9f93a3f9b2a593"
+          },
+          {
+            "path": "lib/fakeData.ts",
+            "sha256": "3bf10f85d0711497586b08bf147f8c6b508f0c9f37c089c9d1e370cc10c259fb"
+          },
+          {
+            "path": "lib/fakeDataCore.test.ts",
+            "sha256": "9bed42fc0eb66c652516d9167d31d7ab0e2134ee4ad453c196ed7d38491b6dee"
+          },
+          {
+            "path": "lib/fakeDataCore.ts",
+            "sha256": "fc976765aa2edf64237bfa64d5f6ab9282f8e559fc1230520091792a039a8466"
+          },
+          {
+            "path": "lib/geo.ts",
+            "sha256": "3fdeca545070b70be2f5d613a4851a78a4e195d915728bd3adaf3d1308dc414c"
+          },
+          {
+            "path": "lib/geocode.test.ts",
+            "sha256": "e7a44cef31f4d77aed86ba30ee537d6d12947d8c8ae0c5ce3fc8acc4516f49f9"
+          },
+          {
+            "path": "lib/geocode.ts",
+            "sha256": "414590fa8e94346788ba3a7b1d28c2d7eac68fba9f1a8750ed63291fd4faaf53"
+          },
+          {
+            "path": "lib/localMapStyle.ts",
+            "sha256": "589aab26019468c3883597a79eadd7db9d8d04b723127335b34d3b6248244daf"
+          },
+          {
+            "path": "lib/nullability.test.ts",
+            "sha256": "a5a869e145c9bf87b837e036ebc83ebf0cb628ee72b50d149aad316827a6eac0"
+          },
+          {
+            "path": "lib/omahaConfiguration.ts",
+            "sha256": "477e9df7cba3dfa03ccad73843aa4d02b07d1f331531b641919559748d87c497"
+          },
+          {
+            "path": "lib/optimizationAnalysis.test.ts",
+            "sha256": "8e59c4ea833cfc96d93a6a7ad204efa5ed7a71dfbb2a0aeb2c11b8326277f153"
+          },
+          {
+            "path": "lib/optimizationAnalysis.ts",
+            "sha256": "24f788fbe54fbeaa69d3f16d89d7ff11d9b27f48cad693cac0c30adf7237fa90"
+          },
+          {
+            "path": "lib/optimizationExport.test.ts",
+            "sha256": "5917a6fbd7a84f54c9d0957248900d12dec7bd358b85798ea3af5a2cdce68955"
+          },
+          {
+            "path": "lib/optimizationExport.ts",
+            "sha256": "ecea09411cd02a28f65edc9498a477da9683ed4a5a09ff6ccc629b7adb5a7b6b"
+          },
+          {
+            "path": "lib/optimizationSimulationTypes.ts",
+            "sha256": "c5a3fc47e40e4109fb00e973098d1da11393747b340412c70518851d13e2d338"
+          },
+          {
+            "path": "lib/prisma.ts",
+            "sha256": "9c9ef1049b6b540513deed4e4704624213648b6ce724326592987c4cbe046439"
+          },
+          {
+            "path": "lib/reservationGuards.ts",
+            "sha256": "7551315ce5c37258c1d85d32e9fb42176adcd8380a4e4173cac67375fb2c0d8a"
+          },
+          {
+            "path": "lib/serviceArea.ts",
+            "sha256": "ce480ec06f3b142d8ed0eb99921f1456e2bbeec49887ad4efae506c70e629588"
+          },
+          {
+            "path": "lib/streetNormalization.ts",
+            "sha256": "ad148a36f0375c61268177d7df4e3e1c037d0a108a76bc87a8282f6b67fa20b3"
+          },
+          {
+            "path": "lib/technicianAvailability.test.ts",
+            "sha256": "ebcb7aac05a86a610a68346fa75d641f173b7c54dcdf66979ab1eb08d6ae615a"
+          },
+          {
+            "path": "lib/technicianAvailability.ts",
+            "sha256": "e7002b497f72b359131b4bf9f246975fac18954bc9714d90b5b74bff7a725d89"
+          },
+          {
+            "path": "lib/technicianColor.ts",
+            "sha256": "a568cf2d9f6134dafb4428d5c198014159fdc71d1122d930e3b6b5f70998ea6e"
+          },
+          {
+            "path": "lib/technicianHomePin.ts",
+            "sha256": "9b6ddc759b9defc606609133720938d9bcd1efea36ac7c17d2e7c55c7774a68b"
+          },
+          {
+            "path": "lib/timeOffView.ts",
+            "sha256": "79e5400cef767f6c4084f0ee896a7bfbc5db6becdd0dcd75bb93a1ea23cae174"
+          },
+          {
+            "path": "prisma/schema.prisma",
+            "sha256": "79b8e1cf9a5c2aba5a23ceb1fc75132fb24f0ee9d03988974cb64118ecbc7715"
+          },
+          {
+            "path": "scripts/benchmark-scheduling.ts",
+            "sha256": "2c35638c322d95caffeeea6510602eeec3ecbe9747601af9f410148de3e66fa9"
+          },
+          {
+            "path": "scripts/benchmarkBrowser.ts",
+            "sha256": "2b179fc2226f5fd99c58b5cd2465de0a6902f3e994a9aa20abf0a611fecd090a"
+          },
+          {
+            "path": "scripts/benchmarkDiagnostics.ts",
+            "sha256": "4d74b400fb4598180a07cdc11b337534975c07713e39229b02139da1fdac3333"
+          },
+          {
+            "path": "scripts/benchmarkLegacy.ts",
+            "sha256": "a40daff3c82687260e1569c1a5382ea9ed7238365ca4a5cdec8e34f61b3e16d8"
+          }
+        ],
+        "variant": "BOUNDED",
+        "seed": 59,
+        "startedAt": "2026-09-29T23:49:15.275Z",
+        "dates": [
+          "2026-09-30",
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-12",
+          "2026-10-13"
+        ],
+        "sizes": [
+          10,
+          20
+        ],
+        "workloads": [
+          "NEAR_CAPACITY"
+        ],
+        "concurrencyValues": [
+          5
+        ],
+        "caches": [
+          "warm"
+        ],
+        "requests": 10,
+        "browser": null,
+        "serverMode": "current",
+        "auditRevision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "legacyMeasurementTimeoutMs": null,
+        "legacyLimitations": null,
+        "scope": "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport",
+        "hardware": {
+          "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "logicalProcessors": 24,
+          "memoryBytes": 67870916608
+        }
+      }
+    },
+    {
+      "file": "booking-bounded-59-stress-normal-only.jsonl.gz",
       "metadata": {
         "type": "provenance",
         "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
@@ -4720,7 +5130,243 @@
       }
     },
     {
-      "file": "booking-bounded-83-stress.jsonl.gz",
+      "file": "booking-bounded-83-stress-final.jsonl.gz",
+      "metadata": {
+        "type": "provenance",
+        "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "artifactSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+        "ablationManifest": null,
+        "harnessRevision": "97b47f48a30df1c0d3f958f788ad39377754bad9",
+        "harnessSources": [
+          {
+            "path": "lib/appointmentSearch.ts",
+            "sha256": "89a3eacadc3e365474d676894414e3de7231aedfc7bd84beaad7d0afbbab588b"
+          },
+          {
+            "path": "lib/bookingIdentity.ts",
+            "sha256": "fe9cd663fcbeec86d96a371a956f70be7f58f1e938ffe78a82df50fe988f08aa"
+          },
+          {
+            "path": "lib/bookingLocation.test.ts",
+            "sha256": "ba5a95e51ad284d5b453d98fe3694573c1e8ac6704e1867a67eb47838c759fbd"
+          },
+          {
+            "path": "lib/bookingTestAccess.ts",
+            "sha256": "4a00669c0ce029c2856bce7d1d58fa45d657563b6f50e2591ce9e0bfeea3a733"
+          },
+          {
+            "path": "lib/bookingTestAddresses.test.ts",
+            "sha256": "9324882d799ac7aa761f263d1dc4968b643a97e8bd62dfdbc1c3c5ddd4989f8e"
+          },
+          {
+            "path": "lib/bookingTestAddresses.ts",
+            "sha256": "ed017421839a9e88374c2338415f2ed584fe874680a7d28f05b5bfd2118a6b75"
+          },
+          {
+            "path": "lib/bookingTestCore.test.ts",
+            "sha256": "a716147bb9e3e52dc8bf546ad55012f42b00cb38a26d14feba33ffa9bfa88c1a"
+          },
+          {
+            "path": "lib/bookingTestCore.ts",
+            "sha256": "2c4ba01e0ef0363601da5b7e4b0db6b38ba7588fc87cf8cc4f1e7c215ffcde2e"
+          },
+          {
+            "path": "lib/bookingTestRunner.ts",
+            "sha256": "a75091c27ab21730cbaf84bbe863db2f0de36fc7bfe3fbb4b8c56b7045208498"
+          },
+          {
+            "path": "lib/contracts.ts",
+            "sha256": "bfd138268f61d3192fff7e55a403e2f8a814cbdfaa4c98513681e76e04a0606a"
+          },
+          {
+            "path": "lib/coverage.ts",
+            "sha256": "71f39f0047cfc2ba907d31551f52c892f27237927f865134dca93c856f9cb187"
+          },
+          {
+            "path": "lib/currentRouteTiming.test.ts",
+            "sha256": "3d6a8470219c2b10feb6ab26acc2859f3abb8b9f8c42ab13f0d9d80195fbd2bd"
+          },
+          {
+            "path": "lib/currentRouteTiming.ts",
+            "sha256": "59454bb423e71a4a1ce33f8fe99aacaa066020aca7c5f7d6586f3947d0a636d1"
+          },
+          {
+            "path": "lib/date.ts",
+            "sha256": "6191cc01ba484e35bf560f23eaaf3ef85b16beabf7d86d716e21ee2f43765788"
+          },
+          {
+            "path": "lib/depotPin.ts",
+            "sha256": "8058ba638e3d0d97543481a8b7c3b544acff3d66e56efe4ec35462c12047d2ba"
+          },
+          {
+            "path": "lib/dispatchGeometry.test.ts",
+            "sha256": "77ab3996ef9935480a68fa1b7d1b90077439e23f83c4e55bae63742e256a2974"
+          },
+          {
+            "path": "lib/dispatchGeometry.ts",
+            "sha256": "04055f35eee2d222da293c9fe2d175209ccf1a7040b6c72880d60bf158d6df25"
+          },
+          {
+            "path": "lib/engineClient.ts",
+            "sha256": "f313a9eb50ea4cff93a3856085f40b2cd595780c1a596a6c5e9f93a3f9b2a593"
+          },
+          {
+            "path": "lib/fakeData.ts",
+            "sha256": "3bf10f85d0711497586b08bf147f8c6b508f0c9f37c089c9d1e370cc10c259fb"
+          },
+          {
+            "path": "lib/fakeDataCore.test.ts",
+            "sha256": "9bed42fc0eb66c652516d9167d31d7ab0e2134ee4ad453c196ed7d38491b6dee"
+          },
+          {
+            "path": "lib/fakeDataCore.ts",
+            "sha256": "fc976765aa2edf64237bfa64d5f6ab9282f8e559fc1230520091792a039a8466"
+          },
+          {
+            "path": "lib/geo.ts",
+            "sha256": "3fdeca545070b70be2f5d613a4851a78a4e195d915728bd3adaf3d1308dc414c"
+          },
+          {
+            "path": "lib/geocode.test.ts",
+            "sha256": "e7a44cef31f4d77aed86ba30ee537d6d12947d8c8ae0c5ce3fc8acc4516f49f9"
+          },
+          {
+            "path": "lib/geocode.ts",
+            "sha256": "414590fa8e94346788ba3a7b1d28c2d7eac68fba9f1a8750ed63291fd4faaf53"
+          },
+          {
+            "path": "lib/localMapStyle.ts",
+            "sha256": "589aab26019468c3883597a79eadd7db9d8d04b723127335b34d3b6248244daf"
+          },
+          {
+            "path": "lib/nullability.test.ts",
+            "sha256": "a5a869e145c9bf87b837e036ebc83ebf0cb628ee72b50d149aad316827a6eac0"
+          },
+          {
+            "path": "lib/omahaConfiguration.ts",
+            "sha256": "477e9df7cba3dfa03ccad73843aa4d02b07d1f331531b641919559748d87c497"
+          },
+          {
+            "path": "lib/optimizationAnalysis.test.ts",
+            "sha256": "8e59c4ea833cfc96d93a6a7ad204efa5ed7a71dfbb2a0aeb2c11b8326277f153"
+          },
+          {
+            "path": "lib/optimizationAnalysis.ts",
+            "sha256": "24f788fbe54fbeaa69d3f16d89d7ff11d9b27f48cad693cac0c30adf7237fa90"
+          },
+          {
+            "path": "lib/optimizationExport.test.ts",
+            "sha256": "5917a6fbd7a84f54c9d0957248900d12dec7bd358b85798ea3af5a2cdce68955"
+          },
+          {
+            "path": "lib/optimizationExport.ts",
+            "sha256": "ecea09411cd02a28f65edc9498a477da9683ed4a5a09ff6ccc629b7adb5a7b6b"
+          },
+          {
+            "path": "lib/optimizationSimulationTypes.ts",
+            "sha256": "c5a3fc47e40e4109fb00e973098d1da11393747b340412c70518851d13e2d338"
+          },
+          {
+            "path": "lib/prisma.ts",
+            "sha256": "9c9ef1049b6b540513deed4e4704624213648b6ce724326592987c4cbe046439"
+          },
+          {
+            "path": "lib/reservationGuards.ts",
+            "sha256": "7551315ce5c37258c1d85d32e9fb42176adcd8380a4e4173cac67375fb2c0d8a"
+          },
+          {
+            "path": "lib/serviceArea.ts",
+            "sha256": "ce480ec06f3b142d8ed0eb99921f1456e2bbeec49887ad4efae506c70e629588"
+          },
+          {
+            "path": "lib/streetNormalization.ts",
+            "sha256": "ad148a36f0375c61268177d7df4e3e1c037d0a108a76bc87a8282f6b67fa20b3"
+          },
+          {
+            "path": "lib/technicianAvailability.test.ts",
+            "sha256": "ebcb7aac05a86a610a68346fa75d641f173b7c54dcdf66979ab1eb08d6ae615a"
+          },
+          {
+            "path": "lib/technicianAvailability.ts",
+            "sha256": "e7002b497f72b359131b4bf9f246975fac18954bc9714d90b5b74bff7a725d89"
+          },
+          {
+            "path": "lib/technicianColor.ts",
+            "sha256": "a568cf2d9f6134dafb4428d5c198014159fdc71d1122d930e3b6b5f70998ea6e"
+          },
+          {
+            "path": "lib/technicianHomePin.ts",
+            "sha256": "9b6ddc759b9defc606609133720938d9bcd1efea36ac7c17d2e7c55c7774a68b"
+          },
+          {
+            "path": "lib/timeOffView.ts",
+            "sha256": "79e5400cef767f6c4084f0ee896a7bfbc5db6becdd0dcd75bb93a1ea23cae174"
+          },
+          {
+            "path": "prisma/schema.prisma",
+            "sha256": "79b8e1cf9a5c2aba5a23ceb1fc75132fb24f0ee9d03988974cb64118ecbc7715"
+          },
+          {
+            "path": "scripts/benchmark-scheduling.ts",
+            "sha256": "2c35638c322d95caffeeea6510602eeec3ecbe9747601af9f410148de3e66fa9"
+          },
+          {
+            "path": "scripts/benchmarkBrowser.ts",
+            "sha256": "2b179fc2226f5fd99c58b5cd2465de0a6902f3e994a9aa20abf0a611fecd090a"
+          },
+          {
+            "path": "scripts/benchmarkDiagnostics.ts",
+            "sha256": "4d74b400fb4598180a07cdc11b337534975c07713e39229b02139da1fdac3333"
+          },
+          {
+            "path": "scripts/benchmarkLegacy.ts",
+            "sha256": "a40daff3c82687260e1569c1a5382ea9ed7238365ca4a5cdec8e34f61b3e16d8"
+          }
+        ],
+        "variant": "BOUNDED",
+        "seed": 83,
+        "startedAt": "2026-09-29T23:50:13.378Z",
+        "dates": [
+          "2026-09-30",
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-12",
+          "2026-10-13"
+        ],
+        "sizes": [
+          10,
+          20
+        ],
+        "workloads": [
+          "NEAR_CAPACITY"
+        ],
+        "concurrencyValues": [
+          5
+        ],
+        "caches": [
+          "warm"
+        ],
+        "requests": 10,
+        "browser": null,
+        "serverMode": "current",
+        "auditRevision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "legacyMeasurementTimeoutMs": null,
+        "legacyLimitations": null,
+        "scope": "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport",
+        "hardware": {
+          "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "logicalProcessors": 24,
+          "memoryBytes": 67870916608
+        }
+      }
+    },
+    {
+      "file": "booking-bounded-83-stress-normal-only.jsonl.gz",
       "metadata": {
         "type": "provenance",
         "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
@@ -7565,7 +8211,243 @@
       }
     },
     {
-      "file": "booking-insertion-59-stress.jsonl.gz",
+      "file": "booking-insertion-59-stress-final.jsonl.gz",
+      "metadata": {
+        "type": "provenance",
+        "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "artifactSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+        "ablationManifest": null,
+        "harnessRevision": "97b47f48a30df1c0d3f958f788ad39377754bad9",
+        "harnessSources": [
+          {
+            "path": "lib/appointmentSearch.ts",
+            "sha256": "89a3eacadc3e365474d676894414e3de7231aedfc7bd84beaad7d0afbbab588b"
+          },
+          {
+            "path": "lib/bookingIdentity.ts",
+            "sha256": "fe9cd663fcbeec86d96a371a956f70be7f58f1e938ffe78a82df50fe988f08aa"
+          },
+          {
+            "path": "lib/bookingLocation.test.ts",
+            "sha256": "ba5a95e51ad284d5b453d98fe3694573c1e8ac6704e1867a67eb47838c759fbd"
+          },
+          {
+            "path": "lib/bookingTestAccess.ts",
+            "sha256": "4a00669c0ce029c2856bce7d1d58fa45d657563b6f50e2591ce9e0bfeea3a733"
+          },
+          {
+            "path": "lib/bookingTestAddresses.test.ts",
+            "sha256": "9324882d799ac7aa761f263d1dc4968b643a97e8bd62dfdbc1c3c5ddd4989f8e"
+          },
+          {
+            "path": "lib/bookingTestAddresses.ts",
+            "sha256": "ed017421839a9e88374c2338415f2ed584fe874680a7d28f05b5bfd2118a6b75"
+          },
+          {
+            "path": "lib/bookingTestCore.test.ts",
+            "sha256": "a716147bb9e3e52dc8bf546ad55012f42b00cb38a26d14feba33ffa9bfa88c1a"
+          },
+          {
+            "path": "lib/bookingTestCore.ts",
+            "sha256": "2c4ba01e0ef0363601da5b7e4b0db6b38ba7588fc87cf8cc4f1e7c215ffcde2e"
+          },
+          {
+            "path": "lib/bookingTestRunner.ts",
+            "sha256": "a75091c27ab21730cbaf84bbe863db2f0de36fc7bfe3fbb4b8c56b7045208498"
+          },
+          {
+            "path": "lib/contracts.ts",
+            "sha256": "bfd138268f61d3192fff7e55a403e2f8a814cbdfaa4c98513681e76e04a0606a"
+          },
+          {
+            "path": "lib/coverage.ts",
+            "sha256": "71f39f0047cfc2ba907d31551f52c892f27237927f865134dca93c856f9cb187"
+          },
+          {
+            "path": "lib/currentRouteTiming.test.ts",
+            "sha256": "3d6a8470219c2b10feb6ab26acc2859f3abb8b9f8c42ab13f0d9d80195fbd2bd"
+          },
+          {
+            "path": "lib/currentRouteTiming.ts",
+            "sha256": "59454bb423e71a4a1ce33f8fe99aacaa066020aca7c5f7d6586f3947d0a636d1"
+          },
+          {
+            "path": "lib/date.ts",
+            "sha256": "6191cc01ba484e35bf560f23eaaf3ef85b16beabf7d86d716e21ee2f43765788"
+          },
+          {
+            "path": "lib/depotPin.ts",
+            "sha256": "8058ba638e3d0d97543481a8b7c3b544acff3d66e56efe4ec35462c12047d2ba"
+          },
+          {
+            "path": "lib/dispatchGeometry.test.ts",
+            "sha256": "77ab3996ef9935480a68fa1b7d1b90077439e23f83c4e55bae63742e256a2974"
+          },
+          {
+            "path": "lib/dispatchGeometry.ts",
+            "sha256": "04055f35eee2d222da293c9fe2d175209ccf1a7040b6c72880d60bf158d6df25"
+          },
+          {
+            "path": "lib/engineClient.ts",
+            "sha256": "f313a9eb50ea4cff93a3856085f40b2cd595780c1a596a6c5e9f93a3f9b2a593"
+          },
+          {
+            "path": "lib/fakeData.ts",
+            "sha256": "3bf10f85d0711497586b08bf147f8c6b508f0c9f37c089c9d1e370cc10c259fb"
+          },
+          {
+            "path": "lib/fakeDataCore.test.ts",
+            "sha256": "9bed42fc0eb66c652516d9167d31d7ab0e2134ee4ad453c196ed7d38491b6dee"
+          },
+          {
+            "path": "lib/fakeDataCore.ts",
+            "sha256": "fc976765aa2edf64237bfa64d5f6ab9282f8e559fc1230520091792a039a8466"
+          },
+          {
+            "path": "lib/geo.ts",
+            "sha256": "3fdeca545070b70be2f5d613a4851a78a4e195d915728bd3adaf3d1308dc414c"
+          },
+          {
+            "path": "lib/geocode.test.ts",
+            "sha256": "e7a44cef31f4d77aed86ba30ee537d6d12947d8c8ae0c5ce3fc8acc4516f49f9"
+          },
+          {
+            "path": "lib/geocode.ts",
+            "sha256": "414590fa8e94346788ba3a7b1d28c2d7eac68fba9f1a8750ed63291fd4faaf53"
+          },
+          {
+            "path": "lib/localMapStyle.ts",
+            "sha256": "589aab26019468c3883597a79eadd7db9d8d04b723127335b34d3b6248244daf"
+          },
+          {
+            "path": "lib/nullability.test.ts",
+            "sha256": "a5a869e145c9bf87b837e036ebc83ebf0cb628ee72b50d149aad316827a6eac0"
+          },
+          {
+            "path": "lib/omahaConfiguration.ts",
+            "sha256": "477e9df7cba3dfa03ccad73843aa4d02b07d1f331531b641919559748d87c497"
+          },
+          {
+            "path": "lib/optimizationAnalysis.test.ts",
+            "sha256": "8e59c4ea833cfc96d93a6a7ad204efa5ed7a71dfbb2a0aeb2c11b8326277f153"
+          },
+          {
+            "path": "lib/optimizationAnalysis.ts",
+            "sha256": "24f788fbe54fbeaa69d3f16d89d7ff11d9b27f48cad693cac0c30adf7237fa90"
+          },
+          {
+            "path": "lib/optimizationExport.test.ts",
+            "sha256": "5917a6fbd7a84f54c9d0957248900d12dec7bd358b85798ea3af5a2cdce68955"
+          },
+          {
+            "path": "lib/optimizationExport.ts",
+            "sha256": "ecea09411cd02a28f65edc9498a477da9683ed4a5a09ff6ccc629b7adb5a7b6b"
+          },
+          {
+            "path": "lib/optimizationSimulationTypes.ts",
+            "sha256": "c5a3fc47e40e4109fb00e973098d1da11393747b340412c70518851d13e2d338"
+          },
+          {
+            "path": "lib/prisma.ts",
+            "sha256": "9c9ef1049b6b540513deed4e4704624213648b6ce724326592987c4cbe046439"
+          },
+          {
+            "path": "lib/reservationGuards.ts",
+            "sha256": "7551315ce5c37258c1d85d32e9fb42176adcd8380a4e4173cac67375fb2c0d8a"
+          },
+          {
+            "path": "lib/serviceArea.ts",
+            "sha256": "ce480ec06f3b142d8ed0eb99921f1456e2bbeec49887ad4efae506c70e629588"
+          },
+          {
+            "path": "lib/streetNormalization.ts",
+            "sha256": "ad148a36f0375c61268177d7df4e3e1c037d0a108a76bc87a8282f6b67fa20b3"
+          },
+          {
+            "path": "lib/technicianAvailability.test.ts",
+            "sha256": "ebcb7aac05a86a610a68346fa75d641f173b7c54dcdf66979ab1eb08d6ae615a"
+          },
+          {
+            "path": "lib/technicianAvailability.ts",
+            "sha256": "e7002b497f72b359131b4bf9f246975fac18954bc9714d90b5b74bff7a725d89"
+          },
+          {
+            "path": "lib/technicianColor.ts",
+            "sha256": "a568cf2d9f6134dafb4428d5c198014159fdc71d1122d930e3b6b5f70998ea6e"
+          },
+          {
+            "path": "lib/technicianHomePin.ts",
+            "sha256": "9b6ddc759b9defc606609133720938d9bcd1efea36ac7c17d2e7c55c7774a68b"
+          },
+          {
+            "path": "lib/timeOffView.ts",
+            "sha256": "79e5400cef767f6c4084f0ee896a7bfbc5db6becdd0dcd75bb93a1ea23cae174"
+          },
+          {
+            "path": "prisma/schema.prisma",
+            "sha256": "79b8e1cf9a5c2aba5a23ceb1fc75132fb24f0ee9d03988974cb64118ecbc7715"
+          },
+          {
+            "path": "scripts/benchmark-scheduling.ts",
+            "sha256": "2c35638c322d95caffeeea6510602eeec3ecbe9747601af9f410148de3e66fa9"
+          },
+          {
+            "path": "scripts/benchmarkBrowser.ts",
+            "sha256": "2b179fc2226f5fd99c58b5cd2465de0a6902f3e994a9aa20abf0a611fecd090a"
+          },
+          {
+            "path": "scripts/benchmarkDiagnostics.ts",
+            "sha256": "4d74b400fb4598180a07cdc11b337534975c07713e39229b02139da1fdac3333"
+          },
+          {
+            "path": "scripts/benchmarkLegacy.ts",
+            "sha256": "a40daff3c82687260e1569c1a5382ea9ed7238365ca4a5cdec8e34f61b3e16d8"
+          }
+        ],
+        "variant": "INSERTION",
+        "seed": 59,
+        "startedAt": "2026-09-29T23:49:14.144Z",
+        "dates": [
+          "2026-09-30",
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-12",
+          "2026-10-13"
+        ],
+        "sizes": [
+          10,
+          20
+        ],
+        "workloads": [
+          "NEAR_CAPACITY"
+        ],
+        "concurrencyValues": [
+          5
+        ],
+        "caches": [
+          "warm"
+        ],
+        "requests": 10,
+        "browser": null,
+        "serverMode": "current",
+        "auditRevision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "legacyMeasurementTimeoutMs": null,
+        "legacyLimitations": null,
+        "scope": "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport",
+        "hardware": {
+          "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "logicalProcessors": 24,
+          "memoryBytes": 67870916608
+        }
+      }
+    },
+    {
+      "file": "booking-insertion-59-stress-normal-only.jsonl.gz",
       "metadata": {
         "type": "provenance",
         "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
@@ -8286,7 +9168,243 @@
       }
     },
     {
-      "file": "booking-insertion-83-stress.jsonl.gz",
+      "file": "booking-insertion-83-stress-final.jsonl.gz",
+      "metadata": {
+        "type": "provenance",
+        "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "artifactSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+        "ablationManifest": null,
+        "harnessRevision": "97b47f48a30df1c0d3f958f788ad39377754bad9",
+        "harnessSources": [
+          {
+            "path": "lib/appointmentSearch.ts",
+            "sha256": "89a3eacadc3e365474d676894414e3de7231aedfc7bd84beaad7d0afbbab588b"
+          },
+          {
+            "path": "lib/bookingIdentity.ts",
+            "sha256": "fe9cd663fcbeec86d96a371a956f70be7f58f1e938ffe78a82df50fe988f08aa"
+          },
+          {
+            "path": "lib/bookingLocation.test.ts",
+            "sha256": "ba5a95e51ad284d5b453d98fe3694573c1e8ac6704e1867a67eb47838c759fbd"
+          },
+          {
+            "path": "lib/bookingTestAccess.ts",
+            "sha256": "4a00669c0ce029c2856bce7d1d58fa45d657563b6f50e2591ce9e0bfeea3a733"
+          },
+          {
+            "path": "lib/bookingTestAddresses.test.ts",
+            "sha256": "9324882d799ac7aa761f263d1dc4968b643a97e8bd62dfdbc1c3c5ddd4989f8e"
+          },
+          {
+            "path": "lib/bookingTestAddresses.ts",
+            "sha256": "ed017421839a9e88374c2338415f2ed584fe874680a7d28f05b5bfd2118a6b75"
+          },
+          {
+            "path": "lib/bookingTestCore.test.ts",
+            "sha256": "a716147bb9e3e52dc8bf546ad55012f42b00cb38a26d14feba33ffa9bfa88c1a"
+          },
+          {
+            "path": "lib/bookingTestCore.ts",
+            "sha256": "2c4ba01e0ef0363601da5b7e4b0db6b38ba7588fc87cf8cc4f1e7c215ffcde2e"
+          },
+          {
+            "path": "lib/bookingTestRunner.ts",
+            "sha256": "a75091c27ab21730cbaf84bbe863db2f0de36fc7bfe3fbb4b8c56b7045208498"
+          },
+          {
+            "path": "lib/contracts.ts",
+            "sha256": "bfd138268f61d3192fff7e55a403e2f8a814cbdfaa4c98513681e76e04a0606a"
+          },
+          {
+            "path": "lib/coverage.ts",
+            "sha256": "71f39f0047cfc2ba907d31551f52c892f27237927f865134dca93c856f9cb187"
+          },
+          {
+            "path": "lib/currentRouteTiming.test.ts",
+            "sha256": "3d6a8470219c2b10feb6ab26acc2859f3abb8b9f8c42ab13f0d9d80195fbd2bd"
+          },
+          {
+            "path": "lib/currentRouteTiming.ts",
+            "sha256": "59454bb423e71a4a1ce33f8fe99aacaa066020aca7c5f7d6586f3947d0a636d1"
+          },
+          {
+            "path": "lib/date.ts",
+            "sha256": "6191cc01ba484e35bf560f23eaaf3ef85b16beabf7d86d716e21ee2f43765788"
+          },
+          {
+            "path": "lib/depotPin.ts",
+            "sha256": "8058ba638e3d0d97543481a8b7c3b544acff3d66e56efe4ec35462c12047d2ba"
+          },
+          {
+            "path": "lib/dispatchGeometry.test.ts",
+            "sha256": "77ab3996ef9935480a68fa1b7d1b90077439e23f83c4e55bae63742e256a2974"
+          },
+          {
+            "path": "lib/dispatchGeometry.ts",
+            "sha256": "04055f35eee2d222da293c9fe2d175209ccf1a7040b6c72880d60bf158d6df25"
+          },
+          {
+            "path": "lib/engineClient.ts",
+            "sha256": "f313a9eb50ea4cff93a3856085f40b2cd595780c1a596a6c5e9f93a3f9b2a593"
+          },
+          {
+            "path": "lib/fakeData.ts",
+            "sha256": "3bf10f85d0711497586b08bf147f8c6b508f0c9f37c089c9d1e370cc10c259fb"
+          },
+          {
+            "path": "lib/fakeDataCore.test.ts",
+            "sha256": "9bed42fc0eb66c652516d9167d31d7ab0e2134ee4ad453c196ed7d38491b6dee"
+          },
+          {
+            "path": "lib/fakeDataCore.ts",
+            "sha256": "fc976765aa2edf64237bfa64d5f6ab9282f8e559fc1230520091792a039a8466"
+          },
+          {
+            "path": "lib/geo.ts",
+            "sha256": "3fdeca545070b70be2f5d613a4851a78a4e195d915728bd3adaf3d1308dc414c"
+          },
+          {
+            "path": "lib/geocode.test.ts",
+            "sha256": "e7a44cef31f4d77aed86ba30ee537d6d12947d8c8ae0c5ce3fc8acc4516f49f9"
+          },
+          {
+            "path": "lib/geocode.ts",
+            "sha256": "414590fa8e94346788ba3a7b1d28c2d7eac68fba9f1a8750ed63291fd4faaf53"
+          },
+          {
+            "path": "lib/localMapStyle.ts",
+            "sha256": "589aab26019468c3883597a79eadd7db9d8d04b723127335b34d3b6248244daf"
+          },
+          {
+            "path": "lib/nullability.test.ts",
+            "sha256": "a5a869e145c9bf87b837e036ebc83ebf0cb628ee72b50d149aad316827a6eac0"
+          },
+          {
+            "path": "lib/omahaConfiguration.ts",
+            "sha256": "477e9df7cba3dfa03ccad73843aa4d02b07d1f331531b641919559748d87c497"
+          },
+          {
+            "path": "lib/optimizationAnalysis.test.ts",
+            "sha256": "8e59c4ea833cfc96d93a6a7ad204efa5ed7a71dfbb2a0aeb2c11b8326277f153"
+          },
+          {
+            "path": "lib/optimizationAnalysis.ts",
+            "sha256": "24f788fbe54fbeaa69d3f16d89d7ff11d9b27f48cad693cac0c30adf7237fa90"
+          },
+          {
+            "path": "lib/optimizationExport.test.ts",
+            "sha256": "5917a6fbd7a84f54c9d0957248900d12dec7bd358b85798ea3af5a2cdce68955"
+          },
+          {
+            "path": "lib/optimizationExport.ts",
+            "sha256": "ecea09411cd02a28f65edc9498a477da9683ed4a5a09ff6ccc629b7adb5a7b6b"
+          },
+          {
+            "path": "lib/optimizationSimulationTypes.ts",
+            "sha256": "c5a3fc47e40e4109fb00e973098d1da11393747b340412c70518851d13e2d338"
+          },
+          {
+            "path": "lib/prisma.ts",
+            "sha256": "9c9ef1049b6b540513deed4e4704624213648b6ce724326592987c4cbe046439"
+          },
+          {
+            "path": "lib/reservationGuards.ts",
+            "sha256": "7551315ce5c37258c1d85d32e9fb42176adcd8380a4e4173cac67375fb2c0d8a"
+          },
+          {
+            "path": "lib/serviceArea.ts",
+            "sha256": "ce480ec06f3b142d8ed0eb99921f1456e2bbeec49887ad4efae506c70e629588"
+          },
+          {
+            "path": "lib/streetNormalization.ts",
+            "sha256": "ad148a36f0375c61268177d7df4e3e1c037d0a108a76bc87a8282f6b67fa20b3"
+          },
+          {
+            "path": "lib/technicianAvailability.test.ts",
+            "sha256": "ebcb7aac05a86a610a68346fa75d641f173b7c54dcdf66979ab1eb08d6ae615a"
+          },
+          {
+            "path": "lib/technicianAvailability.ts",
+            "sha256": "e7002b497f72b359131b4bf9f246975fac18954bc9714d90b5b74bff7a725d89"
+          },
+          {
+            "path": "lib/technicianColor.ts",
+            "sha256": "a568cf2d9f6134dafb4428d5c198014159fdc71d1122d930e3b6b5f70998ea6e"
+          },
+          {
+            "path": "lib/technicianHomePin.ts",
+            "sha256": "9b6ddc759b9defc606609133720938d9bcd1efea36ac7c17d2e7c55c7774a68b"
+          },
+          {
+            "path": "lib/timeOffView.ts",
+            "sha256": "79e5400cef767f6c4084f0ee896a7bfbc5db6becdd0dcd75bb93a1ea23cae174"
+          },
+          {
+            "path": "prisma/schema.prisma",
+            "sha256": "79b8e1cf9a5c2aba5a23ceb1fc75132fb24f0ee9d03988974cb64118ecbc7715"
+          },
+          {
+            "path": "scripts/benchmark-scheduling.ts",
+            "sha256": "2c35638c322d95caffeeea6510602eeec3ecbe9747601af9f410148de3e66fa9"
+          },
+          {
+            "path": "scripts/benchmarkBrowser.ts",
+            "sha256": "2b179fc2226f5fd99c58b5cd2465de0a6902f3e994a9aa20abf0a611fecd090a"
+          },
+          {
+            "path": "scripts/benchmarkDiagnostics.ts",
+            "sha256": "4d74b400fb4598180a07cdc11b337534975c07713e39229b02139da1fdac3333"
+          },
+          {
+            "path": "scripts/benchmarkLegacy.ts",
+            "sha256": "a40daff3c82687260e1569c1a5382ea9ed7238365ca4a5cdec8e34f61b3e16d8"
+          }
+        ],
+        "variant": "INSERTION",
+        "seed": 83,
+        "startedAt": "2026-09-29T23:50:04.350Z",
+        "dates": [
+          "2026-09-30",
+          "2026-10-01",
+          "2026-10-02",
+          "2026-10-05",
+          "2026-10-06",
+          "2026-10-07",
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-12",
+          "2026-10-13"
+        ],
+        "sizes": [
+          10,
+          20
+        ],
+        "workloads": [
+          "NEAR_CAPACITY"
+        ],
+        "concurrencyValues": [
+          5
+        ],
+        "caches": [
+          "warm"
+        ],
+        "requests": 10,
+        "browser": null,
+        "serverMode": "current",
+        "auditRevision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+        "legacyMeasurementTimeoutMs": null,
+        "legacyLimitations": null,
+        "scope": "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport",
+        "hardware": {
+          "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "logicalProcessors": 24,
+          "memoryBytes": 67870916608
+        }
+      }
+    },
+    {
+      "file": "booking-insertion-83-stress-normal-only.jsonl.gz",
       "metadata": {
         "type": "provenance",
         "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",

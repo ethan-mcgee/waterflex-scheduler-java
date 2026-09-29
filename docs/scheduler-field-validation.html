@@ -31,8 +31,8 @@
 <tr><td>screen</td><td>INSERTION</td><td>6</td><td>18/18</td><td>0</td><td>750</td><td>$34,065.00</td></tr>
 <tr><td>screen</td><td>RUIN_RECREATE</td><td>6</td><td>18/18</td><td>0</td><td>23,365</td><td>$33,945.00</td></tr>
 <tr><td>screen</td><td>SHARED</td><td>6</td><td>18/18</td><td>0</td><td>19,506</td><td>$33,945.00</td></tr>
-<tr><td>stress</td><td>BOUNDED</td><td>4</td><td>18/40</td><td>11</td><td>7,855</td><td>$145,500.00</td></tr>
-<tr><td>stress</td><td>INSERTION</td><td>4</td><td>22/40</td><td>5</td><td>4,725</td><td>$145,500.00</td></tr>
+<tr><td>stress</td><td>BOUNDED</td><td>4</td><td>21/40</td><td>9</td><td>6,356</td><td>$145,912.50</td></tr>
+<tr><td>stress</td><td>INSERTION</td><td>4</td><td>17/40</td><td>12</td><td>3,611</td><td>$145,835.00</td></tr>
 </table></div>
 <p>Final-cost totals include the existing ten-day workload and differing served customers. They are inventory totals, not a causal savings comparison. The screen has only three requests per case. Clustered jobs coincide with technician homes and have zero routed road seconds; improvements there describe modeled buffer/waiting cleanup. Held-out dispersed cases use GraphHopper 11 and actual nonzero directed road travel where endpoints differ.</p>
 <h3>Original baseline versus policy-only controls</h3>
@@ -66,8 +66,8 @@
 <tr><td>screen/INSERTION</td><td>19.2</td><td>97.8</td><td>0</td><td>0.0</td><td>0</td><td>0.004083</td></tr>
 <tr><td>screen/RUIN_RECREATE</td><td>782.7</td><td>1,173.2</td><td>0</td><td>0.0</td><td>0</td><td>0.005611</td></tr>
 <tr><td>screen/SHARED</td><td>625.7</td><td>904.0</td><td>0</td><td>0.0</td><td>0</td><td>0.005611</td></tr>
-<tr><td>stress/BOUNDED</td><td>131.5</td><td>551.6</td><td>0</td><td>0.0</td><td>0</td><td>0.000000</td></tr>
-<tr><td>stress/INSERTION</td><td>49.5</td><td>442.4</td><td>0</td><td>0.0</td><td>0</td><td>0.000000</td></tr>
+<tr><td>stress/BOUNDED</td><td>116.9</td><td>596.3</td><td>0</td><td>0.0</td><td>0</td><td>0.000171</td></tr>
+<tr><td>stress/INSERTION</td><td>47.0</td><td>443.3</td><td>0</td><td>0.0</td><td>0</td><td>0.000154</td></tr>
 </table></div>
 <p>Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. <a href="scheduler-field-cost-runtime.svg">Cost versus runtime chart</a>.</p>
 <div class='scroll'><table>
@@ -83,8 +83,8 @@
 <tr><td>screen/INSERTION</td><td>99</td><td>1.00</td><td>0</td><td>48,708/27,714</td><td>0</td><td>18</td></tr>
 <tr><td>screen/RUIN_RECREATE</td><td>94</td><td>1.67</td><td>0</td><td>48,148,380/4,691,775</td><td>25920</td><td>18</td></tr>
 <tr><td>screen/SHARED</td><td>87</td><td>1.67</td><td>0</td><td>48,148,380/4,271,895</td><td>25920</td><td>18</td></tr>
-<tr><td>stress/BOUNDED</td><td>2,209</td><td>15.00</td><td>18</td><td>59,505/392,561</td><td>0</td><td>66</td></tr>
-<tr><td>stress/INSERTION</td><td>1,301</td><td>15.00</td><td>22</td><td>6,210/73,965</td><td>0</td><td>68</td></tr>
+<tr><td>stress/BOUNDED</td><td>1,768</td><td>15.00</td><td>21</td><td>30,555/395,769</td><td>0</td><td>68</td></tr>
+<tr><td>stress/INSERTION</td><td>1,147</td><td>15.00</td><td>17</td><td>5,995/73,868</td><td>0</td><td>68</td></tr>
 </table></div>
 <p>Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates. Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.</p>
 <h3>Paired comparison against new-policy insertion</h3>
@@ -148,16 +148,16 @@
 <tr><td>screen/SHARED</td><td>15</td><td>18/18</td><td>$12.08</td></tr>
 <tr><td>screen/SHARED</td><td>30</td><td>18/18</td><td>$10.83</td></tr>
 <tr><td>screen/SHARED</td><td>60</td><td>18/18</td><td>$10.83</td></tr>
-<tr><td>stress/BOUNDED</td><td>1</td><td>0/40</td><td>n/a</td></tr>
-<tr><td>stress/BOUNDED</td><td>5</td><td>22/40</td><td>$19.32</td></tr>
-<tr><td>stress/BOUNDED</td><td>15</td><td>40/40</td><td>$19.44</td></tr>
-<tr><td>stress/BOUNDED</td><td>30</td><td>40/40</td><td>$19.44</td></tr>
-<tr><td>stress/BOUNDED</td><td>60</td><td>40/40</td><td>$19.44</td></tr>
-<tr><td>stress/INSERTION</td><td>1</td><td>10/40</td><td>$19.75</td></tr>
-<tr><td>stress/INSERTION</td><td>5</td><td>39/40</td><td>$19.29</td></tr>
-<tr><td>stress/INSERTION</td><td>15</td><td>40/40</td><td>$19.31</td></tr>
-<tr><td>stress/INSERTION</td><td>30</td><td>40/40</td><td>$19.31</td></tr>
-<tr><td>stress/INSERTION</td><td>60</td><td>40/40</td><td>$19.31</td></tr>
+<tr><td>stress/BOUNDED</td><td>1</td><td>1/40</td><td>$17.50</td></tr>
+<tr><td>stress/BOUNDED</td><td>5</td><td>27/40</td><td>$19.63</td></tr>
+<tr><td>stress/BOUNDED</td><td>15</td><td>38/40</td><td>$19.47</td></tr>
+<tr><td>stress/BOUNDED</td><td>30</td><td>38/40</td><td>$19.47</td></tr>
+<tr><td>stress/BOUNDED</td><td>60</td><td>38/40</td><td>$19.47</td></tr>
+<tr><td>stress/INSERTION</td><td>1</td><td>8/40</td><td>$20.00</td></tr>
+<tr><td>stress/INSERTION</td><td>5</td><td>37/40</td><td>$19.53</td></tr>
+<tr><td>stress/INSERTION</td><td>15</td><td>37/40</td><td>$19.53</td></tr>
+<tr><td>stress/INSERTION</td><td>30</td><td>37/40</td><td>$19.53</td></tr>
+<tr><td>stress/INSERTION</td><td>60</td><td>37/40</td><td>$19.53</td></tr>
 </table></div>
 <p>This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent. API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.</p>
 <h2>Daily solvers</h2>
@@ -326,6 +326,7 @@ Protected tight B: Omaha home -&gt; A town -&gt; B Omaha -&gt; C town -&gt; Omah
 <p>Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times. Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.</p>
 <h2>Reproducibility and limitations</h2>
 <h3>Failed concurrency audit and retained evidence</h3>
+<p>The initial eight capacity-pressure cases audited only the normal horizon even though their accepted bookings used overflow dates. Their original artifacts remain under stress-normal-only and are excluded from validated cost/route summaries. All eight were rerun under stress-final with every served date included; the harness and report now assert that the audited confirmed-appointment increase equals the reported served count. The limitation is an audit-scope defect, not evidence of a production scheduling violation.</p>
 <p>The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory. A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved. This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See <a href="evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json">investigation</a>.</p>
 <p>Booking artifact <code>1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b</code> was built from <code>2258b2a14e8a9ecd085c79ec377448c0555c2b1e</code>. Some held runtime headers name the later harness checkout <code>adcda9a</code>; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from <code>6da6d9341815d7f290cfe34190974fef1ffe2ff3</code>. Subsequent preview/contract/migration and bounded worker-query fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.</p>
 <p>Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm. No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.</p>

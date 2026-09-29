@@ -45,8 +45,8 @@ Ruin-and-recreate counts reconstruction attempts and route/candidate work separa
 | screen | INSERTION | 6 | 18/18 | 0 | 750 | $34,065.00 |
 | screen | RUIN_RECREATE | 6 | 18/18 | 0 | 23,365 | $33,945.00 |
 | screen | SHARED | 6 | 18/18 | 0 | 19,506 | $33,945.00 |
-| stress | BOUNDED | 4 | 18/40 | 11 | 7,855 | $145,500.00 |
-| stress | INSERTION | 4 | 22/40 | 5 | 4,725 | $145,500.00 |
+| stress | BOUNDED | 4 | 21/40 | 9 | 6,356 | $145,912.50 |
+| stress | INSERTION | 4 | 17/40 | 12 | 3,611 | $145,835.00 |
 
 Final-cost totals include the existing ten-day workload and differing served customers. They are inventory totals, not a causal savings comparison. The screen has only three requests per case. Clustered jobs coincide with technician homes and have zero routed road seconds; improvements there describe modeled buffer/waiting cleanup. Held-out dispersed cases use GraphHopper 11 and actual nonzero directed road travel where endpoints differ.
 
@@ -84,8 +84,8 @@ These pairs have identical seeded fixture fingerprints and request streams. The 
 | screen/INSERTION | 19.2 | 97.8 | 0 | 0.0 | 0 | 0.004083 |
 | screen/RUIN_RECREATE | 782.7 | 1,173.2 | 0 | 0.0 | 0 | 0.005611 |
 | screen/SHARED | 625.7 | 904.0 | 0 | 0.0 | 0 | 0.005611 |
-| stress/BOUNDED | 131.5 | 551.6 | 0 | 0.0 | 0 | 0.000000 |
-| stress/INSERTION | 49.5 | 442.4 | 0 | 0.0 | 0 | 0.000000 |
+| stress/BOUNDED | 116.9 | 596.3 | 0 | 0.0 | 0 | 0.000171 |
+| stress/INSERTION | 47.0 | 443.3 | 0 | 0.0 | 0 | 0.000154 |
 
 Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. [Cost versus runtime chart](scheduler-field-cost-runtime.svg).
 
@@ -102,8 +102,8 @@ Road and waiting totals include existing work across all cases. Queue time, requ
 | screen/INSERTION | 99 | 1.00 | 0 | 48,708/27,714 | 0 | 18 |
 | screen/RUIN_RECREATE | 94 | 1.67 | 0 | 48,148,380/4,691,775 | 25920 | 18 |
 | screen/SHARED | 87 | 1.67 | 0 | 48,148,380/4,271,895 | 25920 | 18 |
-| stress/BOUNDED | 2,209 | 15.00 | 18 | 59,505/392,561 | 0 | 66 |
-| stress/INSERTION | 1,301 | 15.00 | 22 | 6,210/73,965 | 0 | 68 |
+| stress/BOUNDED | 1,768 | 15.00 | 21 | 30,555/395,769 | 0 | 68 |
+| stress/INSERTION | 1,147 | 15.00 | 17 | 5,995/73,868 | 0 | 68 |
 
 Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates. Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.
 
@@ -171,16 +171,16 @@ Customer identity is the stable request index within an identical seeded dataset
 | screen/SHARED | 15 | 18/18 | $12.08 |
 | screen/SHARED | 30 | 18/18 | $10.83 |
 | screen/SHARED | 60 | 18/18 | $10.83 |
-| stress/BOUNDED | 1 | 0/40 | n/a |
-| stress/BOUNDED | 5 | 22/40 | $19.32 |
-| stress/BOUNDED | 15 | 40/40 | $19.44 |
-| stress/BOUNDED | 30 | 40/40 | $19.44 |
-| stress/BOUNDED | 60 | 40/40 | $19.44 |
-| stress/INSERTION | 1 | 10/40 | $19.75 |
-| stress/INSERTION | 5 | 39/40 | $19.29 |
-| stress/INSERTION | 15 | 40/40 | $19.31 |
-| stress/INSERTION | 30 | 40/40 | $19.31 |
-| stress/INSERTION | 60 | 40/40 | $19.31 |
+| stress/BOUNDED | 1 | 1/40 | $17.50 |
+| stress/BOUNDED | 5 | 27/40 | $19.63 |
+| stress/BOUNDED | 15 | 38/40 | $19.47 |
+| stress/BOUNDED | 30 | 38/40 | $19.47 |
+| stress/BOUNDED | 60 | 38/40 | $19.47 |
+| stress/INSERTION | 1 | 8/40 | $20.00 |
+| stress/INSERTION | 5 | 37/40 | $19.53 |
+| stress/INSERTION | 15 | 37/40 | $19.53 |
+| stress/INSERTION | 30 | 37/40 | $19.53 |
+| stress/INSERTION | 60 | 37/40 | $19.53 |
 
 This samples the last non-null polled incumbent at or before each elapsed time, including queue time. A missing incumbent remains missing. A terminal result persists for later checkpoints. Heartbeats are sampled about once per second; this is browser-observable progress, not exact internal time-to-best. Revalidation can invalidate a provisional incumbent. API latency is measured by the harness; full browser performance under concurrent production traffic was not measured. Stress cases add one-second delayed confirmation, explicit abandonment of every third offer, near-capacity schedules, and concurrency five.
 
@@ -360,6 +360,8 @@ Every flagship row retains before-history, selected route, promised and planned 
 ## Reproducibility and limitations
 
 ### Failed concurrency audit and retained evidence
+
+The initial eight capacity-pressure cases audited only the normal horizon even though their accepted bookings used overflow dates. Their original artifacts remain under stress-normal-only and are excluded from validated cost/route summaries. All eight were rerun under stress-final with every served date included; the harness and report now assert that the audited confirmed-appointment increase equals the reported served count. The limitation is an audit-scope defect, not evidence of a production scheduling violation.
 
 The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory. A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved. This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See [investigation](evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json).
 

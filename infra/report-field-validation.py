@@ -79,9 +79,9 @@ def route_diagram(field, companions):
 
 
 def main():
-    booking, daily, provenance, failures = [], [], [], []
+    booking, daily, provenance, failures, exclusions = [], [], [], [], []
     inventory = []
-    for path in sorted([*DATA.glob("*.jsonl"), *DATA.glob("*.jsonl.gz")]):
+    for path in sorted([*DATA.glob("*.jsonl"), *DATA.glob("*.jsonl.gz")], key=lambda p: p.name):
         archive = path.read_bytes()
         raw = gzip.decompress(archive) if path.suffix == ".gz" else archive
         inventory.append({"file": path.name, "bytes": len(archive), "sha256": sha256(archive).hexdigest(),
@@ -92,11 +92,16 @@ def main():
         for row in rows:
             row = dict(row, file=path.name)
             if row.get("type") == "case":
+                if "stress-normal-only" in path.name:
+                    exclusions.append({"file": path.name, "caseId": row["caseId"], "variant": row["variant"],
+                        "size": row["size"], "served": row["served"], "reason": "Final audit omitted overflow dates; separately rerun with all served dates"})
+                    continue
                 row["stage"] = next((stage for stage in ("original", "held", "stress", "browser") if stage in path.stem), "screen")
                 row["seed"] = metadata["seed"]
                 assert row["served"] == len(served_ids(row))
                 assert row["independentlyValidated"]
                 assert row["promiseViolations"] == 0
+                assert sum(d["confirmedAppointments"] for d in row["after"]["days"]) - sum(d["confirmedAppointments"] for d in row["before"]["days"]) == row["served"], "Final audit omitted confirmed requests"
                 assert all(d["policy"]["overtimeMinutes"] == 0 for d in row["after"]["days"]), path
                 booking.append(row)
             elif row.get("type") == "result":
@@ -106,7 +111,7 @@ def main():
                 daily.append(row)
             elif row.get("type") not in ("provenance", "configuration"):
                 failures.append(row)
-    for path in sorted(DATA.rglob("*")):
+    for path in sorted(DATA.rglob("*"), key=lambda p: p.relative_to(DATA).as_posix()):
         if not path.is_file() or path.name == "summary.json" or ".jsonl" in path.name:
             continue
         raw = path.read_bytes()
@@ -122,7 +127,7 @@ def main():
     field = load(DATA / "field-scenarios.json")
     assert len(field["rows"]) == 180
     assert all(r["costCents"] == r["oracleCostCents"] and r["overtimeMinutes"] == 0 for r in field["rows"])
-    companions = [load(p) for p in sorted(DATA.glob("field-*.json")) if p.name not in ("field-scenarios.json", "field-rejections.json")]
+    companions = [load(p) for p in sorted(DATA.glob("field-*.json"), key=lambda p: p.name) if p.name not in ("field-scenarios.json", "field-rejections.json")]
     assert len(companions) == 24
     rejected = load(DATA / "field-rejections.json")["rejections"]
     assert len(rejected) == 3 and all(r["expected"] == "NO_CANDIDATE" for r in rejected)
@@ -231,12 +236,13 @@ def main():
     if "--require-complete" in sys.argv:
         assert complete, {"expectedBookingCases": expected, "actualBookingCases": actual, "dailyCases": len(daily)}
         assert len(failures) == 1 and failures[0]["file"] == "booking-shared-83-held.jsonl.gz", "Unexpected or unreviewed failed experiment"
+        assert len(exclusions) == 8, "Retain every original overflow-audit exclusion"
         manifest = load(DATA / "experiment-manifest.json")
         assert all(manifest["expectedCases"][stage] == count for stage, count in expected.items())
     summary = {"executionComplete": complete, "expectedBookingCases": expected, "actualBookingCases": actual,
                "booking": summaries, "paired": paired, "dailyPaired": daily_pairs, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
                "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions), "rejectionFixtures": rejected,
-               "failures": failures, "provenance": provenance}
+               "failures": failures, "auditScopeExclusions": exclusions, "provenance": provenance}
     (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     sections = ["# Scheduler policy, search, and field validation",
       "Execution status: " + ("complete" if complete else "in progress") + f". Retained {len(booking)}/218 validated booking cases and {len(daily)}/240 daily-solver cases. Every raw case remains included in its stage. Separately retained failures are disclosed below.",
@@ -331,6 +337,7 @@ def main():
       "Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times. Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.",
       "## Reproducibility and limitations",
       "### Failed concurrency audit and retained evidence",
+      "The initial eight capacity-pressure cases audited only the normal horizon even though their accepted bookings used overflow dates. Their original artifacts remain under stress-normal-only and are excluded from validated cost/route summaries. All eight were rerun under stress-final with every served date included; the harness and report now assert that the audited confirmed-appointment increase equals the reported served count. The limitation is an audit-scope defect, not evidence of a production scheduling violation.",
       "The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory. A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved. This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See [investigation](evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json).",
       "Booking artifact `1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b` was built from `2258b2a14e8a9ecd085c79ec377448c0555c2b1e`. Some held runtime headers name the later harness checkout `adcda9a`; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from `6da6d9341815d7f290cfe34190974fef1ffe2ff3`. Subsequent preview/contract/migration and bounded worker-query fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.",
       "Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm. No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.",
