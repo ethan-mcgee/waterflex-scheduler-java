@@ -191,7 +191,7 @@ try {
     browser = await browserBenchmark(process.env.BENCHMARK_PORTAL_URL);
   }
   await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
-    browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: "validated-job refresh" },
+    browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: process.env.BENCHMARK_DURABLE === "true" ? "validated-job durable search with 750ms polling" : "validated-job refresh" },
     serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
     legacyMeasurementTimeoutMs: legacy ? legacyMeasurementTimeoutMs : null,
     legacyLimitations: legacy ? `Original unchanged server: ${legacyMeasurementTimeoutMs / 1000}-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics.` : null,
@@ -216,7 +216,7 @@ try {
         const started = performance.now(); let offered: string | null = null;
         let searched: Attempt | null = null; let selectionStarted: number | null = null;
         try {
-          const browserResult = browser == null ? null : await browser.search(jobId);
+          const browserResult = browser == null ? null : await browser.search(jobId, process.env.BENCHMARK_DURABLE === "true");
           const response = browserResult?.response ?? (legacy ? { ...await legacyOffers(engine, jobId, legacyMeasurementTimeoutMs), search: undefined } : (process.env.BENCHMARK_DURABLE === "true" ? await durableSlots(jobId) : await requestSlots(jobId)));
           const elapsedMs = browserResult?.elapsedMs ?? performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
