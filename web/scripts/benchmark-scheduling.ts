@@ -249,7 +249,16 @@ try {
     if (legacyServer) { await legacyServer.stop(); legacyServer = null; }
     const processAfter = await statistics(false);
     const diagnostics = await benchmarkDiagnostics(process.env.BENCHMARK_LOG_PATH, data.jobIds);
-    const after = await audit(data.metroId);
+    let after: z.infer<typeof auditContract>;
+    try { after = await audit(data.metroId); }
+    catch (error) {
+      // Retain client observations even when the final consistency audit fails.
+      // A later successful audit cannot recover these latency measurements.
+      await record({ type: "audit_failure", revision, variant, caseId, size, workload, concurrency, cache,
+        datasetFingerprint: data.fingerprint, before, attempts, processBefore, processAfter, diagnostics,
+        message: errorMessage(error), at: new Date().toISOString() });
+      throw error;
+    }
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);
