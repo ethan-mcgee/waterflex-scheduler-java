@@ -17,11 +17,16 @@ def get(url, body=None):
 
 health = get('http://localhost:18001/health')
 assert health['ready'] and health['mapVersion'] == manifest['version']
-assert get('http://localhost:18082/status?format=json')['status'] == 0
+geocoder = get('http://localhost:18082/status?format=json')
+assert geocoder['status'] == 0
+source_time = max(datetime.datetime.fromisoformat(s['sourceTimestamp'].replace('Z', '+00:00')) for s in manifest['sources'].values())
+assert datetime.datetime.fromisoformat(geocoder['data_updated']) == source_time
 metadata = get('http://localhost:18083/omaha.json')
 west, south, east, north = metadata['bounds']
 b = manifest['coverage']['bounds']
-assert west <= b['west'] and east >= b['east'] and south <= b['south'] and north >= b['north']
+# PMTiles stores bounds at seven decimal places, so allow only that encoding precision.
+epsilon = 0.0000001
+assert west <= b['west'] + epsilon and east >= b['east'] - epsilon and south <= b['south'] + epsilon and north >= b['north'] - epsilon
 assert set(manifest['sources']) == {'nebraska', 'iowa', 'missouri'}
 assert 'omaha.pmtiles' in manifest['artifacts'] and 'graph/properties' in manifest['artifacts']
 samples = [('Omaha', 41.25855, -95.92929), ('Lincoln', 40.81362, -96.70260),
@@ -45,4 +50,4 @@ for name, lat, lng in samples:
     assert response['pairs'][0]['leg']['routable'], (name, response)
 print(json.dumps({'version': manifest['version'], 'validatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
                   'manifestSha256': hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
-                  'routingIdentity': health['routingIdentity'], 'samples': results}, indent=2))
+                  'routingIdentity': health['routingIdentity'], 'geocoder': geocoder, 'samples': results}, indent=2))

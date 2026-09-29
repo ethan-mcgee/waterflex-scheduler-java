@@ -1,5 +1,10 @@
 #!/bin/sh
 set -eu
+if [ "${1:-}" = verify ]; then
+  version="${2:?Pass the prepared map version}"
+  case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
+  exec python3 /usr/local/bin/verify-map.py "$version"
+fi
 if [ "${1:-}" = finalize ]; then
   version="${2:?Pass the prepared map version}"
   case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
@@ -13,6 +18,7 @@ if [ "${1:-}" = activate ]; then
   test -f "$target/omaha.pmtiles"
   test -f "$target/graph/properties"
   test -f "$target/validated.json" || { echo 'Validate all three preview services before activation' >&2; exit 1; }
+  python3 /usr/local/bin/verify-map.py "$version"
   python3 - "$target" <<'PY'
 import hashlib,json,pathlib,sys
 p=pathlib.Path(sys.argv[1]); v=json.loads((p/'validated.json').read_text())

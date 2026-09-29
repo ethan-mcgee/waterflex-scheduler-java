@@ -14,7 +14,7 @@ const coordinateString = (limit: number) => z.string().trim().regex(/^[+-]?(?:\d
   .refine(v => Number.isFinite(Number(v)) && Math.abs(Number(v)) <= limit).transform(Number);
 const resultSchema = z.object({
   lat: coordinateString(90), lon: coordinateString(180),
-  address: z.object({ house_number: z.string().optional(), road: z.string().trim().min(1), city: z.string().optional(),
+  address: z.object({ house_number: z.string().optional(), road: z.string().trim().min(1).optional(), city: z.string().optional(),
     town: z.string().optional(), village: z.string().optional(), hamlet: z.string().optional(),
     suburb: z.string().optional(), municipality: z.string().optional(), postcode: z.string().trim().min(1).optional(),
     state: z.string().optional(), country_code: z.string().trim().min(1).optional() }),
@@ -68,11 +68,15 @@ async function query(address: AddressInput, stage: number, signal: AbortSignal, 
   return parsed.flatMap(item => {
     if (!item.success) return [];
     const result = item.data, detail = result.address;
+    if (!detail.road) return [];
     const expectedState = states[address.state.trim().toUpperCase()] ?? address.state;
     const localities = [detail.city, detail.town, detail.village, detail.hamlet, detail.suburb, detail.municipality].filter(v => v?.trim());
     const localityMatches = localities.some(city => matches(city, address.city));
+    // An administrative precinct alone does not disprove a postal locality.
+    // Keep it approximate unless one of the locality names actually matches.
+    const namedLocality = [detail.city, detail.town, detail.village, detail.hamlet, detail.suburb].some(v => v?.trim());
     if ((detail.country_code != null && !matches(detail.country_code, "us")) || (detail.postcode != null && !matches(detail.postcode, address.postalCode)) ||
-      (localities.length > 0 && !localityMatches) ||
+      (namedLocality && !localityMatches) ||
       (detail.state != null && !matches(detail.state, expectedState) && !matches(detail.state, address.state)) ||
       normalizeStreet(detail.road) !== normalizeStreet(streetName(address.line1)) ||
       (detail.house_number != null && !matches(detail.house_number, requestedNumber ?? ""))) return [];
