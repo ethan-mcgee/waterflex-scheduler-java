@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
+import { tomorrowInTz, addCalendarDays } from "../lib/date";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -163,13 +164,13 @@ async function main() {
     await post(success, "/v1/appointments/cancel", { appointment_id: survivor.id, reason: "Fixture cleanup before availability cases" });
     if (previousBase) {
       const retainedJob = await prisma.job.create({ data: { customerId, addressId, serviceId: service.id, durationMin: 50 } });
-      // A four-choice set survives a deployment change, including choices beyond the new cap.
+      // Historical configuration values cannot restore multiple offers after algorithm rollback.
       const original = await post(offersResponse, "/v1/offers", { jobId: retainedJob.id }, previousBase);
-      assert.equal(original.offers.length, 4);
+      assert.equal(original.offers.length, 1);
       const retained = await post(offersResponse, "/v1/offers", { jobId: retainedJob.id });
       assert.deepEqual(retained.offers.map(offer => offer.offerId).sort(), original.offers.map(offer => offer.offerId).sort());
-      assert.equal(await prisma.slotHold.count({ where: { jobId: retainedJob.id, releasedAt: null } }), 4);
-      const chosen = await post(selection, "/v1/offers/select", { jobId: retainedJob.id, offerId: required(original.offers[3]).offerId });
+      assert.equal(await prisma.slotHold.count({ where: { jobId: retainedJob.id, releasedAt: null } }), 1);
+      const chosen = await post(selection, "/v1/offers/select", { jobId: retainedJob.id, offerId: required(original.offers[0]).offerId });
       assert.equal(await prisma.slotHold.count({ where: { jobId: retainedJob.id, releasedAt: null } }), 0);
       await post(success, "/v1/appointments/cancel", { appointment_id: chosen.appointmentId, reason: "Limit change fixture" });
     }
@@ -210,6 +211,21 @@ async function main() {
     const unavailable = await post(offersResponse, "/v1/offers", { jobId: refreshJob.id, refresh: true });
     assert.equal(unavailable.offers.length, 0);
     assert.equal(await prisma.slotHold.count({ where: { jobId: refreshJob.id, releasedAt: null } }), 0);
+    let cursor = tomorrowInTz("America/Chicago");
+    for (let weekdays = 0; weekdays < 10; cursor = addCalendarDays(cursor, 1))
+      if (![0, 6].includes(new Date(`${cursor}T00:00:00Z`).getUTCDay())) weekdays++;
+    while ([0, 6].includes(new Date(`${cursor}T00:00:00Z`).getUTCDay())) cursor = addCalendarDays(cursor, 1);
+    const firstOverflow = cursor;
+    cursor = addCalendarDays(cursor, 1);
+    while ([0, 6].includes(new Date(`${cursor}T00:00:00Z`).getUTCDay())) cursor = addCalendarDays(cursor, 1);
+    for (const date of [firstOverflow, cursor]) await prisma.technicianShiftOverride.create({ data: {
+      technicianId: techId, serviceDate: new Date(`${date}T00:00:00Z`), available: true, shiftStartMin: 480, shiftEndMin: 720,
+    } });
+    const overflow = await post(offersResponse, "/v1/offers", { jobId: refreshJob.id, refresh: true });
+    assert.equal(overflow.offers.length, 1);
+    assert.equal(required(overflow.offers[0]).date, firstOverflow, "Use first feasible overflow weekday");
+    assert.equal(new Date(required(overflow.offers[0]).windowEnd).getTime() - new Date(required(overflow.offers[0]).windowStart).getTime(), 4 * 3600000);
+    await post(success, "/v1/offers/release", { jobId: refreshJob.id, offerId: required(overflow.offers[0]).offerId });
     console.log(`Java booking lifecycle, scarcity, and offer limit ${expectedLimit} passed (reservations=${commonReservations})`);
   } finally {
     await prisma.appointment.deleteMany({ where: { job: { customerId } } });
