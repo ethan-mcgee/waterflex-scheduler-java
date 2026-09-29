@@ -199,7 +199,7 @@ async function main() {
     await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techB, serviceDate: nearSaturday } });
     const cannotDeny = await fetch(`${base}/v1/time-off/${offDays.requestId}/deny`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(cannotDeny.status, 409);
-    console.log("Time-off repair, explicit overtime approval, weekend range, failure detail, retry, denial, and overlap eligibility passed");
+    console.log("Time-off repair, zero-overtime rejection, weekend range, failure detail, retry, denial, and overlap eligibility passed");
   } finally {
     await prisma.slotHold.deleteMany({ where: { jobId: heldJobId } });
     await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: { in: [techA, techB, techC] } } });
