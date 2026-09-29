@@ -14,7 +14,7 @@ const previousBase = process.env.SCHEDULER_PREVIOUS_LIMIT_URL;
 const database = new URL(z.string().parse(process.env.DATABASE_URL));
 assert.equal(database.pathname, "/waterflex_test", "Booking smoke requires isolated waterflex_test data");
 const suffix = randomUUID();
-const commonReservations = process.env.SCHEDULER_RESERVATIONS_TEST === "true";
+const legacyReservationFlag = process.env.SCHEDULER_RESERVATIONS_TEST === "true";
 
 async function post<T>(schema: z.ZodType<T>, path: string, body: unknown, server = base) {
   const response = await fetch(`${server}${path}`, {
@@ -84,7 +84,7 @@ async function main() {
     const offered = await post(offersResponse, "/v1/offers", { jobId });
     assert.equal(offered.jobId, jobId);
     assert.equal(offered.search.outcome, "AVAILABLE");
-    assert.equal(offered.search.prescribedSearchCompleted, commonReservations);
+    assert.equal(offered.search.prescribedSearchCompleted, true);
     assert.equal(await prisma.bookingOffer.count({ where: { jobId, overtimeAuthorized: true } }), 0,
       "Incomplete scarcity search cannot authorize overtime");
     const repairedCache = await prisma.roadRouteCache.findUniqueOrThrow({ where: { originKey_destinationKey_profile_mapVersion: { originKey: coordinateKey, destinationKey: coordinateKey, profile: "car", mapVersion: "ci-monaco-omaha-car-v2" } } });
@@ -226,7 +226,7 @@ async function main() {
     assert.equal(required(overflow.offers[0]).date, firstOverflow, "Use first feasible overflow weekday");
     assert.equal(new Date(required(overflow.offers[0]).windowEnd).getTime() - new Date(required(overflow.offers[0]).windowStart).getTime(), 4 * 3600000);
     await post(success, "/v1/offers/release", { jobId: refreshJob.id, offerId: required(overflow.offers[0]).offerId });
-    console.log(`Java booking lifecycle, scarcity, and offer limit ${expectedLimit} passed (reservations=${commonReservations})`);
+    console.log(`Java booking lifecycle, scarcity, and offer limit ${expectedLimit} passed (legacyReservationFlag=${legacyReservationFlag})`);
   } finally {
     await prisma.appointment.deleteMany({ where: { job: { customerId } } });
     await prisma.slotHold.deleteMany({ where: { job: { customerId } } });
