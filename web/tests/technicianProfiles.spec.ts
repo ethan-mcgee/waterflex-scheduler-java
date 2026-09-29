@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { initialAvailability, nextTemplateEffectiveDate } from "../lib/technicianAvailability";
-import { addCalendarDays, localMidnightUtc } from "../lib/date";
+import { addCalendarDays, formatUsDate, localMidnightUtc } from "../lib/date";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -41,7 +41,11 @@ test("legacy contacts stay nullable and profile and pending week persist after r
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
     });
     const moveDate = addCalendarDays(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()), 30);
-    await page.locator("#move-date").fill(moveDate);
+    await page.locator("#move-date").fill("13/45/2026");
+    await expect(page.getByText("Enter a real date as MM/DD/YYYY.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Schedule depot move" })).toBeDisabled();
+    await page.locator("#move-date").fill(formatUsDate(moveDate).replaceAll("/", ""));
+    await expect(page.locator("#move-date")).toHaveValue(formatUsDate(moveDate));
     await page.locator("#move-depot").selectOption(nextDepot.id);
     await page.getByRole("button", { name: "Schedule depot move" }).click();
     await expect(page.getByText("Depot assignment scheduled.")).toBeVisible();
@@ -65,16 +69,17 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     await page.goto("/technicians");
 
     await page.getByRole("button", { name: "Edit profile" }).click();
-    await page.getByRole("checkbox", { name: "Sat" }).last().check();
+    await page.getByRole("switch", { name: "Saturday" }).check();
     await page.getByLabel("Sat start").fill("10:00");
-    await page.getByLabel("Sat end").fill("14:00");
+    await page.getByLabel("Sat end").click();
+    await page.getByRole("option", { name: "2:00 PM", exact: true }).click();
     await page.getByRole("button", { name: "Save weekly availability" }).click();
     await expect(page.getByText("Weekly availability scheduled.")).toBeVisible();
     await page.reload();
     await expect(page.getByText(/replacement weekly schedule is pending/)).toBeVisible();
     await page.getByRole("button", { name: "Edit profile" }).click();
     await expect(page.getByText(/Pending replacement starts/)).toBeVisible();
-    await page.getByRole("checkbox", { name: "Sun" }).last().check();
+    await page.getByRole("switch", { name: "Sunday" }).check();
     await page.getByRole("button", { name: "Save weekly availability" }).click();
     await expect(page.getByText("Weekly availability scheduled.")).toBeVisible();
     const versions = await prisma.technicianAvailabilityVersion.findMany({ where: { technicianId: technician.id }, include: { days: true } });
@@ -86,6 +91,52 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     await prisma.technician.delete({ where: { id: technician.id } });
     await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.depot.delete({ where: { id: nextDepot.id } });
+    await prisma.dealership.delete({ where: { id: dealership.id } });
+    await prisma.metro.delete({ where: { id: metro.id } });
+  }
+});
+
+test("profile phone formats as typed and an address edit sends a confirmed pin", async ({ page }) => {
+  const metro = await prisma.metro.create({ data: { name: "Profile address metro", timezone: "America/Chicago" } });
+  const dealership = await prisma.dealership.create({ data: { name: "Profile address dealership" } });
+  const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile address depot", lat: 41.2, lng: -95.9,
+    endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
+  const technician = await prisma.technician.create({ data: { name: "Address Fixture", color: "#2563eb", phone: "4025550100",
+    homeAddressLine1: "1 Main St", homeAddressCity: "Omaha", homeAddressState: "NE", homeAddressPostalCode: "68102",
+    depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
+    homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
+    availabilityVersions: initialAvailability(480, 1020) } });
+  try {
+    let patch: unknown = null;
+    await page.route("http://localhost:8083/omaha.json", route => route.fulfill({ status: 503 }));
+    await page.route("**/api/technicians/geocode", route => route.fulfill({ json: { candidates: [{ lat: 41.21, lng: -95.91, precision: "ROOFTOP" }] } }));
+    await page.route(`**/api/technicians/${technician.id}`, route => {
+      patch = route.request().postDataJSON() as unknown;
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ success: true }) });
+    });
+    await page.goto("/technicians");
+    await page.getByRole("button", { name: "Edit profile" }).click();
+    await expect(page.getByLabel("Phone")).toHaveValue("(402) 555-0100");
+    await expect(page.getByLabel("Street address")).toHaveValue("1 Main St");
+    await expect(page.getByText("Saved home pin is on file")).toBeVisible();
+    await page.getByLabel("Phone").fill("5125550142");
+    await expect(page.getByLabel("Phone")).toHaveValue("(512) 555-0142");
+    await page.getByLabel("Phone").fill("(512) 55");
+    await expect(page.getByText("Enter a phone number with at least 7 digits.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    await page.getByLabel("Phone").fill("+1 512-555-0142");
+    await expect(page.getByLabel("Phone")).toHaveValue("(512) 555-0142");
+    await page.getByLabel("Street address").fill("2 Main St");
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    await expect(page.getByText("Review the located home pin")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save changes" })).toBeEnabled();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Profile saved.")).toBeVisible();
+    expect(patch).toMatchObject({ phone: "(512) 555-0142", address: { line1: "2 Main St", city: "Omaha", state: "NE", postalCode: "68102" },
+      confirmedPin: { lat: 41.21, lng: -95.91 }, manuallyConfirmed: false });
+  } finally {
+    await prisma.technician.delete({ where: { id: technician.id } });
+    await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
   }

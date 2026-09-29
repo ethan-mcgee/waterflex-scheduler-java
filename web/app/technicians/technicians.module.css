@@ -506,3 +506,310 @@
   .overrideDate { width: auto; }
   .overrideTime { flex-basis: 100%; order: 3; }
 }
+
+.depotMoveForm {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.depotMoveForm button {
+  width: 100%;
+}
+
+.availPanel {
+  margin-bottom: 4px;
+}
+
+.availHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.availTotal {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--brand-wash);
+  color: var(--brand-dark);
+}
+
+.availRows {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.availRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.availRow:last-child {
+  border-bottom: 0;
+}
+
+.availDay {
+  width: 96px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.availDayOff {
+  color: var(--quiet);
+}
+
+.availOffText {
+  color: var(--quiet);
+  font-size: 13px;
+}
+
+.availTo {
+  color: var(--quiet);
+  font-size: 13px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 38px;
+  height: 22px;
+  flex: 0 0 auto;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--line-strong);
+  pointer-events: none;
+  transition: background 0.15s;
+}
+
+.switchTrack::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: left 0.15s;
+}
+
+.switch input:checked + .switchTrack {
+  background: var(--brand);
+}
+
+.switch input:checked + .switchTrack::after {
+  left: 18px;
+}
+
+.switch input:focus-visible + .switchTrack {
+  outline: 3px solid rgba(1, 87, 182, 0.25);
+  outline-offset: 2px;
+}
+
+.linkButton {
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 650;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.pickerWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.pickerInput {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.pickerInput:focus-within {
+  border: 1px solid var(--brand);
+  box-shadow: 0 0 0 1px var(--brand);
+}
+
+.pickerInput input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 8px 0 8px 10px;
+}
+
+.pickerInputInvalid {
+  border-color: var(--danger);
+}
+
+.pickerIcon {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  padding: 0 10px;
+  align-self: stretch;
+  cursor: pointer;
+}
+
+.timePopover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  width: 140px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(30, 48, 40, 0.18);
+}
+
+.timeOption {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.timeOption:hover {
+  background: var(--surface-soft);
+}
+
+.timeOptionSelected {
+  background: var(--brand-wash);
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+
+.calendarPopover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 35;
+  width: 280px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(30, 48, 40, 0.18);
+}
+
+.calendarHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.calendarNav {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendarWeekday {
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.calendarDay {
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.calendarDay:hover:not(:disabled) {
+  background: var(--surface-soft);
+}
+
+.calendarDay:disabled {
+  color: var(--line-strong);
+  cursor: not-allowed;
+}
+
+.calendarDaySelected,
+.calendarDaySelected:hover:not(:disabled) {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
+.calendarFoot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+@media (max-width: 820px) {
+  .depotMoveForm { grid-template-columns: 1fr; }
+  .availRow { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
+}
