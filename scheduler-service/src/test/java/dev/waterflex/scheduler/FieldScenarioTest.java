@@ -66,7 +66,7 @@ class FieldScenarioTest {
                 row.put("visits", visits);
                 row.put("segments", selected.validation().segments().entrySet().stream().map(entry -> Map.of("technician", entry.getKey(), "segments",
                         entry.getValue().stream().map(segment -> Map.of("departure", Required.value(segment.departure().toString()), "return", Required.value(segment.returnedAt().toString()), "order", segment.visitIds())).toList())).toList());
-                row.put("endpoints", day.technicians().values().stream().map(t -> Map.of("id", t.id(), "departure", t.departure(), "return", t.returnTo())).toList());
+                row.put("endpoints", day.technicians().values().stream().map(t -> Map.of("id", t.id(), "departure", t.departure(), "return", t.returnTo(), "shiftStart", Required.value(t.shiftStart().toString()), "shiftEnd", Required.value(t.shiftEnd().toString()), "maxDailyMinutes", t.maxDailyMinutes(), "maxOvertimeMinutes", t.maxOvertimeMinutes())).toList());
                 rows.add(row);
                 // Customer confirmation fixes the promise, while internal order and arrival may change next time.
                 Map<String, Visit> confirmed = new TreeMap<>();
@@ -147,13 +147,12 @@ class FieldScenarioTest {
     @Test void coordinatedReassignmentSolvesACaseThatInsertionCannot() throws Exception {
         Day empty = fixture(true, false, false, false);
         Map<String, Technician> techs = new TreeMap<>();
-        empty.technicians().forEach((id, technician) -> techs.put(id, new Technician(technician.id(), START, Required.value(START.plusSeconds(240 * 60)), 120, 0,
+        empty.technicians().forEach((id, technician) -> techs.put(id, new Technician(technician.id(), START, Required.value(START.plusSeconds(240 * 60)), id.equals("omaha") ? 220 : 160, 0,
                 id.equals("omaha") ? Required.value(Set.of("old", "new")) : Required.value(Set.of("old")), Required.value(List.of()), technician.departure(), technician.returnTo(), 0)));
-        Map<String, DayPlan.RoadLeg> roads = new TreeMap<>(); empty.roads().legs().keySet().forEach(key -> roads.put(key, new DayPlan.RoadLeg(0, 0)));
         for (int oldWidth : List.of(120, 240)) {
-            var a = new Visit("A", "A", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 90, TOWN, "omaha", START, false);
-            var b = new Visit("B", "B", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 60, OMAHA, "nearby", START, false);
-            Day day = new Day(techs, Required.value(Map.of("A", a, "B", b)), new Arrangement(Required.value(Map.of("omaha", List.of("A"), "nearby", List.of("B")))), 0, new Roads(roads, Required.value(Set.of())));
+            var a = new Visit("A", "A", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 90, TOWN, "omaha", Required.value(START.plusSeconds(40 * 60)), false);
+            var b = new Visit("B", "B", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 60, OMAHA, "nearby", Required.value(START.plusSeconds(45 * 60)), false);
+            Day day = new Day(techs, Required.value(Map.of("A", a, "B", b)), new Arrangement(Required.value(Map.of("omaha", List.of("A"), "nearby", List.of("B")))), 0, empty.roads());
             var request = new BoundedBookingSearch.Request("C", "new", 50, TOWN);
             assertTrue(engine(snapshot(day), request, 240, "INSERTION").search(false).candidates().isEmpty());
             for (String variant : List.of("BOUNDED", "EXPANDED", "RUIN_RECREATE", "SHARED")) {
@@ -189,10 +188,12 @@ class FieldScenarioTest {
         row.put("scenario", name); row.put("before", day.baseline().routes()); row.put("after", chosen.arrangement().routes());
         row.put("costCents", chosen.validation().costCents()); row.put("drivingMinutes", chosen.validation().driveMinutes());
         row.put("meters", chosen.validation().meters());
-        row.put("endpoints", day.technicians().values().stream().map(t -> Map.of("id", t.id(), "departure", t.departure(), "return", t.returnTo())).toList());
+        row.put("noNewRequestOracleCostCents", Required.value(SmallCaseOracle.best(day, day.visits(), RATES)).costCents());
+        row.put("directedRoads", day.roads().legs());
+        row.put("endpoints", day.technicians().values().stream().map(t -> Map.of("id", t.id(), "departure", t.departure(), "return", t.returnTo(), "shiftStart", Required.value(t.shiftStart().toString()), "shiftEnd", Required.value(t.shiftEnd().toString()), "maxDailyMinutes", t.maxDailyMinutes(), "maxOvertimeMinutes", t.maxOvertimeMinutes())).toList());
         row.put("waitingMinutes", chosen.validation().waitingMinutes()); row.put("crossings", crossings(chosen.arrangement()));
         row.put("overtimeMinutes", chosen.validation().overtimeMinutes()); row.put("source", chosen.source());
-        row.put("visits", facts.values().stream().map(v -> Map.of("id", v.id(), "start", Required.value(v.windowStart().toString()), "end", Required.value(v.windowEnd().toString()), "planned", Required.value(Required.value(chosen.validation().arrivals().get(v.id())).toString()))).toList());
+        row.put("visits", facts.values().stream().map(v -> Map.of("id", v.id(), "start", Required.value(v.windowStart().toString()), "end", Required.value(v.windowEnd().toString()), "planned", Required.value(Required.value(chosen.validation().arrivals().get(v.id())).toString()), "serviceMinutes", v.durationMinutes())).toList());
         row.put("segments", chosen.validation().segments().entrySet().stream().map(e -> Map.of("technician", e.getKey(), "segments", e.getValue().stream().map(s -> Map.of("departure", Required.value(s.departure().toString()), "return", Required.value(s.returnedAt().toString()), "order", s.visitIds())).toList())).toList());
         Path target = Required.value(Path.of("target", "field-" + name + ".json"));
         new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(target.toFile(), row);
