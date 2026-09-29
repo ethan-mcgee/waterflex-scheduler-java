@@ -29,6 +29,11 @@ def table(headers, rows):
                      ["| " + " | ".join(str(cell) for cell in row) + " |" for row in rows])
 
 
+def inline(value):
+    value = re.sub(r"`([^`]+)`", r"<code>\1</code>", escape(value))
+    return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', value)
+
+
 def cost(row, phase="after"):
     return sum(day["policy"]["costCents"] for day in row[phase]["days"])
 
@@ -49,8 +54,10 @@ def main():
     booking, daily, provenance, failures = [], [], [], []
     inventory = []
     for path in sorted([*DATA.glob("*.jsonl"), *DATA.glob("*.jsonl.gz")]):
-        raw = gzip.decompress(path.read_bytes()) if path.suffix == ".gz" else path.read_bytes()
-        inventory.append({"file": path.name, "bytes": len(raw), "sha256": sha256(raw).hexdigest()})
+        archive = path.read_bytes()
+        raw = gzip.decompress(archive) if path.suffix == ".gz" else archive
+        inventory.append({"file": path.name, "bytes": len(archive), "sha256": sha256(archive).hexdigest(),
+                          "uncompressedBytes": len(raw), "uncompressedSha256": sha256(raw).hexdigest()})
         rows = [json.loads(line) for line in raw.decode("utf-8-sig").splitlines() if line.strip()]
         metadata = next((r for r in rows if r.get("type") == "provenance"), {})
         provenance.append({"file": path.name, "metadata": metadata})
@@ -168,6 +175,7 @@ def main():
       "## Decision and scope",
       "Adopt the single-offer, four-hour, zero-new-overtime safety policy and durable search lifecycle. Retain the existing production search selection and daily TABU default. Expanded search remains experimental. No algorithm promotion is justified by this evidence alone: concurrent service outcomes, limited independent geography, and runtime remain material constraints. These are modeled fixture results, not operational savings or a reproduction from customer production records.",
       "Baseline checkout: `c28a24c4c0c1b4614b442c7a362d205cfa7e0db3`. Original behavior is rebuilt in an isolated checkout and recorded separately as `original`; `screen` and `held` use the new policy. Historical reports and artifacts remain unchanged. Algorithm rollback continues through the common policy and reservation validation layer.",
+      "[Machine-readable totals and raw-file checksums](evidence/scheduler-field-2026-09-29/summary.json), [experiment manifest](evidence/scheduler-field-2026-09-29/experiment-manifest.json), and [validation checks](evidence/scheduler-field-2026-09-29/validation.json) back this report. Gzip archives preserve the exact original JSONL/log bytes. Algorithm rollback means selecting the earlier algorithm in this policy release, not deploying a pre-policy binary.",
       "## Policy and implementation",
       "New bookings reserve one best-found offer ranked by incremental operating cost, workload balance, earlier promise, and stable identifiers. Arrival promises span four hours and start hourly. Service and return travel must fit regular availability. Existing confirmed dates/windows, actual dated home/depot endpoints, absences, skills, directed routing, holds, and the 06:00 America/Chicago freeze remain hard boundaries. Existing overtime routes retain their facts and are excluded from new work and flagged for follow-up. An already infeasible snapshot still fails closed; it is not silently repaired during booking.",
       "Insertion covers the normal horizon first, including weekend availability inside the weekday-counted horizon. The search only enters five additional weekdays after a completed normal search finds no candidate, then selects the cheapest candidate on the first feasible overflow date. An interrupted search does not establish infeasibility.",
@@ -284,7 +292,7 @@ def main():
             html.append("</table></div>")
             continue
         elif line:
-            html.append("<p>" + escape(line) + "</p>")
+            html.append("<p>" + inline(line) + "</p>")
         i += 1
     chart = ["<h2>Screening cost versus runtime</h2><svg viewBox='0 0 800 340' role='img' aria-label='Mean case p95 versus paired savings from insertion'>"]
     screen = [s for s in summaries if s["stage"] == "screen"]
