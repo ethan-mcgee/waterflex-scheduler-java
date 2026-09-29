@@ -128,7 +128,7 @@ def main():
     assert len(rejected) == 3 and all(r["expected"] == "NO_CANDIDATE" for r in rejected)
     assert all(r["overtimeMinutes"] == 0 for r in companions)
     routes_svg = route_diagram(field, companions)
-    (ROOT / "docs/scheduler-field-routes.svg").write_text(routes_svg, encoding="utf-8")
+    (ROOT / "docs/scheduler-field-routes.svg").write_text(routes_svg, encoding="utf-8", newline="\n")
     groups = defaultdict(list)
     for row in booking:
         groups[row["stage"], row["variant"]].append(row)
@@ -237,7 +237,7 @@ def main():
                "booking": summaries, "paired": paired, "dailyPaired": daily_pairs, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
                "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions), "rejectionFixtures": rejected,
                "failures": failures, "provenance": provenance}
-    (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     sections = ["# Scheduler policy, search, and field validation",
       "Execution status: " + ("complete" if complete else "in progress") + f". Retained {len(booking)}/218 validated booking cases and {len(daily)}/240 daily-solver cases. Every raw case remains included in its stage. Separately retained failures are disclosed below.",
       "## Decision and scope",
@@ -339,7 +339,7 @@ def main():
       "See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. The browser stage measures Chromium HTTP through an isolated production-built portal at concurrency 1/5/10, 5/10/20/50 technicians, and held-out seeds 59/83 with the retained insertion baseline. It uses actual durable start/poll endpoints and 750ms polling, starting from validated jobs. Confirmation uses the API harness; address entry, rendering, and geocoding time are excluded. Broad production representativeness and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion."]
     text = "\n\n".join(sections) + "\n"
     assert "\u2014" not in text
-    OUT.write_text(text, encoding="utf-8")
+    OUT.write_text(text, encoding="utf-8", newline="\n")
     # A deliberately small Markdown renderer for this generator's fixed headings/tables/code/paragraphs.
     html, code = [], False
     lines = text.splitlines()
@@ -386,9 +386,9 @@ def main():
         chart.append(f"<text x='15' y='{y + 4}'>${tick * 4}</text>")
     chart.append("<path d='M65 25V280H750' fill='none' stroke='#555'/><text x='250' y='330'>Mean case p95 latency</text><text x='75' y='20'>Paired modeled savings versus insertion per stream</text></svg>")
     svg = "<svg xmlns='http://www.w3.org/2000/svg'" + "".join(chart).split("<svg", 1)[1]
-    (ROOT / "docs/scheduler-field-cost-runtime.svg").write_text(svg, encoding="utf-8")
+    (ROOT / "docs/scheduler-field-cost-runtime.svg").write_text(svg, encoding="utf-8", newline="\n")
     page = "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Scheduler field validation</title><style>body{font:16px/1.55 system-ui;max-width:1180px;margin:40px auto;padding:0 24px;color:#172b3a}h1,h2,h3{line-height:1.2}h2{margin-top:2em;border-top:1px solid #cbd5df;padding-top:1em}table{border-collapse:collapse;font-size:13px;width:100%}th,td{padding:9px;border:1px solid #cbd5df;text-align:left}th{background:#e8f2f4}tr:nth-child(even){background:#f7f9fb}.scroll{overflow-x:auto}pre{background:#f0f4f7;padding:20px;overflow:auto}svg{width:100%;height:auto}svg text{font-size:12px}</style><main>" + "\n".join(html[:4]) + "".join(chart) + "\n".join(html[4:]) + "</main></html>"
-    OUT.with_suffix(".html").write_text(page, encoding="utf-8")
+    OUT.with_suffix(".html").write_text(page, encoding="utf-8", newline="\n")
     print(json.dumps({"bookingCases": len(booking), "dailyCases": len(daily), "fieldRows": 180, "companions": len(companions), "summary": str(DATA / "summary.json")}))
 
 
