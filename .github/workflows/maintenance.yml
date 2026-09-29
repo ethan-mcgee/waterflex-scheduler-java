@@ -1,0 +1,59 @@
+name: Maintenance
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  images:
+    name: Build ${{ matrix.image }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: web
+            context: web
+            dockerfile: web/Dockerfile
+          - image: scheduler
+            context: .
+            dockerfile: scheduler-service/Dockerfile
+          - image: routing
+            context: .
+            dockerfile: routing-service/Dockerfile
+          - image: map-import
+            context: infra/map-import
+            dockerfile: infra/map-import/Dockerfile
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build only, without publishing or running imports
+        env:
+          IMAGE: ${{ matrix.image }}
+          CONTEXT: ${{ matrix.context }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: docker build --file "$DOCKERFILE" --tag "waterflex-check:$IMAGE" "$CONTEXT"
+
+  npm-audit:
+    name: npm dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Audit locked dependencies
+        working-directory: web
+        run: npm audit --package-lock-only --audit-level=high --json > npm-audit.json
+      - name: Retain audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit
+          path: web/npm-audit.json
+          retention-days: 30

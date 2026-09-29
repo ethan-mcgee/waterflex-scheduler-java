@@ -10,7 +10,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 assert.equal(new URL(process.env.DATABASE_URL).pathname, '/waterflex_test');
 assert.equal(new URL(process.env.JDBC_DATABASE_URL.replace(/^jdbc:/, '')).pathname, '/waterflex_test');
 assert.ok(process.env.ROUTING_URL, 'Set ROUTING_URL to the fixture router');
-const logs = mkdtempSync(join(tmpdir(), 'booking-offer-limits-'));
+const logs = mkdtempSync(join(process.env.RUNNER_TEMP ?? tmpdir(), 'booking-offer-limits-'));
 const jar = resolve('scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar');
 const tsx = resolve('web/node_modules/tsx/dist/cli.mjs');
 const java = process.env.JAVA_HOME
