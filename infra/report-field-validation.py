@@ -85,7 +85,10 @@ def main():
                        outcomes=dict(Counter(a["outcome"] for a in attempts)),
                        cpuSeconds=sum(r["processAfter"]["processCpuNanos"] - r["processBefore"]["processCpuNanos"] for r in rows) / 1e9,
                        peakHeapBytes=max(r["processAfter"]["peakHeapUsedBytes"] for r in rows),
-                       routingPairs=sum(r["processAfter"]["routing"]["requestedPairs"] - r["processBefore"]["routing"]["requestedPairs"] for r in rows))
+                       routingPairs=sum(r["processAfter"]["routing"]["requestedPairs"] - r["processBefore"]["routing"]["requestedPairs"] for r in rows),
+                       roadMinutes=sum(d["roadSeconds"] for r in rows for d in r["after"]["days"]) / 60,
+                       waitingMinutes=sum(d["waitingMinutes"] for r in rows for d in r["after"]["days"]),
+                       meanVariance=mean(d["policy"]["fairness"]["variance"] for r in rows for d in r["after"]["days"]))
         summaries.append(summary)
     paired = []
     def key(r):
@@ -161,6 +164,10 @@ def main():
       table(["Variant", "Seed / technicians", "Original / new served", "Original cost", "New policy cost", "Same customers"],
             [[p["variant"], f'{p["seed"]}/{p["size"]}', f'{p["originalServed"]}/{p["policyServed"]}', money(p["originalCostCents"]), money(p["policyCostCents"]), p["sameCustomers"]] for p in policy_pairs]),
       "These pairs have identical seeded fixture fingerprints and request streams. The original policy includes two-hour promises and multiple choices; the new policy uses four-hour promises, one choice, no new overtime, and durable search. This bundled policy/lifecycle comparison cannot attribute its difference to a single policy. The independent field two-by-two experiment isolates promise width from insertion versus rearrangement. Immediate snapshots are compared there; sequential histories are allowed to diverge in this replay.",
+      "### Resource and route diagnostics",
+      table(["Stage / variant", "CPU sec", "Peak heap MiB", "Requested road pairs", "Road min", "Paid waiting min", "Mean variance"],
+            [[s["stage"] + "/" + s["variant"], f'{s["cpuSeconds"]:,.1f}', f'{s["peakHeapBytes"] / 1048576:,.1f}', s["routingPairs"], f'{s["roadMinutes"]:,.1f}', s["waitingMinutes"], f'{s["meanVariance"]:.6f}'] for s in summaries]),
+      "Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. [Cost versus runtime chart](scheduler-field-cost-runtime.svg).",
       "### Paired comparison against new-policy insertion",
       table(["Stage", "Variant", "Same customers / different customers", "Stream units", "Served delta", "Mean savings per stream", "Exploratory 95% interval"],
             [[p["stage"], p["variant"], f'{p["equalCustomerCases"]}/{p["differentCustomerCases"]}', p["streamUnits"], p["servedDelta"],
@@ -189,6 +196,9 @@ def main():
              for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] in ("INSERTION", "BOUNDED")]),
       "```text\nArrival history: A (town), B (Omaha), C (town)\nBefore C: Omaha home -> A town -> B Omaha -> Omaha home\nAfter C:  Omaha home -> A/C town together -> B Omaha -> Omaha home\nProtected tight B: Omaha home -> A town -> B Omaha -> C town -> Omaha home\n```",
       "A and C can exchange order in an equivalent optimum. Region crossings are diagnostic only. The protected Omaha case correctly makes grouping lose: its narrow existing promise forces a return before C. Removing that appointment or releasing its reservation restores flexibility without phantom capacity.",
+      table(["Promise width", "After request", "Visit", "Promised arrival interval (UTC)", "Planned arrival (UTC)"],
+            [[r["promiseMinutes"], r["request"], v["id"], v["windowStart"] + " to " + v["windowEnd"], v["planned"]]
+             for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["variant"] == "BOUNDED" for v in r["visits"]]),
       table(["Companion", "Selected routes", "Cost", "Drive / wait min", "Crossings", "Source"],
             [[r["scenario"], "; ".join(k + ": " + ",".join(v) for k, v in r["after"].items()), money(r["costCents"]), f'{r["drivingMinutes"]}/{r["waitingMinutes"]}', r["crossings"], r["source"]] for r in companions]),
       "The reassignment fixture gives each technician 120 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow. Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.",
@@ -239,8 +249,15 @@ def main():
         saving = pair["meanSavingsCents"] if pair and pair["meanSavingsCents"] is not None else 0
         x, y = 80 + 530 * row["meanCaseP95Ms"] / max_ms, 270 - min(220, saving / 10)
         chart.append(f"<circle cx='{x}' cy='{y}' r='6' fill='#087e8b'/><text x='{x + 9}' y='{y + (index % 2) * 14}'>{escape(row['variant'])}</text>")
-    chart.append("<path d='M65 25V280H750' fill='none' stroke='#555'/><text x='190' y='320'>Mean case p95 latency (scaled to slowest screen)</text><text x='75' y='20'>Paired modeled savings versus insertion (cents, upward)</text></svg>")
-    page = "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Scheduler field validation</title><style>body{font:16px/1.55 system-ui;max-width:1180px;margin:40px auto;padding:0 24px;color:#172b3a}h1,h2,h3{line-height:1.2}h2{margin-top:2em;border-top:1px solid #cbd5df;padding-top:1em}table{border-collapse:collapse;font-size:13px;width:100%}th,td{padding:9px;border:1px solid #cbd5df;text-align:left}th{background:#e8f2f4}tr:nth-child(even){background:#f7f9fb}.scroll{overflow-x:auto}pre{background:#f0f4f7;padding:20px;overflow:auto}svg{width:100%;max-height:380px}svg text{font-size:12px}</style><main>" + "".join(chart) + "\n".join(html) + "</main></html>"
+    for tick in range(6):
+        x = 80 + tick * 106
+        chart.append(f"<text x='{x}' y='297'>{max_ms * tick / 5000:.1f}s</text>")
+        y = 270 - tick * 40
+        chart.append(f"<text x='15' y='{y + 4}'>${tick * 4}</text>")
+    chart.append("<path d='M65 25V280H750' fill='none' stroke='#555'/><text x='250' y='330'>Mean case p95 latency</text><text x='75' y='20'>Paired modeled savings versus insertion per stream</text></svg>")
+    svg = "<svg xmlns='http://www.w3.org/2000/svg'" + "".join(chart).split("<svg", 1)[1]
+    (ROOT / "docs/scheduler-field-cost-runtime.svg").write_text(svg, encoding="utf-8")
+    page = "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Scheduler field validation</title><style>body{font:16px/1.55 system-ui;max-width:1180px;margin:40px auto;padding:0 24px;color:#172b3a}h1,h2,h3{line-height:1.2}h2{margin-top:2em;border-top:1px solid #cbd5df;padding-top:1em}table{border-collapse:collapse;font-size:13px;width:100%}th,td{padding:9px;border:1px solid #cbd5df;text-align:left}th{background:#e8f2f4}tr:nth-child(even){background:#f7f9fb}.scroll{overflow-x:auto}pre{background:#f0f4f7;padding:20px;overflow:auto}svg{width:100%;max-height:380px}svg text{font-size:12px}</style><main>" + "\n".join(html[:3]) + "".join(chart) + "\n".join(html[3:]) + "</main></html>"
     OUT.with_suffix(".html").write_text(page, encoding="utf-8")
     print(json.dumps({"bookingCases": len(booking), "dailyCases": len(daily), "fieldRows": 180, "companions": len(companions), "summary": str(DATA / "summary.json")}))
 
