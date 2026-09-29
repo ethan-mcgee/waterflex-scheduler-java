@@ -82,6 +82,9 @@ def main():
     assert len(field["rows"]) == 180
     assert all(r["costCents"] == r["oracleCostCents"] and r["overtimeMinutes"] == 0 for r in field["rows"])
     companions = [load(p) for p in sorted(DATA.glob("field-*.json")) if p.name not in ("field-scenarios.json", "field-rejections.json")]
+    assert len(companions) == 24
+    rejected = load(DATA / "field-rejections.json")["rejections"]
+    assert len(rejected) == 3 and all(r["expected"] == "NO_CANDIDATE" for r in rejected)
     assert all(r["overtimeMinutes"] == 0 for r in companions)
     groups = defaultdict(list)
     for row in booking:
@@ -167,7 +170,7 @@ def main():
         assert complete, {"expectedBookingCases": expected, "actualBookingCases": actual, "dailyCases": len(daily)}
     summary = {"executionComplete": complete, "expectedBookingCases": expected, "actualBookingCases": actual,
                "booking": summaries, "paired": paired, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
-               "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions),
+               "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions), "rejectionFixtures": rejected,
                "failures": failures, "provenance": provenance}
     (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     sections = ["# Scheduler policy, search, and field validation",

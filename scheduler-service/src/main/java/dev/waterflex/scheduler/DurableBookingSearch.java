@@ -37,7 +37,10 @@ public final class DurableBookingSearch {
 
     public DurableBookingSearch(JdbcTemplate jdbc, PlatformTransactionManager manager, BookingCoordinator coordinator,
             SearchAdmission admission, BookingSearchControl control) {
-        this.jdbc = jdbc; this.tx = new TransactionTemplate(manager); tx.setTimeout(3);
+        // Polling and lease maintenance also need bounded queries outside publication transactions.
+        this.jdbc = new JdbcTemplate(Required.value(jdbc.getDataSource(), "durable search database"));
+        this.jdbc.setQueryTimeout(3);
+        this.tx = new TransactionTemplate(manager); tx.setTimeout(3);
         this.coordinator = coordinator; this.admission = admission; this.control = control;
     }
     @PostConstruct void startWorkers() {
