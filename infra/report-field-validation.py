@@ -64,6 +64,7 @@ def main():
                 booking.append(row)
             elif row.get("type") == "result":
                 row["budget"] = int(re.search(r"(?:screen|held)-(\d+)", path.name)[1])
+                row["stage"] = "held" if path.name.startswith("held") else "screen"
                 assert row["violations"] == 0 and row["after"]["overtimeMinutes"] == 0
                 daily.append(row)
             elif row.get("type") not in ("provenance", "configuration"):
@@ -79,6 +80,16 @@ def main():
     summaries = []
     for (stage, variant), rows in sorted(groups.items()):
         attempts = [a for r in rows for a in r["attempts"]]
+        queue = [a["search"]["queueMs"] for a in attempts if a.get("search", {}).get("queueMs") is not None]
+        lead, overflow = [], 0
+        for row in rows:
+            normal = [date.fromisoformat(d["date"]) for d in row["before"]["days"]]
+            for attempt in row["attempts"]:
+                if attempt["served"] and "serviceDate" in attempt:
+                    offered = date.fromisoformat(attempt["serviceDate"])
+                    lead.append((offered - min(normal)).days + 1)
+                    overflow += offered > max(normal)
+        diagnostic = [item["diagnostic"] for row in rows for item in row["diagnostics"]["attempts"]]
         summary = dict(stage=stage, variant=variant, cases=len(rows), requests=len(attempts), served=sum(r["served"] for r in rows),
                        incomplete=sum(r["incomplete"] for r in rows), finalCostCents=sum(cost(r) for r in rows),
                        meanCaseP95Ms=mean(r["p95Ms"] for r in rows), conflicts=sum(a["outcome"] == "SCHEDULE_CONFLICT" for a in attempts),
@@ -88,7 +99,12 @@ def main():
                        routingPairs=sum(r["processAfter"]["routing"]["requestedPairs"] - r["processBefore"]["routing"]["requestedPairs"] for r in rows),
                        roadMinutes=sum(d["roadSeconds"] for r in rows for d in r["after"]["days"]) / 60,
                        waitingMinutes=sum(d["waitingMinutes"] for r in rows for d in r["after"]["days"]),
-                       meanVariance=mean(d["policy"]["fairness"]["variance"] for r in rows for d in r["after"]["days"]))
+                       meanVariance=mean(d["policy"]["fairness"]["variance"] for r in rows for d in r["after"]["days"]),
+                       meanQueueMs=mean(queue) if queue else None, meanLeadDays=mean(lead) if lead else None, overflow=overflow,
+                       candidateEvaluations=sum(c["candidateEvaluations"] for d in diagnostic for c in d["coverage"]),
+                       routeEvaluations=sum(d["evaluatedRoutes"] for d in diagnostic),
+                       reconstructionAttempts=sum(d.get("reconstructionAttempts", 0) for d in diagnostic),
+                       preparationRecords=len(diagnostic))
         summaries.append(summary)
     paired = []
     def key(r):
@@ -168,6 +184,11 @@ def main():
       table(["Stage / variant", "CPU sec", "Peak heap MiB", "Requested road pairs", "Road min", "Paid waiting min", "Mean variance"],
             [[s["stage"] + "/" + s["variant"], f'{s["cpuSeconds"]:,.1f}', f'{s["peakHeapBytes"] / 1048576:,.1f}', s["routingPairs"], f'{s["roadMinutes"]:,.1f}', s["waitingMinutes"], f'{s["meanVariance"]:.6f}'] for s in summaries]),
       "Road and waiting totals include existing work across all cases. Queue time, request service dates (lead time/overflow), per-request outcomes, and CPU/heap/routing snapshots remain in the raw attempt records. The audit does not retain aggregate road distance, so no fleet-distance estimate is fabricated. The field fixtures independently retain meters. [Cost versus runtime chart](scheduler-field-cost-runtime.svg).",
+      table(["Stage / variant", "Mean queue ms", "Mean lead days", "Overflow", "Candidate / route evaluations", "Reconstructions", "Prepared snapshots"],
+            [[s["stage"] + "/" + s["variant"], "n/a" if s["meanQueueMs"] is None else f'{s["meanQueueMs"]:,.0f}',
+              "n/a" if s["meanLeadDays"] is None else f'{s["meanLeadDays"]:.2f}', s["overflow"],
+              f'{s["candidateEvaluations"]:,}/{s["routeEvaluations"]:,}', s["reconstructionAttempts"], s["preparationRecords"]] for s in summaries]),
+      "Lead time is calendar days from the day before the first normal booking date, for served requests only. Overflow counts served dates after the audited normal horizon. Prepared-snapshot counters include fresh-snapshot retries separately; failures before preparation may lack diagnostics, so these counters are not total CPU-work estimates. Original search has no reconstruction move, represented by zero for that algorithm rather than a missing scheduling fact.",
       "### Paired comparison against new-policy insertion",
       table(["Stage", "Variant", "Same customers / different customers", "Stream units", "Served delta", "Mean savings per stream", "Exploratory 95% interval"],
             [[p["stage"], p["variant"], f'{p["equalCustomerCases"]}/{p["differentCustomerCases"]}', p["streamUnits"], p["servedDelta"],
@@ -182,10 +203,10 @@ def main():
       "All eight existing configurations are rerun under the new zero-overtime policy. Fixture roads are deterministic directed legs, not GraphHopper. Development seeds 17/23/41 screen 10/20 technicians; held-out seeds 59/83 cover 5/10/20/50 at equal total 15/30/60-second budgets. A capped solver may finish early. The cost-reference and fairness phases share the total budget. No-new-request daily optimization is the cleanup control."]
     dg = defaultdict(list)
     for row in daily:
-        dg[row["budget"], row["variant"]].append(row)
-    sections.append(table(["Seconds", "Variant", "Cases", "Mean accepted cost change", "Mean elapsed, ms", "Violations"],
-                          [[b, v, len(rs), money(mean(r["after"]["costCents"] - r["before"]["costCents"] for r in rs)),
-                            f'{mean(r["elapsedMs"] for r in rs):,.0f}', sum(r["violations"] for r in rs)] for (b, v), rs in sorted(dg.items())]))
+        dg[row["stage"], row["budget"], row["variant"]].append(row)
+    sections.append(table(["Stage", "Seconds", "Variant", "Cases", "Mean accepted cost change", "Mean elapsed, ms", "Violations"],
+                          [[stage, b, v, len(rs), money(mean(r["after"]["costCents"] - r["before"]["costCents"] for r in rs)),
+                            f'{mean(r["elapsedMs"] for r in rs):,.0f}', sum(r["violations"] for r in rs)] for (stage, b, v), rs in sorted(dg.items())]))
     sections += ["## Field scenarios",
       "The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha. Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.",
       f"All {len(field['rows'])} sequential steps match their exact optimum: all six booking orders, two/four-hour promises, five variants, and three confirmed requests. Earlier promises remain fixed while internal order/time may change. This simple fixture is already solved by insertion, so it does not reproduce a failure of insertion. Both wider promises and stronger search are separately varied; neither is required for this fixture's optimal grouping.",
