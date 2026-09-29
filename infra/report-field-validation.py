@@ -124,7 +124,7 @@ def main():
                     different += 1
                     continue
                 matched += 1
-                units[row["seed"], row["size"], row["workload"]].append(cost(baseline) - cost(row))
+                units[None if row["workload"] == "CLUSTERED" else row["seed"], row["workload"]].append(cost(baseline) - cost(row))
             values = [mean(v) for v in units.values()]
             paired.append(dict(stage=stage, variant=variant, equalCustomerCases=matched, differentCustomerCases=different,
                                streamUnits=len(values), servedDelta=served_delta, meanSavingsCents=mean(values) if values else None,
@@ -203,7 +203,7 @@ def main():
             [[p["stage"], p["variant"], f'{p["equalCustomerCases"]}/{p["differentCustomerCases"]}', p["streamUnits"], p["servedDelta"],
               "n/a" if p["meanSavingsCents"] is None else money(p["meanSavingsCents"]),
               "n/a" if p["exploratory95PercentInterval"] is None else " to ".join(money(v) for v in p["exploratory95PercentInterval"])] for p in paired]),
-      "Customer identity is the stable request index within an identical seeded dataset, not a random database UUID. Cost pairs with different served identities are excluded from savings estimates and counted explicitly. Cache/concurrency repetitions are averaged within a seed/size/workload stream before a deterministic 10,000-resample percentile bootstrap. Fleet sizes share generated geography and clustered seeds do not vary the geography, so these intervals are exploratory, not population confidence or independent operational replication. Served-demand deterioration blocks promotion even when equal-customer cost improves.",
+      "Customer identity is the stable request index within an identical seeded dataset, not a random database UUID. Cost pairs with different served identities are excluded from savings estimates and counted explicitly. Fleet sizes, cache modes, and concurrency repetitions are averaged within a seeded request stream before a deterministic 10,000-resample percentile bootstrap. Clustered seeds generate the same request sequence and collapse to one stream, so no interval is reported there. Held-out dispersed evidence has only two independent seeded streams. These intervals are exploratory, not population confidence or independent operational replication. Served-demand deterioration blocks promotion even when equal-customer cost improves.",
       "### Search quality over time",
       table(["Stage / variant", "Seconds", "Visible incumbent / searches", "Mean visible incremental cost"],
             [[q["stage"] + "/" + q["variant"], q["seconds"], f'{q["visibleIncumbents"]}/{q["searches"]}', "n/a" if q["meanVisibleCostDeltaCents"] is None else money(q["meanVisibleCostDeltaCents"])] for q in quality if q["stage"] != "original"]),
