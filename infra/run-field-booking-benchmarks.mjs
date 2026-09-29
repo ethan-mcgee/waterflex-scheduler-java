@@ -12,7 +12,8 @@ const database = new URL(process.env.DATABASE_URL);
 assert.equal(database.pathname, '/waterflex_test');
 const port = Number(process.env.FIELD_PORT ?? 18020);
 assert.ok(Number.isInteger(port) && port >= 18020 && port <= 18100);
-const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const checkoutRevision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const revision = process.env.FIELD_REVISION ?? checkoutRevision;
 const output = resolve(process.env.FIELD_OUTPUT ?? 'docs/evidence/scheduler-field-2026-09-29');
 mkdirSync(output, { recursive: true });
 const jar = resolve(process.env.FIELD_JAR ?? 'scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar');
@@ -38,11 +39,11 @@ for (const seed of (process.env.FIELD_SEEDS ?? '17,23,41').split(',')) {
     BENCHMARK_OUTPUT: join(output, `${name}.jsonl`), BENCHMARK_LOG_PATH: serverLog,
     BENCHMARK_SIZES: process.env.FIELD_SIZES ?? '10,20', BENCHMARK_WORKLOADS: process.env.FIELD_WORKLOADS ?? 'CLUSTERED',
     BENCHMARK_SEED: seed, BENCHMARK_CONCURRENCY: process.env.FIELD_CONCURRENCY ?? '1',
-    BENCHMARK_CACHES: process.env.FIELD_CACHES ?? 'warm', BENCHMARK_REQUESTS: process.env.FIELD_REQUESTS ?? '3', BENCHMARK_DURABLE: 'true' };
+    BENCHMARK_CACHES: process.env.FIELD_CACHES ?? 'warm', BENCHMARK_REQUESTS: process.env.FIELD_REQUESTS ?? '3', BENCHMARK_DURABLE: process.env.FIELD_DURABLE ?? 'true' };
   const migrate = launch(process.execPath, [resolve('web/node_modules/prisma/build/index.js'), 'migrate', 'deploy'], env, join(output, `${name}.migrate.log`), resolve('web'));
   assert.equal(await migrate.done, 0, 'Migration failed');
   const server = launch(java, ['-Xmx1536m', '-jar', jar, `--server.port=${port}`, '--spring.profiles.active=benchmark',
-    '--booking.search.bounded=true', `--booking.search.variant=${variant}`], env, serverLog);
+    `--booking.search.bounded=${process.env.FIELD_BOUNDED ?? 'true'}`, `--booking.search.variant=${variant}`], env, serverLog);
   try {
     let ready = false;
     for (let attempt = 0; attempt < 60; attempt++) {
@@ -52,7 +53,7 @@ for (const seed of (process.env.FIELD_SEEDS ?? '17,23,41').split(',')) {
       await delay(1000);
     }
     assert.ok(ready, 'Benchmark scheduler failed to start');
-    writeFileSync(join(output, `${name}.runtime.json`), JSON.stringify({ revision, jarSha256: hash, schema, port, variant, seed,
+    writeFileSync(join(output, `${name}.runtime.json`), JSON.stringify({ revision, checkoutRevision, jarSha256: hash, schema, port, variant, seed,
       routingUrl: env.ROUTING_URL, sizes: env.BENCHMARK_SIZES, concurrency: env.BENCHMARK_CONCURRENCY, caches: env.BENCHMARK_CACHES,
       requests: env.BENCHMARK_REQUESTS, startedAt: new Date().toISOString(), concurrentLocalBenchmarks: true }, null, 2));
     const benchmark = launch(process.execPath, [resolve('web/node_modules/tsx/dist/cli.mjs'), 'scripts/benchmark-scheduling.ts'], env,

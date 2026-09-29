@@ -83,7 +83,7 @@ async function main() {
     assert.equal(required(overtimeReview.report).status, "NEEDS_COORDINATION");
     for (const allowAdditionalOvertime of [false, true]) {
       const rejected = await fetch(`${base}/v1/time-off/${overtimeRequest.requestId}/approve`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowAdditionalOvertime }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowAdditionalOvertime, approvedRepairIds: ["retired-overtime-preview"] }),
       });
       assert.equal(rejected.status, 409);
       assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } }), overtimeAppointment);
