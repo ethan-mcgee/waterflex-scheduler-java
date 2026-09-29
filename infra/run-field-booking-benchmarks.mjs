@@ -44,6 +44,7 @@ for (const seed of (process.env.FIELD_SEEDS ?? '17,23,41').split(',')) {
   assert.equal(await migrate.done, 0, 'Migration failed');
   const server = launch(java, ['-Xmx1536m', '-jar', jar, `--server.port=${port}`, '--spring.profiles.active=benchmark',
     `--booking.search.bounded=${process.env.FIELD_BOUNDED ?? 'true'}`, `--booking.search.variant=${variant}`], env, serverLog);
+  let portal = null;
   try {
     let ready = false;
     for (let attempt = 0; attempt < 60; attempt++) {
@@ -53,11 +54,26 @@ for (const seed of (process.env.FIELD_SEEDS ?? '17,23,41').split(',')) {
       await delay(1000);
     }
     assert.ok(ready, 'Benchmark scheduler failed to start');
+    if (process.env.FIELD_PORTAL_PORT) {
+      const portalPort = Number(process.env.FIELD_PORTAL_PORT);
+      assert.ok(Number.isInteger(portalPort) && portalPort >= 18101 && portalPort <= 18200);
+      env.BENCHMARK_PORTAL_URL = `http://127.0.0.1:${portalPort}`;
+      portal = launch(process.execPath, [resolve('web/node_modules/next/dist/bin/next'), 'start', '-p', String(portalPort)], env,
+        join(output, `${name}.portal.log`), resolve('web'));
+      let portalReady = false;
+      for (let attempt = 0; attempt < 60; attempt++) {
+        if (portal.process.exitCode !== null) throw new Error('Benchmark portal exited before health check');
+        try { portalReady = (await fetch(`${env.BENCHMARK_PORTAL_URL}/book`, { signal: AbortSignal.timeout(1000) })).ok; } catch { /* Not bound yet. */ }
+        if (portalReady) break;
+        await delay(1000);
+      }
+      assert.ok(portalReady, 'Benchmark portal failed to start');
+    }
     writeFileSync(join(output, `${name}.runtime.json`), JSON.stringify({ revision, checkoutRevision, jarSha256: hash, schema, port, variant, seed,
       routingUrl: env.ROUTING_URL, sizes: env.BENCHMARK_SIZES, concurrency: env.BENCHMARK_CONCURRENCY, caches: env.BENCHMARK_CACHES,
       requests: env.BENCHMARK_REQUESTS, startedAt: new Date().toISOString(), concurrentLocalBenchmarks: true }, null, 2));
     const benchmark = launch(process.execPath, [resolve('web/node_modules/tsx/dist/cli.mjs'), 'scripts/benchmark-scheduling.ts'], env,
       join(output, `${name}.client.log`), resolve('web'));
     assert.equal(await benchmark.done, 0, `Benchmark failed; inspect ${name}.client.log and retained schema ${schema}`);
-  } finally { server.process.kill(); await server.done; }
+  } finally { if (portal) { portal.process.kill(); await portal.done; } server.process.kill(); await server.done; }
 }
