@@ -67,7 +67,7 @@ const policyMetrics = z.object({ overtimeMinutes: z.int().nonnegative(), costCen
   fairness: z.object({ variance: finite.nonnegative(), maximumUtilization: finite.nonnegative(),
     workloads: z.array(z.object({ technicianId: text, paidMinutes: z.int().nonnegative(),
       regularCapacityMinutes: z.int().positive(), utilization: finite.nonnegative() })) }) });
-export const policyAnalysis = z.object({ version: z.literal("overtime-fairness-v1"), before: policyMetrics, after: policyMetrics,
+export const policyAnalysis = z.object({ version: z.enum(["overtime-fairness-v1", "zero-overtime-four-hour-v2"]), before: policyMetrics, after: policyMetrics,
   decision: z.object({ accepted: z.boolean(), reason: text, referenceCostCents: z.int().nonnegative(),
     overtimeTargetMinutes: z.int().nonnegative(), costCeilingCents: z.int().nonnegative() }),
   rules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: finite.min(0).max(1),

@@ -39,11 +39,11 @@ async function main() {
       endpointPolicies: { create: { effectiveDate: new Date("1900-01-01"), departure: "HOME", returnTo: "HOME" } } } });
     for (const id of [ids.oldService, ids.newService]) await prisma.serviceCatalog.create({ data: { id, code: id, name: id, estDurationMin: 60 } });
     for (const id of [ids.a, ids.b]) await prisma.technician.create({ data: { id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
-      shiftStartMin: 540, shiftEndMin: 660, maxDailyMinutes: 120, maxOvertimeMinutes: 0,
+      shiftStartMin: 540, shiftEndMin: 780, maxDailyMinutes: 120, maxOvertimeMinutes: 0,
       availabilityVersions: { create: { effectiveDate: new Date("1900-01-01"), days: { create: Array.from({ length: 7 }, (_, dayOfWeek) => ({
         dayOfWeek, available: false, shiftStartMin: null, shiftEndMin: null,
       })) } } },
-      shiftOverrides: { create: { serviceDate, available: true, shiftStartMin: 540, shiftEndMin: 660 } },
+      shiftOverrides: { create: { serviceDate, available: true, shiftStartMin: 540, shiftEndMin: 780 } },
       depotAssignments: { create: { depotId: ids.depot, effectiveDate: new Date("1900-01-01") } },
       qualifications: { create: (id === ids.a ? [ids.oldService, ids.newService] : [ids.oldService]).map(serviceId => ({ serviceId })) },
     } });
