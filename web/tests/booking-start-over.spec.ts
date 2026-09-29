@@ -1,3 +1,4 @@
+import { mockBookingLocation } from "./bookingLocationFixture";
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -34,12 +35,14 @@ test("Start over retries release, then returns to the populated form with a new 
         search: { outcome: "AVAILABLE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: false },
         offers: [{ offerId, date: "2099-10-05", windowStart: "2099-10-05T14:00:00Z", windowEnd: "2099-10-05T16:00:00Z", expiresAt: "2099-10-05T13:00:00Z" }] }) });
     });
+    await mockBookingLocation(page);
     await page.goto("/book");
     await page.getByRole("radio", { name: /Start over service/ }).check();
     for (const [label, value] of Object.entries({ "First name": "Correct", "Last name": "Me", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
     await page.getByPlaceholder("Street address").fill("1 Main St");
-    await page.getByRole("button", { name: /see available times/i }).click();
+    await page.getByRole("button", { name: /review service location/i }).click();
+    await page.getByRole("button", { name: "Confirm pin and see times" }).click();
     await expect(page.getByRole("heading", { name: "Choose a time" })).toBeVisible();
     await page.getByRole("button", { name: "Refresh times", exact: true }).click();
     await expect(page.getByRole("progressbar", { name: "Finding available appointments" })).not.toBeVisible();
@@ -53,7 +56,8 @@ test("Start over retries release, then returns to the populated form with a new 
     await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
     await expect(page.locator("label").filter({ hasText: /^First name$/ }).locator("..").locator("input")).toHaveValue("Correct");
     expect(releaseBodies).toEqual([{ jobId: "pending-job", offerId }, { jobId: "pending-job", offerId }]);
-    await page.getByRole("button", { name: /see available times/i }).click();
+    await page.getByRole("button", { name: /review service location/i }).click();
+    await page.getByRole("button", { name: "Confirm pin and see times" }).click();
     await expect(page.getByRole("heading", { name: "Choose a time" })).toBeVisible();
     expect(requestIds).toHaveLength(2);
     expect(requestIds[1]).not.toBe(requestIds[0]);

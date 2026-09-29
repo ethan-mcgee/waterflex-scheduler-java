@@ -1,3 +1,4 @@
+import { mockBookingLocation } from "./bookingLocationFixture";
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
@@ -25,12 +26,14 @@ for (const limit of [1, 2, 4]) {
           windowStart: chosen.windowStart, windowEnd: chosen.windowEnd,
         }) });
       });
-      await page.goto("/book");
+      await mockBookingLocation(page);
+    await page.goto("/book");
       await page.getByRole("radio", { name: /Offer limit service/ }).check();
       for (const [label, value] of Object.entries({ "First name": "Offer", "Last name": "Limit", Email: "customer@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
         await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
       await page.getByPlaceholder("Street address").fill("1 Main St");
-      await page.getByRole("button", { name: /see available times/i }).click();
+      await page.getByRole("button", { name: /review service location/i }).click();
+    await page.getByRole("button", { name: "Confirm pin and see times" }).click();
       await expect(page.getByRole("heading", { name: "Choose a time" })).toBeVisible();
       const choices = page.getByRole("button", { name: "Select", exact: true });
       await expect(choices).toHaveCount(limit);

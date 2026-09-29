@@ -9,7 +9,7 @@ test.afterAll(async () => { await prisma.$disconnect(); });
 test("empty datasets expose no shift mutations and disable time-off submission", async ({ page }) => {
   expect(await prisma.serviceCatalog.count()).toBe(0);
   await page.goto("/book");
-  await expect(page.getByRole("button", { name: /see available/i })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /review service location/i })).toBeDisabled();
   await page.goto("/technicians");
   await expect(page.getByText("No technicians found", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /add exception|save day|edit .*exception|delete .*exception/i })).toHaveCount(0);
@@ -21,13 +21,13 @@ test("empty datasets expose no shift mutations and disable time-off submission",
 test("malformed booking responses retain entered form data and create no job", async ({ page }) => {
   const service = await prisma.serviceCatalog.create({ data: { code: "UI_NULL_TEST", name: "UI test service", estDurationMin: 60 } });
   try {
-    await page.route("**/api/book", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
+    await page.route("**/api/book/location", route => route.fulfill({ status: 200, contentType: "application/json", body: "null" }));
     await page.goto("/book");
     await page.getByRole("radio").first().check();
     for (const [label, value] of Object.entries({ "First name": "UI", "Last name": "Test", Email: "ui@example.invalid", Phone: "4025550100", City: "Omaha", State: "NE", ZIP: "68102" }))
       await page.locator("label").filter({ hasText: new RegExp(`^${label}$`) }).locator("..").locator("input").fill(value);
     await page.getByPlaceholder("Street address").fill("1 Main St");
-    await page.getByRole("button", { name: /see available/i }).click();
+    await page.getByRole("button", { name: /review service location/i }).click();
     await expect(page.getByText("Invalid response. Reload before continuing.", { exact: true })).toBeVisible();
     await expect(page.getByPlaceholder("Street address")).toHaveValue("1 Main St");
     expect(await prisma.job.count()).toBe(0);

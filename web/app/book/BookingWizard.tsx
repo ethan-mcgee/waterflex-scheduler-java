@@ -1,10 +1,10 @@
 "use client";
 
-import { bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
+import { bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, offersResponse, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { appointmentSearchMessage, recordBookingApiDuration } from "@/lib/appointmentSearch";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/book/booking.module.css";
-import AddressPinMap, { type PinCandidate } from "@/app/book/AddressPinMap";
+import AddressPinMap, { type PinCandidate, type ServiceArea } from "@/app/book/AddressPinMap";
 
 interface ServiceOption {
   code: string;
@@ -57,7 +57,7 @@ function formatDay(dateOnly: string): string {
   // `dateOnly` is a bare "YYYY-MM-DD" (the engine's `day` field, not a
   // timestamp). `new Date("YYYY-MM-DD")` parses that as UTC midnight,
   // which toLocaleDateString then renders in the browser's local
-  // timezone — rolling back to the *previous* calendar day for anyone
+  // timezone - rolling back to the *previous* calendar day for anyone
   // west of UTC. Parse the components directly as a local date instead.
   const parts = dateContract.parse(dateOnly).split("-").map(Number);
   const [year, month, day] = [required(parts[0]), required(parts[1]), required(parts[2])];
@@ -107,7 +107,18 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [pinCandidates, setPinCandidates] = useState<PinCandidate[]>([]);
-  const [selectedPinIndex, setSelectedPinIndex] = useState(0);
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+  const [serviceArea, setServiceArea] = useState<ServiceArea | null>(null);
+  const [mapAvailable, setMapAvailable] = useState(false);
+  const [mapVersion, setMapVersion] = useState(0);
+  const revision = useRef(0);
+  const submittedMode = useRef<"pin" | "followUp" | null>(null);
+  function clearLocation() {
+    revision.current++; submittedMode.current = null;
+    activeRequest.current?.abort();
+    setPinCandidates([]); setPin(null); setServiceArea(null); setMapAvailable(false); setSubmitting(false);
+    setRequestId(newRequestId()); setJobId(null); setError(null);
+  }
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -122,46 +133,29 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   );
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    clearLocation();
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    const started = performance.now();
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
+  async function lookupLocation() {
+    const current = ++revision.current;
+    setError(null); setSubmitting(true); setPin(null); setMapAvailable(false);
     try {
-      const res = await fetch("/api/book", {
-        signal: requestSignal(),
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, requestId }),
+      const res = await fetch("/api/book/location", {
+        signal: requestSignal(), method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
-      const data = await readResponse(res, bookingResponse);
-      setJobId(data.jobId);
-      if (data.pinRequired) {
-        setPinCandidates(required(data.candidates, "Address candidates"));
-        setSelectedPinIndex(0);
-        setStep("pin");
-        return;
-      }
-      if (data.pendingReference) {
-        setStep("pending");
-        return;
-      }
-      const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
-      if (problem) { setError(problem); return; }
-      setOffers(required(data.offers, "Appointment offers"));
-      setInvalidOffers(false);
-      setNow(Date.now());
-      setStep("slots");
-    } catch (error) {
-      setError(errorMessage(error));
-      setInvalidOffers(true);
-    } finally {
-      recordBookingApiDuration(started, "initial");
-      setSubmitting(false);
-    }
+      const data = await readResponse(res, bookingLocationResponse);
+      if (current !== revision.current) return;
+      setPinCandidates(data.candidates); setServiceArea(data.serviceArea);
+      setPin(data.candidates[0] ?? null); setRequestId(newRequestId()); setMapVersion(v => v + 1); setStep("pin");
+    } catch (error) { if (current === revision.current) setError(errorMessage(error)); }
+    finally { if (current === revision.current) setSubmitting(false); }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await lookupLocation();
   }
 
   async function handleSelectSlot(offerId: string) {
@@ -197,7 +191,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   }
 
   async function handleBackToForm() {
-    if (submitting || confirmingHoldId !== null || releasing || !jobId || offers.length === 0) return;
+    if (submitting || confirmingHoldId !== null || releasing) return;
+    if (!jobId || offers.length === 0) { clearLocation(); setStep("form"); return; }
     setReleasing(true);
     setError(null);
     try {
@@ -207,6 +202,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       });
       const result = await readResponse(response, success);
       if (!result.success) throw new Error("Could not release times. Please try Start over again.");
+      clearLocation();
       setStep("form");
       setOffers([]);
       setRequestId(newRequestId());
@@ -241,27 +237,32 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     finally { recordBookingApiDuration(started, "refresh"); setSubmitting(false); }
   }
 
-  async function handlePinConfirmation() {
-    const pin = pinCandidates[selectedPinIndex];
-    if (!pin) return;
+  async function handlePinConfirmation(followUp = false) {
+    if (!followUp && (!pin || !mapAvailable)) return;
+    const mode = followUp ? "followUp" : "pin";
+    const submissionId = submittedMode.current !== null && submittedMode.current !== mode ? newRequestId() : requestId;
+    submittedMode.current = mode; setRequestId(submissionId);
     const started = performance.now();
+    const current = revision.current;
     setSubmitting(true);
     setError(null);
     try {
       const response = await fetch("/api/book", {
         signal: requestSignal(),
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, requestId, confirmedPin: { lat: pin.lat, lng: pin.lng } }),
+        body: JSON.stringify({ ...form, requestId: submissionId, ...(followUp ? { followUp: true } : { confirmedPin: { ...pin, manuallyConfirmed: true } }) }),
       });
       const data = await readResponse(response, bookingResponse);
+      if (current !== revision.current) return;
+      setJobId(data.jobId);
       if (data.pendingReference) { setStep("pending"); return; }
       const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
       if (problem) { setError(problem); return; }
       setOffers(required(data.offers, "Appointment offers"));
       setInvalidOffers(false);
       setStep("slots");
-    } catch (error) { setError(errorMessage(error)); }
-    finally { recordBookingApiDuration(started, "pin"); setSubmitting(false); }
+    } catch (error) { if (current === revision.current) setError(errorMessage(error)); }
+    finally { recordBookingApiDuration(started, "pin"); if (current === revision.current) setSubmitting(false); }
   }
 
   const searchProgress = submitting ? <div role="status">
@@ -279,18 +280,24 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   if (step === "pin") {
     return <main className={styles.wrap}>
       <h1 className={styles.title}>Confirm your service location</h1>
-      <p className={styles.subtitle}>We found more than one possible match. Select the pin that marks your home.</p>
+      <p className={styles.subtitle}>Check your service location. Drag the pin or click the map to place it at your driveway entrance.</p>
+      <p>{form.line1}, {form.city}, {form.state} {form.postalCode}</p>
       {error && <div role="alert" className={styles.error}>{error}</div>}
       {searchProgress}
-      <AddressPinMap candidates={pinCandidates} selected={selectedPinIndex} onSelect={setSelectedPinIndex} />
+      {serviceArea && <AddressPinMap key={mapVersion} candidates={pinCandidates} area={serviceArea} pin={pin}
+        onPlace={position => { setPin(position); setRequestId(newRequestId()); }} onAvailableChange={setMapAvailable} />}
       <div className={styles.card}>
-        {pinCandidates.map((candidate, index) => <label key={`${candidate.lat}-${candidate.lng}`} className={styles.serviceOption}>
-          <input type="radio" name="pin" checked={selectedPinIndex === index} onChange={() => setSelectedPinIndex(index)} />
-          <span>Location {index + 1}: {candidate.lat.toFixed(5)}, {candidate.lng.toFixed(5)}</span>
-        </label>)}
-        <button className={styles.button} onClick={handlePinConfirmation} disabled={submitting}>
+        {!pin && <p>No matching address was found. Click the map to place your pin, or request follow-up.</p>}
+        {!mapAvailable && <p role="status">Map unavailable or loading. Pin confirmation is blocked. Retry the map when tiles are available.</p>}
+        {pinCandidates.map((candidate, index) => <button key={`${candidate.lat}-${candidate.lng}`} className={styles.linkButton}
+          disabled={submitting} onClick={() => { setPin(candidate); setRequestId(newRequestId()); }}>Use location {index + 1}</button>)}
+        <button className={styles.button} onClick={() => handlePinConfirmation()} disabled={submitting || !pin || !mapAvailable}>
           {submitting ? "Checking availability..." : "Confirm pin and see times"}
         </button>
+        <button className={styles.linkButton} disabled={submitting} onClick={() => { clearLocation(); setStep("form"); }}>Edit address</button>
+        <button className={styles.linkButton} disabled={submitting} onClick={lookupLocation}>Retry address lookup</button>
+        <button className={styles.linkButton} disabled={submitting} onClick={() => { setMapAvailable(false); setMapVersion(v => v + 1); }}>Retry map</button>
+        <button className={styles.linkButton} disabled={submitting} onClick={() => handlePinConfirmation(true)}>Request follow-up</button>
       </div>
     </main>;
   }
@@ -319,7 +326,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       <main className={styles.wrap}>
         <h1 className={styles.title}>Choose a time</h1>
         <p className={styles.subtitle}>
-          {selectedService?.name} &mdash; pick whichever works best for you.
+          {selectedService?.name} - pick whichever works best for you.
         </p>
         {error && <div role="alert" className={styles.error}>{error}</div>}
       {searchProgress}
@@ -369,6 +376,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       {error && <div role="alert" className={styles.error}>{error}</div>}
       {searchProgress}
       <form className={styles.card} onSubmit={handleSubmit}>
+        <fieldset style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <fieldset className={styles.serviceFieldset}>
           <legend className={styles.label}>What type of service do you need?</legend>
           <p className={styles.fieldHint}>Select one service before choosing an appointment time.</p>
@@ -502,8 +510,12 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
           type="submit"
           disabled={submitting || !form.serviceCode || services.length === 0}
         >
-          {submitting ? "Finding available times..." : "See available times"}
+          {submitting ? "Looking up address..." : "Review service location"}
         </button>
+        <button type="button" className={styles.linkButton} disabled={submitting || !form.serviceCode} onClick={e => {
+          if (e.currentTarget.form?.reportValidity()) void handlePinConfirmation(true);
+        }}>Request follow-up</button>
+        </fieldset>
       </form>
     </main>
   );
