@@ -146,6 +146,8 @@ jobs:
           done
           echo "Services did not become healthy" >&2
           exit 1
+      - name: Durable search and snapshot database contracts
+        run: ./mvnw -pl scheduler-service '-Dtest=BookingSnapshotDatabaseIT,DurableBookingSearchIT' test --batch-mode --no-transfer-progress
       - name: Booking smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration
