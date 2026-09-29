@@ -26,14 +26,14 @@ test("Start over retries release, then returns to the populated form with a new 
       releaseCount++;
       return route.fulfill({ status: releaseCount === 1 ? 503 : 200, contentType: "application/json", body: JSON.stringify(releaseCount === 1 ? { error: "Scheduling service unavailable" } : { success: true }) });
     });
-    await page.route("**/api/book/refresh", async route => {
-      const body = z.object({ jobId: z.literal("pending-job"), deadlineEpochMs: z.int().positive() }).parse(route.request().postDataJSON());
-      expect(body.deadlineEpochMs - Date.now()).toBeGreaterThan(0);
-      expect(body.deadlineEpochMs - Date.now()).toBeLessThanOrEqual(5000);
-      refreshCount++;
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ jobId: "pending-job",
-        search: { outcome: "AVAILABLE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: false },
-        offers: [{ offerId, date: "2099-10-05", windowStart: "2099-10-05T14:00:00Z", windowEnd: "2099-10-05T16:00:00Z", expiresAt: "2099-10-05T13:00:00Z" }] }) });
+    await page.route("**/api/book/search**", async route => {
+      if (route.request().method() === "POST") {
+        z.object({ jobId: z.literal("pending-job"), requestId: z.uuid(), refresh: z.literal(true) }).parse(route.request().postDataJSON());
+        refreshCount++;
+      }
+      return route.fulfill({ json: { id: "00000000-0000-4000-8000-000000000001", jobId: "pending-job", state: "AVAILABLE", phase: "FINISHED",
+        elapsedMs: 12, queueMs: 0, completedWork: 20, stopReason: "COMPLETED",
+        offers: [{ offerId, date: "2099-10-05", windowStart: "2099-10-05T14:00:00Z", windowEnd: "2099-10-05T18:00:00Z", expiresAt: "2099-10-05T13:00:00Z" }] } });
     });
     await mockBookingLocation(page);
     await page.goto("/book");

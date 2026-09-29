@@ -339,7 +339,8 @@ class BoundedBookingSearchTest {
         assertEquals(240, result.regularCapacityMinutes());
         assertEquals(60, result.confirmedRegularMinutes());
         var chosen = Required.value(BoundedBookingSearch.choose(result.candidates(), snapshot.policy()));
-        assertEquals("b", chosen.technicianId());
+        assertEquals("a", chosen.technicianId(), "Equivalent balanced arrangements use stable technician identifiers");
+        assertEquals(List.of("old"), chosen.arrangement().routes().get("b"));
         assertTrue(chosen.fairnessDelta().signum() < 0);
     }
 

@@ -73,7 +73,7 @@ public final class BookingSnapshotLoader {
     /** Operator flags do not remove commitments, dependencies, or capacity from snapshots. */
     public void flagExistingOvertime(BookingSnapshot snapshot, String requestedService) {
         for (var day : snapshot.days().values()) {
-            var evaluation = new BookingEvaluation(day, snapshot.rates(), requestedService, SearchDeadline::checkpoint);
+            var evaluation = new BookingEvaluation(Required.value(day), snapshot.rates(), requestedService, SearchDeadline::checkpoint);
             for (var route : day.baseline().routes().entrySet()) {
                 if (evaluation.route(Required.value(route.getKey()), Required.value(route.getValue()), day.visits(), false).overtimeMinutes() == 0) continue;
                 for (String id : route.getValue()) {

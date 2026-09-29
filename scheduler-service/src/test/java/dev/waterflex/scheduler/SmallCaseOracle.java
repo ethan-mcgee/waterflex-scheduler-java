@@ -78,7 +78,7 @@ final class SmallCaseOracle {
                     long travel = (long) Math.ceil((leg.seconds() * (1 + rates.travelBufferPct()) + rates.travelBufferMinutes() * 60) / 60.0);
                     drive += travel; meters += leg.meters(); now = Required.value(now.plusSeconds(travel * 60));
                     if (now.isBefore(visit.windowStart())) { wait += java.time.Duration.between(now, visit.windowStart()).toMinutes(); now = visit.windowStart(); }
-                    if (now.isAfter(visit.windowEnd())) { feasible = false; break; }
+                    if (!now.isBefore(visit.windowEnd())) { feasible = false; break; }
                     arrivals.put(id, now); now = Required.value(now.plusSeconds(visit.durationMinutes() * 60L)); from = id;
                 }
                 if (!feasible) continue;

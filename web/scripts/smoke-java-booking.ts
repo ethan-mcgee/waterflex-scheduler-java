@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { offersResponse, confirmation, selection, success, required } from "../lib/contracts";
+import { durableSearchStatus, offersResponse, confirmation, selection, success, required } from "../lib/contracts";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
@@ -182,9 +182,26 @@ async function main() {
     assert.equal(await prisma.slotHold.count({ where: { offerToken: { in: beforeRefresh.offers.map(offer => offer.offerId) }, releasedAt: null } }), 0);
     await post(success, "/v1/offers/release", { jobId: refreshJob.id, offerId: required(afterRefresh.offers[0]).offerId });
 
-    // Exactly one eligible date with a two-hour shift produces one distinct window.
+    const searchToken = randomUUID();
+    const startedSearch = await post(durableSearchStatus, "/v1/booking-searches", { jobId: refreshJob.id, requestId: searchToken, refresh: false });
+    const duplicate = await post(durableSearchStatus, "/v1/booking-searches", { jobId: refreshJob.id, requestId: searchToken, refresh: false });
+    assert.equal(duplicate.id, startedSearch.id);
+    let durable = duplicate;
+    for (let attempt = 0; attempt < 100 && ["QUEUED", "RUNNING"].includes(durable.state); attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      durable = durableSearchStatus.parse(await (await fetch(`${base}/v1/booking-searches/${searchToken}?jobId=${encodeURIComponent(refreshJob.id)}`)).json());
+    }
+    assert.equal(durable.state, "AVAILABLE"); assert.equal(durable.offers.length, 1);
+    assert.ok(new Date(required(durable.offers[0]).expiresAt).getTime() - Date.now() > 590000, "Offer expiry starts at publication");
+    const cancelledSearch = durableSearchStatus.parse(await (await fetch(`${base}/v1/booking-searches/${searchToken}?jobId=${encodeURIComponent(refreshJob.id)}`, { method: "DELETE" })).json());
+    assert.equal(cancelledSearch.state, "CANCELLED");
+    for (let attempt = 0; attempt < 100 && await prisma.slotHold.count({ where: { jobId: refreshJob.id, releasedAt: null } }); attempt++)
+      await new Promise(resolve => setTimeout(resolve, 100));
+    assert.equal(await prisma.slotHold.count({ where: { jobId: refreshJob.id, releasedAt: null } }), 0, "Cancelled publication releases reserved capacity");
+
+    // Exactly one eligible date with a four-hour shift produces one distinct window.
     await prisma.technicianAvailabilityDay.updateMany({ where: { version: { technicianId: techId } }, data: { available: false, shiftStartMin: null, shiftEndMin: null } });
-    await prisma.technicianShiftOverride.create({ data: { technicianId: techId, serviceDate: new Date(required(offered.offers[0]).date), available: true, shiftStartMin: 480, shiftEndMin: 600 } });
+    await prisma.technicianShiftOverride.create({ data: { technicianId: techId, serviceDate: new Date(required(offered.offers[0]).date), available: true, shiftStartMin: 480, shiftEndMin: 720 } });
     const scarce = await post(offersResponse, "/v1/offers", { jobId: refreshJob.id, refresh: true });
     assert.equal(scarce.offers.length, 1);
     assert.equal(await prisma.slotHold.count({ where: { jobId: refreshJob.id, releasedAt: null } }), 1);

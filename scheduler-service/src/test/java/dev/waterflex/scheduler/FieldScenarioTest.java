@@ -106,6 +106,48 @@ class FieldScenarioTest {
         assertTrue(BookingService.bookingDates(capture).contains(LocalDate.parse("2026-11-01")));
         assertEquals(List.of(LocalDate.parse("2026-11-09"), LocalDate.parse("2026-11-10"), LocalDate.parse("2026-11-11"), LocalDate.parse("2026-11-12"), LocalDate.parse("2026-11-13")), BookingService.overflowDates(capture));
     }
+    @Test void anOmahaPromiseOrLiveReservationCorrectlyPreventsGroupingUntilReleased() {
+        for (boolean hold : List.of(false, true)) {
+            Day empty = fixture(false, true, false, false);
+            var a = new Visit("A", "A", "service", Required.value(START.plusSeconds(40 * 60)), Required.value(START.plusSeconds(60 * 60)), 10, TOWN, "omaha", Required.value(START.plusSeconds(40 * 60)), false);
+            var b = new Visit("B", "B", "service", Required.value(START.plusSeconds(120 * 60)), Required.value(START.plusSeconds(130 * 60)), 10, OMAHA, "omaha", Required.value(START.plusSeconds(120 * 60)), hold);
+            Day day = new Day(empty.technicians(), Required.value(Map.of("A", a, "B", b)), new Arrangement(Required.value(Map.of("omaha", List.of("A", "B")))), 0, empty.roads());
+            var request = new BoundedBookingSearch.Request("C", "service", 60, TOWN);
+            var chosen = Required.value(BoundedBookingSearch.choose(engine(snapshot(day), request, 240, "SHARED").search(true).candidates(), SchedulingPolicy.Rules.defaults()));
+            assertEquals(List.of("A", "B", "C"), chosen.arrangement().routes().get("omaha"));
+            assertEquals(4, crossings(chosen.arrangement()));
+            assertFalse(Required.value(chosen.validation().arrivals().get("B")).isAfter(b.windowEnd()));
+            Map<String, Visit> facts = new TreeMap<>(day.visits());
+            facts.put("C", new Visit("C", "C", "service", chosen.window().start(), chosen.window().end(), 60, TOWN, "omaha", chosen.window().start(), false));
+            assertEquals(Required.value(SmallCaseOracle.best(day, facts, RATES)).costCents(), chosen.validation().costCents());
+            Day released = new Day(day.technicians(), Required.value(Map.of("A", a)), new Arrangement(Required.value(Map.of("omaha", List.of("A")))), 1, day.roads());
+            var flexible = Required.value(BoundedBookingSearch.choose(engine(snapshot(released), request, 240, "SHARED").search(true).candidates(), SchedulingPolicy.Rules.defaults()));
+            assertEquals(2, crossings(flexible.arrangement()));
+            assertFalse(flexible.arrangement().routes().values().stream().anyMatch(route -> route.contains("B")));
+        }
+    }
+    @Test void coordinatedReassignmentSolvesACaseThatInsertionCannot() {
+        Day empty = fixture(true, false, false, false);
+        Map<String, Technician> techs = new TreeMap<>();
+        empty.technicians().forEach((id, technician) -> techs.put(id, new Technician(technician.id(), START, Required.value(START.plusSeconds(240 * 60)), 120, 0,
+                id.equals("omaha") ? Required.value(Set.of("old", "new")) : Required.value(Set.of("old")), Required.value(List.of()), technician.departure(), technician.returnTo(), 0)));
+        Map<String, DayPlan.RoadLeg> roads = new TreeMap<>(); empty.roads().legs().keySet().forEach(key -> roads.put(key, new DayPlan.RoadLeg(0, 0)));
+        for (int oldWidth : List.of(120, 240)) {
+            var a = new Visit("A", "A", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 90, TOWN, "omaha", START, false);
+            var b = new Visit("B", "B", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 60, OMAHA, "nearby", START, false);
+            Day day = new Day(techs, Required.value(Map.of("A", a, "B", b)), new Arrangement(Required.value(Map.of("omaha", List.of("A"), "nearby", List.of("B")))), 0, new Roads(roads, Required.value(Set.of())));
+            var request = new BoundedBookingSearch.Request("C", "new", 50, TOWN);
+            assertTrue(engine(snapshot(day), request, 240, "INSERTION").search(false).candidates().isEmpty());
+            for (String variant : List.of("BOUNDED", "EXPANDED", "RUIN_RECREATE", "SHARED")) {
+                var chosen = Required.value(BoundedBookingSearch.choose(engine(snapshot(day), request, 240, Required.value(variant)).search(true).candidates(), SchedulingPolicy.Rules.defaults()));
+                assertEquals(List.of("A"), chosen.arrangement().routes().get("nearby"));
+                assertEquals(2, chosen.changedAssignments()); assertEquals(0, chosen.validation().overtimeMinutes());
+                Map<String, Visit> facts = new TreeMap<>(day.visits());
+                facts.put("C", new Visit("C", "C", "new", chosen.window().start(), chosen.window().end(), 50, TOWN, "omaha", chosen.window().start(), false));
+                assertEquals(Required.value(SmallCaseOracle.best(day, facts, RATES)).costCents(), chosen.validation().costCents());
+            }
+        }
+    }
     static BoundedBookingSearch engine(BookingSnapshot snapshot, BoundedBookingSearch.Request request, int width, String variant) {
         var engine = new BoundedBookingSearch(snapshot, request, variant.equals("INSERTION") || variant.equals("BOUNDED") ? BoundedBookingSearch.Limits.defaults() : BoundedBookingSearch.Limits.expanded(), () -> { }, width);
         if (variant.equals("SHARED") || variant.equals("RUIN_RECREATE")) engine.withRuinRecreate();

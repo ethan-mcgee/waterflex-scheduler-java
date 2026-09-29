@@ -21,7 +21,8 @@ public final class DurableBookingSearch {
         public Start { jobId = RequestChecks.text(jobId, "jobId"); BookingSearchControl.token(requestId); }
     }
     public record Status(String id, String jobId, String state, String phase, long elapsedMs,
-            @Nullable Long queueMs, long completedWork, @Nullable String stopReason, List<BookingService.Offer> offers) { }
+            @Nullable Long queueMs, long completedWork, @Nullable String stopReason, List<BookingService.Offer> offers, @Nullable Long bestCostDeltaCents) { }
+    private record Saved(Status status, @Nullable String offerSetId) { }
     private record Work(String id, String jobId, boolean refresh) { }
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
@@ -69,21 +70,22 @@ public final class DurableBookingSearch {
 
     public Status status(String id, String jobId) {
         BookingSearchControl.token(id);
-        var rows = jdbc.query("SELECT state,phase,GREATEST(0,EXTRACT(EPOCH FROM (COALESCE(\"finishedAt\",clock_timestamp())-\"createdAt\"))*1000)::bigint,\"queueMs\",\"completedWork\",\"stopReason\",\"offerSetId\" FROM booking_search_request WHERE id=? AND \"jobId\"=? AND state IS NOT NULL",
-                (rs, _) -> {
-                    String state = Required.string(rs, 1);
-                    String setId = rs.getString(7);
-                    List<BookingService.Offer> offers = new ArrayList<>();
-                    if (state.equals("AVAILABLE") && setId != null) offers.addAll(jdbc.query(
-                            "SELECT o.id,o.\"serviceDate\",o.\"windowStart\",o.\"windowEnd\",o.\"expiresAt\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE s.id=? AND s.\"supersededAt\" IS NULL AND o.\"expiresAt\">clock_timestamp() ORDER BY o.id",
-                            (offer, _) -> new BookingService.Offer(Required.string(offer, 1), Required.value(Required.timestamp(offer, 2).toLocalDateTime().toLocalDate().toString()),
-                                    Required.value(Required.timestamp(offer, 3).toInstant()), Required.value(Required.timestamp(offer, 4).toInstant()), Required.value(Required.timestamp(offer, 5).toInstant())), setId));
-                    return new Status(id, jobId, state.equals("AVAILABLE") && offers.isEmpty() ? "INCOMPLETE" : state,
-                            Required.string(rs, 2), Required.longValue(rs, 3), Required.nullableLong(rs, 4), Required.longValue(rs, 5), rs.getString(6), offers);
-                }, id, jobId);
+        var rows = jdbc.query("SELECT state,phase,GREATEST(0,EXTRACT(EPOCH FROM (COALESCE(\"finishedAt\",clock_timestamp())-\"createdAt\"))*1000)::bigint,\"queueMs\",\"completedWork\",\"stopReason\",\"offerSetId\",\"bestCostDeltaCents\" FROM booking_search_request WHERE id=? AND \"jobId\"=? AND state IS NOT NULL",
+                (rs, _) -> new Saved(new Status(id, jobId, Required.string(rs, 1), Required.string(rs, 2),
+                        Required.longValue(rs, 3), Required.nullableLong(rs, 4), Required.longValue(rs, 5), rs.getString(6), Required.value(List.of()), Required.nullableLong(rs, 8)), rs.getString(7)), id, jobId);
         if (rows.size() != 1) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Search not found");
-        Status result = Required.value(rows.getFirst());
-        if (!result.offers().isEmpty()) control.acknowledge(id, jobId);
+        Saved saved = Required.value(rows.getFirst());
+        Status result = saved.status();
+        String setId = saved.offerSetId();
+        if (result.state().equals("AVAILABLE")) {
+            if (setId == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Published search has no reservation");
+            var offers = jdbc.query("SELECT o.id,o.\"serviceDate\",o.\"windowStart\",o.\"windowEnd\",o.\"expiresAt\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE s.id=? AND s.\"supersededAt\" IS NULL AND o.\"expiresAt\">clock_timestamp() ORDER BY o.id",
+                    (offer, _) -> new BookingService.Offer(Required.string(offer, 1), Required.value(Required.timestamp(offer, 2).toLocalDateTime().toLocalDate().toString()),
+                            Required.value(Required.timestamp(offer, 3).toInstant()), Required.value(Required.timestamp(offer, 4).toInstant()), Required.value(Required.timestamp(offer, 5).toInstant())), setId);
+            result = new Status(id, jobId, offers.isEmpty() ? "INCOMPLETE" : "AVAILABLE", result.phase(), result.elapsedMs(), result.queueMs(), result.completedWork(),
+                    offers.isEmpty() ? "OFFER_EXPIRED_OR_RELEASED" : result.stopReason(), Required.value(offers), result.bestCostDeltaCents());
+            if (!offers.isEmpty()) control.acknowledge(id, jobId);
+        }
         return result;
     }
 
@@ -123,15 +125,15 @@ public final class DurableBookingSearch {
             throw new SearchDeadline.Expired();
     }
     private void finish(String id, String state, String reason, SearchDeadline deadline) {
-        jdbc.update("UPDATE booking_search_request SET state=?,\"stopReason\"=?,phase='FINISHED',\"completedWork\"=?,\"finishedAt\"=clock_timestamp(),\"deadlineAt\"=CASE WHEN ?='AVAILABLE' THEN clock_timestamp()+interval '10 minutes' ELSE \"deadlineAt\" END WHERE id=? AND owner=? AND state='RUNNING' AND \"cancelledAt\" IS NULL AND \"leaseUntil\">clock_timestamp()",
-                state, reason, deadline.completedWork(), state, id, owner);
+        jdbc.update("UPDATE booking_search_request SET state=?,\"stopReason\"=?,phase='FINISHED',\"completedWork\"=?,\"bestCostDeltaCents\"=?,\"finishedAt\"=clock_timestamp(),\"deadlineAt\"=CASE WHEN ?='AVAILABLE' THEN clock_timestamp()+interval '10 minutes' ELSE \"deadlineAt\" END WHERE id=? AND owner=? AND state='RUNNING' AND \"cancelledAt\" IS NULL AND \"leaseUntil\">clock_timestamp()",
+                state, reason, deadline.completedWork(), deadline.bestCostDeltaCents(), state, id, owner);
     }
     private void heartbeat() {
         try {
             for (var entry : active.entrySet()) {
                 SearchDeadline deadline = Required.value(entry.getValue());
-                if (jdbc.update("UPDATE booking_search_request SET \"leaseUntil\"=clock_timestamp()+interval '15 seconds',phase=?,\"completedWork\"=? WHERE id=? AND owner=? AND state='RUNNING' AND \"cancelledAt\" IS NULL AND \"deadlineAt\">clock_timestamp() AND \"leaseUntil\">clock_timestamp()",
-                        deadline.phase(), deadline.completedWork(), entry.getKey(), owner) != 1) deadline.cancel();
+                if (jdbc.update("UPDATE booking_search_request SET \"leaseUntil\"=clock_timestamp()+interval '15 seconds',phase=?,\"completedWork\"=?,\"bestCostDeltaCents\"=? WHERE id=? AND owner=? AND state='RUNNING' AND \"cancelledAt\" IS NULL AND \"deadlineAt\">clock_timestamp() AND \"leaseUntil\">clock_timestamp()",
+                        deadline.phase(), deadline.completedWork(), deadline.bestCostDeltaCents(), entry.getKey(), owner) != 1) deadline.cancel();
             }
             // Lost ownership is terminal, never silently rerun a search against a stale snapshot.
             jdbc.update("UPDATE booking_search_request SET state='INCOMPLETE',phase='FINISHED',\"stopReason\"='WORKER_LOST_OR_WORK_LIMIT',\"finishedAt\"=clock_timestamp(),\"cancelledAt\"=clock_timestamp() WHERE state IN ('QUEUED','RUNNING') AND (\"deadlineAt\"<=clock_timestamp() OR (state='RUNNING' AND \"leaseUntil\"<=clock_timestamp()))");
