@@ -13,7 +13,7 @@ import { EngineError, requestSlots } from "./engineClient";
 import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment, travelBreakdown, solverAnalysis } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
-import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime } from "./timeOffView";
+import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime, repairOvertimeMinutes } from "./timeOffView";
 
 test("refresh preserves the browser deadline and rejects expired or malformed values before scheduling", async () => {
   const original = globalThis.fetch;
@@ -223,6 +223,7 @@ test("time-off contracts reject invalid categories, intervals, and persisted rep
   const complete = parseTimeOffReport({ technician_id: "tech", days: [{ service_date: "2026-10-01", start_min: 480, end_min: 1020, status: "REPAIR_PREVIEW" }] });
   assert.equal(complete.kind, "complete");
   assert.equal(additionalRepairOvertime(complete), null, "Missing metrics must not become zero overtime");
+  assert.equal(repairOvertimeMinutes(complete), null, "Missing post-repair workload must block approval");
 });
 
 test("repair approval sums increases by day without cancelling them against another day's reduction", () => {

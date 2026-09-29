@@ -1,7 +1,7 @@
 "use client";
 
 import { errorMessage, readResponse, timeOffCategories, timeOffRequest, timeOffResult } from "@/lib/contracts";
-import { additionalRepairOvertime, type ParsedTimeOffReport, type TimeOffIntervalView, type TimeOffReportSummary } from "@/lib/timeOffView";
+import { repairOvertimeMinutes, type ParsedTimeOffReport, type TimeOffIntervalView, type TimeOffReportSummary } from "@/lib/timeOffView";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useRef, useState } from "react";
 import Avatar from "../components/Avatar";
@@ -59,7 +59,6 @@ export default function TimeOffDemo({ technicians, requests, selectedFilter, tru
   const [start, setStart] = useState("08:00"), [end, setEnd] = useState("17:00"), [category, setCategory] = useState<string>(timeOffCategories[0]), [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [formError, setFormError] = useState(""), [showForm, setShowForm] = useState(false), [expanded, setExpanded] = useState<string | null>(null);
 
-  const [overtimeApprovals, setOvertimeApprovals] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!showForm) return;
@@ -95,14 +94,13 @@ export default function TimeOffDemo({ technicians, requests, selectedFilter, tru
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function approve(request: Request) {
-    const additional = additionalRepairOvertime(request.report);
+    const additional = repairOvertimeMinutes(request.report);
     if (!reportMatches(request) || additional === null || request.report.kind !== "complete") { setMessage("Review a fresh repair report before approving."); return; }
-    const allowAdditionalOvertime = additional > 0 && overtimeApprovals[request.id] === JSON.stringify(request.report.summary);
-    if (additional > 0 && !allowAdditionalOvertime) { setMessage("Explicit approval is required for additional overtime."); return; }
+    if (additional > 0) { setMessage("This repair requires overtime and needs manual resolution."); return; }
     const approvedRepairIds = request.report.summary.days.flatMap(day => day.status === "REPAIR_PREVIEW" && day.run_id ? [day.run_id] : []);
     const id = request.id;
     setBusy(true); setMessage("");
-    try { const response = await fetch("/api/time-off/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, allowAdditionalOvertime, approvedRepairIds }) }); await readResponse(response, timeOffResult); setMessage(`Request ${id} approved.`); router.refresh(); }
+    try { const response = await fetch("/api/time-off/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, allowAdditionalOvertime: false, approvedRepairIds }) }); await readResponse(response, timeOffResult); setMessage(`Request ${id} approved.`); router.refresh(); }
     catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
   }
   async function act(id: string, action: "retry" | "deny") {
@@ -122,18 +120,13 @@ export default function TimeOffDemo({ technicians, requests, selectedFilter, tru
     {truncated && <p role="note" className={styles.limitNotice}>Showing the first 100 matching requests.</p>}
     {requests.length === 0 ? <div className={`${ui.card} ${styles.emptyState}`}>{selectedFilter === "all" ? "No active time-off requests." : `No requests match the ${FILTERS.find(item => item.key === selectedFilter)?.label.toLowerCase()} filter.`}</div> :
     <div className={`${ui.card} ${styles.tableCard}`}><table className={styles.table}><thead><tr><th>Technician</th><th>Dates</th><th>Reason</th><th>Status</th><th>Conflict analysis</th><th>Action</th></tr></thead><tbody>{requests.map(request => {
-      const additional = additionalRepairOvertime(request.report);
-      const approvalKey = request.report.kind === "complete" ? JSON.stringify(request.report.summary) : null;
-      const overtimeApproved = approvalKey !== null && overtimeApprovals[request.id] === approvalKey;
+      const additional = repairOvertimeMinutes(request.report);
       const isOpen = expanded === request.id, canApprove = request.status === "READY" && reportMatches(request)
-        && additional !== null && (additional === 0 || overtimeApproved), progress = request.reportProgress;
+        && additional === 0, progress = request.reportProgress;
       return <Fragment key={request.id}><tr><td className={styles.who}><Avatar name={request.technicianName} /><span><button type="button" className={styles.nameLink} aria-expanded={isOpen} aria-controls={`request-${request.id}`} onClick={() => setExpanded(isOpen ? null : request.id)}>{request.technicianName}</button><br /><span className={styles.sub}>Technician</span></span></td>
         <td>{request.intervalsValid ? <><div className={styles.mainDate}>{request.intervals[0]?.date}{request.intervals.length > 1 ? ` to ${request.intervals.at(-1)?.date}` : ""}</div><div className={styles.times}>{request.intervals.length === 1 && request.intervals[0] ? `${time(request.intervals[0].startMin)} to ${time(request.intervals[0].endMin)}` : `${request.intervals.length} days`}</div></> : <span className={styles.invalid}>Invalid interval data</span>}</td>
         <td>{request.category}</td><td><StatusPill status={request.status} /></td><td><div className={styles.analysisLbl}>{analysisLabel(request)}</div>{request.report.kind === "failure" && <div className={styles.analysisLbl}>{request.report.reason}</div>}{request.status !== "DENIED" && (progress == null ? <div className={styles.progressUnknown}>Progress unknown</div> : <div className={styles.analysisBar} aria-label={`Analysis ${progress}% complete`}><span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} /></div>)}{(request.reportStatus === "QUEUED" || request.reportStatus === "ANALYZING") && <button className={styles.refreshBtn} type="button" onClick={() => router.refresh()}>Refresh analysis</button>}</td>
-        <td><div className={styles.actions}>{request.status === "READY" && additional !== null && additional > 0 && approvalKey !== null &&
-          <label><input type="checkbox" checked={overtimeApproved} disabled={busy}
-            onChange={event => setOvertimeApprovals(current => ({ ...current, [request.id]: event.target.checked ? approvalKey : "" }))} />
-            Approve {additional} additional overtime minutes to preserve appointments</label>}{request.status === "READY" && <button className={styles.approveBtn} disabled={busy || !canApprove} title={!canApprove ? "A valid matching report is required" : undefined} onClick={() => approve(request)}>Approve</button>}{request.status === "PENDING" && (request.reportStatus === "ANALYSIS_FAILURE" || request.reportStatus === "ROUTING_FAILURE") && <button className={ui.button} type="button" disabled={busy} onClick={() => act(request.id, "retry")}>Retry analysis</button>}{(request.status === "PENDING" || request.status === "READY") && <button className={ui.button} type="button" disabled={busy} onClick={() => act(request.id, "deny")}>Deny</button>}</div></td></tr>
+        <td><div className={styles.actions}>{request.status === "READY" && additional !== null && additional > 0 && <span>This repair requires overtime and needs manual resolution.</span>}{request.status === "READY" && <button className={styles.approveBtn} disabled={busy || !canApprove} title={!canApprove ? "A valid matching report is required" : undefined} onClick={() => approve(request)}>Approve</button>}{request.status === "PENDING" && (request.reportStatus === "ANALYSIS_FAILURE" || request.reportStatus === "ROUTING_FAILURE") && <button className={ui.button} type="button" disabled={busy} onClick={() => act(request.id, "retry")}>Retry analysis</button>}{(request.status === "PENDING" || request.status === "READY") && <button className={ui.button} type="button" disabled={busy} onClick={() => act(request.id, "deny")}>Deny</button>}</div></td></tr>
         {isOpen && <tr className={styles.detailRow}><td colSpan={6}><div className={styles.detailBody} id={`request-${request.id}`}><div><p className={ui.sectionLabel}>Request</p><div className={styles.kvRow}><span className={styles.key}>Status</span><span>{request.status}</span></div><div className={styles.kvRow}><span className={styles.key}>Category</span><span>{request.category}</span></div><div className={styles.kvRow}><span className={styles.key}>Submitted</span><span>{new Date(request.createdAt).toLocaleDateString()}</span></div><p className={ui.sectionLabel}>Explanation</p><p className={styles.explanation}>{request.reason}</p></div>
           <div><p className={ui.sectionLabel}>Requested intervals</p>{request.intervalsValid ? request.intervals.map(interval => <div key={interval.date} className={styles.intervalRow}><span>{interval.date}</span><span>{time(interval.startMin)} to {time(interval.endMin)}</span></div>) : <p className={styles.invalid}>Missing or invalid requested intervals. Approval is unavailable.</p>}</div>
           <div><p className={ui.sectionLabel}>Conflict analysis</p><p className={styles.analysisLbl}>{analysisLabel(request)}</p><ReportDetails report={request.report} /><button className={ui.button} type="button" onClick={() => setExpanded(null)}>Collapse</button></div></div></td></tr>}
