@@ -84,7 +84,7 @@ const auditContract = z.object({ routingIdentity: z.string().min(1), configurati
     travelBufferPct: z.number().nonnegative(), travelBufferMinutes: z.int().nonnegative() }).optional(),
   days: z.array(z.object({ date: z.iso.date(), policy, waitingMinutes: z.int().nonnegative(), roadSeconds: z.int().nonnegative(),
     configuredBufferSeconds: z.number().nonnegative(), roundingSeconds: z.number().nonnegative(), confirmedAppointments: z.int().nonnegative(), reservedStops: z.int().nonnegative() })) });
-async function audit(metroId: string) { return auditContract.parse(await post("/internal/benchmark/audit", { metroId, dates })); }
+async function audit(metroId: string, serviceDates: string[] = dates) { return auditContract.parse(await post("/internal/benchmark/audit", { metroId, dates: serviceDates })); }
 const statisticsContract = z.object({ routing: z.object({ legRequests: z.int().nonnegative(), requestedPairs: z.int().nonnegative(),
   identityRequests: z.int().nonnegative(), geometryRequests: z.int().nonnegative() }), processCpuNanos: z.int().nonnegative().nullable(),
   heapUsedBytes: z.int().nonnegative(), peakHeapUsedBytes: z.int().nonnegative(), uptimeMs: z.int().nonnegative(), configuration: z.record(z.string(), z.string()) });
@@ -250,7 +250,8 @@ try {
     const processAfter = await statistics(false);
     const diagnostics = await benchmarkDiagnostics(process.env.BENCHMARK_LOG_PATH, data.jobIds);
     let after: z.infer<typeof auditContract>;
-    try { after = await audit(data.metroId); }
+    const auditedDates = [...new Set([...dates, ...attempts.flatMap(attempt => attempt.served && attempt.serviceDate ? [attempt.serviceDate] : [])])].sort();
+    try { after = await audit(data.metroId, auditedDates); }
     catch (error) {
       // Retain client observations even when the final consistency audit fails.
       // A later successful audit cannot recover these latency measurements.
@@ -259,6 +260,9 @@ try {
         message: errorMessage(error), at: new Date().toISOString() });
       throw error;
     }
+    assert.equal(after.days.reduce((sum, day) => sum + day.confirmedAppointments, 0)
+      - before.days.reduce((sum, day) => sum + day.confirmedAppointments, 0), attempts.filter(attempt => attempt.served).length,
+    "Every confirmed request, including overflow, must appear in the final route audit");
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);
