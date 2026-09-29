@@ -50,6 +50,34 @@ def bootstrap(values):
     return [means[249], means[9749]]
 
 
+def route_diagram(field, companions):
+    rows = [r for r in field["rows"] if r["bookingOrder"] == ["A", "B", "C"] and r["promiseMinutes"] == 240 and r["variant"] == "BOUNDED"]
+    protected = next(r for r in companions if r["scenario"] == "protected-omaha")
+    cases = [("After confirming " + r["request"], r["routes"]["omaha"], r["visits"], r["costCents"], r["drivingMinutes"]) for r in rows]
+    cases.append(("A protected Omaha promise requires backtracking", protected["after"]["omaha"],
+                  [{"id": v["id"], "windowStart": v["start"], "windowEnd": v["end"]} for v in protected["visits"]], protected["costCents"], protected["drivingMinutes"]))
+    svg = ["<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 600' role='img' aria-label='Actual selected routes before and after sequential bookings'><defs><marker id='arrow' markerWidth='6' markerHeight='6' refX='5' refY='3' orient='auto'><path d='M0 0L6 3L0 6' fill='#475569'/></marker></defs><rect width='960' height='600' fill='white'/><style>text{font-family:system-ui;font-size:13px;fill:#172b3a}.title{font-size:16px;font-weight:600}</style>"]
+    for index, (title, stops, visits, cents, driving) in enumerate(cases):
+        y = 45 + index * 145
+        svg.append(f"<text x='25' y='{y}' class='title'>{escape(title)}: {money(cents)}, driving {driving} min</text>")
+        names = ["Home"] + stops + ["Home"]
+        for i, name in enumerate(names):
+            x = 95 + i * 180
+            rural = name in ("A", "C", "E")
+            if i:
+                previous_rural = names[i - 1] in ("A", "C", "E")
+                minutes = 5 if rural == previous_rural else 45 if previous_rural else 40
+                svg.append(f"<path d='M{x - 152} {y + 40}H{x - 30}' stroke='#475569' marker-end='url(#arrow)'/><text x='{x - 115}' y='{y + 31}'>{minutes} min</text>")
+            color = "#c86b23" if rural else "#087e8b"
+            svg.append(f"<circle cx='{x}' cy='{y + 40}' r='21' fill='{color}'/><text x='{x}' y='{y + 44}' text-anchor='middle' style='fill:white'>{name}</text><text x='{x}' y='{y + 78}' text-anchor='middle'>{'Town' if rural else 'Omaha'}</text>")
+            if name != "Home":
+                visit = next(v for v in visits if v["id"] == name)
+                window = visit["windowStart"][11:16] + " to " + visit["windowEnd"][11:16] + " UTC"
+                svg.append(f"<text x='{x}' y='{y + 97}' text-anchor='middle'>{window}</text>")
+    svg.append("</svg>")
+    return "".join(svg)
+
+
 def main():
     booking, daily, provenance, failures = [], [], [], []
     inventory = []
@@ -86,6 +114,8 @@ def main():
     rejected = load(DATA / "field-rejections.json")["rejections"]
     assert len(rejected) == 3 and all(r["expected"] == "NO_CANDIDATE" for r in rejected)
     assert all(r["overtimeMinutes"] == 0 for r in companions)
+    routes_svg = route_diagram(field, companions)
+    (ROOT / "docs/scheduler-field-routes.svg").write_text(routes_svg, encoding="utf-8")
     groups = defaultdict(list)
     for row in booking:
         groups[row["stage"], row["variant"]].append(row)
@@ -238,6 +268,7 @@ def main():
                           [[stage, b, v, len(rs), money(mean(r["after"]["costCents"] - r["before"]["costCents"] for r in rs)),
                             f'{mean(r["elapsedMs"] for r in rs):,.0f}', sum(r["violations"] for r in rs)] for (stage, b, v), rs in sorted(dg.items())]))
     sections += ["## Field scenarios",
+      "![Selected routes and protected-promise backtracking](scheduler-field-routes.svg)",
       "The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha. Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.",
       f"All {len(field['rows'])} sequential steps match their exact optimum: all six booking orders, two/four-hour promises, five variants, and three confirmed requests. Earlier promises remain fixed while internal order/time may change. This simple fixture is already solved by insertion, so it does not reproduce a failure of insertion. Both wider promises and stronger search are separately varied; neither is required for this fixture's optimal grouping.",
       "### A, then B, then C",
@@ -282,6 +313,8 @@ def main():
         elif line.startswith("#"):
             depth = len(line) - len(line.lstrip("#"))
             html.append(f"<h{depth}>{escape(line[depth:].strip())}</h{depth}>")
+        elif line.startswith("!["):
+            html.append(routes_svg)
         elif line.startswith("| "):
             html.append("<div class='scroll'><table>")
             first = True
