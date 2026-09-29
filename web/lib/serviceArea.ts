@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { haversineMiles } from "@/lib/geo";
+import { coverageBounds } from "./coverage";
+import { serviceAreaCircle } from "./contracts";
+
+export async function bookingServiceArea() {
+  const depots = await prisma.depot.findMany({ select: { lat: true, lng: true, metro: { select: { serviceRadiusMi: true } } } });
+  const circles = depots.map(d => serviceAreaCircle.parse({ lat: d.lat, lng: d.lng, radiusMi: d.metro.serviceRadiusMi }));
+  return { circles, bounds: coverageBounds(circles) };
+}
 
 // MVP service-area check: within the metro's configured radius of any depot.
 // This lets an operating area include nearby communities outside the urban

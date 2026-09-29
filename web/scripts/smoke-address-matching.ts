@@ -63,7 +63,9 @@ async function main() {
       assert.equal((await edit(bad)).status, 422);
       assert.equal((await book(request({ ...booking, ...bad, requestId: randomUUID(), confirmedPin }))).status, 422);
       const requestId = randomUUID();
-      assert.equal((await book(request({ ...booking, ...bad, requestId }))).status, 200);
+      assert.equal((await book(request({ ...booking, ...bad, requestId }))).status, 422);
+      assert.equal(await prisma.job.count({ where: { bookingRequestId: requestId } }), 0);
+      assert.equal((await book(request({ ...booking, ...bad, requestId, followUp: true }))).status, 200);
       const pending = await prisma.job.findUniqueOrThrow({ where: { bookingRequestId: requestId }, include: { address: true } });
       assert.equal(pending.manualFollowUpReason, "ADDRESS_UNVERIFIED");
       assert.equal(pending.address.geocodePrecision, null);
