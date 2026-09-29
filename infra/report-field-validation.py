@@ -92,7 +92,7 @@ def main():
         for row in rows:
             row = dict(row, file=path.name)
             if row.get("type") == "case":
-                row["stage"] = next((stage for stage in ("original", "held", "stress") if stage in path.stem), "screen")
+                row["stage"] = next((stage for stage in ("original", "held", "stress", "browser") if stage in path.stem), "screen")
                 row["seed"] = metadata["seed"]
                 assert row["served"] == len(served_ids(row))
                 assert row["independentlyValidated"]
@@ -106,6 +106,19 @@ def main():
                 daily.append(row)
             elif row.get("type") not in ("provenance", "configuration"):
                 failures.append(row)
+    for path in sorted(DATA.rglob("*")):
+        if not path.is_file() or path.name == "summary.json" or ".jsonl" in path.name:
+            continue
+        raw = path.read_bytes()
+        inventory.append({"file": path.relative_to(DATA).as_posix(), "bytes": len(raw), "sha256": sha256(raw).hexdigest()})
+    investigation = load(DATA / "failed-shared-83-investigation.json")
+    assert investigation["originalPromiseViolations"] == 0
+    assert investigation["freshAuditOvertimeMinutes"] == 0
+    assert investigation["originalAppointments"] == 1000
+    validation = load(DATA / "validation.json")
+    for check in validation["checks"]:
+        assert check["result"] == "passed"
+        assert sha256((DATA / check["log"]).read_bytes()).hexdigest() == check["sha256"], check["name"]
     field = load(DATA / "field-scenarios.json")
     assert len(field["rows"]) == 180
     assert all(r["costCents"] == r["oracleCostCents"] and r["overtimeMinutes"] == 0 for r in field["rows"])
@@ -193,18 +206,33 @@ def main():
         policy_pairs.append(dict(variant=row["variant"], seed=row["seed"], size=row["size"], originalServed=row["served"],
                                  policyServed=current["served"], originalCostCents=cost(row), policyCostCents=cost(current),
                                  sameCustomers=served_ids(row) == served_ids(current)))
-    expected = {"screen": 30, "original": 12, "held": 144, "stress": 8}
+    daily_pairs = []
+    daily_controls = {(r["stage"], r["budget"], r["seed"], r["technicians"], r["datasetFingerprint"]): r
+                      for r in daily if r["variant"] == "TABU"}
+    for budget in (15, 30, 60):
+        for variant in sorted({r["variant"] for r in daily} - {"TABU"}):
+            units = defaultdict(list)
+            for row in daily:
+                if row["stage"] != "held" or row["budget"] != budget or row["variant"] != variant:
+                    continue
+                control = daily_controls[(row["stage"], budget, row["seed"], row["technicians"], row["datasetFingerprint"])]
+                units[row["seed"]].append(control["after"]["costCents"] - row["after"]["costCents"])
+            values = [mean(v) for v in units.values()]
+            if values:
+                daily_pairs.append(dict(budgetSeconds=budget, variant=variant, independentSeeds=len(values),
+                    meanSavingsCents=mean(values), exploratory95PercentInterval=bootstrap(values)))
+    expected = {"screen": 30, "original": 12, "held": 144, "stress": 8, "browser": 24}
     actual = dict(Counter(r["stage"] for r in booking))
     complete = actual == expected and len(daily) == 240
     if "--require-complete" in sys.argv:
         assert complete, {"expectedBookingCases": expected, "actualBookingCases": actual, "dailyCases": len(daily)}
     summary = {"executionComplete": complete, "expectedBookingCases": expected, "actualBookingCases": actual,
-               "booking": summaries, "paired": paired, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
+               "booking": summaries, "paired": paired, "dailyPaired": daily_pairs, "policyComparison": policy_pairs, "qualityOverTime": quality, "rawFiles": inventory,
                "dailyResults": len(daily), "fieldRows": len(field["rows"]), "companionRows": len(companions), "rejectionFixtures": rejected,
                "failures": failures, "provenance": provenance}
     (DATA / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     sections = ["# Scheduler policy, search, and field validation",
-      "Execution status: " + ("complete" if complete else "in progress") + f". Retained {len(booking)}/194 booking cases and {len(daily)}/240 daily-solver cases. Every raw case remains included in its stage.",
+      "Execution status: " + ("complete" if complete else "in progress") + f". Retained {len(booking)}/218 validated booking cases and {len(daily)}/240 daily-solver cases. Every raw case remains included in its stage. Separately retained failures are disclosed below.",
       "## Decision and scope",
       "Adopt the single-offer, four-hour, zero-new-overtime safety policy and durable search lifecycle. Retain the existing production search selection and daily TABU default. Expanded search remains experimental. No algorithm promotion is justified by this evidence alone: concurrent service outcomes, limited independent geography, and runtime remain material constraints. These are modeled fixture results, not operational savings or a reproduction from customer production records.",
       "Baseline checkout: `c28a24c4c0c1b4614b442c7a362d205cfa7e0db3`. Original behavior is rebuilt in an isolated checkout and recorded separately as `original`; `screen` and `held` use the new policy. Historical reports and artifacts remain unchanged. Algorithm rollback continues through the common policy and reservation validation layer.",
@@ -267,6 +295,10 @@ def main():
     sections.append(table(["Stage", "Seconds", "Variant", "Cases", "Mean accepted cost change", "Mean elapsed, ms", "Violations"],
                           [[stage, b, v, len(rs), money(mean(r["after"]["costCents"] - r["before"]["costCents"] for r in rs)),
                             f'{mean(r["elapsedMs"] for r in rs):,.0f}', sum(r["violations"] for r in rs)] for (stage, b, v), rs in sorted(dg.items())]))
+    sections.append(table(["Held budget", "Variant vs TABU", "Independent seeds", "Mean modeled savings", "Exploratory 95% interval"],
+        [[p["budgetSeconds"], p["variant"], p["independentSeeds"], money(p["meanSavingsCents"]),
+          "n/a" if p["exploratory95PercentInterval"] is None else " to ".join(money(v) for v in p["exploratory95PercentInterval"])] for p in daily_pairs]))
+    sections.append("Daily pairs match the exact dataset fingerprint and budget, average fleet sizes within each seed, then bootstrap seed units. Two held-out seeds cannot establish broad generalization. Conditional configuration comparisons are available for capped/uncapped work, change-only/change-plus-swap, sublist, k-opt, and ruin/recreate additions. They do not establish an isolated causal effect for a move type across different acceptors or combined neighborhoods. Raw reference/fairness phase records retain score calculations, time to best, termination, CPU, heap, and waiting/fairness outcomes.")
     sections += ["## Field scenarios",
       "![Selected routes and protected-promise backtracking](scheduler-field-routes.svg)",
       "The independent small-case oracle enumerates assignments, route order, and minute-grid departure/arrival timing without calling production RouteEvaluator. The flagship has directed Omaha-to-town travel of 40 minutes, town-to-Omaha travel of 45 minutes, and five-minute local legs, with 60-minute visits and an 08:00-16:00 regular shift. Both actual route endpoints are Omaha. Rates are $30/hour regular labor, $45/hour overtime labor (prohibited), and $0.67/mile. Arrival-window ends are exclusive. The oracle independently establishes the cheapest offered arrangement across all candidate windows.",
@@ -291,11 +323,13 @@ def main():
       "The reassignment fixture gives the Omaha technician 220 paid minutes and the nearby technician 160 paid minutes of daily capacity, existing jobs of 90 and 60 minutes, and a new 50-minute job qualified only on the original technician. Moving the existing jobs between technicians makes the request possible with the same directed rural travel. The retained no-new-request oracle cost separates preexisting cleanup from insertion effects. It is checked with existing two-hour and four-hour promises. Alternating A/B/C/D/E requests remain grouped where their promises allow. Separate assertions reject an unqualified nearby technician, a long rural service plus return beyond regular hours, an unreachable directed return, and a split-availability violation. The nearby technician begins and ends in the town, not an assumed Omaha depot.",
       "Every flagship row retains before-history, selected route, promised and planned timestamps, service durations, driving, waiting, meters, cost, return time, actual endpoint coordinates, coverage, and reconstruction counts. Companion JSON files retain before/after order and promised/planned/return times. Dated depot, cancellation, hold, cutoff, stale-preview, and overflow behavior also has database/API regression coverage. The flagship confirmation is an in-memory sequential snapshot replay; API lifecycle tests separately exercise persisted confirmation. It is not a customer production trace.",
       "## Reproducibility and limitations",
+      "### Failed concurrency audit and retained evidence",
+      "The original SHARED seed-83, 50-technician, concurrency-five cold run ended with HTTP 409 from the final audit. Its detailed reason and client timing array were not retained by that harness revision. The original failure log and a PostgreSQL snapshot taken before restart remain in the evidence directory. A fresh audit of the saved schedule passed with zero overtime, and an independent inspection of the dump found all 1,000 original dates/windows intact. One new request was confirmed. Cleanup overlapped the original audit interval, consistent with a snapshot conflict, but the cause is unresolved. This failed attempt is excluded from paired cost/latency summaries; the separately labeled held-recovery run repeats that matrix cell and runs the three remaining cells. The original failure is not erased or counted as a passing experiment. Future audit failures retain attempts and diagnostics. See [investigation](evidence/scheduler-field-2026-09-29/failed-shared-83-investigation.json).",
       "Booking artifact `1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b` was built from `2258b2a14e8a9ecd085c79ec377448c0555c2b1e`. Some held runtime headers name the later harness checkout `adcda9a`; the jar hash, not that checkout label, identifies the unchanged tested server. Daily frozen classes were copied from `6da6d9341815d7f290cfe34190974fef1ffe2ff3`. Subsequent preview/contract/migration and bounded worker-query fixes do not change these booking/daily algorithms. Per-file metadata records configurations, seeds, dataset fingerprints, routing identity, and source fingerprints. Original baseline artifacts explicitly name c28a24c.",
       "Local Windows Java 25 runs share one 24-logical-CPU host, PostgreSQL, and routing cache with concurrent benchmark processes and validation. CPU and heap counters are process diagnostics, not isolated per-request CPU or resident memory. Cold mode clears the benchmark cache as implemented by the harness; shared routing infrastructure can still be warm. No wall-clock speedup should be generalized from these runs. Road service identity is retained in each audit. No same-day field replanning, automatic merge, or operational deployment was performed.",
       "Reproduce booking runs with `node infra/run-field-booking-benchmarks.mjs` and the FIELD_* settings in each runtime manifest. Use only fresh schemas in waterflex_test. Run the field oracle with `mvnw -Pnullability -pl scheduler-service clean test -Dtest=FieldScenarioTest`. Rebuild this report with `python infra/report-field-validation.py --require-complete`. The generator verifies complete case counts, served totals, zero reported promise/constraint violations, and all exact-case cost equalities. Raw failed and incomplete outcomes are retained. Unmeasured cases are not assigned fabricated zero metrics.",
       "## Gates and remaining acceptance boundaries",
-      "See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. Broad production representativeness, true browser concurrency latency, and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion."]
+      "See `validation.json` for exact executed checks and their results. Required local checks cover strict Java nullability, frontend lint/typecheck, schema contract, browser recovery/cancellation, PostgreSQL worker ownership/restart, confirmation/holds, optimizer apply, and time-off. CI is independently reported in the PR. The browser stage measures Chromium HTTP through an isolated production-built portal at concurrency 1/5/10, 5/10/20/50 technicians, and held-out seeds 59/83 with the retained insertion baseline. It uses actual durable start/poll endpoints and 750ms polling, starting from validated jobs. Confirmation uses the API harness; address entry, rendering, and geocoding time are excluded. Broad production representativeness and operational savings remain unestablished; retain baseline defaults until held-out evidence satisfies every promotion criterion."]
     text = "\n\n".join(sections) + "\n"
     assert "\u2014" not in text
     OUT.write_text(text, encoding="utf-8")
@@ -346,7 +380,7 @@ def main():
     chart.append("<path d='M65 25V280H750' fill='none' stroke='#555'/><text x='250' y='330'>Mean case p95 latency</text><text x='75' y='20'>Paired modeled savings versus insertion per stream</text></svg>")
     svg = "<svg xmlns='http://www.w3.org/2000/svg'" + "".join(chart).split("<svg", 1)[1]
     (ROOT / "docs/scheduler-field-cost-runtime.svg").write_text(svg, encoding="utf-8")
-    page = "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Scheduler field validation</title><style>body{font:16px/1.55 system-ui;max-width:1180px;margin:40px auto;padding:0 24px;color:#172b3a}h1,h2,h3{line-height:1.2}h2{margin-top:2em;border-top:1px solid #cbd5df;padding-top:1em}table{border-collapse:collapse;font-size:13px;width:100%}th,td{padding:9px;border:1px solid #cbd5df;text-align:left}th{background:#e8f2f4}tr:nth-child(even){background:#f7f9fb}.scroll{overflow-x:auto}pre{background:#f0f4f7;padding:20px;overflow:auto}svg{width:100%;max-height:380px}svg text{font-size:12px}</style><main>" + "\n".join(html[:4]) + "".join(chart) + "\n".join(html[4:]) + "</main></html>"
+    page = "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width'><title>Scheduler field validation</title><style>body{font:16px/1.55 system-ui;max-width:1180px;margin:40px auto;padding:0 24px;color:#172b3a}h1,h2,h3{line-height:1.2}h2{margin-top:2em;border-top:1px solid #cbd5df;padding-top:1em}table{border-collapse:collapse;font-size:13px;width:100%}th,td{padding:9px;border:1px solid #cbd5df;text-align:left}th{background:#e8f2f4}tr:nth-child(even){background:#f7f9fb}.scroll{overflow-x:auto}pre{background:#f0f4f7;padding:20px;overflow:auto}svg{width:100%;height:auto}svg text{font-size:12px}</style><main>" + "\n".join(html[:4]) + "".join(chart) + "\n".join(html[4:]) + "</main></html>"
     OUT.with_suffix(".html").write_text(page, encoding="utf-8")
     print(json.dumps({"bookingCases": len(booking), "dailyCases": len(daily), "fieldRows": 180, "companions": len(companions), "summary": str(DATA / "summary.json")}))
 
