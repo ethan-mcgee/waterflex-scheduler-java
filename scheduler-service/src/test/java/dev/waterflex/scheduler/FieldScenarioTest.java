@@ -83,13 +83,17 @@ class FieldScenarioTest {
                 "operationalEvidence", false, "rates", RATES, "rows", rows));
     }
 
-    @Test void skillsReturnTravelAbsencesAndDirectedUnreachableLegsRemainHard() {
+    @Test void skillsReturnTravelAbsencesAndDirectedUnreachableLegsRemainHard() throws Exception {
         for (boolean nearbyQualified : List.of(false, true)) {
             Day day = fixture(true, nearbyQualified, false, false);
             var request = new BoundedBookingSearch.Request("A", "service", 60, TOWN);
             var result = engine(snapshot(day), request, 240, "SHARED").search(true);
             var chosen = Required.value(BoundedBookingSearch.choose(result.candidates(), SchedulingPolicy.Rules.defaults()));
             assertEquals(nearbyQualified ? "nearby" : "omaha", chosen.technicianId());
+            Map<String, Visit> facts = Required.value(Map.of("A", new Visit("A", "A", "service", chosen.window().start(), chosen.window().end(), 60,
+                    TOWN, chosen.technicianId(), chosen.window().start(), false)));
+            assertEquals(Required.value(SmallCaseOracle.best(day, facts, RATES)).costCents(), chosen.validation().costCents());
+            recordCompanion("nearby-qualified-" + nearbyQualified, day, chosen, facts);
         }
         Day split = fixture(false, true, true, false);
         assertTrue(engine(snapshot(split), new BoundedBookingSearch.Request("A", "service", 240, TOWN), 240, "SHARED").search(true).candidates().isEmpty());
@@ -97,6 +101,10 @@ class FieldScenarioTest {
         assertTrue(engine(snapshot(unreachable), new BoundedBookingSearch.Request("A", "service", 60, TOWN), 240, "BOUNDED").search(true).candidates().isEmpty());
         Day regular = fixture(false, true, false, false);
         assertTrue(engine(snapshot(regular), new BoundedBookingSearch.Request("A", "service", 420, TOWN), 240, "SHARED").search(true).candidates().isEmpty(), "Service plus directed return exceeds eight hours");
+        new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(Path.of("target", "field-rejections.json").toFile(), Map.of("rejections", List.of(
+                Map.of("scenario", "long-rural-return", "serviceMinutes", 420, "regularMinutes", 480, "directedReturnMinutes", 45, "expected", "NO_CANDIDATE"),
+                Map.of("scenario", "split-availability", "serviceMinutes", 240, "absenceStart", Required.value(START.plusSeconds(180 * 60).toString()), "absenceEnd", Required.value(START.plusSeconds(300 * 60).toString()), "expected", "NO_CANDIDATE"),
+                Map.of("scenario", "unreachable-directed-return", "serviceMinutes", 60, "unreachableLeg", "town > Omaha home", "expected", "NO_CANDIDATE"))));
     }
     @Test void fourHourPolicyAndOverflowKeepWeekendsAndDstCalendarBoundaries() {
         var engine = new BoundedBookingSearch(snapshot(fixture(false, true, false, false)), new BoundedBookingSearch.Request("A", "service", 60, TOWN), BoundedBookingSearch.Limits.defaults(), () -> { });
@@ -174,6 +182,8 @@ class FieldScenarioTest {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("scenario", name); row.put("before", day.baseline().routes()); row.put("after", chosen.arrangement().routes());
         row.put("costCents", chosen.validation().costCents()); row.put("drivingMinutes", chosen.validation().driveMinutes());
+        row.put("meters", chosen.validation().meters());
+        row.put("endpoints", day.technicians().values().stream().map(t -> Map.of("id", t.id(), "departure", t.departure(), "return", t.returnTo())).toList());
         row.put("waitingMinutes", chosen.validation().waitingMinutes()); row.put("crossings", crossings(chosen.arrangement()));
         row.put("overtimeMinutes", chosen.validation().overtimeMinutes()); row.put("source", chosen.source());
         row.put("visits", facts.values().stream().map(v -> Map.of("id", v.id(), "start", Required.value(v.windowStart().toString()), "end", Required.value(v.windowEnd().toString()), "planned", Required.value(Required.value(chosen.validation().arrivals().get(v.id())).toString()))).toList());

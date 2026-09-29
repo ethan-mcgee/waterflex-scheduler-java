@@ -81,7 +81,7 @@ def main():
     field = load(DATA / "field-scenarios.json")
     assert len(field["rows"]) == 180
     assert all(r["costCents"] == r["oracleCostCents"] and r["overtimeMinutes"] == 0 for r in field["rows"])
-    companions = [load(p) for p in sorted(DATA.glob("field-*.json")) if p.name != "field-scenarios.json"]
+    companions = [load(p) for p in sorted(DATA.glob("field-*.json")) if p.name not in ("field-scenarios.json", "field-rejections.json")]
     assert all(r["overtimeMinutes"] == 0 for r in companions)
     groups = defaultdict(list)
     for row in booking:
