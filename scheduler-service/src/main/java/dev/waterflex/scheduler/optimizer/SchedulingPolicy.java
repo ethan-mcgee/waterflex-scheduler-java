@@ -10,7 +10,7 @@ import java.util.*;
 
 /** Pure policy calculations. Callers supply independently validated, confirmed work. */
 public final class SchedulingPolicy {
-    public static final String VERSION = "overtime-fairness-v1";
+    public static final String VERSION = "zero-overtime-four-hour-v2";
     private static final MathContext DECIMAL = Required.value(MathContext.DECIMAL128);
     private SchedulingPolicy() { }
 
@@ -38,9 +38,7 @@ public final class SchedulingPolicy {
             if (distinctRegularWindows < 0 || confirmedRegularMinutes < 0 || availableRegularMinutes < 0
                     || confirmedRegularMinutes > availableRegularMinutes)
                 throw new IllegalArgumentException("Invalid confirmed utilization");
-            return searchComplete && availableRegularMinutes > 0 && distinctRegularWindows <= regularWindowThreshold
-                    && BigDecimal.valueOf(confirmedRegularMinutes).compareTo(
-                            utilizationThreshold.multiply(BigDecimal.valueOf(availableRegularMinutes))) >= 0;
+            return false; // Policy prohibition survives algorithm rollback and saved scarcity settings.
         }
     }
 
@@ -113,7 +111,7 @@ public final class SchedulingPolicy {
     public static Decision compare(Metrics baseline, Metrics candidate, Metrics reference, Rules rules) {
         long ceiling = rules.costCeiling(reference.costCents());
         String reason;
-        if (candidate.overtimeMinutes() > baseline.overtimeMinutes()) reason = "OVERTIME_INCREASE";
+        if (candidate.overtimeMinutes() != 0) reason = "OVERTIME_PROHIBITED";
         else if (candidate.overtimeMinutes() != reference.overtimeMinutes()) reason = "OVERTIME_TARGET_MISMATCH";
         else if (candidate.costCents() > ceiling) reason = "COST_CEILING_EXCEEDED";
         else if (candidate.overtimeMinutes() < baseline.overtimeMinutes()) reason = "OVERTIME_REDUCTION";

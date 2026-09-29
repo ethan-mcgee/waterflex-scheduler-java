@@ -9,7 +9,7 @@ final class SolverBenchmarkData {
     enum Workload { SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY }
     private SolverBenchmarkData() { }
     static DayPlan create(int count, Workload workload) {
-        if (count != 20 && count != 30 && count != 50) throw new IllegalArgumentException("Benchmark fleet must be 20, 30 or 50");
+        if (count != 5 && count != 10 && count != 20 && count != 30 && count != 50) throw new IllegalArgumentException("Benchmark fleet must be 5, 10, 20, 30 or 50");
         List<TechRoute> routes = new ArrayList<>(); List<PlanVisit> visits = new ArrayList<>();
         Map<String, Integer> location = new TreeMap<>(); Map<String, Integer> cluster = new TreeMap<>();
         for (int technician = 0; technician < count; technician++) {

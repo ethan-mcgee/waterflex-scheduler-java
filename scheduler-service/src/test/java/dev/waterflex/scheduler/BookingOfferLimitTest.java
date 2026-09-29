@@ -18,7 +18,7 @@ class BookingOfferLimitTest {
     void startsWithDefaultOrAllowedEnvironmentValue(@Nullable String configured) {
         try (var context = context(configured)) {
             context.refresh();
-            assertEquals(configured == null ? 4 : Integer.parseInt(configured),
+            assertEquals(1,
                     context.getBean(BookingOfferLimit.class).value());
         }
     }

@@ -17,11 +17,11 @@ public class BookingController {
     private final SearchAdmission admission;
     private final BookingCoordinator coordinator;
     private final ReservationLifecycleService lifecycle;
-    private final boolean reservationsEnabled;
     private final BookingSearchControl searches;
     public BookingController(BookingService booking, SearchAdmission admission, BookingCoordinator coordinator,
             ReservationLifecycleService lifecycle, BookingSearchControl searches, @org.springframework.beans.factory.annotation.Value("${booking.reservations.enabled:false}") boolean reservationsEnabled) {
-        this.booking = booking; this.admission = admission; this.coordinator = coordinator; this.lifecycle = lifecycle; this.reservationsEnabled = reservationsEnabled; this.searches = searches;
+        this.booking = booking; this.admission = admission; this.coordinator = coordinator; this.lifecycle = lifecycle; this.searches = searches;
+        org.slf4j.LoggerFactory.getLogger(BookingController.class).debug("Legacy reservation rollout flag {}: policy-v2 always uses common reservations", reservationsEnabled);
     }
     public record JobRequest(String jobId, @Nullable Boolean refresh, @Nullable Long deadlineEpochMs, @Nullable String searchRequestId) {
         public JobRequest {
@@ -84,9 +84,7 @@ public class BookingController {
         long queueMs = admitted.queueMillis();
         try (var lease = admitted) {
             org.slf4j.LoggerFactory.getLogger(BookingController.class).debug("Booking queue time {} ms", lease.queueMillis());
-            BookingCoordinator.Result result = (reservationsEnabled || coordinator.requiresCommonArrangement())
-                    ? coordinator.offers(request.jobId(), Boolean.TRUE.equals(request.refresh()))
-                    : new BookingCoordinator.Result(booking.offers(request.jobId(), Boolean.TRUE.equals(request.refresh())), false, "LEGACY_INSERTION");
+            BookingCoordinator.Result result = coordinator.offers(request.jobId(), Boolean.TRUE.equals(request.refresh()));
             SearchOutcome outcome = !result.offers().offers().isEmpty() ? SearchOutcome.AVAILABLE
                     : result.completed() ? SearchOutcome.NO_CANDIDATE_FOUND
                     : result.stopReason().equals("ROUTING_UNAVAILABLE") ? SearchOutcome.ROUTING_UNAVAILABLE : SearchOutcome.SEARCH_INCOMPLETE;
