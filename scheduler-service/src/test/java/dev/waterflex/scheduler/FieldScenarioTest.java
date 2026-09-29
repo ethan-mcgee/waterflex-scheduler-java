@@ -106,7 +106,7 @@ class FieldScenarioTest {
         assertTrue(BookingService.bookingDates(capture).contains(LocalDate.parse("2026-11-01")));
         assertEquals(List.of(LocalDate.parse("2026-11-09"), LocalDate.parse("2026-11-10"), LocalDate.parse("2026-11-11"), LocalDate.parse("2026-11-12"), LocalDate.parse("2026-11-13")), BookingService.overflowDates(capture));
     }
-    @Test void anOmahaPromiseOrLiveReservationCorrectlyPreventsGroupingUntilReleased() {
+    @Test void anOmahaPromiseOrLiveReservationCorrectlyPreventsGroupingUntilReleased() throws Exception {
         for (boolean hold : List.of(false, true)) {
             Day empty = fixture(false, true, false, false);
             var a = new Visit("A", "A", "service", Required.value(START.plusSeconds(40 * 60)), Required.value(START.plusSeconds(60 * 60)), 10, TOWN, "omaha", Required.value(START.plusSeconds(40 * 60)), false);
@@ -120,13 +120,17 @@ class FieldScenarioTest {
             Map<String, Visit> facts = new TreeMap<>(day.visits());
             facts.put("C", new Visit("C", "C", "service", chosen.window().start(), chosen.window().end(), 60, TOWN, "omaha", chosen.window().start(), false));
             assertEquals(Required.value(SmallCaseOracle.best(day, facts, RATES)).costCents(), chosen.validation().costCents());
+            recordCompanion(hold ? "active-hold" : "protected-omaha", day, chosen, facts);
             Day released = new Day(day.technicians(), Required.value(Map.of("A", a)), new Arrangement(Required.value(Map.of("omaha", List.of("A")))), 1, day.roads());
             var flexible = Required.value(BoundedBookingSearch.choose(engine(snapshot(released), request, 240, "SHARED").search(true).candidates(), SchedulingPolicy.Rules.defaults()));
             assertEquals(2, crossings(flexible.arrangement()));
             assertFalse(flexible.arrangement().routes().values().stream().anyMatch(route -> route.contains("B")));
+            facts.remove("B");
+            facts.put("C", new Visit("C", "C", "service", flexible.window().start(), flexible.window().end(), 60, TOWN, "omaha", flexible.window().start(), false));
+            recordCompanion(hold ? "released-hold" : "cancelled-omaha", released, flexible, facts);
         }
     }
-    @Test void coordinatedReassignmentSolvesACaseThatInsertionCannot() {
+    @Test void coordinatedReassignmentSolvesACaseThatInsertionCannot() throws Exception {
         Day empty = fixture(true, false, false, false);
         Map<String, Technician> techs = new TreeMap<>();
         empty.technicians().forEach((id, technician) -> techs.put(id, new Technician(technician.id(), START, Required.value(START.plusSeconds(240 * 60)), 120, 0,
@@ -145,8 +149,37 @@ class FieldScenarioTest {
                 Map<String, Visit> facts = new TreeMap<>(day.visits());
                 facts.put("C", new Visit("C", "C", "new", chosen.window().start(), chosen.window().end(), 50, TOWN, "omaha", chosen.window().start(), false));
                 assertEquals(Required.value(SmallCaseOracle.best(day, facts, RATES)).costCents(), chosen.validation().costCents());
+                recordCompanion("reassignment-" + oldWidth + "-" + variant, day, chosen, facts);
             }
         }
+    }
+    @Test void alternatingRequestsAreGroupedWithoutBreakingEarlierPromises() throws Exception {
+        for (int width : List.of(120, 240)) {
+            Day day = fixture(false, true, false, false);
+            for (String id : List.of("A", "B", "C", "D", "E")) {
+                var request = new BoundedBookingSearch.Request(Required.value(id), "service", 30, rural(Required.value(id)) ? TOWN : OMAHA);
+                var chosen = Required.value(BoundedBookingSearch.choose(engine(snapshot(day), request, width, "SHARED").search(true).candidates(), SchedulingPolicy.Rules.defaults()));
+                Map<String, Visit> facts = new TreeMap<>(day.visits());
+                facts.put(id, new Visit(Required.value(id), Required.value(id), "service", chosen.window().start(), chosen.window().end(), 30, request.location(), chosen.technicianId(), chosen.window().start(), false));
+                assertEquals(Required.value(SmallCaseOracle.best(day, facts, RATES)).costCents(), chosen.validation().costCents());
+                assertEquals(2, crossings(chosen.arrangement()));
+                recordCompanion("alternating-" + width + "-" + id, day, chosen, facts);
+                Map<String, Visit> confirmed = new TreeMap<>();
+                for (var visit : facts.values()) confirmed.put(visit.id(), new Visit(visit.id(), visit.jobId(), visit.serviceId(), visit.windowStart(), visit.windowEnd(), visit.durationMinutes(), visit.location(), "omaha", Required.value(chosen.validation().arrivals().get(visit.id())), false));
+                day = new Day(day.technicians(), confirmed, chosen.arrangement(), day.reservationVersion() + 1, day.roads());
+            }
+        }
+    }
+    private static void recordCompanion(String name, Day day, BoundedBookingSearch.Candidate chosen, Map<String, Visit> facts) throws Exception {
+        Map<String, Object> row = new LinkedHashMap<>();
+        row.put("scenario", name); row.put("before", day.baseline().routes()); row.put("after", chosen.arrangement().routes());
+        row.put("costCents", chosen.validation().costCents()); row.put("drivingMinutes", chosen.validation().driveMinutes());
+        row.put("waitingMinutes", chosen.validation().waitingMinutes()); row.put("crossings", crossings(chosen.arrangement()));
+        row.put("overtimeMinutes", chosen.validation().overtimeMinutes()); row.put("source", chosen.source());
+        row.put("visits", facts.values().stream().map(v -> Map.of("id", v.id(), "start", Required.value(v.windowStart().toString()), "end", Required.value(v.windowEnd().toString()), "planned", Required.value(Required.value(chosen.validation().arrivals().get(v.id())).toString()))).toList());
+        row.put("segments", chosen.validation().segments().entrySet().stream().map(e -> Map.of("technician", e.getKey(), "segments", e.getValue().stream().map(s -> Map.of("departure", Required.value(s.departure().toString()), "return", Required.value(s.returnedAt().toString()), "order", s.visitIds())).toList())).toList());
+        Path target = Required.value(Path.of("target", "field-" + name + ".json"));
+        new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(target.toFile(), row);
     }
     static BoundedBookingSearch engine(BookingSnapshot snapshot, BoundedBookingSearch.Request request, int width, String variant) {
         var engine = new BoundedBookingSearch(snapshot, request, variant.equals("INSERTION") || variant.equals("BOUNDED") ? BoundedBookingSearch.Limits.defaults() : BoundedBookingSearch.Limits.expanded(), () -> { }, width);
@@ -167,14 +200,14 @@ class FieldScenarioTest {
                 qualified ? Required.value(Set.of("service")) : Required.value(Set.of("other")), Required.value(List.of()), TOWN, TOWN, 0));
         techs.keySet().forEach(id -> routes.put(id, new ArrayList<>()));
         Map<String, DayPlan.RoadLeg> roads = new TreeMap<>(); Set<String> missing = new TreeSet<>();
-        for (String from : List.of("omaha", "nearby", "A", "B", "C")) for (String to : List.of("omaha:return", "nearby:return", "A", "B", "C")) {
+        for (String from : List.of("omaha", "nearby", "A", "B", "C", "D", "E")) for (String to : List.of("omaha:return", "nearby:return", "A", "B", "C", "D", "E")) {
             int minutes = rural(Required.value(from)) == rural(Required.value(to)) ? from.equals(to) ? 0 : 5 : rural(Required.value(from)) ? 45 : 40;
             if (unreachable && to.equals("omaha:return") && rural(Required.value(from))) missing.add(from + ">" + to);
             else roads.put(from + ">" + to, new DayPlan.RoadLeg(minutes * 60L, minutes * 800L));
         }
         return new Day(techs, Required.value(Map.of()), new Arrangement(routes), 0, new Roads(roads, missing));
     }
-    private static boolean rural(String id) { return id.equals("A") || id.equals("C") || id.startsWith("nearby"); }
+    private static boolean rural(String id) { return id.equals("A") || id.equals("C") || id.equals("E") || id.startsWith("nearby"); }
     private static int crossings(Arrangement arrangement) {
         int count = 0;
         for (var route : arrangement.routes().entrySet()) { String previous = Required.value(route.getKey()); for (String stop : route.getValue()) {

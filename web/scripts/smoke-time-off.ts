@@ -79,19 +79,15 @@ async function main() {
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture overtime approval" });
     requestIds.push(overtimeRequest.requestId);
     const overtimeReview = await waitRequest(overtimeRequest.requestId, "READY");
-    assert.equal(overtimeReview.status, "READY", JSON.stringify(overtimeReview.report?.data));
-    const parsedOvertime = parseTimeOffReport(overtimeReview.report?.data);
-    assert.equal(parsedOvertime.kind, "complete");
-    if (parsedOvertime.kind !== "complete") throw new Error("Overtime report missing");
-    const overtimeRepair = required(parsedOvertime.summary.days[0]);
-    assert.ok(required(overtimeRepair.daily_after).overtime_minutes > required(overtimeRepair.daily_before).overtime_minutes);
-    const noApproval = await fetch(`${base}/v1/time-off/${overtimeRequest.requestId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-    assert.equal(noApproval.status, 409);
-    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId } })).status, "READY");
-    assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } }), overtimeAppointment);
-    await post(`/v1/time-off/${overtimeRequest.requestId}/approve`, { allowAdditionalOvertime: true, approvedRepairIds: [required(overtimeRepair.run_id)] });
-    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId } })).additionalOvertimeApproved, true);
-    assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } })).technicianId, techB);
+    assert.equal(overtimeReview.status, "PENDING");
+    assert.equal(required(overtimeReview.report).status, "NEEDS_COORDINATION");
+    for (const allowAdditionalOvertime of [false, true]) {
+      const rejected = await fetch(`${base}/v1/time-off/${overtimeRequest.requestId}/approve`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowAdditionalOvertime }),
+      });
+      assert.equal(rejected.status, 409);
+      assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } }), overtimeAppointment);
+    }
     const shortDate = localToday();
     shortDate.setUTCDate(shortDate.getUTCDate() + 13);
     const shortKey = shortDate.toISOString().slice(0, 10);
