@@ -27,6 +27,27 @@ Use `docker compose up --no-build` only when intentionally restarting with the e
 
 Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh must prepare a new version first, rebuild the Nominatim database separately, pause booking, activate the matching graph and tiles, and restart the map services. The Nominatim volume is currently a single active database, so back it up before a refresh. Do not activate a new map version while an old Nominatim import is serving bookings.
 
+## Appointment offer limit
+
+`BOOKING_OFFER_LIMIT` sets the deployment-wide maximum choices for each new booking offer set. Valid values are exactly `1`, `2`, or `4`; the default is `4` only when unset. Empty, malformed, and unsupported values fail scheduler startup with a configuration error. The scheduler logs the effective limit at startup.
+
+For a persistent setting, add this to the root `.env` file:
+
+```dotenv
+BOOKING_OFFER_LIMIT=2
+```
+
+Alternatively, set it in the PowerShell session before starting Compose:
+
+```powershell
+$env:BOOKING_OFFER_LIMIT = "2"
+docker compose up -d
+```
+
+Shell values override `.env`. Clear a shell override with `Remove-Item Env:BOOKING_OFFER_LIMIT -ErrorAction SilentlyContinue`, then run `docker compose up -d` to use `.env` or the default again. Changing this setting requires container recreation through `compose up`; `compose restart` does not update its environment. Direct Spring deployments can set `booking.offer.limit` (for example, `--booking.offer.limit=2`). Use the same setting on every scheduler instance.
+
+The limit applies while building and reserving both legacy and common-reservation offers, so only returned choices hold capacity. It does not reduce search coverage, change ranking or feasibility checks, or establish scarcity for overtime eligibility. Limited availability can yield fewer choices, including none. Existing sets remain selectable with their original choices until expiration, release, or refresh. Refresh releases the previous holds and creates a set using the current limit. The response shape, database schema, and booking screen are unchanged.
+
 ## Views and API
 
 - `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
@@ -39,7 +60,7 @@ Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` v
 - `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.
 - `/time-off`: local demo technician selector, request history, and staff approval queue. The selector does not authenticate a technician.
 
-`POST /api/book` takes an idempotent `requestId` with customer, address, and service details. It returns `{jobId, offers}` or a pending follow-up reference. Empty capacity results are recorded as `NO_CAPACITY`. Up to four offered windows share one ten-minute expiry. The scheduler validates overlapping sibling holds as a set, reuses an unexpired set on retry, and returns fewer choices if all four cannot be reserved. `POST /api/book/refresh` supersedes that set and releases its holds in one transaction. `POST /api/book/release` takes `{jobId, offerId}` from the displayed set and releases every sibling hold before Start over returns to the populated form. It is safe to retry; an offer from another job conflicts, a stale set cannot release a newer set, and a scheduled job cannot be released. The scheduler endpoint is `POST /v1/offers/release` with the same body. `POST /api/book/select` rechecks the chosen option, creates the appointment, releases its siblings, and returns the appointment reference and promised window. A retry of the same selection or the legacy `POST /api/book/confirm` returns that appointment; a different selection conflicts. A successful booking clears pending follow-up.
+`POST /api/book` takes an idempotent `requestId` with customer, address, and service details. It returns `{jobId, offers}` or a pending follow-up reference. Empty capacity results are recorded as `NO_CAPACITY`. Up to `BOOKING_OFFER_LIMIT` offered windows (four by default) share one ten-minute expiry. The scheduler validates overlapping sibling holds as a set, reuses an unexpired set on retry, and returns fewer choices when the configured maximum cannot be reserved. `POST /api/book/refresh` supersedes that set and releases its holds in one transaction. `POST /api/book/release` takes `{jobId, offerId}` from the displayed set and releases every sibling hold before Start over returns to the populated form. It is safe to retry; an offer from another job conflicts, a stale set cannot release a newer set, and a scheduled job cannot be released. The scheduler endpoint is `POST /v1/offers/release` with the same body. `POST /api/book/select` rechecks the chosen option, creates the appointment, releases its siblings, and returns the appointment reference and promised window. A retry of the same selection or the legacy `POST /api/book/confirm` returns that appointment; a different selection conflicts. A successful booking clears pending follow-up.
 
 `POST /api/schedule/appointments` requires an appointment ID and a reason. Cancellation is idempotent, keeps the appointment and reason as history, and frees its capacity. Before the scheduling cutoff, the scheduler recalculates the remaining technician route while preserving promised windows. At or after the cutoff, it leaves the other visits' technician, order, and planned times intact. The cutoff is **6 a.m. America/Chicago on the service day**. It also applies to optimization preview and apply, time-off analysis and final approval, and date-specific technician availability edits. Service dates stored as midnight UTC are calendar keys; the portal displays their UTC date component and interprets shift and absence minutes in America/Chicago, including daylight-saving transitions.
 
@@ -91,6 +112,8 @@ npm run build
 Pull requests to `main` run the `Build and unit` and `Booking and optimizer integration` checks in `.github/workflows/ci.yml`. The integration job uses its own PostgreSQL 16 service, applies Prisma migrations, seeds it, checks the Java schema contract, and starts `infra/fixture-routing.mjs` with the Java scheduler. The routing fixture accepts only the two Monaco coordinates and fixed Omaha sample/home coordinates used by the smoke scripts. CI also runs `npm run test:booking-tests:integration` to verify sequential booking and preview recovery against this isolated database.
 
 The Monaco fixture smoke scripts are `npm run test:booking:integration`, `npm run test:optimizer:integration`, and `npm run test:time-off:integration`. CI runs all three. They require the routing fixture on port 18001 and the scheduler on 18000, pointed at an isolated database. Do not run them against a real customer database. The booking smoke checks reservations, refresh, selection, legacy confirmation, and cancellation. The time-off smoke checks automatic repair, short-notice staff approval, active-reservation deferral, infeasible repair, nonworking dates, failure details, retry, denial, overlap eligibility, and availability changes before approval. `npm run test:fake-data:integration` invokes the retained fixture generator directly without a public portal route and also mutates the isolated database.
+
+`node infra/test-booking-offer-limit-compose.mjs` verifies offer-limit interpolation, including `.env`, shell precedence, and explicit blanks. With the scheduler JAR built, portal dependencies installed, the fixture router running, and `DATABASE_URL` / `JDBC_DATABASE_URL` pointing at migrated and seeded `waterflex_test`, set `ROUTING_URL` to the fixture router and run `node infra/test-booking-offer-limits.mjs` from the root. Set `JAVA_HOME` to the JDK installation on Windows. This gate starts and stops its own scheduler instances on ports 18010 and 18011 and tests all six limit/path combinations, active hold counts, scarcity, refresh, and reuse/selection across limit changes. CI runs both scripts and the one/two/four-choice browser regression.
 
 The dispatch HTTP regression test exercises Spring MVC serialization and checks actual road coordinate arrays, home departure/return, empty schedules, malformed coordinates, and routing failures. The optimizer smoke checks current, before, and proposed geometry, including route endpoints and technician identity. Portal geometry tests reject malformed payloads and stale date/phase responses. For a local visual check, open a scheduled dispatch day, confirm road-following outbound and return legs, switch to an empty day and back, and inspect an existing run's before/proposed views.
 

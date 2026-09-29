@@ -28,6 +28,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Validate Compose configuration
         run: docker compose --profile map-import config --quiet
+      - name: Verify offer limit interpolation
+        run: node infra/test-booking-offer-limit-compose.mjs
       - name: Verify benchmark evidence assembly
         run: python3 infra/test_booking_baseline_assembly.py
       - name: Verify Java modules
@@ -130,6 +132,8 @@ jobs:
       - name: Booking smoke
         working-directory: web
         run: npm run test:booking:integration
+      - name: Configurable offer limits across both booking paths
+        run: node infra/test-booking-offer-limits.mjs
       - name: Pending reservation dependency guards
         working-directory: web
         run: npm run test:reservation:integration

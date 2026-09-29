@@ -19,7 +19,7 @@ public final class ReservationOffers {
 
     public static Bundle prepare(BookingSnapshot snapshot, BoundedBookingSearch.Request request,
             Map<LocalDate, Map<String, ReservationState.Hold>> existingHolds, BoundedBookingSearch.Result search,
-            Instant expiresAt, Runnable checkpoint) {
+            Instant expiresAt, BookingOfferLimit offerLimit, Runnable checkpoint) {
         List<Candidate> pending = new ArrayList<>(search.candidates());
         pending.removeIf(candidate -> candidate.overtimeDelta() > 0 && !search.overtimeAuthorized());
         List<Reserved> offers = new ArrayList<>();
@@ -27,7 +27,7 @@ public final class ReservationOffers {
         Set<BoundedBookingSearch.Window> chosen = new HashSet<>();
         boolean completed = true;
         try {
-        while (!pending.isEmpty() && offers.size() < 4) {
+        while (!pending.isEmpty() && offers.size() < offerLimit.value()) {
             checkpoint.run();
             List<Candidate> regular = Required.value(pending.stream().filter(candidate -> candidate.overtimeDelta() <= 0).toList());
             Candidate candidate = Required.value(BoundedBookingSearch.choose(regular.isEmpty() ? pending : regular, snapshot.policy()));
