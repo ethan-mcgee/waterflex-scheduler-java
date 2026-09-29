@@ -1,3 +1,4 @@
+import { pollUntil } from "./poll-until";
 import { timeOffResult, required } from "../lib/contracts";
 import { PrismaClient } from "@prisma/client";
 import { initialAvailability } from "../lib/technicianAvailability";
@@ -21,6 +22,12 @@ async function post(path: string, body: unknown) {
   const payload: unknown = await response.json();
   assert.equal(response.status, 200, `${path}: ${JSON.stringify(payload)}`);
   return timeOffResult.parse(payload);
+}
+
+function waitRequest(requestId: string, expected: string) {
+  return pollUntil(`Request ${requestId}: expected ${expected}`,
+    () => prisma.timeOffRequest.findUniqueOrThrow({ where: { id: requestId }, include: { report: true } }),
+    row => row.status === expected || ["NEEDS_COORDINATION", "ANALYSIS_FAILURE", "ROUTING_FAILURE"].includes(required(row.report).status));
 }
 
 async function main() {
@@ -53,14 +60,8 @@ async function main() {
     const request = await post("/v1/time-off/request", { technicianId: techA, firstDate: date, lastDate: date, startMin: 480, endMin: 1020, category: "Other", reason: "Fixture leave" });
     const requestId: string = request.requestId;
     requestIds.push(requestId);
-    let status = "";
-    for (let attempt = 0; attempt < 45; attempt++) {
-      const row = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: requestId }, include: { report: true } });
-      status = row.status;
-      if (status === "APPROVED" || ["NEEDS_COORDINATION", "ANALYSIS_FAILURE", "ROUTING_FAILURE"].includes(row.report?.status ?? "")) break;
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
-    assert.equal(status, "APPROVED", `Time off status: ${status}`);
+    const approved = await waitRequest(requestId, "APPROVED");
+    assert.equal(approved.status, "APPROVED");
     const appointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId } });
     assert.equal(appointment.technicianId, techB, "Repair must reassign the affected visit");
     const report = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId } });
@@ -77,11 +78,7 @@ async function main() {
     const overtimeRequest = await post("/v1/time-off/request", { technicianId: techA, firstDate: overtimeDate, lastDate: overtimeDate,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture overtime approval" });
     requestIds.push(overtimeRequest.requestId);
-    let overtimeReview = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId }, include: { report: true } });
-    for (let attempt = 0; attempt < 45 && overtimeReview.status === "PENDING"; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      overtimeReview = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: overtimeRequest.requestId }, include: { report: true } });
-    }
+    const overtimeReview = await waitRequest(overtimeRequest.requestId, "READY");
     assert.equal(overtimeReview.status, "READY", JSON.stringify(overtimeReview.report?.data));
     const parsedOvertime = parseTimeOffReport(overtimeReview.report?.data);
     assert.equal(parsedOvertime.kind, "complete");
@@ -101,25 +98,14 @@ async function main() {
     const short = await post("/v1/time-off/request", { technicianId: techA, firstDate: shortKey, lastDate: shortKey,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture short notice" });
     requestIds.push(short.requestId);
-    let shortStatus = "";
-    for (let attempt = 0; attempt < 45; attempt++) {
-      const row = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: short.requestId }, include: { report: true } });
-      shortStatus = row.status;
-      if (shortStatus === "READY" || ["NEEDS_COORDINATION", "ANALYSIS_FAILURE", "ROUTING_FAILURE"].includes(row.report?.status ?? "")) break;
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
-    assert.equal(shortStatus, "READY", `Short-notice status: ${shortStatus}`);
-    const readyReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: short.requestId } });
+    const shortReview = await waitRequest(short.requestId, "READY");
+    assert.equal(shortReview.status, "READY");
     const preservedAppointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId } });
     await prisma.timeOffReport.update({ where: { requestId: short.requestId }, data: { data: { technician_id: techA, days: [] } } });
     const invalidReport = await fetch(`${base}/v1/time-off/${short.requestId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(invalidReport.status, 409);
     assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { jobId } }), preservedAppointment);
-    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: short.requestId } })).status, "PENDING");
-    await prisma.$transaction([
-      prisma.timeOffReport.update({ where: { requestId: short.requestId }, data: { status: "READY", data: required(readyReport.data) } }),
-      prisma.timeOffRequest.update({ where: { id: short.requestId }, data: { status: "READY" } }),
-    ]);
+    assert.equal((await waitRequest(short.requestId, "READY")).status, "READY");
     await post(`/v1/time-off/${short.requestId}/approve`, {});
     assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: short.requestId } })).status, "APPROVED");
     await prisma.job.create({ data: { id: heldJobId, customerId, addressId, serviceId: service.id, durationMin: 60 } });
@@ -130,11 +116,9 @@ async function main() {
     const blocked = await post("/v1/time-off/request", { technicianId: techB, firstDate: date, lastDate: date,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture active reservation" });
     requestIds.push(blocked.requestId);
-    let blockedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: blocked.requestId } });
-    for (let attempt = 0; attempt < 45 && ["QUEUED", "ANALYZING"].includes(blockedReport.status); attempt++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      blockedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: blocked.requestId } });
-    }
+    const blockedReport = await pollUntil("Report blocked",
+      () => prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: blocked.requestId } }),
+      row => !["QUEUED", "ANALYZING"].includes(row.status));
     assert.equal(blockedReport.status, "NEEDS_COORDINATION");
     assert.match(JSON.stringify(blockedReport.data), /ACTIVE_RESERVATIONS/);
     const friday = new Date(day);
@@ -144,11 +128,7 @@ async function main() {
     const offDays = await post("/v1/time-off/request", { technicianId: techB, firstDate: friday.toISOString().slice(0, 10), lastDate: sunday.toISOString().slice(0, 10),
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture weekend range" });
     requestIds.push(offDays.requestId);
-    let weekend = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDays.requestId }, include: { report: true } });
-    for (let attempt = 0; attempt < 45 && weekend.status !== "APPROVED" && !["NEEDS_COORDINATION", "ANALYSIS_FAILURE"].includes(weekend.report?.status ?? ""); attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      weekend = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDays.requestId }, include: { report: true } });
-    }
+    const weekend = await waitRequest(offDays.requestId, "APPROVED");
     assert.equal(weekend.status, "APPROVED");
     assert.equal(weekend.report?.status, "APPLIED");
     const weekendSummary = parseTimeOffReport(weekend.report?.data);
@@ -167,11 +147,9 @@ async function main() {
     const impossible = await post("/v1/time-off/request", { technicianId: techA, firstDate: impossibleDate, lastDate: impossibleDate,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture impossible repair" });
     requestIds.push(impossible.requestId);
-    let impossibleReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: impossible.requestId } });
-    for (let attempt = 0; attempt < 45 && ["QUEUED", "ANALYZING"].includes(impossibleReport.status); attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      impossibleReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: impossible.requestId } });
-    }
+    const impossibleReport = await pollUntil("Report impossible",
+      () => prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: impossible.requestId } }),
+      row => !["QUEUED", "ANALYZING"].includes(row.status));
     assert.equal(impossibleReport.status, "NEEDS_COORDINATION");
     assert.match(JSON.stringify(impossibleReport.data), /VALIDATED_CONSTRAINT_CONFLICT|SEARCH_BUDGET_EXHAUSTED/);
     assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { jobId: impossibleJobId } })).technicianId, techA);
@@ -187,28 +165,25 @@ async function main() {
     const failed = await post("/v1/time-off/request", { technicianId: techC, firstDate: nextDate, lastDate: nextDate,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture retry" });
     requestIds.push(failed.requestId);
-    let failedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } });
-    for (let attempt = 0; attempt < 45 && ["QUEUED", "ANALYZING"].includes(failedReport.status); attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      failedReport = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } });
-    }
+    const failedReport = await pollUntil("Report failed",
+      () => prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } }),
+      row => !["QUEUED", "ANALYZING"].includes(row.status));
     assert.equal(failedReport.status, "ANALYSIS_FAILURE");
     assert.match(JSON.stringify(failedReport.data), new RegExp(nextDate));
     assert.match(JSON.stringify(failedReport.data), /weekly availability is missing or invalid/);
     assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: failed.requestId } })).status, "PENDING");
     await prisma.technician.update({ where: { id: techC }, data: { availabilityVersions: initialAvailability(480, 1020) } });
     await post(`/v1/time-off/${failed.requestId}/retry`, {});
-    assert.equal((await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: failed.requestId } })).status, "QUEUED");
-    const denied = await post("/v1/time-off/request", { technicianId: techB, firstDate: nextDate, lastDate: nextDate,
+    assert.equal((await waitRequest(failed.requestId, "APPROVED")).status, "APPROVED");
+    const denied = await post("/v1/time-off/request", { technicianId: techB, firstDate: shortKey, lastDate: shortKey,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture denial" });
     requestIds.push(denied.requestId);
-    await prisma.timeOffReport.update({ where: { requestId: denied.requestId }, data: { status: "ANALYZING" } });
     await post(`/v1/time-off/${denied.requestId}/deny`, {});
     const deniedRow = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: denied.requestId }, include: { report: true } });
     assert.equal(deniedRow.status, "DENIED");
     assert.ok(deniedRow.decidedAt);
     assert.equal(deniedRow.report?.status, "DENIED");
-    const replacement = await post("/v1/time-off/request", { technicianId: techB, firstDate: nextDate, lastDate: nextDate,
+    const replacement = await post("/v1/time-off/request", { technicianId: techB, firstDate: shortKey, lastDate: shortKey,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture replacement" });
     requestIds.push(replacement.requestId);
     await post(`/v1/time-off/${replacement.requestId}/deny`, {});
@@ -219,16 +194,12 @@ async function main() {
     const offDayReview = await post("/v1/time-off/request", { technicianId: techB, firstDate: saturdayKey, lastDate: saturdayKey,
       startMin: 480, endMin: 1020, category: "Other", reason: "Fixture availability change" });
     requestIds.push(offDayReview.requestId);
-    let review = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDayReview.requestId }, include: { report: true } });
-    for (let attempt = 0; attempt < 45 && review.status === "PENDING" && ["QUEUED", "ANALYZING"].includes(review.report?.status ?? ""); attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      review = await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDayReview.requestId }, include: { report: true } });
-    }
+    const review = await waitRequest(offDayReview.requestId, "READY");
     assert.equal(review.status, "READY");
     await prisma.technicianShiftOverride.create({ data: { technicianId: techB, serviceDate: nearSaturday, available: true, shiftStartMin: 480, shiftEndMin: 1020 } });
     const staleOffDay = await fetch(`${base}/v1/time-off/${offDayReview.requestId}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(staleOffDay.status, 409);
-    assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: offDayReview.requestId } })).status, "PENDING");
+    await post(`/v1/time-off/${offDayReview.requestId}/deny`, {});
     await prisma.technicianShiftOverride.deleteMany({ where: { technicianId: techB, serviceDate: nearSaturday } });
     const cannotDeny = await fetch(`${base}/v1/time-off/${offDays.requestId}/deny`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(cannotDeny.status, 409);

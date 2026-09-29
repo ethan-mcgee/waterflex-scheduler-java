@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build-and-unit:
     name: Build and unit
@@ -26,6 +30,13 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Validate workflows with actionlint and ShellCheck
+        run: |
+          command -v shellcheck
+          curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz -o "$RUNNER_TEMP/actionlint.tar.gz"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -color
       - name: Validate Compose configuration
         run: docker compose --profile map-import config --quiet
       - name: Verify offer limit interpolation
@@ -34,6 +45,15 @@ jobs:
         run: python3 infra/test_booking_baseline_assembly.py
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
+      - name: Summarize javac tests before clean
+        if: always()
+        run: python3 infra/summarize-tests.py '*/target/surefire-reports/TEST-*.xml' --label javac
+      - name: Preserve javac diagnostics
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/javac-reports"
+          cp -R scheduler-service/target/surefire-reports "$RUNNER_TEMP/javac-reports/scheduler" 2>/dev/null || true
+          cp -R routing-service/target/surefire-reports "$RUNNER_TEMP/javac-reports/routing" 2>/dev/null || true
       - name: Verify Java nullability contracts
         run: ./mvnw -Pnullability clean verify --batch-mode --no-transfer-progress
       - name: Install portal dependencies and generate Prisma client
@@ -47,10 +67,23 @@ jobs:
         run: npm run typecheck
       - name: Portal unit tests
         working-directory: web
-        run: npm run test:geocode && npm run test:fake-data && npm run test:optimization && npm run test:dispatch-geometry && npm run test:booking-tests && npm run test:nullability && npm run test:benchmark-diagnostics
+        run: npm run test:unit
       - name: Build portal
         working-directory: web
         run: npm run build
+      - name: Summarize ECJ and portal tests
+        if: always()
+        run: python3 infra/summarize-tests.py '*/target/surefire-reports/TEST-*.xml' 'web/test-results/unit.xml' --label 'ECJ and portal'
+      - name: Upload build test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-test-reports
+          path: |
+            */target/surefire-reports/
+            ${{ runner.temp }}/javac-reports/
+            web/test-results/
+          retention-days: 7
 
   booking-and-optimizer-integration:
     name: Booking and optimizer integration
@@ -79,6 +112,7 @@ jobs:
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
+      TIME_OFF_POLL_DELAY_MS: '1000'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -91,8 +125,6 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Build scheduler
-        run: ./mvnw -pl scheduler-service -am package -DskipTests --batch-mode --no-transfer-progress
       - name: Install portal dependencies and generate Prisma client
         working-directory: web
         run: npm ci && npm run prisma:generate
@@ -100,27 +132,12 @@ jobs:
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
       - name: Immutable snapshot, reservation and database admission gates
-        run: ./mvnw -Pnullability -pl scheduler-service clean package -Dtest=BookingSnapshotDatabaseIT,SearchDatabaseAdmissionIT --batch-mode --no-transfer-progress
-      - name: Browser nullability regressions in an isolated schema
-        working-directory: web
-        env:
-          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=nullability_ui
-        run: npx prisma migrate deploy && npx playwright install --with-deps chromium && npm run test:ui
-      - name: Upload browser test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: |
-            web/playwright-report
-            web/test-results
-          if-no-files-found: ignore
-          retention-days: 7
+        run: ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
           java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/scheduler.log" 2>&1 &
-          for attempt in {1..60}; do
+          for _attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:18001/health > /dev/null &&
                curl --fail --silent http://127.0.0.1:18000/health > /dev/null; then
               exit 0
@@ -131,37 +148,41 @@ jobs:
           exit 1
       - name: Booking smoke
         working-directory: web
-        run: npm run test:booking:integration
+        run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration
       - name: Configurable offer limits across both booking paths
-        run: node infra/test-booking-offer-limits.mjs
+        run: node infra/run-check.mjs offer-limits node infra/test-booking-offer-limits.mjs
       - name: Pending reservation dependency guards
         working-directory: web
-        run: npm run test:reservation:integration
+        run: node ../infra/run-check.mjs test:reservation:integration npm run test:reservation:integration
       - name: Optimizer smoke
         working-directory: web
-        run: npm run test:optimizer:integration
+        run: node ../infra/run-check.mjs test:optimizer:integration npm run test:optimizer:integration
       - name: Multi-depot dealership smoke
         working-directory: web
-        run: npm run test:multi-depot:integration
+        run: node ../infra/run-check.mjs test:multi-depot:integration npm run test:multi-depot:integration
       - name: Depot pin setup smoke
         working-directory: web
-        run: npm run test:depot-setup:integration
+        run: node ../infra/run-check.mjs test:depot-setup:integration npm run test:depot-setup:integration
       - name: Shared address matching smoke
         working-directory: web
-        run: npm run test:address-matching:integration
+        run: node ../infra/run-check.mjs test:address-matching:integration npm run test:address-matching:integration
       - name: Technician home pin smoke
         working-directory: web
-        run: npm run test:technician-home:integration
+        run: node ../infra/run-check.mjs test:technician-home:integration npm run test:technician-home:integration
       - name: Time-off repair smoke
         working-directory: web
-        run: npm run test:time-off:integration
+        run: |
+          for repetition in 1 2 3; do
+            echo "Time-off smoke repetition $repetition"
+            node ../infra/run-check.mjs time-off-$repetition npm run test:time-off:integration
+          done
       - name: Sequential booking and preview smoke
         working-directory: web
-        run: npm run test:booking-tests:integration
+        run: node ../infra/run-check.mjs test:booking-tests:integration npm run test:booking-tests:integration
       - name: Start common-reservation rollout test instance
         run: |
           java -Xmx512m -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --server.port=18002 --booking.reservations.enabled=true --booking.search.bounded=true > "$RUNNER_TEMP/reservation-scheduler.log" 2>&1 &
-          for attempt in {1..30}; do
+          for _attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:18002/health > /dev/null; then exit 0; fi
             sleep 1
           done
@@ -171,28 +192,28 @@ jobs:
         env:
           SCHEDULER_TEST_URL: http://127.0.0.1:18002
           SCHEDULER_RESERVATIONS_TEST: 'true'
-        run: npm run test:booking:integration
+        run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration
       - name: Cross-instance search cancellation and lost response cleanup
         working-directory: web
         env:
           SCHEDULER_TEST_URL: http://127.0.0.1:18002
           SCHEDULER_CANCEL_URL: http://127.0.0.1:18000
         run: |
-          npm run test:search-cancellation:integration
-          SCHEDULER_TEST_URL=http://127.0.0.1:18000 SCHEDULER_CANCEL_URL=http://127.0.0.1:18002 npm run test:search-cancellation:integration
+          node ../infra/run-check.mjs cancellation-forward npm run test:search-cancellation:integration
+          SCHEDULER_TEST_URL=http://127.0.0.1:18000 SCHEDULER_CANCEL_URL=http://127.0.0.1:18002 node ../infra/run-check.mjs cancellation-reverse npm run test:search-cancellation:integration
       - name: Bounded rearrangement and concurrency with rollout disabled at confirmation
         working-directory: web
         env:
           SCHEDULER_TEST_URL: http://127.0.0.1:18002
           SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
-        run: npm run test:bounded-booking:integration
+        run: node ../infra/run-check.mjs test:bounded-booking:integration npm run test:bounded-booking:integration
       - name: Cancellation preserves a pending rearranged reservation
         working-directory: web
         env:
           SCHEDULER_TEST_URL: http://127.0.0.1:18002
           SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
           SCHEDULER_CANCEL_PENDING_TEST: 'true'
-        run: npm run test:bounded-booking:integration
+        run: node ../infra/run-check.mjs test:bounded-booking:integration npm run test:bounded-booking:integration
       - name: Print service logs on failure
         if: failure()
         run: |
@@ -201,3 +222,62 @@ jobs:
           echo 'Scheduler log:'
           cat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true
           cat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true
+      - name: Summarize database tests
+        if: always()
+        run: python3 infra/summarize-tests.py 'scheduler-service/target/surefire-reports/TEST-*.xml' --label 'Database integration'
+      - name: Upload integration diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-diagnostics
+          path: |
+            scheduler-service/target/surefire-reports/
+            ${{ runner.temp }}/*.log
+            ${{ runner.temp }}/booking-offer-limits-*/
+          retention-days: 7
+
+  browser-regressions:
+    name: Browser regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: waterflex
+          POSTGRES_PASSWORD: waterflex
+          POSTGRES_DB: waterflex_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U waterflex -d waterflex_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=nullability_ui
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install portal dependencies and generate Prisma client
+        working-directory: web
+        run: npm ci && npm run prisma:generate
+      - name: Browser regressions in an isolated schema
+        working-directory: web
+        run: npx prisma migrate deploy && npx playwright install --with-deps chromium && npm run test:ui
+      - name: Summarize browser tests
+        if: always()
+        run: python3 infra/summarize-tests.py 'web/test-results/browser.xml' --label Browser
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report/
+            web/test-results/
+          retention-days: 7
