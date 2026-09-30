@@ -1,5 +1,7 @@
 # Daily solver comparison protocol
 
+For validated JSON matrices, frozen artifacts, interruption/resume, and automatic graphs, use the [configurable experiment toolkit](configurable-experiments.md). The standalone runner below remains available for historical reproduction.
+
 `SolverBenchmark` is an explicit standalone test-class entry point. It does not run the performance matrix during unit tests or change production configuration. `SolverExperimentTest` checks all eight community configurations under `FULL_ASSERT` and independently validates each starting dataset at 20, 30 and 50 technicians.
 
 The configurations compare the existing 1,000-step cap, the same configuration without that cap, Late Acceptance with relocation alone, Late Acceptance with relocation and swaps, Tabu Search, sublist moves, K-opt, and low-frequency ruin-and-recreate. Late Acceptance uses history 400 and accepted-count 1; Tabu uses entity tabu size 7 and accepted-count 1,000. Configuration XML, seed and SHA-256 are recorded for each run. No preview or Enterprise selection features are enabled.

@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "name": "daily-smoke",
+  "daily": {
+    "solvers": [
+      "LATE_ACCEPTANCE",
+      "TABU",
+      "SUBLIST",
+      "KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      17
+    ],
+    "fleets": [
+      5
+    ],
+    "workloads": [
+      "CLUSTERED"
+    ],
+    "budgets_seconds": [
+      0.5
+    ]
+  }
+}

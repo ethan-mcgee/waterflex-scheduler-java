@@ -1,0 +1,684 @@
+{
+  "scope": "Harness smoke verification only. Full 480-case daily study and 240-case booking study were not run.",
+  "runs": [
+    {
+      "run": "20260930T032341Z-daily-smoke-second-3e024cb4",
+      "source_revision": "72a9ea32501fcd4a2d6d37e64eb6a9adef2d1b20",
+      "manifest_sha256": "67a9acb7687ab9ba9d2b38eeb537b523c4b6c4723dbd8459c83b42dfdbd03750",
+      "server_jar_sha256": "72c09c035a272820f831b18e18d55c642fa04f459a470a3190a83ff0d56d29ec",
+      "cases": [
+        {
+          "case": {
+            "kind": "daily",
+            "fleet": 5,
+            "workload": "CLUSTERED",
+            "seed": 23,
+            "solver": "LATE_ACCEPTANCE",
+            "budget_ms": 1000,
+            "id": "435867a966011c7af474"
+          },
+          "raw_sha256": "c3fb7517166b2f9a2db94f24fe1c504461a2d41ddf24d2c647f6e9ffee0729cd",
+          "archive": "daily-late_acceptance.jsonl.gz"
+        },
+        {
+          "case": {
+            "kind": "daily",
+            "fleet": 5,
+            "workload": "CLUSTERED",
+            "seed": 23,
+            "solver": "TABU",
+            "budget_ms": 1000,
+            "id": "7b9b5570ddef18ea29e6"
+          },
+          "raw_sha256": "3b429cb60f706d36a13741321fe7dcb901e209ee08264ee10fff800987eeb666",
+          "archive": "daily-tabu.jsonl.gz"
+        },
+        {
+          "case": {
+            "kind": "daily",
+            "fleet": 5,
+            "workload": "CLUSTERED",
+            "seed": 23,
+            "solver": "SUBLIST",
+            "budget_ms": 1000,
+            "id": "bc0a127d5147f5f8ffec"
+          },
+          "raw_sha256": "9193166b07371293bc9e6106afdb4e2e1f22a99b6f28a6710505b90c9992d300",
+          "archive": "daily-sublist.jsonl.gz"
+        },
+        {
+          "case": {
+            "kind": "daily",
+            "fleet": 5,
+            "workload": "CLUSTERED",
+            "seed": 23,
+            "solver": "KOPT",
+            "budget_ms": 1000,
+            "id": "dc4249b904f04f1b865e"
+          },
+          "raw_sha256": "4d9cdf79d68878d6c9c04534e3d5890ab44253dc62afdb40b7fba88fe1452c5c",
+          "archive": "daily-kopt.jsonl.gz"
+        }
+      ],
+      "observed_cases": 4,
+      "issues": [],
+      "pair_status_counts": {
+        "paired": 4
+      },
+      "summaries": [
+        {
+          "budget_ms": 1000,
+          "cohort": "current",
+          "fixture": "ba7cec1dceafb7449bdbea083d3207fbfb355552f4ec0e0366a9114c001ccb29",
+          "fleet": 5,
+          "kind": "daily",
+          "routing": "deterministic-directed-fixtures-v1",
+          "solver": "KOPT",
+          "workload": "CLUSTERED",
+          "metrics": {
+            "reference_cost": {
+              "mean": 38554,
+              "min": 38554,
+              "max": 38554,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38554
+              }
+            },
+            "accepted_cost": {
+              "mean": 38944,
+              "min": 38944,
+              "max": 38944,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38944
+              }
+            },
+            "fairness": {
+              "mean": 0.014052126200274349,
+              "min": 0.014052126200274349,
+              "max": 0.014052126200274349,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0.014052126200274349
+              }
+            },
+            "elapsed_ms": {
+              "mean": 1007,
+              "min": 1007,
+              "max": 1007,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 1007
+              }
+            },
+            "reference_ms": {
+              "mean": 666,
+              "min": 666,
+              "max": 666,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 666
+              }
+            },
+            "fairness_ms": {
+              "mean": 329,
+              "min": 329,
+              "max": 329,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 329
+              }
+            },
+            "control_savings_cents": {
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0
+              }
+            },
+            "own_15s_improvement_cents": {
+              "mean": null,
+              "min": null,
+              "max": null,
+              "seeds": 0,
+              "observed_cases": 0,
+              "total_cases": 1,
+              "seed_means": {}
+            }
+          }
+        },
+        {
+          "budget_ms": 1000,
+          "cohort": "current",
+          "fixture": "ba7cec1dceafb7449bdbea083d3207fbfb355552f4ec0e0366a9114c001ccb29",
+          "fleet": 5,
+          "kind": "daily",
+          "routing": "deterministic-directed-fixtures-v1",
+          "solver": "LATE_ACCEPTANCE",
+          "workload": "CLUSTERED",
+          "metrics": {
+            "reference_cost": {
+              "mean": 38554,
+              "min": 38554,
+              "max": 38554,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38554
+              }
+            },
+            "accepted_cost": {
+              "mean": 38799,
+              "min": 38799,
+              "max": 38799,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38799
+              }
+            },
+            "fairness": {
+              "mean": 0.014120164609053498,
+              "min": 0.014120164609053498,
+              "max": 0.014120164609053498,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0.014120164609053498
+              }
+            },
+            "elapsed_ms": {
+              "mean": 1005,
+              "min": 1005,
+              "max": 1005,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 1005
+              }
+            },
+            "reference_ms": {
+              "mean": 666,
+              "min": 666,
+              "max": 666,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 666
+              }
+            },
+            "fairness_ms": {
+              "mean": 330,
+              "min": 330,
+              "max": 330,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 330
+              }
+            },
+            "control_savings_cents": {
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0
+              }
+            },
+            "own_15s_improvement_cents": {
+              "mean": null,
+              "min": null,
+              "max": null,
+              "seeds": 0,
+              "observed_cases": 0,
+              "total_cases": 1,
+              "seed_means": {}
+            }
+          }
+        },
+        {
+          "budget_ms": 1000,
+          "cohort": "current",
+          "fixture": "ba7cec1dceafb7449bdbea083d3207fbfb355552f4ec0e0366a9114c001ccb29",
+          "fleet": 5,
+          "kind": "daily",
+          "routing": "deterministic-directed-fixtures-v1",
+          "solver": "SUBLIST",
+          "workload": "CLUSTERED",
+          "metrics": {
+            "reference_cost": {
+              "mean": 38554,
+              "min": 38554,
+              "max": 38554,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38554
+              }
+            },
+            "accepted_cost": {
+              "mean": 38799,
+              "min": 38799,
+              "max": 38799,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38799
+              }
+            },
+            "fairness": {
+              "mean": 0.014120164609053498,
+              "min": 0.014120164609053498,
+              "max": 0.014120164609053498,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0.014120164609053498
+              }
+            },
+            "elapsed_ms": {
+              "mean": 1006,
+              "min": 1006,
+              "max": 1006,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 1006
+              }
+            },
+            "reference_ms": {
+              "mean": 666,
+              "min": 666,
+              "max": 666,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 666
+              }
+            },
+            "fairness_ms": {
+              "mean": 329,
+              "min": 329,
+              "max": 329,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 329
+              }
+            },
+            "control_savings_cents": {
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0
+              }
+            },
+            "own_15s_improvement_cents": {
+              "mean": null,
+              "min": null,
+              "max": null,
+              "seeds": 0,
+              "observed_cases": 0,
+              "total_cases": 1,
+              "seed_means": {}
+            }
+          }
+        },
+        {
+          "budget_ms": 1000,
+          "cohort": "current",
+          "fixture": "ba7cec1dceafb7449bdbea083d3207fbfb355552f4ec0e0366a9114c001ccb29",
+          "fleet": 5,
+          "kind": "daily",
+          "routing": "deterministic-directed-fixtures-v1",
+          "solver": "TABU",
+          "workload": "CLUSTERED",
+          "metrics": {
+            "reference_cost": {
+              "mean": 38554,
+              "min": 38554,
+              "max": 38554,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38554
+              }
+            },
+            "accepted_cost": {
+              "mean": 38844,
+              "min": 38844,
+              "max": 38844,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 38844
+              }
+            },
+            "fairness": {
+              "mean": 0.014120164609053498,
+              "min": 0.014120164609053498,
+              "max": 0.014120164609053498,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0.014120164609053498
+              }
+            },
+            "elapsed_ms": {
+              "mean": 1005,
+              "min": 1005,
+              "max": 1005,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 1005
+              }
+            },
+            "reference_ms": {
+              "mean": 666,
+              "min": 666,
+              "max": 666,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 666
+              }
+            },
+            "fairness_ms": {
+              "mean": 331,
+              "min": 331,
+              "max": 331,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 331
+              }
+            },
+            "control_savings_cents": {
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "23": 0
+              }
+            },
+            "own_15s_improvement_cents": {
+              "mean": null,
+              "min": null,
+              "max": null,
+              "seeds": 0,
+              "observed_cases": 0,
+              "total_cases": 1,
+              "seed_means": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run": "20260930T032427Z-booking-smoke-68e7a34f",
+      "source_revision": "72a9ea32501fcd4a2d6d37e64eb6a9adef2d1b20",
+      "manifest_sha256": "657bfbb83203adb90b269cbfa0806bf26c53b14f32e8e290656e42fb9ed047e4",
+      "server_jar_sha256": "8c7014e7aa1a2cae8d183467f12c0a88a7c2c776933aa4bd068a84629262d9a8",
+      "cases": [
+        {
+          "case": {
+            "kind": "booking",
+            "fleet": 5,
+            "workload": "DISPERSED",
+            "seed": 17,
+            "solver": "BOUNDED",
+            "concurrency": 1,
+            "cache": "warm",
+            "requests": 2,
+            "id": "8a6359363d4519c2177b"
+          },
+          "raw_sha256": "e6b7db2310c05e37b438dda55106a05115c03d37b16aad2a828660a1d4c57803",
+          "archive": "booking-bounded.jsonl.gz"
+        },
+        {
+          "case": {
+            "kind": "booking",
+            "fleet": 5,
+            "workload": "DISPERSED",
+            "seed": 17,
+            "solver": "INSERTION",
+            "concurrency": 1,
+            "cache": "warm",
+            "requests": 2,
+            "id": "b08c812096874ae79548"
+          },
+          "raw_sha256": "78a66aa9b900c67387b71f62cea3d549baf83754bf74d9b65c7415edcb1c321c",
+          "archive": "booking-insertion.jsonl.gz"
+        }
+      ],
+      "observed_cases": 2,
+      "issues": [],
+      "pair_status_counts": {
+        "paired": 2
+      },
+      "summaries": [
+        {
+          "cache": "warm",
+          "cohort": "current",
+          "concurrency": 1,
+          "dates": [
+            "2026-09-30",
+            "2026-10-01",
+            "2026-10-02",
+            "2026-10-05",
+            "2026-10-06",
+            "2026-10-07",
+            "2026-10-08",
+            "2026-10-09",
+            "2026-10-12",
+            "2026-10-13"
+          ],
+          "fleet": 5,
+          "kind": "booking",
+          "requests": 2,
+          "routing": "d4a7c8575bad71445a7f745383e1466de88552a81db580196a4c62916acdcbaf",
+          "solver": "BOUNDED",
+          "workload": "DISPERSED",
+          "metrics": {
+            "served_rate": {
+              "mean": 1.0,
+              "min": 1.0,
+              "max": 1.0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 1.0
+              }
+            },
+            "incomplete_rate": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 0.0
+              }
+            },
+            "failed_rate": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 0.0
+              }
+            },
+            "control_savings_cents": {
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 0
+              }
+            }
+          },
+          "latency": {
+            "observed": 2,
+            "total": 2,
+            "p50_ms": 1096.3406999999997,
+            "p95_ms": 1546.8124,
+            "p99_ms": 1546.8124
+          }
+        },
+        {
+          "cache": "warm",
+          "cohort": "current",
+          "concurrency": 1,
+          "dates": [
+            "2026-09-30",
+            "2026-10-01",
+            "2026-10-02",
+            "2026-10-05",
+            "2026-10-06",
+            "2026-10-07",
+            "2026-10-08",
+            "2026-10-09",
+            "2026-10-12",
+            "2026-10-13"
+          ],
+          "fleet": 5,
+          "kind": "booking",
+          "requests": 2,
+          "routing": "d4a7c8575bad71445a7f745383e1466de88552a81db580196a4c62916acdcbaf",
+          "solver": "INSERTION",
+          "workload": "DISPERSED",
+          "metrics": {
+            "served_rate": {
+              "mean": 1.0,
+              "min": 1.0,
+              "max": 1.0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 1.0
+              }
+            },
+            "incomplete_rate": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 0.0
+              }
+            },
+            "failed_rate": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 0.0
+              }
+            },
+            "control_savings_cents": {
+              "mean": 0,
+              "min": 0,
+              "max": 0,
+              "seeds": 1,
+              "observed_cases": 1,
+              "total_cases": 1,
+              "seed_means": {
+                "17": 0
+              }
+            }
+          },
+          "latency": {
+            "observed": 2,
+            "total": 2,
+            "p50_ms": 455.86450000000013,
+            "p95_ms": 464.86429999999973,
+            "p99_ms": 464.86429999999973
+          }
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "java_tests": 176,
+    "java_failures": 0,
+    "java_skipped": 0,
+    "strict_nullability": "passed",
+    "web_lint": "passed",
+    "web_typecheck": "passed",
+    "web_tests": 96,
+    "python_tests": 27,
+    "initial_run_unchanged_after_second_configuration": true,
+    "archived_command_resume_skipped_all_completed_cases": true,
+    "competing_measurement_rejected": true,
+    "historical_source_files_unchanged": true,
+    "historical_observed_cases": 466,
+    "historical_figures": 54,
+    "historical_issues": [
+      {
+        "source": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20260930T032852Z-history-cf1a83c1\\history\\booking-shared-83-held.jsonl.gz",
+        "line": 22,
+        "reason": "failure"
+      }
+    ]
+  }
+}
