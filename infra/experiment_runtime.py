@@ -47,11 +47,11 @@ class Progress:
 
     def line(self):
         elapsed = self.duration(self.clock() - self.started)
-        filled = round(24 * self.completed / self.total) if self.total else 24
-        bar = '#' * filled + '.' * (24 - filled)
-        case_time = (f' | case {self.duration(self.clock() - self.case_started)}'
+        filled = round(12 * self.completed / self.total) if self.total else 12
+        bar = '#' * filled + '.' * (12 - filled)
+        case_time = (f' case {self.duration(self.clock() - self.case_started)}'
                      if self.case_started is not None else '')
-        prefix = f'[{bar}] {self.completed}/{self.total} | elapsed {elapsed}{case_time} | '
+        prefix = f'[{bar}] {self.completed}/{self.total} elapsed {elapsed}{case_time} | '
         stage = self.stage
         if self.interactive:
             available = max(0, shutil.get_terminal_size(fallback=(120, 20)).columns - len(prefix) - 1)
@@ -454,9 +454,9 @@ def execute(run, prepare=False):
             attempt.mkdir(parents=True)
             write_new(attempt / 'started.json', {'case': case, 'at': stamp()})
             detail = (f'{case["budget_ms"] / 1000:g}s' if case['kind'] == 'daily' else
-                      f'concurrency {case["concurrency"]}, {case["cache"]}, {case["requests"]} requests')
-            progress.update(f'Case {index + 1}/{len(cases)}: {case["kind"]} {case["solver"]}, '
-                            f'fleet {case["fleet"]}, {case["workload"]}, seed {case["seed"]}, {detail}', active=True)
+                      f'c{case["concurrency"]} {case["cache"]} {case["requests"]}req')
+            progress.update(f'#{index + 1} {case["solver"]} f{case["fleet"]} '
+                            f'{case["workload"]} s{case["seed"]} {detail}', active=True)
             try:
                 if case['kind'] == 'daily':
                     command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
