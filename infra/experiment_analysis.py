@@ -259,7 +259,8 @@ def plots(output, rows, controls, budgets):
         figures.append({'name': name, 'title': title, 'caption': caption})
     for (kind, cohort, workload, fleet, routing, scope), items in sorted(groups.items()):
         title = f'{kind.title()} | {fleet} technicians | {workload} | {cohort}'
-        title += f'\nFixture {scope[:12]}' if kind == 'daily' else f'\n{items[0]["dates"][0]} to {items[0]["dates"][-1]} | provider {routing[:12]}'
+        if kind == 'daily':
+            title += f'\nFixture {scope[:12]}'
         if kind == 'daily':
             metrics = [('reference_cost', 'Reference modeled cost (cents)'), ('accepted_cost', 'Accepted modeled cost (cents)'),
                 ('control_savings_cents', f'Reference savings vs {controls["daily"]} (cents)'),
@@ -306,7 +307,7 @@ def plots(output, rows, controls, budgets):
             for concurrency, cache in sorted({(r['concurrency'], r['cache']) for r in items}):
                 selected = [r for r in items if r['concurrency'] == concurrency and r['cache'] == cache]
                 fig, axes = plt.subplots(1, 2, figsize=(13, 5), layout='constrained')
-                subtitle = f'{title}\nConcurrency {concurrency}, {cache} scheduler cache'
+                subtitle = f'{title}\nConcurrency {concurrency}, {cache} cache | {items[0]["dates"][0]} to {items[0]["dates"][-1]}'
                 fig.suptitle(subtitle, fontsize=12)
                 solvers = sorted({r['solver'] for r in selected})
                 for index, solver in enumerate(solvers):
@@ -328,9 +329,11 @@ def plots(output, rows, controls, budgets):
                             title='Pooled request latency distribution', ylim=(0, 103))
                 if axes[1].lines:
                     axes[1].legend(fontsize=8)
+                else:
+                    axes[1].text(.5, .5, 'Unavailable: no latency observations', ha='center', transform=axes[1].transAxes)
                 for ax in axes:
                     ax.grid(alpha=.15)
-                save(fig, subtitle, 'Booking road-provider evidence. Rates use equal seed weighting; vertical lines show observed seed range. Served and incomplete may overlap and must not be stacked. Latencies pool individual requests, excluding unavailable or historically mixed search/selection timing. Cost comparisons require identical served request indices and fixture fingerprints. Provider cache is not reset; cold/warm refers to scheduler caches.')
+                save(fig, subtitle, f'Booking road-provider evidence, routing identity {routing}. Rates use equal seed weighting; vertical lines show observed seed range. Served and incomplete may overlap and must not be stacked. Latencies pool individual requests, excluding unavailable or historically mixed search/selection timing. Cost comparisons require identical served request indices and fixture fingerprints. Provider cache is not reset; cold/warm refers to scheduler caches.')
     return figures
 
 
