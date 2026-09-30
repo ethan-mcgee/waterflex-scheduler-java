@@ -38,10 +38,12 @@ def main():
             run = new_run(ROOT / 'experiments/runs', config, args.config.read_bytes())
             print(f'Run: {run}', flush=True)
             execute(run, prepare=True)
+        print('Generating graphs and summaries...', flush=True)
         print(analyze(run))
     elif args.command == 'resume':
         with measurement_lock():
             execute(args.run.resolve())
+        print('Generating graphs and summaries...', flush=True)
         print(analyze(args.run.resolve()))
     elif args.command == 'import-history':
         print(analyze(import_history(args.archive.resolve())))
