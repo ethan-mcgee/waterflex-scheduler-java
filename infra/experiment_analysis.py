@@ -35,6 +35,8 @@ def measurement(row, *path):
 
 
 def required(row, key, kind):
+    if not isinstance(row, dict):
+        raise ValueError('Expected an observation object')
     value = row.get(key)
     if type(value) is not kind or (kind is str and not value):
         raise ValueError(f'Missing/invalid {key}')
@@ -135,7 +137,10 @@ def load_raw(path, expected=None, cohort='current'):
                                     raise ValueError(f'Unexpected {key}')
                             if expected['kind'] == 'booking':
                                 for phase in ('processBefore', 'processAfter'):
-                                    settings = (raw.get(phase) or {}).get('configuration') or {}
+                                    observation = raw.get(phase)
+                                    settings = observation.get('configuration') if isinstance(observation, dict) else None
+                                    if not isinstance(settings, dict):
+                                        raise ValueError('Actual booking configuration unavailable')
                                     if settings.get('booking.search.variant') != expected['solver'] or settings.get('booking.search.bounded') != 'true' or settings.get('booking.reservations.enabled') != 'true':
                                         raise ValueError('Actual booking configuration unavailable or mismatched')
                         row['source'] = str(path)
