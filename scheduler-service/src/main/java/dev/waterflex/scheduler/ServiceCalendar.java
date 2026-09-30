@@ -24,7 +24,8 @@ public final class ServiceCalendar {
         String url = environment.getRequiredProperty("spring.datasource.url");
         if (!url.startsWith("jdbc:postgresql://")) throw new IllegalArgumentException("Benchmark requires local PostgreSQL");
         URI database = URI.create(url.substring(5));
-        if (!java.util.Set.of("localhost", "127.0.0.1", "[::1]", "::1").contains(database.getHost())
+        String host = database.getHost();
+        if (host == null || !java.util.Set.of("localhost", "127.0.0.1", "[::1]", "::1").contains(host)
                 || !"/waterflex_test".equals(database.getPath())
                 || !"waterflex_test".equals(Required.query(jdbc, "SELECT current_database()", String.class))
                 || !Required.query(jdbc, "SELECT current_schema()", String.class).startsWith("benchmark_"))

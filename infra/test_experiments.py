@@ -388,6 +388,23 @@ class ArchiveTests(unittest.TestCase):
             self.assertIsNone(process.poll())
         self.assertIsNotNone(process.poll())
 
+    def test_timeout_and_nonzero_exit_do_not_create_success(self):
+        with self.assertRaisesRegex(RuntimeError, 'timed out'):
+            rt.command([sys.executable, '-c', 'import time; time.sleep(60)'], self.base,
+                       os.environ.copy(), self.base / 'timeout.log', timeout=.1)
+        with self.assertRaisesRegex(RuntimeError, 'exited 7'):
+            rt.command([sys.executable, '-c', 'raise SystemExit(7)'], self.base,
+                       os.environ.copy(), self.base / 'failed.log')
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX process group cleanup')
+    def test_exited_parent_still_terminates_owned_descendants(self):
+        import signal
+        process = SimpleNamespace(pid=123456, poll=lambda: 0, wait=lambda timeout=None: 0)
+        with patch.object(rt.subprocess, 'Popen', return_value=process), patch.object(rt.os, 'killpg') as kill:
+            with rt.launch(['parent'], self.base, {}, self.base / 'group.log'):
+                pass
+        self.assertEqual(kill.call_args_list, [unittest.mock.call(123456, signal.SIGTERM), unittest.mock.call(123456, signal.SIGKILL)])
+
     def test_second_config_and_analysis_preserve_first_artifacts(self):
         from experiment_analysis import analyze
         run = self.make_run()
