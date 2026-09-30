@@ -305,10 +305,11 @@ def plots(output, rows, controls, budgets):
                         axes[0].vlines(index + shift, s['min'] * 100, s['max'] * 100, color=color)
                     values = sorted(a['elapsed_ms'] for r in rs for a in r['attempts'] if a['elapsed_ms'] is not None)
                     if values:
-                        axes[1].step(values, [(i + 1) / len(values) * 100 for i in range(len(values))],
+                        axes[1].step([values[0], *values], [0, *[(i + 1) / len(values) * 100 for i in range(len(values))]],
                             where='post', color=color, linestyle=['-', '--', ':', '-.'][index % 4],
                             label=f'{solver}: n={len(values)}, seeds={len({r["seed"] for r in rs})}')
-                axes[0].set(xticks=range(len(solvers)), xticklabels=[s.replace('_', '\n') for s in solvers],
+                rate_labels = [s.replace('_', '\n') + f'\n{sum(r["requests"] for r in selected if r["solver"] == s)} requests, {len({r["seed"] for r in selected if r["solver"] == s})} seeds' for s in solvers]
+                axes[0].set(xticks=range(len(solvers)), xticklabels=rate_labels,
                     ylabel='Requests (%)', ylim=(-3, 103), title='Circle served; square incomplete; triangle failed')
                 axes[1].set(xlabel='Request search observation (ms)', ylabel='Cumulative observations (%)',
                             title='Pooled request latency distribution', ylim=(0, 103))

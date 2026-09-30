@@ -1,5 +1,7 @@
 # Booking benchmark protocol
 
+The [configurable experiment toolkit](configurable-experiments.md) supplies isolated processes/schemas, verified strategy settings, frozen dates, checkpoints, and automatic analysis for new comparisons. Existing manual entry points remain available below.
+
 `npm run benchmark:scheduling` extends the sequential booking workflow's seeded selection and scheduling client with isolated fleet datasets and concurrent request rounds. It measures search HTTP time including cancellation/acknowledgement, separately from subsequent customer selection. It does not include address entry, geocoding or browser transport. Do not label these samples browser-visible end-to-end latency.
 
 Use a freshly migrated, unseeded `waterflex_test` schema whose name begins with `benchmark_`. The runner refuses an existing metro because overlapping service areas would make comparisons ambiguous. Each successful case is independently audited and recorded before deleting only that case's explicitly prefixed fixture rows. Failed cases remain for inspection. Output is JSONL with create-new semantics. It includes exact server revision and configuration-stage label, dataset hashes, seed, dates, hardware, every request outcome, served demand, incompletes, p50/p95/p99, assignment changes, retiming, and before/after independent workload, overtime, modeled cost, waiting and road/buffer metrics.
