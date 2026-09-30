@@ -23,6 +23,8 @@ export default async function TechniciansPage() {
       depotAssignments: tech.depotAssignments.map(item => ({ effectiveDate: item.effectiveDate.toISOString().slice(0, 10),
         depotId: item.depotId, dealershipId: item.depot.dealershipId, metroId: item.depot.metroId })),
       email: tech.email, phone: tech.phone, bio: tech.bio, color: tech.color,
+      homeAddress: tech.homeAddressLine1 != null && tech.homeAddressCity != null && tech.homeAddressState != null && tech.homeAddressPostalCode != null
+        ? { line1: tech.homeAddressLine1, city: tech.homeAddressCity, state: tech.homeAddressState, postalCode: tech.homeAddressPostalCode } : null,
       availabilityVersions: versions.map(version => {
         const first = version.days.find(day => day.available);
         if (!first || first.shiftStartMin == null || first.shiftEndMin == null) throw new Error(`Invalid availability for ${tech.id}`);

@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { POST } from "../app/api/technicians/route";
+import { PATCH } from "../app/api/technicians/[id]/route";
 
 const prisma = new PrismaClient();
 const database = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1) : "";
@@ -71,6 +72,37 @@ async function main() {
     created.push(movedSaved.id);
     assert.equal(movedSaved.homePinProvenance, "MANUALLY_CONFIRMED");
     console.log("Street pin bounds, confirmation, exact house creation, and manually adjusted house pin limits passed");
+    const patch = (id: string, body: unknown) => PATCH(new NextRequest(`http://localhost/api/technicians/${id}`, { method: "PATCH", body: JSON.stringify(body) }), { params: { id } });
+    const profile = { name: "Home pin smoke tech", color: "#2563eb" };
+    const address = { line1: "2125 Crest Ridge Dr", city: "Papillion", state: "NE", postalCode: "68133" };
+    const houseBefore = await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } });
+    // Partial address groups and short phone numbers are rejected before any write.
+    assert.equal((await patch(houseSaved.id, { ...profile, address })).status, 400);
+    assert.equal((await patch(houseSaved.id, { ...profile, phone: "(402) 55" })).status, 400);
+    // An unconfirmed pin away from the geocoded house is rejected and leaves the technician unchanged.
+    assert.equal((await patch(houseSaved.id, { ...profile, name: "Rejected rename", address, confirmedPin: movedPin, manuallyConfirmed: false })).status, 422);
+    const unchanged = await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } });
+    assert.equal(unchanged.name, houseBefore.name);
+    assert.equal(unchanged.homeLat, houseBefore.homeLat);
+    // A profile edit without an address keeps the saved home.
+    assert.equal((await patch(houseSaved.id, { ...profile, phone: "(402) 555-0111" })).status, 200);
+    const phoneOnly = await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } });
+    assert.equal(phoneOnly.phone, "(402) 555-0111");
+    assert.equal(phoneOnly.homeLat, houseBefore.homeLat);
+    // A manually confirmed pin moves the home and records its provenance.
+    assert.equal((await patch(houseSaved.id, { ...profile, address, confirmedPin: movedPin, manuallyConfirmed: true })).status, 200);
+    const movedHome = await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } });
+    assert.equal(movedHome.homeLat, movedPin.lat);
+    assert.equal(movedHome.homePinProvenance, "MANUALLY_CONFIRMED");
+    // The exact geocoded house pin restores GEOCODER_HOUSE.
+    assert.equal((await patch(houseSaved.id, { ...profile, address, confirmedPin: { lat: 41.1637462, lng: -96.0079032 }, manuallyConfirmed: false })).status, 200);
+    assert.equal((await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } })).homePinProvenance, "GEOCODER_HOUSE");
+    // Without a depot assignment in effect there is no metro to check the address against.
+    const unassigned = await prisma.technician.create({ data: { name: "Unassigned smoke tech", color: "#2563eb", homeLat: 41.16, homeLng: -96.01, shiftStartMin: 480, shiftEndMin: 1020 } });
+    created.push(unassigned.id);
+    assert.equal((await patch(unassigned.id, { ...profile, name: "Unassigned smoke tech", address, confirmedPin: { lat: 41.1637462, lng: -96.0079032 }, manuallyConfirmed: false })).status, 409);
+    assert.equal((await patch("missing-technician", profile)).status, 404);
+    console.log("Technician profile address edits, rejected pins, phone validation, and missing depot checks passed");
   } finally {
     await prisma.technicianQualification.deleteMany({ where: { technicianId: { in: created } } });
     await prisma.technician.deleteMany({ where: { id: { in: created } } });
