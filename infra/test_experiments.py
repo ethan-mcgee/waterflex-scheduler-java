@@ -251,6 +251,26 @@ class AnalysisTests(unittest.TestCase):
         self.assertIsNone(row['p95_ms'])
         self.assertEqual(row['unknown_completion'], 1)
 
+    def test_frozen_calendar_evidence_requires_both_isolation_observations(self):
+        provenance = {**PROVENANCE, 'calendarReference': '2026-09-30T04:59:59.000Z'}
+        raw = raw_booking()
+        settings = {'scheduler.optimizer.cron': '-', 'routing.cache.cleanup-cron': '-',
+                    'routing.prewarm.enabled': 'false', 'time-off.analysis.enabled': 'false',
+                    'benchmark.calendar-reference': '2026-09-30T04:59:59Z'}
+        raw.update(processBefore={'configuration': settings}, processAfter={'configuration': settings})
+        frozen = normalize(raw, provenance, 'current')
+        historical = normalize(raw_booking(), PROVENANCE, 'current')
+        from experiment_analysis import pair_key
+        self.assertNotEqual(pair_key(frozen), pair_key(historical))
+        for phase in ('processBefore', 'processAfter'):
+            for key in settings:
+                altered = copy.deepcopy(raw)
+                altered[phase]['configuration'][key] = 'invalid'
+                with self.assertRaises(ValueError):
+                    normalize(altered, provenance, 'current')
+        with self.assertRaises(ValueError):
+            normalize(raw, {**provenance, 'calendarReference': '2026-09-30T04:59:59'}, 'current')
+
     def test_partial_raw_kept_and_reported(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / 'raw.jsonl'
