@@ -107,6 +107,11 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['pair_status'], 'unpaired_control')
 
+    def test_conflicting_fixture_duplicate_not_averaged(self):
+        rows, issues = compare([self.daily(), self.daily(fixture='other')], {'daily': 'TABU'})
+        self.assertEqual(rows, [])
+        self.assertEqual(len(issues), 2)
+
     def test_missing_null_metrics_preserved(self):
         raw = raw_daily()
         raw['reference'] = None

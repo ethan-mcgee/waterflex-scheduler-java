@@ -1,6 +1,7 @@
 """Conservative raw-evidence adapter and reusable static experimental figures."""
 from collections import Counter, defaultdict
 import csv
+from datetime import date
 import gzip
 import html
 import json
@@ -61,6 +62,8 @@ def normalize(raw, provenance, cohort):
         solver=required(raw, 'variant', str), fleet=required(raw, 'technicians' if daily else 'size', int),
         workload=required(raw, 'workload', str), seed=required(raw if daily else provenance, 'seed', int),
         fixture=required(raw, 'datasetFingerprint', str))
+    if row['solver'] not in (DAILY if daily else BOOKING) or row['fleet'] not in [5, 10, 20, 30, 50] or row['seed'] < 0:
+        raise ValueError('Unsupported solver, fleet or seed')
     if daily:
         if raw.get('violations') != 0 or type(raw.get('violations')) is not int:
             raise ValueError('Daily independent validation absent/failed')
@@ -81,6 +84,11 @@ def normalize(raw, provenance, cohort):
         if after.get('routingIdentity') != routing:
             raise ValueError('Routing identity mismatch')
         attempts = required(raw, 'attempts', list)
+        dates = required(provenance, 'dates', list)
+        if not dates or any(not isinstance(d, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', d) for d in dates) or len(set(dates)) != len(dates):
+            raise ValueError('Invalid frozen dates')
+        for d in dates:
+            date.fromisoformat(d)
         if not attempts or len(attempts) != provenance.get('requests'):
             raise ValueError('Incomplete request observations')
         indices = [required(a, 'index', int) for a in attempts]
@@ -101,7 +109,7 @@ def normalize(raw, provenance, cohort):
         served = sum(a['served'] for a in observed)
         incomplete = sum(a['completed'] is False for a in observed)
         row.update(concurrency=required(raw, 'concurrency', int), cache=required(raw, 'cache', str),
-            dates=required(provenance, 'dates', list), routing=routing, requests=len(observed), attempts=observed,
+            dates=dates, routing=routing, requests=len(observed), attempts=observed,
             served=served, incomplete=incomplete, failed=sum(a['failed'] for a in observed),
             unknown_completion=sum(a['completed'] is None for a in observed),
             served_indices=sorted(a['index'] for a in observed if a['served']),
@@ -165,10 +173,13 @@ def pair_key(row, budget=True):
 
 def compare(rows, controls):
     issues = []
-    counts = Counter((pair_key(r), r['solver']) for r in rows)
+    def logical_key(row):
+        # A matrix case cannot occur twice even if the duplicate claims a different fixture.
+        return pair_key({**row, 'fixture': '<expected-case>', 'routing': '<expected-provider>'}), row['solver']
+    counts = Counter(logical_key(r) for r in rows)
     valid = []
     for row in rows:
-        if counts[pair_key(row), row['solver']] > 1:
+        if counts[logical_key(row)] > 1:
             issues.append(dict(source=row['source'], line=row['line'], reason='Duplicate case excluded (all copies)'))
         else:
             valid.append(dict(row))
@@ -212,7 +223,7 @@ def equal_seed_summary(rows, metric):
 def summary_groups(rows):
     groups = defaultdict(list)
     for r in rows:
-        keys = ['kind', 'cohort', 'solver', 'fleet', 'workload'] + (['budget_ms'] if r['kind'] == 'daily' else ['concurrency', 'cache'])
+        keys = ['kind', 'cohort', 'solver', 'fleet', 'workload', 'routing'] + (['budget_ms', 'fixture'] if r['kind'] == 'daily' else ['concurrency', 'cache', 'dates', 'requests'])
         groups[canonical({k: r[k] for k in keys})].append(r)
     summaries = []
     for key, items in sorted(groups.items()):
@@ -238,15 +249,17 @@ def plots(output, rows, controls, budgets):
     figures = []
     groups = defaultdict(list)
     for r in rows:
-        groups[(r['kind'], r['cohort'], r['workload'], r['fleet'])].append(r)
+        scope = r['fixture'] if r['kind'] == 'daily' else canonical([r['dates'], r['requests']])
+        groups[(r['kind'], r['cohort'], r['workload'], r['fleet'], r['routing'], scope)].append(r)
     def save(fig, title, caption):
         name = f'figure-{len(figures) + 1:03}'
         fig.savefig(output / f'{name}.png', bbox_inches='tight')
         fig.savefig(output / f'{name}.svg', bbox_inches='tight')
         plt.close(fig)
         figures.append({'name': name, 'title': title, 'caption': caption})
-    for (kind, cohort, workload, fleet), items in sorted(groups.items()):
+    for (kind, cohort, workload, fleet, routing, scope), items in sorted(groups.items()):
         title = f'{kind.title()} | {fleet} technicians | {workload} | {cohort}'
+        title += f'\nFixture {scope[:12]}' if kind == 'daily' else f'\n{items[0]["dates"][0]} to {items[0]["dates"][-1]} | provider {routing[:12]}'
         if kind == 'daily':
             metrics = [('reference_cost', 'Reference modeled cost (cents)'), ('accepted_cost', 'Accepted modeled cost (cents)'),
                 ('control_savings_cents', f'Reference savings vs {controls["daily"]} (cents)'),
