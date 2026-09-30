@@ -30,7 +30,7 @@ jobs:
             context: infra/map-import
             dockerfile: infra/map-import/Dockerfile
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Build only, without publishing or running imports
         env:
           IMAGE: ${{ matrix.image }}
@@ -43,8 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Audit locked dependencies
@@ -52,7 +52,7 @@ jobs:
         run: npm audit --package-lock-only --audit-level=high --json > npm-audit.json
       - name: Retain audit report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: npm-audit
           path: web/npm-audit.json
