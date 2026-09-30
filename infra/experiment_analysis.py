@@ -255,10 +255,11 @@ def plots(output, rows, controls, budgets):
                 for variant_index, solver in enumerate(dict.fromkeys(r['solver'] for r in items)):
                     selected = [r for r in items if r['solver'] == solver]
                     color = COLORS[solver]
-                    for seed in sorted({r['seed'] for r in selected}):
+                    for seed_index, seed in enumerate(sorted({r['seed'] for r in selected})):
                         seed_rows = {r['budget_ms']: r for r in selected if r['seed'] == seed}
                         ax.plot([x / 1000 for x in xs], [seed_rows.get(x, {}).get(metric) if seed_rows.get(x, {}).get(metric) is not None else math.nan for x in xs],
-                                color=color, alpha=.3, linewidth=.8, marker='.', markersize=4)
+                                color=color, alpha=.3, linewidth=.8, marker='.', markersize=4,
+                                linestyle=['-', '--', ':', '-.'][seed_index % 4])
                     stats = [equal_seed_summary([r for r in selected if r['budget_ms'] == x], metric) for x in xs]
                     if not any(s['mean'] is not None for s in stats):
                         continue
@@ -271,12 +272,16 @@ def plots(output, rows, controls, budgets):
                             marker=['o', 's', '^', 'D', 'v', 'P', 'X', '*'][variant_index % 8], markersize=4, label=f'{solver} n={counts}')
                     ax.fill_between([x / 1000 for x in xs], lo, hi, color=color, alpha=.08)
                 ax.set(xlabel='Combined search budget (seconds)', ylabel=label)
+                ax.set_xticks([x / 1000 for x in xs])
+                if len(xs) == 1:
+                    ax.set_xlim(max(0, xs[0] / 1000 - .25), xs[0] / 1000 + .25)
                 ax.grid(alpha=.15)
-                if metric.endswith('cents'):
+                if available and metric.endswith('cents'):
                     ax.axhline(0, color='#555555', linewidth=.7)
                 if available:
                     ax.legend(fontsize=7, loc='best')
                 else:
+                    ax.set_yticks([])
                     ax.text(.5, .5, 'Unavailable: no matched observations', ha='center', transform=ax.transAxes)
             save(fig, title, 'Synthetic directed fixtures. Thin traces are individual seeds; shaded range is observed min/max, not a confidence interval. Thick lines weight seeds equally. Legend n gives observed seed counts in ascending budget order. Five seeds are exploratory; seeds vary search, not geography. Missing points remain gaps. Costs are modeled cents, not payroll savings.')
         else:

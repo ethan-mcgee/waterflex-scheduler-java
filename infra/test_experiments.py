@@ -58,6 +58,7 @@ class ConfigurationTests(unittest.TestCase):
             lambda c: c['daily'].update(seeds=[17, 17]), lambda c: c['daily'].update(seeds=[True]),
             lambda c: c['daily'].update(fleets=[7]), lambda c: c['daily'].update(control='SUBLIST'),
             lambda c: c['daily'].update(budgets_seconds=[241]), lambda c: c['daily'].pop('workloads')]
+        modifications.append(lambda c: c['daily'].update(budgets_seconds=[15, 15.0]))
         for modify in modifications:
             with self.subTest(modify=modify):
                 c = config()
@@ -176,9 +177,9 @@ class ArchiveTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.base = Path(self.tmp.name)
 
-    def make_run(self):
+    def make_run(self, seed=17):
         c = config()
-        c['daily'].update(seeds=[17], budgets_seconds=[.1])
+        c['daily'].update(seeds=[seed], budgets_seconds=[.1])
         run = rt.new_run(self.base, c, json.dumps(c).encode())
         (run / 'frozen').mkdir()
         (run / 'frozen/artifact').write_text('frozen')
@@ -194,11 +195,15 @@ class ArchiveTests(unittest.TestCase):
             rt.write_new(a / 'config.json', {})
 
     def test_lock_excludes_competing_runs_and_releases(self):
-        with rt.measurement_lock():
+        import socket
+        with socket.socket() as candidate:
+            candidate.bind(('127.0.0.1', 0))
+            port = candidate.getsockname()[1]
+        with rt.measurement_lock(port):
             with self.assertRaises(RuntimeError):
-                with rt.measurement_lock():
+                with rt.measurement_lock(port):
                     pass
-        with rt.measurement_lock():
+        with rt.measurement_lock(port):
             pass
 
     def test_frozen_mismatch(self):
@@ -255,7 +260,7 @@ class ArchiveTests(unittest.TestCase):
             rt.write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': rt.sha(attempt / 'raw.jsonl')})
         first = analyze(run)
         initial = rt.tree_hashes(run)
-        second = self.make_run()
+        second = self.make_run(seed=23)
         self.assertNotEqual(second, run)
         again = analyze(run)
         self.assertNotEqual(first, again)
