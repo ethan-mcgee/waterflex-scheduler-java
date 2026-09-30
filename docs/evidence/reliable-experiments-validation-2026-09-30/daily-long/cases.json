@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 240000,
+    "id": "324dc5137285bec2dc95"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 240000,
+    "id": "024d4185f81cc7226916"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 240000,
+    "id": "8d6f4af2aa6b9a501107"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 240000,
+    "id": "031feac272941d373408"
+  }
+]

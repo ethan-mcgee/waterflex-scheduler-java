@@ -1,0 +1,13 @@
+[
+  {
+    "kind": "booking",
+    "fleet": 20,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "BOUNDED",
+    "concurrency": 1,
+    "cache": "cold",
+    "requests": 10,
+    "id": "b2a0a1dbe73e66e2757c"
+  }
+]

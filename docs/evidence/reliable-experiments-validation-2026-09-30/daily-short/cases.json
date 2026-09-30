@@ -1,0 +1,434 @@
+[
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "6a3f722e1b8e1767fa69"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "2db55659f175d0225bc6"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "04ce02833f5a7394ccb1"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "b9378170c00bfce65242"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "072589709223117ce3d5"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "b22cd3d2a5ce32dfacd9"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "ac9ea64fa910b73404c1"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "2e5af2c449fce4b087d4"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "1333939466e444189ea7"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "83d07a0856ec7e65b000"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "14564d400a53021dae6c"
+  },
+  {
+    "kind": "daily",
+    "fleet": 5,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "3ae7ad2f0fc57a36d004"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "1559cf8c4c001434c963"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "1d6b5c8b3fa8471fe9ae"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "bac791279faceb9f339d"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "ae1f23f1c1cf97e4c4db"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "08e69513ac7596618824"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "130f85fec7ef72688b9e"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "973fd5a08ee5fe6f490c"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "cfe125fcfebf43e1c3a9"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "c5f036e67ee55fe99182"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "481bdba2e8cafd444ac1"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "fea7196f962099d634fb"
+  },
+  {
+    "kind": "daily",
+    "fleet": 10,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "0595972f5dffde7f0a70"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "49587b86e1297f262d8b"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "01a9d9b88223787eb8b9"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "0dae3cdc984ebb7bb7c6"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "bcf09017f65bd3f58623"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "0f8b95ad8d0ee4319992"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "3c4216bf8120683a7c5c"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "34cb593a7464cb8724b7"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "f6c4353b4993a9c07c3a"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "97e0dad9952b75fc4626"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "773278c4f3e270c4eead"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "d3feeea1793d3e0078e3"
+  },
+  {
+    "kind": "daily",
+    "fleet": 20,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "da6f91254c6432f123c5"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "0d05797b43cde303ed75"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "a6f4c291f073fb2b68e0"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "6127188ab3db9a90eda6"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "CLUSTERED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "807fbc096e1e911a4b86"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "438c0b19fd9f15dc287c"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "31acfc62c868d582a83e"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "2af82b426d2b777e8c88"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "DISPERSED",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "babd699dd15944c3b529"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "KOPT",
+    "budget_ms": 100,
+    "id": "227d8e4a55f71a80cef3"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "LATE_ACCEPTANCE",
+    "budget_ms": 100,
+    "id": "599a41ac0d26639d28fa"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "TABU",
+    "budget_ms": 100,
+    "id": "19e59777d5b7eb88d8c6"
+  },
+  {
+    "kind": "daily",
+    "fleet": 50,
+    "workload": "SPARSE",
+    "seed": 83,
+    "solver": "SUBLIST",
+    "budget_ms": 100,
+    "id": "0ed1098bb82d8e4fcf4d"
+  }
+]
