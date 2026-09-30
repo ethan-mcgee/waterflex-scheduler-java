@@ -10,13 +10,17 @@ import java.time.LocalDate;
 import java.util.*;
 
 /** Immutable search facts. Creating mutable evaluator plans never mutates this snapshot. */
-public record BookingSnapshot(String metroId, Instant capturedAt, String configurationFingerprint,
+public record BookingSnapshot(String metroId, Instant capturedAt, Instant calendarReference, String configurationFingerprint,
         String routingIdentity, SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days) {
+    public BookingSnapshot(String metroId, Instant capturedAt, String configurationFingerprint,
+            String routingIdentity, SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days) {
+        this(metroId, capturedAt, capturedAt, configurationFingerprint, routingIdentity, policy, rates, days);
+    }
     public BookingSnapshot {
         text(metroId); text(configurationFingerprint); text(routingIdentity);
         days = Required.value(Map.copyOf(days));
-        Set<LocalDate> normal = new HashSet<>(BookingService.bookingDates(capturedAt));
-        Set<LocalDate> extended = new HashSet<>(normal); extended.addAll(BookingService.overflowDates(capturedAt));
+        Set<LocalDate> normal = new HashSet<>(BookingService.bookingDates(calendarReference));
+        Set<LocalDate> extended = new HashSet<>(normal); extended.addAll(BookingService.overflowDates(calendarReference));
         if (!days.keySet().equals(normal) && !days.keySet().equals(extended))
             throw new Incomplete("Snapshot does not cover the complete booking horizon");
     }
