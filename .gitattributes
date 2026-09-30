@@ -7,3 +7,6 @@ docs/evidence/scheduler-field-2026-09-29/** -text whitespace=cr-at-eol
 docs/scheduler-field-validation.md text eol=lf
 docs/scheduler-field-validation.html text eol=lf
 docs/scheduler-field-*.svg text eol=lf
+docs/scheduler-algorithm-comparison-2026-09-29.pdf -text -diff
+docs/scheduler-algorithm-comparison-2026-09-29.md text eol=lf
+infra/build-scheduler-algorithm-comparison.py text eol=lf

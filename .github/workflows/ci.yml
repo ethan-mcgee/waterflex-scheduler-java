@@ -49,6 +49,10 @@ jobs:
           git diff --exit-code -- docs/scheduler-field-validation.md docs/scheduler-field-validation.html docs/scheduler-field-cost-runtime.svg docs/scheduler-field-routes.svg docs/evidence/scheduler-field-2026-09-29/summary.json
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
+      - name: Verify algorithm comparison report regressions
+        run: |
+          python3 -m pip install matplotlib==3.11.2 reportlab==5.0.1 pymupdf==1.28.2
+          python3 infra/test_scheduler_algorithm_comparison.py
       - name: Summarize javac tests before clean
         if: always()
         run: python3 infra/summarize-tests.py '*/target/surefire-reports/TEST-*.xml' --label javac
