@@ -1,18 +1,21 @@
 "use client";
 
 import { errorMessage, readResponse, success } from "@/lib/contracts";
+import { earliestMoveDate, parseUsDate } from "@/lib/date";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import Avatar from "../components/Avatar";
 import ui from "../components/ui.module.css";
 import AddTechnicianForm from "./AddTechnicianForm";
+import DateField, { dateFieldError } from "./DateField";
 import { formatInterval, fromMinutes, toMinutes } from "./format";
 import StandardAvailabilityGrid, { type StandardDay } from "./StandardAvailabilityGrid";
-import TechnicianProfileModal, { type ProfileDraft } from "./TechnicianProfileModal";
+import TechnicianProfileModal, { type ProfileDraft, type ProfileSave } from "./TechnicianProfileModal";
 import styles from "./technicians.module.css";
 
 interface Override { date: string; available: boolean; shiftStartMin: number | null; shiftEndMin: number | null }
 interface Tech { id: string; name: string; active: boolean; email: string | null; phone: string | null; bio: string | null; color: string;
+  homeAddress: { line1: string; city: string; state: string; postalCode: string } | null;
   depotAssignments: Array<{ effectiveDate: string; depotId: string; dealershipId: string; metroId: string }>;
   availabilityVersions: Array<{ effectiveDate: string; days: StandardDay[] }>;
   shiftStartMin: number | null; shiftEndMin: number | null; qualifications: string[]; overrides: Override[]; overridesTruncated: boolean }
@@ -34,8 +37,10 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   const [moveDate, setMoveDate] = useState("");
   const [moveDepotId, setMoveDepotId] = useState("");
   const tech = technicians.find(item => item.id === techId);
+  const moveIso = parseUsDate(moveDate);
+  const moveMin = earliestMoveDate();
   const currentAssignment = tech?.depotAssignments.filter(item => item.effectiveDate <= today).at(-1);
-  const moveDateAssignment = tech?.depotAssignments.filter(item => item.effectiveDate <= (moveDate || today)).at(-1);
+  const moveDateAssignment = tech?.depotAssignments.filter(item => item.effectiveDate <= (moveIso ?? today)).at(-1);
   const activeServiceIds = useMemo(() => new Set(services.map(service => service.id)), [services]);
   const filtered = useMemo(() => technicians.filter(item => item.name.toLowerCase().includes(search.toLowerCase())), [technicians, search]);
 
@@ -46,13 +51,13 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   function selectTechnician(next: Tech) { if (!busy) { setTechId(next.id); resetDraft(next); setMoveDate(""); setMoveDepotId(""); } }
   async function moveDepot(event: React.FormEvent) {
     event.preventDefault();
-    if (!tech || !moveDate || !moveDepotId || !depots.some(item => item.id === moveDepotId && item.dealershipId === moveDateAssignment?.dealershipId)) {
-      setModalError("Choose a date and a depot in this technician's dealership."); return;
+    if (!tech || !moveIso || dateFieldError(moveDate, moveMin) || !moveDepotId || !depots.some(item => item.id === moveDepotId && item.dealershipId === moveDateAssignment?.dealershipId)) {
+      setModalError("Choose a valid date and a depot in this technician's dealership."); return;
     }
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/technicians/${tech.id}/depot-assignments`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ depotId: moveDepotId, effectiveDate: moveDate }) });
+        body: JSON.stringify({ depotId: moveDepotId, effectiveDate: moveIso }) });
       await readResponse(response, success); setModalError(""); setMessage("Depot assignment scheduled."); setMoveDate(""); setMoveDepotId(""); router.refresh();
     } catch (error) { setModalError(errorMessage(error)); } finally { setBusy(false); }
   }
@@ -93,11 +98,11 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
   function profileFor(item: Tech): ProfileDraft {
     return { name: item.name, email: item.email ?? "", phone: item.phone ?? "", bio: item.bio ?? "", color: item.color };
   }
-  async function saveProfile(item: Tech, draft: ProfileDraft) {
+  async function saveProfile(item: Tech, draft: ProfileSave) {
     setBusy(true); setMessage(""); setModalError("");
     try {
       const response = await fetch(`/api/technicians/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, email: draft.email || null, phone: draft.phone || null, bio: draft.bio || null }) });
+        body: JSON.stringify({ name: draft.name, color: draft.color, email: draft.email || null, phone: draft.phone || null, bio: draft.bio || null, ...draft.home }) });
       await readResponse(response, success); setShowProfileModal(false); setMessage("Profile saved."); router.refresh();
     } catch (error) { setModalError(errorMessage(error)); } finally { setBusy(false); }
   }
@@ -156,6 +161,7 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
 
         {showProfileModal && <TechnicianProfileModal
           initial={profileFor(tech)}
+          homeAddress={tech.homeAddress}
           onClose={() => setShowProfileModal(false)}
           currentDays={versionFor(tech, today).days}
           pending={tech.availabilityVersions.find(version => version.effectiveDate > today) ?? null}
@@ -163,12 +169,13 @@ export default function TechnicianRoster({ technicians, services, metros, dealer
           onSaveAvailability={(days) => saveAvailability(tech, days)}
           busy={busy}
           error={modalError}
-          depotMove={<form onSubmit={moveDepot} className={styles.overrideForm}>
-            <label htmlFor="move-date">Depot move effective <input id="move-date" type="date" min={today} required value={moveDate} onChange={event => { setMoveDate(event.target.value); setMoveDepotId(""); }} /></label>
-            <label htmlFor="move-depot">New depot <select id="move-depot" required value={moveDepotId} onChange={event => setMoveDepotId(event.target.value)}>
+          depotMove={<form onSubmit={moveDepot} className={styles.depotMoveForm}>
+            <div className={styles.field}><label htmlFor="move-depot">New depot</label><select id="move-depot" required value={moveDepotId} onChange={event => setMoveDepotId(event.target.value)}>
               <option value="">Choose a depot</option>{depots.filter(item => item.dealershipId === moveDateAssignment?.dealershipId && item.id !== moveDateAssignment?.depotId).map(item =>
-                <option key={item.id} value={item.id}>{item.name} ({metros.find(metro => metro.id === item.metroId)?.name ?? item.metroId})</option>)}</select></label>
-            <button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy || !moveDate || !moveDepotId}>Schedule depot move</button>
+                <option key={item.id} value={item.id}>{item.name} ({metros.find(metro => metro.id === item.metroId)?.name ?? item.metroId})</option>)}</select></div>
+            <div className={styles.field}><label htmlFor="move-date">Depot move effective</label>
+              <DateField id="move-date" value={moveDate} min={moveMin} today={today} onChange={text => { setMoveDate(text); setMoveDepotId(""); }} /></div>
+            <button className={`${ui.button} ${ui.buttonBrand}`} type="submit" disabled={busy || !moveIso || Boolean(dateFieldError(moveDate, moveMin)) || !moveDepotId}>Schedule depot move</button>
           </form>}
         />}
       </div> : <div className={`${ui.card} ${styles.detail} ${styles.empty}`}>No technicians found</div>}

@@ -93,3 +93,38 @@ export function calendarDateInTz(value: Date, tz: string): string {
 export function todayInTz(tz: string, now = new Date()): string {
   return calendarDateInTz(now, tz);
 }
+
+// Mirrors ScheduleCutoff.frozen in the scheduler service: a service day freezes at 06:00 America/Chicago.
+// The server stays the authority; this only keeps the picker from offering a day it will reject.
+export function earliestMoveDate(now = new Date()): string {
+  const today = todayInTz("America/Chicago", now);
+  const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", hourCycle: "h23" })
+    .formatToParts(now).find(part => part.type === "hour")?.value);
+  return Number.isFinite(hour) && hour >= 6 ? addCalendarDays(today, 1) : today;
+}
+
+// User-facing MM/DD/YYYY entry. Slashes are inserted while the text still looks like a date; anything else
+// (letters, extra characters) is left as typed so the field can flag it instead of blocking the keystroke.
+// A separator is only emitted once a digit follows it, so backspace can always delete the last digit.
+export function maskUsDate(input: string): string {
+  if (!/^[\d/]*$/.test(input)) return input;
+  const digits = input.replace(/\D/g, "");
+  if (digits.length > 8) return input;
+  const month = digits.slice(0, 2);
+  const day = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  return [month, day, year].filter(part => part.length > 0).join("/");
+}
+
+export function formatUsDate(isoDate: string): string {
+  dateContract.parse(isoDate);
+  return `${isoDate.slice(5, 7)}/${isoDate.slice(8, 10)}/${isoDate.slice(0, 4)}`;
+}
+
+// Returns YYYY-MM-DD for a real calendar date typed as MM/DD/YYYY, otherwise null.
+export function parseUsDate(input: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(input.trim());
+  if (!match) return null;
+  const iso = `${match[3]}-${match[1]}-${match[2]}`;
+  return dateContract.safeParse(iso).success ? iso : null;
+}
