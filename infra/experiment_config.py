@@ -40,7 +40,7 @@ def selection(section, name, predicate):
     values = section[name]
     if not isinstance(values, list) or not values or any(not predicate(x) for x in values):
         raise ValueError(f'Invalid or empty {name}')
-    if len({canonical(x) for x in values}) != len(values):
+    if len(set(values)) != len(values):
         raise ValueError(f'Duplicate {name}')
 
 

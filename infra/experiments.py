@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import sys
 
+sys.dont_write_bytecode = True  # Archived entry points must not modify their own frozen tree.
+
 from experiment_config import expand, read_json, validate
 
 

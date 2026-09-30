@@ -32,11 +32,17 @@ def sha(path):
 
 def write_new(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open('x', encoding='utf-8', newline='\n') as stream:
-        json.dump(value, stream, indent=2, allow_nan=False)
-        stream.write('\n')
-        stream.flush()
-        os.fsync(stream.fileno())
+    temporary = path.with_name(path.name + '.pending-' + uuid.uuid4().hex)
+    try:
+        with temporary.open('x', encoding='utf-8', newline='\n') as stream:
+            json.dump(value, stream, indent=2, allow_nan=False)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Atomic publication with create-new semantics, including on NTFS.
+        os.link(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def stamp():
@@ -54,16 +60,16 @@ def new_run(base, config, original):
 
 
 @contextmanager
-def measurement_lock():
+def measurement_lock(port=47983):
     # Kernel-owned, machine-wide even across checkouts. No stale lockfile deletion.
     with socket.socket() as lock:
         if os.name == 'nt':
             lock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
         try:
-            lock.bind(('127.0.0.1', 47983))
+            lock.bind(('127.0.0.1', port))
             lock.listen(1)
         except OSError as error:
-            raise RuntimeError('Another toolkit measurement run holds port 47983 on this PC') from error
+            raise RuntimeError(f'Another toolkit measurement run holds port {port} on this PC') from error
         yield
 
 
@@ -184,6 +190,8 @@ def prepare_run(run, config):
         destination = source / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / name, destination)
+    if capture(['git', 'rev-parse', 'HEAD']) != revision or capture(['git', 'status', '--porcelain', '--', *SOURCE_PATHS]):
+        raise ValueError('Source changed while freezing; start a new run')
     env = environment()
     wrapper = source / ('mvnw.cmd' if os.name == 'nt' else 'mvnw')
     command([wrapper, '-B', '-pl', 'scheduler-service', '-Pnullability', '-DskipTests', 'package',
@@ -210,9 +218,9 @@ def prepare_run(run, config):
     write_new(run / 'manifest.json', {'format': 1, 'revision': revision, 'config_hash': digest(config),
         'cases_hash': digest(read_json(run / 'cases.json')), 'files': hashes, 'runtime': info,
         'matplotlib': matplotlib.__version__, 'booking': booking,
-        'source_hashes': {name: sha(ROOT / name) for name in source_names},
+        'source_hashes': {name: sha(source / name) for name in source_names},
         'warmup': 'Daily: 200 ms SPARSE/20 for the selected solver in each fresh JVM; booking: fresh JVM, migration, health, independent audit and specified cache preparation',
-        'toolkit_hashes': toolkit_hashes(),
+        'toolkit_hashes': {name: sha(source / 'infra' / name) for name in toolkit_hashes()},
         'order': 'Independent cyclic rotations of solvers and budget/concurrency/cache settings across fixture/seed blocks',
         'limitations': 'Local shared workstation; toolkit lock excludes other toolkit runs, not unrelated PC activity'})
 
@@ -315,14 +323,17 @@ def booking_case(run, attempt, case, manifest, env):
 
 
 def completed_attempt(run, case):
+    completed = []
     for attempt in sorted((run / 'attempts' / case['id']).glob('*')):
         receipt = attempt / 'completed.json'
         if receipt.exists():
             saved = read_json(receipt)
             if saved['case'] != case or saved['raw_sha256'] != sha(attempt / 'raw.jsonl'):
                 raise ValueError(f'Completed evidence changed: {attempt}')
-            return attempt
-    return None
+            completed.append(attempt)
+    if len(completed) > 1:
+        raise ValueError(f'Duplicate completed case receipts: {case["id"]}')
+    return completed[0] if completed else None
 
 
 def toolkit_hashes():
