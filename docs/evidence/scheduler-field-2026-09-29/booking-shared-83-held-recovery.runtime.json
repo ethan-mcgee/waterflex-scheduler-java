@@ -1,0 +1,16 @@
+{
+  "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+  "checkoutRevision": "02e333993ed4203933187f17f08c1f478694a7d6",
+  "jarSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+  "schema": "benchmark_field_shared_83_1790724649803",
+  "port": 18036,
+  "variant": "SHARED",
+  "seed": "83",
+  "routingUrl": "http://127.0.0.1:8001",
+  "sizes": "50",
+  "concurrency": "5,10",
+  "caches": "cold,warm",
+  "requests": "10",
+  "startedAt": "2026-09-29T23:31:01.869Z",
+  "concurrentLocalBenchmarks": true
+}

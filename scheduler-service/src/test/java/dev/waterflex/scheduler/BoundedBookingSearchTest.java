@@ -11,6 +11,11 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BoundedBookingSearchTest {
+    // Keep two-hour fixtures as mixed/historical promise coverage. New-policy fields are tested separately.
+    private static BoundedBookingSearch historicalSearch(BookingSnapshot snapshot, BoundedBookingSearch.Request request,
+            BoundedBookingSearch.Limits limits, Runnable checkpoint) {
+        return new BoundedBookingSearch(snapshot, request, limits, checkpoint, 120);
+    }
     @Test void immutableInsertionOverlayAndAffectedRouteMetricsMatchFullRecomputation() {
         for (boolean hold : List.of(false, true)) {
             Day day = Required.value(fixture(30, hold, true, 60).days().get(DAY));
@@ -67,7 +72,7 @@ class BoundedBookingSearchTest {
         Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
         var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
         var request = new BoundedBookingSearch.Request("new", "new-service", 30, POINT);
-        var search = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { });
+        var search = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { });
         var first = search.search(true);
         assertTrue(first.distinctRegularWindows() > 2);
         var reverse = new ArrayList<>(search.windows()); Collections.reverse(reverse);
@@ -84,9 +89,9 @@ class BoundedBookingSearchTest {
     @Test void reusedInsertionStillCompletesScarcityNeighborhoodAndFindsRelocation() {
         var snapshot = fixture(60, false, true, 0);
         var request = new BoundedBookingSearch.Request("new", "new-service", 60, POINT);
-        var insertion = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
-        var refined = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).refine(insertion);
-        var full = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
+        var insertion = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
+        var refined = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).refine(insertion);
+        var full = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
         assertTrue(refined.complete());
         assertEquals(full.candidates(), refined.candidates());
         assertEquals(full.confirmedRegularMinutes(), refined.confirmedRegularMinutes());
@@ -100,8 +105,8 @@ class BoundedBookingSearchTest {
     @Test void interruptedScarcityRefinementNeverAuthorizesOvertime() {
         var snapshot = fixture(106, false, false, 60);
         var request = new BoundedBookingSearch.Request("new", "new-service", 13, POINT);
-        var insertion = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
-        var refined = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(),
+        var insertion = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
+        var refined = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(),
                 () -> { throw new BoundedBookingSearch.RefinementLimit(); }).refine(insertion);
         var combined = BookingSearchPipeline.combine(insertion, refined, snapshot.policy());
         assertEquals("REFINEMENT_TIME_LIMIT", combined.stopReason());
@@ -112,7 +117,7 @@ class BoundedBookingSearchTest {
 
     @Test void optionalRefinementTimeoutKeepsCompletedRegularChoicesWithoutUnlockingOvertime() {
         var snapshot = fixture(30, false, false, 60);
-        var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
+        var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { });
         var one = Required.value(search.search(false).candidates().getFirst());
         List<BoundedBookingSearch.Candidate> candidates = new ArrayList<>();
@@ -125,7 +130,7 @@ class BoundedBookingSearchTest {
         var timedOut = new BoundedBookingSearch.Result(Required.value(List.of()), Required.value(List.of()), false, 0, 0, 0, false, "DEADLINE");
         var combined = BookingSearchPipeline.combine(insertion, timedOut, snapshot.policy());
         assertEquals(candidates, combined.candidates());
-        assertTrue(combined.complete());
+        assertFalse(combined.complete());
         assertEquals(3, combined.distinctRegularWindows());
         assertEquals(108, combined.confirmedRegularMinutes());
         assertFalse(combined.overtimeAuthorized());
@@ -172,10 +177,10 @@ class BoundedBookingSearchTest {
     @Test void relocationFindsRegularCapacityThatInsertionMissesWithoutChangingPromises() {
         BookingSnapshot snapshot = fixture(60, false, true, 0);
         var request = new BoundedBookingSearch.Request("new", "new-service", 60, POINT);
-        var search = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { });
+        var search = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { });
         var insertion = search.search(false);
         assertTrue(insertion.candidates().isEmpty());
-        assertFalse(insertion.complete());
+        assertTrue(insertion.complete());
         assertFalse(insertion.overtimeAuthorized());
         var result = search.search(true);
         assertTrue(result.complete());
@@ -191,10 +196,10 @@ class BoundedBookingSearchTest {
         assertEquals(START, Required.value(Required.value(snapshot.days().get(DAY)).visits().get("old")).windowStart());
     }
 
-    @Test void confirmedDemandOpensGateOnlyAfterCompletedSearchAndHoldsNeverCountAsDemand() {
+    @Test void confirmedDemandNeverAuthorizesOvertimeAndHoldsNeverCountAsDemand() {
         for (boolean reservation : List.of(false, true)) {
             BookingSnapshot snapshot = fixture(106, reservation, false, 60);
-            var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 13, POINT),
+            var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 13, POINT),
                     BoundedBookingSearch.Limits.defaults(), () -> { });
             assertFalse(search.search(false).overtimeAuthorized());
             var result = search.search(true);
@@ -202,8 +207,8 @@ class BoundedBookingSearchTest {
             assertEquals(0, result.distinctRegularWindows());
             assertEquals(reservation ? 0 : 108, result.confirmedRegularMinutes());
             assertEquals(120, result.regularCapacityMinutes());
-            assertEquals(!reservation, result.overtimeAuthorized());
-            assertFalse(result.candidates().isEmpty());
+            assertFalse(result.overtimeAuthorized());
+            assertTrue(result.candidates().isEmpty());
         }
     }
 
@@ -219,7 +224,7 @@ class BoundedBookingSearchTest {
         var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
         long existingOvertime = day.evaluate(day.baseline(), day.visits(), RATES).overtimeMinutes();
         assertTrue(existingOvertime > 0);
-        var result = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 10, POINT),
+        var result = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 10, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
         assertTrue(result.complete()); assertFalse(result.overtimeAuthorized());
         var chosen = Required.value(BoundedBookingSearch.choose(result.candidates(), snapshot.policy()));
@@ -244,7 +249,7 @@ class BoundedBookingSearchTest {
         }
         Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
         var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
-        var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 50, POINT),
+        var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 50, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { });
         assertTrue(search.search(false).candidates().isEmpty());
         var chosen = Required.value(BoundedBookingSearch.choose(search.search(true).candidates(), snapshot.policy()));
@@ -257,7 +262,7 @@ class BoundedBookingSearchTest {
     @Test void missingRoadAndDeadlineCannotEstablishScarcity() {
         BookingSnapshot snapshot = fixture(106, false, false, 60);
         var request = new BoundedBookingSearch.Request("new", "new-service", 13, POINT);
-        var expired = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { throw new SearchDeadline.Expired(); }).search(true);
+        var expired = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { throw new SearchDeadline.Expired(); }).search(true);
         assertFalse(expired.complete());
         assertFalse(expired.overtimeAuthorized());
         assertEquals("DEADLINE", expired.stopReason());
@@ -267,9 +272,9 @@ class BoundedBookingSearchTest {
         legs.remove("a>new");
         days.put(DAY, new Day(day.technicians(), day.visits(), day.baseline(), 0, new Roads(legs, Required.value(Set.of()))));
         BookingSnapshot incomplete = new BookingSnapshot("metro", CAPTURED, "configuration", "roads", snapshot.policy(), RATES, days);
-        assertThrows(BookingSnapshot.Incomplete.class, () -> new BoundedBookingSearch(incomplete, request,
+        assertThrows(BookingSnapshot.Incomplete.class, () -> historicalSearch(incomplete, request,
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(true));
-        assertThrows(BookingSnapshot.Incomplete.class, () -> new BoundedBookingSearch(snapshot, request,
+        assertThrows(BookingSnapshot.Incomplete.class, () -> historicalSearch(snapshot, request,
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(Required.value(List.of()), true));
     }
 
@@ -281,7 +286,7 @@ class BoundedBookingSearchTest {
         Map<LocalDate, Day> days = new TreeMap<>(original.days());
         days.put(DAY, new Day(before.technicians(), before.visits(), new Arrangement(routes), before.reservationVersion(), before.roads()));
         var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), original.rates(), days);
-        var result = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 13, POINT),
+        var result = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 13, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
         assertTrue(result.complete());
         assertEquals(108, result.confirmedRegularMinutes());
@@ -289,15 +294,15 @@ class BoundedBookingSearchTest {
         assertEquals(List.of("old"), before.actualArrangement().routes().get("a"));
     }
 
-    @Test void fairnessCeilingIncludesBoundaryButNeverGrantsAllowanceOnNonpositiveCosts() {
+    @Test void bookingCostPrecedesFairnessIncludingNonpositiveCosts() {
         BookingSnapshot snapshot = fixture(30, false, false, 60);
-        var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
+        var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { });
         var base = Required.value(search.search(true).candidates().getFirst());
         var reference = candidate(base, 100, "0.2");
         var allowed = candidate(base, 102, "0.1");
         var expensive = candidate(base, 103, "0");
-        assertEquals(allowed, BoundedBookingSearch.choose(Required.value(List.<BoundedBookingSearch.Candidate>of(reference, allowed, expensive)), snapshot.policy()));
+        assertEquals(reference, BoundedBookingSearch.choose(Required.value(List.<BoundedBookingSearch.Candidate>of(reference, allowed, expensive)), snapshot.policy()));
         for (long cost : List.of(0L, -100L)) {
             var nonpositive = candidate(base, cost, "0.2");
             assertEquals(nonpositive, BoundedBookingSearch.choose(Required.value(List.<BoundedBookingSearch.Candidate>of(nonpositive, candidate(base, cost + 1, "0"))), snapshot.policy()));
@@ -326,7 +331,7 @@ class BoundedBookingSearchTest {
         day.roads().legs().keySet().forEach(key -> zeroRoads.put(key, new DayPlan.RoadLeg(0, 0)));
         days.put(DAY, new Day(technicians, day.visits(), day.baseline(), 1, new Roads(zeroRoads, Required.value(Set.of()))));
         var snapshot = new BookingSnapshot("metro", CAPTURED, "configuration", "roads", original.policy(), RATES, days);
-        var search = new BoundedBookingSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
+        var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { });
         assertEquals(1, search.windows().size());
         var result = search.search(true);
@@ -334,7 +339,8 @@ class BoundedBookingSearchTest {
         assertEquals(240, result.regularCapacityMinutes());
         assertEquals(60, result.confirmedRegularMinutes());
         var chosen = Required.value(BoundedBookingSearch.choose(result.candidates(), snapshot.policy()));
-        assertEquals("b", chosen.technicianId());
+        assertEquals("a", chosen.technicianId(), "Equivalent balanced arrangements use stable technician identifiers");
+        assertEquals(List.of("old"), chosen.arrangement().routes().get("b"));
         assertTrue(chosen.fairnessDelta().signum() < 0);
     }
 
@@ -342,7 +348,7 @@ class BoundedBookingSearchTest {
         BookingSnapshot snapshot = fixture(60, false, true, 0);
         Day day = Required.value(snapshot.days().get(DAY));
         var request = new BoundedBookingSearch.Request("new", "new-service", 60, POINT);
-        var found = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
+        var found = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
         var chosen = Required.value(BoundedBookingSearch.choose(found.candidates(), snapshot.policy()));
         Map<String, Visit> facts = new HashMap<>(day.visits());
         facts.put("new", new Visit("new", "new", "new-service", START, END, 60, POINT, "a", START, false));

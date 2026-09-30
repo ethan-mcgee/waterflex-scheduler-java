@@ -1,0 +1,163 @@
+{
+  "javaSuites": [
+    {
+      "module": "scheduler-service",
+      "tests": 173,
+      "failures": 0
+    },
+    {
+      "module": "routing-service",
+      "tests": 2,
+      "failures": 0
+    }
+  ],
+  "checks": [
+    {
+      "name": "Strict Java nullability clean verify",
+      "result": "passed",
+      "log": "gates/scheduler-final-clean.log.gz",
+      "sha256": "8528b30d8939fb42f1e3499e3b5e4a378957fda6775272f20306bb23cd584cf1"
+    },
+    {
+      "name": "Frontend typecheck",
+      "result": "passed",
+      "log": "gates/scheduler-final-typecheck.log.gz",
+      "sha256": "a5e57bcc168c204b8019afc824ae1db1a75ebd709dcb842ed0ea0b226405ee0b"
+    },
+    {
+      "name": "Frontend lint",
+      "result": "passed",
+      "log": "gates/scheduler-final-lint.log.gz",
+      "sha256": "3f284e317d8f671116065d2c37bef2c83af41c76dec0871f2c07b5fe321107e2"
+    },
+    {
+      "name": "Prisma/Java schema contract",
+      "result": "passed",
+      "log": "gates/scheduler-final-test-schema-contract.log.gz",
+      "sha256": "11525728e0633dccf5788b2bbc59f25e81dcba5df7114be8a2c3c88d42ed8515"
+    },
+    {
+      "name": "Frontend units",
+      "result": "passed",
+      "log": "gates/scheduler-final-test-unit.log.gz",
+      "sha256": "73dda98b5064c1d139ed1b22c4a6427b58175c9c124be9dd409fc0966306e902"
+    },
+    {
+      "name": "Browser regressions",
+      "result": "passed",
+      "log": "gates/scheduler-ui-final.log.gz",
+      "sha256": "d45479a6352a42ca836dad277daa3fad9e8fa2dd7722fca6c112ad57f94315d0"
+    },
+    {
+      "name": "Frontend production build",
+      "result": "passed",
+      "log": "gates/scheduler-web-build-final.log.gz",
+      "sha256": "19cdc6abd0b86c4b928d8c1f471534cf87d18318407ae7b41f212e7d022f1559"
+    },
+    {
+      "name": "Durable and snapshot PostgreSQL IT",
+      "result": "passed",
+      "log": "gates/scheduler-final-db.log.gz",
+      "sha256": "a86ca4b501cada7a865d115ae507a144e90a19dc3a56b97993d5acafe4259c72"
+    },
+    {
+      "name": "Booking lifecycle and overflow",
+      "result": "passed",
+      "log": "gates/scheduler-smoke-java-booking-final.log.gz",
+      "sha256": "dc1d7215cf01bd4d37caf72954520516e961de47660c07185a91778f9c247dbf"
+    },
+    {
+      "name": "Bounded concurrent reservation",
+      "result": "passed",
+      "log": "gates/scheduler-smoke-bounded-reservations-v3.log.gz",
+      "sha256": "149598171e7887c2157b4e273cb6a4015504a079f42e4e545d640273184d5a4f"
+    },
+    {
+      "name": "Reservation guards",
+      "result": "passed",
+      "log": "gates/scheduler-smoke-reservation-guards.log.gz",
+      "sha256": "70ae8357475ff553657c2680b91235b3c6b6a741da67a20b177bb593568276f0"
+    },
+    {
+      "name": "Time-off zero-overtime policy",
+      "result": "passed",
+      "log": "gates/scheduler-timeoff-final.log.gz",
+      "sha256": "f1d40b023e07b87cc134ae7acb5d9c55e1ac8a84eebbda07584a05ed9d364f84"
+    },
+    {
+      "name": "Optimizer preview/apply",
+      "result": "passed",
+      "log": "gates/scheduler-smoke-optimizer-final.log.gz",
+      "sha256": "51419772a3208ee14be463a1fdcc257f7e8634255641c49a07036d4163a93167"
+    },
+    {
+      "name": "Dated depot and multi-depot",
+      "result": "passed",
+      "log": "gates/scheduler-smoke-multi-depot.log.gz",
+      "sha256": "394b68bf6bc76ca5912da5599dea848ec25617856706e0191902623d38c58844"
+    },
+    {
+      "name": "Actual road home/depot endpoints",
+      "result": "passed",
+      "log": "gates/scheduler-endpoints-final.log.gz",
+      "sha256": "654b97915be71a59e31fcfc03dc898237163318091726dbcd0655cd11984ff48"
+    },
+    {
+      "name": "Policy cutover migration preservation",
+      "result": "passed",
+      "log": "gates/scheduler-migration-test.log.gz",
+      "sha256": "a75f76767c276271ccd5a78051c2acac9ecc49fa90a80c23fed68c4f1a01d43c"
+    },
+    {
+      "name": "Cross-instance cancellation and separate-date expiry",
+      "result": "passed",
+      "log": "gates/scheduler-cancellation-final.log.gz",
+      "sha256": "9cb2ba6907e0060b42eb8e88c3743593b74c99abb10e297944496801cd7a9a3d"
+    }
+  ],
+  "uiTests": 35,
+  "frontendUnitTests": 85,
+  "databaseTests": 2,
+  "environment": "Windows, Java 25, isolated waterflex_test schemas; local Compose untouched",
+  "resolvedFailures": [
+    {
+      "check": "optimizer contract",
+      "cause": "frontend accepted only old policy version; enum supports persisted v1 and new v2"
+    },
+    {
+      "check": "bounded smoke",
+      "cause": "old two-hour availability fixture; widened to four hours while retaining paid-capacity restriction"
+    },
+    {
+      "check": "time-off",
+      "cause": "old overtime approval expectation and repair preview allowed proposal rejected by apply; preview now excludes overtime"
+    },
+    {
+      "check": "durable database IT",
+      "cause": "live application worker claimed test job; test and CI now require isolated durable_contracts schema"
+    },
+    {
+      "check": "endpoint smoke",
+      "cause": "deterministic router does not contain this fixture coordinate; rerun passed against actual GraphHopper roads in fresh endpoint_validation schema"
+    },
+    {
+      "check": "CI initial integration",
+      "cause": "existing wildcard IT invocation also ran dedicated-schema durable test; excluded there and retained separate migrated-schema gate"
+    },
+    {
+      "check": "CI cancellation smoke",
+      "cause": "Old test required multi-offer, two-hour sibling dates. Replaced with independent single-offer customers on separate four-hour dates, preserving cross-instance expiry checks."
+    }
+  ],
+  "implementationCi": {
+    "head": "63d07a2aaa18f77755e2d09e6945ea6b0daf73c4",
+    "run": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/36643156427",
+    "jobs": [
+      "Build and unit",
+      "Booking and optimizer integration",
+      "Browser regressions"
+    ],
+    "result": "passed",
+    "note": "Final field-evidence assertions and report-only changes are additionally checked locally and on the final PR head."
+  }
+}

@@ -185,7 +185,8 @@ public class OptimizationService {
         DayPlan solved = repairSearch.plan();
         int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
         var after = DayScoreCalculator.evaluate(Required.value(solved));
-        String status = after.hardPenalty() == 0 && RouteEvaluator.evaluate(Required.value(solved)).feasible() ? "REPAIR_PREVIEW" : "SKIPPED";
+        var repairValidation = RouteEvaluator.evaluate(Required.value(solved));
+        String status = after.hardPenalty() == 0 && repairValidation.feasible() && repairValidation.overtimeMinutes() == 0 ? "REPAIR_PREVIEW" : "SKIPPED";
         String reason = null;
         if (!status.equals("REPAIR_PREVIEW"))
             reason = after.hardPenalty() == 0 ? "VALIDATED_CONSTRAINT_CONFLICT"
@@ -355,7 +356,7 @@ public class OptimizationService {
             for (TechRoute route : current.plan().getRoutes()) route.getVisits().sort(Comparator.comparingInt(v -> proposed.get(v.getId()).path("sequence").asInt()));
             // A separate evaluator checks fresh road legs after the locked version check.
             var evaluated = RouteEvaluator.evaluate(current.plan());
-            if (!evaluated.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal infeasible");
+            if (!evaluated.feasible() || evaluated.overtimeMinutes() != 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal must be feasible with zero overtime");
             Problem baseline = build(run.metroId(), Required.value(day));
             var baselineMetrics = RouteEvaluator.evaluate(baseline.plan());
             if (absentTechnicianId != null) {

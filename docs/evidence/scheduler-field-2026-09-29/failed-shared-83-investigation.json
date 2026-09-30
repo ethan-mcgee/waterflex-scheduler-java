@@ -1,0 +1,74 @@
+{
+  "originalFailure": {
+    "seed": 83,
+    "variant": "SHARED",
+    "size": 50,
+    "concurrency": 5,
+    "cache": "cold",
+    "httpStatus": 409,
+    "caseId": "benchmark-ed8f3ebf-6091-4506-ac93-35ba6f0271b5",
+    "detailedReason": null,
+    "clientTimingsRecovered": false
+  },
+  "preservedBeforeRestart": "failed-shared-83-schema.sql.gz",
+  "freshAudit": "failed-shared-83-reaudit.json",
+  "freshAuditOvertimeMinutes": 0,
+  "originalAppointments": 1000,
+  "originalPromiseViolations": 0,
+  "acceptedRequestIds": [
+    "benchmark-ed8f3ebf-6091-4506-ac93-35ba6f0271b5-request-4"
+  ],
+  "searchStates": {
+    "5": {
+      "state": "FAILED",
+      "reason": "Busy",
+      "cleanedAt": "2026-09-29 23:23:22.944"
+    },
+    "4": {
+      "state": "AVAILABLE",
+      "reason": "COMPLETED",
+      "cleanedAt": null
+    },
+    "0": {
+      "state": "FAILED",
+      "reason": "Busy",
+      "cleanedAt": "2026-09-29 23:21:21.724"
+    },
+    "1": {
+      "state": "INCOMPLETE",
+      "reason": "WORKER_LOST_OR_WORK_LIMIT",
+      "cleanedAt": null
+    },
+    "3": {
+      "state": "INCOMPLETE",
+      "reason": "WORKER_LOST_OR_WORK_LIMIT",
+      "cleanedAt": null
+    },
+    "2": {
+      "state": "INCOMPLETE",
+      "reason": "WORKER_LOST_OR_WORK_LIMIT",
+      "cleanedAt": null
+    },
+    "7": {
+      "state": "FAILED",
+      "reason": "CannotCreateTransactionException",
+      "cleanedAt": null
+    },
+    "6": {
+      "state": "INCOMPLETE",
+      "reason": "WORKER_LOST_OR_WORK_LIMIT",
+      "cleanedAt": null
+    },
+    "9": {
+      "state": "INCOMPLETE",
+      "reason": "WORKER_LOST_OR_WORK_LIMIT",
+      "cleanedAt": null
+    },
+    "8": {
+      "state": "INCOMPLETE",
+      "reason": "WORKER_LOST_OR_WORK_LIMIT",
+      "cleanedAt": null
+    }
+  },
+  "interpretation": "Fresh route validation passes. Cleanup overlapped the original audit interval, consistent with a snapshot conflict; the original HTTP body did not preserve the detailed reason. This is not proof of the original failure cause. The failed attempt remains excluded from paired cost and latency summaries; a separately labeled rerun completes the matrix."
+}

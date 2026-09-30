@@ -16,11 +16,11 @@ class SchedulingPolicyTest {
     private static SchedulingPolicy.Metrics metrics(long overtime, long cost, long a, long b) {
         return new SchedulingPolicy.Metrics(overtime, cost, SchedulingPolicy.fairness(Required.value(List.<SchedulingPolicy.Workload>of(work("a", a, 480), work("b", b, 480)))));
     }
-    @Test void scarcityRequiresBothThresholdsAndCompletedSearch() {
+    @Test void scarcityNeverAuthorizesOvertime() {
         assertFalse(RULES.authorizeOvertime(3, 100, 100, true));
         assertFalse(RULES.authorizeOvertime(2, 89, 100, true));
-        assertTrue(RULES.authorizeOvertime(2, 90, 100, true));
-        assertTrue(RULES.authorizeOvertime(1, 91, 100, true));
+        assertFalse(RULES.authorizeOvertime(2, 90, 100, true));
+        assertFalse(RULES.authorizeOvertime(1, 91, 100, true));
         assertFalse(RULES.authorizeOvertime(0, 100, 100, false));
         assertFalse(RULES.authorizeOvertime(0, 0, 0, true));
         assertThrows(IllegalArgumentException.class, () -> RULES.authorizeOvertime(0, 101, 100, true));

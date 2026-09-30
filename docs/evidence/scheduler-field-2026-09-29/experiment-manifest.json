@@ -1,0 +1,1388 @@
+{
+  "originalRevision": "c28a24c4c0c1b4614b442c7a362d205cfa7e0db3",
+  "bookingArtifactRevision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+  "bookingArtifactSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+  "dailyFrozenRevision": "6da6d9341815d7f290cfe34190974fef1ffe2ff3",
+  "fieldFixtureRevision": "11154e43fee7435a9de78ed1f080491e2cd40f5c",
+  "retainedDefaults": {
+    "daily": "TABU",
+    "bookingBounded": false,
+    "bookingVariant": "BOUNDED"
+  },
+  "policyVersion": "zero-overtime-four-hour-v2",
+  "developmentSeeds": [
+    17,
+    23,
+    41
+  ],
+  "heldOutSeeds": [
+    59,
+    83
+  ],
+  "expectedCases": {
+    "screen": 30,
+    "original": 12,
+    "held": 144,
+    "stress": 8,
+    "daily": 240,
+    "flagshipSteps": 180,
+    "companionRows": 24,
+    "rejectionFixtures": 3,
+    "browser": 24
+  },
+  "durableLimits": {
+    "workersPerInstance": 2,
+    "activeQueueLimit": 16,
+    "workLifetimeSeconds": 120,
+    "leaseSeconds": 15,
+    "heartbeatSeconds": 1,
+    "offerTtlSeconds": 600
+  },
+  "artifactNotes": [
+    "Some held runtime revision headers identify the harness checkout adcda9a. The shared SHA-256 identifies the unchanged 2258b2a server artifact.",
+    "Clustering repeats generated geometry across seeds; seed repetitions are not independent geographic scenarios.",
+    "Frozen server artifacts ran concurrently on the same Windows host. Later UI and repair-preview fixes were validated separately."
+  ],
+  "dailyFrozenFiles": [
+    {
+      "path": "classes/application.properties",
+      "sha256": "167026b36e62365b915292640517027b4c5ff9a64fc26baefd24cdd97c1cbf68"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$CancelRequest.class",
+      "sha256": "005892f5cf0a11f121608bea55eb8955077dd443edb35f071e136d7782bf78c2"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$ConfirmRequest.class",
+      "sha256": "d1ce3107928dadb820c6ade9165d1f462d6b852317038bd1ee814251e3a4db77"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$JobRequest.class",
+      "sha256": "37e955875edc63ea720958c0ed80b554c454ed4d4d4f782d0c0cf797a399ceb6"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$SearchCancellation.class",
+      "sha256": "f69008ffc1ed838177c0ccbd7c40bd0b979e1cf469e529c2e8511fcd867bfcda"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$SearchOutcome.class",
+      "sha256": "2875bb0725f3cd67fbebbea0599d621abd4908fed9531200cf91a241ec16a01a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$SearchResponse.class",
+      "sha256": "ef825df773adff965cf1a63110e1cc6f3c6347129fca6082f4935ee09ccb5c3b"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$SearchStatus.class",
+      "sha256": "5feeff8e0aa5a7f669dee8a0c6f7e883f32dbd948cb82b20489acb63f62ccdf7"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController$SelectRequest.class",
+      "sha256": "e4565d498dbc6e7d623338d3ee532fba818b71ccaba5417d181b6db9c97f8783"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingController.class",
+      "sha256": "3f783f4fc9ada549673791f66cc2466b9c848e722ef739628b434db6cb148bd8"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingCoordinator$Active.class",
+      "sha256": "a5ff999b39167f3cb3441d55326fd9005a96c0e2e5b6844d76e154367b476861"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingCoordinator$Result.class",
+      "sha256": "8e4797c44aae6aba107ccebc68a1808931a37d71c8ee9f71a77c415d71f9c7b7"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingCoordinator.class",
+      "sha256": "4d0e70830cf1374b406eccac2433bb46a367b5119a699af1d7dfd837f7799cd1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation$1.class",
+      "sha256": "b50db88e8685318a861786e5fcce7a2a7460614a8159f910f4421a3971a65d82"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation$2.class",
+      "sha256": "d4c73e52c0e5447e704678e9c4053cb473793fc33926e487edc32a03d44a0579"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation$Baseline.class",
+      "sha256": "edb817240f6093c2f91e2ec73ad5457068be566849d87f8c15678eaafbe1dd40"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation$Key.class",
+      "sha256": "e3ff7f5a67f1624ee7d97bd27b320d4723be350c17830ec4e93d11e17f1ad29f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation$Load.class",
+      "sha256": "e537e332e78328eef27248a33c0d88bf9d8979a24733447fb79f067aeaf74a23"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation$Metrics.class",
+      "sha256": "892cba4ea4f5e3df53f0becb45d0af5389d5be99593499a7bc6934e048882e54"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingEvaluation.class",
+      "sha256": "2ea59a6ee2e7ff9e098b690a60bfaeee26534d00663489ec70806f8c05925e35"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingLocationController$Circle.class",
+      "sha256": "0c53815c0b776666e40a5059c0387f789340d1c245eabaf1a80fefb9374f9977"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingLocationController$Request.class",
+      "sha256": "1da41522e8adc42de9662eb421e158240a2367b6cd52bd3d7b90f9f3e1311b01"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingLocationController$Response.class",
+      "sha256": "bbad119f7af8a9e73885ae962e63332b5b21c83b53fda621ba1a162754131c64"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingLocationController$Status.class",
+      "sha256": "f857fcbd2828d628b8a858bef880b4361e3480315ca3bf0cd2656dac12e2f6fe"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingLocationController.class",
+      "sha256": "d0f47f826351e2f49e343e5b094f0a0f419e7784e7d86f172830a26660bf7d86"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingOfferLimit.class",
+      "sha256": "8fe9bf2913d9102d0e2ad7ed6c613bb22e20d746ba63d42392a3fc1474792e8a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds$1.class",
+      "sha256": "d1eae7639c5b73b1edba50bc55d3cdf80ae7dcbdef2ec12801f9a2d14cd72f05"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds$2.class",
+      "sha256": "7f604ce5db875a03563d15db30fbab6423f750da3d7c3336be1be688da2de138"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds$Key.class",
+      "sha256": "d1334dd05e9a6de9ca547a60598b3183767013ee63131b467745988c041e314f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds$OrderKey.class",
+      "sha256": "6012d5379950268d9e853e14ca8331a07e864f3d4cc24d4e704610b8be45d833"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds$Summary.class",
+      "sha256": "0c01d93c6cc9d7c5d4640706ec977a79cfe3309316e73764f033139e65eab413"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds$Work.class",
+      "sha256": "eb1239f82154edc57048e2f2dc6a64ce560a4dab6d9c61f2531bdaa72ecc6009"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingRouteBounds.class",
+      "sha256": "a42040331a9a82aa9cac65f559bfac3c2af4e62c69eea86e70ded3f121d31355"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSearchControl$Cleanup.class",
+      "sha256": "17300aa0b1cc1b99b1c063a111440ba07ff2c48a4185ed4debd63f4bfe827761"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSearchControl$Scope.class",
+      "sha256": "20cf583c121b0412118e60145e09161f2b3842c9ebbfa84836f133f80aeb3335"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSearchControl.class",
+      "sha256": "d5ad482cb9f879a53326c5b65dbc7e6b2d7d8e1af8927549700c9c5bb2830f64"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSearchPipeline$Prepared.class",
+      "sha256": "130612352d0796f382f8f0b21d5f6348a9fb531d38858db8a7b86cb2834ae2af"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSearchPipeline.class",
+      "sha256": "ba4da280001942ab9b3bcb71451c5eb2d648a82b166efa67e56ee9d68468503e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$1.class",
+      "sha256": "73f9fbd51581e3b4a17fb5148a45ad1bdeb3edca866eb1df18359d631fab7088"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$1HeldDay.class",
+      "sha256": "c84fe70620e95c07fda9d5a8c2f8532923208ba0c55e56176d1fec09fd345f3a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Cancellation.class",
+      "sha256": "2efd0ef6c90f3bc84eb3a456ed6d37c746df3e578ca805eee79fdcb0c202376a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Candidate.class",
+      "sha256": "d40b4bfab7a7e41f375667e7d040e65821a51ae3434877bfb05a3aeffb691f2f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Confirmation.class",
+      "sha256": "aa846d318c472bec557bfdeac29a356075651b91d55b7435ffb180166d43f36b"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$EvaluationContext.class",
+      "sha256": "77f5ad3dfd191ecf85608ddae659f63c480b500f3786b1a53b086d8dd1c1efc0"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Hold.class",
+      "sha256": "7c9892de2b06cc9b936e357764a30b9fcffc9b7951441fd4a13bdca4f19b03c8"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Job.class",
+      "sha256": "55f788e5657a435d4957421da0ebef4db623299c9f36e46ce5828bfef7cc5cba"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Metrics.class",
+      "sha256": "3f3a551069ee32bd13168d5c1f57dc332cc1c7474cc0b0a7dc7c11a062499b49"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Offer.class",
+      "sha256": "a1217d1880f137d4339477d96890762a1af8badeaf22c96ffeea3aa421c8acd8"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Offers.class",
+      "sha256": "15b541d4c252983e7b2f58433ca79bb16e4798cb67a75e13ba8e70dd4760056a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$OfferWindow.class",
+      "sha256": "a88b3e331b6b3ce35c5551b3dca93ee576da3f14dea9c8ec4b8f41f8b76b4647"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$ReleasableSet.class",
+      "sha256": "5a82f03c518924224b3f48ae446da37d87fd0a6118a64b25663c60716e4c0ef9"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$SearchContext.class",
+      "sha256": "6ac4a1fc996cfebe81236ff9313862fe3be23c4cd46fc3ee3f59f2cd0d564cfb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$SelectedOffer.class",
+      "sha256": "024826ff4b7015e01c3615e89e10f5fbb6483c23c2ab6a61f3e8acee84ef3887"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Selection.class",
+      "sha256": "91045298678570ef79d5fd0dae9e627459347dd25eefdc359648a061838c50ba"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$ServiceDepot.class",
+      "sha256": "98dfbafb0212b52f17d5164c095bcbe75bd53b866513bba10e13ff584a49b373"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Tech.class",
+      "sha256": "7816cfba9eb83cfdaf5251e1be66228294c5e33015d9a4809dcb9c73358f1305"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$TechBase.class",
+      "sha256": "be73b929790d2ba9278a97be8bf85065060a419b38c1b0fe376a7fcb149bbd3e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService$Visit.class",
+      "sha256": "39d8f431ca26f96d683de65cdbba9758633b212fdd7d8f3f7877de6cb5ed8e34"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingService.class",
+      "sha256": "76b0737f4bbf5cf3e8e7ec813a25c5f717f5b5ba7bfbfe666bb29b48f875a506"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Arrangement.class",
+      "sha256": "357eca59cafa0ff74741f2ef170c47821f41f2aab1ab87521a655529ff700529"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Day.class",
+      "sha256": "962792fde933a0e922ca2c2355555885e1dfd47d208d9c02603fbe03ea8f4aac"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Incomplete.class",
+      "sha256": "e3479a5cdc8594191d087fe4c35aca4b45691f7b195736300780ba0c22203f85"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$InsertionFacts.class",
+      "sha256": "0bbfd10badefb7980998b63d774a7d01e209f25fef9b8bae7b3dbba69e779464"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Rates.class",
+      "sha256": "edd7f1d9b6bf02a717baed4903af07d9a9d061a7717ef7ef9114b4293e3160fe"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Roads.class",
+      "sha256": "591f2903532ecae1f7b3beae2fc0b2b7c42f14cf17eae3ebed974db47b7b10a3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Technician.class",
+      "sha256": "0c031624b14045006f9260f8b1fe9393dddd39e2af0e2b466403ba818302d44f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot$Visit.class",
+      "sha256": "a3a75dfe72fd509c938683110840ecf40ed5831a3af22435cb2d7a12dfd33ae3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshot.class",
+      "sha256": "fbc6119fa34dc6c889ac4eebaf688f9e43f867d4017a3a3617e46a97c6e61a52"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshotLoader$Base.class",
+      "sha256": "c5b581a50c910aba946cc1442ee5ba48fe3645b05d8e56e4456a585c718d3177"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshotLoader$Facts.class",
+      "sha256": "5974d027ca258e7f9fb1af5619bd76de1fdfb12a6321dfb6c7409633e07b56b3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshotLoader$Loaded.class",
+      "sha256": "6c4bdec3488193df4fcf42cb41a9a2fee430cc419a8d6788a7a9a5eea00c095a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshotLoader$Saved.class",
+      "sha256": "90936d1cf5928b90cccb0e404a34a0dfac519e2ecdf8c87c88df555cdb28c9fa"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshotLoader$Stop.class",
+      "sha256": "f9c96a3e76872069c26c0f2bc46c43fe669b7147560c614afdaed80991f9e690"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BookingSnapshotLoader.class",
+      "sha256": "7d1c84394d165908f12a25cdd12eb5d2f74564a5b0101fa2df0e723ad5771414"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Candidate.class",
+      "sha256": "bc7040713973bacee29aefba735a3dff3c656837a754e5dcaa0b857df2ac9794"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Coverage.class",
+      "sha256": "79433e50f27c31f47c2cc073729e6ceabddc0fa68470b7f16034e91a9ba8ca51"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$DayContext$1.class",
+      "sha256": "ce858c98831ec42090ed1fe0ede51386f1a66a99c50079c959391294492ebd75"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$DayContext$2.class",
+      "sha256": "282f7f6d31a95c2907d3ebd28683d318aba2ea6a79ebd48a5e768fc501f857ce"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$DayContext.class",
+      "sha256": "fa6f8a7acd15dbd5cda8023b4b8a7cbf36c44de3575309b4c6cbcbfc5d23602b"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Limits.class",
+      "sha256": "3c7c205f08a0b2e5f4660dc747e8558e4db01fb151287eb1535deebac65a0d8f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Merit.class",
+      "sha256": "a361ebc90253d644304dcf14a52d314576812eb3337d6c0bc0c4c084d21fa8bb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Move.class",
+      "sha256": "77e0b3f8e1f37b39f3fbc5f4fbf1fc76ef609003ebc47111f4de7cd1a64541fe"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Ranked.class",
+      "sha256": "e2862f8e4d7e5b42c0fd6e80874c1d2d5be80cf5ff1ea24d3077a98c99b6ed10"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$RefinementLimit.class",
+      "sha256": "4c637cdaebff06d61e02e6f922e00b5cbe35ce21691053b91651e14967654e88"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Request.class",
+      "sha256": "b25f69a9fd5ac05b1d68a0c1eae57b6d8d3b82cdebf4f3f02611175c5ead7752"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Result.class",
+      "sha256": "e48265864af050646614aa5e7a45f7d21f14c485a56fc1b25785e72d3e147b58"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$RouteRank.class",
+      "sha256": "8df1cdc2278ca25d73e0701660056cffc9917c6d5310182a11e05f669ee21e17"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$State$Options.class",
+      "sha256": "2546ea73dbcc1cff482f0127d2e0cbd5932f318b1777da1b54be0bfc61b3b5d9"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$State$Placement.class",
+      "sha256": "5da8a5c37bf778465fafc38c79da1a45a6351dfdec5dd3313d9b9edeefd3d037"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$State.class",
+      "sha256": "751fff66fd8276ce643beec7f48b9c09d3b56c582086cb0e0c862f377e75ad2d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch$Window.class",
+      "sha256": "18cc039a06410e85288da9e31af37fb05149e5c8dc08399db583a5b2815252a0"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/BoundedBookingSearch.class",
+      "sha256": "6714b5cc6d1eae1c607a9e131e3105b087b887ab9585d4e04d42709fc82c4b83"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DealershipPolicyController$BookedDay.class",
+      "sha256": "f999ae5d2a5a9cfd50b5299fb9431c82e095d4cec5b1d4b44968b17ef6ccb108"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DealershipPolicyController$Policy.class",
+      "sha256": "f7ec8ad65ad6c0e128a7b8aee3d4a3bf3549e52d5d88163da3b2abdec3ed1a46"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DealershipPolicyController.class",
+      "sha256": "7d42937306296a84fbca81bf7120671e6c807d74d535319f3652678d763c9866"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DepotDetailsController$Address.class",
+      "sha256": "a1f1f383bed66f0015595513a88dc80abf6803d7170497493f9dd5bb5997f54a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DepotDetailsController$BookedDay.class",
+      "sha256": "b34c4c284607b7006cbdc7cdfec924a45f9353b78897178f9f91571053ba89a5"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DepotDetailsController$Candidate.class",
+      "sha256": "544989378c1fe5a34992acd1e33563b9ffd3b097375a179189a86c83cd430aea"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DepotDetailsController$Details.class",
+      "sha256": "ca509863f4ff10a0ed8256bdb881366a625ebc37d989addc4aa4a1b4300eeb4a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DepotDetailsController$Point.class",
+      "sha256": "e80cb1bbae802a8ec988187372b71be3557f1d1abc792d412d39b28c23049009"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DepotDetailsController.class",
+      "sha256": "7b8b1c90ff487b435e60f7f4b3f3b842282bc3c2acefd6d46f5dc2cb4990924e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DirectedLegFlights$Key.class",
+      "sha256": "a3f68b9ecf6413abdae13a71abc90a0c6eb228172b75f571eed54c3145a10898"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DirectedLegFlights.class",
+      "sha256": "2df62927e224166cd27c76bab77ab4c6a33dfc57e90e7dee8b41542f96872502"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController$Absence.class",
+      "sha256": "425a7136838dc868ed559b5479c2c830147776855614cdb2d15e503f28f87f92"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController$LineString.class",
+      "sha256": "cf029fb7058dabf1aa784817a737394349a85fd267fec8104e20a82a738e4cc4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController$RoadFeature.class",
+      "sha256": "2084a377d15deb922002c62a44014d129f38bba71046623c7d57cd8c2386bc29"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController$RoadProperties.class",
+      "sha256": "78d41787fae12313c989a7815e1128d8eb783f214aacb1bd14436012c7045ef4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController$SavedGeometry.class",
+      "sha256": "b80b931e8efe602bd6f218c715aa15ee622da69df2a2d87a4164f7e3c8cbb90a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController$Stop.class",
+      "sha256": "5ba052e68add5d5456c566f392c5f47ee8f87ff830228a025a2005145a6c2d6e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DispatchGeometryController.class",
+      "sha256": "c71c5fca4226cfd75e2a82fc4a587b087dc00a226c04835404498c2024afae4c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DurableBookingSearch$Controller.class",
+      "sha256": "00899223c3b2aab732a3cf98d71337229f0e6ba5aa84e7b39705d0c007581a6d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DurableBookingSearch$Start.class",
+      "sha256": "6a346362a5d661899d80c8105f935eeb843143274ef2b7e6773043c7dc5b5b47"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DurableBookingSearch$Status.class",
+      "sha256": "f4006f9a9484ba2f8e6dcdfe59ac9dc1a62193e4dcbea60cc1ea2648b3aca6c6"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DurableBookingSearch$Work.class",
+      "sha256": "28a777092ac42e42486ce051e4c472e152434069657223f9be5ef57b448adf13"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/DurableBookingSearch.class",
+      "sha256": "2d4c67cb2ff699caa62ad187886d1e84380aee1ed162715f1961b4ccb035e7b9"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/JsonConfiguration.class",
+      "sha256": "e646bcf802aa8e4cf1f75d31d857313b963c67edafb3903e23fd447e54de096e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DailySolver$Diagnostics.class",
+      "sha256": "c3c83a12dc5612b1490dda94dcd135087b943e7f3bbf5e380dc78f178be54a40"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DailySolver$Phase.class",
+      "sha256": "3b8266fc058bb3229729906379543dc4b7de198393bec63bb34499e3938b3e1f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DailySolver.class",
+      "sha256": "f8bab5687135eb68b9ca1abd14125ceed2e4339db31d1954498d058175890225"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DayConstraintProvider.class",
+      "sha256": "ce72906025548ab19cda83eb13845bd1b5496c88003e5337b42918f15723f32c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DayPlan$RoadLeg.class",
+      "sha256": "057355e278d7388cb35ad6cf5661cb8bad6924397f37c762b57594891a5bd8dd"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DayPlan.class",
+      "sha256": "3b52c9c7457f7b1425ac5b43ba5842ff15ae65d0f981975c1edbc2f53f9e59d9"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DayScoreCalculator$Evaluation.class",
+      "sha256": "ed34c307b593083e57387d7bbf7e382053aafde6c2d3f4753a28d4e8932e6e1f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/DayScoreCalculator.class",
+      "sha256": "551117b877316904d32451638ec6e701641256ab0533eaa480781a6d6f13e7b7"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationController.class",
+      "sha256": "04859f0e40a95775bc5d7ab40614bf82ef243fee08f9709f2b95ddcc3b36a693"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$Assignment.class",
+      "sha256": "4a26d642c2dd67dbdab4cdb72fe567569e1631108121efdac9b0f4a75db8beef"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$ExistingPreview.class",
+      "sha256": "35ae2b43fd2dcebafef9b1eb900155f002ce65dbc58e8f4a3c801a540e381b27"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$Problem.class",
+      "sha256": "736af0b4423bdda7e7cbbda8157ab439e4e611c1a215da7b10288fa9951a76af"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$Request.class",
+      "sha256": "526dd62e6e83b7465b5ad62a42db74db58628bea0b81757e8b1ddd9e794ae4f5"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$RouteSummary.class",
+      "sha256": "3c9d543142c7bbc8d03dbd6f68d8eb2c1c3f683e82d6827a8a3761da60ea39a1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$RunResponse.class",
+      "sha256": "bc52dfc70f6f64ebb4b4b92f0d0db9ac62e63ea5bc388ddffd306d3ea99b2626"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$SavedRun.class",
+      "sha256": "68c76fe7474bc4a04d4adc0f98c0b1e5f69ac05b234b459a96a18ab83a0e9dfe"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$SegmentSummary.class",
+      "sha256": "3c7f9e09e77c5d648b5ce4d7801f4ac94b661c4b27918afbfd6cd5bc206e401a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$TechBase.class",
+      "sha256": "4657127aefd220e147937e55a0ca595536933aea3bd6d7f90c693012ac193aab"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$TechData.class",
+      "sha256": "17691c760198e62dfac4740dd72aed18b70ec22b0fe5b9f409433dab67c655db"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService$VisitData.class",
+      "sha256": "1629a021d0f90e6c930f56bd268e6ae57419b1537a75189bcc420569f8b08c4a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/OptimizationService.class",
+      "sha256": "61319a2012487ab0e0698f6b7de1f89752f171d9b232c919f9a8e6b9f98275b4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/package-info.class",
+      "sha256": "7b9dc33d3813495d3fb0339f138e5a3fbf0a154e9cf5ac8406b19cbcb9d96b25"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/PlanCopies.class",
+      "sha256": "83d1c4aecbf3f7690b728cc5750c1b5a50cf26f8d08ef8a20bea118e18f92b91"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/PlanVisit.class",
+      "sha256": "e55c544d8e165b8f355ed4bff4efe25832e8439b09af01ab6cb41b46a23528e3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/PolicySettings.class",
+      "sha256": "0d5a83839112556e9995bbf3d45327e9405cc7e18c4c6a330497ac172fdff229"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RepairOvertimeApprovalRequired.class",
+      "sha256": "cb98ab7c0459835749209367afc2d2ad94f122958bbc890c7a42bad663404a57"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Choice.class",
+      "sha256": "fcb112bade88d60705050166bb1cf7a30cbc388521a1e747025ed54b45f1c010"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Placement.class",
+      "sha256": "b33223616b2626611870632e297fe2449e979ed2e6400050efa82b5375b4aa2e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Prefix.class",
+      "sha256": "2685b8a30fe0ef7747e498b34ea8d5a248c1e5227eaaa152d8fc9f91e2edfcdc"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Result.class",
+      "sha256": "e9f3d7e80141a2e1f3670a208f66c94dbe935fee6f1c43d348f25d406f553917"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$RouteResult.class",
+      "sha256": "61609850a723019ed69a8b5a9f3513c47cc9833297bd4db8a49f01ec20137e1d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Segment.class",
+      "sha256": "1ca34ca46989c3f0af5e413c57b26f3b9f40f09403ae90b51252934f900692ce"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Timing.class",
+      "sha256": "6d325319780ee0949f5319f9be31828cec7c24ddc56009e5c0f7ddb88bd1fe3d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$TimingValidation.class",
+      "sha256": "6007c8e0b276979cd5b671ad6105507429ad1b94cc3e98a0b8154524dc020606"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$Work.class",
+      "sha256": "face64013b0f36341a7c920812e5cb331db29d3cf5ec2680e2cb273167e46b08"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator$WorkingSegment.class",
+      "sha256": "9bc1d7aa6fb9da70e616e06578d87d1eddee44b1fea315e8b12a70447408caf2"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteEvaluator.class",
+      "sha256": "d0a12e9feeb84bdcb51ff48a146bef2d4570bc24a2b40263d01ec7be3b78cb2e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteScoringFacts$ScoredRoute.class",
+      "sha256": "637b44f24d776240485db09485a93dcc2d6ca6589b8d7e9f6ae93ad876d838e4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteScoringFacts$Target.class",
+      "sha256": "52215f2811d020fc5713d010925967df57d2cb7947040f913da82ed9c9d094ac"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteScoringFacts.class",
+      "sha256": "626ca749172615fdb3669012ab81a2c4d8e1087f26daedd5cd1a9b84c73d950e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimeline$Block.class",
+      "sha256": "c311bda9e655342f29859915e31714f3d3f82352ed2305bf0e53c3c51b97694c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimeline$Result.class",
+      "sha256": "e38e723bb446887d2d9e5d8c76540c24c0dabdd604fdeb675387bf837644fa73"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimeline$Segment.class",
+      "sha256": "14a2d94a438ebfc1d5a94b8682a2d1f8f52996998aa3f9cadfce06d4faf8e018"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimeline$Timing.class",
+      "sha256": "5a064931f337bab8d8eb62169e0b5a1709f1e27c9e551fe0af5982c264928d3c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimeline.class",
+      "sha256": "2debceb8b9f4f2f78b25f04ffb9d215c7ae39623da17fda2f62253d788cb7e3f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimingSearch$Block.class",
+      "sha256": "13bf1bca32ca6b2e769cbde2b7fe225cd0f70fcf7243670fd8e6592e2242d874"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimingSearch$Timing.class",
+      "sha256": "d4387937847567908fd5926a41c9a860709aed6b0ade62d79afbc985878364a2"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/RouteTimingSearch.class",
+      "sha256": "9034488c9b99ab99b165b65893a9ccda78d0251d03eed507c2166f6594f9e623"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy$Assignment.class",
+      "sha256": "d856fc241dd03dac1c40747bf1c1fe381e8a9286089087e2360ccb2c986de2eb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy$Decision.class",
+      "sha256": "5693ee4bfd89771a9fd65263f898f8a34cc03d40a836c8f94b2d1dd9f4b0f861"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy$Fairness.class",
+      "sha256": "d7e717041e615cd59b69c4c0812a1da222c5facccdd84bc2b525fb533be84f9b"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy$Metrics.class",
+      "sha256": "46ff83b69ce59e967236cbf5eb60809ede4b06f4e763a61f2b84a684ed971cf3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy$Rules.class",
+      "sha256": "2f96c6841d122d7f76787bc19a1e6f49760f475b2ad3d092ff86c1413f927e47"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy$Workload.class",
+      "sha256": "a6086a5957de52139c499fce7c1c85783dcde332ebe3f1d5c3fd90c13bf2ec46"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SchedulingPolicy.class",
+      "sha256": "755de6af9ac3cdce0d1f04124933f67eb486ba063d3d6edbdc0dd8e6806f4bd6"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SolverExperiment$1.class",
+      "sha256": "77bf2b8fb9420690998d577a3b88899133050fc2c236a5028481a24525a8e2fb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SolverExperiment$Definition.class",
+      "sha256": "0d61908763141247978b55c55be81649ae48117a63d268003f050a732cf6f082"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SolverExperiment$Result.class",
+      "sha256": "9be5244308d09d36f3729a60119d2a9f412af338754722b446a9ab26a3597e36"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SolverExperiment$Statistics.class",
+      "sha256": "d2df7da1965715e344f89def8b205319fff5382a4ded675f4d2ba4103a318568"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SolverExperiment$Variant.class",
+      "sha256": "472fa14987bf634b932d7e673b35aac2c26f0d3679f7afa3b1457c2ac1d24d08"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/SolverExperiment.class",
+      "sha256": "3997586351cdc7cd29c2382b654156695434b41ebdee02d88cd60da0b286f335"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/TechRoute$Unavailable.class",
+      "sha256": "f3ef447b35120c7f583fb9220d23d23afc990f4da2f8757466c743f48fd26a6c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/TechRoute.class",
+      "sha256": "da16a316e46da0a41e4e8e8b6e8854c8577a0bb11c6702164b0430bb259ddbb1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/optimizer/TravelBreakdown.class",
+      "sha256": "ab45720b8483dcbabdeb6e6c77bb7e2149877f182147a77cb9d096bd979a1242"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/package-info.class",
+      "sha256": "bbff56038dd97f12546b49d918b5e6dcbfa127537a756cd136b89afc0999e9a3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/PurgeRoutesController$Prepared.class",
+      "sha256": "f5d5b7f4a8eaef77a900b4bdd86a080fdc7323aec66db552d827a2f350b7c82e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/PurgeRoutesController$Request.class",
+      "sha256": "f0bd868fef9cc2241b8a678b5ea7edd65fdf0d6fd47a31e6cd795772be84134f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/PurgeRoutesController$RequestedDay.class",
+      "sha256": "de499a63c94ed808665a46c98d59d8e8f1f67d878921203396cbff4e9a638d1a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/PurgeRoutesController$Segment.class",
+      "sha256": "da2b04d1fa3f3fa589ade7a23be92d17e32677c161bd99b05cd840cd07d04aa6"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/PurgeRoutesController$Stop.class",
+      "sha256": "2a934165382d77a9ce611332df1de53b906843201b6caf3d2295497c44ef85ed"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/PurgeRoutesController.class",
+      "sha256": "566639fa2f23dc7055276f050a9ef8c72b59b7f50eadff6bea4d21db8ca5af0a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RequestChecks$Empty.class",
+      "sha256": "ce8651f1ac863dc76027e815ec8f168827ffc6f2d6585374e1ec96c8908260ab"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RequestChecks.class",
+      "sha256": "ec346322e10620aa6f2b69e238749bee26886578fef51ae6abbef00273950182"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/Required.class",
+      "sha256": "d2211d3fffb03772f342a598b0ad44d72ec9541235c8332b5d154040229712cc"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationCommit$2.class",
+      "sha256": "18f1e349ff2e546fdd136057d6f263cc766b8b02deb386f3112f69d5964bdd84"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationCommit$LockKey.class",
+      "sha256": "5e859c83be99b25bc80c4da785d9e54121af81d17c276ea1b1d3cad2f4eea96d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationCommit.class",
+      "sha256": "5cfdc64bca6d138efddd0a38dcbf5a079cdca2de2c6c9e407013921bb4e455bf"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationExpiry$Expired.class",
+      "sha256": "607c46eda581b864e99f153064c4494b6a0e92ff49b89a5c2e180c42769386a4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationExpiry.class",
+      "sha256": "00159864997e2b4ea7489707008df53da03bfd5cd1e2c25e2825b9496d54bbd1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationLifecycleService$Cancellation.class",
+      "sha256": "750f6987b664e19681e5a82f44eeb842772dc4ef25ae8cbce5340219dc419066"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationLifecycleService$Offer.class",
+      "sha256": "b87d003b8cf42fa3dc1035115deefda6110d76a7789c8fcdc814f863b00f1402"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationLifecycleService.class",
+      "sha256": "133520daab1c58e7f12493610d2e301a9a203889f51bcfaed37fe4934e07f35e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationOffers$Bundle.class",
+      "sha256": "0ac0a8f2cacf97db0b3d59a71b8d84c66d6aabc30241387aceb7e3e0a89b0c22"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationOffers$Prepared.class",
+      "sha256": "5d2cdb2e93c82ae2be65aadb118854f12ff12b69d252a8c65249143a21debf5f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationOffers$Reserved.class",
+      "sha256": "c15e99476a63b2784870ce064fa21fb87571e56add4877dd398470cd74b36116"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationOffers.class",
+      "sha256": "425f55e29c9c1a6f3265a5d1c0b123fd3bacd870cd82ed11962927736de31871"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationState$Hold.class",
+      "sha256": "c4a7b24114d77e75d2e0ea5afae4360ce5594ec713afcfcd23d8ab776cc868e1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationState.class",
+      "sha256": "57eb8cc84c29b08882391d91c17ef652b7ee6c7d0230c4c1f02e6b1dcf2d7c4e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationStore$Dependency.class",
+      "sha256": "a80b8cea684e8bcf8785934e796ac8debf52916ade32cb02ef24387197eda4cb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationStore$Locked.class",
+      "sha256": "2ce8dc4672a79f99a9a87b099a2c1855310a2cdbb9dd3eaa09c8dadd0a8b6582"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationStore.class",
+      "sha256": "b4dfec6c8b48949494b73cbd9b5fd6aa609a37b260c441214dfd17f9cabdba9b"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationTransition$Confirmation.class",
+      "sha256": "dfe8fe322ad0970e8bdc5fc1ed9f454a38df1876212ee151983d92ba913ccd9c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationTransition$Prepared.class",
+      "sha256": "83849c823b21f95ecb527bb8095b70b22a6660a71654df85d9e8ddbb25909701"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ReservationTransition.class",
+      "sha256": "5e679393d806e062450f44cddcc1307aa4a9d7588fa6a5ab1bf3432e5dc2b74c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$1.class",
+      "sha256": "07e77e941ea6db3b3178be1f8ad37c366c7f4f3464dc74194950f950555342fd"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$Cached.class",
+      "sha256": "4f7ff21107d4d70f464b10dad90899be9a36ff40cd71347784b45b8dbecc50ba"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$HttpMeasurements.class",
+      "sha256": "6a8df48447b992e0e340b67b076795850ff792c234f1f2390449919985d09418"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$Leg.class",
+      "sha256": "c0b85f856eea1d9b0b3b76fcc6cb0674f1680c058f28705d3a32fcaf8199b26c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$Pair.class",
+      "sha256": "4951a258603506d93d949498444a758138662f1069f4596a39032a63b9b35e91"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$Point.class",
+      "sha256": "4e85bd6cf937047e7e8a60a4315c775afd4a76ffa3bba379d84e3f52660da4f7"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient$RoadUnavailable.class",
+      "sha256": "629415b2ccb5b4bfadcd8baf5d6a7a9889ef23abca77dc5065fdc02917944bac"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadClient.class",
+      "sha256": "ac2034d83b7011d5dc89bffc0904b3f47c127d660d905a7acfc1b4cb74dd8315"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadPrewarming$Completed.class",
+      "sha256": "7283c8fc2b5e4f2465abd504e0bd6771a106d9a4180f43a19bf40211a8b1d118"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadPrewarming$Day.class",
+      "sha256": "78117c3bf1d3d8171b9f9454d3516ddce4548de89958ad4caf9d0638fd5295b3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadPrewarming$Snapshot.class",
+      "sha256": "d5aa47f70a41cb4cc5a92ff2fa4e4ed8dd5fe7bdde9e97660f5e68ec164f0eae"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoadPrewarming.class",
+      "sha256": "3dffa4f1af63465ac6618e6392f38ed8cebec0128b9fef771891f4d459b8c60d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RouteEndpoints.class",
+      "sha256": "45f8f9c30847e6aef48b73a6c8e3b67a837abd69a1a36e07cc7756e8e38c7568"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoutingFailureAdvice$Failure.class",
+      "sha256": "94711a9bb3f332a68383f984634a391e383f08bb6e0189b8ec35a239a30fd525"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/RoutingFailureAdvice.class",
+      "sha256": "fa1d58259e3b93a18cb0d673ab7aff931740d033d96630c90d241cbad60b5f74"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SavedJson.class",
+      "sha256": "8e0b65db466498b78a88ba315d2554f0be7fdb36ad0ad944e4e97a0856390360"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleCutoff.class",
+      "sha256": "b0235aee16eaff59066b5394a6ac748fbb9e0ed82fc7cfcfadfaa423d348458c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleGuardController$AvailabilityRequest.class",
+      "sha256": "d0dd55b99bbdd8f243fd6eb186e99d4aa33996ebccf6ddbda14b7b2b5b1aa8b1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleGuardController$DeleteAvailabilityRequest.class",
+      "sha256": "60c4263649c8e01b80f0dc48d1f571518d6ea58be8f95f74177551d5774b7b21"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleGuardController$QualificationRequest.class",
+      "sha256": "8be6fa56def12f54c9f07e9de229794774480980d00e407ca3be1494f02ca197"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleGuardController.class",
+      "sha256": "19c99f44cca5e1e863901e823b5c589fa670ba5e2446abe1cc875d64d15b03d1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleGuardService.class",
+      "sha256": "f17bdcb773d823dc8adaf382937fe11656ba0df0246887db8e85cac47749bf38"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulerApplication.class",
+      "sha256": "26f7335071823031171f4565e78bc39544132aac28122a18d1c8deb45380ac52"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleSegments$Saved.class",
+      "sha256": "4d994294b0ff722227f3ad576fa2fc8d4da99b4a520f1498639293e40844fc58"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/ScheduleSegments.class",
+      "sha256": "65ec24cf2d46f8b0243f0ff0de80a9d1760b5708c2ca746c622e570ce17e662c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulingBenchmarkController$CacheRequest.class",
+      "sha256": "21dccf67068dbbb6635cd147b433a21c00b92651a10cbad6caaf9f5596b582ee"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulingBenchmarkController$DayMetrics.class",
+      "sha256": "26ea61115ab8971056588f778f4709d3a3632a7d4a220eccaefcf398ec0c5ffd"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulingBenchmarkController$Request.class",
+      "sha256": "fe4f8d753a2f6668c957013d48dd51ba2dfd16607a9b3ecad9d320d180050b64"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulingBenchmarkController$Statistics.class",
+      "sha256": "da15607cde8d103e28ae9ca164046e81feaf9bb28de82e5c2b68bc87bf3e2ad4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulingBenchmarkController$StatisticsRequest.class",
+      "sha256": "58256174fd5326f4194097ff4d81e57f6e8bec3dc20382da94114f3a1b026873"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SchedulingBenchmarkController.class",
+      "sha256": "277c65f37391b8f5d7a7c955fb864d42a7454fc8fe1360dfa5e46d8fd6a8b563"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchAdmission$Busy.class",
+      "sha256": "bdb8e01956155631666e65df74c243b39aef7c490dc45354c4e10ed904854cfd"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchAdmission$Kind.class",
+      "sha256": "9a859a1a8124e892ef8aecbb2ee6bb80712ce2b2cc8198da01146db88ead26f8"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchAdmission$Lease.class",
+      "sha256": "21b1f844478059725119f0d7ffadfd31936fdd0d255b56855b892412fce7eeed"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchAdmission$State.class",
+      "sha256": "d8c84cff5d79a12eb1fcfcaab0e4900624302024bc520c62979edbb208976ef0"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchAdmission.class",
+      "sha256": "9cb75da4aaa14bd048eecc956893cbd68c6285a6c5e257723a313b722b9856a3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchDatabaseTelemetry.class",
+      "sha256": "a2617bf84c7615e9beb9ac63266d175e72b8902d6f0ad0900ad168842522a87a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchDeadline$Expired.class",
+      "sha256": "08a1f90de3be7bca8c1bf3102c654ccd5b360ee1b01b3f79a9dff32ee88d9aea"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchDeadline.class",
+      "sha256": "18b98a006446de0c5daa9e8f80ac8369e4127e8c1ac71fde1f8a4919aedba941"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchTelemetry$Measurements.class",
+      "sha256": "9715be123cb90dc23a0f770c41f7ee52de45115974b2dd03047fb22f317bc0ae"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SearchTelemetry.class",
+      "sha256": "f233dc0dc1558a2d55d320ff9f49dc56b8503deabdaffacb36938eeb3093f265"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SnapshotRouting$PairKey.class",
+      "sha256": "04beb5d5fc86450ec08adbb39664c2f2d8e01e045f2cfa66c5f5397429098e5f"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/SnapshotRouting.class",
+      "sha256": "4b4723743032816570cae7bdc0727889dd790710d6043faa0a5c89c6a25b495d"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TechnicianDepotController$Assignment.class",
+      "sha256": "c3ace5d8f3b551ae715d9a8cbc0b6eb7689390eac89c506338aa97631c95287e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TechnicianDepotController$Depot.class",
+      "sha256": "09013d31d34611c0b43554b7bdfd226c5189a560f162cbf34af73aeef8198d1e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TechnicianDepotController.class",
+      "sha256": "1043674c4a29bfd9e63409690915f7ea57d5745a79a1ecb6fdb5e2176990d422"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityController$Candidate.class",
+      "sha256": "19cf6bcc9e96f76af79771a8ebe755fb422203f0b2ab7d3a800f080b88783cb9"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityController$Request.class",
+      "sha256": "fc03d2d132587320ea55e0b8f14754db84b97ca1168a46d6032700c0b84f399c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityController$Response.class",
+      "sha256": "47f7e0f8057d2a7c3b15d5b51619427c80648182a14f4b2fbfde6efb1fd39b48"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityController.class",
+      "sha256": "4446b1c4c69dca8004e11f527113e8f62dfd4bbc44dd9b6984aa3b7ad3fdefeb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityService$Candidate.class",
+      "sha256": "c54a4dd33aca19102f341c08316b7d1f544bfaada295696205c178bf02e058f4"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityService$Result.class",
+      "sha256": "c3e7a8263c72f07b57f62a4c3560330c796908003aed5ced5d31fa522837fad1"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityService$Technician.class",
+      "sha256": "faa26fbad4651dab9871ad738cfda462bee915a1710e11db48b2a6e8572dc2e0"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TestAddressRoutabilityService.class",
+      "sha256": "6379ba33108def581c47b59d18db3f932dd8224ff34fb23b8e70dd503d8a12a7"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffController$Approval.class",
+      "sha256": "4db4d044904ae615acb9d11ba28be1e92f11d8ebcb67dcc8196fcf510b565d0a"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffController.class",
+      "sha256": "49a8574f60e2726c4da57493fea2a84dbef4b5258e12fb13f21aee9e0305f8a3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffPolling.class",
+      "sha256": "09fa8defb392874650e4784265cd3ab81196a11615cec74f44dc3de77c3b7d92"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService$ApprovalOwner.class",
+      "sha256": "6a9b2ed92b887096c4947d10336bb1b672c21ade2516063097bce352ccd1b934"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService$DayAnalysisException.class",
+      "sha256": "4f2e55fbc775ee26979816476bed21901232b05d9933fdf55fa1109949da1e0c"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService$Interval.class",
+      "sha256": "a41bd5a469440ebfc9e6638ccc1d1c9f6f078262a9371c0d8237e23d16bb63bb"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService$Owner.class",
+      "sha256": "421464aafb33375ffa7de365fa581f3d7f6ada57f3de8db33328810e9e29db19"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService$Report.class",
+      "sha256": "50841fa2406b47a71ad4b528f08ba225472a0b531edc3209aecae9c4ff5f3bd9"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService$Request.class",
+      "sha256": "47092301841bec78a7e2375fedd911a79f633bb3312d7e80066186d3a3e559d7"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/TimeOffService.class",
+      "sha256": "b054989a9fbfcb997c6e6c10db3a85ad77d9239f3eee85020dbe498bc9741dff"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/WeeklyAvailability$Availability.class",
+      "sha256": "4105663533b0c3875610390356dd59cf4c5aa21c69bbcb6c14514dd63919019e"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/WeeklyAvailability$Row.class",
+      "sha256": "474e4a919e653f8ad23390fd0458d0bd79b7765d04db4daa7cdd372b1b231d03"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/WeeklyAvailability$Shift.class",
+      "sha256": "9a0339d5410587a490905b07f215bb3178256f4e821656e5987fa4422e3d72a3"
+    },
+    {
+      "path": "classes/dev/waterflex/scheduler/WeeklyAvailability.class",
+      "sha256": "991f62d48ed9775f6e53f7ef31f7553fccfea930d9a768473201cd82a7c11be1"
+    },
+    {
+      "path": "classes/solverConfig.xml",
+      "sha256": "6b9cf577739df29a11322138a96a64bbd563bddcd8e8263eb1368d184da85ff3"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingLocationTest.class",
+      "sha256": "79c8ab8ed53afe794a3659f8544feb6d48cae023fe6dd9806bc0627caae07181"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingOfferLimitTest.class",
+      "sha256": "a590f8a875cc83123838aeea295d646ba03b2c5f8293ce35a40e56a910f81b7c"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingRouteBoundsTest.class",
+      "sha256": "e0dc42a46c2e0c65bdd96e3eb3f7d645be26f7335f25a236f43643aba0d6203a"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingSearchOutcomeTest.class",
+      "sha256": "e1e6fb870ae194de706729f805f487d27096d9d1762e067fea0c21b81856f1cc"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingSnapshotDatabaseIT$1.class",
+      "sha256": "9efeb63f75aa280efcc425db43d8d02537972e5980e7d95ae6cdc15bd97aa751"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingSnapshotDatabaseIT$1Change.class",
+      "sha256": "390a80add0eb23288c24f030d0e016b98217021b97d6a534a310c61824d766b1"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingSnapshotDatabaseIT.class",
+      "sha256": "68b963ddfb527e98188a825e45129f4acf405e44036ec0ee8337b32d21d5ed2e"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingWeeklyAvailabilityTest$AvailabilityJdbc.class",
+      "sha256": "050192258c5ae48375447291621b37874ee54f2b52bd4af6789db5403a8f4e02"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BookingWeeklyAvailabilityTest.class",
+      "sha256": "aa98abfd9639a0493764a4675b92efda6ab6f104ff358d9aa60d47c9ba193af7"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/BoundedBookingSearchTest.class",
+      "sha256": "1293c3cae97769eb7da9d1edb8352320bc47cd67a0e38d5a3e0499b47b323e0c"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/DepotRequestValidationTest.class",
+      "sha256": "711f254b0c3d1972d879783850be0c67973ef8d3644672dc6d8bebc83cd8a2b5"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/DirectedLegFlightsTest.class",
+      "sha256": "10847bbb5e239b995516bd17b51c20c6b45866446a59c3792f81cfb4cc35fb24"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/DispatchGeometryControllerTest.class",
+      "sha256": "cd4c7a326346ca4966a66ced3d7cde27a09a1a9454368b53ab7f03d4d6f275d5"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/FieldScenarioTest.class",
+      "sha256": "7484c004b7a4417d96e7f567063fde428c346e4ef67939a15d8eb12a8600794f"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/MockArguments.class",
+      "sha256": "6aec7327302d6b5d7e2a431374e2e154d7aa62f9bfd223b2d6ba9199d1df7152"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/NullabilityTest.class",
+      "sha256": "aa157749e5af232cbd89391707fb2bfacd3b487115e753ab7a634696ba35f7c6"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/DayConstraintProviderTest.class",
+      "sha256": "0df4af70c56cfd286151403addf5ad823be1bec598cc826b2a7fa6c8a9e97007"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/OptimizationServiceTest.class",
+      "sha256": "f9aec0e69a479fc637002f1b78fb6c7a56038ae3df579932ae416e79890c9ab6"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/RouteTimelineTest.class",
+      "sha256": "73a4f00ce0c6b51377d2600a233c660128851675c1c37e0409b14a5f724a26f8"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/RouteTimingOracleTest$Option.class",
+      "sha256": "3a954b23c9358e5b7c7252d2e4ee0f01bb235f139fbe10901b46123214b0e084"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/RouteTimingOracleTest$Window.class",
+      "sha256": "df963dc055821b22ef61fd2bf111a37fa6946e2d16ea9439583d5fd0a7308189"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/RouteTimingOracleTest.class",
+      "sha256": "15c2cd3700262a32ff5cd187071a854fdfbf004ca8c598f8bb0b47883fd60c1a"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/SchedulingPolicyTest.class",
+      "sha256": "64cacfd487357c09800d27d6042424e2ab74490bff99b2b50fdfd9596cd65220"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/SolverBenchmark.class",
+      "sha256": "f5b29afe02d3686611fb4a7d409b97609c67e27b1fb0f96e32e98b24b28aaabe"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/SolverBenchmarkData$Workload.class",
+      "sha256": "b625deae7775000f8176a70e86d739e148a26da6cf8aaaf1e455b125050a37bb"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/SolverBenchmarkData.class",
+      "sha256": "7717779ce3d0ae2e228df373c277d3217c2c662a174a69bf93f786f66bb006f5"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/SolverExperimentTest.class",
+      "sha256": "06fca6ffa8c831980002decf88f2466d4abea250cfb7e3e4c857e8202449371c"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/optimizer/TravelBreakdownTest.class",
+      "sha256": "6ebd8e2ddb40d7e25d82d5298840f18e1394bfd20bd8067c5990ef57bc8312c1"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/PurgeRoutesControllerTest.class",
+      "sha256": "0a58ebcbe8f455b677b08e1fc431c3f2e873c235c15098773fda419a1063137d"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ReservationDeletionTest.class",
+      "sha256": "a623f5a2a03e4d204ff8651dc768757aff02684c4b1a536eee4d713f193fe4bc"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ReservationStateTest.class",
+      "sha256": "3ba8a69ece0c211a1798ff40c8bc8abaad1c0015655aa7d2587633ff0778da66"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ReservedOvertimeTest.class",
+      "sha256": "c6e9f0d5b86883c7c8f06836173de5e6f4f0d02089a286016c3ecbd1b4d4b572"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/RoadClientTest.class",
+      "sha256": "9eea1b82ecc08a3fd2ae9024abf1846acc18165a8f1383fc94dff220e97bfa9d"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/RoadPrewarmingTest.class",
+      "sha256": "be8a551b0a79d5da76f07e4cb43f1d299ddadba7b767577bf5d9b9a118785a99"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/RouteEndpointsTest.class",
+      "sha256": "fda0f053fa4f2fdd0a10b96cb27cc71c2a562f0d23072c5b516f7cbafb668888"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/RoutingFailureAdviceTest$Endpoint.class",
+      "sha256": "e2d9b185310d0b7f69494e579be91b50cdbd21af2593ef49e31d92e2c496ef6a"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/RoutingFailureAdviceTest.class",
+      "sha256": "f4b441dfea64d2b1882554c9e09c36032291f7da7a43e456c21ee10a46b49868"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ScheduleCutoffTest.class",
+      "sha256": "252fe540b8d21226775e4f2264ad8e2e1af693a08200c1933bd7cf6699499a48"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ScheduleGuardServiceTest$GuardJdbc.class",
+      "sha256": "362c1910974f567af3bca95706a8f5d072035d36449daca1d2d4a81afd0d4c45"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ScheduleGuardServiceTest.class",
+      "sha256": "671ee6e7ecc881a9e4c26a41658d61f8e713245eb51a1ae24f6455a2f29157b2"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/ScheduleSegmentsTest.class",
+      "sha256": "a215ad49b26f8e95f2f15397aa7273cf68f716f2accf3a63279e0cb0cf6a52a5"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SchedulingBenchmarkControllerTest.class",
+      "sha256": "d5ffe733ae6c15d635629815c9e2e2c5110b6f07b367c317b3715847998d74d6"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SearchAdmissionTest.class",
+      "sha256": "781a041946297cec9b5c2c19b52580b88218ce2e3b1e4e98098580126d99acfc"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SearchDatabaseAdmissionIT.class",
+      "sha256": "ead3f9bf5c2b4ee69be1fbaa6dce1df0ce5c88283b9c9c0cc17f84075b33af7b"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SearchDatabaseTelemetryTest.class",
+      "sha256": "19c3aaf3157f51b8b857dc942feea4b72abf7c4d9513f57d66fc4ffbb22ac757"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SmallCaseOracle$Answer.class",
+      "sha256": "35030b4cabe5a328e8719e4930a914d771cbab8ca5b9ed8f6609828b1028bb03"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SmallCaseOracle$Interval.class",
+      "sha256": "0f7da564a8e0ac5cbab7746df3fc89a59acddc191d7ca7b470e1a105b2ff603e"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SmallCaseOracle$Timing.class",
+      "sha256": "a38b610589ef86c4ed2772d5564babbf7c3b6e757d5cef2b26044f92acea497d"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SmallCaseOracle.class",
+      "sha256": "5be26d451cfc439378068e23ab457d52b89d1b5b1bea153d165579724f2afce1"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SnapshotRoutingTest$DirectedRoads.class",
+      "sha256": "9f326d00ba2653060915a093dbc0edd3c7a5fe989ab090f36563259dde3353b9"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/SnapshotRoutingTest.class",
+      "sha256": "258db88a61eb76247c798d81383d476f26412c069fad0fd8bcf3a4ff54135809"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/TestAddressRoutabilityServiceTest.class",
+      "sha256": "a51db05d821b39a1ebd009a63c5900a371736a1cc3cdcbfe8d2719a8144d9ca8"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/TimeOffEligibilityTest.class",
+      "sha256": "a1c932045e1f18e0b0b4aba152f531cc65d3d9ecd891acee6ab611c468ae03d6"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/TimeOffPollingTest.class",
+      "sha256": "e62db2a15d5933c15033993f32f6314371d48f8f1a2d56be94fe9488f946775f"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/TimeOffStateDatabaseIT.class",
+      "sha256": "97c924725a91223bce10ed2b597306f2063672d65555247d8309f7b2430f0de9"
+    },
+    {
+      "path": "test-classes/dev/waterflex/scheduler/TimeOffTravelTest.class",
+      "sha256": "b2c6da029e07407099c7170162c41840feab0c67523bbdac1a98f6eb67b7983f"
+    }
+  ]
+}

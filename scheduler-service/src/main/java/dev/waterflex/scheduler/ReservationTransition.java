@@ -85,6 +85,15 @@ public final class ReservationTransition {
             removed.forEach(facts::remove);
             var evaluated = routed.evaluate(arrangement, facts, snapshot.rates());
             if (!evaluated.feasible()) throw conflict("Remaining appointments or reservations require repair");
+            if (authorization != null && confirmation != null) {
+                String target = arrangement.routes().entrySet().stream()
+                        .filter(route -> route.getValue().contains(confirmation.appointmentId()))
+                        .map(route -> route.getKey()).findFirst().orElseThrow();
+                var check = new BookingEvaluation(routed, snapshot.rates(),
+                        Required.value(facts.get(confirmation.appointmentId())).serviceId(), SearchDeadline::checkpoint);
+                if (check.route(Required.value(target), Required.value(arrangement.routes().get(target)), facts, false).overtimeMinutes() != 0)
+                    throw conflict("Reserved route requires manual overtime resolution");
+            }
             if (authorization != null && !authorization.overtimeAuthorized()) {
                 Integer reservedDelta = confirmation == null ? null : confirmation.reservedOvertimeDelta();
                 // A regular offer may have transferred existing overtime by rearranging other

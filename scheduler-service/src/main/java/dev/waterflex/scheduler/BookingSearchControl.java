@@ -68,6 +68,7 @@ public final class BookingSearchControl {
             if (jdbc.update("INSERT INTO booking_search_request (id,\"jobId\",\"deadlineAt\",\"cancelledAt\") VALUES (?,?,clock_timestamp()+interval '5 seconds',clock_timestamp()) ON CONFLICT (id) DO UPDATE SET \"cancelledAt\"=COALESCE(booking_search_request.\"cancelledAt\",clock_timestamp()) WHERE booking_search_request.\"jobId\"=EXCLUDED.\"jobId\"", id, jobId) != 1)
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Search token belongs to another job");
         });
+        jdbc.update("UPDATE booking_search_request SET state='CANCELLED', \"finishedAt\"=clock_timestamp() WHERE id=? AND \"jobId\"=? AND state IS NOT NULL", id, jobId);
         SearchDeadline running = active.get(id); if (running != null) running.cancel();
     }
     private void requireJob(String id) {

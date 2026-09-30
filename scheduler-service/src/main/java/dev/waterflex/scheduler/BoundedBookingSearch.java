@@ -14,11 +14,12 @@ public final class BoundedBookingSearch {
     static final class RefinementLimit extends RuntimeException { private static final long serialVersionUID = 1L; }
     public record Limits(int routes, int depth, int beam, int arrangementsPerWindow) {
         public Limits {
-            if (routes < 1 || routes > 6 || depth < 1 || depth > 2 || beam < 1 || beam > 8
-                    || arrangementsPerWindow < 1 || arrangementsPerWindow > 500)
+            if (routes < 1 || routes > 12 || depth < 1 || depth > 3 || beam < 1 || beam > 16
+                    || arrangementsPerWindow < 1 || arrangementsPerWindow > 2000)
                 throw new IllegalArgumentException("Invalid booking neighborhood limits");
         }
         public static Limits defaults() { return new Limits(6, 2, 8, 500); }
+        public static Limits expanded() { return new Limits(12, 3, 16, 2000); }
     }
     public record Request(String jobId, String serviceId, int durationMinutes, RoadClient.Point location) {
         public Request {
@@ -76,6 +77,15 @@ public final class BoundedBookingSearch {
     private final Request request;
     private final Limits limits;
     private final Runnable checkpoint;
+    private final int windowMinutes;
+    private boolean ruinRecreate;
+    private boolean sharedWindows = true;
+    private final List<BookingEvaluation> windowEvaluations = new ArrayList<>();
+    public BoundedBookingSearch withoutSharedWindowEvaluation() { sharedWindows = false; return this; }
+    private long reconstructionAttempts, reconstructionEvaluations;
+    public long reconstructionAttempts() { return reconstructionAttempts; }
+    public long reconstructionEvaluations() { return reconstructionEvaluations; }
+    public BoundedBookingSearch withRuinRecreate() { ruinRecreate = true; return this; }
     private final Map<LocalDate, DayContext> contexts = new TreeMap<>();
     private final class DayContext {
         final Day day;
@@ -98,16 +108,23 @@ public final class BoundedBookingSearch {
             if (!baseline.feasible()) throw new BookingSnapshot.Incomplete("Reservation baseline is infeasible");
             fairness = evaluation.fairness(day.baseline(), day.visits());
             eligible = Required.value(day.technicians().values().stream().filter(t -> t.services().contains(request.serviceId())
-                    && evaluation.capacity(t.id()) > 0).<String>map((Technician t) -> t.id()).sorted().toList());
+                    && evaluation.capacity(t.id()) > 0
+                    && evaluation.route(t.id(), Required.value(day.baseline().routes().get(t.id())), day.visits(), false).overtimeMinutes() == 0).<String>map((Technician t) -> t.id()).sorted().toList());
         }
     }
     private DayContext context(LocalDate date) { return Required.value(contexts.computeIfAbsent(date, key -> new DayContext(Required.value(key)))); }
-    public long evaluatedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.evaluations()).sum(); }
-    public long reusedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.hits()).sum(); }
+    public long evaluatedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.evaluations()).sum() + windowEvaluations.stream().mapToLong(value -> value.evaluations()).sum(); }
+    public long reusedRoutes() { return contexts.values().stream().mapToLong(value -> value.evaluation.hits()).sum() + windowEvaluations.stream().mapToLong(value -> value.hits()).sum(); }
     public long prunedArrangements() { return contexts.values().stream().mapToLong(value -> value.evaluation.pruned()).sum(); }
 
     public BoundedBookingSearch(BookingSnapshot snapshot, Request request, Limits limits, Runnable checkpoint) {
+        this(snapshot, request, limits, checkpoint, 240);
+    }
+    /** Explicit historical promise width is for controlled experiments only. */
+    public BoundedBookingSearch(BookingSnapshot snapshot, Request request, Limits limits, Runnable checkpoint, int windowMinutes) {
+        if (windowMinutes != 120 && windowMinutes != 240) throw new IllegalArgumentException("Invalid promise width");
         this.snapshot = snapshot; this.request = request; this.limits = limits; this.checkpoint = checkpoint;
+        this.windowMinutes = windowMinutes;
     }
 
     public List<Window> windows() {
@@ -119,9 +136,9 @@ public final class BoundedBookingSearch {
             var end = technician.shiftEnd().atZone(chicago);
             int first = start.getHour() * 60 + start.getMinute();
             int last = end.toLocalDate().isAfter(entry.getKey()) ? 1440 : end.getHour() * 60 + end.getMinute();
-            for (int minute : BookingService.windowStartMinutes(first, last)) {
+            for (int minute = first; minute + windowMinutes <= last; minute += 60) {
                 Instant instant = ScheduleCutoff.localMinute(Required.value(entry.getKey()), minute, false);
-                windows.add(new Window(Required.value(entry.getKey()), instant, Required.value(instant.plusSeconds(7200))));
+                windows.add(new Window(Required.value(entry.getKey()), instant, Required.value(instant.plusSeconds(windowMinutes * 60L))));
             }
         }
         return Required.value(windows.stream().sorted(Comparator.comparing((Window window) -> window.day())
@@ -145,11 +162,18 @@ public final class BoundedBookingSearch {
         return search(windows, rearrangementEnabled, null);
     }
 
+    Result searchDates(Set<LocalDate> dates, boolean rearrangement) {
+        return search(Required.value(windows().stream().filter(window -> dates.contains(window.day())).toList()), rearrangement, null, false);
+    }
+
     Result refine(Result insertion) { return search(windows(), true, insertion); }
 
     private Result search(List<Window> windows, boolean rearrangementEnabled, @Nullable Result insertion) {
+        return search(windows, rearrangementEnabled, insertion, true);
+    }
+    private Result search(List<Window> windows, boolean rearrangementEnabled, @Nullable Result insertion, boolean fullHorizon) {
         if (new HashSet<>(windows).size() != windows.size()) throw new IllegalArgumentException("Duplicate booking window");
-        if (!new HashSet<>(windows).equals(new HashSet<>(windows())))
+        if (fullHorizon && !new HashSet<>(windows).equals(new HashSet<>(windows())))
             throw new BookingSnapshot.Incomplete("Search does not cover every eligible customer window");
         List<State> states = new ArrayList<>();
         boolean complete = false;
@@ -159,7 +183,7 @@ public final class BoundedBookingSearch {
             // Confirmed demand is measured once per eligible technician/date, across all services.
             if (insertion != null) {
                 confirmed = insertion.confirmedRegularMinutes(); capacity = insertion.regularCapacityMinutes();
-                complete = insertion.complete();
+                complete = false;
             } else for (var entry : snapshot.days().entrySet()) {
                 checkpoint.run();
                 DayContext context = context(Required.value(entry.getKey()));
@@ -197,11 +221,11 @@ public final class BoundedBookingSearch {
                     }
                 }
             } while (work);
-            int regular = regularWindows(states);
             // Abundant insertion choices finish the scarcity pass. Remaining bounded work may
             // improve cost/fairness, but its timeout cannot erase that completed pass or its offers.
-            complete = regular > snapshot.policy().regularWindowThreshold();
-            if (!complete || rearrangementEnabled) {
+            complete = true;
+            if (rearrangementEnabled) {
+                complete = false;
                 if (!rearrangementEnabled) stopped = "REARRANGEMENT_DISABLED";
                 else {
                     for (State state : states) state.startNeighborhood();
@@ -233,18 +257,14 @@ public final class BoundedBookingSearch {
                 confirmed, capacity, snapshot.policy().authorizeOvertime(regular, confirmed, capacity, complete), stopped);
     }
 
-    /** Reapply the reference ceiling to all validated candidates, never to an arbitrary dollar winner. */
+    /** Booking cost is primary; the daily optimizer alone has a fairness allowance. */
     public static @Nullable Candidate choose(List<Candidate> candidates, SchedulingPolicy.Rules policy) {
-        if (candidates.isEmpty()) return null;
-        long overtime = candidates.stream().mapToLong((Candidate c) -> c.overtimeDelta()).min().orElseThrow();
-        long reference = candidates.stream().filter(c -> c.overtimeDelta() == overtime)
-                .mapToLong((Candidate c) -> c.costDeltaCents()).min().orElseThrow();
-        long ceiling = policy.costCeiling(reference);
-        return candidates.stream().filter(c -> c.overtimeDelta() == overtime && c.costDeltaCents() <= ceiling)
-                .min(Comparator.comparing((Candidate c) -> c.fairnessDelta()).thenComparingLong(c -> c.costDeltaCents())
-                        .thenComparingInt(c -> c.changedAssignments()).thenComparing(c -> c.window().start())
-                        .thenComparing(c -> c.technicianId()).thenComparingInt(c -> c.insertionPosition())
-                        .thenComparing(c -> c.arrangement().signature())).orElseThrow();
+        return candidates.stream().filter(c -> c.overtimeDelta() <= 0)
+                .min(Comparator.comparingLong((Candidate c) -> c.costDeltaCents())
+                        .thenComparing(c -> c.fairnessDelta()).thenComparing(c -> c.window().start())
+                        .thenComparing(c -> c.window().end()).thenComparing(c -> c.technicianId())
+                        .thenComparingInt(c -> c.insertionPosition()).thenComparing(c -> c.arrangement().signature()))
+                .orElse(null);
     }
 
     private static int regularWindows(List<State> states) {
@@ -265,13 +285,16 @@ public final class BoundedBookingSearch {
         List<String> shortlist = new ArrayList<>();
         Iterator<Move> pending = Required.value(Collections.emptyIterator());
         final Map<String, Double> utilizations = new HashMap<>();
-        int insertionCursor, arrangements = 1, generated, evaluations, depth;
+        int insertionCursor, arrangements = 1, generated, evaluations, depth, ruinCursor;
+        boolean ruinFinished;
         String reason = "INSERTION_COMPLETED";
 
         State(Window window) {
             this.window = window;
             DayContext context = context(window.day());
-            day = context.day; evaluation = context.evaluation;
+            day = context.day;
+            evaluation = sharedWindows ? context.evaluation : new BookingEvaluation(day, snapshot.rates(), request.serviceId(), checkpoint);
+            if (!sharedWindows) windowEvaluations.add(evaluation);
             baseline = context.baseline; baselineFairness = context.fairness; eligible = context.eligible;
             seen.add(day.baseline());
         }
@@ -288,10 +311,11 @@ public final class BoundedBookingSearch {
                 for (int position = 0; position <= route.size(); position++) {
                     checkpoint.run();
                     evaluations++;
+                    SearchDeadline.progress("CANDIDATE_EVALUATION");
                     if (!evaluation.possibleInsertion(Required.value(tech), route, visit, position)) continue;
                     Arrangement proposal = arrangement.insert(Required.value(tech), visit.id(), position);
                     var result = evaluation.metrics(proposal, facts, false);
-                    if (!result.feasible()) continue;
+                    if (!result.feasible() || !regularChanges(proposal, facts)) continue;
                     if (evaluation.hasReservations() && !evaluation.metrics(proposal, facts, true).feasible()) continue;
                     BigDecimal fairness = evaluation.fairness(proposal, facts);
                     var merit = new Merit(result.costCents() - baseline.costCents(), Required.value(fairness.subtract(baselineFairness)),
@@ -301,6 +325,17 @@ public final class BoundedBookingSearch {
             }
         }
 
+        boolean regularChanges(Arrangement arrangement, Map<String, Visit> facts) {
+            for (var entry : arrangement.routes().entrySet()) {
+                List<String> original = Required.value(day.baseline().routes().get(entry.getKey()));
+                if (entry.getValue().equals(original)) continue;
+                if (evaluation.route(Required.value(entry.getKey()), original, day.visits(), false).overtimeMinutes() != 0
+                        || evaluation.route(Required.value(entry.getKey()), Required.value(entry.getValue()), facts, false).overtimeMinutes() != 0)
+                    return false;
+            }
+            return true;
+        }
+
         void retain(Merit merit, long overtimeDelta, String source, Map<String, Visit> facts) {
             // A falling reference cost can only tighten the ceiling. Proven dominated
             // candidates cannot become the policy winner later in this same snapshot.
@@ -308,7 +343,7 @@ public final class BoundedBookingSearch {
             if (overtimeDelta > overtime) return;
             long reference = overtimeDelta < overtime ? merit.cost() : Math.min(merit.cost(), candidates.stream()
                     .mapToLong((Candidate item) -> item.costDeltaCents()).min().orElse(merit.cost()));
-            long ceiling = snapshot.policy().costCeiling(reference);
+            long ceiling = reference;
             if (merit.cost() > ceiling) return;
             if (overtimeDelta == overtime)
                 for (Candidate item : candidates) if (dominates(Merit.of(Required.value(item)), merit)) return;
@@ -318,6 +353,7 @@ public final class BoundedBookingSearch {
             if (overtimeDelta < overtime) candidates.clear();
             candidates.removeIf(item -> item.costDeltaCents() > ceiling);
             candidates.removeIf(item -> dominates(merit, Merit.of(Required.value(item))));
+            SearchDeadline.incumbent(merit.cost());
             candidates.add(new Candidate(window, merit.technician(), merit.arrangement(), overtimeDelta, merit.cost(),
                     merit.fairness(), merit.changes(), merit.position(), source, validation));
         }
@@ -325,7 +361,6 @@ public final class BoundedBookingSearch {
         boolean dominates(Merit first, Merit second) {
             if (first.cost() > second.cost() || first.fairness().compareTo(second.fairness()) > 0) return false;
             if (first.cost() < second.cost() || first.fairness().compareTo(second.fairness()) < 0) return true;
-            if (first.changes() != second.changes()) return first.changes() < second.changes();
             int technician = first.technician().compareTo(second.technician());
             if (technician != 0) return technician < 0;
             if (first.position() != second.position()) return first.position() < second.position();
@@ -359,7 +394,8 @@ public final class BoundedBookingSearch {
             if (cached != null) { shortlist = cached; return; }
             // Idle, qualified capacity must not disappear from a cost-oriented shortlist.
             List<String> all = new ArrayList<>(day.technicians().keySet());
-            all.removeIf(id -> evaluation.capacity(Required.value(id)) == 0);
+            all.removeIf(id -> evaluation.capacity(Required.value(id)) == 0
+                    || evaluation.route(Required.value(id), Required.value(day.baseline().routes().get(id)), day.visits(), false).overtimeMinutes() != 0);
             Map<String, RouteRank> ranks = new HashMap<>();
             for (String id : all) ranks.put(id, rank(Required.value(id)));
             all.sort(Comparator.comparingLong((String id) -> Required.value(ranks.get(id)).roadDeltaSeconds())
@@ -412,9 +448,9 @@ public final class BoundedBookingSearch {
         }
 
         boolean step() {
-            if (arrangements >= limits.arrangementsPerWindow()) { reason = "ARRANGEMENT_LIMIT"; return false; }
+            if (arrangements >= limits.arrangementsPerWindow()) { reason = "ARRANGEMENT_LIMIT"; return ruinStep(); }
             while (!pending.hasNext()) {
-                if (depth >= limits.depth() || ranked.isEmpty()) return false;
+                if (depth >= limits.depth() || ranked.isEmpty()) return ruinStep();
                 ranked.sort(Comparator.comparingLong((Ranked r) -> r.overtime()).thenComparingLong(r -> r.cost())
                         .thenComparing(r -> r.fairness()).thenComparing(r -> r.arrangement().signature()));
                 List<Move> next = new ArrayList<>();
@@ -447,7 +483,7 @@ public final class BoundedBookingSearch {
             List<Move> cached = shared.neighborhoods.get(base);
             if (cached != null) { generated += cached.size(); return cached; }
             List<Move> relocation = new ArrayList<>(), swaps = new ArrayList<>(), reversals = new ArrayList<>();
-            int cap = limits.arrangementsPerWindow();
+            int cap = limits.routes() > 6 ? Integer.MAX_VALUE : limits.arrangementsPerWindow();
             for (String from : shortlist) {
                 List<String> source = Required.value(base.routes().get(from), "source route");
                 for (int index = 0; index < source.size(); index++) {
@@ -471,14 +507,109 @@ public final class BoundedBookingSearch {
                 }
             }
             List<Move> result = new ArrayList<>();
-            for (int index = 0; index < cap && result.size() < cap; index++) {
+            if (limits.routes() > 6) {
+                result.addAll(relocation); result.addAll(swaps); result.addAll(reversals);
+                generated += result.size();
+                Map<Move, Long> travel = new IdentityHashMap<>();
+                for (Move move : result) { checkpoint.run(); travel.put(move, moveTravel(Required.value(move))); }
+                result.sort(Comparator.comparingLong((Move move) -> Required.value(travel.get(move)))
+                        .thenComparingInt(move -> move.kind).thenComparing(move -> move.from)
+                        .thenComparingInt(move -> move.index).thenComparing(move -> move.to).thenComparingInt(move -> move.position));
+                result = new ArrayList<>(result.subList(0, Math.min(limits.arrangementsPerWindow(), result.size())));
+            } else for (int index = 0; index < cap && result.size() < cap; index++) {
                 if (index < relocation.size()) result.add(Required.value(relocation.get(index)));
                 if (index < swaps.size() && result.size() < cap) result.add(Required.value(swaps.get(index)));
                 if (index < reversals.size() && result.size() < cap) result.add(Required.value(reversals.get(index)));
             }
-            generated += result.size();
+            if (limits.routes() <= 6) generated += result.size();
             shared.neighborhoods.put(base, Required.value(List.copyOf(result)));
             return result;
+        }
+        long moveTravel(Move move) {
+            Arrangement after = move.apply();
+            long delta = 0;
+            for (String technician : new TreeSet<>(List.of(move.from, move.to))) {
+                long before = routeTravel(technician, Required.value(move.base.routes().get(technician)));
+                long next = routeTravel(technician, Required.value(after.routes().get(technician)));
+                if (next == Long.MAX_VALUE || before == Long.MAX_VALUE) return Long.MAX_VALUE;
+                delta += next - before;
+            }
+            return delta;
+        }
+        long routeTravel(String technician, List<String> order) {
+            if (order.isEmpty()) return 0;
+            String from = technician; long total = 0;
+            for (String to : order) {
+                long leg = seconds(from, Required.value(to));
+                if (leg == Long.MAX_VALUE) return leg;
+                total += leg; from = Required.value(to);
+            }
+            long back = seconds(from, technician + ":return");
+            return back == Long.MAX_VALUE ? back : total + back;
+        }
+        record Placement(String id, String technician, int position, Arrangement arrangement, long cost) { }
+        record Options(String id, List<Placement> placements, long regret) { }
+        /** One related removal group per round; incomplete reconstructions are never candidates. */
+        boolean ruinStep() {
+            if (!ruinRecreate || ruinFinished) return false;
+            List<String> related = new ArrayList<>();
+            for (String technician : shortlist) related.addAll(Required.value(day.baseline().routes().get(technician)));
+            related.sort(Comparator.comparingLong((String id) -> seconds(request.jobId(), Required.value(id)))
+                    .thenComparing(id -> id));
+            int groups = Math.min(12, related.size());
+            if (ruinCursor >= groups) { ruinFinished = true; return false; }
+            int anchor = ruinCursor++;
+            for (int count : List.of(2, 3)) {
+                if (related.size() < count) continue;
+                reconstructionAttempts++;
+                Set<String> removed = new TreeSet<>();
+                for (int i = 0; i < count; i++) removed.add(Required.value(related.get((anchor + i) % related.size())));
+                Arrangement arrangement = ReservationOffers.without(day.baseline(), removed);
+                Map<String, Visit> facts = new TreeMap<>(day.visits()); removed.forEach(facts::remove);
+                Map<String, Visit> pendingVisits = new TreeMap<>();
+                for (String id : removed) pendingVisits.put(id, Required.value(day.visits().get(id)));
+                pendingVisits.put(request.jobId(), new Visit(request.jobId(), request.jobId(), request.serviceId(), window.start(), window.end(),
+                        request.durationMinutes(), request.location(), Required.value(shortlist.getFirst()), window.start(), false));
+                boolean failed = false;
+                while (!pendingVisits.isEmpty()) {
+                    List<Options> options = new ArrayList<>();
+                    for (Visit visit : pendingVisits.values()) {
+                        List<Placement> placements = new ArrayList<>();
+                        Map<String, Visit> nextFacts = new TreeMap<>(facts); nextFacts.put(visit.id(), visit);
+                        for (String technician : shortlist) {
+                            if (!Required.value(day.technicians().get(technician)).services().contains(visit.serviceId())) continue;
+                            List<String> route = Required.value(arrangement.routes().get(technician));
+                            for (int position = 0; position <= route.size(); position++) {
+                                checkpoint.run(); reconstructionEvaluations++; SearchDeadline.progress("RECONSTRUCTION");
+                                Arrangement proposal = arrangement.insert(Required.value(technician), visit.id(), position);
+                                var metrics = evaluation.metrics(proposal, nextFacts, false);
+                                if (metrics.feasible() && regularChanges(proposal, nextFacts))
+                                    placements.add(new Placement(visit.id(), Required.value(technician), position, proposal, metrics.costCents()));
+                            }
+                        }
+                        placements.sort(Comparator.comparingLong((Placement value) -> value.cost()).thenComparing(value -> value.technician()).thenComparingInt(value -> value.position()));
+                        if (placements.isEmpty()) { failed = true; break; }
+                        long regret = placements.size() == 1 ? Long.MAX_VALUE : placements.get(1).cost() - placements.getFirst().cost();
+                        options.add(new Options(visit.id(), placements, regret));
+                    }
+                    if (failed) break;
+                    options.sort(Comparator.comparingInt((Options value) -> value.placements().size())
+                            .thenComparing(Comparator.comparingLong((Options value) -> value.regret()).reversed()).thenComparing(value -> value.id()));
+                    Placement chosen = Required.value(options.getFirst().placements().getFirst());
+                    facts.put(chosen.id(), Required.value(pendingVisits.remove(chosen.id()))); arrangement = chosen.arrangement();
+                }
+                if (failed || facts.size() != day.visits().size() + 1) continue;
+                var result = evaluation.metrics(arrangement, facts, false);
+                if (!result.feasible() || !regularChanges(arrangement, facts)
+                        || (evaluation.hasReservations() && !evaluation.metrics(arrangement, facts, true).feasible())) continue;
+                String assigned = arrangement.routes().entrySet().stream().filter(route -> route.getValue().contains(request.jobId()))
+                        .map(route -> route.getKey()).findFirst().orElseThrow();
+                Arrangement existing = ReservationOffers.without(arrangement, Required.value(Set.<String>of(request.jobId())));
+                retain(new Merit(result.costCents() - baseline.costCents(), Required.value(evaluation.fairness(arrangement, facts).subtract(baselineFairness)),
+                        changes(existing), Required.value(assigned), Required.value(arrangement.routes().get(assigned)).indexOf(request.jobId()), arrangement),
+                        result.overtimeMinutes() - baseline.overtimeMinutes(), "RUIN_RECREATE", facts);
+            }
+            return true;
         }
         boolean qualifies(String technician, String visit) {
             return Required.value(day.technicians().get(technician)).services().contains(Required.value(day.visits().get(visit)).serviceId());

@@ -12,6 +12,7 @@ const peer = process.env.SCHEDULER_CANCEL_URL ?? base;
 const id = `cancel-test-${randomUUID()}`;
 const jobId = `${id}-job`;
 const otherJobId = `${id}-other-job`;
+const dateJobId = `${id}-date-job`;
 async function post(url: string, path: string, body: unknown) {
   const response = await fetch(`${url}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(6000) });
   const value: unknown = await response.json();
@@ -108,23 +109,28 @@ async function main() {
   const repeated = selection.parse(await post(peer, "/v1/offers/select", { jobId: otherJobId, offerId: required(secondCustomer.offers[0]).offerId }));
   assert.equal(repeated.appointmentId, chosen.appointmentId);
   await post(peer, "/v1/appointments/cancel", { appointment_id: chosen.appointmentId, reason: "Completed overlapping-reservation fixture" });
-  // Force conservative sibling alternatives onto different dates, then shorten the fixture expiry
-  // consistently in the database and its durable arrangement snapshot instead of waiting ten minutes.
+  // Independent single-offer customers fill different dates. Expiring one must preserve the other.
   const previousOffer = await prisma.bookingOffer.findUniqueOrThrow({ where: { id: selected.offerId } });
   const singleVisitMinutes = required(previousOffer.incrementalRegularMinutes, "Fixture paid route minutes");
   assert.ok(Number.isInteger(singleVisitMinutes) && singleVisitMinutes > 0);
   await prisma.technician.update({ where: { id }, data: { maxDailyMinutes: singleVisitMinutes } });
-  await prisma.technicianAvailabilityDay.updateMany({ where: { version: { technicianId: id }, available: true }, data: { shiftEndMin: 480 + Math.max(120, singleVisitMinutes) } });
+  await prisma.technicianAvailabilityDay.updateMany({ where: { version: { technicianId: id }, available: true }, data: { shiftEndMin: 480 + Math.max(240, singleVisitMinutes) } });
   const expiring = offersResponse.parse(await post(base, "/v1/offers", { jobId, refresh: true }));
-  assert.ok(new Set(expiring.offers.map(offer => offer.date)).size > 1, `Expiry covers multiple reserved dates: ${JSON.stringify(expiring)}`);
+  assert.equal(expiring.offers.length, 1);
+  await prisma.job.create({ data: { id: dateJobId, customerId: id, addressId: id, serviceId: id, durationMin: 30 } });
+  const anotherDate = offersResponse.parse(await post(base, "/v1/offers", { jobId: dateJobId }));
+  assert.equal(anotherDate.offers.length, 1);
+  assert.notEqual(required(anotherDate.offers[0]).date, required(expiring.offers[0]).date);
   await expireJob(jobId);
+  assert.equal(await prisma.slotHold.count({ where: { jobId: dateJobId, releasedAt: null } }), 1);
+  await expireJob(dateJobId);
   console.log("Cancellation before admission, during locked publication, lost response cleanup, cross-instance acknowledgement and validated release passed.");
-  console.log("Expiry independently revalidates every affected sibling date and removes durable placeholders.");
+  console.log("Expiry independently revalidates separate reserved dates and removes durable placeholders.");
   console.log("Overlapping customers survive refresh and expiry, then confirm idempotently through the peer instance.");
 }
 main().finally(async () => {
   await prisma.reservationArrangement.deleteMany({ where: { metroId: id } });
-  const jobs = { in: [jobId, otherJobId] };
+  const jobs = { in: [jobId, otherJobId, dateJobId] };
   await prisma.appointment.deleteMany({ where: { jobId: jobs } });
   await prisma.slotHold.deleteMany({ where: { jobId: jobs } });
   await prisma.bookingOffer.deleteMany({ where: { jobId: jobs } });

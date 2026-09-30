@@ -1,0 +1,16 @@
+{
+  "revision": "2258b2a14e8a9ecd085c79ec377448c0555c2b1e",
+  "checkoutRevision": "18c70c4ebed49b3b510175b01bdd8f112d09ece2",
+  "jarSha256": "1438506db10605f88e51cfbeeca0900c58da158d1da3e0ed4269e790b121014b",
+  "schema": "benchmark_field_insertion_59_1790724874065",
+  "port": 18037,
+  "variant": "INSERTION",
+  "seed": "59",
+  "routingUrl": "http://127.0.0.1:8001",
+  "sizes": "5,10,20,50",
+  "concurrency": "1,5,10",
+  "caches": "warm",
+  "requests": "10",
+  "startedAt": "2026-09-29T23:34:50.521Z",
+  "concurrentLocalBenchmarks": true
+}

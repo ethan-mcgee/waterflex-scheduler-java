@@ -358,6 +358,7 @@ model ReservationDependency {
 }
 
 model BookingOffer {
+  policyVersion String @default("zero-overtime-four-hour-v2")
   id String @id @default(cuid())
   jobId String
   job Job @relation(fields: [jobId], references: [id])
@@ -379,6 +380,7 @@ model BookingOffer {
 }
 
 model BookingOfferSet {
+  policyVersion String @default("zero-overtime-four-hour-v2")
   id String @id @default(cuid())
   jobId String
   job Job @relation(fields: [jobId], references: [id])
@@ -677,6 +679,17 @@ model OutboundEvent {
 }
 
 model BookingSearchRequest {
+  bestCostDeltaCents BigInt?
+  state String?
+  refresh Boolean @default(false)
+  owner String?
+  leaseUntil DateTime?
+  startedAt DateTime?
+  finishedAt DateTime?
+  stopReason String?
+  queueMs BigInt?
+  completedWork BigInt @default(0)
+  phase String @default("QUEUED")
   id String @id
   jobId String
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)

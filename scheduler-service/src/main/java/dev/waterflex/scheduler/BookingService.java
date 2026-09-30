@@ -165,12 +165,11 @@ public class BookingService {
         LocalDate day = rows.getFirst().day().atZone(ZoneOffset.UTC).toLocalDate();
         Instant start = rows.getFirst().start(), end = rows.getFirst().end();
         String holdId = selectedRow.holdId();
-        boolean overtimeAuthorized = Required.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=? AND \"jobId\"=?", Boolean.class, offerId, jobId);
         List<Candidate> feasible = new ArrayList<>();
         for (Tech tech : technicians(job.serviceId(), Required.value(day), job.metroId())) {
             lockDay(tech.id(), Required.value(day));
             Candidate candidate = evaluateCandidate(job, tech, Required.value(day), start, end);
-            if (candidate != null && (candidate.overtimeDeltaMinutes() <= 0 || overtimeAuthorized)) feasible.add(candidate);
+            if (candidate != null && candidate.overtimeDeltaMinutes() == 0) feasible.add(candidate);
         }
         Candidate chosen = feasible.stream().min(INSERTION_ORDER)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available"));
@@ -206,8 +205,7 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable"));
         Candidate candidate = evaluateCandidate(job, Required.value(tech), Required.value(day), start, end);
         if (candidate == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
-        boolean overtimeAuthorized = Required.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=? AND \"jobId\"=?", Boolean.class, h.offerToken(), jobId);
-        if (candidate.overtimeDeltaMinutes() > 0 && !overtimeAuthorized)
+        if (candidate.overtimeDeltaMinutes() != 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Reserved offer does not authorize additional overtime");
         String id = UUID.randomUUID().toString();
         jdbc.update("INSERT INTO appointment (id, \"jobId\", \"technicianId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"plannedStart\", \"plannedEnd\", sequence, \"updatedAt\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
@@ -217,7 +215,7 @@ public class BookingService {
         route.add(Math.min(candidate.position(), route.size()), new Visit(Required.value(id), job.point(), start, end,
                 candidate.arrival(), job.duration(), true));
         Metrics planned = evaluate(Required.value(tech), Required.value(day), route);
-        if (!planned.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
+        if (!planned.feasible() || planned.overtimeMinutes() != 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Window no longer available");
         persistTiming(route, planned);
         jdbc.update("UPDATE job SET status='SCHEDULED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", jobId);
         jdbc.update("UPDATE job SET \"manualFollowUpStatus\"=NULL, \"manualFollowUpReason\"=NULL WHERE id=?", jobId);
@@ -297,7 +295,7 @@ public class BookingService {
                     List<Visit> visits = visits(tech.id(), serviceDay, job.id());
                     List<Visit> locations = new ArrayList<>(visits);
                     Instant startOfShift = ScheduleCutoff.localMinute(serviceDay, tech.shiftStart(), false);
-                    locations.add(new Visit(job.id(), job.point(), startOfShift, Required.value(startOfShift.plus(Duration.ofHours(2))), startOfShift, job.duration(), true));
+                    locations.add(new Visit(job.id(), job.point(), startOfShift, Required.value(startOfShift.plus(Duration.ofHours(4))), startOfShift, job.duration(), true));
                     EvaluationContext snapshot = prepare(Required.value(tech), serviceDay, locations, sharedSettings, routingIdentity);
                     Metrics baseline = evaluate(Required.value(tech), serviceDay, visits, snapshot);
                     if (!baseline.feasible()) continue;
@@ -305,7 +303,7 @@ public class BookingService {
                         SearchDeadline.checkpoint();
                         Instant start = ScheduleCutoff.localMinute(serviceDay, minute, false);
                         if (onlyStart != null && !start.equals(onlyStart)) continue;
-                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(2))), visits, snapshot, baseline);
+                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(4))), visits, snapshot, baseline);
                         if (c != null) result.add(c);
                     }
             }
@@ -329,11 +327,22 @@ public class BookingService {
         return days;
     }
 
+    /** Only weekdays are overflow candidates; weekends in the normal span remain available. */
+    static List<LocalDate> overflowDates(Instant now) {
+        List<LocalDate> dates = new ArrayList<>();
+        LocalDate date = Required.value(bookingDates(now).getLast().plusDays(1));
+        while (dates.size() < 5) {
+            if (date.getDayOfWeek().getValue() <= 5) dates.add(date);
+            date = Required.value(date.plusDays(1));
+        }
+        return Required.value(List.copyOf(dates));
+    }
+
     static List<Integer> windowStartMinutes(int shiftStart, int shiftEnd) {
         if (shiftStart < 0 || shiftEnd > 1440 || shiftStart >= shiftEnd)
             throw new IllegalArgumentException("Invalid shift hours");
         List<Integer> starts = new ArrayList<>();
-        for (int minute = shiftStart; minute + 120 <= shiftEnd; minute += 60) starts.add(minute);
+        for (int minute = shiftStart; minute + 240 <= shiftEnd; minute += 60) starts.add(minute);
         return starts;
     }
 
@@ -348,14 +357,14 @@ public class BookingService {
 
     private @Nullable Candidate evaluateCandidate(Job job, Tech tech, LocalDate day, Instant start, Instant end,
             List<Visit> visits, EvaluationContext snapshot, Metrics baseline) {
-        if (!baseline.feasible()) return null;
+        if (!baseline.feasible() || baseline.overtimeMinutes() != 0) return null;
         Candidate best = null;
         for (int position = 0; position <= visits.size(); position++) {
             SearchDeadline.checkpoint();
             List<Visit> proposal = new ArrayList<>(visits);
             proposal.add(position, new Visit(job.id(), job.point(), start, end, start, job.duration(), true));
             Metrics m = evaluate(tech, day, proposal, snapshot);
-            if (!m.feasible() || m.newArrival() == null) continue;
+            if (!m.feasible() || m.overtimeMinutes() != 0 || m.newArrival() == null) continue;
             double paidDelta = m.paidMinutes() - baseline.paidMinutes();
             double overtimeDelta = m.overtimeMinutes() - baseline.overtimeMinutes();
             double cost = (m.costCents() - baseline.costCents()) / 100.0;

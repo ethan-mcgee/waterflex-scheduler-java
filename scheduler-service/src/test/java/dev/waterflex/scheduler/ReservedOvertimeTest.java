@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ReservedOvertimeTest {
-    @Test void regularReservationRetainsOvertimeTransferredFromExistingWork() {
+    @Test void bookingCannotTransferExistingOvertimeToNewWork() {
         var captured = Required.value(Instant.parse("2026-10-23T12:00:00Z"));
         var date = Required.value(BookingService.bookingDates(captured).getFirst());
         var start = Required.value(date.atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(14 * 3600));
@@ -54,34 +54,10 @@ class ReservedOvertimeTest {
         var result = new BoundedBookingSearch.Result(Required.value(List.of(candidate)), Required.value(List.of()), true, 1, 60, 240, false, "COMPLETED");
         var bundle = ReservationOffers.prepare(snapshot, new BoundedBookingSearch.Request("new-job", "new", 30, point),
                 Required.value(Map.of(date, Map.of())), result, Required.value(captured.plusSeconds(600)), new BookingOfferLimit("4"), () -> { });
-        assertEquals(1, bundle.offers().size());
-        var offered = Required.value(bundle.offers().getFirst());
-        assertFalse(offered.overtimeAuthorized());
-        var common = Required.value(bundle.dates().get(date));
-        for (boolean reassignmentAlreadyApplied : List.of(false, true)) {
-            Map<String, Visit> visits = new TreeMap<>(common.day().visits());
-            if (reassignmentAlreadyApplied) visits.put("old", new Visit(old.id(), old.jobId(), old.serviceId(), old.windowStart(), old.windowEnd(),
-                    old.durationMinutes(), old.location(), "b", old.plannedStart(), false));
-            Day current = new Day(common.day().technicians(), visits, common.day().baseline(), 1, common.day().roads());
-            var routing = mock(SnapshotRouting.class, _ -> current);
-            var transition = new ReservationTransition(routing);
-            var facts = new BookingSnapshotLoader.Facts("metro", captured, "configuration", "roads", snapshot.policy(), rates,
-                    Required.value(Map.of(date, current)), Required.value(Map.of(date, common.state().holds())));
-            // Unknown historical metrics do not become an invented regular authorization.
-            assertThrows(ResponseStatusException.class, () -> transition.prepare(facts, "new-job",
-                    new ReservationTransition.Confirmation(offered.holdId(), "appointment")));
-            assertThrows(ResponseStatusException.class, () -> transition.prepare(facts, "new-job",
-                    new ReservationTransition.Confirmation(offered.holdId(), "appointment", 1)),
-                    "A positive persisted delta does not establish a regular reservation");
-            var confirmed = Required.value(transition.prepare(facts, "new-job", new ReservationTransition.Confirmation(
-                    offered.holdId(), "appointment", Math.toIntExact(candidate.overtimeDelta()))).get(date));
-            assertTrue(confirmed.validation().feasible());
-            assertEquals(30, confirmed.validation().overtimeMinutes());
-            assertTrue(confirmed.holds().isEmpty());
-        }
+        assertTrue(bundle.offers().isEmpty(), "Reducing existing overtime does not authorize new overtime work");
     }
 
-    @Test void reservedAuthorizationSurvivesDemandDropButLimitsAndAuthorizationRemainHard() {
+    @Test void oldAuthorizationCannotOverrideZeroOvertimePolicy() {
         for (boolean authorized : List.of(false, true)) for (int limit : List.of(10, 60)) {
             var date = Required.value(LocalDate.parse("2026-10-26"));
             var start = Required.value(Instant.parse("2026-10-26T14:00:00Z"));
@@ -105,12 +81,7 @@ class ReservedOvertimeTest {
                 return day;
             });
             var transition = new ReservationTransition(routing);
-            if (authorized && limit == 60) {
-                var result = Required.value(transition.prepare(facts, "job", new ReservationTransition.Confirmation("hold", "appointment")).get(date));
-                assertTrue(result.validation().feasible()); assertTrue(result.validation().overtimeMinutes() > 0);
-                assertTrue(result.holds().isEmpty());
-                assertFalse(Required.value(result.day().visits().get("appointment")).reservation());
-            } else assertThrows(ResponseStatusException.class,
+            assertThrows(ResponseStatusException.class,
                     () -> transition.prepare(facts, "job", new ReservationTransition.Confirmation("hold", "appointment")));
         }
     }
