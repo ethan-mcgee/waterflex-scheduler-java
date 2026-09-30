@@ -25,7 +25,13 @@ public final class ReservationCommit {
     private final BookingSnapshotLoader loader;
     private final ReservationStore store;
     private final TransactionTemplate transaction;
+    private final ServiceCalendar calendar;
     public ReservationCommit(JdbcTemplate jdbc, BookingSnapshotLoader loader, ReservationStore store, PlatformTransactionManager manager) {
+        this(jdbc, loader, store, manager, new ServiceCalendar());
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public ReservationCommit(JdbcTemplate jdbc, BookingSnapshotLoader loader, ReservationStore store, PlatformTransactionManager manager, ServiceCalendar calendar) {
+        this.calendar = calendar;
         this.jdbc = jdbc; this.loader = loader; this.store = store;
         transaction = new TransactionTemplate(manager); transaction.setTimeout(5);
     }
@@ -82,7 +88,7 @@ public final class ReservationCommit {
             unchanged(expected, current);
             if (!expected.days().keySet().containsAll(proposals.keySet())) throw conflict("Proposal dates are outside locked snapshot");
             for (var entry : proposals.entrySet()) {
-                if (applyConfirmed && ScheduleCutoff.frozen(Required.value(entry.getKey()), Required.value(Instant.now())))
+                if (applyConfirmed && ScheduleCutoff.frozen(Required.value(entry.getKey()), calendar.now()))
                     throw conflict("Service date is frozen");
                 var proposal = Required.value(entry.getValue());
                 ReservationState.validate(proposal.day(), expected.rates(), proposal.day().baseline(), proposal.day().visits(),

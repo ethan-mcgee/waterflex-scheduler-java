@@ -40,7 +40,7 @@ class SolverExperimentTest {
         }
     }
     @Test void allFleetSizesAndWorkloadsStartFromIndependentlyFeasibleSchedules() {
-        for (int size : new int[]{20, 30, 50}) for (var workload : SolverBenchmarkData.Workload.values()) {
+        for (int size : new int[]{5, 10, 20, 30, 50}) for (var workload : SolverBenchmarkData.Workload.values()) {
             var plan = SolverBenchmarkData.create(size, Required.value(workload));
             assertEquals(size, plan.getRoutes().size());
             var independent = RouteEvaluator.evaluate(plan);

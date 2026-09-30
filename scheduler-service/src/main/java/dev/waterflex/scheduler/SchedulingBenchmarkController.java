@@ -60,6 +60,9 @@ public final class SchedulingBenchmarkController {
         this.jdbc = jdbc; this.loader = loader; this.routing = routing; this.roads = roads; this.environment = environment;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private ServiceCalendar calendar = new ServiceCalendar();
+
     private Map<String, String> configuration() {
         Map<String, String> values = new TreeMap<>();
         var defaults = Map.of("booking.reservations.enabled", "false", "booking.search.bounded", "false",
@@ -67,6 +70,10 @@ public final class SchedulingBenchmarkController {
                 "scheduler.optimizer.variant", "TABU", "scheduler.optimizer.seed", "17", "routing.prewarm.enabled", "false",
                 "booking.search.variant", "BOUNDED");
         defaults.forEach((key, fallback) -> values.put(key, Required.value(environment.getProperty(Required.value(key), Required.value(fallback)))));
+        values.put("scheduler.optimizer.cron", environment.getProperty("scheduler.optimizer.cron", "0 0 2 * * *"));
+        values.put("routing.cache.cleanup-cron", environment.getProperty("routing.cache.cleanup-cron", "0 30 3 * * SUN"));
+        values.put("time-off.analysis.enabled", environment.getProperty("time-off.analysis.enabled", "true"));
+        values.put("benchmark.calendar-reference", calendar.reference());
         values.put("maximumHeapBytes", Long.toString(Runtime.getRuntime().maxMemory()));
         return Required.value(Map.copyOf(values));
     }

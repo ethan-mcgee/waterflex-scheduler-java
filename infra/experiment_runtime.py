@@ -198,17 +198,31 @@ def launch(command, cwd, env, log):
         finally:
             if close_job:
                 close_job()
-            elif process.poll() is None:
-                if os.name != 'nt':
-                    import signal
+            elif os.name == 'nt':
+                # Assignment failure must also dispose of descendants already started by wrappers.
+                if process.poll() is None:
+                    subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+            else:
+                import signal
+                try:
                     os.killpg(process.pid, signal.SIGTERM)
-                else:
-                    process.terminate()
+                except ProcessLookupError:
+                    pass
             try:
                 process.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+            finally:
+                if os.name != 'nt':
+                    # The group can outlive the direct child, including after successful exit.
+                    import signal
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+
 
 
 def command(args, cwd, env, log, timeout=1200):
@@ -223,8 +237,8 @@ def command(args, cwd, env, log, timeout=1200):
 
 def environment():
     # Do not inherit ad hoc benchmark controls or JVM/Spring overrides.
-    blocked = ('BENCHMARK_', 'FIELD_', 'SPRING_', 'BOOKING_', 'SCHEDULER_')
-    return {k: v for k, v in os.environ.items() if not k.startswith(blocked) and k not in
+    blocked = ('BENCHMARK_', 'FIELD_', 'SPRING_', 'BOOKING_', 'SCHEDULER_', 'TIME_OFF_', 'ROUTING_PREWARM_', 'ROUTING_CACHE_')
+    return {k: v for k, v in os.environ.items() if not k.upper().startswith(blocked) and k.upper() not in
             ['JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS', 'NODE_OPTIONS', 'CLASSPATH']}
 
 
@@ -334,19 +348,20 @@ def routing_identity(env):
     return {'url': url, 'identity': health['routingIdentity']}
 
 
-def horizon(artifacts):
+def horizon(artifacts, reference):
     web = artifacts / 'source/web'
     value = capture(['node', web / 'node_modules/tsx/dist/cli.mjs', '-e',
-        "import {bookingHorizon} from './lib/bookingTestCore'; console.log(JSON.stringify(bookingHorizon()))"], web)
+        "import {bookingHorizon} from './lib/bookingTestCore'; console.log(JSON.stringify(bookingHorizon(new Date(process.argv[1]))))", reference], web)
     dates = json.loads(value)
     if not isinstance(dates, list) or len(dates) != 10 or any(not isinstance(d, str) for d in dates):
         raise ValueError('Invalid booking horizon')
     return dates
 
 
-def booking_identity(artifacts, env):
+def booking_identity(artifacts, env, reference=None):
     database_env(env, 'benchmark_preflight')
-    return {'dates': horizon(artifacts), 'routing': routing_identity(env), 'transport': 'direct-durable-client'}
+    reference = reference or datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    return {'calendar_reference': reference, 'dates': horizon(artifacts, reference), 'routing': routing_identity(env), 'transport': 'direct-durable-client'}
 
 
 def daily_command(artifacts, case, revision, output, java):
@@ -361,7 +376,7 @@ def booking_case(run, attempt, case, manifest, env):
     artifacts = run / 'frozen'
     web = artifacts / 'source/web'
     saved = manifest['booking']
-    if booking_identity(artifacts, env) != saved:
+    if booking_identity(artifacts, env, saved['calendar_reference']) != saved:
         raise ValueError('Booking horizon or routing identity changed; start a new run')
     schema = 'benchmark_exp_' + uuid.uuid4().hex
     env = database_env(env, schema)
@@ -375,14 +390,16 @@ def booking_case(run, attempt, case, manifest, env):
         BENCHMARK_ARTIFACT_SHA256=sha(artifacts / 'scheduler.jar'), BENCHMARK_OUTPUT=str(attempt / 'raw.jsonl'),
         BENCHMARK_LOG_PATH=str(server_log), BENCHMARK_SIZES=str(case['fleet']), BENCHMARK_WORKLOADS=case['workload'],
         BENCHMARK_SEED=str(case['seed']), BENCHMARK_CONCURRENCY=str(case['concurrency']), BENCHMARK_CACHES=case['cache'],
-        BENCHMARK_REQUESTS=str(case['requests']), BENCHMARK_DURABLE='true', BENCHMARK_DATES=json.dumps(saved['dates']),
+        BENCHMARK_CALENDAR_REFERENCE=saved['calendar_reference'], BENCHMARK_REQUESTS=str(case['requests']), BENCHMARK_DURABLE='true', BENCHMARK_DATES=json.dumps(saved['dates']),
         BENCHMARK_ROUTING_IDENTITY=saved['routing']['identity'], BENCHMARK_FROZEN_MANIFEST=str(artifacts / 'web-manifest.json'))
-    write_new(attempt / 'booking.json', {'schema': schema, 'port': port, 'dates': saved['dates'], 'routing': saved['routing']})
+    write_new(attempt / 'booking.json', {'schema': schema, 'port': port, 'dates': saved['dates'], 'calendar_reference': saved['calendar_reference'], 'routing': saved['routing']})
     command(['node', web / 'node_modules/prisma/build/index.js', 'migrate', 'deploy'], web, env, attempt / 'migrate.log')
     args = [manifest['runtime']['java'], '-Xmx1536m', '-jar', artifacts / 'scheduler.jar',
         f'--server.port={port}', '--server.address=127.0.0.1', '--spring.profiles.active=benchmark',
         '--spring.datasource.hikari.maximum-pool-size=4', '--spring.datasource.hikari.minimum-idle=1',
-        '--booking.reservations.enabled=true', '--booking.search.bounded=true', f'--booking.search.variant={case["solver"]}']
+        f'--benchmark.calendar-reference={saved["calendar_reference"]}',
+        '--scheduler.optimizer.cron=-', '--routing.cache.cleanup-cron=-', '--routing.prewarm.enabled=false',
+        '--time-off.analysis.enabled=false', '--booking.reservations.enabled=true', '--booking.search.bounded=true', f'--booking.search.variant={case["solver"]}']
     with launch(args, artifacts, env, server_log) as server:
         for _ in range(90):
             if server.poll() is not None:
@@ -438,7 +455,7 @@ def execute(run, prepare=False):
         if runtime() != manifest['runtime']:
             raise ValueError('Runtime/hardware provenance mismatch; start a new run')
         env = environment()
-        if 'booking' in config and booking_identity(run / 'frozen', env) != manifest['booking']:
+        if 'booking' in config and booking_identity(run / 'frozen', env, manifest['booking']['calendar_reference']) != manifest['booking']:
             raise ValueError('Frozen booking dates/routing no longer valid; start a new run')
         completed = {case['id']: completed_attempt(run, case) is not None for case in cases}
         progress.update('Checking completed cases', completed=sum(completed.values()))
