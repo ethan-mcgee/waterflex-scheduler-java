@@ -152,6 +152,12 @@ class AnalysisTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 normalize(r, PROVENANCE, 'current')
 
+    def test_null_request_observation_rejected(self):
+        raw = raw_booking()
+        raw['attempts'][0] = None
+        with self.assertRaises(ValueError):
+            normalize(raw, PROVENANCE, 'current')
+
     def test_missing_latency_and_historical_mixed_latency_excluded(self):
         raw = raw_booking()
         raw['attempts'][0]['elapsedMs'] = None
@@ -219,6 +225,39 @@ class ArchiveTests(unittest.TestCase):
         (run / 'config.json').write_text(json.dumps(c))
         with self.assertRaisesRegex(ValueError, 'provenance mismatch'):
             rt.execute(run)
+
+    def test_duplicate_completion_and_changed_raw_rejected(self):
+        run = self.make_run()
+        case = read_json(run / 'cases.json')[0]
+        for name in ('one', 'two'):
+            attempt = run / 'attempts' / case['id'] / name
+            attempt.mkdir(parents=True)
+            evidence(attempt / 'raw.jsonl', case)
+            rt.write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': rt.sha(attempt / 'raw.jsonl')})
+        with self.assertRaisesRegex(ValueError, 'Duplicate completed'):
+            rt.completed_attempt(run, case)
+        (attempt / 'raw.jsonl').write_text('changed')
+        with self.assertRaisesRegex(ValueError, 'Completed evidence changed'):
+            rt.completed_attempt(run, case)
+
+    def test_expired_booking_resume_rejected_before_launch(self):
+        c = {'version': 1, 'name': 'booking', 'booking': {'solvers': ['INSERTION'], 'control': 'INSERTION',
+            'seeds': [17], 'fleets': [5], 'workloads': ['DISPERSED'], 'concurrency': [1], 'caches': ['warm'], 'requests': 2}}
+        run = rt.new_run(self.base, c, json.dumps(c).encode())
+        (run / 'frozen').mkdir()
+        rt.write_new(run / 'manifest.json', {'config_hash': digest(c), 'cases_hash': digest(expand(c)),
+            'files': {}, 'runtime': {'java': 'java'}, 'toolkit_hashes': rt.toolkit_hashes(), 'booking': {'dates': ['old']}})
+        with patch.object(rt, 'runtime', return_value={'java': 'java'}), patch.object(rt, 'booking_identity', return_value={'dates': ['new']}):
+            with self.assertRaisesRegex(ValueError, 'no longer valid'):
+                rt.execute(run)
+
+    def test_database_scope_and_credential_metadata(self):
+        for url in ('postgresql://user:secret@localhost/waterflex', 'postgresql://user:secret@remote/waterflex_test'):
+            with self.assertRaises(ValueError):
+                rt.database_env({'DATABASE_URL': url}, 'benchmark_test')
+        env = rt.database_env({'DATABASE_URL': 'postgresql://user:secret@localhost/waterflex_test'}, 'benchmark_test')
+        self.assertNotIn('secret', env['JDBC_DATABASE_URL'])
+        self.assertIn('connection_limit=4', env['DATABASE_URL'])
 
     def test_interruption_resume_keeps_prior_attempts_and_completed_evidence(self):
         run = self.make_run()
