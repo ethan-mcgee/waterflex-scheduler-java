@@ -202,10 +202,10 @@ class BookingSnapshotDatabaseIT {
                     regularFacts.configurationFingerprint(), "fixture-roads"));
             var lifecycle = new ReservationLifecycleService(jdbc, deterministic, loader, transition, commit);
             if (frozen) {
-                jdbc.update("UPDATE booking_offer SET \"expiresAt\"=clock_timestamp()-interval '1 second' WHERE id=?", prefix + "-request");
+                jdbc.update("UPDATE slot_hold SET \"expiresAt\"=clock_timestamp()-interval '1 second' WHERE id=?", prefix + "-request");
                 var expiredOffer = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
                 assertEquals("Offer is no longer available", expiredOffer.getReason());
-                jdbc.update("UPDATE booking_offer SET \"expiresAt\"=? WHERE id=?", expiry, prefix + "-request");
+                jdbc.update("UPDATE slot_hold SET \"expiresAt\"=? WHERE id=?", expiry, prefix + "-request");
             }
             assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"),
                     "A missing historical delta cannot authorize the transferred overtime");
