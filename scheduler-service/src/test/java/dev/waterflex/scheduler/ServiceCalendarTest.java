@@ -51,6 +51,16 @@ class ServiceCalendarTest {
             }
         }
     }
+    @Test void durableDeadlineAdvancesWhileCalendarStaysFixed() throws Exception {
+        var calendar = new ServiceCalendar(environment("2026-03-06T05:59:59Z"), database());
+        Instant reference = calendar.now();
+        var deadline = new SearchDeadline(Required.value(java.time.Duration.ofMillis(20))).durable();
+        long limit = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(2);
+        while (deadline.remainingNanos() > 0 && System.nanoTime() < limit) Thread.sleep(5);
+        assertThrows(SearchDeadline.Expired.class, deadline::requireTime);
+        assertTrue(deadline.elapsedMillis() >= 20);
+        assertEquals(reference, calendar.now());
+    }
     @Test void snapshotValidatesEntireHorizonAgainstCalendarAndPreservesCaptureTime() {
         Instant reference = Required.value(Instant.parse("2026-09-30T04:59:59Z"));
         Instant capture = Required.value(reference.plusSeconds(86400 * 3));
@@ -63,6 +73,11 @@ class ServiceCalendarTest {
         var snapshot = new BookingSnapshot("metro", capture, reference, "config", "roads", policy, rates, days);
         assertEquals(capture, snapshot.capturedAt()); assertEquals(reference, snapshot.calendarReference());
         assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot("metro", capture, "config", "roads", policy, rates, days));
+        var routing = new SnapshotRouting(mock(RoadClient.class));
+        var copied = routing.neighborhoods(snapshot, Required.value(Map.of()));
+        assertEquals(capture, copied.capturedAt()); assertEquals(reference, copied.calendarReference());
+        BookingService.overflowDates(reference).forEach(day -> days.put(day, empty));
+        assertDoesNotThrow(() -> new BookingSnapshot("metro", capture, reference, "config", "roads", policy, rates, days));
         days.remove(days.firstKey());
         assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot("metro", capture, reference, "config", "roads", policy, rates, days));
     }

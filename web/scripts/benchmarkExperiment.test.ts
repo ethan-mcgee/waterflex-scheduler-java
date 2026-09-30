@@ -32,3 +32,15 @@ for (const reference of ["2026-09-30T04:59:59Z", "2026-09-30T10:59:59Z", "2026-1
     assert.throws(() => experimentDates(JSON.stringify(dates), new Date(), "invalid"));
   });
 }
+
+test("effective isolation and calendar are mandatory before and after measurement", () => {
+  const reference = "2026-09-30T04:59:59.000Z";
+  const settings = { "booking.search.variant": "BOUNDED", "booking.search.bounded": "true", "booking.reservations.enabled": "true",
+    "scheduler.optimizer.cron": "-", "routing.cache.cleanup-cron": "-", "routing.prewarm.enabled": "false",
+    "time-off.analysis.enabled": "false", "benchmark.calendar-reference": reference };
+  verifyExperimentSettings(settings, "BOUNDED", reference);
+  for (const key of ["scheduler.optimizer.cron", "routing.cache.cleanup-cron", "routing.prewarm.enabled", "time-off.analysis.enabled"])
+    assert.throws(() => verifyExperimentSettings({ ...settings, [key]: "unexpected" }, "BOUNDED", reference));
+  assert.throws(() => verifyExperimentSettings(settings, "BOUNDED", "2026-10-01T04:59:59.000Z"));
+  assert.throws(() => verifyExperimentSettings(settings, "BOUNDED"));
+});
