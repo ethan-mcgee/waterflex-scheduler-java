@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhone } from "./phone";
 
 // Browser-safe decoders. Keep network and database values unknown until parsed.
 export const text = z.string().trim().min(1);
@@ -114,12 +115,21 @@ export const standardDay = z.object({ dayOfWeek: z.int().min(0).max(6), availabl
     : v.shiftStartMin === null && v.shiftEndMin === null, "Invalid daily hours");
 export const standardWeek = z.array(standardDay).length(7).refine(days =>
   new Set(days.map(day => day.dayOfWeek)).size === 7 && days.some(day => day.available), "Choose at least one available day and include each weekday once");
-export const technicianProfileRequest = z.object({ name: text.max(120), email: z.email().nullable().optional(),
-  phone: z.string().trim().min(7).max(40).nullable().optional(), bio: z.string().trim().max(2000).nullable().optional(),
+export const technicianPhone = z.string().trim().min(7).max(40).refine(isValidPhone, "Enter a phone number with at least 7 digits");
+export const homeAddress = z.object({ line1: text, city: text, state: text, postalCode: text }).strict();
+const technicianProfileFields = z.object({ name: text.max(120), email: z.email().nullable().optional(),
+  phone: technicianPhone.nullable().optional(), bio: z.string().trim().max(2000).nullable().optional(),
   color: technicianColorValue }).strict();
-export const createTechnicianRequest = technicianProfileRequest.extend({ depotId: text,
-  email: z.email(), phone: z.string().trim().min(7).max(40),
-  address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(),
+// Address, pin and confirmation are all supplied together (an address change) or all omitted.
+export const technicianProfileRequest = technicianProfileFields.extend({ address: homeAddress.optional(),
+  confirmedPin: point.optional(), manuallyConfirmed: z.boolean().optional() }).strict().superRefine((value, context) => {
+  const supplied = [value.address, value.confirmedPin, value.manuallyConfirmed].filter(item => item !== undefined).length;
+  if (supplied !== 0 && supplied !== 3)
+    context.addIssue({ code: "custom", message: "Address, confirmed pin and manual confirmation must be supplied together" });
+});
+export const createTechnicianRequest = technicianProfileFields.extend({ depotId: text,
+  email: z.email(), phone: technicianPhone,
+  address: homeAddress,
   confirmedPin: point, manuallyConfirmed: z.boolean(), days: standardWeek, qualifications: z.array(text).min(1).refine(ids => new Set(ids).size === ids.length),
 }).strict();
 export const updateStandardWeekRequest = z.object({ days: standardWeek }).strict();
