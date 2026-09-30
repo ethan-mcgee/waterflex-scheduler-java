@@ -18,7 +18,7 @@ public final class SolverBenchmark {
         String revision = Required.value(System.getProperty("benchmark.revision"), "exact benchmark revision");
         Path output = Required.value(Path.of(Required.value(System.getProperty("benchmark.output"), "benchmark output")));
         long budget = Long.parseLong(System.getProperty("benchmark.durationMs", "15000"));
-        if (budget < 100 || budget > 60000) throw new IllegalArgumentException("Benchmark budget must be 100..60000 ms");
+        validateBudget(budget);
         var sizes = values("benchmark.sizes", "20,30,50").stream().mapToInt(Integer::parseInt).toArray();
         var workloads = values("benchmark.workloads", "SPARSE,CLUSTERED,DISPERSED,MIXED_SKILL,TIGHT_WINDOW,ABSENCE,NEAR_CAPACITY")
                 .stream().map(value -> SolverBenchmarkData.Workload.valueOf(Required.value(value))).toList();
@@ -52,7 +52,8 @@ public final class SolverBenchmark {
                 var ordered = new ArrayList<>(variants); Collections.rotate(ordered, round++ % ordered.size());
                 for (var variant : ordered) {
                     var definition = Required.value(definitions.get(variant + ":" + seed));
-                    Map<String, Object> row = run(definition, fixture, budget);
+                    Map<String, Object> row = run(definition, PlanCopies.copy(fixture), budget);
+                    if (!fingerprint.equals(fingerprint(fixture))) throw new IllegalStateException("Starting fixture changed");
                     row.put("type", "result"); row.put("technicians", size); row.put("workload", workload.name());
                     row.put("datasetFingerprint", fingerprint); row.put("appointments", fixture.getVisits().size());
                     row.put("completedAt", Instant.now().toString());
@@ -64,6 +65,7 @@ public final class SolverBenchmark {
     }
 
     static Map<String, Object> run(SolverExperiment.Definition definition, DayPlan fixture, long budgetMs) {
+        validateBudget(budgetMs);
         var beforeValidation = validate(fixture);
         var before = SchedulingPolicy.measure(fixture);
         var rules = SchedulingPolicy.Rules.defaults();
@@ -102,6 +104,7 @@ public final class SolverBenchmark {
         }
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("variant", definition.variant().name()); row.put("seed", definition.seed());
+        row.put("budgetMs", budgetMs);
         row.put("referencePhase", cost.statistics());
         if (fairStatistics != null) row.put("fairnessPhase", fairStatistics);
         row.put("before", before); row.put("after", after); row.put("reference", referenceMetrics);
@@ -113,6 +116,9 @@ public final class SolverBenchmark {
                 .mapToLong(pool -> Required.value(pool.getPeakUsage()).getUsed()).sum());
         row.put("violations", 0);
         return row;
+    }
+    static void validateBudget(long budgetMs) {
+        if (budgetMs < 100 || budgetMs > 240000) throw new IllegalArgumentException("Benchmark budget must be 100..240000 ms");
     }
     private static RouteEvaluator.Result validate(DayPlan plan) {
         var independent = RouteEvaluator.evaluate(plan); var scored = DayScoreCalculator.evaluate(plan);

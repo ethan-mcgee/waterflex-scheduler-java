@@ -53,6 +53,8 @@ jobs:
         run: |
           python3 -m pip install matplotlib==3.11.2 reportlab==5.0.1 pymupdf==1.28.2
           python3 infra/test_scheduler_algorithm_comparison.py
+      - name: Verify configurable experiment toolkit (no full matrix)
+        run: python3 -m unittest discover -s infra -p test_experiments.py -v
       - name: Summarize javac tests before clean
         if: always()
         run: python3 infra/summarize-tests.py '*/target/surefire-reports/TEST-*.xml' --label javac

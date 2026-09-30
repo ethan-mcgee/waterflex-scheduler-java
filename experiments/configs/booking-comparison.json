@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "name": "booking-comparison",
+  "booking": {
+    "solvers": [
+      "INSERTION",
+      "BOUNDED"
+    ],
+    "control": "INSERTION",
+    "seeds": [
+      17,
+      23,
+      41,
+      59,
+      83
+    ],
+    "fleets": [
+      5,
+      10,
+      20,
+      50
+    ],
+    "workloads": [
+      "DISPERSED"
+    ],
+    "concurrency": [
+      1,
+      5,
+      10
+    ],
+    "caches": [
+      "cold",
+      "warm"
+    ],
+    "requests": 10
+  }
+}

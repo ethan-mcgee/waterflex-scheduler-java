@@ -64,7 +64,8 @@ public final class SchedulingBenchmarkController {
         Map<String, String> values = new TreeMap<>();
         var defaults = Map.of("booking.reservations.enabled", "false", "booking.search.bounded", "false",
                 "booking.search.refinement-ms", "250", "scheduler.search.capacity", "0", "scheduler.search.queue-limit", "16",
-                "scheduler.optimizer.variant", "TABU", "scheduler.optimizer.seed", "17", "routing.prewarm.enabled", "false");
+                "scheduler.optimizer.variant", "TABU", "scheduler.optimizer.seed", "17", "routing.prewarm.enabled", "false",
+                "booking.search.variant", "BOUNDED");
         defaults.forEach((key, fallback) -> values.put(key, Required.value(environment.getProperty(Required.value(key), Required.value(fallback)))));
         values.put("maximumHeapBytes", Long.toString(Runtime.getRuntime().maxMemory()));
         return Required.value(Map.copyOf(values));
