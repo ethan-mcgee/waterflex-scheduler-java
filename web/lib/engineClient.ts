@@ -1,3 +1,4 @@
+import { durableSearchStatus } from "./contracts";
 import { z } from "zod";
 import { locationValidation } from "./contracts";
 
@@ -239,3 +240,11 @@ export function updateQualification(request: { technicianId: string; serviceId: 
 }
 
 const requestEngine = request;
+
+export function startBookingSearch(jobId: string, requestId: string, refresh: boolean) {
+  return request("/v1/booking-searches", durableSearchStatus, { jobId, requestId, refresh }, 10000);
+}
+export function bookingSearchStatus(id: string, jobId: string, cancel = false) {
+  return request(`/v1/booking-searches/${encodeURIComponent(id)}?jobId=${encodeURIComponent(jobId)}`,
+    durableSearchStatus, undefined, 10000, undefined, cancel ? "DELETE" : "GET");
+}

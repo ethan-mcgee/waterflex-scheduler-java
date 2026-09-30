@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { chromium } from "@playwright/test";
-import { offersResponse, errorMessage } from "../lib/contracts";
+import { offersResponse, errorMessage, durableSearchStatus, appointmentSearch } from "../lib/contracts";
+import { randomUUID } from "node:crypto";
 
 export class BrowserSearchError extends Error {
   constructor(message: string, readonly elapsedMs: number) { super(message); }
@@ -19,7 +20,40 @@ export async function browserBenchmark(portal: string) {
     return {
       version: browser.version(),
       close: () => browser.close(),
-      async search(jobId: string) {
+      async search(jobId: string, durable = false) {
+        if (durable) {
+          const started = performance.now();
+          let requestId: string = randomUUID();
+          const request = async (method: string) => {
+            const measured = await page.evaluate(async ({ method, jobId, requestId }) => {
+              const query = method === "POST" ? "" : `?id=${encodeURIComponent(requestId)}&jobId=${encodeURIComponent(jobId)}`;
+              const response = await fetch(`/api/book/search${query}`, { method,
+                headers: { "Content-Type": "application/json" },
+                body: method === "POST" ? JSON.stringify({ jobId, requestId, refresh: false }) : undefined,
+                signal: AbortSignal.timeout(12000) });
+              const body: unknown = await response.json();
+              return { status: response.status, body };
+            }, { method, jobId, requestId });
+            if (measured.status !== 200) throw new BrowserSearchError(errorMessage(measured.body, "Portal search failed"), performance.now() - started);
+            return durableSearchStatus.parse(measured.body);
+          };
+          let status = await request("POST");
+          requestId = status.id;
+          const qualityTrace: Array<{ elapsedMs: number; costDeltaCents: number | null }> = [];
+          while (status.state === "QUEUED" || status.state === "RUNNING") {
+            if (performance.now() - started > 135000) {
+              await request("DELETE");
+              throw new BrowserSearchError("Durable browser search exceeded its bound", performance.now() - started);
+            }
+            await new Promise(resolve => setTimeout(resolve, 750));
+            status = await request("GET");
+            qualityTrace.push({ elapsedMs: performance.now() - started, costDeltaCents: status.bestCostDeltaCents ?? null });
+          }
+          return { elapsedMs: performance.now() - started, response: { jobId, offers: status.offers, qualityTrace,
+            search: appointmentSearch.parse({ outcome: status.state === "AVAILABLE" ? "AVAILABLE" : status.state === "NO_CANDIDATE" ? "NO_CANDIDATE_FOUND" : "SEARCH_INCOMPLETE",
+              prescribedSearchCompleted: status.state === "NO_CANDIDATE" || (status.state === "AVAILABLE" && status.stopReason === "COMPLETED"),
+              elapsedMs: status.elapsedMs, queueMs: status.queueMs ?? undefined, retryable: status.state !== "AVAILABLE" && status.state !== "NO_CANDIDATE" }) } };
+        }
         const measured = await page.evaluate(async id => {
           const started = performance.now();
           try {

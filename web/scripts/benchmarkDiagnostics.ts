@@ -6,10 +6,11 @@ const diagnostic = z.object({ format: z.literal(1), completed: z.boolean(), stop
   configurationFingerprint: z.string().min(1), routingIdentity: z.string().min(1), capturedAt: z.iso.datetime(),
   snapshotAgeMs: count, routingPairs: count, evaluatedRoutes: count, reusedRoutes: count, prunedArrangements: count,
   optionalRefinementMillis: count, distinctRegularWindows: count, confirmedRegularMinutes: count, regularCapacityMinutes: count,
+  variant: z.string().optional(), reconstructionAttempts: count.optional(), reconstructionEvaluations: count.optional(),
   overtimeAuthorized: z.boolean(), limits: z.object({ routes: count, depth: count, beam: count, arrangementsPerWindow: count }),
   coverage: z.array(z.object({ date: z.iso.date(), windowStart: z.iso.datetime(), windowEnd: z.iso.datetime(), routes: count,
     arrangements: count, moves: count, candidateEvaluations: count, completed: z.boolean(), stopReason: z.string().min(1) })),
-  offerSources: z.record(z.string(), z.enum(["INSERTION", "REARRANGEMENT"])),
+  offerSources: z.record(z.string(), z.enum(["INSERTION", "REARRANGEMENT", "RUIN_RECREATE"])),
 });
 
 /** Optional dedicated server log, read after the measured case. Never read inside search timing. */

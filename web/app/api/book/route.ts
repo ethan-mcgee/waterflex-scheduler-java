@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { GeocoderError, searchAddress, type GeocodeResult } from "@/lib/geocode";
 import { bookingServiceArea } from "@/lib/serviceArea";
-import { requestSlots, validateBookingLocation, EngineError } from "@/lib/engineClient";
+import { startBookingSearch, requestSlots, validateBookingLocation, EngineError } from "@/lib/engineClient";
 import { bookingFingerprint } from "@/lib/bookingIdentity";
 
 export async function POST(req: NextRequest) {
@@ -61,6 +61,10 @@ export async function POST(req: NextRequest) {
       if (job.bookingRequestFingerprint !== fingerprint) return conflict();
     }
     if (input.followUp) return NextResponse.json({ status: "FOLLOW_UP", jobId: job.id, pendingReference: job.id });
+    if (input.backgroundSearch) {
+      const search = await startBookingSearch(job.id, input.requestId, false);
+      return NextResponse.json({ jobId: job.id, searchRequestId: search.id });
+    }
     return NextResponse.json(await requestSlots(job.id, false, 5000, req.signal));
   } catch (error) {
     if (error instanceof GeocoderError) return NextResponse.json({ status: "LOOKUP_FAILED", error: error.message }, { status: error.kind === "timeout" ? 504 : error.kind === "malformed" ? 502 : 503 });

@@ -5,7 +5,7 @@ import { initialAvailability } from "../lib/technicianAvailability";
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
-test("repair overtime approval is explicit and identifies the reviewed preview", async ({ page }) => {
+for (const beforeOvertime of [0, 60]) test(`repair with 60 minutes overtime is blocked when previous overtime was ${beforeOvertime}`, async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Overtime UI metro", timezone: "America/Chicago" } });
   const dealer = await prisma.dealership.create({ data: { name: "Overtime UI dealer" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealer.id, name: "Overtime UI depot", lat: 41.2, lng: -95.9,
@@ -19,20 +19,19 @@ test("repair overtime approval is explicit and identifies the reviewed preview",
     intervals: { create: { serviceDate: new Date("2099-10-05T00:00:00Z"), startMin: 480, endMin: 1020 } },
     report: { create: { status: "READY", progress: 100, data: { technician_id: technician.id, days: [
       { service_date: "2099-10-05", start_min: 480, end_min: 1020, status: "REPAIR_PREVIEW", run_id: "reviewed-run",
-        daily_before: metric(0), daily_after: metric(60) },
+        daily_before: metric(beforeOvertime), daily_after: metric(60) },
     ] } } } } });
   try {
+    let approvalCalls = 0;
     await page.route("**/api/time-off/approve", async route => {
-      expect(route.request().postDataJSON()).toEqual({ id: request.id, allowAdditionalOvertime: true, approvedRepairIds: ["reviewed-run"] });
-      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ requestId: request.id, status: "APPROVED" }) });
+      approvalCalls++;
+      await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Overtime prohibited" }) });
     });
     await page.goto("/time-off?status=ready");
-    const approve = page.getByRole("button", { name: "Approve", exact: true });
-    await expect(approve).toBeDisabled();
-    await page.getByRole("checkbox", { name: "Approve 60 additional overtime minutes to preserve appointments" }).check();
-    await expect(approve).toBeEnabled();
-    await approve.click();
-    await expect(page.getByText(`Request ${request.id} approved.`, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeDisabled();
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    await expect(page.getByText("This repair requires overtime and needs manual resolution.", { exact: true })).toBeVisible();
+    expect(approvalCalls).toBe(0);
   } finally {
     await prisma.timeOffRequest.delete({ where: { id: request.id } });
     await prisma.technician.delete({ where: { id: technician.id } });

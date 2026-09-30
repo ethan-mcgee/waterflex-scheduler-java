@@ -12,16 +12,16 @@ import static org.mockito.Mockito.*;
 
 class BookingSearchOutcomeTest {
     @Test void expiredPortalDeadlineNeverStartsBooking() {
-        BookingService service = mock(BookingService.class);
-        var response = new BookingController(service, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(
+        BookingCoordinator service = mock(BookingCoordinator.class);
+        var response = new BookingController(mock(BookingService.class), new SearchAdmission(2, 16), service, mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(
                 new BookingController.JobRequest("job", false, System.currentTimeMillis() - 1, null));
         assertEquals(BookingController.SearchOutcome.SEARCH_INCOMPLETE, response.search().outcome());
         verifyNoInteractions(service);
     }
     @Test void insertionMissDoesNotClaimCompletedScarcitySearch() {
-        BookingService service = mock(BookingService.class);
-        when(service.offers("job", false)).thenReturn(new BookingService.Offers("job", Required.value(List.of())));
-        var response = new BookingController(service, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", false));
+        BookingCoordinator service = mock(BookingCoordinator.class);
+        when(service.offers("job", false)).thenReturn(new BookingCoordinator.Result(new BookingService.Offers("job", Required.value(List.of())), false, "DEADLINE"));
+        var response = new BookingController(mock(BookingService.class), new SearchAdmission(2, 16), service, mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", false));
         assertEquals(BookingController.SearchOutcome.SEARCH_INCOMPLETE, response.search().outcome());
         assertFalse(response.search().prescribedSearchCompleted());
         assertTrue(response.search().retryable());
@@ -29,12 +29,12 @@ class BookingSearchOutcomeTest {
     }
 
     @Test void availableResponseCarriesCommittedOffersWithoutClaimingBoundedSearchCompletion() {
-        BookingService service = mock(BookingService.class);
+        BookingCoordinator service = mock(BookingCoordinator.class);
         var start = Required.value(Instant.parse("2099-10-05T14:00:00Z"));
         var end = Required.value(start.plusSeconds(7200));
         var offers = Required.value(List.<BookingService.Offer>of(new BookingService.Offer("offer", "2099-10-05", start, end, end)));
-        when(service.offers("job", true)).thenReturn(new BookingService.Offers("job", offers));
-        var response = new BookingController(service, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", true));
+        when(service.offers("job", true)).thenReturn(new BookingCoordinator.Result(new BookingService.Offers("job", offers), false, "DEADLINE"));
+        var response = new BookingController(mock(BookingService.class), new SearchAdmission(2, 16), service, mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", true));
         assertEquals(offers, response.offers());
         assertEquals(BookingController.SearchOutcome.AVAILABLE, response.search().outcome());
         assertFalse(response.search().prescribedSearchCompleted());
@@ -49,9 +49,9 @@ class BookingSearchOutcomeTest {
                 BookingController.SearchOutcome.SERVICE_BUSY, BookingController.SearchOutcome.SEARCH_INCOMPLETE,
                 BookingController.SearchOutcome.SCHEDULE_CONFLICT);
         for (int index = 0; index < failures.size(); index++) {
-            BookingService service = mock(BookingService.class);
+            BookingCoordinator service = mock(BookingCoordinator.class);
             when(service.offers("job", false)).thenThrow(failures.get(index));
-            var response = new BookingController(service, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", false));
+            var response = new BookingController(mock(BookingService.class), new SearchAdmission(2, 16), service, mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", false));
             assertEquals(outcomes.get(index), response.search().outcome());
             assertTrue(response.offers().isEmpty());
             assertTrue(response.search().retryable());
@@ -60,9 +60,9 @@ class BookingSearchOutcomeTest {
     }
 
     @Test void invalidJobLocationPreservesValidationError() {
-        BookingService service = mock(BookingService.class);
+        BookingCoordinator service = mock(BookingCoordinator.class);
         when(service.offers("job", false)).thenThrow(new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Missing coordinates"));
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, assertThrows(ResponseStatusException.class,
-                () -> new BookingController(service, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", false))).getStatusCode());
+                () -> new BookingController(mock(BookingService.class), new SearchAdmission(2, 16), service, mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false).offers(new BookingController.JobRequest("job", false))).getStatusCode());
     }
 }

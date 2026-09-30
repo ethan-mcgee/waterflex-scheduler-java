@@ -59,10 +59,29 @@ public final class BookingSnapshotLoader {
     }
 
     public Loaded load(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity) {
+        return load(metroId, requestingJobId, capturedAt, routingIdentity, false);
+    }
+    public Loaded load(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity, boolean overflow) {
+        List<LocalDate> dates = new ArrayList<>(BookingService.bookingDates(capturedAt));
+        if (overflow) dates.addAll(BookingService.overflowDates(capturedAt));
         Facts facts = Required.value(reads.execute(_ -> read(metroId, requestingJobId, capturedAt, routingIdentity,
-                BookingService.bookingDates(capturedAt), true)), "booking snapshot");
+                dates, true)), "booking snapshot");
         return new Loaded(new BookingSnapshot(facts.metroId(), facts.capturedAt(), facts.configurationFingerprint(),
                 facts.routingIdentity(), facts.policy(), facts.rates(), facts.days()), facts.holds());
+    }
+
+    /** Operator flags do not remove commitments, dependencies, or capacity from snapshots. */
+    public void flagExistingOvertime(BookingSnapshot snapshot, String requestedService) {
+        for (var day : snapshot.days().values()) {
+            var evaluation = new BookingEvaluation(Required.value(day), snapshot.rates(), requestedService, SearchDeadline::checkpoint);
+            for (var route : day.baseline().routes().entrySet()) {
+                if (evaluation.route(Required.value(route.getKey()), Required.value(route.getValue()), day.visits(), false).overtimeMinutes() == 0) continue;
+                for (String id : route.getValue()) {
+                    Visit visit = Required.value(day.visits().get(id));
+                    if (!visit.reservation()) jdbc.update("UPDATE job SET \"manualFollowUpStatus\"='PENDING',\"manualFollowUpReason\"='EXISTING_OVERTIME' WHERE id=? AND status='SCHEDULED' AND (\"manualFollowUpReason\" IS NULL OR \"manualFollowUpReason\"='EXISTING_OVERTIME')", visit.jobId());
+                }
+            }
+        }
     }
 
     /** Existing offers can cross midnight; their service dates need not be in today's new-booking horizon. */

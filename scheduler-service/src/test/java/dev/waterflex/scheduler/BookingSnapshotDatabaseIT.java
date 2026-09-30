@@ -194,6 +194,8 @@ class BookingSnapshotDatabaseIT {
                     "A missing historical delta cannot authorize the transferred overtime");
             assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
             jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-30 WHERE id=?", prefix + "-request");
+            // Overtime approval is no longer valid. Repair regular availability before testing stale issuance.
+            jdbc.update("UPDATE technician_availability_day SET \"shiftStartMin\"=480,\"shiftEndMin\"=1020 WHERE \"versionId\"=?", prefix + "-a");
             changeIssuanceDuringPreparation.set(true);
             var changedOffer = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
             assertEquals("Selected offer changed", changedOffer.getReason());

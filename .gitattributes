@@ -3,3 +3,7 @@ docs/evidence/*.json text eol=lf
 infra/summarize-booking-acceptance.py text eol=lf
 /infra/map-import/prepare.sh text eol=lf
 docs/validation/booking-location-map-*.json text eol=lf
+docs/evidence/scheduler-field-2026-09-29/** -text whitespace=cr-at-eol
+docs/scheduler-field-validation.md text eol=lf
+docs/scheduler-field-validation.html text eol=lf
+docs/scheduler-field-*.svg text eol=lf

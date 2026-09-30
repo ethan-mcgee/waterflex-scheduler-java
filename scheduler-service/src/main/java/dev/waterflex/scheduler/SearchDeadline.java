@@ -19,6 +19,26 @@ public final class SearchDeadline {
     public SearchTelemetry telemetry() { return telemetry; }
     private long durationNanos;
     private boolean committing;
+    private boolean durable;
+    private volatile @Nullable Long bestCostDeltaCents;
+    public @Nullable Long bestCostDeltaCents() { return bestCostDeltaCents; }
+    public static void incumbent(long costDeltaCents) {
+        SearchDeadline value = CURRENT.get();
+        if (value != null) {
+            Long previous = value.bestCostDeltaCents;
+            if (previous == null || costDeltaCents < previous) value.bestCostDeltaCents = costDeltaCents;
+        }
+    }
+    private final java.util.concurrent.atomic.AtomicLong work = new java.util.concurrent.atomic.AtomicLong();
+    private volatile String phase = "SNAPSHOT";
+    public long completedWork() { return work.get(); }
+    public String phase() { return phase; }
+    public static void progress(String phase) {
+        SearchDeadline value = CURRENT.get();
+        if (value != null) { value.phase = phase; value.work.incrementAndGet(); }
+    }
+    public SearchDeadline durable() { durable = true; return this; }
+    public static boolean isDurable() { SearchDeadline value = CURRENT.get(); return value != null && value.durable; }
     private volatile boolean cancelled;
     private Runnable commitGuard = () -> { };
     private java.util.function.Consumer<String> reservationRecorder = _ -> { };
@@ -74,12 +94,12 @@ public final class SearchDeadline {
     }
     public static void beginExploration() {
         SearchDeadline current = CURRENT.get();
-        if (current != null) { current.committing = false; checkpoint(); }
+        if (current != null) { current.committing = false; current.bestCostDeltaCents = null; checkpoint(); }
     }
     public static void policyLimit(int millis) {
         if (millis < 1000 || millis > 5000) throw new IllegalArgumentException("Invalid booking deadline policy");
         SearchDeadline current = CURRENT.get();
-        if (current != null) {
+        if (current != null && !current.durable) {
             current.durationNanos = Math.min(current.durationNanos, millis * 1_000_000L);
             current.requireTime();
         }

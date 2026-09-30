@@ -6,7 +6,7 @@ import { cpus, totalmem } from "node:os";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { required, errorMessage, appointmentSearch } from "../lib/contracts";
-import { requestSlots, selectOffer, releaseOffers } from "../lib/engineClient";
+import { requestSlots, startBookingSearch, bookingSearchStatus, selectOffer, releaseOffers } from "../lib/engineClient";
 import { bookingHorizon, chooseTestOffer } from "../lib/bookingTestCore";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { localMidnightUtc } from "../lib/date";
@@ -15,6 +15,22 @@ import { createSeededRandom, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
 import { legacyBenchmarkServer, legacyOffers, LegacyRequestUncertain } from "./benchmarkLegacy";
 import { browserBenchmark, BrowserSearchError } from "./benchmarkBrowser";
 import { benchmarkDiagnostics } from "./benchmarkDiagnostics";
+
+async function durableSlots(jobId: string) {
+  const start = performance.now();
+  const trace: Array<{ elapsedMs: number; costDeltaCents: number | null }> = [];
+  let status = await startBookingSearch(jobId, randomUUID(), false);
+  while (status.state === "QUEUED" || status.state === "RUNNING") {
+    if (performance.now() - start > 135000) { await bookingSearchStatus(status.id, jobId, true); throw new Error("Durable worker exceeded its bound"); }
+    await new Promise(resolve => setTimeout(resolve, 100));
+    status = await bookingSearchStatus(status.id, jobId);
+    trace.push({ elapsedMs: performance.now() - start, costDeltaCents: status.bestCostDeltaCents ?? null });
+  }
+  const completed = status.stopReason === "COMPLETED";
+  return { jobId, offers: status.offers, qualityTrace: trace, search: appointmentSearch.parse({ outcome: status.state === "AVAILABLE" ? "AVAILABLE" : status.state === "NO_CANDIDATE" ? "NO_CANDIDATE_FOUND" : "SEARCH_INCOMPLETE",
+    prescribedSearchCompleted: status.state === "NO_CANDIDATE" || (status.state === "AVAILABLE" && completed), elapsedMs: status.elapsedMs,
+    queueMs: status.queueMs ?? undefined, retryable: status.state !== "AVAILABLE" && status.state !== "NO_CANDIDATE" }) };
+}
 
 async function main() {
 const database = new URL(required(process.env.DATABASE_URL));
@@ -43,12 +59,12 @@ if (legacy) assert.notEqual(auditEngine, engine, "Legacy audits require a separa
 let legacyServer: Awaited<ReturnType<typeof legacyBenchmarkServer>> | null = null;
 let browser: Awaited<ReturnType<typeof browserBenchmark>> | null = null;
 const prisma = new PrismaClient();
-const sizes = (process.env.BENCHMARK_SIZES ?? "20,30,50").split(",").map(value => z.union([z.literal(20), z.literal(30), z.literal(50)]).parse(Number(value)));
+const sizes = (process.env.BENCHMARK_SIZES ?? "20,30,50").split(",").map(value => z.union([z.literal(5), z.literal(10), z.literal(20), z.literal(30), z.literal(50)]).parse(Number(value)));
 const workloadSchema = z.enum(["SPARSE", "CLUSTERED", "DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW", "ABSENCE", "NEAR_CAPACITY"]);
 const workloads = (process.env.BENCHMARK_WORKLOADS ?? workloadSchema.options.join(",")).split(",").map(value => workloadSchema.parse(value));
 const concurrencyValues = (process.env.BENCHMARK_CONCURRENCY ?? "1,5,10").split(",").map(value => z.union([z.literal(1), z.literal(5), z.literal(10)]).parse(Number(value)));
 const caches = (process.env.BENCHMARK_CACHES ?? "cold,warm").split(",").map(value => z.enum(["cold", "warm"]).parse(value));
-const requests = z.int().min(10).max(200).parse(Number(process.env.BENCHMARK_REQUESTS ?? "30"));
+const requests = z.int().min(1).max(200).parse(Number(process.env.BENCHMARK_REQUESTS ?? "30"));
 const seed = z.int().nonnegative().parse(Number(process.env.BENCHMARK_SEED ?? "17"));
 const dates = bookingHorizon();
 const points = OMAHA_FAKE_LOCATIONS.filter(point => point.state === "NE").slice(0, 10).map(({ lat, lng }) => ({ lat, lng }));
@@ -68,7 +84,7 @@ const auditContract = z.object({ routingIdentity: z.string().min(1), configurati
     travelBufferPct: z.number().nonnegative(), travelBufferMinutes: z.int().nonnegative() }).optional(),
   days: z.array(z.object({ date: z.iso.date(), policy, waitingMinutes: z.int().nonnegative(), roadSeconds: z.int().nonnegative(),
     configuredBufferSeconds: z.number().nonnegative(), roundingSeconds: z.number().nonnegative(), confirmedAppointments: z.int().nonnegative(), reservedStops: z.int().nonnegative() })) });
-async function audit(metroId: string) { return auditContract.parse(await post("/internal/benchmark/audit", { metroId, dates })); }
+async function audit(metroId: string, serviceDates: string[] = dates) { return auditContract.parse(await post("/internal/benchmark/audit", { metroId, dates: serviceDates })); }
 const statisticsContract = z.object({ routing: z.object({ legRequests: z.int().nonnegative(), requestedPairs: z.int().nonnegative(),
   identityRequests: z.int().nonnegative(), geometryRequests: z.int().nonnegative() }), processCpuNanos: z.int().nonnegative().nullable(),
   heapUsedBytes: z.int().nonnegative(), peakHeapUsedBytes: z.int().nonnegative(), uptimeMs: z.int().nonnegative(), configuration: z.record(z.string(), z.string()) });
@@ -143,7 +159,7 @@ async function dataset(size: number, workload: Workload, caseId: string) {
   return { metroId: metro.id, jobIds, fingerprint: createHash("sha256").update(JSON.stringify({ size, workload, seed, dates, points, manifest })).digest("hex") };
 }
 
-type Attempt = { index: number; elapsedMs: number; outcome: string; completed: boolean | null; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch>; selectionElapsedMs?: number };
+type Attempt = { qualityTrace?: Array<{ elapsedMs: number; costDeltaCents: number | null }>; index: number; elapsedMs: number; outcome: string; completed: boolean | null; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch>; selectionElapsedMs?: number };
 async function removeSuccessfulCase(caseId: string) {
   const jobs = { id: { startsWith: `${caseId}-` } };
   const technicians = { id: { startsWith: `${caseId}-tech-` } };
@@ -175,7 +191,7 @@ try {
     browser = await browserBenchmark(process.env.BENCHMARK_PORTAL_URL);
   }
   await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
-    browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: "validated-job refresh" },
+    browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: process.env.BENCHMARK_DURABLE === "true" ? "validated-job durable search with 750ms polling" : "validated-job refresh" },
     serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
     legacyMeasurementTimeoutMs: legacy ? legacyMeasurementTimeoutMs : null,
     legacyLimitations: legacy ? `Original unchanged server: ${legacyMeasurementTimeoutMs / 1000}-second measurement timeout, no completion/deadline metadata, fresh process per case; separate current evaluator reports canonical modeled metrics.` : null,
@@ -200,16 +216,22 @@ try {
         const started = performance.now(); let offered: string | null = null;
         let searched: Attempt | null = null; let selectionStarted: number | null = null;
         try {
-          const browserResult = browser == null ? null : await browser.search(jobId);
-          const response = browserResult?.response ?? (legacy ? { ...await legacyOffers(engine, jobId, legacyMeasurementTimeoutMs), search: undefined } : await requestSlots(jobId));
+          const browserResult = browser == null ? null : await browser.search(jobId, process.env.BENCHMARK_DURABLE === "true");
+          const response = browserResult?.response ?? (legacy ? { ...await legacyOffers(engine, jobId, legacyMeasurementTimeoutMs), search: undefined } : (process.env.BENCHMARK_DURABLE === "true" ? await durableSlots(jobId) : await requestSlots(jobId)));
           const elapsedMs = browserResult?.elapsedMs ?? performance.now() - started;
           const selected = chooseTestOffer(response.offers, "earliest", 0);
           const attempt: Attempt = { index: offset + localIndex, elapsedMs, search: response.search,
             outcome: response.search?.outcome ?? (response.offers.length ? "LEGACY_AVAILABLE" : "LEGACY_NO_OFFER"), completed: response.search?.prescribedSearchCompleted ?? null,
             offers: response.offers.length, served: false };
+          if ("qualityTrace" in response) attempt.qualityTrace = z.array(z.object({ elapsedMs: z.number().nonnegative(), costDeltaCents: z.int().nullable() })).parse(response.qualityTrace);
           searched = attempt;
           if (selected) {
-            offered = selected.offerId; selectionStarted = performance.now(); await selectOffer(jobId, selected.offerId);
+            offered = selected.offerId;
+            if (process.env.BENCHMARK_DELAY_CONFIRM_MS) await new Promise(resolve => setTimeout(resolve, Number(process.env.BENCHMARK_DELAY_CONFIRM_MS)));
+            if (process.env.BENCHMARK_ABANDON_EVERY && (offset + localIndex + 1) % Number(process.env.BENCHMARK_ABANDON_EVERY) === 0) {
+              await releaseOffers(jobId, selected.offerId); attempt.outcome = "ABANDONED"; return attempt;
+            }
+            selectionStarted = performance.now(); await selectOffer(jobId, selected.offerId);
             attempt.selectionElapsedMs = performance.now() - selectionStarted; attempt.served = true; attempt.serviceDate = selected.date;
           }
           return attempt;
@@ -227,7 +249,20 @@ try {
     if (legacyServer) { await legacyServer.stop(); legacyServer = null; }
     const processAfter = await statistics(false);
     const diagnostics = await benchmarkDiagnostics(process.env.BENCHMARK_LOG_PATH, data.jobIds);
-    const after = await audit(data.metroId);
+    let after: z.infer<typeof auditContract>;
+    const auditedDates = [...new Set([...dates, ...attempts.flatMap(attempt => attempt.served && attempt.serviceDate ? [attempt.serviceDate] : [])])].sort();
+    try { after = await audit(data.metroId, auditedDates); }
+    catch (error) {
+      // Retain client observations even when the final consistency audit fails.
+      // A later successful audit cannot recover these latency measurements.
+      await record({ type: "audit_failure", revision, variant, caseId, size, workload, concurrency, cache,
+        datasetFingerprint: data.fingerprint, before, attempts, processBefore, processAfter, diagnostics,
+        message: errorMessage(error), at: new Date().toISOString() });
+      throw error;
+    }
+    assert.equal(after.days.reduce((sum, day) => sum + day.confirmedAppointments, 0)
+      - before.days.reduce((sum, day) => sum + day.confirmedAppointments, 0), attempts.filter(attempt => attempt.served).length,
+    "Every confirmed request, including overflow, must appear in the final route audit");
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);
