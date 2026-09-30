@@ -24,7 +24,8 @@
     ],
     "workloads": [
       "CLUSTERED",
-      "DISPERSED"
+      "DISPERSED",
+      "SPARSE"
     ],
     "budgets_seconds": [
       15,

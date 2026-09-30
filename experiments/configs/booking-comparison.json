@@ -22,7 +22,8 @@
     ],
     "workloads": [
       "DISPERSED",
-      "CLUSTERED"
+      "CLUSTERED",
+      "SPARSE"
     ],
     "concurrency": [
       1,
