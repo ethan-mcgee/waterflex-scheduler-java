@@ -149,8 +149,8 @@ class LauncherTests(unittest.TestCase):
             tick[0] = 68
             self.assertIn('case 00:00:05', progress.line())
             progress.update('Finished case 3/4', completed=3)
-        self.assertIn('[############............] 2/4 | elapsed 00:01:01', output.getvalue())
-        self.assertIn('3/4 | elapsed 00:01:08', output.getvalue())
+        self.assertIn('[######......] 2/4 elapsed 00:01:01', output.getvalue())
+        self.assertIn('3/4 elapsed 00:01:08', output.getvalue())
 
 
 class AnalysisTests(unittest.TestCase):
