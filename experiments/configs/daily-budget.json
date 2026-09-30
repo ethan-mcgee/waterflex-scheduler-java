@@ -3,9 +3,7 @@
   "name": "daily-budget",
   "daily": {
     "solvers": [
-      "LATE_ACCEPTANCE",
       "TABU",
-      "SUBLIST",
       "KOPT"
     ],
     "control": "TABU",
@@ -29,8 +27,7 @@
     "budgets_seconds": [
       30,
       60,
-      90,
-      120
+      90
     ]
   }
 }
