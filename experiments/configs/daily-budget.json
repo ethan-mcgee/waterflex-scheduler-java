@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "name": "daily-budget",
+  "daily": {
+    "solvers": [
+      "LATE_ACCEPTANCE",
+      "TABU",
+      "SUBLIST",
+      "KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      17,
+      23,
+      41,
+      59,
+      83
+    ],
+    "fleets": [
+      5,
+      10,
+      20,
+      50
+    ],
+    "workloads": [
+      "CLUSTERED"
+    ],
+    "budgets_seconds": [
+      15,
+      30,
+      60,
+      90,
+      120,
+      240
+    ]
+  }
+}
