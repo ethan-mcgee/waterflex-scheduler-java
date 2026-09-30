@@ -11,3 +11,4 @@ docs/scheduler-algorithm-comparison-2026-09-29.pdf -text -diff
 docs/scheduler-algorithm-comparison-2026-09-29.md text eol=lf
 infra/build-scheduler-algorithm-comparison.py text eol=lf
 docs/evidence/reliable-experiments-validation-2026-09-30/** -text whitespace=cr-at-eol
+docs/evidence/reliable-experiments-validation-2026-09-30/**/*.svg -diff
