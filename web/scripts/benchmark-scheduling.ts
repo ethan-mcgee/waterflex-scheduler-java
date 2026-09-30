@@ -7,7 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { required, errorMessage, appointmentSearch } from "../lib/contracts";
 import { requestSlots, startBookingSearch, bookingSearchStatus, selectOffer, releaseOffers } from "../lib/engineClient";
-import { bookingHorizon, chooseTestOffer } from "../lib/bookingTestCore";
+import { chooseTestOffer } from "../lib/bookingTestCore";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { localMidnightUtc } from "../lib/date";
 import { technicianColor } from "../lib/technicianColor";
@@ -15,6 +15,7 @@ import { createSeededRandom, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
 import { legacyBenchmarkServer, legacyOffers, LegacyRequestUncertain } from "./benchmarkLegacy";
 import { browserBenchmark, BrowserSearchError } from "./benchmarkBrowser";
 import { benchmarkDiagnostics } from "./benchmarkDiagnostics";
+import { experimentDates, verifyExperimentSettings } from "./benchmarkExperiment";
 
 async function durableSlots(jobId: string) {
   const start = performance.now();
@@ -38,10 +39,14 @@ assert.equal(database.pathname, "/waterflex_test");
 assert.ok(required(database.searchParams.get("schema")).startsWith("benchmark_"), "Use a dedicated benchmark_ schema");
 const revision = required(process.env.BENCHMARK_REVISION, "Exact server revision");
 const variant = required(process.env.BENCHMARK_VARIANT, "Named implementation/configuration stage");
-const harnessRevision = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-const sourcePaths = execFileSync("git", ["ls-files", "-z", "--", "scripts/benchmark-scheduling.ts", "scripts/benchmarkLegacy.ts", "scripts/benchmarkBrowser.ts", "scripts/benchmarkDiagnostics.ts", "lib", "prisma/schema.prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort();
-execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
+const frozen = process.env.BENCHMARK_FROZEN_MANIFEST == null ? null : z.object({
+  revision: z.string().regex(/^[a-f0-9]{40}$/), sources: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)),
+}).parse(JSON.parse(await readFile(process.env.BENCHMARK_FROZEN_MANIFEST, "utf8")));
+const harnessRevision = frozen?.revision ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+const sourcePaths = frozen == null ? execFileSync("git", ["ls-files", "-z", "--", "scripts", "lib", "prisma"], { encoding: "utf8" }).split("\0").filter(Boolean).sort() : Object.keys(frozen.sources).sort();
+if (frozen == null) execFileSync("git", ["diff", "--exit-code", "HEAD", "--", ...sourcePaths]);
 const harnessSources = await Promise.all(sourcePaths.map(async path => ({ path, sha256: createHash("sha256").update(await readFile(path)).digest("hex") })));
+if (frozen != null) for (const source of harnessSources) assert.equal(source.sha256, frozen.sources[source.path], `Frozen source changed: ${source.path}`);
 const artifactSha256 = process.env.BENCHMARK_ARTIFACT_SHA256 == null ? null : z.string().regex(/^[a-f0-9]{64}$/i).parse(process.env.BENCHMARK_ARTIFACT_SHA256);
 const ablationManifest = process.env.BENCHMARK_ABLATION_MANIFEST == null ? null : z.object({
   revision: z.string().regex(/^[a-f0-9]{40}$/), stage: z.enum(["policy-insertion", "snapshot-insertion", "bounded-early"]),
@@ -66,7 +71,7 @@ const concurrencyValues = (process.env.BENCHMARK_CONCURRENCY ?? "1,5,10").split(
 const caches = (process.env.BENCHMARK_CACHES ?? "cold,warm").split(",").map(value => z.enum(["cold", "warm"]).parse(value));
 const requests = z.int().min(1).max(200).parse(Number(process.env.BENCHMARK_REQUESTS ?? "30"));
 const seed = z.int().nonnegative().parse(Number(process.env.BENCHMARK_SEED ?? "17"));
-const dates = bookingHorizon();
+const dates = experimentDates(process.env.BENCHMARK_DATES);
 const points = OMAHA_FAKE_LOCATIONS.filter(point => point.state === "NE").slice(0, 10).map(({ lat, lng }) => ({ lat, lng }));
 assert.equal(points.length, 10);
 const output = await open(required(process.env.BENCHMARK_OUTPUT), "wx");
@@ -92,9 +97,10 @@ async function statistics(resetPeak: boolean) {
   if (legacy) return null; // Audit-process counters cannot be attributed to the original booking process.
   const response = await fetch(`${engine}/internal/benchmark/statistics`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ resetPeak }), signal: AbortSignal.timeout(5000) });
-  if (response.status === 404) return null; // Earlier frozen artifacts explicitly lack this instrumentation.
+  if (response.status === 404) { verifyExperimentSettings(null, process.env.BENCHMARK_EXPECT_VARIANT); return null; }
   const body: unknown = await response.json(); assert.equal(response.status, 200, JSON.stringify(body));
   const measured = statisticsContract.parse(body);
+  verifyExperimentSettings(measured.configuration, process.env.BENCHMARK_EXPECT_VARIANT);
   if (ablationManifest != null) {
     assert.equal(measured.configuration["booking.reservations.enabled"], "true");
     assert.equal(measured.configuration["booking.search.bounded"], String(ablationManifest.boundedSearch));
@@ -198,9 +204,11 @@ try {
     scope: browser == null ? "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport"
       : "Browser HTTP through the portal including scheduler cancellation/acknowledgement; starts with validated job/address; excludes address entry/geocoding and rendering", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
   for (const size of sizes) for (const workload of workloads) for (const concurrency of concurrencyValues) for (const cache of caches) {
+    experimentDates(process.env.BENCHMARK_DATES);
     const caseId = `benchmark-${randomUUID()}`;
     const data = await dataset(size, workload, caseId);
     const before = await audit(data.metroId);
+    if (process.env.BENCHMARK_ROUTING_IDENTITY != null) assert.equal(before.routingIdentity, process.env.BENCHMARK_ROUTING_IDENTITY);
     if (workload === "NEAR_CAPACITY") for (const day of before.days) {
       const paid = day.policy.fairness.workloads.reduce((sum, item) => sum + item.paidMinutes, 0);
       const capacity = day.policy.fairness.workloads.reduce((sum, item) => sum + item.regularCapacityMinutes, 0);
@@ -263,6 +271,7 @@ try {
     assert.equal(after.days.reduce((sum, day) => sum + day.confirmedAppointments, 0)
       - before.days.reduce((sum, day) => sum + day.confirmedAppointments, 0), attempts.filter(attempt => attempt.served).length,
     "Every confirmed request, including overflow, must appear in the final route audit");
+    assert.equal(after.routingIdentity, before.routingIdentity, "Routing identity changed during measurement");
     const final = await prisma.appointment.findMany({ where: { id: { in: originals.map(item => item.id) } }, orderBy: { id: "asc" } });
     assert.deepEqual(final.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]), originals.map(item => [item.id, item.serviceDate, item.windowStart, item.windowEnd]));
     const ordered = attempts.map(item => item.elapsedMs).sort((a, b) => a - b);

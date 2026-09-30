@@ -13,3 +13,4 @@ web/playwright-report/
 .scratch/
 **/__pycache__/
 **/artifacts/
+experiments/runs/
