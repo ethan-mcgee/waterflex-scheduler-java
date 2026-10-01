@@ -2,7 +2,10 @@
 from contextlib import contextmanager
 from datetime import datetime, timezone
 import gzip
+import collections
+import concurrent.futures
 import hashlib
+import heapq
 import json
 import os
 from pathlib import Path
@@ -24,7 +27,7 @@ SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'scheduler-s
 
 
 class Progress:
-    """Terminal progress for preparation and sequential measured cases."""
+    """Terminal progress for preparation and measured cases, including several concurrent daily cases."""
 
     def __init__(self, total, stream=None, clock=None):
         self.total = total
@@ -34,6 +37,7 @@ class Progress:
         self.completed = 0
         self.stage = 'Preparing run'
         self.case_started = None
+        self.running = {}
         self.interactive = self.stream.isatty()
         self.stop = threading.Event()
         self.lock = threading.Lock()
@@ -49,8 +53,11 @@ class Progress:
         elapsed = self.duration(self.clock() - self.started)
         filled = round(12 * self.completed / self.total) if self.total else 12
         bar = '#' * filled + '.' * (12 - filled)
-        case_time = (f' case {self.duration(self.clock() - self.case_started)}'
-                     if self.case_started is not None else '')
+        if self.running:
+            case_time = f' running {len(self.running)} oldest {self.duration(self.clock() - min(self.running.values()))}'
+        else:
+            case_time = (f' case {self.duration(self.clock() - self.case_started)}'
+                         if self.case_started is not None else '')
         prefix = f'[{bar}] {self.completed}/{self.total} elapsed {elapsed}{case_time} | '
         stage = self.stage
         if self.interactive:
@@ -89,6 +96,24 @@ class Progress:
                 self.completed = completed
             self.case_started = self.clock() if active else None
         self.emit(force=True)
+
+    def start_case(self, key, stage):
+        with self.lock:
+            self.stage = stage
+            self.running[key] = self.clock()
+        self.emit(force=True)
+
+    def finish_case(self, key, stage):
+        # Increment under the lock: concurrent cases finish on different threads.
+        with self.lock:
+            self.stage = stage
+            self.running.pop(key, None)
+            self.completed += 1
+        self.emit(force=True)
+
+    def abandon_case(self, key):
+        with self.lock:
+            self.running.pop(key, None)
 
     def __exit__(self, error_type, _error, _traceback):
         self.stop.set()
@@ -151,8 +176,8 @@ def measurement_lock(port=47983):
         yield
 
 
-def child_job(process):
-    """Windows kills this owned process tree if the orchestrator disappears."""
+def child_job(process, affinity=None):
+    """Windows kills this owned process tree if the orchestrator disappears; optionally confines it to affinity."""
     if os.name != 'nt':
         return None
     import ctypes
@@ -175,6 +200,9 @@ def child_job(process):
     handle = kernel.CreateJobObjectW(None, None)
     info = Extended()
     info.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+    if affinity is not None:
+        info.basic.flags |= 0x10  # JOB_OBJECT_LIMIT_AFFINITY
+        info.basic.affinity = affinity
     if not handle or not kernel.SetInformationJobObject(handle, 9, ctypes.byref(info), ctypes.sizeof(info)):
         if handle:
             kernel.CloseHandle(handle)
@@ -186,14 +214,14 @@ def child_job(process):
 
 
 @contextmanager
-def launch(command, cwd, env, log):
+def launch(command, cwd, env, log, affinity=None):
     with log.open('xb') as output:
         process = subprocess.Popen([str(x) for x in command], cwd=cwd, env=env, stdout=output, stderr=output,
             stdin=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0,
             start_new_session=os.name != 'nt')
         close_job = None
         try:
-            close_job = child_job(process)
+            close_job = child_job(process, affinity)
             yield process
         finally:
             if close_job:
@@ -225,12 +253,23 @@ def launch(command, cwd, env, log):
 
 
 
-def command(args, cwd, env, log, timeout=1200):
-    with launch(args, cwd, env, log) as process:
-        try:
-            code = process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired as error:
-            raise RuntimeError(f'Process timed out; inspect {log}') from error
+class StopRequested(Exception):
+    """The orchestrator was interrupted; an in-flight case is abandoned and its process tree closed."""
+
+
+def command(args, cwd, env, log, timeout=1200, affinity=None, stop=None):
+    with launch(args, cwd, env, log, affinity) as process:
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError(f'Process timed out; inspect {log}')
+            try:
+                code = process.wait(timeout=min(.5, remaining))
+                break
+            except subprocess.TimeoutExpired:
+                if stop is not None and stop.is_set():
+                    raise StopRequested('Orchestrator interrupted') from None
         if code:
             raise RuntimeError(f'Process exited {code}; inspect {log}')
 
@@ -246,6 +285,72 @@ def capture(args, cwd=ROOT):
     return subprocess.check_output([str(a) for a in args], cwd=cwd, env=environment(), text=True, stderr=subprocess.STDOUT).strip()
 
 
+def _group_masks(buffer, relation):
+    """Group 0 affinity masks for one relationship type from GetLogicalProcessorInformationEx output."""
+    import struct
+    masks, offset = [], 0
+    while offset < len(buffer):
+        kind, size = struct.unpack_from('<II', buffer, offset)
+        if size == 0:
+            raise OSError('Malformed processor topology')
+        if kind == relation:
+            # Processor relation: GroupCount at +30, masks at +32. Cache relation: GroupCount at +38, masks at +40.
+            count_at, first_at = (offset + 8 + 22, offset + 8 + 24) if relation == 0 else (offset + 8 + 30, offset + 8 + 32)
+            groups = struct.unpack_from('<H', buffer, count_at)[0]
+            if groups != 1:
+                raise OSError('Processor groups above 64 logical CPUs are not supported')
+            mask, group = struct.unpack_from('<QH', buffer, first_at)
+            if group != 0:
+                raise OSError('Only processor group 0 is supported')
+            if relation == 2 and buffer[offset + 8] != 3:
+                offset += size
+                continue
+            masks.append(mask)
+        offset += size
+    return masks
+
+
+def topology():
+    """Physical core affinity masks and L3 groupings (CCDs) on Windows; None elsewhere."""
+    if os.name != 'nt':
+        return None
+    import ctypes
+    from ctypes import wintypes as w
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.GetLogicalProcessorInformationEx.argtypes = [w.DWORD, ctypes.c_void_p, ctypes.POINTER(w.DWORD)]
+    kernel.GetLogicalProcessorInformationEx.restype = w.BOOL
+    size = w.DWORD(0)
+    kernel.GetLogicalProcessorInformationEx(0xFFFF, None, ctypes.byref(size))  # RelationAll sizing call
+    if not size.value:
+        raise OSError('Cannot read processor topology')
+    raw = ctypes.create_string_buffer(size.value)
+    if not kernel.GetLogicalProcessorInformationEx(0xFFFF, raw, ctypes.byref(size)):
+        raise OSError('Cannot read processor topology')
+    data = raw.raw[:size.value]
+    cores, l3 = sorted(_group_masks(data, 0)), sorted(set(_group_masks(data, 2)))
+    if not cores or not l3:
+        raise OSError('Processor topology lacks physical cores or L3 caches')
+    return {'cores': cores, 'l3': l3}
+
+
+def slot_masks(parallel_cases, saved):
+    """One dedicated physical-core mask per concurrent case: core 0 stays free, slots alternate between L3 groups."""
+    if saved is None:
+        if parallel_cases > 1:
+            raise ValueError('parallel_cases above 1 needs Windows physical-core affinity')
+        return [None]
+    usable = [mask for mask in saved['cores'] if not mask & 1]
+    if parallel_cases > len(usable):
+        raise ValueError(f'parallel_cases {parallel_cases} exceeds the {len(usable)} usable physical cores (core 0 is left free)')
+    groups = [[mask for mask in usable if mask & cache == mask] for cache in saved['l3']]
+    ordered = []
+    for rank in range(max((len(g) for g in groups), default=0)):
+        ordered.extend(g[rank] for g in groups if rank < len(g))
+    if len(ordered) != len(usable):
+        raise ValueError('Physical cores do not partition into L3 groups')
+    return ordered[:parallel_cases]
+
+
 def runtime():
     java = Path(os.environ['JAVA_HOME']) / 'bin' / ('java.exe' if os.name == 'nt' else 'java') if os.environ.get('JAVA_HOME') else Path(shutil.which('java') or '')
     if not java.is_file():
@@ -253,7 +358,8 @@ def runtime():
     hardware = json.loads(capture(['node', '-e', 'const o=require("node:os");console.log(JSON.stringify({cpuModel:o.cpus()[0].model,memoryBytes:o.totalmem()}))']))
     return {'java': str(java.resolve()), 'java_version': capture([java, '-version']), 'java_sha256': sha(java),
             'python': sys.version, 'node': shutil.which('node'), 'node_version': capture(['node', '--version']),
-            'platform': platform.platform(), 'machine': platform.machine(), 'hardware': hardware, 'logical_cpus': os.cpu_count()}
+            'platform': platform.platform(), 'machine': platform.machine(), 'hardware': hardware, 'logical_cpus': os.cpu_count(),
+            'topology': topology()}
 
 
 def tree_hashes(root):
@@ -268,6 +374,11 @@ def verify_files(root, hashes):
 def prepare_run(run, config):
     import matplotlib  # Fail prerequisites before starting any measurement.
     info = runtime()
+    parallelism = None
+    if 'daily' in config:
+        count = config['daily']['parallel_cases']
+        parallelism = {'parallel_cases': count, 'slot_masks': slot_masks(count, info['topology']),
+                       'jvm_flags': [*DAILY_JVM_FLAGS, '-Xlog:gc:file=<attempt>/gc.log']}
     if 'booking' in config:
         database_env(environment(), 'benchmark_preflight')
         routing_identity(environment())
@@ -309,12 +420,14 @@ def prepare_run(run, config):
     hashes = tree_hashes(artifacts)
     write_new(run / 'manifest.json', {'format': 1, 'revision': revision, 'config_hash': digest(config),
         'cases_hash': digest(read_json(run / 'cases.json')), 'files': hashes, 'runtime': info,
-        'matplotlib': matplotlib.__version__, 'booking': booking,
+        'matplotlib': matplotlib.__version__, 'booking': booking, 'parallelism': parallelism,
         'source_hashes': {name: sha(source / name) for name in source_names},
         'warmup': 'Daily: 200 ms SPARSE/20 for the selected solver in each fresh JVM; booking: fresh JVM, migration, health, independent audit and specified cache preparation',
         'toolkit_hashes': {name: sha(source / 'infra' / name) for name in toolkit_hashes()},
         'order': 'Independent cyclic rotations of solvers and budget/concurrency/cache settings across fixture/seed blocks',
-        'limitations': 'Local shared workstation; toolkit lock excludes other toolkit runs, not unrelated PC activity'})
+        'limitations': 'Local shared workstation; toolkit lock excludes other toolkit runs, not unrelated PC activity. '
+                       'Concurrent daily cases run on dedicated physical cores but share memory bandwidth, L3 cache and boost clocks; '
+                       'compare move evaluations per second across parallel_cases settings before trusting parallel timings'})
 
 
 def database_env(env, schema):
@@ -364,9 +477,14 @@ def booking_identity(artifacts, env, reference=None):
     return {'calendar_reference': reference, 'dates': horizon(artifacts, reference), 'routing': routing_identity(env), 'transport': 'direct-durable-client'}
 
 
+DAILY_JVM_FLAGS = ['-XX:ActiveProcessorCount=2', '-XX:+UseSerialGC']
+
+
 def daily_command(artifacts, case, revision, output, java):
     cp = os.pathsep.join(str(artifacts / p) for p in ('test-classes', 'classes', 'dependency/*'))
-    return [java, '-Xmx1536m', f'-Dbenchmark.revision={revision}', f'-Dbenchmark.output={output}',
+    # GC evidence lands beside the raw output, never inside the hashed frozen tree.
+    return [java, '-Xmx1536m', *DAILY_JVM_FLAGS, f'-Xlog:gc:file={Path(output).with_name("gc.log")}',
+        f'-Dbenchmark.revision={revision}', f'-Dbenchmark.output={output}',
         f'-Dbenchmark.durationMs={case["budget_ms"]}', f'-Dbenchmark.sizes={case["fleet"]}',
         f'-Dbenchmark.workloads={case["workload"]}', f'-Dbenchmark.variants={case["solver"]}',
         f'-Dbenchmark.seeds={case["seed"]}', '-cp', cp, 'dev.waterflex.scheduler.optimizer.SolverBenchmark']
@@ -435,6 +553,60 @@ def toolkit_hashes():
     return {name: sha(ROOT / 'infra' / name) for name in ('experiments.py', 'experiment_runtime.py', 'experiment_config.py')}
 
 
+class Occupancy:
+    """Tracks concurrent cases so each attempt records the fewest neighbors it ever had."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.lowest = {}
+
+    def start(self, key):
+        with self.lock:
+            others = len(self.lowest)
+            self.lowest[key] = others
+            return others
+
+    def finish(self, key):
+        with self.lock:
+            low = self.lowest.pop(key, None)  # Idempotent: a failed receipt write finishes the case again.
+            for other in self.lowest:
+                self.lowest[other] = min(self.lowest[other], len(self.lowest) - 1)
+            return low
+
+
+def run_case(run, manifest, env, progress, occupancy, stop, number, total, case, slot, mask):
+    folder = run / 'attempts' / case['id']
+    attempt = folder / (stamp() + '-' + uuid.uuid4().hex[:8])
+    attempt.mkdir(parents=True)
+    neighbors = occupancy.start(case['id'])
+    write_new(attempt / 'started.json', {'case': case, 'at': stamp(), 'slot': slot, 'mask': mask, 'in_flight_at_start': neighbors})
+    detail = (f'{case["budget_ms"] / 1000:g}s' if case['kind'] == 'daily' else
+              f'c{case["concurrency"]} {case["cache"]} {case["requests"]}req')
+    progress.start_case(case['id'], f'#{number} {case["solver"]} f{case["fleet"]} '
+                                     f'{case["workload"]} s{case["seed"]} {detail}')
+    try:
+        if case['kind'] == 'daily':
+            command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
+                    run / 'frozen', env, attempt / 'solver.log', timeout=case['budget_ms'] / 1000 + 120,
+                    affinity=mask, stop=stop)
+        else:
+            booking_case(run, attempt, case, manifest, env)
+        from experiment_analysis import load_raw
+        rows, issues = load_raw(attempt / 'raw.jsonl', expected=case)
+        if len(rows) != 1 or issues:
+            raise ValueError(f'Raw output is incomplete or invalid: {issues}')
+        write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': sha(attempt / 'raw.jsonl'), 'at': stamp(),
+                                               'slot': slot, 'mask': mask, 'in_flight_min': occupancy.finish(case['id'])})
+        progress.finish_case(case['id'], f'Finished case {number}/{total}')
+    except BaseException as error:
+        occupancy.finish(case['id'])
+        progress.abandon_case(case['id'])
+        # Persist only controlled error types, never subprocess environment/credentials.
+        write_new(attempt / ('interrupted.json' if isinstance(error, (KeyboardInterrupt, StopRequested)) else 'failed.json'),
+                  {'exception': type(error).__name__, 'at': stamp(), 'instruction': 'Inspect this attempt logs; resume retries in a new directory'})
+        raise
+
+
 def execute(run, prepare=False):
     run = run.resolve()
     config = validate(read_json(run / 'config.json'))
@@ -452,44 +624,54 @@ def execute(run, prepare=False):
         if manifest['config_hash'] != digest(config) or manifest['cases_hash'] != digest(cases) or cases != expand(config):
             raise ValueError('Saved configuration or matrix provenance mismatch')
         verify_files(run / 'frozen', manifest['files'])
-        if runtime() != manifest['runtime']:
+        info = runtime()
+        if info != manifest['runtime']:
             raise ValueError('Runtime/hardware provenance mismatch; start a new run')
+        masks = [None]
+        if 'daily' in config:
+            workers = config['daily']['parallel_cases']
+            masks = slot_masks(workers, info.get('topology'))
+            saved = manifest.get('parallelism')
+            if not isinstance(saved, dict) or saved.get('parallel_cases') != workers or saved.get('slot_masks') != masks:
+                raise ValueError('Saved parallelism provenance mismatch; start a new run')
         env = environment()
         if 'booking' in config and booking_identity(run / 'frozen', env, manifest['booking']['calendar_reference']) != manifest['booking']:
             raise ValueError('Frozen booking dates/routing no longer valid; start a new run')
         completed = {case['id']: completed_attempt(run, case) is not None for case in cases}
         progress.update('Checking completed cases', completed=sum(completed.values()))
-        from experiment_analysis import load_raw
+        queue = collections.deque()
         for index, case in enumerate(cases):
             if completed[case['id']]:
                 continue
-            folder = run / 'attempts' / case['id']
-            for old in sorted(folder.glob('*')):
+            for old in sorted((run / 'attempts' / case['id']).glob('*')):
                 if not (old / 'completed.json').exists() and not (old / 'failed.json').exists() and not (old / 'interrupted.json').exists():
                     write_new(old / 'interrupted.json', {'reason': 'Previous orchestrator stopped without a completion receipt'})
-            attempt = folder / (stamp() + '-' + uuid.uuid4().hex[:8])
-            attempt.mkdir(parents=True)
-            write_new(attempt / 'started.json', {'case': case, 'at': stamp()})
-            detail = (f'{case["budget_ms"] / 1000:g}s' if case['kind'] == 'daily' else
-                      f'c{case["concurrency"]} {case["cache"]} {case["requests"]}req')
-            progress.update(f'#{index + 1} {case["solver"]} f{case["fleet"]} '
-                            f'{case["workload"]} s{case["seed"]} {detail}', active=True)
+            queue.append((index + 1, case))
+        free = collections.deque(enumerate(masks))
+        occupancy, stop, running, failure = Occupancy(), threading.Event(), {}, None
+        # Daily cases fan out over the dedicated slots; booking cases always run alone and in saved order.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(masks)) as pool:
             try:
-                if case['kind'] == 'daily':
-                    command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
-                            run / 'frozen', env, attempt / 'solver.log', timeout=case['budget_ms'] / 1000 + 120)
-                else:
-                    booking_case(run, attempt, case, manifest, env)
-                rows, issues = load_raw(attempt / 'raw.jsonl', expected=case)
-                if len(rows) != 1 or issues:
-                    raise ValueError(f'Raw output is incomplete or invalid: {issues}')
-                write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': sha(attempt / 'raw.jsonl'), 'at': stamp()})
-                progress.update(f'Finished case {index + 1}/{len(cases)}', completed=progress.completed + 1)
-            except BaseException as error:
-                # Persist only controlled error types, never subprocess environment/credentials.
-                write_new(attempt / ('interrupted.json' if isinstance(error, KeyboardInterrupt) else 'failed.json'),
-                          {'exception': type(error).__name__, 'at': stamp(), 'instruction': 'Inspect this attempt logs; resume retries in a new directory'})
+                while (queue and failure is None) or running:
+                    while queue and failure is None and free:
+                        number, case = queue[0]
+                        if (case['kind'] != 'daily' and running) or any(c['kind'] != 'daily' for c, _ in running.values()):
+                            break
+                        queue.popleft()
+                        slot, mask = free.popleft()
+                        future = pool.submit(run_case, run, manifest, env, progress, occupancy, stop, number, len(cases), case, slot, mask)
+                        running[future] = (case, (slot, mask))
+                    done, _ = concurrent.futures.wait(running, timeout=.5, return_when=concurrent.futures.FIRST_COMPLETED)
+                    for future in done:
+                        _, slot = running.pop(future)
+                        free.append(slot)
+                        if failure is None and future.exception() is not None:
+                            failure = future.exception()  # In-flight cases finish and keep their receipts; nothing new starts.
+            except BaseException:
+                stop.set()
                 raise
+        if failure is not None:
+            raise failure
 
 
 def import_history(archive):

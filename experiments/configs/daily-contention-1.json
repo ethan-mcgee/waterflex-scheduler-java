@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "daily-contention-1",
+  "daily": {
+    "solvers": [
+      "TABU",
+      "KOPT",
+      "LATE_ACCEPTANCE",
+      "SUBLIST"
+    ],
+    "control": "TABU",
+    "seeds": [
+      17,
+      23,
+      41
+    ],
+    "fleets": [
+      20,
+      50
+    ],
+    "workloads": [
+      "CLUSTERED"
+    ],
+    "budgets_seconds": [
+      120
+    ],
+    "parallel_cases": 1
+  }
+}
