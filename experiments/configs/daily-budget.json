@@ -34,7 +34,8 @@
     "budgets_seconds": [
       60,
       90,
-      120
+      120,
+      240
     ],
     "parallel_cases": 6
   }
