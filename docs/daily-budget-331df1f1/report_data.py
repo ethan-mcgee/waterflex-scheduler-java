@@ -3,6 +3,7 @@ from collections import Counter
 from csv import DictReader
 from hashlib import sha256
 import json
+import math
 from pathlib import Path
 from statistics import mean
 import sys
@@ -41,17 +42,23 @@ def load():
         result = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
         result = [entry for entry in result if entry.get("type") == "result"]
         assert len(result) == 1, path
+        assert path.parts[-3] not in raw_by_id, "Duplicate raw case"
         raw_by_id[path.parts[-3]] = result[0]
+    assert set(raw_by_id) == {c["id"] for c in cases}
     with (ANALYSIS / "cases.csv").open(newline="") as file:
         rows = list(DictReader(file))
     assert len(rows) == 1280
     by_case = {(c["fleet"], c["workload"], c["seed"], c["budget_ms"], c["solver"]): c for c in cases}
+    seen = set()
     for row in rows:
         key = (int(row["fleet"]), row["workload"], int(row["seed"]), int(row["budget_ms"]), row["solver"])
         assert key in by_case
+        assert key not in seen, "Duplicate analysis case"
+        seen.add(key)
         raw = raw_by_id[by_case[key]["id"]]
         assert raw["variant"] == row["solver"] and raw["seed"] == int(row["seed"])
         assert raw["budgetMs"] == int(row["budget_ms"])
+        assert raw["technicians"] == key[0] and raw["workload"] == key[1]
         assert raw["violations"] == 0
         assert raw["referencePhase"]["termination"] == "TIME_LIMIT"
         assert raw["fairnessPhase"]["termination"] == "TIME_LIMIT"
@@ -61,9 +68,37 @@ def load():
         assert abs(float(row["fairness"]) - float(raw["after"]["fairness"]["variance"])) < 1e-12
         assert row["pair_status"] == "paired"
         assert row["accepted_cost"] and row["reference_cost"] and row["fairness"] and row["elapsed_ms"]
+        assert int(row["elapsed_ms"]) == raw["elapsedMs"] > 0
+        for prefix in ("reference", "fairness"):
+            phase = raw[prefix + "Phase"]
+            assert int(row[prefix + "_ms"]) == phase["solveMs"] > 0
+            assert phase["moveEvaluations"] >= 0
+            rate = phase["moveEvaluations"] * 1000 / phase["solveMs"]
+            assert math.isclose(float(row[prefix + "_move_rate"]), rate, rel_tol=1e-12)
+        assert raw["costCeilingCents"] == raw["reference"]["costCents"] * 102 // 100
+        assert raw["after"]["costCents"] <= raw["costCeilingCents"]
+        for stage in ("before", "reference", "after"):
+            metrics = raw[stage]
+            assert metrics["overtimeMinutes"] == 0
+            workloads = metrics["fairness"]["workloads"]
+            assert len(workloads) == raw["technicians"]
+            assert len({w["technicianId"] for w in workloads}) == len(workloads)
+            assert all(w["regularCapacityMinutes"] > 0 and w["paidMinutes"] >= 0 for w in workloads)
+            capacity = sum(w["regularCapacityMinutes"] for w in workloads)
+            utilization = sum(w["paidMinutes"] for w in workloads) / capacity
+            variance = sum(w["regularCapacityMinutes"] * (w["paidMinutes"] / w["regularCapacityMinutes"] - utilization) ** 2 for w in workloads) / capacity
+            assert math.isclose(variance, metrics["fairness"]["variance"], abs_tol=1e-12)
+        for field in ("paidWaitingAfter", "changedAssignments", "retimedAppointments", "appointments"):
+            assert isinstance(raw[field], int) and raw[field] >= 0
         row["raw"] = raw
         row["key"] = key
     assert len({r["fixture"] for r in rows}) == 8
+    controls = {r["key"][:-1]: r for r in rows if r["solver"] == "TABU"}
+    for row in rows:
+        control = controls[row["key"][:-1]]
+        assert control["fixture"] == row["fixture"]
+        assert control["raw"]["before"] == row["raw"]["before"]
+        assert control["raw"]["appointments"] == row["raw"]["appointments"]
     return config, rows
 
 
