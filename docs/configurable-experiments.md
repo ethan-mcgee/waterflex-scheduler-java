@@ -74,11 +74,14 @@ JSON has `version: 1`, a lowercase slug `name`, and either or both `daily` and `
 | `fleets` | Any of 5, 10, 20, 30, 50 | Same |
 | `workloads` | SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY | Same |
 | `budgets_seconds` | 0.1..240, whole millisecond resolution | Not accepted |
+| `parallel_cases` | Required integer, at least 1. Booleans, decimals, strings and null are rejected. The usable core count is checked at run time | Not accepted |
 | `concurrency` | Not accepted | Any of 1, 5, 10 |
 | `caches` | Not accepted | cold, warm |
 | `requests` | Not accepted | Integer 1..200; defaults supplied in JSON are 10, smoke uses 2 |
 
-The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Five seeds (17, 23, 41, 59, 83), four fleets (5, 10, 20, 50), CLUSTERED and DISPERSED fixtures, and four budgets (30, 60, 90, 120 seconds) produce **640 cases** and **48,000 seconds (13 hours 20 minutes)** of search allowance. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance.
+`parallel_cases` is the number of independent daily cases, each a fresh solver JVM, that run at the same time. Each running case is confined to one dedicated physical core (both SMT threads), so the setting also decides how many cores the study occupies: `parallel_cases` cores, plus core 0, which stays free for Windows and the orchestrator. There is no cores-per-case setting because the solver search is single threaded. `1` runs one case at a time. The value is part of the saved configuration, so the config and case hashes bind it to the run and a resume cannot change it. Running more than one case at a time needs Windows, and a value above the usable physical cores (11 on the 12-core workstation) fails before any measurement.
+
+The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Ten seeds (17, 23, 41, 59, 83, 101, 127, 149, 173, 199), four fleets (5, 10, 20, 50), CLUSTERED and DISPERSED fixtures, and three budgets (60, 90, 120 seconds) produce **960 cases** and **86,400 seconds (24 hours)** of search allowance. With `parallel_cases` 6, the dry run estimates about **4 hours 7 minutes** of wall time (24 hours of search over six slots, plus about 2.5 seconds of per-case overhead). Run sequentially the same study takes more than 24 hours. The estimate is a greedy slot simulation in saved dispatch order. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance. `daily-smoke.json` uses `parallel_cases` 1.
 
 The supplied booking matrix has INSERTION and BOUNDED, INSERTION control, the same seeds/fleets, DISPERSED, CLUSTERED and SPARSE fixtures, three concurrency levels, warm cache, and ten requests per case: **360 cases and 3,600 requests**. It retains existing durable booking search limits; daily budgets never configure booking. Runtime depends on search, audits, fixture creation and process startup. These are direct durable-client HTTP measurements, not browser or address-entry latency.
 
@@ -86,7 +89,11 @@ The supplied booking matrix has INSERTION and BOUNDED, INSERTION control, the sa
 
 Daily cases start fresh JVMs and unchanged fixtures. Each selected solver receives the same 200 ms warmup on the 20-technician SPARSE fixture. The combined budget assigns two-thirds to reference cost search and the remaining actual time to fairness. Raw JSONL contains configured budget, actual per-phase statistics, termination outcomes, independent validation, reference and accepted policy metrics. Earlier budget results never seed later cases. Seeds change stochastic search on fixed geography, not the number of geographic datasets.
 
-Solver order and budget/settings order rotate independently across matched fleet/workload/seed blocks. Solvers are interleaved within settings. The exact expanded order is saved and reused on resume. Measured cases are sequential. Booking concurrency is deliberate within a case only.
+Solver order and budget/settings order rotate independently across matched fleet/workload/seed blocks. Solvers are interleaved within settings. The exact expanded order is saved and reused on resume, and dispatch follows it, so the counterbalancing is kept. Up to `parallel_cases` daily cases run at the same time, each on its own dedicated physical core. Slots alternate between the two L3 cache groups (CCDs) and exclude core 0. Every daily JVM, including with `parallel_cases` 1, runs with `-XX:ActiveProcessorCount=2 -XX:+UseSerialGC` so the runtime sees the same two logical processors whatever the setting. Each attempt keeps its own directory, logs and receipts. `started.json` records the slot and mask, and `completed.json` records the fewest other cases that ran beside it (`in_flight_min`). Booking cases stay sequential, and a booking case never overlaps a daily case. Booking concurrency is deliberate within a case only.
+
+After the first failure no new case starts. Cases already running finish and keep their own receipts, then the first error is raised. On interruption the in-flight children and their process trees are stopped, `interrupted.json` is written for each, and a resume retries only unfinished cases.
+
+Concurrent cases share memory bandwidth, L3 cache and boost clocks even though they do not share cores. The manifest records this under `limitations` and records `parallel_cases`, the slot masks, the L3 groups and the JVM flags under `parallelism`. The core topology is part of the runtime comparison, so a resume on changed hardware is rejected. Results from before these JVM flags are a separate cohort and must not be pooled with new ones.
 
 Every booking attempt migrates a new `benchmark_exp_<uuid>` schema in local `waterflex_test`, starts its own scheduler on an unused loopback port with a four-connection pool and minimum idle one, and gives Prisma at most four connections. The process enables reservations and the bounded gate, then explicitly selects the strategy. INSERTION explicitly bypasses refinement. Statistics before/after must report the requested strategy, bounded gate and reservation setting. Independent route and active-reservation audits remain required.
 
@@ -103,11 +110,11 @@ experiments/runs/<UTC timestamp>-<name>-<unique id>/
   build.log
   frozen/                 # copied source, classes, dependency jars, server jar, Node dependencies
   attempts/<case-id>/<timestamp>-<attempt-id>/
-    started.json
+    started.json          # case, slot, core mask and neighbors at start
     raw.jsonl
     completed.json        # raw hash and matching case, only after successful validation
     failed.json or interrupted.json
-    solver.log or booking.json + migrate.log + server.log + client.log
+    solver.log + gc.log or booking.json + migrate.log + server.log + client.log
   analysis/<timestamp>-<unique id>/
     summary.json, summary.csv, cases.csv, analysis-provenance.json, index.html
     figure-*.png, figure-*.svg
@@ -117,6 +124,8 @@ Everything under `experiments/runs` is gitignored. Environment credentials are n
 
 Completion receipts bind raw hashes to exact expected cases. Resume verifies saved configuration, matrix, executable files, toolkit implementation, runtime and hardware identity, plus booking horizon/routing. It skips completed cases, preserves prior failures/partial JSONL, labels abandoned attempts, and retries in new directories. Completed evidence is never overwritten. Each analysis invocation gets a separate versioned directory, even if only analysis code changed. Changing JSON and running again creates an independent archive.
 
+`parallel_cases` is a required daily field, so archives created before it existed fail current validation and the toolkit hash differs. Resume them through their archived toolkit as described next.
+
 If toolkit implementation changed, invoke the archived `frozen/source/infra/experiments.py resume <absolute-run-path>` with the original runtime instead. Do not edit the saved manifest to bypass a mismatch. Finished booking schemas are retained for inspection; the harness removes its successful fixture rows. Failed schemas retain their fixture data. Delete old archives/schemas deliberately after inspection when disk/database storage is no longer needed.
 
 A kernel-held loopback lock on port 47983 prevents overlapping toolkit measurements across checkouts on this PC. It releases automatically when the orchestrator exits. On Windows, owned children are attached to kill-on-close jobs, so an orchestrator exit stops its process trees; normal interruption also waits for owned children to stop. Unrelated servers are never stopped. This does not prevent other tools or applications from consuming workstation resources.
@@ -125,10 +134,25 @@ A kernel-held loopback lock on port 47983 prevents overlapping toolkit measureme
 
 - Daily costs are integer modeled cents. Reference savings are `control reference cost - candidate reference cost` at the same budget. Own-budget improvement is `same solver 15-second reference cost - current reference cost`. Negative improvement is preserved. Accepted cost is after fairness and policy acceptance. Fairness is utilization variance, and time is milliseconds.
 - Pair keys include fixture fingerprint, fleet, workload, seed, routing identity, cohort, and budget for daily or horizon/request count/concurrency/cache for booking. Mismatched fixtures and incomplete controls remain unpaired. All duplicate copies of a case are excluded, not arbitrarily selected.
-- Each summary averages within seed, then weights observed seeds equally. Every metric includes observed case/seed counts. Thin daily traces show individual seeds; bands show observed range, not confidence intervals. Five seeds are exploratory. Graphs never enforce decreasing cost curves.
+- Each summary averages within seed, then weights observed seeds equally. Every metric includes observed case/seed counts. Thin daily traces show individual seeds; bands show observed range, not confidence intervals. Seed-limited comparisons are exploratory. Graphs never enforce decreasing cost curves.
+- Daily throughput is `moveEvaluations / solveMs * 1000` per phase, summarized per solver and fleet in `summary.json` and the HTML so contention is visible. It is null when either statistic is missing or the time is zero, and nulls are never zero-filled or averaged in. The parallelism block from the manifest appears in `analysis-provenance.json` and the HTML completeness section.
 - Booking served, incomplete and failed counts are separate and may overlap. Unknown completion remains unknown. Search latency percentiles use nearest-rank quantiles of individual available request observations pooled across cases, never averages of case percentiles. Historical selection-conflict rows without separate selection timing are excluded from latency and completion calculations.
 - Booking cost savings are computed only when fixture and exact served request indices match the control. Equal served counts alone are insufficient. Missing measurements stay JSON null / CSV blank / graph gaps. Raw failures, unfinished attempts, excluded duplicates and unpaired cases are explicit in the HTML/JSON completeness information.
 - Historical import copies and hashes September 29 raw archives and manifest read-only. Stage cohorts (screen, original, held, stress, browser and recovery) remain separate. It does not revise the original report or turn historical labels into verified active strategies. Historical archive coverage does not establish completeness of a new configured matrix.
+
+## Contention check and sequential confirmation
+
+Dedicated cores remove core sharing but not memory, cache or clock contention, so measure it before a large parallel study. `daily-contention-1.json` and `daily-contention-6.json` are identical except for `parallel_cases` (1 and 6): four solvers, seeds 17, 23 and 41, fleets 20 and 50, CLUSTERED, 120 seconds, 24 cases each. Run both, then compare:
+
+```powershell
+py -3 infra/experiments.py run experiments/configs/daily-contention-1.json
+py -3 infra/experiments.py run experiments/configs/daily-contention-6.json
+py -3 infra/experiments.py compare-contention experiments/runs/<contention-1-run> experiments/runs/<contention-6-run>
+```
+
+The comparison pairs identical cases and reports the median ratio of parallel to sequential move evaluations per second for each solver and fleet. It leaves out pairs that did not run with the full set of neighbors (the ramp-up and the tail) and counts them. Accept `parallel_cases` 6 when every median reference-phase ratio is at least 0.95. Otherwise lower the value (for example to 4) in `daily-budget.json` and repeat. Keep the saved report with the run evidence before starting the full study.
+
+After the parallel study, run a sequential confirmation (`parallel_cases` 1) of the control and the best candidate on two of the study seeds, at the budgets that matter. Compare each case with its parallel twin (same solver, seed, fleet, workload and budget). The parallel results stand when the candidate-versus-control difference has the same sign and falls inside the paired noise. Otherwise report the gap as a finding. Quote absolute numbers from the sequential run.
 
 ## Verification
 
@@ -140,7 +164,7 @@ npm.cmd --prefix web run typecheck
 npm.cmd --prefix web run test:unit
 ```
 
-Regression tests cover invalid configurations, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, overlapping booking outcomes and pooled percentiles. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the unrun 640-case study.
+Regression tests cover invalid configurations including `parallel_cases`, core slot ordering and affinity, concurrent dispatch limits, failure and interruption with in-flight receipts, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, overlapping booking outcomes and pooled percentiles. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the unrun 960-case study.
 
 
 ### Calendar and benchmark isolation

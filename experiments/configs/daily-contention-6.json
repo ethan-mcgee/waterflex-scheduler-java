@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "name": "daily-budget",
+  "name": "daily-contention-6",
   "daily": {
     "solvers": [
       "TABU",
@@ -12,28 +12,16 @@
     "seeds": [
       17,
       23,
-      41,
-      59,
-      83,
-      101,
-      127,
-      149,
-      173,
-      199
+      41
     ],
     "fleets": [
-      5,
-      10,
       20,
       50
     ],
     "workloads": [
-      "CLUSTERED",
-      "DISPERSED"
+      "CLUSTERED"
     ],
     "budgets_seconds": [
-      60,
-      90,
       120
     ],
     "parallel_cases": 6
