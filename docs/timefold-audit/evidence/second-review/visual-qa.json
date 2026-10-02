@@ -1,133 +1,146 @@
 {
-  "pages": 24,
+  "pages": 26,
   "all_pages_inspected": true,
   "exporter": "Microsoft Word PDF export",
   "renderer": "bundled Poppler at 120 dpi",
-  "docx_sha256": "ad990bb94b89237120fa55e4cde38c3a1408e3f3b0eb9bfba329bf5dc613e2f5",
-  "pdf_sha256": "765968546d6e6db2b405254e7c0d734dff46fbafae3c97dcad520129216b7632",
+  "docx_sha256": "0e7c6d0726a738d4ff146509f6b09808afaa5c74e733b0195bdb9dcc4394cf8c",
+  "pdf_sha256": "cad2013bc604ce061fca09b1d52dc8ae979ad98ec7876b4d4ca7513b6fbc859e",
   "corrections": [
-    "Keep table header with first data row to remove orphan header on page 3",
-    "Start final verification section on a clean page"
+    "Balance title lines and hierarchy",
+    "Rebalance column widths and enlarge table text",
+    "Add alternating row shading, running headers and page totals",
+    "Keep complete paragraphs and finding introductions together",
+    "Remove nearly empty overflow page"
   ],
   "page_reviews": [
     {
       "page": 1,
-      "sha256": "0075dd7f6a1313b98af594b02f211826269bedc0ed098f0eb316cd004a92a0f7",
+      "sha256": "5ac1efbb03f288423fc56d1fd4098a35349e883beab7737ed8885b98802d4e19",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 2,
-      "sha256": "02b177c1298cad54626b88c5ff1ac6aed691cfd36143a0d0e083363cea95a358",
+      "sha256": "58be417288375feea22ecfa065720e0453be550849411fd3c55d641ad407a1c8",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 3,
-      "sha256": "a5e8309be8fafd718e4e2244fb7d3d37870b23d446bb5260700c0a69c8ddd955",
+      "sha256": "68578f29ecfd7364760987f2efdf6c72a799917177dbbedcaf49a2c28069c14f",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 4,
-      "sha256": "9306ba894788ef00bf1059605b18b72e6a7ec54470a93bd6395f0e1bdd7e8b90",
+      "sha256": "03bea2bfef49bae745f346a9bc6e10177af51fa7a77f1a558596881586981ee0",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 5,
-      "sha256": "bdd948024642c9e2f15417ccb3284d4c34aeae82218858396de99db043194652",
+      "sha256": "5e482bdd1d57b0089039c5e911df5b18d997c20cff0b9b131cbeb3336a85f27a",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 6,
-      "sha256": "8e00ba89877db46df3f1cfc11667edd014c2ed78ff19ad4dff81e5cfd51e8f60",
+      "sha256": "c6225b873ed39b5850bdd7abf410391bb5e865cb79baf776aa73612527e2b31b",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 7,
-      "sha256": "24064ac463ac43609c856c4f52aba1a72e82abf790951b559937a19003d591ce",
+      "sha256": "8f75edb5ccfb04c85c174af2248b2fc87ca14e3880cedf65cc4e6ec2e60542fe",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 8,
-      "sha256": "dcbe2787b1f82d72bc7657a93cddf7d2d0ef8adde6aa72bbc317d31cda41e498",
+      "sha256": "8b817b0b64e0c4c71dd75926c38710029322171d85e4de49c1e5cd4b8c4625b2",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 9,
-      "sha256": "123a12dab12e9850e569d8b9261a5961fd5134eaa0d6fc62cc0a198e2e4d36a4",
+      "sha256": "e4e8a62fb3dd0d2bad4cd120b6ea91c3e67a3f3d3c7978524e572cc7e0e99196",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 10,
-      "sha256": "0b706a7ed042bbd362b7157a4cdd71317a0b15803a402d4b7dafe9574c16127f",
+      "sha256": "821660820ee0568ffc67c5c9449b3094e702b8aec2269dd1579e73742b65033c",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 11,
-      "sha256": "a3e7f5552cf083a580f5aa21a7ab4803b938153222c4cda1550a01785fcb3ae0",
+      "sha256": "c3cec9bd0b51eb56cd6ddd352739d4b8c2e8326b35d0a2a484c0577aab17d89d",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 12,
-      "sha256": "112f6b79452b5579075ca0f2aa38ef61615d0cd311c82ff6b0f30c89dfaaa483",
+      "sha256": "a2abb68e1a3915d769ceab03c12960adb97de61a6ee46baa326cc9627d815ce0",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 13,
-      "sha256": "6594cc533f0ee06705335798db75aea36d598e5ce2d72ef259a7b49b4fc51781",
+      "sha256": "5f3ef4aa9ac2606aaf6799c5d91cbc60701fd7639a80572c561816ef541d5baa",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 14,
-      "sha256": "8cab07592133b19631825b7ac2fd0ae088a914a89b2ae815d10f07f5cc4d64c5",
+      "sha256": "ac2b22f462bd092013b18848f059a804a70e00caf178e168c56eabfef448119b",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 15,
-      "sha256": "bffd64b45a44810c6462f5dc72ed6563f0af8cc8b64730374c91534dbfb89450",
+      "sha256": "34ce9957bb8f37ae1e79b7f9d6ed2c9c96b1347578d670cd9feb8024c01fbfc5",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 16,
-      "sha256": "b379f102a22149bb2ce3fc5c5663b8d5d2cc376fcde3be3ae9a8084647e314b2",
+      "sha256": "d295eb0f37789bc8f608c17753e3c4528f385b44e3cbc630aa98afe435e50efb",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 17,
-      "sha256": "4807bb638b99dd46e0a2c8a43817abfbfaa838707d7df89f9f4c034f9a451d4e",
+      "sha256": "817f8724c23c3876e133cb3fbe79e73bb68c9f256227fd7e9a756d8e16f17edf",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 18,
-      "sha256": "a4d941ad5893074eacbebd625d1c32b847852ebc53bb62af75d28c6721982ff8",
+      "sha256": "7b51ebc6e41ebeeb37aa88f22374ddfcb65c6cbfe8df45ea731e77905a7a0676",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 19,
-      "sha256": "e726f96afe0d079cd61d68532c7f2d14e7972e9bb9bb5a18b5af682579d072c1",
+      "sha256": "3efd95d99da5d229b93b4fcf562c4acc58fae3a6794faae62601b12ad3ccac72",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 20,
-      "sha256": "ce3cfd5dbd289d073f6427ea73f93e665ddef9abb72d95c39fe4f96458c8ada0",
+      "sha256": "05311ab71a1f123c92e49d9f49c06522c73ba8f021126a46e879a00a328e1479",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 21,
-      "sha256": "04371b869ec4506ab14be1eea6b071e8c24102ab96350159b5128fcc845f4d55",
+      "sha256": "808268a4dea8348c0e022544f71d3ec6ccbd660e7bdcdcb8e2000abd3687ec1f",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 22,
-      "sha256": "bd12e62bdeb6592f01c27f4a338ae7e21ce342c7dd7594ffee72e1bfcb062fe5",
+      "sha256": "0a957b0d04e4280e5ec7f52a548d0735195c2309632ba57a6cb1889b9ed0e315",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 23,
-      "sha256": "6719688541be4653e4c1c5d1b79308d518c7ffb7e2159a133385856acff323e5",
+      "sha256": "922c56dfc374714942690df781bc142038be50990b74eafde49078db68988416",
       "status": "inspected: readable, no clipped text or overlapping elements"
     },
     {
       "page": 24,
-      "sha256": "a6d97e7615036f1cd96560c051a3f6c9a07c13e55ae6c9444322dfb41c89c46c",
+      "sha256": "ba245e20c325be217d86a07858ee89efe4e555a3c062e4ca0224799e2dd17fbc",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 25,
+      "sha256": "1c1f551da5513139d2a04b62c8e26a4bc8f31fcd3e443f64d5ab5d8791cf223a",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 26,
+      "sha256": "ae5c6d52263e981a375a514c2b25e888c98207a2eacfe41eb6b99f022316546b",
       "status": "inspected: readable, no clipped text or overlapping elements"
     }
   ]

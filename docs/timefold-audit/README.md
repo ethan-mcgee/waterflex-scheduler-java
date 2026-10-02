@@ -39,6 +39,8 @@ This regenerates the compact second-review evidence JSON, not the archives. Insp
 
 `python docs/timefold-audit/build_report.py` regenerates the same Word companion with Calibri, pale blue tables and no em dashes. `verify_evidence.py` checks exact ordered paragraph/table-cell text and links, not just substring presence. DOCX ZIP timestamps can change its hash; the manifest identifies the reviewed delivered bytes.
 
+The formatting revision preserves the canonical report text and all hyperlink labels/targets. It adds balanced title lines, wider explanation columns, larger table text, alternating pale row shading, bold finding lead-ins, running headers and page totals. Paragraphs and finding introductions stay together. The revised document has 26 inspected pages; `second-review/formatting-review.json` records the comparison with the prior Word edition and distinguishes this presentation check from the earlier source review and Java tests.
+
 The packaged renderer was attempted but LibreOffice was unavailable. Microsoft Word exported the report to PDF and bundled Poppler rendered pages. See `evidence/second-review/visual-qa.json` for the final page-by-page receipt. PDF and page images remain ignored under `qa/`. Re-render and inspect every page after content/style changes before updating artifact hashes.
 
 Historical log verification uses `second-review/historical-line-endings.json`: all 14 original Git blobs have LF endings, while the original manifest describes CRLF output. Both byte identities are retained; reconstructing CRLF reproduces every original hash and size exactly. No historical file or manifest was rewritten.

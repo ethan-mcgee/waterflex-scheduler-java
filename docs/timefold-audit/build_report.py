@@ -4,6 +4,7 @@ import re
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -12,6 +13,10 @@ ROOT = Path(__file__).resolve().parent
 
 
 def inline(paragraph, text, size=None):
+    lead = re.match(r'^(Evidence|Impact|Recommendation|Acceptance|Priority|Classification|Status|Reference|References): ', text)
+    if lead:
+        paragraph.add_run(lead[0]).bold = True
+        text = text[lead.end():]
     cursor = 0
     for match in re.finditer(r'\[([^\]]+)\]\(([^)]+)\)', text):
         paragraph.add_run(text[cursor:match.start()])
@@ -21,7 +26,7 @@ def inline(paragraph, text, size=None):
         props = OxmlElement('w:rPr')
         color = OxmlElement('w:color'); color.set(qn('w:val'), '205781'); props.append(color)
         if size is not None:
-            font_size = OxmlElement('w:sz'); font_size.set(qn('w:val'), str(size * 2)); props.append(font_size)
+            font_size = OxmlElement('w:sz'); font_size.set(qn('w:val'), str(int(size * 2))); props.append(font_size)
         run.append(props)
         value = OxmlElement('w:t'); value.text = match[1]; run.append(value)
         link.append(run); paragraph._p.append(link)
@@ -35,8 +40,24 @@ def table(doc, lines):
     grid = doc.add_table(rows=0, cols=len(rows[0]))
     grid.alignment = WD_TABLE_ALIGNMENT.CENTER
     grid.autofit = False
-    width_sets = {2: [3.0, 4.0], 3: [1.65, 2.05, 3.3], 4: [0.55, 0.8, 3.65, 2.0]}
-    widths = width_sets[len(rows[0])]
+    # Allocate width by the actual table schema, not just its column count.
+    widths_by_header = {
+        'ID': [0.55, 0.7, 3.75, 2.0],
+        'Workflow or variant': [1.65, 5.35],
+        'Disposition': [1.9, 5.1],
+        'Mechanism': [1.6, 5.4],
+        'Priority and evidence': [1.65, 5.35],
+        'Evidence': [1.75, 5.25],
+        'Fleet and variant': [1.6, 2.7, 2.7],
+        'Finding': [0.8, 6.2],
+        'Concern': [1.25, 2.875, 2.875],
+        'Check': [2.1, 4.9],
+        'Source': [2.1, 2.0, 2.9],
+        'Local chapter and official source': [3.0, 4.0],
+    }
+    widths = widths_by_header[rows[0][0]]
+    compact = rows[0][0] == 'ID'
+    font_size = 9 if compact else 10
     for column, width in zip(grid.columns, widths): column.width = Inches(width)
     borders = OxmlElement('w:tblBorders')
     for edge in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
@@ -46,26 +67,37 @@ def table(doc, lines):
     grid._tbl.tblPr.append(borders)
     for index, row in enumerate(rows):
         cells = grid.add_row().cells
-        for cell, value, width in zip(cells, row, widths):
+        for column_index, (cell, value, width) in enumerate(zip(cells, row, widths)):
             cell.width = Inches(width)
             cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
             props = cell._tc.get_or_add_tcPr()
             margins = OxmlElement('w:tcMar')
             for edge in ['top', 'left', 'bottom', 'right']:
-                item = OxmlElement('w:' + edge); item.set(qn('w:w'), '85'); item.set(qn('w:type'), 'dxa'); margins.append(item)
+                padding = 70 if compact and edge in ('top', 'bottom') else 100
+                item = OxmlElement('w:' + edge); item.set(qn('w:w'), str(padding)); item.set(qn('w:type'), 'dxa'); margins.append(item)
             props.append(margins)
-            if index == 0:
-                fill = OxmlElement('w:shd'); fill.set(qn('w:fill'), 'DDEBF7'); props.append(fill)
+            fill = OxmlElement('w:shd')
+            fill.set(qn('w:fill'), 'DDEBF7' if index == 0 else ('F4F8FB' if index % 2 == 0 else 'FFFFFF'))
+            props.append(fill)
             p = cell.paragraphs[0]; p.paragraph_format.space_after = Pt(2); p.paragraph_format.space_before = Pt(2)
+            p.paragraph_format.line_spacing = 1.04
+            p.paragraph_format.widow_control = True
+            if (compact and column_index < 2) or (rows[0][0] == 'Finding' and column_index == 0):
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             if index == 0:
                 p.paragraph_format.keep_with_next = True
-            inline(p, value, size=9)
-            for run in p.runs: run.font.size = Pt(9); run.bold = index == 0
+            inline(p, value, size=font_size)
+            for run in p.runs:
+                run.font.size = Pt(font_size)
+                run.bold = index == 0 or column_index == 0
+                run.font.color.rgb = RGBColor(0, 0, 0)
         trpr = grid.rows[index]._tr.get_or_add_trPr()
         avoid_split = OxmlElement('w:cantSplit'); trpr.append(avoid_split)
         if index == 0:
             repeat = OxmlElement('w:tblHeader'); trpr.append(repeat)
-    doc.add_paragraph().paragraph_format.space_after = Pt(1)
+    gap = doc.add_paragraph()
+    gap.paragraph_format.space_after = Pt(4)
+    gap.paragraph_format.line_spacing = Pt(3)
 
 
 def main():
@@ -78,21 +110,44 @@ def main():
     section.page_width = Inches(8.5); section.page_height = Inches(11)
     section.top_margin = Inches(.65); section.bottom_margin = Inches(.65)
     section.left_margin = Inches(.75); section.right_margin = Inches(.75)
+    section.header_distance = Inches(.25); section.footer_distance = Inches(.3)
+    section.different_first_page_header_footer = True
     normal = doc.styles['Normal']
     normal.font.name = 'Calibri'; normal.font.size = Pt(10.5)
-    normal.paragraph_format.space_after = Pt(5)
-    normal.paragraph_format.line_spacing = 1.04
-    for name, size in [('Title', 25), ('Heading 1', 17), ('Heading 2', 13)]:
+    normal.paragraph_format.space_after = Pt(6)
+    normal.paragraph_format.line_spacing = 1.08
+    normal.paragraph_format.widow_control = True
+    normal.font.color.rgb = RGBColor.from_string('222222')
+    for name, size in [('Title', 26), ('Heading 1', 17), ('Heading 2', 13)]:
         style = doc.styles[name]; style.font.name = 'Calibri'; style.font.size = Pt(size)
         style.font.color.rgb = RGBColor(0, 0, 0)
-        style.paragraph_format.space_before = Pt(12)
-        style.paragraph_format.space_after = Pt(7)
+        style.font.bold = True
+        style.paragraph_format.space_before = Pt(16)
+        style.paragraph_format.space_after = Pt(8)
         style.paragraph_format.keep_with_next = True
-    footer = section.footer.paragraphs[0]
-    footer.alignment = 2
-    footer.add_run('WaterFlex audit  |  ')
-    field = OxmlElement('w:fldSimple'); field.set(qn('w:instr'), 'PAGE'); footer._p.append(field)
-    for run in footer.runs: run.font.size = Pt(8)
+    for style_name in ('Header', 'Footer'):
+        style = doc.styles[style_name]
+        style.font.name = 'Calibri'; style.font.size = Pt(8)
+        style.font.color.rgb = RGBColor(0, 0, 0)
+        style.paragraph_format.tab_stops.clear_all()
+        style.paragraph_format.space_after = Pt(0)
+    header = section.header.paragraphs[0]
+    header.add_run('WATERFLEX').bold = True
+    header.add_run('\tTimefold audit and stateless service readiness')
+    header.paragraph_format.tab_stops.add_tab_stop(Inches(7), WD_TAB_ALIGNMENT.RIGHT)
+    for run in header.runs:
+        run.font.size = Pt(8)
+        run.font.color.rgb = RGBColor(0, 0, 0)
+    for footer_part in (section.footer, section.first_page_footer):
+        footer = footer_part.paragraphs[0]
+        footer.paragraph_format.tab_stops.add_tab_stop(Inches(7), WD_TAB_ALIGNMENT.RIGHT)
+        footer.add_run('WaterFlex  |  Technical review\t')
+        for instruction in ('PAGE', 'NUMPAGES'):
+            if instruction == 'NUMPAGES': footer.add_run(' / ')
+            field = OxmlElement('w:fldSimple'); field.set(qn('w:instr'), instruction); footer._p.append(field)
+        for run in footer.runs:
+            run.font.size = Pt(8)
+            run.font.color.rgb = RGBColor.from_string('555555')
     doc.core_properties.title = 'WaterFlex Timefold Audit and Stateless Service Readiness'
     doc.core_properties.subject = 'Timefold documentation comparison and stateless solver readiness'
     doc.core_properties.author = 'WaterFlex'
@@ -104,17 +159,29 @@ def main():
             while i < len(lines) and lines[i].startswith('|'): group.append(lines[i]); i += 1
             table(doc, group); continue
         if line.startswith('# '):
-            title = doc.add_paragraph(line[2:], 'Title')
-            title.paragraph_format.line_spacing = 1.1
-            title.paragraph_format.space_after = Pt(18)
+            title = doc.add_paragraph(style='Title')
+            first, second = line[2:].split(' and ', 1)
+            title.add_run(first + ' ').add_break()
+            title.add_run('and ' + second)
+            title.paragraph_format.line_spacing = 1.02
+            title.paragraph_format.space_before = Pt(0)
+            title.paragraph_format.space_after = Pt(10)
         elif line.startswith('## '):
             heading = doc.add_paragraph(line[3:], 'Heading 1')
-            if line == '## Second-review verification and delivery limits':
+            if line in ('## Findings and required fixes', '## Expanded documentation coverage register'):
                 heading.paragraph_format.page_break_before = True
         elif line.startswith('### '): doc.add_paragraph(line[4:], 'Heading 2')
         elif line.strip():
             paragraph = doc.add_paragraph()
+            paragraph.paragraph_format.keep_together = True
             inline(paragraph, line)
+            if line.startswith('Priority '):
+                paragraph.paragraph_format.keep_with_next = True
+            if line.startswith('Prepared '):
+                paragraph.paragraph_format.space_after = Pt(10)
+                for run in paragraph.runs:
+                    run.font.size = Pt(9)
+                    run.font.color.rgb = RGBColor.from_string('555555')
         i += 1
     output = ROOT / 'Timefold_Audit.docx'
     doc.save(output)
