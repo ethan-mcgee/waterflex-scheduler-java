@@ -6,7 +6,7 @@ import sys
 
 sys.dont_write_bytecode = True  # Archived entry points must not modify their own frozen tree.
 
-from experiment_config import expand, read_json, validate
+from experiment_config import estimate_daily_wall_seconds, expand, read_json, validate
 
 
 def main():
@@ -17,6 +17,9 @@ def main():
     run.add_argument('--dry-run', action='store_true')
     for name in ('resume', 'analyze'):
         commands.add_parser(name).add_argument('run', type=Path)
+    contention = commands.add_parser('compare-contention')
+    contention.add_argument('sequential', type=Path)
+    contention.add_argument('parallel', type=Path)
     imp = commands.add_parser('import-history')
     imp.add_argument('archive', type=Path)
     args = parser.parse_args()
@@ -27,22 +30,37 @@ def main():
         cases = expand(config)
         if args.dry_run:
             seconds = sum(c.get('budget_ms', 0) for c in cases) / 1000
+            parallel = config.get('daily', {}).get('parallel_cases')
+            wall = estimate_daily_wall_seconds(cases, parallel) if parallel else None
             print(json.dumps({'cases': cases, 'case_count': len(cases), 'daily_search_seconds': seconds,
-                'daily_search_hours': seconds / 3600,
+                'daily_search_hours': seconds / 3600, 'parallel_cases': parallel,
+                'estimated_daily_wall_seconds': wall, 'estimated_daily_wall_time': None if wall is None else
+                    f'{int(wall // 3600)}h{int(wall // 60 % 60):02d}m',
                 'prerequisites': ['Python 3.10+ and requirements-experiments.txt', 'Java 25 and Maven wrapper',
                     'Committed experiment sources; free disk for frozen artifacts',
                     'Booking: npm ci + Prisma generate, DATABASE_URL for local waterflex_test, ROUTING_URL for ready road graph'],
-                'measurement': 'Sequential fresh processes; per-case warmup; booking concurrency is within a case'}, indent=2))
+                'measurement': 'Fresh process per case; up to parallel_cases daily cases at once on dedicated physical cores; booking is sequential; per-case warmup; booking concurrency is within a case'}, indent=2))
             return
         with measurement_lock():
             run = new_run(ROOT / 'experiments/runs', config, args.config.read_bytes())
             print(f'Run: {run}', flush=True)
             execute(run, prepare=True)
+        print('Generating graphs and summaries...', flush=True)
         print(analyze(run))
     elif args.command == 'resume':
         with measurement_lock():
             execute(args.run.resolve())
+        print('Generating graphs and summaries...', flush=True)
         print(analyze(args.run.resolve()))
+    elif args.command == 'compare-contention':
+        from experiment_analysis import contention_report
+        from experiment_runtime import stamp, write_new
+        import uuid
+        report = contention_report(args.sequential.resolve(), args.parallel.resolve())
+        destination = args.parallel.resolve() / 'contention' / f'{stamp()}-{uuid.uuid4().hex[:8]}.json'
+        write_new(destination, report)
+        print(json.dumps(report, indent=2))
+        print(f'Saved {destination}')
     elif args.command == 'import-history':
         print(analyze(import_history(args.archive.resolve())))
     else:

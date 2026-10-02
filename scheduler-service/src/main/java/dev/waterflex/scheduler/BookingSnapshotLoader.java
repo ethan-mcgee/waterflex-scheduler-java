@@ -49,7 +49,13 @@ public final class BookingSnapshotLoader {
     private final TransactionTemplate reads;
     private final ObjectMapper json = new ObjectMapper();
 
+    private final ServiceCalendar calendar;
     public BookingSnapshotLoader(JdbcTemplate jdbc, PlatformTransactionManager transactions) {
+        this(jdbc, transactions, new ServiceCalendar());
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public BookingSnapshotLoader(JdbcTemplate jdbc, PlatformTransactionManager transactions, ServiceCalendar calendar) {
+        this.calendar = calendar;
         this.jdbc = jdbc;
         reads = new TransactionTemplate(transactions);
         reads.setReadOnly(true);
@@ -62,11 +68,15 @@ public final class BookingSnapshotLoader {
         return load(metroId, requestingJobId, capturedAt, routingIdentity, false);
     }
     public Loaded load(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity, boolean overflow) {
-        List<LocalDate> dates = new ArrayList<>(BookingService.bookingDates(capturedAt));
-        if (overflow) dates.addAll(BookingService.overflowDates(capturedAt));
+        return load(metroId, requestingJobId, capturedAt, routingIdentity, overflow, calendar.at(capturedAt));
+    }
+    public Loaded load(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity,
+            boolean overflow, Instant calendarReference) {
+        List<LocalDate> dates = new ArrayList<>(BookingService.bookingDates(calendarReference));
+        if (overflow) dates.addAll(BookingService.overflowDates(calendarReference));
         Facts facts = Required.value(reads.execute(_ -> read(metroId, requestingJobId, capturedAt, routingIdentity,
                 dates, true)), "booking snapshot");
-        return new Loaded(new BookingSnapshot(facts.metroId(), facts.capturedAt(), facts.configurationFingerprint(),
+        return new Loaded(new BookingSnapshot(facts.metroId(), facts.capturedAt(), calendarReference, facts.configurationFingerprint(),
                 facts.routingIdentity(), facts.policy(), facts.rates(), facts.days()), facts.holds());
     }
 

@@ -1,3 +1,4 @@
+import { removeSuccessfulCase } from "./benchmarkCleanup";
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { open, readFile } from "node:fs/promises";
@@ -71,7 +72,7 @@ const concurrencyValues = (process.env.BENCHMARK_CONCURRENCY ?? "1,5,10").split(
 const caches = (process.env.BENCHMARK_CACHES ?? "cold,warm").split(",").map(value => z.enum(["cold", "warm"]).parse(value));
 const requests = z.int().min(1).max(200).parse(Number(process.env.BENCHMARK_REQUESTS ?? "30"));
 const seed = z.int().nonnegative().parse(Number(process.env.BENCHMARK_SEED ?? "17"));
-const dates = experimentDates(process.env.BENCHMARK_DATES);
+const dates = experimentDates(process.env.BENCHMARK_DATES, new Date(), process.env.BENCHMARK_CALENDAR_REFERENCE);
 const points = OMAHA_FAKE_LOCATIONS.filter(point => point.state === "NE").slice(0, 10).map(({ lat, lng }) => ({ lat, lng }));
 assert.equal(points.length, 10);
 const output = await open(required(process.env.BENCHMARK_OUTPUT), "wx");
@@ -97,10 +98,10 @@ async function statistics(resetPeak: boolean) {
   if (legacy) return null; // Audit-process counters cannot be attributed to the original booking process.
   const response = await fetch(`${engine}/internal/benchmark/statistics`, { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ resetPeak }), signal: AbortSignal.timeout(5000) });
-  if (response.status === 404) { verifyExperimentSettings(null, process.env.BENCHMARK_EXPECT_VARIANT); return null; }
+  if (response.status === 404) { verifyExperimentSettings(null, process.env.BENCHMARK_EXPECT_VARIANT, process.env.BENCHMARK_CALENDAR_REFERENCE); return null; }
   const body: unknown = await response.json(); assert.equal(response.status, 200, JSON.stringify(body));
   const measured = statisticsContract.parse(body);
-  verifyExperimentSettings(measured.configuration, process.env.BENCHMARK_EXPECT_VARIANT);
+  verifyExperimentSettings(measured.configuration, process.env.BENCHMARK_EXPECT_VARIANT, process.env.BENCHMARK_CALENDAR_REFERENCE);
   if (ablationManifest != null) {
     assert.equal(measured.configuration["booking.reservations.enabled"], "true");
     assert.equal(measured.configuration["booking.search.bounded"], String(ablationManifest.boundedSearch));
@@ -166,37 +167,14 @@ async function dataset(size: number, workload: Workload, caseId: string) {
 }
 
 type Attempt = { qualityTrace?: Array<{ elapsedMs: number; costDeltaCents: number | null }>; index: number; elapsedMs: number; outcome: string; completed: boolean | null; offers: number; served: boolean; serviceDate?: string; error?: string; search?: z.infer<typeof appointmentSearch>; selectionElapsedMs?: number };
-async function removeSuccessfulCase(caseId: string) {
-  const jobs = { id: { startsWith: `${caseId}-` } };
-  const technicians = { id: { startsWith: `${caseId}-tech-` } };
-  await prisma.$transaction(async tx => {
-    await tx.reservationArrangement.deleteMany({ where: { metroId: caseId } });
-    await tx.appointment.deleteMany({ where: { job: jobs } });
-    await tx.slotHold.deleteMany({ where: { job: jobs } });
-    await tx.bookingOptimization.deleteMany({ where: { job: jobs } });
-    await tx.bookingOffer.deleteMany({ where: { job: jobs } });
-    await tx.bookingOfferSet.deleteMany({ where: { job: jobs } });
-    await tx.job.deleteMany({ where: jobs });
-    await tx.address.deleteMany({ where: { customerId: `${caseId}-customer` } });
-    await tx.customer.deleteMany({ where: { id: `${caseId}-customer` } });
-    await tx.timeOffRequest.deleteMany({ where: { technician: technicians } });
-    await tx.scheduleDay.deleteMany({ where: { technician: technicians } });
-    await tx.technicianQualification.deleteMany({ where: { technician: technicians } });
-    await tx.technicianShiftOverride.deleteMany({ where: { technician: technicians } });
-    await tx.technician.deleteMany({ where: technicians });
-    await tx.serviceCatalog.deleteMany({ where: { id: { in: [`${caseId}-common`, `${caseId}-scarce`] } } });
-    await tx.depot.deleteMany({ where: { id: `${caseId}-depot` } });
-    await tx.dealership.deleteMany({ where: { id: `${caseId}-dealer` } });
-    await tx.metro.deleteMany({ where: { id: caseId } });
-  }, { timeout: 60000 });
-}
+
 try {
   assert.equal(await prisma.metro.count(), 0, "Start with a freshly migrated, unseeded benchmark schema; failed datasets are retained for inspection");
   if (process.env.BENCHMARK_PORTAL_URL != null) {
     assert.equal(legacy, false, "Original server comparison uses its unchanged API directly");
     browser = await browserBenchmark(process.env.BENCHMARK_PORTAL_URL);
   }
-  await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), dates, sizes, workloads, concurrencyValues, caches, requests,
+  await record({ type: "provenance", revision, artifactSha256, ablationManifest, harnessRevision, harnessSources, variant, seed, startedAt: new Date().toISOString(), calendarReference: process.env.BENCHMARK_CALENDAR_REFERENCE ?? null, dates, sizes, workloads, concurrencyValues, caches, requests,
     browser: browser == null ? null : { version: browser.version, portal: process.env.BENCHMARK_PORTAL_URL, flow: process.env.BENCHMARK_DURABLE === "true" ? "validated-job durable search with 750ms polling" : "validated-job refresh" },
     serverMode: legacy ? "legacy" : "current", auditRevision: legacy ? required(process.env.BENCHMARK_AUDIT_REVISION) : revision,
     legacyMeasurementTimeoutMs: legacy ? legacyMeasurementTimeoutMs : null,
@@ -204,7 +182,7 @@ try {
     scope: browser == null ? "Customer scheduling client HTTP including cancellation and acknowledgement; excludes address entry/geocoding and browser transport"
       : "Browser HTTP through the portal including scheduler cancellation/acknowledgement; starts with validated job/address; excludes address entry/geocoding and rendering", hardware: { cpu: required(cpus()[0]).model, logicalProcessors: cpus().length, memoryBytes: totalmem() } });
   for (const size of sizes) for (const workload of workloads) for (const concurrency of concurrencyValues) for (const cache of caches) {
-    experimentDates(process.env.BENCHMARK_DATES);
+    experimentDates(process.env.BENCHMARK_DATES, new Date(), process.env.BENCHMARK_CALENDAR_REFERENCE);
     const caseId = `benchmark-${randomUUID()}`;
     const data = await dataset(size, workload, caseId);
     const before = await audit(data.metroId);
@@ -284,7 +262,7 @@ try {
       retimedAppointments: final.filter((item, index) => item.plannedStart.getTime() !== required(originals[index]).plannedStart.getTime()).length,
       independentlyValidated: true, promiseViolations: 0, finishedAt: new Date().toISOString() });
     console.log(`${size}/${workload}/${concurrency}/${cache}: ${attempts.filter(item => item.served).length}/${requests} served, p95 ${percentile(.95).toFixed(1)} ms`);
-    await removeSuccessfulCase(caseId);
+    await removeSuccessfulCase(prisma, caseId);
   }
 } catch (error) { await record({ type: "failure", message: errorMessage(error), at: new Date().toISOString() }); throw error; }
 finally { if (legacyServer) await legacyServer.stop(); if (browser) await browser.close(); await output.close(); await prisma.$disconnect(); }
