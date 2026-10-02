@@ -52,9 +52,9 @@ class ConfigurationTests(unittest.TestCase):
     def test_initial_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         daily = expand(read_json(root / 'daily-budget.json'))
-        self.assertEqual(len(daily), 480)
-        self.assertEqual(sum(r['budget_ms'] for r in daily), 44400000)
-        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 240)
+        self.assertEqual(len(daily), 1440)
+        self.assertEqual(sum(r['budget_ms'] for r in daily), 133200000)
+        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 720)
 
     def test_reject_bad_configuration(self):
         modifications = [lambda c: c.update(unknown=True), lambda c: c.update(version=True),

@@ -78,9 +78,9 @@ JSON has `version: 1`, a lowercase slug `name`, and either or both `daily` and `
 | `caches` | Not accepted | cold, warm |
 | `requests` | Not accepted | Integer 1..200; defaults supplied in JSON are 10, smoke uses 2 |
 
-The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Five seeds (17, 23, 41, 59, 83), four fleets (5, 10, 20, 50), CLUSTERED fixtures, and six budgets (15, 30, 60, 90, 120, 240 seconds) produce **480 cases** and **44,400 seconds (12 hours 20 minutes)** of search allowance. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance.
+The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Five seeds (17, 23, 41, 59, 83), four fleets (5, 10, 20, 50), CLUSTERED, DISPERSED and SPARSE fixtures, and six budgets (15, 30, 60, 90, 120, 240 seconds) produce **1,440 cases** and **133,200 seconds (37 hours)** of search allowance. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance.
 
-The supplied booking matrix has INSERTION and BOUNDED, INSERTION control, the same seeds/fleets, DISPERSED fixtures, three concurrency levels, two caches, and ten requests per case: **240 cases and 2,400 requests**. It retains existing durable booking search limits; daily budgets never configure booking. Runtime depends on search, audits, fixture creation and process startup. These are direct durable-client HTTP measurements, not browser or address-entry latency.
+The supplied booking matrix has INSERTION and BOUNDED, INSERTION control, the same seeds/fleets, DISPERSED, CLUSTERED and SPARSE fixtures, three concurrency levels, two caches, and ten requests per case: **720 cases and 7,200 requests**. It retains existing durable booking search limits; daily budgets never configure booking. Runtime depends on search, audits, fixture creation and process startup. These are direct durable-client HTTP measurements, not browser or address-entry latency.
 
 ## Measurement protocol
 
@@ -140,4 +140,4 @@ npm.cmd --prefix web run typecheck
 npm.cmd --prefix web run test:unit
 ```
 
-Regression tests cover invalid configurations, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, overlapping booking outcomes and pooled percentiles. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the unrun 480-case study.
+Regression tests cover invalid configurations, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, overlapping booking outcomes and pooled percentiles. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the unrun 1,440-case study.
