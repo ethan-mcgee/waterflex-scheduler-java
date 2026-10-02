@@ -76,8 +76,12 @@ public class TimeOffService {
         return Required.value(Map.<String, Object>of("requestId", id, "status", "PENDING"));
     }
 
+    @org.springframework.beans.factory.annotation.Value("${time-off.analysis.enabled:true}")
+    private boolean analysisEnabled = true;
+
     @Scheduled(fixedDelayString = "#{@timeOffPolling.delayMs()}")
     public void processQueued() {
+        if (!analysisEnabled) return;
         var ids = jdbc.query("SELECT p.\"requestId\" FROM time_off_report p JOIN time_off_request r ON r.id=p.\"requestId\" WHERE p.status='QUEUED' AND r.status='PENDING' ORDER BY p.\"createdAt\" LIMIT 3", (rs, _) -> Required.string(rs, 1));
         for (String id : ids) {
             if (jdbc.update("UPDATE time_off_report SET status='ANALYZING', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='QUEUED' AND EXISTS (SELECT 1 FROM time_off_request WHERE id=? AND status='PENDING')", id, id) == 0) continue;

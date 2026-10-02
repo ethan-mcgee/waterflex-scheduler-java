@@ -20,6 +20,7 @@
     ],
     "budgets_seconds": [
       0.5
-    ]
+    ],
+    "parallel_cases": 1
   }
 }

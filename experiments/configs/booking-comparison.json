@@ -21,15 +21,14 @@
       50
     ],
     "workloads": [
-      "DISPERSED"
+      "DISPERSED",
+      "CLUSTERED",
+      "SPARSE"
     ],
     "concurrency": [
-      1,
-      5,
-      10
+      1
     ],
     "caches": [
-      "cold",
       "warm"
     ],
     "requests": 10

@@ -3,10 +3,10 @@
   "name": "daily-budget",
   "daily": {
     "solvers": [
-      "LATE_ACCEPTANCE",
       "TABU",
-      "SUBLIST",
-      "KOPT"
+      "KOPT",
+      "LATE_ACCEPTANCE",
+      "SUBLIST"
     ],
     "control": "TABU",
     "seeds": [
@@ -14,7 +14,12 @@
       23,
       41,
       59,
-      83
+      83,
+      101,
+      127,
+      149,
+      173,
+      199
     ],
     "fleets": [
       5,
@@ -23,15 +28,15 @@
       50
     ],
     "workloads": [
-      "CLUSTERED"
+      "CLUSTERED",
+      "DISPERSED"
     ],
     "budgets_seconds": [
-      15,
-      30,
       60,
       90,
       120,
       240
-    ]
+    ],
+    "parallel_cases": 10
   }
 }
