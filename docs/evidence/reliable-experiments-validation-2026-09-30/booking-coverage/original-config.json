@@ -1,0 +1,1 @@
+{"version": 1, "name": "reliability-booking-coverage", "booking": {"solvers": ["INSERTION", "BOUNDED"], "control": "INSERTION", "seeds": [83], "fleets": [50], "workloads": ["CLUSTERED", "DISPERSED", "SPARSE"], "concurrency": [1, 10], "caches": ["cold", "warm"], "requests": 10}}

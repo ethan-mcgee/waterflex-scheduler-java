@@ -127,7 +127,7 @@ public final class SnapshotRouting {
     }
 
     private static BookingSnapshot withDays(BookingSnapshot snapshot, Map<LocalDate, Day> days) {
-        return new BookingSnapshot(snapshot.metroId(), snapshot.capturedAt(), snapshot.configurationFingerprint(), snapshot.routingIdentity(),
+        return new BookingSnapshot(snapshot.metroId(), snapshot.capturedAt(), snapshot.calendarReference(), snapshot.configurationFingerprint(), snapshot.routingIdentity(),
                 snapshot.policy(), snapshot.rates(), days);
     }
 }

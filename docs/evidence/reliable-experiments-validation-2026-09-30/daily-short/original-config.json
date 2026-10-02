@@ -1,0 +1,1 @@
+{"version": 1, "name": "reliability-daily-short", "daily": {"solvers": ["LATE_ACCEPTANCE", "TABU", "SUBLIST", "KOPT"], "control": "TABU", "seeds": [83], "fleets": [5, 10, 20, 50], "workloads": ["CLUSTERED", "DISPERSED", "SPARSE"], "budgets_seconds": [0.1]}}

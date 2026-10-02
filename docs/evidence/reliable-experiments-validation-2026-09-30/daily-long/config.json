@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "name": "reliability-daily-long",
+  "daily": {
+    "solvers": [
+      "LATE_ACCEPTANCE",
+      "TABU",
+      "SUBLIST",
+      "KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      83
+    ],
+    "fleets": [
+      50
+    ],
+    "workloads": [
+      "DISPERSED"
+    ],
+    "budgets_seconds": [
+      240
+    ]
+  }
+}

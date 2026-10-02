@@ -278,7 +278,7 @@ public class RoadClient {
         });
     }
 
-    @Scheduled(cron = "0 30 3 * * SUN", zone = "America/Chicago")
+    @Scheduled(cron = "${routing.cache.cleanup-cron:0 30 3 * * SUN}", zone = "America/Chicago")
     public void cleanPersistentCache() {
         jdbc.update("DELETE FROM road_route_cache WHERE \"fetchedAt\" < CURRENT_TIMESTAMP - INTERVAL '30 days'");
         jdbc.update("DELETE FROM road_route_cache WHERE id IN (SELECT id FROM road_route_cache ORDER BY \"fetchedAt\" DESC, id DESC OFFSET 500000 LIMIT 50000)");

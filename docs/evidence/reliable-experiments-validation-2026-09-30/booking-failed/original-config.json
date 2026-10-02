@@ -1,0 +1,1 @@
+{"version": 1, "name": "reliability-booking-failed", "booking": {"solvers": ["BOUNDED"], "control": "BOUNDED", "seeds": [83], "fleets": [20], "workloads": ["DISPERSED"], "concurrency": [1], "caches": ["cold"], "requests": 10}}

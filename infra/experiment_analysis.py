@@ -1,7 +1,7 @@
 """Conservative raw-evidence adapter and reusable static experimental figures."""
 from collections import Counter, defaultdict
 import csv
-from datetime import date
+from datetime import date, datetime, timezone
 import gzip
 import html
 import json
@@ -56,6 +56,15 @@ def audit_cost(audit):
     return sum(values) if all(v is not None for v in values) else None
 
 
+def calendar_reference(value):
+    if not isinstance(value, str) or not value:
+        raise ValueError('Missing/invalid calendar reference')
+    instant = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    if instant.tzinfo is None:
+        raise ValueError('Calendar reference requires an offset')
+    return instant.astimezone(timezone.utc).isoformat()
+
+
 def normalize(raw, provenance, cohort):
     daily = raw['type'] == 'result'
     row = dict(kind='daily' if daily else 'booking', cohort=cohort,
@@ -83,6 +92,19 @@ def normalize(raw, provenance, cohort):
         routing = required(before, 'routingIdentity', str)
         if after.get('routingIdentity') != routing:
             raise ValueError('Routing identity mismatch')
+        # Historical archives retain their original real-time calendar semantics.
+        reference = provenance.get('calendarReference')
+        if reference is not None:
+            row['calendar_reference'] = calendar_reference(reference)
+            for phase in ('processBefore', 'processAfter'):
+                observation = required(raw, phase, dict)
+                settings = required(observation, 'configuration', dict)
+                expected_isolation = {'scheduler.optimizer.cron': '-', 'routing.cache.cleanup-cron': '-',
+                                      'routing.prewarm.enabled': 'false', 'time-off.analysis.enabled': 'false'}
+                if any(settings.get(key) != value for key, value in expected_isolation.items()):
+                    raise ValueError('Benchmark isolation settings changed or missing')
+                if calendar_reference(settings.get('benchmark.calendar-reference')) != row['calendar_reference']:
+                    raise ValueError('Server calendar differs from frozen reference')
         attempts = required(raw, 'attempts', list)
         dates = required(provenance, 'dates', list)
         if not dates or any(not isinstance(d, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', d) for d in dates) or len(set(dates)) != len(dates):
@@ -167,7 +189,7 @@ def load_raw(path, expected=None, cohort='current'):
 
 def pair_key(row, budget=True):
     fields = ['kind', 'cohort', 'fixture', 'routing', 'fleet', 'workload', 'seed']
-    fields += (['budget_ms'] if budget else []) if row['kind'] == 'daily' else ['concurrency', 'cache', 'requests', 'dates']
+    fields += (['budget_ms'] if budget else []) if row['kind'] == 'daily' else ['concurrency', 'cache', 'requests', 'dates', 'calendar_reference']
     return canonical([row.get(f) for f in fields])
 
 

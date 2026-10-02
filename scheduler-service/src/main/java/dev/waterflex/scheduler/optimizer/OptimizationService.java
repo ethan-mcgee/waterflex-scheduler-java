@@ -473,7 +473,7 @@ public class OptimizationService {
         return Required.value(Map.of("runs", runs));
     }
 
-    @Scheduled(cron = "0 0 2 * * *", zone = "America/Chicago")
+    @Scheduled(cron = "${scheduler.optimizer.cron:0 0 2 * * *}", zone = "America/Chicago")
     public void overnight() {
         var metros = jdbc.query("SELECT id FROM metro", (rs, _) -> Required.string(rs, 1));
         for (String metro : metros) for (LocalDate day : overnightDates(Required.value(Instant.now()))) {
