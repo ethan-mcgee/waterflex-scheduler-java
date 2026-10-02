@@ -1,0 +1,49 @@
+test_booking_cost_requires_same_customers (test_experiments.AnalysisTests.test_booking_cost_requires_same_customers) ... ok
+test_booking_nulls_missing_indices_and_routing_rejected (test_experiments.AnalysisTests.test_booking_nulls_missing_indices_and_routing_rejected) ... ok
+test_conflicting_fixture_duplicate_not_averaged (test_experiments.AnalysisTests.test_conflicting_fixture_duplicate_not_averaged) ... ok
+test_correct_pairing_and_signed_costs (test_experiments.AnalysisTests.test_correct_pairing_and_signed_costs) ... ok
+test_duplicates_all_excluded (test_experiments.AnalysisTests.test_duplicates_all_excluded) ... ok
+test_equal_seed_weighting (test_experiments.AnalysisTests.test_equal_seed_weighting) ... ok
+test_missing_control_or_fixture_mismatch_is_unavailable (test_experiments.AnalysisTests.test_missing_control_or_fixture_mismatch_is_unavailable) ... ok
+test_missing_latency_and_historical_mixed_latency_excluded (test_experiments.AnalysisTests.test_missing_latency_and_historical_mixed_latency_excluded) ... ok
+test_missing_null_metrics_preserved (test_experiments.AnalysisTests.test_missing_null_metrics_preserved) ... ok
+test_null_request_observation_rejected (test_experiments.AnalysisTests.test_null_request_observation_rejected) ... ok
+test_overlapping_served_incomplete_and_pooled_percentiles (test_experiments.AnalysisTests.test_overlapping_served_incomplete_and_pooled_percentiles) ... ok
+test_partial_raw_kept_and_reported (test_experiments.AnalysisTests.test_partial_raw_kept_and_reported) ... ok
+test_child_cleanup_only_owned_process (test_experiments.ArchiveTests.test_child_cleanup_only_owned_process) ... ok
+test_config_mismatch (test_experiments.ArchiveTests.test_config_mismatch) ... ok
+test_database_scope_and_credential_metadata (test_experiments.ArchiveTests.test_database_scope_and_credential_metadata) ... ok
+test_duplicate_completion_and_changed_raw_rejected (test_experiments.ArchiveTests.test_duplicate_completion_and_changed_raw_rejected) ... ok
+test_expired_booking_resume_rejected_before_launch (test_experiments.ArchiveTests.test_expired_booking_resume_rejected_before_launch) ... ok
+test_frozen_mismatch (test_experiments.ArchiveTests.test_frozen_mismatch) ... ok
+test_historical_import_is_read_only (test_experiments.ArchiveTests.test_historical_import_is_read_only) ... ok
+[1/2] {'kind': 'daily', 'fleet': 5, 'workload': 'CLUSTERED', 'seed': 17, 'solver': 'TABU', 'budget_ms': 100, 'id': 'd21f11293f1082c4ecb9'}
+[1/2] {'kind': 'daily', 'fleet': 5, 'workload': 'CLUSTERED', 'seed': 17, 'solver': 'TABU', 'budget_ms': 100, 'id': 'd21f11293f1082c4ecb9'}
+[2/2] {'kind': 'daily', 'fleet': 5, 'workload': 'CLUSTERED', 'seed': 17, 'solver': 'KOPT', 'budget_ms': 100, 'id': '673aac8190020b7fb4c6'}
+test_interruption_resume_keeps_prior_attempts_and_completed_evidence (test_experiments.ArchiveTests.test_interruption_resume_keeps_prior_attempts_and_completed_evidence) ... ok
+test_lock_excludes_competing_runs_and_releases (test_experiments.ArchiveTests.test_lock_excludes_competing_runs_and_releases) ... ok
+test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts) ... ERROR
+test_unique_runs_and_immutable_receipts (test_experiments.ArchiveTests.test_unique_runs_and_immutable_receipts) ... ok
+test_duplicate_json_fields (test_experiments.ConfigurationTests.test_duplicate_json_fields) ... ok
+test_initial_matrices (test_experiments.ConfigurationTests.test_initial_matrices) ... ok
+test_reject_bad_configuration (test_experiments.ConfigurationTests.test_reject_bad_configuration) ... ok
+test_reproducible_unique_counterbalanced_cases_and_budget_propagation (test_experiments.ConfigurationTests.test_reproducible_unique_counterbalanced_cases_and_budget_propagation) ... ok
+
+======================================================================
+ERROR: test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit\waterflex-scheduler-java\infra\test_experiments.py", line 305, in test_second_config_and_analysis_preserve_first_artifacts
+    first = analyze(run)
+            ^^^^^^^^^^^^
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit\waterflex-scheduler-java\infra\experiment_analysis.py", line 390, in analyze
+    figures = plots(output, rows, controls, budgets)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit\waterflex-scheduler-java\infra\experiment_analysis.py", line 244, in plots
+    import matplotlib
+ModuleNotFoundError: No module named 'matplotlib'
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.396s
+
+FAILED (errors=1)
