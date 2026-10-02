@@ -1,0 +1,134 @@
+{
+  "pages": 24,
+  "all_pages_inspected": true,
+  "exporter": "Microsoft Word PDF export",
+  "renderer": "bundled Poppler at 120 dpi",
+  "docx_sha256": "ad990bb94b89237120fa55e4cde38c3a1408e3f3b0eb9bfba329bf5dc613e2f5",
+  "pdf_sha256": "765968546d6e6db2b405254e7c0d734dff46fbafae3c97dcad520129216b7632",
+  "corrections": [
+    "Keep table header with first data row to remove orphan header on page 3",
+    "Start final verification section on a clean page"
+  ],
+  "page_reviews": [
+    {
+      "page": 1,
+      "sha256": "0075dd7f6a1313b98af594b02f211826269bedc0ed098f0eb316cd004a92a0f7",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 2,
+      "sha256": "02b177c1298cad54626b88c5ff1ac6aed691cfd36143a0d0e083363cea95a358",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 3,
+      "sha256": "a5e8309be8fafd718e4e2244fb7d3d37870b23d446bb5260700c0a69c8ddd955",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 4,
+      "sha256": "9306ba894788ef00bf1059605b18b72e6a7ec54470a93bd6395f0e1bdd7e8b90",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 5,
+      "sha256": "bdd948024642c9e2f15417ccb3284d4c34aeae82218858396de99db043194652",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 6,
+      "sha256": "8e00ba89877db46df3f1cfc11667edd014c2ed78ff19ad4dff81e5cfd51e8f60",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 7,
+      "sha256": "24064ac463ac43609c856c4f52aba1a72e82abf790951b559937a19003d591ce",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 8,
+      "sha256": "dcbe2787b1f82d72bc7657a93cddf7d2d0ef8adde6aa72bbc317d31cda41e498",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 9,
+      "sha256": "123a12dab12e9850e569d8b9261a5961fd5134eaa0d6fc62cc0a198e2e4d36a4",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 10,
+      "sha256": "0b706a7ed042bbd362b7157a4cdd71317a0b15803a402d4b7dafe9574c16127f",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 11,
+      "sha256": "a3e7f5552cf083a580f5aa21a7ab4803b938153222c4cda1550a01785fcb3ae0",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 12,
+      "sha256": "112f6b79452b5579075ca0f2aa38ef61615d0cd311c82ff6b0f30c89dfaaa483",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 13,
+      "sha256": "6594cc533f0ee06705335798db75aea36d598e5ce2d72ef259a7b49b4fc51781",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 14,
+      "sha256": "8cab07592133b19631825b7ac2fd0ae088a914a89b2ae815d10f07f5cc4d64c5",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 15,
+      "sha256": "bffd64b45a44810c6462f5dc72ed6563f0af8cc8b64730374c91534dbfb89450",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 16,
+      "sha256": "b379f102a22149bb2ce3fc5c5663b8d5d2cc376fcde3be3ae9a8084647e314b2",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 17,
+      "sha256": "4807bb638b99dd46e0a2c8a43817abfbfaa838707d7df89f9f4c034f9a451d4e",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 18,
+      "sha256": "a4d941ad5893074eacbebd625d1c32b847852ebc53bb62af75d28c6721982ff8",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 19,
+      "sha256": "e726f96afe0d079cd61d68532c7f2d14e7972e9bb9bb5a18b5af682579d072c1",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 20,
+      "sha256": "ce3cfd5dbd289d073f6427ea73f93e665ddef9abb72d95c39fe4f96458c8ada0",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 21,
+      "sha256": "04371b869ec4506ab14be1eea6b071e8c24102ab96350159b5128fcc845f4d55",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 22,
+      "sha256": "bd12e62bdeb6592f01c27f4a338ae7e21ce342c7dd7594ffee72e1bfcb062fe5",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 23,
+      "sha256": "6719688541be4653e4c1c5d1b79308d518c7ffb7e2159a133385856acff323e5",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    },
+    {
+      "page": 24,
+      "sha256": "a6d97e7615036f1cd96560c051a3f6c9a07c13e55ae6c9444322dfb41c89c46c",
+      "status": "inspected: readable, no clipped text or overlapping elements"
+    }
+  ]
+}

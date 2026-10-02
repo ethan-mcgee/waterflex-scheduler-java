@@ -57,6 +57,8 @@ def table(doc, lines):
             if index == 0:
                 fill = OxmlElement('w:shd'); fill.set(qn('w:fill'), 'DDEBF7'); props.append(fill)
             p = cell.paragraphs[0]; p.paragraph_format.space_after = Pt(2); p.paragraph_format.space_before = Pt(2)
+            if index == 0:
+                p.paragraph_format.keep_with_next = True
             inline(p, value, size=9)
             for run in p.runs: run.font.size = Pt(9); run.bold = index == 0
         trpr = grid.rows[index]._tr.get_or_add_trPr()
@@ -105,7 +107,10 @@ def main():
             title = doc.add_paragraph(line[2:], 'Title')
             title.paragraph_format.line_spacing = 1.1
             title.paragraph_format.space_after = Pt(18)
-        elif line.startswith('## '): doc.add_paragraph(line[3:], 'Heading 1')
+        elif line.startswith('## '):
+            heading = doc.add_paragraph(line[3:], 'Heading 1')
+            if line == '## Second-review verification and delivery limits':
+                heading.paragraph_format.page_break_before = True
         elif line.startswith('### '): doc.add_paragraph(line[4:], 'Heading 2')
         elif line.strip():
             paragraph = doc.add_paragraph()

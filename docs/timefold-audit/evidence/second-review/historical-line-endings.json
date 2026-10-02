@@ -1,0 +1,114 @@
+[
+  {
+    "path": "docs/timefold-audit/evidence/audit-experiment-system-python.log",
+    "git_sha256": "747ee7863fbef891f5c49c1c9ce270413b81c4a08892a6bcabae5152227b76a3",
+    "git_bytes": 3897,
+    "original_crlf_sha256": "a674d4e8b09b7e0e657cc2fb63efd99ead3c294ae84e7357dcdd32cd6f7942bd",
+    "original_bytes": 3932,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-experiment-tests.log",
+    "git_sha256": "de0f10ad0fba03ae98669377aa1c6b0a376dedad73b331e20169cb7081ab0b77",
+    "git_bytes": 4914,
+    "original_crlf_sha256": "005560b0e9a89d8ec684fc4a7c2deb161a02804ce0ca2543d50a8ca0554057ca",
+    "original_bytes": 4963,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-final-java.log",
+    "git_sha256": "1b58f5f9b663b5f1874dfe0df10610fa12d1ac5e971606850a70cdd4c0365738",
+    "git_bytes": 117965,
+    "original_crlf_sha256": "d1306b94e355ca5fdaf74681ed8b368d68abad2f464aeff6a5cb8f479e431dba",
+    "original_bytes": 118677,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-final-reproductions.log",
+    "git_sha256": "ae933d9fb5df040f26a35ac6d33c2055ba0559c32507728630deed8798b6ed40",
+    "git_bytes": 18807,
+    "original_crlf_sha256": "3b5e40018bd3f034efb40978fc70e688b57c43278b47d5f2d7ce847cfd98f984",
+    "original_bytes": 18889,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-java-check.log",
+    "git_sha256": "331e1d361df9357c82f25e82d836b94a14255f44a8eced1861c42f4700804f5e",
+    "git_bytes": 115096,
+    "original_crlf_sha256": "512eb2081f13c46d6e3f1dd3c50378861554a891530fc35a08bcce4da6a04984",
+    "original_bytes": 115791,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-npm-install.log",
+    "git_sha256": "440e79b04196e5cf76cf2f12f5fdfff20abc97ce2076b2884f3dfe70a3712e2b",
+    "git_bytes": 1227,
+    "original_crlf_sha256": "1abe668ada3ddb4498b7bad39f44fc36b267418c5f1042ce7ca9f2144bbed356",
+    "original_bytes": 1236,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-prisma.log",
+    "git_sha256": "428a6b5c8a1e86365a7f8d3b64c9894482bebc288012570f29b4ad84d485c63b",
+    "git_bytes": 386,
+    "original_crlf_sha256": "5dbe2480a463ff7d7ce163df316ad1ca6713636a7f87337e86af2707bf06981d",
+    "original_bytes": 398,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-render.log",
+    "git_sha256": "dc1f08937de09b18d1d25c4082d6c7d6c6c91a164bf9919dca08593c38808afc",
+    "git_bytes": 1170,
+    "original_crlf_sha256": "d04f33a295046b3a857e9e43ed25ee7e055c500de050b64b934b8a1bf908bccf",
+    "original_bytes": 1184,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-reproductions-cold-start-failure.log",
+    "git_sha256": "f9d366558b4482b4ae0bc1612ec1703fb0d81dc82d6bd750d2333f74f51e5137",
+    "git_bytes": 20578,
+    "original_crlf_sha256": "f17231055dc103202bfbfc363f55678a588e6a1b83e4884e952866a3af17365c",
+    "original_bytes": 20683,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-reproductions-initial.log",
+    "git_sha256": "0f3a1c981a5fd0b9abde994a354999f021e4b4bbfd6b17278c78a31d9bd510f3",
+    "git_bytes": 20528,
+    "original_crlf_sha256": "a1c01736a6e1b1c01e98557336af76aea85d47a8c84134e770a36ad96ce24971",
+    "original_bytes": 20632,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-reproductions.log",
+    "git_sha256": "f9d366558b4482b4ae0bc1612ec1703fb0d81dc82d6bd750d2333f74f51e5137",
+    "git_bytes": 20578,
+    "original_crlf_sha256": "f17231055dc103202bfbfc363f55678a588e6a1b83e4884e952866a3af17365c",
+    "original_bytes": 20683,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-web-lint.log",
+    "git_sha256": "11a0d6f7907693c0d8bbdc784becf6dcc6b0a33b327d382cff722f9dadfe3e51",
+    "git_bytes": 120,
+    "original_crlf_sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2",
+    "original_bytes": 124,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-web-tests.log",
+    "git_sha256": "6cf16271353f9152c4ec8c96808de35d38ccd3a664a99cd533b466cee8365e25",
+    "git_bytes": 8734,
+    "original_crlf_sha256": "78bc64d20c20ec29831471836ddf0134359691da9460f2ef9640457e6aba5e9b",
+    "original_bytes": 8858,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  },
+  {
+    "path": "docs/timefold-audit/evidence/audit-web-typecheck.log",
+    "git_sha256": "b50c606130632c42d9a378de9a21e293c5b7ba64d88531da398c745ca883ca31",
+    "git_bytes": 49,
+    "original_crlf_sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c",
+    "original_bytes": 53,
+    "explanation": "Original manifest hashed CRLF output; retained Git blob and current checkout use LF. Reconstruction matches original hash exactly. Neither original log nor manifest changed."
+  }
+]

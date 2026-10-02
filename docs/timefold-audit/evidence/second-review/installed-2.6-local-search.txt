@@ -1,0 +1,772 @@
+Compiled from "DefaultLocalSearchPhaseFactory.java"
+public class ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhaseFactory<Solution_> extends ai.timefold.solver.core.impl.phase.AbstractPhaseFactory<Solution_, ai.timefold.solver.core.config.localsearch.LocalSearchPhaseConfig> {
+  public ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhaseFactory(ai.timefold.solver.core.config.localsearch.LocalSearchPhaseConfig);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #1                  // Method ai/timefold/solver/core/impl/phase/AbstractPhaseFactory."<init>":(Lai/timefold/solver/core/config/phase/PhaseConfig;)V
+         5: return
+
+  public ai.timefold.solver.core.impl.localsearch.LocalSearchPhase<Solution_> buildPhase(int, boolean, ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, ai.timefold.solver.core.impl.solver.recaller.BestSolutionRecaller<Solution_>, ai.timefold.solver.core.impl.solver.termination.SolverTermination<Solution_>);
+    Code:
+         0: aload_3
+         1: invokevirtual #7                  // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.createPhaseConfigPolicy:()Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;
+         4: astore        6
+         6: aload_0
+         7: aload         6
+         9: aload         5
+        11: invokevirtual #13                 // Method buildPhaseTermination:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/SolverTermination;)Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;
+        14: astore        7
+        16: aload_0
+        17: aload         6
+        19: aload         7
+        21: invokevirtual #19                 // Method buildDecider:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+        24: astore        8
+        26: new           #23                 // class ai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhase$Builder
+        29: dup
+        30: iload_1
+        31: aload_3
+        32: invokevirtual #25                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getLogIndentation:()Ljava/lang/String;
+        35: aload         7
+        37: aload         8
+        39: invokespecial #29                 // Method ai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhase$Builder."<init>":(ILjava/lang/String;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;)V
+        42: aload         6
+        44: invokevirtual #32                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getEnvironmentMode:()Lai/timefold/solver/core/config/solver/EnvironmentMode;
+        47: invokevirtual #36                 // Method ai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhase$Builder.enableAssertions:(Lai/timefold/solver/core/config/solver/EnvironmentMode;)Lai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhase$Builder;
+        50: invokevirtual #40                 // Method ai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhase$Builder.build:()Lai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhase;
+        53: areturn
+
+  private ai.timefold.solver.core.impl.localsearch.decider.LocalSearchDecider<Solution_> buildDecider(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, ai.timefold.solver.core.impl.solver.termination.PhaseTermination<Solution_>);
+    Code:
+         0: aload_1
+         1: getstatic     #44                 // Field ai/timefold/solver/core/config/solver/PreviewFeature.NEIGHBORHOODS:Lai/timefold/solver/core/config/solver/PreviewFeature;
+         4: invokevirtual #50                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.isPreviewFeatureEnabled:(Lai/timefold/solver/core/config/solver/PreviewFeature;)Z
+         7: istore_3
+         8: aload_0
+         9: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        12: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        15: invokevirtual #60                 // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getNeighborhoodProviderClass:()Ljava/lang/Class;
+        18: astore        4
+        20: iload_3
+        21: ifeq          69
+        24: aload         4
+        26: ifnonnull     33
+        29: ldc           #64                 // class ai/timefold/solver/core/impl/neighborhood/DefaultNeighborhoodProvider
+        31: astore        4
+        33: aload_1
+        34: invokevirtual #66                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getNearbyDistanceMeterClass:()Ljava/lang/Class;
+        37: ifnull        111
+        40: new           #69                 // class java/lang/IllegalArgumentException
+        43: dup
+        44: ldc           #71                 // String The neighborhoodProviderClass (%s) is not compatible with using the top-level property nearbyDistanceMeterClass (%s).\nThe Neighborhoods API does not yet support nearby selection.\nYou may still configure nearby selection in move selectors individually.
+        46: iconst_2
+        47: anewarray     #73                 // class java/lang/Object
+        50: dup
+        51: iconst_0
+        52: aload         4
+        54: aastore
+        55: dup
+        56: iconst_1
+        57: aload_1
+        58: invokevirtual #66                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getNearbyDistanceMeterClass:()Ljava/lang/Class;
+        61: aastore
+        62: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+        65: invokespecial #81                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        68: athrow
+        69: aload         4
+        71: ifnull        111
+        74: new           #84                 // class java/lang/UnsupportedOperationException
+        77: dup
+        78: ldc           #86                 // String The neighborhoodProviderClass (%s) can only be used if the %s preview feature is enabled.\nMaybe add <enablePreviewFeature>%s</enablePreviewFeature> to your solver configuration file?
+        80: iconst_3
+        81: anewarray     #73                 // class java/lang/Object
+        84: dup
+        85: iconst_0
+        86: aload         4
+        88: invokevirtual #88                 // Method java/lang/Class.getCanonicalName:()Ljava/lang/String;
+        91: aastore
+        92: dup
+        93: iconst_1
+        94: getstatic     #44                 // Field ai/timefold/solver/core/config/solver/PreviewFeature.NEIGHBORHOODS:Lai/timefold/solver/core/config/solver/PreviewFeature;
+        97: aastore
+        98: dup
+        99: iconst_2
+       100: getstatic     #44                 // Field ai/timefold/solver/core/config/solver/PreviewFeature.NEIGHBORHOODS:Lai/timefold/solver/core/config/solver/PreviewFeature;
+       103: aastore
+       104: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+       107: invokespecial #93                 // Method java/lang/UnsupportedOperationException."<init>":(Ljava/lang/String;)V
+       110: athrow
+       111: aload_0
+       112: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+       115: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+       118: invokevirtual #94                 // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getMoveSelectorConfig:()Lai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig;
+       121: astore        5
+       123: aload         5
+       125: ifnull        148
+       128: iload_3
+       129: ifeq          141
+       132: aload_0
+       133: aload_1
+       134: aload_2
+       135: aload         4
+       137: invokevirtual #98                 // Method buildMixedDecider:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;Ljava/lang/Class;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+       140: areturn
+       141: aload_0
+       142: aload_1
+       143: aload_2
+       144: invokevirtual #102                // Method buildMoveSelectorBasedDecider:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+       147: areturn
+       148: iload_3
+       149: ifeq          161
+       152: aload_0
+       153: aload_1
+       154: aload_2
+       155: aload         4
+       157: invokevirtual #105                // Method buildNeighborhoodsBasedDecider:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;Ljava/lang/Class;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+       160: areturn
+       161: aload_0
+       162: aload_1
+       163: aload_2
+       164: invokevirtual #102                // Method buildMoveSelectorBasedDecider:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+       167: areturn
+
+  private ai.timefold.solver.core.impl.localsearch.decider.LocalSearchDecider<Solution_> buildMoveSelectorBasedDecider(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, ai.timefold.solver.core.impl.solver.termination.PhaseTermination<Solution_>);
+    Code:
+         0: new           #108                // class ai/timefold/solver/core/impl/neighborhood/MoveSelectorBasedMoveRepository
+         3: dup
+         4: aload_0
+         5: aload_1
+         6: iconst_0
+         7: invokevirtual #110                // Method buildMoveSelector:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Z)Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;
+        10: invokespecial #114                // Method ai/timefold/solver/core/impl/neighborhood/MoveSelectorBasedMoveRepository."<init>":(Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;)V
+        13: astore_3
+        14: aload_0
+        15: aload_3
+        16: aload_1
+        17: aload_2
+        18: invokevirtual #117                // Method buildDecider:(Lai/timefold/solver/core/impl/neighborhood/MoveRepository;Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+        21: areturn
+
+  private ai.timefold.solver.core.impl.localsearch.decider.LocalSearchDecider<Solution_> buildNeighborhoodsBasedDecider(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, ai.timefold.solver.core.impl.solver.termination.PhaseTermination<Solution_>, java.lang.Class<? extends ai.timefold.solver.core.preview.api.neighborhood.NeighborhoodProvider<Solution_>>);
+    Code:
+         0: aload_0
+         1: aload_0
+         2: aload_1
+         3: aload_3
+         4: invokevirtual #120                // Method buildNeighborhoodsBasedMoveRepository:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Ljava/lang/Class;)Lai/timefold/solver/core/impl/neighborhood/NeighborhoodsBasedMoveRepository;
+         7: aload_1
+         8: aload_2
+         9: invokevirtual #117                // Method buildDecider:(Lai/timefold/solver/core/impl/neighborhood/MoveRepository;Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+        12: areturn
+
+  private ai.timefold.solver.core.impl.neighborhood.NeighborhoodsBasedMoveRepository<Solution_> buildNeighborhoodsBasedMoveRepository(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, java.lang.Class<? extends ai.timefold.solver.core.preview.api.neighborhood.NeighborhoodProvider<Solution_>>);
+    Code:
+         0: aload_0
+         1: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+         4: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+         7: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        10: getstatic     #128                // Field ai/timefold/solver/core/config/localsearch/LocalSearchType.VARIABLE_NEIGHBORHOOD_DESCENT:Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        13: if_acmpne     46
+        16: new           #69                 // class java/lang/IllegalArgumentException
+        19: dup
+        20: ldc           #134                // String The localSearchType (%s) does not support the Neighborhoods API.\nMaybe use a different localSearchType.
+        22: iconst_1
+        23: anewarray     #73                 // class java/lang/Object
+        26: dup
+        27: iconst_0
+        28: aload_0
+        29: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        32: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        35: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        38: aastore
+        39: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+        42: invokespecial #81                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        45: athrow
+        46: ldc           #136                // class ai/timefold/solver/core/preview/api/neighborhood/NeighborhoodProvider
+        48: aload_2
+        49: invokevirtual #138                // Method java/lang/Class.isAssignableFrom:(Ljava/lang/Class;)Z
+        52: ifne          84
+        55: new           #69                 // class java/lang/IllegalArgumentException
+        58: dup
+        59: ldc           #142                // String The neighborhoodProviderClass (%s) does not implement %s.
+        61: iconst_2
+        62: anewarray     #73                 // class java/lang/Object
+        65: dup
+        66: iconst_0
+        67: aload_2
+        68: aastore
+        69: dup
+        70: iconst_1
+        71: ldc           #136                // class ai/timefold/solver/core/preview/api/neighborhood/NeighborhoodProvider
+        73: invokevirtual #144                // Method java/lang/Class.getSimpleName:()Ljava/lang/String;
+        76: aastore
+        77: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+        80: invokespecial #81                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        83: athrow
+        84: ldc           #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        86: dup
+        87: invokestatic  #147                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+        90: pop
+        91: invokedynamic #153,  0            // InvokeDynamic #0:get:(Ljava/lang/Class;)Ljava/util/function/Supplier;
+        96: ldc           #157                // String neighborhoodProviderClass
+        98: aload_2
+        99: invokestatic  #159                // Method ai/timefold/solver/core/config/util/ConfigUtils.newInstance:(Ljava/util/function/Supplier;Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;
+       102: checkcast     #136                // class ai/timefold/solver/core/preview/api/neighborhood/NeighborhoodProvider
+       105: astore_3
+       106: aload_1
+       107: invokevirtual #165                // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getSolutionDescriptor:()Lai/timefold/solver/core/impl/domain/solution/descriptor/SolutionDescriptor;
+       110: astore        4
+       112: new           #169                // class ai/timefold/solver/core/impl/neighborhood/stream/DefaultNeighborhoodBuilder
+       115: dup
+       116: aload         4
+       118: invokevirtual #171                // Method ai/timefold/solver/core/impl/domain/solution/descriptor/SolutionDescriptor.getMetaModel:()Lai/timefold/solver/core/preview/api/domain/metamodel/PlanningSolutionMetaModel;
+       121: invokespecial #177                // Method ai/timefold/solver/core/impl/neighborhood/stream/DefaultNeighborhoodBuilder."<init>":(Lai/timefold/solver/core/preview/api/domain/metamodel/PlanningSolutionMetaModel;)V
+       124: astore        5
+       126: new           #180                // class ai/timefold/solver/core/impl/neighborhood/stream/DefaultMoveStreamFactory
+       129: dup
+       130: aload         4
+       132: aload_1
+       133: invokevirtual #32                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getEnvironmentMode:()Lai/timefold/solver/core/config/solver/EnvironmentMode;
+       136: invokespecial #182                // Method ai/timefold/solver/core/impl/neighborhood/stream/DefaultMoveStreamFactory."<init>":(Lai/timefold/solver/core/impl/domain/solution/descriptor/SolutionDescriptor;Lai/timefold/solver/core/config/solver/EnvironmentMode;)V
+       139: astore        6
+       141: new           #185                // class ai/timefold/solver/core/impl/neighborhood/NeighborhoodsBasedMoveRepository
+       144: dup
+       145: aload         6
+       147: aload_3
+       148: aload         5
+       150: invokeinterface #187,  2          // InterfaceMethod ai/timefold/solver/core/preview/api/neighborhood/NeighborhoodProvider.defineNeighborhood:(Lai/timefold/solver/core/preview/api/neighborhood/NeighborhoodBuilder;)Lai/timefold/solver/core/preview/api/neighborhood/Neighborhood;
+       155: checkcast     #191                // class ai/timefold/solver/core/impl/neighborhood/stream/DefaultNeighborhood
+       158: invokevirtual #193                // Method ai/timefold/solver/core/impl/neighborhood/stream/DefaultNeighborhood.getMoveProviderList:()Ljava/util/List;
+       161: invokespecial #197                // Method ai/timefold/solver/core/impl/neighborhood/NeighborhoodsBasedMoveRepository."<init>":(Lai/timefold/solver/core/impl/neighborhood/stream/DefaultMoveStreamFactory;Ljava/util/List;)V
+       164: areturn
+
+  private ai.timefold.solver.core.impl.localsearch.decider.LocalSearchDecider<Solution_> buildMixedDecider(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, ai.timefold.solver.core.impl.solver.termination.PhaseTermination<Solution_>, java.lang.Class<? extends ai.timefold.solver.core.preview.api.neighborhood.NeighborhoodProvider<Solution_>>);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_3
+         3: ifnull        10
+         6: iconst_1
+         7: goto          11
+        10: iconst_0
+        11: invokevirtual #110                // Method buildMoveSelector:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Z)Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;
+        14: astore        4
+        16: aload         4
+        18: ifnonnull     29
+        21: aload_0
+        22: aload_1
+        23: aload_2
+        24: aload_3
+        25: invokevirtual #105                // Method buildNeighborhoodsBasedDecider:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;Ljava/lang/Class;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+        28: areturn
+        29: new           #200                // class ai/timefold/solver/core/impl/neighborhood/NeighborhoodsMoveSelector
+        32: dup
+        33: aload_0
+        34: aload_1
+        35: aload_3
+        36: invokevirtual #120                // Method buildNeighborhoodsBasedMoveRepository:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Ljava/lang/Class;)Lai/timefold/solver/core/impl/neighborhood/NeighborhoodsBasedMoveRepository;
+        39: invokespecial #202                // Method ai/timefold/solver/core/impl/neighborhood/NeighborhoodsMoveSelector."<init>":(Lai/timefold/solver/core/impl/neighborhood/NeighborhoodsBasedMoveRepository;)V
+        42: astore        5
+        44: new           #205                // class ai/timefold/solver/core/impl/neighborhood/MixedMoveSelector
+        47: dup
+        48: aload         4
+        50: aload         5
+        52: invokespecial #207                // Method ai/timefold/solver/core/impl/neighborhood/MixedMoveSelector."<init>":(Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;Lai/timefold/solver/core/impl/neighborhood/NeighborhoodsMoveSelector;)V
+        55: astore        6
+        57: new           #108                // class ai/timefold/solver/core/impl/neighborhood/MoveSelectorBasedMoveRepository
+        60: dup
+        61: aload         6
+        63: invokespecial #114                // Method ai/timefold/solver/core/impl/neighborhood/MoveSelectorBasedMoveRepository."<init>":(Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;)V
+        66: astore        7
+        68: aload_0
+        69: aload         7
+        71: aload_1
+        72: aload_2
+        73: invokevirtual #117                // Method buildDecider:(Lai/timefold/solver/core/impl/neighborhood/MoveRepository;Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+        76: areturn
+
+  private ai.timefold.solver.core.impl.localsearch.decider.LocalSearchDecider<Solution_> buildDecider(ai.timefold.solver.core.impl.neighborhood.MoveRepository<Solution_>, ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, ai.timefold.solver.core.impl.solver.termination.PhaseTermination<Solution_>);
+    Code:
+         0: aload_0
+         1: aload_2
+         2: aload_1
+         3: instanceof    #185                // class ai/timefold/solver/core/impl/neighborhood/NeighborhoodsBasedMoveRepository
+         6: invokevirtual #210                // Method buildAcceptor:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Z)Lai/timefold/solver/core/impl/localsearch/decider/acceptor/Acceptor;
+         9: astore        4
+        11: aload_0
+        12: aload_2
+        13: invokevirtual #214                // Method buildForager:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;)Lai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForager;
+        16: astore        5
+        18: aload_1
+        19: invokeinterface #218,  1          // InterfaceMethod ai/timefold/solver/core/impl/neighborhood/MoveRepository.isNeverEnding:()Z
+        24: ifeq          75
+        27: aload         5
+        29: invokeinterface #224,  1          // InterfaceMethod ai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForager.supportsNeverEndingMoveSelector:()Z
+        34: ifne          75
+        37: new           #229                // class java/lang/IllegalStateException
+        40: dup
+        41: ldc           #231                // String The move repository (%s) is neverEnding (%s), but the forager (%s) does not support it.\nMaybe configure the <forager> with an <acceptedCountLimit>.
+        43: iconst_3
+        44: anewarray     #73                 // class java/lang/Object
+        47: dup
+        48: iconst_0
+        49: aload_1
+        50: aastore
+        51: dup
+        52: iconst_1
+        53: aload_1
+        54: invokeinterface #218,  1          // InterfaceMethod ai/timefold/solver/core/impl/neighborhood/MoveRepository.isNeverEnding:()Z
+        59: invokestatic  #233                // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+        62: aastore
+        63: dup
+        64: iconst_2
+        65: aload         5
+        67: aastore
+        68: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+        71: invokespecial #239                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+        74: athrow
+        75: aload_2
+        76: invokevirtual #240                // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getMoveThreadCount:()Ljava/lang/Integer;
+        79: astore        6
+        81: aload_2
+        82: invokevirtual #32                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getEnvironmentMode:()Lai/timefold/solver/core/config/solver/EnvironmentMode;
+        85: astore        7
+        87: aload         6
+        89: ifnonnull     112
+        92: new           #244                // class ai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider
+        95: dup
+        96: aload_2
+        97: invokevirtual #25                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getLogIndentation:()Ljava/lang/String;
+       100: aload_3
+       101: aload_1
+       102: aload         4
+       104: aload         5
+       106: invokespecial #246                // Method ai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider."<init>":(Ljava/lang/String;Lai/timefold/solver/core/impl/solver/termination/PhaseTermination;Lai/timefold/solver/core/impl/neighborhood/MoveRepository;Lai/timefold/solver/core/impl/localsearch/decider/acceptor/Acceptor;Lai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForager;)V
+       109: goto          137
+       112: getstatic     #249                // Field ai/timefold/solver/core/enterprise/TimefoldSolverEnterpriseService$Feature.MULTITHREADED_SOLVING:Lai/timefold/solver/core/enterprise/TimefoldSolverEnterpriseService$Feature;
+       115: invokestatic  #255                // InterfaceMethod ai/timefold/solver/core/enterprise/TimefoldSolverEnterpriseService.loadOrFail:(Lai/timefold/solver/core/enterprise/TimefoldSolverEnterpriseService$Feature;)Lai/timefold/solver/core/enterprise/TimefoldSolverEnterpriseService;
+       118: aload         6
+       120: invokevirtual #261                // Method java/lang/Integer.intValue:()I
+       123: aload_3
+       124: aload_1
+       125: aload         4
+       127: aload         5
+       129: aload         7
+       131: aload_2
+       132: invokeinterface #267,  8          // InterfaceMethod ai/timefold/solver/core/enterprise/TimefoldSolverEnterpriseService.buildLocalSearch:(ILai/timefold/solver/core/impl/solver/termination/PhaseTermination;Lai/timefold/solver/core/impl/neighborhood/MoveRepository;Lai/timefold/solver/core/impl/localsearch/decider/acceptor/Acceptor;Lai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForager;Lai/timefold/solver/core/config/solver/EnvironmentMode;Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;)Lai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider;
+       137: astore        8
+       139: aload         8
+       141: aload         7
+       143: invokevirtual #271                // Method ai/timefold/solver/core/impl/localsearch/decider/LocalSearchDecider.enableAssertions:(Lai/timefold/solver/core/config/solver/EnvironmentMode;)V
+       146: aload         8
+       148: areturn
+
+  protected ai.timefold.solver.core.impl.localsearch.decider.acceptor.Acceptor<Solution_> buildAcceptor(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, boolean);
+    Code:
+         0: aload_0
+         1: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+         4: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+         7: invokevirtual #274                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getAcceptorConfig:()Lai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig;
+        10: astore_3
+        11: aload_0
+        12: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        15: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        18: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        21: astore        4
+        23: aload_3
+        24: ifnull        66
+        27: aload         4
+        29: ifnull        59
+        32: new           #69                 // class java/lang/IllegalArgumentException
+        35: dup
+        36: ldc_w         #278                // String The localSearchType (%s) must not be configured if the acceptorConfig (%s) is explicitly configured.
+        39: iconst_2
+        40: anewarray     #73                 // class java/lang/Object
+        43: dup
+        44: iconst_0
+        45: aload         4
+        47: aastore
+        48: dup
+        49: iconst_1
+        50: aload_3
+        51: aastore
+        52: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+        55: invokespecial #81                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        58: athrow
+        59: aload_0
+        60: aload_3
+        61: aload_1
+        62: invokevirtual #280                // Method buildAcceptor:(Lai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig;Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;)Lai/timefold/solver/core/impl/localsearch/decider/acceptor/Acceptor;
+        65: areturn
+        66: aload         4
+        68: getstatic     #283                // Field ai/timefold/solver/core/config/localsearch/LocalSearchType.LATE_ACCEPTANCE:Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        71: invokestatic  #286                // Method java/util/Objects.requireNonNullElse:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+        74: checkcast     #129                // class ai/timefold/solver/core/config/localsearch/LocalSearchType
+        77: astore        5
+        79: new           #290                // class ai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig
+        82: dup
+        83: invokespecial #292                // Method ai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig."<init>":()V
+        86: astore        6
+        88: iload_2
+        89: ifeq          111
+        92: aload         5
+        94: getstatic     #128                // Field ai/timefold/solver/core/config/localsearch/LocalSearchType.VARIABLE_NEIGHBORHOOD_DESCENT:Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        97: if_acmpne     111
+       100: new           #84                 // class java/lang/UnsupportedOperationException
+       103: dup
+       104: ldc_w         #295                // String Variable Neighborhood descent is not yet supported with the Neighborhoods API.
+       107: invokespecial #93                 // Method java/lang/UnsupportedOperationException."<init>":(Ljava/lang/String;)V
+       110: athrow
+       111: iload_2
+       112: aload         5
+       114: invokestatic  #297                // Method getAcceptorType:(ZLai/timefold/solver/core/config/localsearch/LocalSearchType;)Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+       117: astore        7
+       119: aload         6
+       121: aload         7
+       123: invokestatic  #301                // Method java/util/Collections.singletonList:(Ljava/lang/Object;)Ljava/util/List;
+       126: invokevirtual #307                // Method ai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig.setAcceptorTypeList:(Ljava/util/List;)V
+       129: aload_0
+       130: aload         6
+       132: aload_1
+       133: invokevirtual #280                // Method buildAcceptor:(Lai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig;Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;)Lai/timefold/solver/core/impl/localsearch/decider/acceptor/Acceptor;
+       136: areturn
+
+  private static ai.timefold.solver.core.config.localsearch.decider.acceptor.AcceptorType getAcceptorType(boolean, ai.timefold.solver.core.config.localsearch.LocalSearchType);
+    Code:
+         0: getstatic     #311                // Field ai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhaseFactory$1.$SwitchMap$ai$timefold$solver$core$config$localsearch$LocalSearchType:[I
+         3: aload_1
+         4: invokevirtual #317                // Method ai/timefold/solver/core/config/localsearch/LocalSearchType.ordinal:()I
+         7: iaload
+         8: tableswitch   { // 1 to 7
+                       1: 62
+                       2: 62
+                       3: 68
+                       4: 74
+                       5: 80
+                       6: 86
+                       7: 92
+                 default: 52
+            }
+        52: new           #320                // class java/lang/MatchException
+        55: dup
+        56: aconst_null
+        57: aconst_null
+        58: invokespecial #322                // Method java/lang/MatchException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+        61: athrow
+        62: getstatic     #325                // Field ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.HILL_CLIMBING:Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+        65: goto          95
+        68: getstatic     #331                // Field ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.ENTITY_TABU:Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+        71: goto          95
+        74: getstatic     #334                // Field ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.SIMULATED_ANNEALING:Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+        77: goto          95
+        80: getstatic     #337                // Field ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.LATE_ACCEPTANCE:Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+        83: goto          95
+        86: getstatic     #339                // Field ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.DIVERSIFIED_LATE_ACCEPTANCE:Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+        89: goto          95
+        92: getstatic     #342                // Field ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.GREAT_DELUGE:Lai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType;
+        95: astore_2
+        96: iload_0
+        97: ifeq          118
+       100: aload_2
+       101: invokevirtual #345                // Method ai/timefold/solver/core/config/localsearch/decider/acceptor/AcceptorType.isTabu:()Z
+       104: ifeq          118
+       107: new           #84                 // class java/lang/UnsupportedOperationException
+       110: dup
+       111: ldc_w         #348                // String Tabu search is not yet supported with the Neighborhoods API.
+       114: invokespecial #93                 // Method java/lang/UnsupportedOperationException."<init>":(Ljava/lang/String;)V
+       117: athrow
+       118: aload_2
+       119: areturn
+
+  private ai.timefold.solver.core.impl.localsearch.decider.acceptor.Acceptor<Solution_> buildAcceptor(ai.timefold.solver.core.config.localsearch.decider.acceptor.LocalSearchAcceptorConfig, ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>);
+    Code:
+         0: aload_1
+         1: invokestatic  #350                // Method ai/timefold/solver/core/impl/localsearch/decider/acceptor/AcceptorFactory.create:(Lai/timefold/solver/core/config/localsearch/decider/acceptor/LocalSearchAcceptorConfig;)Lai/timefold/solver/core/impl/localsearch/decider/acceptor/AcceptorFactory;
+         4: aload_2
+         5: invokevirtual #356                // Method ai/timefold/solver/core/impl/localsearch/decider/acceptor/AcceptorFactory.buildAcceptor:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;)Lai/timefold/solver/core/impl/localsearch/decider/acceptor/Acceptor;
+         8: areturn
+
+  protected ai.timefold.solver.core.impl.localsearch.decider.forager.LocalSearchForager<Solution_> buildForager(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>);
+    Code:
+         0: aload_0
+         1: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+         4: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+         7: invokevirtual #359                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getForagerConfig:()Lai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig;
+        10: ifnull        84
+        13: aload_0
+        14: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        17: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        20: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        23: ifnull        70
+        26: new           #69                 // class java/lang/IllegalArgumentException
+        29: dup
+        30: ldc_w         #363                // String The localSearchType (%s) must not be configured if the foragerConfig (%s) is explicitly configured.
+        33: iconst_2
+        34: anewarray     #73                 // class java/lang/Object
+        37: dup
+        38: iconst_0
+        39: aload_0
+        40: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        43: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        46: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        49: aastore
+        50: dup
+        51: iconst_1
+        52: aload_0
+        53: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        56: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        59: invokevirtual #359                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getForagerConfig:()Lai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig;
+        62: aastore
+        63: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+        66: invokespecial #81                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        69: athrow
+        70: aload_0
+        71: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        74: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        77: invokevirtual #359                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getForagerConfig:()Lai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig;
+        80: astore_2
+        81: goto          231
+        84: aload_0
+        85: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        88: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        91: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        94: getstatic     #283                // Field ai/timefold/solver/core/config/localsearch/LocalSearchType.LATE_ACCEPTANCE:Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        97: invokestatic  #286                // Method java/util/Objects.requireNonNullElse:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+       100: checkcast     #129                // class ai/timefold/solver/core/config/localsearch/LocalSearchType
+       103: astore_3
+       104: new           #365                // class ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig
+       107: dup
+       108: invokespecial #367                // Method ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig."<init>":()V
+       111: astore_2
+       112: getstatic     #311                // Field ai/timefold/solver/core/impl/localsearch/DefaultLocalSearchPhaseFactory$1.$SwitchMap$ai$timefold$solver$core$config$localsearch$LocalSearchType:[I
+       115: aload_3
+       116: invokevirtual #317                // Method ai/timefold/solver/core/config/localsearch/LocalSearchType.ordinal:()I
+       119: iaload
+       120: tableswitch   { // 1 to 7
+                       1: 164
+                       2: 199
+                       3: 175
+                       4: 188
+                       5: 188
+                       6: 188
+                       7: 188
+                 default: 209
+            }
+       164: aload_2
+       165: iconst_1
+       166: invokestatic  #368                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+       169: invokevirtual #371                // Method ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig.setAcceptedCountLimit:(Ljava/lang/Integer;)V
+       172: goto          231
+       175: aload_2
+       176: sipush        1000
+       179: invokestatic  #368                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+       182: invokevirtual #371                // Method ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig.setAcceptedCountLimit:(Ljava/lang/Integer;)V
+       185: goto          231
+       188: aload_2
+       189: iconst_1
+       190: invokestatic  #368                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+       193: invokevirtual #371                // Method ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig.setAcceptedCountLimit:(Ljava/lang/Integer;)V
+       196: goto          231
+       199: aload_2
+       200: getstatic     #375                // Field ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchPickEarlyType.FIRST_LAST_STEP_SCORE_IMPROVING:Lai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchPickEarlyType;
+       203: invokevirtual #381                // Method ai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig.setPickEarlyType:(Lai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchPickEarlyType;)V
+       206: goto          231
+       209: new           #229                // class java/lang/IllegalStateException
+       212: dup
+       213: ldc_w         #385                // String The localSearchType (%s) is not implemented.
+       216: iconst_1
+       217: anewarray     #73                 // class java/lang/Object
+       220: dup
+       221: iconst_0
+       222: aload_3
+       223: aastore
+       224: invokevirtual #75                 // Method java/lang/String.formatted:([Ljava/lang/Object;)Ljava/lang/String;
+       227: invokespecial #239                // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+       230: athrow
+       231: aload_2
+       232: invokestatic  #387                // Method ai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForagerFactory.create:(Lai/timefold/solver/core/config/localsearch/decider/forager/LocalSearchForagerConfig;)Lai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForagerFactory;
+       235: invokevirtual #392                // Method ai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForagerFactory.buildForager:()Lai/timefold/solver/core/impl/localsearch/decider/forager/LocalSearchForager;
+       238: areturn
+
+  private ai.timefold.solver.core.impl.heuristic.selector.move.MoveSelector<Solution_> buildMoveSelector(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>, boolean);
+    Code:
+         0: getstatic     #395                // Field ai/timefold/solver/core/config/heuristic/selector/common/SelectionCacheType.JUST_IN_TIME:Lai/timefold/solver/core/config/heuristic/selector/common/SelectionCacheType;
+         3: astore_3
+         4: aload_0
+         5: invokevirtual #401                // Method pickSelectionOrder:()Lai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder;
+         8: astore        4
+        10: aload_0
+        11: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+        14: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+        17: invokevirtual #94                 // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getMoveSelectorConfig:()Lai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig;
+        20: astore        5
+        22: aload         5
+        24: ifnonnull     54
+        27: iload_2
+        28: ifeq          33
+        31: aconst_null
+        32: areturn
+        33: new           #405                // class ai/timefold/solver/core/impl/heuristic/selector/move/composite/UnionMoveSelectorFactory
+        36: dup
+        37: aload_0
+        38: aload_1
+        39: invokevirtual #407                // Method determineDefaultMoveSelectorConfig:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;)Lai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig;
+        42: invokespecial #411                // Method ai/timefold/solver/core/impl/heuristic/selector/move/composite/UnionMoveSelectorFactory."<init>":(Lai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig;)V
+        45: aload_1
+        46: aload_3
+        47: aload         4
+        49: iconst_1
+        50: invokevirtual #414                // Method ai/timefold/solver/core/impl/heuristic/selector/move/composite/UnionMoveSelectorFactory.buildMoveSelector:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/config/heuristic/selector/common/SelectionCacheType;Lai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder;Z)Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;
+        53: areturn
+        54: aload_1
+        55: invokevirtual #66                 // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getNearbyDistanceMeterClass:()Ljava/lang/Class;
+        58: ifnull        120
+        61: ldc_w         #417                // class ai/timefold/solver/core/config/heuristic/selector/move/NearbyAutoConfigurationEnabled
+        64: aload         5
+        66: invokevirtual #419                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+        69: invokevirtual #138                // Method java/lang/Class.isAssignableFrom:(Ljava/lang/Class;)Z
+        72: ifeq          120
+        75: ldc_w         #422                // class ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig
+        78: aload         5
+        80: invokevirtual #419                // Method java/lang/Object.getClass:()Ljava/lang/Class;
+        83: invokevirtual #138                // Method java/lang/Class.isAssignableFrom:(Ljava/lang/Class;)Z
+        86: ifne          120
+        89: aload         5
+        91: invokevirtual #424                // Method ai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig.copyConfig:()Lai/timefold/solver/core/config/AbstractConfig;
+        94: checkcast     #425                // class ai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig
+        97: astore        6
+        99: new           #422                // class ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig
+       102: dup
+       103: invokespecial #430                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig."<init>":()V
+       106: iconst_1
+       107: anewarray     #425                // class ai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig
+       110: dup
+       111: iconst_0
+       112: aload         6
+       114: aastore
+       115: invokevirtual #431                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig.withMoveSelectors:([Lai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig;)Lai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig;
+       118: astore        5
+       120: aload         5
+       122: invokestatic  #435                // InterfaceMethod ai/timefold/solver/core/impl/heuristic/selector/move/MoveSelectorFactory.create:(Lai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig;)Lai/timefold/solver/core/impl/heuristic/selector/move/AbstractMoveSelectorFactory;
+       125: astore        6
+       127: aload         6
+       129: aload_1
+       130: aload_3
+       131: aload         4
+       133: iconst_1
+       134: invokevirtual #440                // Method ai/timefold/solver/core/impl/heuristic/selector/move/AbstractMoveSelectorFactory.buildMoveSelector:(Lai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/config/heuristic/selector/common/SelectionCacheType;Lai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder;Z)Lai/timefold/solver/core/impl/heuristic/selector/move/MoveSelector;
+       137: areturn
+
+  private ai.timefold.solver.core.config.heuristic.selector.common.SelectionOrder pickSelectionOrder();
+    Code:
+         0: aload_0
+         1: getfield      #54                 // Field phaseConfig:Lai/timefold/solver/core/config/phase/PhaseConfig;
+         4: checkcast     #58                 // class ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig
+         7: invokevirtual #124                // Method ai/timefold/solver/core/config/localsearch/LocalSearchPhaseConfig.getLocalSearchType:()Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        10: getstatic     #128                // Field ai/timefold/solver/core/config/localsearch/LocalSearchType.VARIABLE_NEIGHBORHOOD_DESCENT:Lai/timefold/solver/core/config/localsearch/LocalSearchType;
+        13: if_acmpne     22
+        16: getstatic     #443                // Field ai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder.ORIGINAL:Lai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder;
+        19: goto          25
+        22: getstatic     #449                // Field ai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder.RANDOM:Lai/timefold/solver/core/config/heuristic/selector/common/SelectionOrder;
+        25: areturn
+
+  private ai.timefold.solver.core.config.heuristic.selector.move.composite.UnionMoveSelectorConfig determineDefaultMoveSelectorConfig(ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy<Solution_>);
+    Code:
+         0: aload_1
+         1: invokevirtual #165                // Method ai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy.getSolutionDescriptor:()Lai/timefold/solver/core/impl/domain/solution/descriptor/SolutionDescriptor;
+         4: astore_2
+         5: aload_2
+         6: invokevirtual #452                // Method ai/timefold/solver/core/impl/domain/solution/descriptor/SolutionDescriptor.hasBothBasicAndListVariables:()Z
+         9: ifeq          83
+        12: new           #455                // class java/util/ArrayList
+        15: dup
+        16: invokespecial #457                // Method java/util/ArrayList."<init>":()V
+        19: astore_3
+        20: aload_3
+        21: new           #458                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/ChangeMoveSelectorConfig
+        24: dup
+        25: invokespecial #460                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/ChangeMoveSelectorConfig."<init>":()V
+        28: new           #461                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/SwapMoveSelectorConfig
+        31: dup
+        32: invokespecial #463                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/SwapMoveSelectorConfig."<init>":()V
+        35: invokestatic  #464                // InterfaceMethod java/util/List.of:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/List;
+        38: invokevirtual #470                // Method java/util/ArrayList.addAll:(Ljava/util/Collection;)Z
+        41: pop
+        42: aload_3
+        43: new           #474                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListChangeMoveSelectorConfig
+        46: dup
+        47: invokespecial #476                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListChangeMoveSelectorConfig."<init>":()V
+        50: new           #477                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListSwapMoveSelectorConfig
+        53: dup
+        54: invokespecial #479                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListSwapMoveSelectorConfig."<init>":()V
+        57: new           #480                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/list/kopt/KOptListMoveSelectorConfig
+        60: dup
+        61: invokespecial #482                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/list/kopt/KOptListMoveSelectorConfig."<init>":()V
+        64: invokestatic  #483                // InterfaceMethod java/util/List.of:(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/List;
+        67: invokevirtual #470                // Method java/util/ArrayList.addAll:(Ljava/util/Collection;)Z
+        70: pop
+        71: new           #422                // class ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig
+        74: dup
+        75: invokespecial #430                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig."<init>":()V
+        78: aload_3
+        79: invokevirtual #486                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig.withMoveSelectorList:(Ljava/util/List;)Lai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig;
+        82: areturn
+        83: aload_2
+        84: invokevirtual #490                // Method ai/timefold/solver/core/impl/domain/solution/descriptor/SolutionDescriptor.hasListVariable:()Z
+        87: ifeq          135
+        90: new           #422                // class ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig
+        93: dup
+        94: invokespecial #430                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig."<init>":()V
+        97: iconst_3
+        98: anewarray     #425                // class ai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig
+       101: dup
+       102: iconst_0
+       103: new           #474                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListChangeMoveSelectorConfig
+       106: dup
+       107: invokespecial #476                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListChangeMoveSelectorConfig."<init>":()V
+       110: aastore
+       111: dup
+       112: iconst_1
+       113: new           #477                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListSwapMoveSelectorConfig
+       116: dup
+       117: invokespecial #479                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/list/ListSwapMoveSelectorConfig."<init>":()V
+       120: aastore
+       121: dup
+       122: iconst_2
+       123: new           #480                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/list/kopt/KOptListMoveSelectorConfig
+       126: dup
+       127: invokespecial #482                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/list/kopt/KOptListMoveSelectorConfig."<init>":()V
+       130: aastore
+       131: invokevirtual #431                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig.withMoveSelectors:([Lai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig;)Lai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig;
+       134: areturn
+       135: new           #422                // class ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig
+       138: dup
+       139: invokespecial #430                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig."<init>":()V
+       142: iconst_2
+       143: anewarray     #425                // class ai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig
+       146: dup
+       147: iconst_0
+       148: new           #458                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/ChangeMoveSelectorConfig
+       151: dup
+       152: invokespecial #460                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/ChangeMoveSelectorConfig."<init>":()V
+       155: aastore
+       156: dup
+       157: iconst_1
+       158: new           #461                // class ai/timefold/solver/core/config/heuristic/selector/move/generic/SwapMoveSelectorConfig
+       161: dup
+       162: invokespecial #463                // Method ai/timefold/solver/core/config/heuristic/selector/move/generic/SwapMoveSelectorConfig."<init>":()V
+       165: aastore
+       166: invokevirtual #431                // Method ai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig.withMoveSelectors:([Lai/timefold/solver/core/config/heuristic/selector/move/MoveSelectorConfig;)Lai/timefold/solver/core/config/heuristic/selector/move/composite/UnionMoveSelectorConfig;
+       169: areturn
+
+  public ai.timefold.solver.core.impl.phase.Phase buildPhase(int, boolean, ai.timefold.solver.core.impl.heuristic.HeuristicConfigPolicy, ai.timefold.solver.core.impl.solver.recaller.BestSolutionRecaller, ai.timefold.solver.core.impl.solver.termination.SolverTermination);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: iload_2
+         3: aload_3
+         4: aload         4
+         6: aload         5
+         8: invokevirtual #493                // Method buildPhase:(IZLai/timefold/solver/core/impl/heuristic/HeuristicConfigPolicy;Lai/timefold/solver/core/impl/solver/recaller/BestSolutionRecaller;Lai/timefold/solver/core/impl/solver/termination/SolverTermination;)Lai/timefold/solver/core/impl/localsearch/LocalSearchPhase;
+        11: areturn
+}
