@@ -6,7 +6,7 @@ This is implementation validation on a shared Windows workstation, not a solver 
 
 The implementation fixes transactional fixture cleanup, maintenance isolation, frozen booking calendars, process ownership, resume and evidence validation. Production schedule defaults remain Chicago 02:00 daily optimization and Sunday 03:30 routing-cache cleanup. No migration was added and reliability commits do not modify the experiment JSON files.
 
-The pre-existing user configuration commit `0239901` defined 640 daily cases with 48,000 seconds of search allowance and 360 booking cases when this validation was recorded. A later user configuration commit reduced the current daily JSON to 240 cases with 14,400 seconds of allowance; booking remains at 360 cases. The planning snapshot's four-solver, 1,440 daily / 133,200-second and two-cache, 720 booking expansions are separately covered by regression tests. Configurations have not been restored or silently expanded.
+The pre-existing user configuration commit `0239901` defined 640 daily cases with 48,000 seconds of search allowance and 360 booking cases when this validation was recorded. Later user changes produced the current 1,280-case daily and 120-case booking JSON files; this earlier validation did not measure those matrices. The planning snapshot's 1,440 daily / 133,200-second and 720 booking expansions are separately covered by regression tests. Configurations have not been restored or silently expanded.
 
 ## Automated gates
 

@@ -26,9 +26,7 @@
       "SPARSE"
     ],
     "concurrency": [
-      1,
-      5,
-      10
+      1
     ],
     "caches": [
       "warm"
