@@ -56,22 +56,21 @@ class ConfigurationTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         shipped = read_json(root / 'daily-budget.json')['daily']
         daily = expand(read_json(root / 'daily-budget.json'))
-        treatments = len(shipped['solvers']) * len(shipped['fleets']) * len(shipped['workloads']) * len(shipped['seeds'])
-        self.assertEqual(len(daily), treatments * len(shipped['budgets_seconds']))
-        self.assertEqual(sum(r['budget_ms'] for r in daily), treatments * round(sum(shipped['budgets_seconds']) * 1000))
-        self.assertEqual((len(shipped['seeds']), shipped['parallel_cases']), (10, 6))
-        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 360)
+        self.assertEqual(len(daily), 1280)
+        self.assertEqual(sum(r['budget_ms'] for r in daily), 163200000)
+        self.assertEqual((len(shipped['seeds']), shipped['parallel_cases']), (10, 10))
+        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 120)
 
     def test_planned_three_workload_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         daily = read_json(root / 'daily-budget.json')
-        daily['daily'].update(workloads=['CLUSTERED', 'DISPERSED', 'SPARSE'], budgets_seconds=[15, 30, 60, 90, 120, 240])
-        shipped = daily['daily']
-        treatments = len(shipped['solvers']) * len(shipped['fleets']) * 3 * len(shipped['seeds'])
-        self.assertEqual(len(expand(daily)), treatments * 6)
-        self.assertEqual(sum(c['budget_ms'] for c in expand(daily)), treatments * 555000)
+        daily['daily'].update(seeds=[17, 23, 41, 59, 83],
+                              workloads=['CLUSTERED', 'DISPERSED', 'SPARSE'],
+                              budgets_seconds=[15, 30, 60, 90, 120, 240])
+        self.assertEqual(len(expand(daily)), 1440)
+        self.assertEqual(sum(c['budget_ms'] for c in expand(daily)), 133200000)
         booking = read_json(root / 'booking-comparison.json')
-        booking['booking']['caches'] = ['cold', 'warm']
+        booking['booking'].update(concurrency=[1, 5, 10], caches=['cold', 'warm'])
         self.assertEqual(len(expand(booking)), 720)
 
     def test_reject_bad_configuration(self):
@@ -116,7 +115,7 @@ class ConfigurationTests(unittest.TestCase):
         booking['booking']['parallel_cases'] = 2
         with self.assertRaises(ValueError):
             validate(booking)
-        for name, parallel in [('daily-smoke', 1), ('daily-budget', 6), ('daily-contention-1', 1), ('daily-contention-6', 6)]:
+        for name, parallel in [('daily-smoke', 1), ('daily-budget', 10), ('daily-contention-1', 1), ('daily-contention-6', 6)]:
             self.assertEqual(validate(read_json(root / f'{name}.json'))['daily']['parallel_cases'], parallel)
         one, six = (read_json(root / f'daily-contention-{n}.json') for n in (1, 6))
         for c in (one, six):
