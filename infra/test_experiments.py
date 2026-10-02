@@ -52,14 +52,16 @@ class ConfigurationTests(unittest.TestCase):
     def test_initial_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         daily = expand(read_json(root / 'daily-budget.json'))
-        self.assertEqual(len(daily), 640)
-        self.assertEqual(sum(r['budget_ms'] for r in daily), 48000000)
+        self.assertEqual(len(daily), 240)
+        self.assertEqual(sum(r['budget_ms'] for r in daily), 14400000)
         self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 360)
 
     def test_planned_three_workload_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         daily = read_json(root / 'daily-budget.json')
-        daily['daily'].update(workloads=['CLUSTERED', 'DISPERSED', 'SPARSE'], budgets_seconds=[15, 30, 60, 90, 120, 240])
+        daily['daily'].update(solvers=['LATE_ACCEPTANCE', 'TABU', 'SUBLIST', 'KOPT'],
+                              workloads=['CLUSTERED', 'DISPERSED', 'SPARSE'],
+                              budgets_seconds=[15, 30, 60, 90, 120, 240])
         self.assertEqual(len(expand(daily)), 1440)
         self.assertEqual(sum(c['budget_ms'] for c in expand(daily)), 133200000)
         booking = read_json(root / 'booking-comparison.json')
