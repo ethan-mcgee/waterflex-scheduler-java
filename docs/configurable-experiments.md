@@ -4,7 +4,34 @@ The Python toolkit runs manual local comparisons, preserves raw evidence, and ge
 
 ## Setup and commands
 
-Use Python 3.10 or later, Java 25, Node, the checked-in Maven wrapper, and enough disk space for a separate frozen source/build/dependency snapshot per run. Booking snapshots also copy `web/node_modules`, which can take several GB. Run from the repository root in PowerShell:
+Use Python 3.10 or later, Java 25, Node, the checked-in Maven wrapper, and enough disk space for a separate frozen source/build/dependency snapshot per run. Booking snapshots also copy `web/node_modules`, which can take several GB. Run from the repository root in PowerShell. The launcher has a terminal menu when run without arguments:
+
+```powershell
+py -3 run_experiment.py
+```
+
+Or choose the experiment and mode directly:
+
+```powershell
+py -3 run_experiment.py daily smoke
+py -3 run_experiment.py daily dry-run
+py -3 run_experiment.py daily full
+py -3 run_experiment.py booking smoke
+py -3 run_experiment.py booking dry-run
+py -3 run_experiment.py booking full
+py -3 run_experiment.py daily full --config experiments/configs/my-daily-study.json
+```
+
+`smoke` selects the small corresponding configuration; `dry-run` expands the full configuration without installing packages or measuring; `full` selects the supplied full configuration. `--config` replaces the selected configuration in any mode. The file must contain only the selected experiment kind. Copy a supplied JSON file, give it a new lowercase `name`, edit its lists, and try `dry-run --config <path>` before measuring. Each measured invocation creates a new archive.
+
+The launcher checks Java 25 and Node, detects the JDK home when Java is on `PATH`, installs the Python graph requirements if missing, and for booking installs Node packages and generates Prisma when missing. It then invokes the existing experiment engine. During preparation and measurement, the terminal shows a progress bar, completed/total cases, total elapsed time, current case elapsed time, and case details. Counts advance only after a valid completion receipt is written. If output is redirected, the same status is printed as lines at transitions. Booking still requires a ready road provider and a local `waterflex_test` database; the launcher checks these before installing dependencies. Provide their credentials and URL through the environment:
+
+```powershell
+$env:DATABASE_URL = 'postgresql://USER:PASSWORD@127.0.0.1:5433/waterflex_test'
+$env:ROUTING_URL = 'http://127.0.0.1:8001'
+```
+
+The underlying command remains available for advanced use:
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Java\jdk-25'
@@ -19,7 +46,7 @@ py -3 infra/experiments.py run experiments/configs/daily-budget.json
 
 Commit harness inputs before measurements. Documentation and `AGENTS.md` edits do not prevent runs. The toolkit copies committed source bytes from the clean working tree, builds that frozen copy with strict Java nullability, and stores hashes of source and executable artifacts. It never builds a long run from changing working-tree classes.
 
-Booking additionally requires an existing local PostgreSQL `waterflex_test` database and a ready road provider:
+For direct booking runs, an existing local PostgreSQL `waterflex_test` database and a ready road provider are required:
 
 ```powershell
 # Supply your local credentials through the environment, not experiment JSON.
@@ -51,9 +78,9 @@ JSON has `version: 1`, a lowercase slug `name`, and either or both `daily` and `
 | `caches` | Not accepted | cold, warm |
 | `requests` | Not accepted | Integer 1..200; defaults supplied in JSON are 10, smoke uses 2 |
 
-The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Five seeds (17, 23, 41, 59, 83), four fleets (5, 10, 20, 50), CLUSTERED fixtures, and six budgets (15, 30, 60, 90, 120, 240 seconds) produce **480 cases** and **44,400 seconds (12 hours 20 minutes)** of search allowance. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance.
+The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Five seeds (17, 23, 41, 59, 83), four fleets (5, 10, 20, 50), CLUSTERED, DISPERSED and SPARSE fixtures, and six budgets (15, 30, 60, 90, 120, 240 seconds) produce **1,440 cases** and **133,200 seconds (37 hours)** of search allowance. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance.
 
-The supplied booking matrix has INSERTION and BOUNDED, INSERTION control, the same seeds/fleets, DISPERSED fixtures, three concurrency levels, two caches, and ten requests per case: **240 cases and 2,400 requests**. It retains existing durable booking search limits; daily budgets never configure booking. Runtime depends on search, audits, fixture creation and process startup. These are direct durable-client HTTP measurements, not browser or address-entry latency.
+The supplied booking matrix has INSERTION and BOUNDED, INSERTION control, the same seeds/fleets, DISPERSED, CLUSTERED and SPARSE fixtures, three concurrency levels, two caches, and ten requests per case: **720 cases and 7,200 requests**. It retains existing durable booking search limits; daily budgets never configure booking. Runtime depends on search, audits, fixture creation and process startup. These are direct durable-client HTTP measurements, not browser or address-entry latency.
 
 ## Measurement protocol
 
@@ -113,4 +140,4 @@ npm.cmd --prefix web run typecheck
 npm.cmd --prefix web run test:unit
 ```
 
-Regression tests cover invalid configurations, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, overlapping booking outcomes and pooled percentiles. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the unrun 480-case study.
+Regression tests cover invalid configurations, matrix counts, 90/120/240-second propagation, immutable archives, lock exclusion, interruption/resume, provenance mismatch, historical preservation, missing/null metrics, duplicate/fixture/control exclusions, signed paired differences, equal seed weights, overlapping booking outcomes and pooled percentiles. Real smoke runs must additionally verify process startup, actual solver/settings, independent audits and generated figures. Smoke results are harness verification, not evidence for the unrun 1,440-case study.

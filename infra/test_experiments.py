@@ -1,13 +1,18 @@
 """Regression examples use temporary evidence; they never launch the full study."""
 import copy
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import run_experiment as launcher
 
 from experiment_config import digest, expand, read_json, validate
 from experiment_analysis import compare, equal_seed_summary, load_raw, normalize, quantile, summary_groups
@@ -47,9 +52,9 @@ class ConfigurationTests(unittest.TestCase):
     def test_initial_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         daily = expand(read_json(root / 'daily-budget.json'))
-        self.assertEqual(len(daily), 480)
-        self.assertEqual(sum(r['budget_ms'] for r in daily), 44400000)
-        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 240)
+        self.assertEqual(len(daily), 1440)
+        self.assertEqual(sum(r['budget_ms'] for r in daily), 133200000)
+        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 720)
 
     def test_reject_bad_configuration(self):
         modifications = [lambda c: c.update(unknown=True), lambda c: c.update(version=True),
@@ -81,6 +86,71 @@ class ConfigurationTests(unittest.TestCase):
         for budget in (90000, 120000, 240000):
             case = next(c for c in cases if c['budget_ms'] == budget)
             self.assertIn(f'-Dbenchmark.durationMs={budget}', rt.daily_command(Path('frozen'), case, 'rev', 'raw', 'java'))
+
+
+class LauncherTests(unittest.TestCase):
+    def test_modes_select_expected_config_and_skip_setup_for_dry_run(self):
+        for experiment, mode, name in [('daily', 'dry-run', 'daily-budget.json'),
+                                       ('daily', 'smoke', 'daily-smoke.json'),
+                                       ('booking', 'full', 'booking-comparison.json')]:
+            with self.subTest(experiment=experiment, mode=mode), \
+                 patch.object(launcher, 'setup') as setup, patch.object(launcher.subprocess, 'run') as run:
+                run.return_value.returncode = 0
+                self.assertEqual(launcher.main([experiment, mode]), 0)
+                argv = run.call_args.args[0]
+                self.assertEqual(Path(argv[3]).name, name)
+                self.assertEqual('--dry-run' in argv, mode == 'dry-run')
+                self.assertEqual(setup.call_count, 0 if mode == 'dry-run' else 1)
+
+    def test_custom_config_cannot_silently_launch_other_kind(self):
+        with patch.object(launcher, 'setup') as setup:
+            with self.assertRaisesRegex(ValueError, 'selected daily'):
+                launcher.main(['daily', 'full', '--config', str(launcher.ROOT / 'experiments/configs/booking-smoke.json')])
+            setup.assert_not_called()
+
+    def test_booking_requires_explicit_test_database_before_setup(self):
+        booking = read_json(launcher.ROOT / 'experiments/configs/booking-smoke.json')
+        with patch.object(launcher, 'check_tools'), patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(ValueError, 'DATABASE_URL'):
+                launcher.setup(booking)
+
+    def test_booking_setup_installs_missing_node_dependencies(self):
+        booking = read_json(launcher.ROOT / 'experiments/configs/booking-smoke.json')
+        with tempfile.TemporaryDirectory() as folder, patch.object(launcher, 'ROOT', Path(folder)), \
+             patch.object(launcher, 'check_tools'), patch.object(launcher, 'database_env'), \
+             patch.object(launcher, 'routing_identity'), patch.object(launcher.subprocess, 'run') as run:
+            launcher.setup(booking)
+        self.assertEqual([call.args[0][-2:] for call in run.call_args_list],
+                         [['web', 'ci'], ['run', 'prisma:generate']])
+
+    def test_launcher_finds_jdk_home_when_java_is_on_path(self):
+        with tempfile.TemporaryDirectory() as folder:
+            home = Path(folder) / 'jdk-25'
+            (home / 'bin').mkdir(parents=True)
+            java = home / 'bin' / ('java.exe' if os.name == 'nt' else 'java')
+            javac = home / 'bin' / ('javac.exe' if os.name == 'nt' else 'javac')
+            java.touch()
+            javac.touch()
+            version = SimpleNamespace(stderr='java version "25.0.1"\n', stdout='')
+            settings = SimpleNamespace(stderr=f'    java.home = {home}\n', stdout='')
+            with patch.dict(os.environ, {}, clear=True), patch.object(launcher.shutil, 'which', side_effect=[str(java), 'node']), \
+                 patch.object(launcher.subprocess, 'run', side_effect=[version, settings]):
+                launcher.check_tools()
+                self.assertEqual(os.environ['JAVA_HOME'], str(home))
+
+    def test_progress_counts_completed_cases_and_elapsed_time(self):
+        output = io.StringIO()
+        tick = [0]
+        with rt.Progress(4, stream=output, clock=lambda: tick[0]) as progress:
+            tick[0] = 61
+            progress.update('Resume', completed=2)
+            tick[0] = 63
+            progress.update('Case 3/4', active=True)
+            tick[0] = 68
+            self.assertIn('case 00:00:05', progress.line())
+            progress.update('Finished case 3/4', completed=3)
+        self.assertIn('[######......] 2/4 elapsed 00:01:01', output.getvalue())
+        self.assertIn('3/4 elapsed 00:01:08', output.getvalue())
 
 
 class AnalysisTests(unittest.TestCase):

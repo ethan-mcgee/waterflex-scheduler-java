@@ -11,6 +11,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
 import time
 from urllib.parse import urlsplit, urlunsplit, urlencode, unquote
 from urllib.request import urlopen
@@ -20,6 +21,83 @@ from experiment_config import digest, expand, read_json, validate
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'scheduler-service', 'routing-service', 'web', 'infra', 'experiments/configs']
+
+
+class Progress:
+    """Terminal progress for preparation and sequential measured cases."""
+
+    def __init__(self, total, stream=None, clock=None):
+        self.total = total
+        self.stream = stream if stream is not None else sys.stderr
+        self.clock = clock if clock is not None else time.monotonic
+        self.started = self.clock()
+        self.completed = 0
+        self.stage = 'Preparing run'
+        self.case_started = None
+        self.interactive = self.stream.isatty()
+        self.stop = threading.Event()
+        self.lock = threading.Lock()
+        self.ticker = None
+        self.width = 0
+
+    @staticmethod
+    def duration(seconds):
+        elapsed = max(0, int(seconds))
+        return f'{elapsed // 3600:02d}:{elapsed // 60 % 60:02d}:{elapsed % 60:02d}'
+
+    def line(self):
+        elapsed = self.duration(self.clock() - self.started)
+        filled = round(12 * self.completed / self.total) if self.total else 12
+        bar = '#' * filled + '.' * (12 - filled)
+        case_time = (f' case {self.duration(self.clock() - self.case_started)}'
+                     if self.case_started is not None else '')
+        prefix = f'[{bar}] {self.completed}/{self.total} elapsed {elapsed}{case_time} | '
+        stage = self.stage
+        if self.interactive:
+            available = max(0, shutil.get_terminal_size(fallback=(120, 20)).columns - len(prefix) - 1)
+            if len(stage) > available:
+                stage = stage[:available - 3] + '...' if available >= 3 else stage[:available]
+        return prefix + stage
+
+    def emit(self, force=False):
+        if not self.interactive and not force:
+            return
+        with self.lock:
+            line = self.line()
+            if self.interactive:
+                self.stream.write('\r' + line.ljust(self.width))
+                self.width = len(line)
+            else:
+                self.stream.write(line + '\n')
+            self.stream.flush()
+
+    def _tick(self):
+        while not self.stop.wait(1):
+            self.emit()
+
+    def __enter__(self):
+        self.emit(force=True)
+        if self.interactive:
+            self.ticker = threading.Thread(target=self._tick, daemon=True)
+            self.ticker.start()
+        return self
+
+    def update(self, stage, *, completed=None, active=False):
+        with self.lock:
+            self.stage = stage
+            if completed is not None:
+                self.completed = completed
+            self.case_started = self.clock() if active else None
+        self.emit(force=True)
+
+    def __exit__(self, error_type, _error, _traceback):
+        self.stop.set()
+        if self.ticker is not None:
+            self.ticker.join()
+        self.update('Measurements complete' if error_type is None else 'Stopped')
+        if self.interactive:
+            self.stream.write('\n')
+            self.stream.flush()
 
 
 def sha(path):
@@ -343,49 +421,58 @@ def toolkit_hashes():
 def execute(run, prepare=False):
     run = run.resolve()
     config = validate(read_json(run / 'config.json'))
-    if prepare:
-        prepare_run(run, config)
-    if not (run / 'manifest.json').exists():
-        raise ValueError('Preparation did not finish. Start a new run; retained build evidence is not resumable.')
-    manifest = read_json(run / 'manifest.json')
-    if manifest.get('toolkit_hashes') != toolkit_hashes():
-        raise ValueError('Toolkit implementation changed; resume using the archived source/infra/experiments.py command')
-    cases = read_json(run / 'cases.json')
-    if manifest['config_hash'] != digest(config) or manifest['cases_hash'] != digest(cases) or cases != expand(config):
-        raise ValueError('Saved configuration or matrix provenance mismatch')
-    verify_files(run / 'frozen', manifest['files'])
-    if runtime() != manifest['runtime']:
-        raise ValueError('Runtime/hardware provenance mismatch; start a new run')
-    env = environment()
-    if 'booking' in config and booking_identity(run / 'frozen', env) != manifest['booking']:
-        raise ValueError('Frozen booking dates/routing no longer valid; start a new run')
-    from experiment_analysis import load_raw
-    for index, case in enumerate(cases):
-        if completed_attempt(run, case):
-            continue
-        folder = run / 'attempts' / case['id']
-        for old in sorted(folder.glob('*')):
-            if not (old / 'completed.json').exists() and not (old / 'failed.json').exists() and not (old / 'interrupted.json').exists():
-                write_new(old / 'interrupted.json', {'reason': 'Previous orchestrator stopped without a completion receipt'})
-        attempt = folder / (stamp() + '-' + uuid.uuid4().hex[:8])
-        attempt.mkdir(parents=True)
-        write_new(attempt / 'started.json', {'case': case, 'at': stamp()})
-        print(f'[{index + 1}/{len(cases)}] {case}', flush=True)
-        try:
-            if case['kind'] == 'daily':
-                command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
-                        run / 'frozen', env, attempt / 'solver.log', timeout=case['budget_ms'] / 1000 + 120)
-            else:
-                booking_case(run, attempt, case, manifest, env)
-            rows, issues = load_raw(attempt / 'raw.jsonl', expected=case)
-            if len(rows) != 1 or issues:
-                raise ValueError(f'Raw output is incomplete or invalid: {issues}')
-            write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': sha(attempt / 'raw.jsonl'), 'at': stamp()})
-        except BaseException as error:
-            # Persist only controlled error types, never subprocess environment/credentials.
-            write_new(attempt / ('interrupted.json' if isinstance(error, KeyboardInterrupt) else 'failed.json'),
-                      {'exception': type(error).__name__, 'at': stamp(), 'instruction': 'Inspect this attempt logs; resume retries in a new directory'})
-            raise
+    with Progress(len(expand(config))) as progress:
+        if prepare:
+            progress.update('Building frozen source and dependencies')
+            prepare_run(run, config)
+        if not (run / 'manifest.json').exists():
+            raise ValueError('Preparation did not finish. Start a new run; retained build evidence is not resumable.')
+        progress.update('Checking saved evidence and runtime')
+        manifest = read_json(run / 'manifest.json')
+        if manifest.get('toolkit_hashes') != toolkit_hashes():
+            raise ValueError('Toolkit implementation changed; resume using the archived source/infra/experiments.py command')
+        cases = read_json(run / 'cases.json')
+        if manifest['config_hash'] != digest(config) or manifest['cases_hash'] != digest(cases) or cases != expand(config):
+            raise ValueError('Saved configuration or matrix provenance mismatch')
+        verify_files(run / 'frozen', manifest['files'])
+        if runtime() != manifest['runtime']:
+            raise ValueError('Runtime/hardware provenance mismatch; start a new run')
+        env = environment()
+        if 'booking' in config and booking_identity(run / 'frozen', env) != manifest['booking']:
+            raise ValueError('Frozen booking dates/routing no longer valid; start a new run')
+        completed = {case['id']: completed_attempt(run, case) is not None for case in cases}
+        progress.update('Checking completed cases', completed=sum(completed.values()))
+        from experiment_analysis import load_raw
+        for index, case in enumerate(cases):
+            if completed[case['id']]:
+                continue
+            folder = run / 'attempts' / case['id']
+            for old in sorted(folder.glob('*')):
+                if not (old / 'completed.json').exists() and not (old / 'failed.json').exists() and not (old / 'interrupted.json').exists():
+                    write_new(old / 'interrupted.json', {'reason': 'Previous orchestrator stopped without a completion receipt'})
+            attempt = folder / (stamp() + '-' + uuid.uuid4().hex[:8])
+            attempt.mkdir(parents=True)
+            write_new(attempt / 'started.json', {'case': case, 'at': stamp()})
+            detail = (f'{case["budget_ms"] / 1000:g}s' if case['kind'] == 'daily' else
+                      f'c{case["concurrency"]} {case["cache"]} {case["requests"]}req')
+            progress.update(f'#{index + 1} {case["solver"]} f{case["fleet"]} '
+                            f'{case["workload"]} s{case["seed"]} {detail}', active=True)
+            try:
+                if case['kind'] == 'daily':
+                    command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
+                            run / 'frozen', env, attempt / 'solver.log', timeout=case['budget_ms'] / 1000 + 120)
+                else:
+                    booking_case(run, attempt, case, manifest, env)
+                rows, issues = load_raw(attempt / 'raw.jsonl', expected=case)
+                if len(rows) != 1 or issues:
+                    raise ValueError(f'Raw output is incomplete or invalid: {issues}')
+                write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': sha(attempt / 'raw.jsonl'), 'at': stamp()})
+                progress.update(f'Finished case {index + 1}/{len(cases)}', completed=progress.completed + 1)
+            except BaseException as error:
+                # Persist only controlled error types, never subprocess environment/credentials.
+                write_new(attempt / ('interrupted.json' if isinstance(error, KeyboardInterrupt) else 'failed.json'),
+                          {'exception': type(error).__name__, 'at': stamp(), 'instruction': 'Inspect this attempt logs; resume retries in a new directory'})
+                raise
 
 
 def import_history(archive):
