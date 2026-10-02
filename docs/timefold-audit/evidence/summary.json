@@ -1,0 +1,153 @@
+{
+  "review_date": "2026-10-02",
+  "production_baseline": "164a1e111370d21ea93f634e674c5fdee4edc90f",
+  "timefold_dependency": "2.6.0",
+  "documentation_displayed_version": "2.7.0",
+  "checks": [
+    {
+      "name": "baseline_maven_nullability_verify",
+      "scheduler_passed": 174,
+      "routing_passed": 2,
+      "log": "audit-java-check.log"
+    },
+    {
+      "name": "clean_maven_nullability_verify_first_six_audit_cases",
+      "scheduler_passed": 180,
+      "routing_passed": 2,
+      "log": "audit-final-java.log"
+    },
+    {
+      "name": "final_targeted_audit_nullability",
+      "passed": 7,
+      "log": "audit-final-reproductions.log"
+    },
+    {
+      "name": "portal_lint",
+      "status": "passed",
+      "log": "audit-web-lint.log"
+    },
+    {
+      "name": "portal_typecheck",
+      "status": "passed",
+      "log": "audit-web-typecheck.log"
+    },
+    {
+      "name": "portal_unit",
+      "passed": 96,
+      "log": "audit-web-tests.log"
+    },
+    {
+      "name": "experiment_toolkit_system_python",
+      "passed": 27,
+      "log": "audit-experiment-system-python.log"
+    }
+  ],
+  "not_run": [
+    "database integration",
+    "browser integration",
+    "full benchmark campaign",
+    "API load test"
+  ],
+  "visual_qa": {
+    "pages": 10,
+    "all_pages_inspected": true,
+    "exporter": "Microsoft Word PDF export",
+    "renderer": "bundled Poppler via pdf2image",
+    "packaged_renderer_failure_log": "audit-render.log"
+  },
+  "artifacts": [
+    {
+      "path": "docs/timefold-audit/build_report.py",
+      "sha256": "c674d36230ecde5f1569cae3872decc3e5da32c7bf6989fb80bbd3ade5471ddb",
+      "bytes": 6419,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-experiment-system-python.log",
+      "sha256": "a674d4e8b09b7e0e657cc2fb63efd99ead3c294ae84e7357dcdd32cd6f7942bd",
+      "bytes": 3932
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-experiment-tests.log",
+      "sha256": "005560b0e9a89d8ec684fc4a7c2deb161a02804ce0ca2543d50a8ca0554057ca",
+      "bytes": 4963
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-final-java.log",
+      "sha256": "d1306b94e355ca5fdaf74681ed8b368d68abad2f464aeff6a5cb8f479e431dba",
+      "bytes": 118677
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-final-reproductions.log",
+      "sha256": "3b5e40018bd3f034efb40978fc70e688b57c43278b47d5f2d7ce847cfd98f984",
+      "bytes": 18889
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-java-check.log",
+      "sha256": "512eb2081f13c46d6e3f1dd3c50378861554a891530fc35a08bcce4da6a04984",
+      "bytes": 115791
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-npm-install.log",
+      "sha256": "1abe668ada3ddb4498b7bad39f44fc36b267418c5f1042ce7ca9f2144bbed356",
+      "bytes": 1236
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-prisma.log",
+      "sha256": "5dbe2480a463ff7d7ce163df316ad1ca6713636a7f87337e86af2707bf06981d",
+      "bytes": 398
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-render.log",
+      "sha256": "d04f33a295046b3a857e9e43ed25ee7e055c500de050b64b934b8a1bf908bccf",
+      "bytes": 1184
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-reproductions-cold-start-failure.log",
+      "sha256": "f17231055dc103202bfbfc363f55678a588e6a1b83e4884e952866a3af17365c",
+      "bytes": 20683
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-reproductions-initial.log",
+      "sha256": "a1c01736a6e1b1c01e98557336af76aea85d47a8c84134e770a36ad96ce24971",
+      "bytes": 20632
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-reproductions.log",
+      "sha256": "f17231055dc103202bfbfc363f55678a588e6a1b83e4884e952866a3af17365c",
+      "bytes": 20683
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-web-lint.log",
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2",
+      "bytes": 124
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-web-tests.log",
+      "sha256": "78bc64d20c20ec29831471836ddf0134359691da9460f2ef9640457e6aba5e9b",
+      "bytes": 8858
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-web-typecheck.log",
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c",
+      "bytes": 53
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Audit.docx",
+      "sha256": "752311cfb7880b63dc568cd257f45e54b47d5f9bb256780e2125ee3b82e6ab9a",
+      "bytes": 54838
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Audit.md",
+      "sha256": "a72241ae41dff9bdd981cb515ed3803c1f6f1f556849076d635eb11ac12e4680",
+      "bytes": 47271,
+      "normalize_crlf": true
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java",
+      "sha256": "70733b1bd1acc7249d8d3fa2afc6cc7a11ed40db8fd373ac20e8ce73100c85be",
+      "bytes": 5842,
+      "normalize_crlf": true
+    }
+  ]
+}
