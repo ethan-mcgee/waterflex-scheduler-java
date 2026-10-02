@@ -141,8 +141,13 @@ jobs:
       - name: Migrate, seed, and check schema
         working-directory: web
         run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+      - name: Benchmark cleanup PostgreSQL regression
+        working-directory: web
+        env:
+          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=benchmark_cleanup_it
+        run: npx prisma migrate deploy && npx tsx scripts/check-benchmark-cleanup.ts
       - name: Immutable snapshot, reservation and database admission gates
-        run: ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
+        run: ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT,!BookingSnapshotDatabaseIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
@@ -163,7 +168,14 @@ jobs:
         run: |
           node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
           node web/node_modules/tsx/dist/cli.mjs web/scripts/smoke-policy-migration.ts
-          ./mvnw -pl scheduler-service '-Dtest=BookingSnapshotDatabaseIT,DurableBookingSearchIT' test --batch-mode --no-transfer-progress
+          ./mvnw -pl scheduler-service '-Dtest=DurableBookingSearchIT' test --batch-mode --no-transfer-progress
+      - name: Frozen service calendar database contracts
+        env:
+          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=benchmark_calendar_it
+          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=benchmark_calendar_it
+        run: |
+          node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
+          ./mvnw -pl scheduler-service '-Dtest=BookingSnapshotDatabaseIT' test --batch-mode --no-transfer-progress
       - name: Booking smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration

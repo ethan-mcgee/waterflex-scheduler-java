@@ -52,9 +52,21 @@ class ConfigurationTests(unittest.TestCase):
     def test_initial_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
         daily = expand(read_json(root / 'daily-budget.json'))
-        self.assertEqual(len(daily), 1440)
-        self.assertEqual(sum(r['budget_ms'] for r in daily), 133200000)
-        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 720)
+        self.assertEqual(len(daily), 240)
+        self.assertEqual(sum(r['budget_ms'] for r in daily), 14400000)
+        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 360)
+
+    def test_planned_three_workload_matrices(self):
+        root = Path(__file__).resolve().parents[1] / 'experiments/configs'
+        daily = read_json(root / 'daily-budget.json')
+        daily['daily'].update(solvers=['LATE_ACCEPTANCE', 'TABU', 'SUBLIST', 'KOPT'],
+                              workloads=['CLUSTERED', 'DISPERSED', 'SPARSE'],
+                              budgets_seconds=[15, 30, 60, 90, 120, 240])
+        self.assertEqual(len(expand(daily)), 1440)
+        self.assertEqual(sum(c['budget_ms'] for c in expand(daily)), 133200000)
+        booking = read_json(root / 'booking-comparison.json')
+        booking['booking']['caches'] = ['cold', 'warm']
+        self.assertEqual(len(expand(booking)), 720)
 
     def test_reject_bad_configuration(self):
         modifications = [lambda c: c.update(unknown=True), lambda c: c.update(version=True),
@@ -241,6 +253,26 @@ class AnalysisTests(unittest.TestCase):
         self.assertIsNone(row['p95_ms'])
         self.assertEqual(row['unknown_completion'], 1)
 
+    def test_frozen_calendar_evidence_requires_both_isolation_observations(self):
+        provenance = {**PROVENANCE, 'calendarReference': '2026-09-30T04:59:59.000Z'}
+        raw = raw_booking()
+        settings = {'scheduler.optimizer.cron': '-', 'routing.cache.cleanup-cron': '-',
+                    'routing.prewarm.enabled': 'false', 'time-off.analysis.enabled': 'false',
+                    'benchmark.calendar-reference': '2026-09-30T04:59:59Z'}
+        raw.update(processBefore={'configuration': settings}, processAfter={'configuration': settings})
+        frozen = normalize(raw, provenance, 'current')
+        historical = normalize(raw_booking(), PROVENANCE, 'current')
+        from experiment_analysis import pair_key
+        self.assertNotEqual(pair_key(frozen), pair_key(historical))
+        for phase in ('processBefore', 'processAfter'):
+            for key in settings:
+                altered = copy.deepcopy(raw)
+                altered[phase]['configuration'][key] = 'invalid'
+                with self.assertRaises(ValueError):
+                    normalize(altered, provenance, 'current')
+        with self.assertRaises(ValueError):
+            normalize(raw, {**provenance, 'calendarReference': '2026-09-30T04:59:59'}, 'current')
+
     def test_partial_raw_kept_and_reported(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / 'raw.jsonl'
@@ -315,16 +347,30 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Completed evidence changed'):
             rt.completed_attempt(run, case)
 
-    def test_expired_booking_resume_rejected_before_launch(self):
+    def test_changed_booking_identity_rejected_before_launch(self):
         c = {'version': 1, 'name': 'booking', 'booking': {'solvers': ['INSERTION'], 'control': 'INSERTION',
             'seeds': [17], 'fleets': [5], 'workloads': ['DISPERSED'], 'concurrency': [1], 'caches': ['warm'], 'requests': 2}}
         run = rt.new_run(self.base, c, json.dumps(c).encode())
         (run / 'frozen').mkdir()
         rt.write_new(run / 'manifest.json', {'config_hash': digest(c), 'cases_hash': digest(expand(c)),
-            'files': {}, 'runtime': {'java': 'java'}, 'toolkit_hashes': rt.toolkit_hashes(), 'booking': {'dates': ['old']}})
+            'files': {}, 'runtime': {'java': 'java'}, 'toolkit_hashes': rt.toolkit_hashes(), 'booking': {'dates': ['old'], 'calendar_reference': '2026-09-30T04:59:59.000Z'}})
         with patch.object(rt, 'runtime', return_value={'java': 'java'}), patch.object(rt, 'booking_identity', return_value={'dates': ['new']}):
             with self.assertRaisesRegex(ValueError, 'no longer valid'):
                 rt.execute(run)
+
+    def test_booking_identity_reuses_saved_reference_on_resume(self):
+        reference = '2026-09-30T04:59:59.000Z'
+        env = {'DATABASE_URL': 'postgresql://user:secret@localhost/waterflex_test'}
+        with patch.object(rt, 'horizon', return_value=['saved']) as horizon, patch.object(rt, 'routing_identity', return_value={'identity': 'roads'}):
+            first = rt.booking_identity(Path('frozen'), env, reference)
+            second = rt.booking_identity(Path('frozen'), env, first['calendar_reference'])
+            self.assertEqual(first, second)
+            horizon.assert_called_with(Path('frozen'), reference)
+
+    def test_environment_blocks_case_insensitive_isolation_overrides(self):
+        with patch.dict(os.environ, {'routing_prewarm_enabled': 'true', 'TIME_OFF_ANALYSIS_ENABLED': 'true',
+                                    'ROUTING_CACHE_CLEANUP_CRON': '* * * * * *', 'spring_profiles_active': 'production'}, clear=True):
+            self.assertEqual(rt.environment(), {})
 
     def test_database_scope_and_credential_metadata(self):
         for url in ('postgresql://user:secret@localhost/waterflex', 'postgresql://user:secret@remote/waterflex_test'):
@@ -363,6 +409,23 @@ class ArchiveTests(unittest.TestCase):
         with rt.launch([sys.executable, '-c', 'import time; time.sleep(60)'], self.base, os.environ.copy(), log) as process:
             self.assertIsNone(process.poll())
         self.assertIsNotNone(process.poll())
+
+    def test_timeout_and_nonzero_exit_do_not_create_success(self):
+        with self.assertRaisesRegex(RuntimeError, 'timed out'):
+            rt.command([sys.executable, '-c', 'import time; time.sleep(60)'], self.base,
+                       os.environ.copy(), self.base / 'timeout.log', timeout=.1)
+        with self.assertRaisesRegex(RuntimeError, 'exited 7'):
+            rt.command([sys.executable, '-c', 'raise SystemExit(7)'], self.base,
+                       os.environ.copy(), self.base / 'failed.log')
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX process group cleanup')
+    def test_exited_parent_still_terminates_owned_descendants(self):
+        import signal
+        process = SimpleNamespace(pid=123456, poll=lambda: 0, wait=lambda timeout=None: 0)
+        with patch.object(rt.subprocess, 'Popen', return_value=process), patch.object(rt.os, 'killpg') as kill:
+            with rt.launch(['parent'], self.base, {}, self.base / 'group.log'):
+                pass
+        self.assertEqual(kill.call_args_list, [unittest.mock.call(123456, signal.SIGTERM), unittest.mock.call(123456, signal.SIGKILL)])
 
     def test_second_config_and_analysis_preserve_first_artifacts(self):
         from experiment_analysis import analyze

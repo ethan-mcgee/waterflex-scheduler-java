@@ -82,9 +82,9 @@ public final class BookingSearchPipeline {
             }
         }
         if (result.complete() && result.candidates().isEmpty()) {
-            loaded = loader.load(metroId, request.jobId(), captured, identity, true);
+            loaded = loader.load(metroId, request.jobId(), captured, identity, true, snapshot.calendarReference());
             snapshot = routing.insertion(loaded.snapshot(), request);
-            for (var date : BookingService.overflowDates(captured)) {
+            for (var date : BookingService.overflowDates(snapshot.calendarReference())) {
                 var overflow = engine(snapshot, request, SearchDeadline::checkpoint);
                 if (bounded) snapshot = routing.neighborhoods(snapshot, overflow.neighborhoodRoutes());
                 overflow = engine(snapshot, request, SearchDeadline::checkpoint);

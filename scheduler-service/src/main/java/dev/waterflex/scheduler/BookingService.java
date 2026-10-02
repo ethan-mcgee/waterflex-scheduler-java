@@ -50,7 +50,13 @@ public class BookingService {
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
                            long meters, long costCents, Map<String, Instant> arrivals, List<RouteEvaluator.WorkingSegment> segments) { }
 
+    private final ServiceCalendar calendar;
     public BookingService(JdbcTemplate jdbc, RoadClient roads, BookingOfferLimit offerLimit) {
+        this(jdbc, roads, offerLimit, new ServiceCalendar());
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public BookingService(JdbcTemplate jdbc, RoadClient roads, BookingOfferLimit offerLimit, ServiceCalendar calendar) {
+        this.calendar = calendar;
         this.jdbc = jdbc; this.roads = roads; this.offerLimit = offerLimit;
     }
 
@@ -249,7 +255,7 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancellation requires updating the reserved common arrangement");
         jdbc.update("UPDATE appointment SET \"cancelledAt\"=CURRENT_TIMESTAMP, \"cancellationReason\"=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", reason.trim(), appointmentId);
         jdbc.update("UPDATE job SET status='CANCELLED', \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", jobId);
-        if (!ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) {
+        if (!ScheduleCutoff.frozen(Required.value(day), calendar.now())) {
             List<Visit> remaining = visits(Required.value(techId), Required.value(day), Required.value(jobId));
             WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, Required.value(day));
             var techs = shift == null ? List.<Tech>of() : jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
@@ -263,7 +269,7 @@ public class BookingService {
             }
         }
         jdbc.update("UPDATE schedule_day SET version=version+1 WHERE \"technicianId\"=? AND \"serviceDate\"=?", techId, dayStamp(Required.value(day)));
-        if (!ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) persistCurrent(techId, Required.value(day));
+        if (!ScheduleCutoff.frozen(Required.value(day), calendar.now())) persistCurrent(techId, Required.value(day));
         return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", false));
     }
 
@@ -286,7 +292,7 @@ public class BookingService {
         Map<String, Double> sharedSettings = Required.value(Map.copyOf(settings()));
         SearchDeadline.policyLimit(dev.waterflex.scheduler.optimizer.PolicySettings.read(sharedSettings).bookingDeadlineMs());
         String routingIdentity = roads.activeIdentity();
-        List<LocalDate> days = onlyDay == null ? bookingDates(Required.value(Instant.now())) : Required.value(List.of(Required.value(onlyDay)));
+        List<LocalDate> days = onlyDay == null ? bookingDates(calendar.now()) : Required.value(List.of(Required.value(onlyDay)));
         for (LocalDate day : days) {
             SearchDeadline.database(jdbc);
             LocalDate serviceDay = Required.value(day);

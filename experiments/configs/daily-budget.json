@@ -3,9 +3,7 @@
   "name": "daily-budget",
   "daily": {
     "solvers": [
-      "LATE_ACCEPTANCE",
       "TABU",
-      "SUBLIST",
       "KOPT"
     ],
     "control": "TABU",
@@ -24,16 +22,12 @@
     ],
     "workloads": [
       "CLUSTERED",
-      "DISPERSED",
-      "SPARSE"
+      "DISPERSED"
     ],
     "budgets_seconds": [
-      15,
       30,
       60,
-      90,
-      120,
-      240
+      90
     ]
   }
 }

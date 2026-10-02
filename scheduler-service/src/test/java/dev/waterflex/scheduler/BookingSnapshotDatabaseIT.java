@@ -18,7 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Explicit database gate: -Dtest=BookingSnapshotDatabaseIT, using migrated/seeded waterflex_test only. */
 class BookingSnapshotDatabaseIT {
-    @Test void snapshotLoadAndReservationStoreUseRealDatabaseVersionsAndRestartState() {
+    @Test void snapshotLoadAndReservationStoreUseRealDatabaseVersionsAndRestartState() { verifySnapshot(false); }
+    @Test void fixedCalendarKeepsPastServiceDatesMutableButOffersExpireInRealTime() { verifySnapshot(true); }
+
+    private void verifySnapshot(boolean frozen) {
         String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
         assertEquals("/waterflex_test", URI.create(url.substring("jdbc:".length())).getPath());
         DriverManagerDataSource source = new DriverManagerDataSource(url, "waterflex", "waterflex");
@@ -27,7 +30,13 @@ class BookingSnapshotDatabaseIT {
         var transaction = new TransactionTemplate(manager);
         String prefix = "snapshot-it-" + UUID.randomUUID();
         Instant captured = Required.value(Instant.now());
-        LocalDate day = Required.value(BookingService.bookingDates(captured).getFirst());
+        Instant reference = frozen ? Required.value(Instant.parse("2026-03-06T05:59:59Z")) : captured;
+        var environment = new org.springframework.mock.env.MockEnvironment();
+        environment.setActiveProfiles("benchmark");
+        environment.setProperty("spring.datasource.url", url);
+        if (frozen) environment.setProperty("benchmark.calendar-reference", Required.value(reference.toString()));
+        var calendar = new ServiceCalendar(environment, jdbc);
+        LocalDate day = Required.value(BookingService.bookingDates(reference).getFirst());
         Timestamp date = stamp(day);
         Timestamp morning = Required.value(Timestamp.from(ScheduleCutoff.localMinute(day, 540, false)));
         Timestamp afternoon = Required.value(Timestamp.from(ScheduleCutoff.localMinute(day, 720, false)));
@@ -61,9 +70,11 @@ class BookingSnapshotDatabaseIT {
                 jdbc.update("INSERT INTO slot_hold (id,\"offerToken\",\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",\"insertPosition\",\"locationLat\",\"locationLng\",\"expiresAt\") VALUES (?,?,?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?::timestamp+INTERVAL '30 minutes',1,43.735,7.420,?)",
                         job, job, job, prefix + "-a", date, afternoon, afternoon, afternoon, afternoon, expiry);
             }
-            BookingSnapshotLoader loader = new BookingSnapshotLoader(jdbc, manager);
+            BookingSnapshotLoader loader = new BookingSnapshotLoader(jdbc, manager, calendar);
             var loaded = loader.load(prefix, prefix + "-request", captured, "fixture-roads");
-            assertEquals(BookingService.bookingDates(captured).size(), loaded.snapshot().days().size());
+            assertEquals(BookingService.bookingDates(reference).size(), loaded.snapshot().days().size());
+            assertEquals(captured, loaded.snapshot().capturedAt());
+            assertEquals(reference, loaded.snapshot().calendarReference());
             Day raw = Required.value(loaded.snapshot().days().get(day));
             assertEquals(Set.of(prefix + "-appointment", prefix + "-held"), raw.visits().keySet());
             assertEquals(Set.of(prefix + "-held"), Required.value(loaded.holds().get(day)).keySet());
@@ -118,7 +129,7 @@ class BookingSnapshotDatabaseIT {
             var transition = new ReservationTransition(new SnapshotRouting(deterministic));
             String newAppointment = prefix + "-new-appointment";
             var next = transition.prepare(facts, prefix + "-held", new ReservationTransition.Confirmation(prefix + "-held", newAppointment));
-            var commit = new ReservationCommit(jdbc, loader, store, manager);
+            var commit = new ReservationCommit(jdbc, loader, store, manager, calendar);
             java.util.function.Supplier<String> mutation = () -> {
                 jdbc.update("INSERT INTO appointment (id,\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",sequence,\"updatedAt\") VALUES (?,?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?::timestamp+INTERVAL '30 minutes',1,CURRENT_TIMESTAMP)",
                         newAppointment, prefix + "-held", prefix + "-a", date, afternoon, afternoon, afternoon, afternoon);
@@ -190,6 +201,12 @@ class BookingSnapshotDatabaseIT {
                     regularRouted, regularFacts.rates(), regularDay.baseline(), regularDay.visits(), Required.value(regularFacts.holds().get(day)),
                     regularFacts.configurationFingerprint(), "fixture-roads"));
             var lifecycle = new ReservationLifecycleService(jdbc, deterministic, loader, transition, commit);
+            if (frozen) {
+                jdbc.update("UPDATE slot_hold SET \"expiresAt\"=clock_timestamp()-interval '1 second' WHERE id=?", prefix + "-request");
+                var expiredOffer = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
+                assertEquals("Offer is no longer available", expiredOffer.getReason());
+                jdbc.update("UPDATE slot_hold SET \"expiresAt\"=? WHERE id=?", expiry, prefix + "-request");
+            }
             assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"),
                     "A missing historical delta cannot authorize the transferred overtime");
             assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
