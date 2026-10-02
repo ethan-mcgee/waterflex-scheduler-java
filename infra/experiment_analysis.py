@@ -8,7 +8,7 @@ import json
 import math
 from pathlib import Path
 import re
-from statistics import mean
+from statistics import mean, median
 import uuid
 
 from experiment_config import DAILY, BOOKING, canonical, read_json, unique_object, digest, expand, validate
@@ -42,6 +42,13 @@ def required(row, key, kind):
     if type(value) is not kind or (kind is str and not value):
         raise ValueError(f'Missing/invalid {key}')
     return value
+
+
+def rate(count, milliseconds):
+    """Events per second; unavailable (never zero) when either side is missing or no time elapsed."""
+    if count is None or milliseconds is None or milliseconds <= 0:
+        return None
+    return count / milliseconds * 1000
 
 
 def quantile(values, fraction):
@@ -80,7 +87,9 @@ def normalize(raw, provenance, cohort):
             routing=required(provenance, 'routingIdentity', str),
             reference_cost=measurement(raw, 'reference', 'costCents'), accepted_cost=measurement(raw, 'after', 'costCents'),
             fairness=measurement(raw, 'after', 'fairness', 'variance'), elapsed_ms=measurement(raw, 'elapsedMs'),
-            reference_ms=measurement(raw, 'referencePhase', 'solveMs'), fairness_ms=measurement(raw, 'fairnessPhase', 'solveMs'))
+            reference_ms=measurement(raw, 'referencePhase', 'solveMs'), fairness_ms=measurement(raw, 'fairnessPhase', 'solveMs'),
+            reference_move_rate=rate(measurement(raw, 'referencePhase', 'moveEvaluations'), measurement(raw, 'referencePhase', 'solveMs')),
+            fairness_move_rate=rate(measurement(raw, 'fairnessPhase', 'moveEvaluations'), measurement(raw, 'fairnessPhase', 'solveMs')))
         if row['budget_ms'] is None:
             raise ValueError('Daily budget unavailable')
     else:
@@ -251,6 +260,7 @@ def summary_groups(rows):
     for key, items in sorted(groups.items()):
         summary = json.loads(key)
         metrics = ['reference_cost', 'accepted_cost', 'fairness', 'elapsed_ms', 'reference_ms', 'fairness_ms',
+                   'reference_move_rate', 'fairness_move_rate',
                    'control_savings_cents', 'own_15s_improvement_cents'] if summary['kind'] == 'daily' else [
                    'served_rate', 'incomplete_rate', 'failed_rate', 'control_savings_cents']
         summary['metrics'] = {m: equal_seed_summary(items, m) for m in metrics}
@@ -260,6 +270,81 @@ def summary_groups(rows):
                 'p50_ms': quantile(observations, .5), 'p95_ms': quantile(observations, .95), 'p99_ms': quantile(observations, .99)}
         summaries.append(summary)
     return summaries
+
+
+def throughput_summary(rows):
+    """Move evaluations per second by solver and fleet, so contention shows up. Missing rates stay missing."""
+    groups = defaultdict(list)
+    for r in rows:
+        if r['kind'] == 'daily':
+            groups[(r['solver'], r['fleet'])].append(r)
+    result = []
+    for (solver, fleet), items in sorted(groups.items()):
+        entry = dict(solver=solver, fleet=fleet, total_cases=len(items))
+        for phase in ('reference', 'fairness'):
+            values = [r[f'{phase}_move_rate'] for r in items if r.get(f'{phase}_move_rate') is not None]
+            entry[f'{phase}_move_rate'] = dict(observed=len(values), mean=mean(values) if values else None,
+                                              min=min(values) if values else None, max=max(values) if values else None)
+        result.append(entry)
+    return result
+
+
+def run_rows(run):
+    """Completed daily rows of one run with the neighbor count recorded for each attempt; never writes."""
+    from experiment_runtime import completed_attempt
+    rows, issues = [], []
+    for case in read_json(run / 'cases.json'):
+        attempt = completed_attempt(run, case)
+        if attempt is None:
+            issues.append({'case': case['id'], 'reason': 'Missing completed case'})
+            continue
+        rs, errors = load_raw(attempt / 'raw.jsonl', expected=case)
+        issues.extend(errors)
+        receipt = read_json(attempt / 'completed.json')
+        for row in rs:
+            row['in_flight_min'] = receipt.get('in_flight_min')
+        rows.extend(rs)
+    return rows, issues
+
+
+def contention_report(sequential_run, parallel_run, threshold=.95):
+    """Pair identical daily cases across a sequential and a parallel run and compare solver throughput."""
+    seq_rows, seq_issues = run_rows(sequential_run)
+    par_rows, par_issues = run_rows(parallel_run)
+    parallel_cases = read_json(parallel_run / 'config.json')['daily']['parallel_cases']
+    def key(r):
+        return canonical([r['solver'], r['seed'], r['fleet'], r['workload'], r['budget_ms'], r['fixture']])
+    sequential = {key(r): r for r in seq_rows}
+    pairs, excluded = defaultdict(list), Counter()
+    for r in par_rows:
+        other = sequential.get(key(r))
+        if other is None:
+            excluded['no_sequential_twin'] += 1
+        elif r.get('in_flight_min') is None or r['in_flight_min'] < parallel_cases - 1:
+            excluded['not_fully_loaded'] += 1  # Pool ramp-up and tail run with fewer neighbors.
+        else:
+            ratios = {phase: (r[f'{phase}_move_rate'] / other[f'{phase}_move_rate']
+                              if r.get(f'{phase}_move_rate') is not None and other.get(f'{phase}_move_rate') else None)
+                      for phase in ('reference', 'fairness')}
+            if all(v is None for v in ratios.values()):
+                excluded['throughput_unavailable'] += 1
+            else:
+                pairs[(r['solver'], r['fleet'])].append(ratios)
+    groups = []
+    for (solver, fleet), items in sorted(pairs.items()):
+        entry = dict(solver=solver, fleet=fleet, pairs=len(items))
+        for phase in ('reference', 'fairness'):
+            values = [i[phase] for i in items if i[phase] is not None]
+            entry[f'{phase}_median_ratio'] = median(values) if values else None
+            entry[f'{phase}_pairs'] = len(values)
+        groups.append(entry)
+    decided = [g['reference_median_ratio'] for g in groups]
+    accepted = bool(decided) and all(v is not None and v >= threshold for v in decided)
+    return {'format': 1, 'sequential_run': str(sequential_run), 'parallel_run': str(parallel_run),
+            'parallel_cases': parallel_cases, 'threshold': threshold, 'groups': groups,
+            'excluded_pairs': dict(excluded), 'issues': seq_issues + par_issues,
+            'accepted': accepted,
+            'rule': 'Accepted when every solver and fleet median reference-phase throughput ratio is at least the threshold'}
 
 
 def plots(output, rows, controls, budgets):
@@ -366,6 +451,7 @@ def analyze(run):
     rows, issues, inputs = [], [], []
     controls = {'daily': 'TABU', 'booking': 'INSERTION'}
     expected_count = None
+    parallelism = None
     budgets = []
     if (run / 'import.json').exists():
         imported = read_json(run / 'import.json')
@@ -389,6 +475,7 @@ def analyze(run):
         if manifest['config_hash'] != digest(config) or manifest['cases_hash'] != digest(cases) or cases != expand(config):
             raise ValueError('Saved configuration/matrix provenance mismatch')
         expected_count = len(cases)
+        parallelism = manifest.get('parallelism')  # Absent in archives that predate parallel daily cases.
         for kind in controls:
             if kind in config:
                 controls[kind] = config[kind]['control']
@@ -400,6 +487,8 @@ def analyze(run):
             else:
                 path = attempt / 'raw.jsonl'
                 rs, errors = load_raw(path, expected=case)
+                for row in rs:
+                    row['in_flight_min'] = read_json(attempt / 'completed.json').get('in_flight_min')
                 rows.extend(rs)
                 issues.extend(errors)
                 inputs.append({'name': str(path.relative_to(run)), 'sha256': sha(path)})
@@ -412,14 +501,16 @@ def analyze(run):
     figures = plots(output, rows, controls, budgets)
     report = {'format': 1, 'expected_cases': expected_count, 'observed_cases': len(rows), 'controls': controls,
         'inputs': inputs, 'issues': issues, 'pair_status_counts': dict(Counter(r['pair_status'] for r in rows)),
-        'summaries': summaries, 'cases': rows, 'figures': figures,
-        'limitations': ['Five-seed comparisons are exploratory, not statistical significance claims.',
+        'summaries': summaries, 'throughput': throughput_summary(rows), 'parallelism': parallelism,
+        'cases': rows, 'figures': figures,
+        'limitations': ['Small-seed-count comparisons are exploratory, not statistical significance claims.',
             'Daily seeds vary search on fixed geography. Daily fixtures and booking provider evidence are separate.',
             'Missing measurements remain null. Unpaired control and missing own-15-second comparisons remain unavailable.',
+            'Concurrent daily cases share memory bandwidth, L3 cache and boost clocks; check move evaluations per second before trusting parallel timings.',
             'Historical expected matrix is unavailable here; archive coverage is not a claim of a complete new experiment.']}
     write_new(output / 'summary.json', report)
     # Source and analysis version recorded with every invocation, including a changed analyzer.
-    write_new(output / 'analysis-provenance.json', {'analyzer_sha256': sha(Path(__file__)), 'inputs': inputs})
+    write_new(output / 'analysis-provenance.json', {'analyzer_sha256': sha(Path(__file__)), 'inputs': inputs, 'parallelism': parallelism})
     flat = [{k: v for k, v in r.items() if not isinstance(v, (list, dict))} for r in rows]
     with (output / 'cases.csv').open('x', newline='', encoding='utf-8') as stream:
         writer = csv.DictWriter(stream, sorted({k for r in flat for k in r}))
@@ -438,7 +529,9 @@ def analyze(run):
         '<h1>Scheduler experiment evidence</h1>', f'<p>Observed cases: {len(rows)}. Expected: {expected_count if expected_count is not None else "unknown (historical import)"}. Issues: {len(issues)}.</p>',
         '<p><a href="summary.json">Summary JSON and completeness details</a> | <a href="summary.csv">Summary CSV</a> | <a href="cases.csv">Case CSV</a></p>',
         '<p>' + esc(' '.join(report['limitations'])) + '</p>',
-        '<p>Pair status: ' + esc(json.dumps(report['pair_status_counts'])) + '</p>']
+        '<p>Pair status: ' + esc(json.dumps(report['pair_status_counts'])) + '</p>',
+        '<p>Parallelism: ' + (esc(json.dumps(parallelism)) if parallelism else 'not recorded (sequential or historical evidence)') + '</p>',
+        '<h2>Move evaluations per second</h2><pre>' + esc(json.dumps(report['throughput'], indent=2)) + '</pre>']
     for figure in figures:
         parts.append(f'<figure><h2>{esc(figure["title"])}</h2><a href="{figure["name"]}.svg">SVG</a><img loading="lazy" src="{figure["name"]}.png" alt="{esc(figure["title"])}"><figcaption>{esc(figure["caption"])}</figcaption></figure>')
     parts.extend(['<h2>Missing, failed and excluded evidence</h2><pre>', esc(json.dumps(issues, indent=2)), '</pre></html>'])

@@ -1,5 +1,6 @@
 """Strict experiment input and reproducible, counterbalanced case expansion."""
 import hashlib
+import heapq
 import itertools
 import json
 import re
@@ -57,7 +58,7 @@ def validate(config):
             continue
         section = config[kind]
         fields(section, ['solvers', 'control', 'seeds', 'fleets', 'workloads'] +
-               (['budgets_seconds'] if kind == 'daily' else ['concurrency', 'caches', 'requests']))
+               (['budgets_seconds', 'parallel_cases'] if kind == 'daily' else ['concurrency', 'caches', 'requests']))
         selection(section, 'solvers', lambda x: isinstance(x, str) and x in variants)
         if section['control'] not in section['solvers']:
             raise ValueError('control must be a selected solver')
@@ -66,6 +67,10 @@ def validate(config):
         selection(section, 'workloads', lambda x: isinstance(x, str) and x in WORKLOADS)
         if kind == 'daily':
             selection(section, 'budgets_seconds', lambda x: type(x) in (int, float) and .1 <= x <= 240 and x * 1000 == int(x * 1000))
+            # Concurrent fresh solver JVMs, one dedicated physical core each. The usable core
+            # count is hardware evidence, so the upper bound is checked at run time.
+            if type(section['parallel_cases']) is not int or section['parallel_cases'] < 1:
+                raise ValueError('parallel_cases must be a positive integer')
         else:
             selection(section, 'concurrency', lambda x: type(x) is int and x in [1, 5, 10])
             selection(section, 'caches', lambda x: isinstance(x, str) and x in ['cold', 'warm'])
@@ -98,3 +103,16 @@ def expand(config):
                 row['id'] = digest(row)[:20]
                 cases.append(row)
     return cases
+
+
+CASE_OVERHEAD_SECONDS = 2.5  # Measured JVM start, warmup and fixture build beyond the solver budget.
+
+
+def estimate_daily_wall_seconds(cases, parallel_cases):
+    """Greedy slot simulation in dispatch order; booking cases are sequential and excluded."""
+    slots = [0.0] * parallel_cases
+    heapq.heapify(slots)
+    for case in cases:
+        if case['kind'] == 'daily':
+            heapq.heappush(slots, heapq.heappop(slots) + case['budget_ms'] / 1000 + CASE_OVERHEAD_SECONDS)
+    return max(slots)
