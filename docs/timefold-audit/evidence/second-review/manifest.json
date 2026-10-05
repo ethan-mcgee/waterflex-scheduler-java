@@ -1,0 +1,188 @@
+{
+  "review_date": "2026-10-02",
+  "production_baseline": "afa035ddf2101d26c12508067d2d9016601db6c3",
+  "historical_manifest": "docs/timefold-audit/evidence/summary.json",
+  "checks": {
+    "characterization_tests": 7,
+    "helper_boundary_tests": 4,
+    "raw_archive_inputs": 1688,
+    "chapters": 66,
+    "official_urls": 60,
+    "local_images": 113,
+    "word_pages": 26
+  },
+  "limitations": [
+    "No new benchmark, profile, dependency or production change",
+    "Full Java and portal suites not rerun locally; inspect PR CI separately",
+    "Original documentation is external and required for --external verification"
+  ],
+  "artifacts": [
+    {
+      "path": "docs/timefold-audit/build_report.py",
+      "sha256": "b2d28680efeeb8b0fa16058d1736197063241c93579aed7298ad6a61043f5e63",
+      "bytes": 10280,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/collect_retained_evidence.py",
+      "sha256": "8d53f1104c0d279131424c8bdc35c36a63eb3fbb60dffc3cf5b4cd51c7aa2295",
+      "bytes": 6487,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/baseline.json",
+      "sha256": "66e828db63e3cfa0941256b62c2b3a9d539450532d096d4b67adaa223b746358",
+      "bytes": 1336,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/characterization.log",
+      "sha256": "34c4220f90508b073e3366bc28006db29afada1279a6eb843347bb67ba6fc9ea",
+      "bytes": 20376,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/coverage.json",
+      "sha256": "80f8ae3e222cc4fa58a2abbdb62e755007440e8defc3d434f4de5c207407c25c",
+      "bytes": 579650,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-helper-tests.log",
+      "sha256": "cc0c35ada42f099c810e8dc2b2f422ab92fc69ca0213bb78ea9ebf6eb036efe6",
+      "bytes": 557,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-packaged-render.log",
+      "sha256": "d04f33a295046b3a857e9e43ed25ee7e055c500de050b64b934b8a1bf908bccf",
+      "bytes": 1184,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-page-render.log",
+      "sha256": "6650eba4edf59091330addde10921907a8905ce7a9ee8e1c18df0f5fa1dbc744",
+      "bytes": 4690,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-review.json",
+      "sha256": "68cb8a5b886b6dcb68b6dbd317d7f93967a8a8e1c0a92c5b9e3ff4cb45176ef1",
+      "bytes": 1042,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-verification.log",
+      "sha256": "25e2ab294f724d754b7cfd79be75c86c488142ac392d7e068a32c4d3434bdd96",
+      "bytes": 300,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/helper-tests.log",
+      "sha256": "988b887848a1adb32d5a49128f2e9ad144aae0a6aa2ddec62f5e8628e5cdab34",
+      "bytes": 557,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/historical-line-endings.json",
+      "sha256": "8c08b7988bab0eff1e07495e16d01f293f1feb6f8084cf5c2111ef656c5c3b22",
+      "bytes": 7211,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/installed-2.6-local-search.txt",
+      "sha256": "f42e56bfbef16ba589d6a5915a42a6f2811b9cf42ed67dded8f8fd35312fba53",
+      "bytes": 60951,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/packaged-render.log",
+      "sha256": "d04f33a295046b3a857e9e43ed25ee7e055c500de050b64b934b8a1bf908bccf",
+      "bytes": 1184,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/page-render.log",
+      "sha256": "793c47bb5ed9c2572b9c80d8cbb3dbd4285f53e4eb0f7df777069ca423e8b6ff",
+      "bytes": 4330,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/report-initial-hash-failure.log",
+      "sha256": "9356bab6f22b9c6eb21b6c3b25ed7fa135c50e5a88a44ae2222020830e26f45d",
+      "bytes": 788,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-evidence.json",
+      "sha256": "767e325fcb4fe14f42c8d96d9d805edb443de3365f362db390b27695295f8d9b",
+      "bytes": 258460,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-initial-field-failure.log",
+      "sha256": "499005137f45f6e2083411abe5b737f89aefe45323da3cfae60706c37a324ea8",
+      "bytes": 569,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-initial-schema-failure.log",
+      "sha256": "1e5ec6193a4e4082efecb5dea7e2d854cf1a1e8b949d5f90d47b852046e98fe8",
+      "bytes": 638,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-verification.log",
+      "sha256": "b8d431ca7634a41d5b1948bc51bbc598481b2f418a9c81f916adec0f73ad140c",
+      "bytes": 394,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/syntax-check.log",
+      "sha256": "0177c6a77699c7fcd68c00f41a4519342b89334bf860d3463a05bf22347713c1",
+      "bytes": 96,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/visual-qa.json",
+      "sha256": "b0d5ab86d134579870153688d0316dd2b66bc01528b26fd6907d390286f078d2",
+      "bytes": 5805,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/README.md",
+      "sha256": "3415e2fd4ef41634e14b64f4b651cc2df5fefb615186f54194dc6251e706e8ef",
+      "bytes": 5459,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/test_verification.py",
+      "sha256": "dedbf778434d816ffe60eb00f29ce7cbda650b90b3318ec6ccfaf9d9e886a661",
+      "bytes": 1504,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Audit.docx",
+      "sha256": "0e7c6d0726a738d4ff146509f6b09808afaa5c74e733b0195bdb9dcc4394cf8c",
+      "bytes": 81157,
+      "normalize_crlf": false
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Audit.md",
+      "sha256": "1e8872be443f1987cc4fe1c15086261ca582a0e62d7bf2452241e6d8f3a74033",
+      "bytes": 111175,
+      "normalize_crlf": true
+    },
+    {
+      "path": "docs/timefold-audit/verify_evidence.py",
+      "sha256": "be9f336ead1dbc8fb07a8fa17adcc966f3d64b40a0ce827ed05501637c12d173",
+      "bytes": 5333,
+      "normalize_crlf": true
+    }
+  ],
+  "presentation_followup": {
+    "content_baseline": "41e3d74c27382dd735de85c3c0e60c7ad0a47572",
+    "receipt": "docs/timefold-audit/evidence/second-review/formatting-review.json",
+    "source_and_java_checks": "Retained from expanded audit; not rerun for formatting"
+  }
+}

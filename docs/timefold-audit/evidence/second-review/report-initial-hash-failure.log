@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\verify_evidence.py", line 74, in <module>
+    verify(parser.parse_args().external)
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\verify_evidence.py", line 41, in verify
+    verify_hash(content,item)
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\verify_evidence.py", line 18, in verify_hash
+    assert hashlib.sha256(content).hexdigest()==item['sha256'],item['path']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: docs/timefold-audit/evidence/audit-experiment-system-python.log

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\collect_retained_evidence.py", line 108, in <module>
+    result=collect(args.archive_root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\collect_retained_evidence.py", line 88, in collect
+    assert len(lines)==2 and lines[0]['type']=='provenance' and lines[1]['type']=='result'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

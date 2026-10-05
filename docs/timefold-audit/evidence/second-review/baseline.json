@@ -1,0 +1,19 @@
+{
+  "reviewed_commit": "afa035ddf2101d26c12508067d2d9016601db6c3",
+  "original_baseline": "164a1e111370d21ea93f634e674c5fdee4edc90f",
+  "branch": "codex/timefold-audit-expanded",
+  "production_diff": [
+    "2\t2\tscheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchPipeline.java",
+    "9\t3\tscheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java",
+    "7\t3\tscheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java",
+    "13\t3\tscheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java",
+    "7\t1\tscheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java",
+    "1\t1\tscheduler-service/src/main/java/dev/waterflex/scheduler/RoadClient.java",
+    "7\t0\tscheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java",
+    "39\t0\tscheduler-service/src/main/java/dev/waterflex/scheduler/ServiceCalendar.java",
+    "1\t1\tscheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java",
+    "4\t0\tscheduler-service/src/main/java/dev/waterflex/scheduler/TimeOffService.java",
+    "1\t1\tscheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+    "4\t0\tscheduler-service/src/main/resources/application-benchmark.properties"
+  ]
+}

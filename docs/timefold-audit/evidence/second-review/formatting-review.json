@@ -1,0 +1,23 @@
+{
+  "kind": "Presentation-only follow-up",
+  "prior_commit": "41e3d74c27382dd735de85c3c0e60c7ad0a47572",
+  "previous_docx_sha256": "ad990bb94b89237120fa55e4cde38c3a1408e3f3b0eb9bfba329bf5dc613e2f5",
+  "current_docx_sha256": "0e7c6d0726a738d4ff146509f6b09808afaa5c74e733b0195bdb9dcc4394cf8c",
+  "canonical_markdown_unchanged": true,
+  "ordered_nonempty_paragraphs": 621,
+  "ordered_hyperlinks": 252,
+  "all_content_and_link_targets_preserved": true,
+  "tables": 14,
+  "pages": 26,
+  "checks": [
+    "Exact before/after body text and ordered hyperlink labels/targets",
+    "Exact Markdown/Word paragraph and table-cell parity",
+    "Calibri, black headings, repeated table headers and seven-inch table widths",
+    "All four Python helpers parse",
+    "Every rendered page inspected at full image size"
+  ],
+  "limits": [
+    "Formatting verification does not rerun source review, benchmarks or Java characterization tests",
+    "Packaged renderer still lacks LibreOffice; Word PDF export and bundled Poppler used"
+  ]
+}

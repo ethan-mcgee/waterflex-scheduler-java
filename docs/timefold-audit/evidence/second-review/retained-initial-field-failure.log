@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\collect_retained_evidence.py", line 108, in <module>
+    result=collect(args.archive_root)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\.codex\worktrees\timefold-audit-expanded\waterflex-scheduler-java\docs\timefold-audit\collect_retained_evidence.py", line 96, in collect
+    assert row[field] is not None and abs(row[field]-float(old[field]))<1e-7,field
+           ~~~^^^^^^^
+KeyError: 'violations'

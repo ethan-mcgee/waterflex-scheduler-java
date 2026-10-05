@@ -1,0 +1,3 @@
+PASS: 621 ordered nonempty paragraphs/cells and 252 ordered hyperlink labels/targets unchanged
+PASS: canonical Markdown unchanged; exact Word parity; 14 tables; Calibri and black headings; Python syntax
+PASS: all 26 rendered pages inspected; prior Java/source checks were not rerun for formatting

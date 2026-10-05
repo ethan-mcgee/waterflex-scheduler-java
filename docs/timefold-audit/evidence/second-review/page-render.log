@@ -1,0 +1,25 @@
+1 2631 WaterFlex audit  |  1  WaterFlex Timefold Audit and Stateless Service  Read ... um Expanded booking materializes neighborhoods before truncation Optimization opportunity 
+2 4270 WaterFlex audit  |  2    Critical means a demonstrated severe failure of th ... fa035d. ServiceCalendar.java:1  BookingSearchPipeline.java:45 OptimizationService.java:90 
+3 2939 WaterFlex audit  |  3  Current algorithms, budgets and validation  Workflow ... or assertions still hold. Experiment total budgets differ from  production phase budgets. 
+4 3222 WaterFlex audit  |  4  Booking recommendations  Disposition Prerequisites,  ...  Record reference and accepted fairness-stage cost separately.  Guide ch. 39 Guide ch. 42 
+5 2934 WaterFlex audit  |  5  Disposition Prerequisites, tradeoffs and evidence  E ... lication. Daily's separate admission/solve budgets are TF05. Solver limits are checked at 
+6 4096 WaterFlex audit  |  6  work boundaries and may overrun by an expensive unit ... hange finite-precision BigDecimal  results; do not silently substitute a similar formula. 
+7 3758 WaterFlex audit  |  7  Acceptance: move/undo sequences must agree with inde ... risk. Hypothesis: more useful search per deadline; default BOUNDED  benefit may be small. 
+8 2990 WaterFlex audit  |  8  Priority and evidence Benefit mechanism, risk, effor ... BoundedBookingSearch.java:83.  Vendor CPU examples are not scheduler capacity guarantees. 
+9 3239 WaterFlex audit  |  9  Retained evidence and evaluation roadmap  The second ... 4,324; 89,248; $1,680.54  20 / KOPT 149,957; 69,572; $1,677.42 189,411; 87,591; $1,677.42 
+10 2967 WaterFlex audit  |  10  Fleet and variant Six parallel cases One case at a  ... irmed duplicate identity/non-finite numeric gaps at the core  boundary. PlanCopies.java:9 
+11 3196 WaterFlex audit  |  11  Finding Status at afa035d  TF04 Reconfirmed money b ... ent, independent candidate validation, common reservation construction, and transactional 
+12 4211 WaterFlex audit  |  12  publication. Confirmation rechecks the business sta ... e solver log reported that Local Search had no entities or values to move. RouteEvaluator 
+13 4018 WaterFlex audit  |  13  rejected the returned plan, but DailySolver.solve r ...  output boundary. Give the  independent numeric oracle an exact reference implementation. 
+14 3803 WaterFlex audit  |  14  Acceptance: half-cent cases, mileage conversions, d ... ng measured solving. It does  not by itself establish warmed, long-lived API performance. 
+15 4163 WaterFlex audit  |  15  Evidence: scheduler-service/src/test/java/dev/water ... pointing to the old matrix. A reproduction makes RouteEvaluator reject missing legs while 
+16 3964 WaterFlex audit  |  16  scoringFacts still gives zero hard penalty using th ... ther. The future pure service should derive each problem only from its submitted dataset. 
+17 3156 WaterFlex audit  |  17  Today's metro selection queries all depots, so a sh ... 02 initialization and mandatory result  validation, then TF05 lifecycle and cancellation. 
+18 3293 WaterFlex audit  |  18  3. Strengthen solver feedback: TF06 gradients, TF08 ... udit. Source-derived recommendations are  distinguished from WaterFlex-specific findings. 
+19 2929 WaterFlex audit  |  19  Source Reviewed subject Application to this schedul ... pply a 1.x migration wholesale;  diagnostics implementation imports need upgrade tests.   
+20 2954 WaterFlex audit  |  20  Reading the terminology  A planning entity is an ob ... line 8035) R. Score analysis is Enterprise in 2.x; retain independent domain diagnostics. 
+21 2547 WaterFlex audit  |  21  Local chapter and official source Status and applic ... 13224)  R. Deployment packaging does not remove ownership, versioning or license  duties. 
+22 2710 WaterFlex audit  |  22  Local chapter and official source Status and applic ... uarkus  Dev mode? (line 19740) R. Do not use dev-mode performance as deployment evidence. 
+23 2356 WaterFlex audit  |  23  Local chapter and official source Status and applic ... ere not all  compiled. These limits prevent a claim of exhaustive API/ecosystem coverage. 
+24 1918 WaterFlex audit  |  24  Second-review verification and delivery limits  Fre ... in unchanged. This is a storage-format  discrepancy, not newly rerun historical evidence. 
+Rendered 24 pages
