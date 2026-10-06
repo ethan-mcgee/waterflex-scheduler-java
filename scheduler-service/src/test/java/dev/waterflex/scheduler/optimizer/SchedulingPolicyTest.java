@@ -36,6 +36,7 @@ class SchedulingPolicyTest {
         assertEquals(102, RULES.costCeiling(100));
         assertEquals(103, RULES.costCeiling(101));
         assertEquals(0, RULES.costCeiling(0));
+        assertThrows(ArithmeticException.class, () -> RULES.costCeiling(dev.waterflex.scheduler.Monetary.MAX_CENTS));
         assertEquals(-100, RULES.costCeiling(-100));
         var baseline = metrics(0, 10000, 400, 0);
         assertTrue(SchedulingPolicy.compare(baseline, metrics(0, 10200, 200, 200), baseline, RULES).accepted());

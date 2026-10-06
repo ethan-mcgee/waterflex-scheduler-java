@@ -129,6 +129,9 @@ export interface OptimizationRun {
   solve_ms: number;
   routing_identity: string;
   configuration_version: string;
+  cost_model_version?: "legacy-double-v1" | "exact-fleet-half-up-v2" | null;
+  fleet_cost_before_cents?: number | null;
+  fleet_cost_after_cents?: number | null;
   objective_improvement: number;
   churn_penalty_minutes: number;
   optimized: boolean;

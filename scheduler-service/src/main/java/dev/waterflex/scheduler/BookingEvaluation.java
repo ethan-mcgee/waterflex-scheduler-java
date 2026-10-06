@@ -124,9 +124,9 @@ final class BookingEvaluation {
             var before = Required.value(baseline.parts().get(technician));
             var after = route(technician, order, facts, confirmedOnly);
             changed.add(after);
-            paid += after.paidMinutes() - before.paidMinutes(); overtime += after.overtimeMinutes() - before.overtimeMinutes();
+            paid = Math.addExact(paid, after.paidMinutes() - before.paidMinutes()); overtime = Math.addExact(overtime, after.overtimeMinutes() - before.overtimeMinutes());
             driving += after.driveMinutes() - before.driveMinutes(); waiting += after.waitingMinutes() - before.waitingMinutes();
-            meters += after.meters() - before.meters();
+            meters = Math.addExact(meters, after.meters() - before.meters());
             infeasible += (after.feasible() ? 0 : 1) - (before.feasible() ? 0 : 1);
             if (timeline) {
                 before.arrivals().keySet().forEach(arrivals::remove);
@@ -150,8 +150,8 @@ final class BookingEvaluation {
             var measured = route(Required.value(entry.getKey()), Required.value(entry.getValue()), day.visits(), confirmedOnly);
             parts.put(entry.getKey(), measured);
             if (!measured.feasible()) infeasible++;
-            paid += measured.paidMinutes(); overtime += measured.overtimeMinutes(); driving += measured.driveMinutes();
-            waiting += measured.waitingMinutes(); meters += measured.meters(); arrivals.putAll(measured.arrivals()); segments.putAll(measured.segments());
+            paid = Math.addExact(paid, measured.paidMinutes()); overtime = Math.addExact(overtime, measured.overtimeMinutes()); driving += measured.driveMinutes();
+            waiting += measured.waitingMinutes(); meters = Math.addExact(meters, measured.meters()); arrivals.putAll(measured.arrivals()); segments.putAll(measured.segments());
         }
         var baseline = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, arrivals, segments), Required.value(Map.copyOf(parts)), infeasible);
         baselines.put(confirmedOnly, baseline); return baseline;
@@ -193,8 +193,8 @@ final class BookingEvaluation {
         for (var entry : parent.routes().entrySet()) {
             var measured = route(Required.value(entry.getKey()), Required.value(entry.getValue()), day.visits(), confirmedOnly);
             parts.put(entry.getKey(), measured);
-            paid += measured.paidMinutes(); overtime += measured.overtimeMinutes(); driving += measured.driveMinutes();
-            waiting += measured.waitingMinutes(); meters += measured.meters(); if (!measured.feasible()) infeasible++;
+            paid = Math.addExact(paid, measured.paidMinutes()); overtime = Math.addExact(overtime, measured.overtimeMinutes()); driving += measured.driveMinutes();
+            waiting += measured.waitingMinutes(); meters = Math.addExact(meters, measured.meters()); if (!measured.feasible()) infeasible++;
         }
         var cached = new Baseline(result(infeasible == 0, paid, overtime, driving, waiting, meters, Required.value(Map.of()), Required.value(Map.of())),
                 Required.value(Map.copyOf(parts)), infeasible);
@@ -205,8 +205,7 @@ final class BookingEvaluation {
 
     private RouteEvaluator.Result result(boolean feasible, long paid, long overtime, long driving, long waiting, long meters,
             Map<String, Instant> arrivals, Map<String, List<RouteEvaluator.WorkingSegment>> segments) {
-        long cents = Math.round((paid - overtime) * rates.regularHourly() * 100 / 60.0
-                + overtime * rates.overtimeHourly() * 100 / 60.0 + meters / 1609.344 * rates.mileagePerMile() * 100);
+        long cents = Monetary.cents(paid, overtime, meters, rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile());
         return new RouteEvaluator.Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, driving, waiting, meters,
                 Required.value(Map.copyOf(segments)));
     }

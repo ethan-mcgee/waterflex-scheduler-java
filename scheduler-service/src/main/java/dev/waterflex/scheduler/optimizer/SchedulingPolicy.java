@@ -30,8 +30,10 @@ public final class SchedulingPolicy {
         }
         public long costCeiling(long referenceCost) {
             if (referenceCost <= 0) return referenceCost;
-            return BigDecimal.valueOf(referenceCost).multiply(BigDecimal.ONE.add(fairnessAllowance))
+            long ceiling = BigDecimal.valueOf(referenceCost).multiply(BigDecimal.ONE.add(fairnessAllowance))
                     .setScale(0, RoundingMode.FLOOR).longValueExact();
+            if (ceiling > dev.waterflex.scheduler.Monetary.MAX_CENTS) throw new ArithmeticException("Cost ceiling exceeds exact JSON integer range");
+            return ceiling;
         }
         public boolean authorizeOvertime(int distinctRegularWindows, long confirmedRegularMinutes,
                                          long availableRegularMinutes, boolean searchComplete) {

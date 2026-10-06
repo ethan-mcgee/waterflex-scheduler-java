@@ -141,6 +141,6 @@ public final class SchedulingBenchmarkController {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Benchmark schedule changed during validation");
         }
         return Required.value(Map.<String, Object>of("routingIdentity", identity, "configurationFingerprint", facts.configurationFingerprint(),
-                "days", measurements, "independentlyValidated", true, "policyRules", facts.policy(), "operatingRates", facts.rates()));
+                "days", measurements, "independentlyValidated", true, "policyRules", facts.policy(), "operatingRates", facts.rates(), "costModelVersion", Monetary.COST_MODEL));
     }
 }

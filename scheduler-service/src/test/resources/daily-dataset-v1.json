@@ -4,7 +4,7 @@
   "mode": "ASSIGNED",
   "snapshotId": "fixture-only",
   "contentHash": null,
-  "versions": {"policy": "zero-overtime-four-hour-v2", "cost": "legacy-double-v1", "score": "hard-medium-soft-decimal-v1"},
+  "versions": {"policy": "zero-overtime-four-hour-v2", "cost": "exact-fleet-half-up-v2", "score": "hard-medium-soft-decimal-v1"},
   "routing": {"provider": "fixture", "profile": "car", "identity": "asymmetric-v1"},
   "revisions": {"schedule": ["s0", "s1"], "configuration": "c0", "reservation": "r0"},
   "search": {"variant": "TABU", "seed": 17, "remainingMillis": 20000},

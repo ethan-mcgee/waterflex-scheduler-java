@@ -2,6 +2,8 @@ package dev.waterflex.scheduler.optimizer;
 
 import org.jspecify.annotations.Nullable;
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
+import java.math.BigDecimal;
 import ai.timefold.solver.core.api.domain.solution.*;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.score.HardMediumSoftBigDecimalScore;
@@ -23,10 +25,18 @@ public class DayPlan {
     public DayPlan() { }
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix,
             double regular, double overtime, double mileage, double pct, long minutes) {
-        this(routes, visits, matrix, Required.value(Set.of()), regular, overtime, mileage, pct, minutes);
+        this(routes, visits, matrix, Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), pct, minutes);
     }
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix, Set<String> unreachable,
             double regular, double overtime, double mileage, double pct, long minutes) {
+        this(routes, visits, matrix, unreachable, Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), pct, minutes);
+    }
+    public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix,
+            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, double pct, long minutes) {
+        this(routes, visits, matrix, Required.value(Set.of()), regular, overtime, mileage, pct, minutes);
+    }
+    public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix, Set<String> unreachable,
+            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, double pct, long minutes) {
         this.routes = Required.value(List.copyOf(routes)); this.visits = Required.value(List.copyOf(visits));
         this.scoringFacts = new RouteScoringFacts(PlanFacts.capture(routes, visits, matrix, unreachable, regular, overtime, mileage, pct, minutes), null);
     }
@@ -37,9 +47,9 @@ public class DayPlan {
     public List<PlanVisit> getVisits() { return Required.value(visits, "DayPlan.visits before initialization"); }
     public PlanFacts getFacts() { return getScoringFacts().facts(); }
     public Map<String, RoadLeg> getMatrix() { return getFacts().matrix(); }
-    public double getRegularHourly() { return getFacts().regularHourly(); }
-    public double getOvertimeHourly() { return getFacts().overtimeHourly(); }
-    public double getMileagePerMile() { return getFacts().mileagePerMile(); }
+    public BigDecimal getRegularHourly() { return getFacts().regularHourly(); }
+    public BigDecimal getOvertimeHourly() { return getFacts().overtimeHourly(); }
+    public BigDecimal getMileagePerMile() { return getFacts().mileagePerMile(); }
     public double getTravelBufferPct() { return getFacts().travelBufferPct(); }
     public long getTravelBufferMinutes() { return getFacts().travelBufferMinutes(); }
     public @Nullable HardMediumSoftBigDecimalScore getScore() { return score; }

@@ -57,7 +57,7 @@ final class SmallCaseOracle {
             timing.put(route.getKey(), measured); paid += measured.paid(); meters += measured.meters();
         }
         if (!seen.equals(visits.keySet())) return null;
-        return new Answer(arrangement, Math.round(paid * rates.regularHourly() * 100 / 60.0 + meters / 1609.344 * rates.mileagePerMile() * 100), timing);
+        return new Answer(arrangement, cost(new Timing(paid, 0, 0, meters, new TreeMap<>(), new ArrayList<>(), new ArrayList<>()), rates).movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact(), timing);
     }
     private static @Nullable Timing segments(Day day, Technician tech, List<String> order, Map<String, Visit> visits,
             Rates rates, List<Interval> available, int interval, int index) {
@@ -91,10 +91,10 @@ final class SmallCaseOracle {
                 arrivals.putAll(rest.arrivals()); List<Instant> departures = new ArrayList<>(), returns = new ArrayList<>();
                 departures.add(departure); departures.addAll(rest.departures()); returns.add(now); returns.addAll(rest.returns());
                 Timing candidate = new Timing(paid, drive + rest.drive(), wait + rest.waitMinutes(), meters + rest.meters(), arrivals, departures, returns);
-                if (best == null || cost(candidate, rates) < cost(best, rates)) best = candidate;
+                if (best == null || cost(candidate, rates).compareTo(cost(best, rates)) < 0) best = candidate;
             }
         }
         return best;
     }
-    private static double cost(Timing value, Rates rates) { return value.paid() * rates.regularHourly() / 60.0 + value.meters() / 1609.344 * rates.mileagePerMile(); }
+    private static java.math.BigDecimal cost(Timing value, Rates rates) { return Required.value(rates.regularHourly().multiply(java.math.BigDecimal.valueOf(value.paid())).divide(new java.math.BigDecimal("60"), 80, java.math.RoundingMode.HALF_UP).add(rates.mileagePerMile().multiply(java.math.BigDecimal.valueOf(value.meters())).divide(new java.math.BigDecimal("1609.344"), 80, java.math.RoundingMode.HALF_UP))); }
 }

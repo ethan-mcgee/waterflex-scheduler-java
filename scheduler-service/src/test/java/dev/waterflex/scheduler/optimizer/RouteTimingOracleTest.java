@@ -38,14 +38,14 @@ class RouteTimingOracleTest {
             end = regularEnd + overtimeLimit;
             List<Option> exact = enumerate(windows, roads, 0, 0, new int[][]{{0, breakStart}, {breakEnd, end}}, regularEnd);
             var best = exact.stream().filter(value -> value.paid() <= limit && value.overtime() <= overtimeLimit)
-                    .min(Comparator.<Option>comparingLong(value -> Required.value(value).overtime()).thenComparingDouble(value -> cost(Required.value(value))));
+                    .min(Comparator.<Option>comparingLong(value -> Required.value(value).overtime()).thenComparing(value -> cost(Required.value(value))));
             var evaluated = RouteEvaluator.evaluate(plan);
             var scored = DayScoreCalculator.evaluate(plan);
             assertEquals(best.isPresent(), evaluated.feasible(), "feasibility case " + example);
             assertEquals(best.isPresent(), scored.hardPenalty() == 0, "score feasibility case " + example);
             if (best.isPresent()) {
                 assertEquals(best.get().overtime(), evaluated.overtimeMinutes(), "overtime case " + example);
-                assertEquals(Math.round(cost(Required.value(best.get()))), evaluated.costCents(), "cost case " + example);
+                assertEquals(rounded(cost(Required.value(best.get()))), evaluated.costCents(), "cost case " + example);
                 assertEquals(evaluated.arrivals(), scored.arrivals(), "arrivals case " + example);
                 assertEquals(evaluated.costCents(), scored.costCents(), "score cost case " + example);
             }
@@ -81,6 +81,7 @@ class RouteTimingOracleTest {
         }
         return options;
     }
-    private static double cost(Option value) { return (value.paid() - value.overtime()) * 50.0 + value.overtime() * 75.0 + value.meters() / 1609.344 * 67; }
+    private static java.math.BigInteger cost(Option value) { return Required.value(java.math.BigInteger.valueOf((value.paid() - value.overtime()) * 50 + value.overtime() * 75).multiply(java.math.BigInteger.valueOf(201168)).add(java.math.BigInteger.valueOf(value.meters()).multiply(java.math.BigInteger.valueOf(8375)))); }
+    private static long rounded(java.math.BigInteger numerator) { var parts = numerator.divideAndRemainder(java.math.BigInteger.valueOf(201168)); return parts[0].add(parts[1].shiftLeft(1).compareTo(java.math.BigInteger.valueOf(201168)) >= 0 ? java.math.BigInteger.ONE : java.math.BigInteger.ZERO).longValueExact(); }
     private static Instant time(int minutes) { return Required.value(START.plusSeconds(minutes * 60L)); }
 }

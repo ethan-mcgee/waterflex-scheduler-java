@@ -66,9 +66,10 @@ class BookingSnapshotDatabaseIT {
             jdbc.update("INSERT INTO appointment (id,\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",sequence,\"updatedAt\") VALUES (?,?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?::timestamp+INTERVAL '30 minutes',0,CURRENT_TIMESTAMP)",
                     prefix + "-appointment", prefix + "-confirmed", prefix + "-a", date, morning, morning, morning, morning);
             for (String job : List.of(prefix + "-request", prefix + "-held")) {
-                jdbc.update("INSERT INTO booking_offer (id,\"jobId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"expiresAt\") VALUES (?,?,?,?,?::timestamp+INTERVAL '2 hours',?)", job, job, date, afternoon, afternoon, expiry);
-                jdbc.update("INSERT INTO slot_hold (id,\"offerToken\",\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",\"insertPosition\",\"locationLat\",\"locationLng\",\"expiresAt\") VALUES (?,?,?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?::timestamp+INTERVAL '30 minutes',1,43.735,7.420,?)",
-                        job, job, job, prefix + "-a", date, afternoon, afternoon, afternoon, afternoon, expiry);
+                jdbc.update("INSERT INTO booking_offer_set (id,\"jobId\",\"expiresAt\") VALUES (?,?,?)", job, job, expiry);
+                jdbc.update("INSERT INTO booking_offer (id,\"jobId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"expiresAt\",\"offerSetId\") VALUES (?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?)", job, job, date, afternoon, afternoon, expiry, job);
+                jdbc.update("INSERT INTO slot_hold (id,\"offerToken\",\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",\"insertPosition\",\"locationLat\",\"locationLng\",\"expiresAt\",\"offerSetId\") VALUES (?,?,?,?,?,?,?::timestamp+INTERVAL '2 hours',?,?::timestamp+INTERVAL '30 minutes',1,43.735,7.420,?,?)",
+                        job, job, job, prefix + "-a", date, afternoon, afternoon, afternoon, afternoon, expiry, job);
             }
             BookingSnapshotLoader loader = new BookingSnapshotLoader(jdbc, manager, calendar);
             var loaded = loader.load(prefix, prefix + "-request", captured, "fixture-roads");
@@ -201,6 +202,17 @@ class BookingSnapshotDatabaseIT {
                     regularRouted, regularFacts.rates(), regularDay.baseline(), regularDay.visits(), Required.value(regularFacts.holds().get(day)),
                     regularFacts.configurationFingerprint(), "fixture-roads"));
             var lifecycle = new ReservationLifecycleService(jdbc, deterministic, loader, transition, commit);
+            for (String table : List.of("booking_offer", "booking_offer_set")) {
+                jdbc.update("UPDATE " + table + " SET \"costModelVersion\"='legacy-double-v1' WHERE id=?", prefix + "-request");
+                try {
+                    var legacy = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
+                    assertEquals("A fresh offer with the current cost model is required", legacy.getReason());
+                    assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
+                    assertTrue(Required.query(jdbc, "SELECT \"selectedOfferId\" IS NULL FROM booking_offer_set WHERE id=?", Boolean.class, prefix + "-request"));
+                } finally {
+                    jdbc.update("UPDATE " + table + " SET \"costModelVersion\"=? WHERE id=?", Monetary.COST_MODEL, prefix + "-request");
+                }
+            }
             if (frozen) {
                 jdbc.update("UPDATE slot_hold SET \"expiresAt\"=clock_timestamp()-interval '1 second' WHERE id=?", prefix + "-request");
                 var expiredOffer = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
@@ -229,6 +241,7 @@ class BookingSnapshotDatabaseIT {
                 jdbc.update("DELETE FROM appointment WHERE \"jobId\"=?", job);
                 jdbc.update("DELETE FROM slot_hold WHERE \"jobId\"=?", job);
                 jdbc.update("DELETE FROM booking_offer WHERE \"jobId\"=?", job);
+                jdbc.update("DELETE FROM booking_offer_set WHERE \"jobId\"=?", job);
                 jdbc.update("DELETE FROM job WHERE id=?", job);
             }
             jdbc.update("DELETE FROM address WHERE id=?", prefix);

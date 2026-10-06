@@ -27,6 +27,14 @@ public final class SavedJson {
         return node;
     }
     public static JsonNode provenance(JsonNode node) { object(node); text(node, "mapVersion"); text(node, "configVersion"); return node; }
+    public static void currentCostModel(JsonNode node) {
+        object(node);
+        if (!Monetary.COST_MODEL.equals(node.path("costModelVersion").textValue()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A fresh preview with the current cost model is required");
+    }
+    public static long moneyCents(JsonNode node, String key) {
+        long value = integer(node, key); if (value < 0 || value > Monetary.MAX_CENTS) throw invalid(); return value;
+    }
     public static JsonNode solverAnalysis(JsonNode node) {
         object(node); text(node, "engine"); text(node, "configurationXml");
         JsonNode phases = array(Required.value(node.path("phases"))); if (phases.isEmpty()) throw invalid();
