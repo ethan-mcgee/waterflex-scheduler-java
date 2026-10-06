@@ -23,7 +23,7 @@ public final class SolverBenchmark {
         var workloads = values("benchmark.workloads", "SPARSE,CLUSTERED,DISPERSED,MIXED_SKILL,TIGHT_WINDOW,ABSENCE,NEAR_CAPACITY")
                 .stream().map(value -> SolverBenchmarkData.Workload.valueOf(Required.value(value))).toList();
         var variants = values("benchmark.variants", "CURRENT_CAPPED,CURRENT_UNCAPPED,LATE_ACCEPTANCE_CHANGE,LATE_ACCEPTANCE,TABU,SUBLIST,KOPT,RUIN_RECREATE")
-                .stream().map(value -> SolverExperiment.Variant.valueOf(Required.value(value))).toList();
+                .stream().map(value -> SolverEngine.Variant.valueOf(Required.value(value))).toList();
         var seeds = values("benchmark.seeds", "17").stream().mapToLong(Long::parseLong).toArray();
         ObjectMapper json = new ObjectMapper();
         @Nullable Path parent = output.toAbsolutePath().getParent(); if (parent != null) Files.createDirectories(parent);
@@ -34,16 +34,22 @@ public final class SolverBenchmark {
             provenance.put("os", Required.value(System.getProperty("os.name")) + " " + Required.value(System.getProperty("os.version")));
             provenance.put("processors", Runtime.getRuntime().availableProcessors()); provenance.put("maxHeapBytes", Runtime.getRuntime().maxMemory());
             provenance.put("budgetMs", budget); provenance.put("routingIdentity", "deterministic-directed-fixtures-v1");
+            provenance.put("engine", EngineProvenance.loaded());
+            provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", "TIMEFOLD_INTERNAL_2_6_0");
             provenance.put("roadEvidence", false); provenance.put("travelBufferPct", .2); provenance.put("travelBufferMinutes", 5);
             writer.write(json.writeValueAsString(provenance)); writer.newLine(); writer.flush();
-            Map<String, SolverExperiment.Definition> definitions = new HashMap<>();
+            Map<String, SolverEngine.Definition> definitions = new HashMap<>();
             for (long seed : seeds) for (var variant : variants) {
-                var definition = SolverExperiment.configuration(Required.value(variant), seed);
+                var definition = SolverEngine.configuration(Required.value(variant), seed);
                 definitions.put(variant + ":" + seed, definition);
                 writer.write(json.writeValueAsString(Map.<String, Object>of("type", "configuration", "variant", Required.value(variant.name()), "seed", seed,
                         "fingerprint", definition.fingerprint(), "xml", definition.configurationXml()))); writer.newLine();
                 // Identical short warmup for every strategy before recording any measured dataset.
-                SolverExperiment.solve(definition, SolverBenchmarkData.create(20, SolverBenchmarkData.Workload.SPARSE), Required.value(Duration.ofMillis(200)));
+                try {
+                    SolverExperiment.solve(definition, SolverBenchmarkData.create(20, SolverBenchmarkData.Workload.SPARSE), Required.value(Duration.ofMillis(200)));
+                } catch (SolverEngine.DiagnosticsFailure failure) {
+                    writeDiagnosticFailure(writer, json, failure, "warmup", definition, null); throw failure;
+                }
             }
             writer.flush(); int round = 0;
             for (int size : sizes) for (var workload : workloads) for (long seed : seeds) {
@@ -52,7 +58,11 @@ public final class SolverBenchmark {
                 var ordered = new ArrayList<>(variants); Collections.rotate(ordered, round++ % ordered.size());
                 for (var variant : ordered) {
                     var definition = Required.value(definitions.get(variant + ":" + seed));
-                    Map<String, Object> row = run(definition, PlanCopies.copy(fixture), budget);
+                    Map<String, Object> row;
+                    try { row = run(definition, PlanCopies.copy(fixture), budget); }
+                    catch (SolverEngine.DiagnosticsFailure failure) {
+                        writeDiagnosticFailure(writer, json, failure, "measurement", definition, fingerprint); throw failure;
+                    }
                     if (!fingerprint.equals(fingerprint(fixture))) throw new IllegalStateException("Starting fixture changed");
                     row.put("type", "result"); row.put("technicians", size); row.put("workload", workload.name());
                     row.put("datasetFingerprint", fingerprint); row.put("appointments", fixture.getVisits().size());
@@ -63,8 +73,18 @@ public final class SolverBenchmark {
             }
         }
     }
+    static void writeDiagnosticFailure(java.io.BufferedWriter writer, ObjectMapper json,
+            SolverEngine.DiagnosticsFailure failure, String stage, SolverEngine.Definition definition,
+            @Nullable String datasetFingerprint) throws java.io.IOException {
+        Map<String, Object> receipt = new LinkedHashMap<>();
+        receipt.put("type", "diagnostics-failure"); receipt.put("valid", false); receipt.put("stage", stage);
+        receipt.put("variant", definition.variant().name()); receipt.put("seed", definition.seed());
+        if (datasetFingerprint != null) receipt.put("datasetFingerprint", datasetFingerprint);
+        receipt.put("statistics", failure.result().statistics()); receipt.put("outcome", failure.result().outcome());
+        writer.write(json.writeValueAsString(receipt)); writer.newLine(); writer.flush();
+    }
 
-    static Map<String, Object> run(SolverExperiment.Definition definition, DayPlan fixture, long budgetMs) {
+    static Map<String, Object> run(SolverEngine.Definition definition, DayPlan fixture, long budgetMs) {
         validateBudget(budgetMs);
         var beforeValidation = validate(fixture);
         var before = SchedulingPolicy.measure(fixture);
@@ -78,7 +98,7 @@ public final class SolverBenchmark {
                 || costMetrics.overtimeMinutes() == before.overtimeMinutes() && costMetrics.costCents() < before.costCents() ? cost.plan() : fixture;
         var referenceMetrics = SchedulingPolicy.measure(reference);
         DayPlan chosen = reference;
-        SolverExperiment.@Nullable Statistics fairStatistics = null;
+        SolverEngine.@Nullable Statistics fairStatistics = null;
         long remaining = budgetMs - (System.nanoTime() - started) / 1_000_000;
         if (remaining > 0) {
             DayPlan fairnessSeed = PlanCopies.copy(reference);

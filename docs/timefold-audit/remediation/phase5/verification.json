@@ -1,0 +1,429 @@
+{
+  "schemaVersion": 1,
+  "step": 5,
+  "recordedAtUtc": "2026-10-06T21:57:10.404374+00:00",
+  "startingRevision": "71df47a9d3d0ba9560fab6b1ddbfe9b92b62c813",
+  "scope": "Public execution and optional diagnostics, ConstraintVerifier, and bounded correctness campaigns. No deployment, deadline redesign or performance study.",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/java-verify.log",
+      "testsIncludingSkipped": 234,
+      "skipped": 1
+    },
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/nullability-final.log",
+      "testsIncludingSkipped": 234,
+      "skipped": 1
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-lint.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-typecheck.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-unit.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-build-2.log"
+    },
+    {
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/experiments-2.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/audit-helpers-2.log"
+    },
+    {
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/baseline.log"
+    },
+    {
+      "command": ".scratch/phase5/actionlint/actionlint.exe -shellcheck=\"\"",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/actionlint.log"
+    },
+    {
+      "command": "docker compose --profile map-import config --quiet",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/compose.log"
+    }
+  ],
+  "campaigns": [
+    {
+      "mode": "FULL_ASSERT",
+      "budgetMs": 250,
+      "counts": {
+        "dispatched": 96,
+        "passed": 93,
+        "compatibility-rejected": 3,
+        "failed": 0
+      },
+      "log": "evidence/full-assert-4.log",
+      "receipt": "evidence/full-assert-4.jsonl",
+      "status": "passed",
+      "performanceEvidence": false
+    },
+    {
+      "mode": "NON_INTRUSIVE_FULL_ASSERT",
+      "budgetMs": 250,
+      "counts": {
+        "dispatched": 96,
+        "passed": 93,
+        "compatibility-rejected": 3,
+        "failed": 0
+      },
+      "log": "evidence/non-intrusive-1.log",
+      "receipt": "evidence/non-intrusive-1.jsonl",
+      "status": "passed",
+      "performanceEvidence": false
+    },
+    {
+      "mode": "PHASE_ASSERT",
+      "budgetMs": 250,
+      "counts": {
+        "dispatched": 96,
+        "passed": 93,
+        "compatibility-rejected": 3,
+        "failed": 0
+      },
+      "log": "evidence/phase-assert-1.log",
+      "receipt": "evidence/phase-assert-1.jsonl",
+      "status": "passed",
+      "performanceEvidence": false
+    }
+  ],
+  "priorAttempts": [
+    {
+      "log": "evidence/focused-1.log",
+      "status": "failed",
+      "reason": "Compilation probe used the old ConstraintRef accessor; pinned 2.6.0 exposes id()."
+    },
+    {
+      "log": "evidence/nullability-1.log",
+      "status": "failed",
+      "reason": "Sandbox prevented Maven cleaning generated target files."
+    },
+    {
+      "log": "evidence/nullability-2.log",
+      "status": "failed",
+      "reason": "New factory method reference needed explicit null validation; exception needed serial UID."
+    },
+    {
+      "log": "evidence/nullability-3.log",
+      "status": "failed",
+      "reason": "New test helpers required explicit JSpecify boundary checks."
+    },
+    {
+      "log": "evidence/experiments.log",
+      "status": "failed",
+      "reason": "Sandbox denied temporary file writes and cleanup; rerun in normal user context passed."
+    },
+    {
+      "log": "evidence/audit-helpers.log",
+      "status": "failed",
+      "reason": "Sandbox denied temporary directory writes/cleanup; normal user context passed."
+    },
+    {
+      "log": "evidence/portal-build.log",
+      "status": "failed",
+      "reason": "Sandbox denied Next.js generated-directory creation; normal user context passed."
+    },
+    {
+      "log": "evidence/full-assert-1.log",
+      "status": "failed",
+      "reason": "PowerShell split unquoted dotted Maven properties; no campaign dispatched."
+    },
+    {
+      "log": "evidence/full-assert-2.log",
+      "status": "failed",
+      "reason": "Invalid campaign assumption that bounded repair always finishes feasible; failed TABU repair retained."
+    },
+    {
+      "log": "evidence/full-assert-3.log",
+      "status": "failed",
+      "reason": "Observed Timefold 2.6.0 list corruption during pinned RUIN_RECREATE undo, seed 29. Explicit compatibility guard added."
+    }
+  ],
+  "limitations": [
+    "Hosted exact-head DB/schema/browser and ShellCheck gates are recorded in the PR, not certified by this local receipt.",
+    "Local assertion runs use 250 ms per solve. Scheduled/manual 2-second campaigns are configured but have not been claimed as executed.",
+    "Initial portal typecheck failure was observed in tool output: smoke-optimizer.ts scoreCalculations possibly null; the integration check was updated. That command was not redirected to a raw log.",
+    "Diagnostic campaigns are correctness evidence, not matched performance comparisons. Incomplete repair is not proof of infeasibility.",
+    "Python experiment suite has one existing POSIX process-group skip on Windows. Ordinary Java suite intentionally skips explicit AssertionCampaignTest."
+  ],
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/solver-assertions.yml",
+      "sha256CanonicalLf": "afbef078c0af5bf91d9f1f801fb7606281dc57229a92b10723c0ad9bf318e28b"
+    },
+    {
+      "path": "scheduler-service/pom.xml",
+      "sha256CanonicalLf": "7aa42cba4b832e69afd61e67e5eee477e6fdb18215c8fc8d7e011d1969b3b99a"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SavedJson.java",
+      "sha256CanonicalLf": "bf958afec82eeaf1ae9e501f884e74a22c8ccee1b0a1cb44225860845de9d6a6"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyDataset.java",
+      "sha256CanonicalLf": "f1e8f582743d7f055a9d051bb57519b32647fed6126462051c05254bbb7831b0"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "sha256CanonicalLf": "8239e3ab9a5513152beafc3d8b2604a36f208560e220bf4684a1f748e67ed23a"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/EngineProvenance.java",
+      "sha256CanonicalLf": "18fb7cedb71d75e738731df8ad42bd4b3634d97bdcd54347281247093ff01daa"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SolverEngine.java",
+      "sha256CanonicalLf": "e3e0983aa4ef006c51e13a6112e115c75f7bef7ed42e287a98b292e3c6b2138b"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/AssertionCampaignTest.java",
+      "sha256CanonicalLf": "2c79d57708a740d5bf2fd7f953df6cee0b97f81bad7c12a6c5732e08e2722f5e"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/ConstraintRulesTest.java",
+      "sha256CanonicalLf": "824e58d94f797b4047bf8201e2559c90448792628b57ebfe51e23b06fcbdb5dd"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyConstructionTest.java",
+      "sha256CanonicalLf": "8db40e02f4dd752e527979752c8866d9b35afc7a2aeb6549272f9a9f276201e0"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverBenchmark.java",
+      "sha256CanonicalLf": "5f5dd83668c1379addd6d13fdfb13cfe0809daca34343ac24058c0e192038e76"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverEngineTest.java",
+      "sha256CanonicalLf": "27192d9d987341baaca5f416abfcd8aacfff09f4c77b84c5c7da14e086c3e6aa"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverExperiment.java",
+      "sha256CanonicalLf": "95e9e311491a9e965a45a876c6760b749ce8c40875cf4cf7ebec6a2ebe53ef88"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverExperimentTest.java",
+      "sha256CanonicalLf": "922b174d2e3d467224534f3ad5ab0fd8ac84453d86780fa9e1bdb73bbdc46c82"
+    },
+    {
+      "path": "web/app/dispatch/OptimizationReview.tsx",
+      "sha256CanonicalLf": "9d575ab81dc566314dec08675f3f27497adc0f2de9c38eb9b46449af4020a784"
+    },
+    {
+      "path": "web/lib/contracts.ts",
+      "sha256CanonicalLf": "5a2656576ddefeecc11ca067fc3bf09bb07a51c870d7ab35920634210def67e7"
+    },
+    {
+      "path": "web/lib/nullability.test.ts",
+      "sha256CanonicalLf": "2cc429f69a2398ba6273504bfb7bc05fc9397104e9be0fbdbe6b5c8e36ef711a"
+    },
+    {
+      "path": "web/scripts/smoke-optimizer.ts",
+      "sha256CanonicalLf": "6fc3f8c8eaabad29345e945128339b43996c5d1c446763dfbb60f2e5153b8284"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/actionlint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/audit-helpers-2.log",
+      "bytes": 1506,
+      "sha256": "c433e9538da06c07ed16976897d134917d7d59a9dfed31ed7fea5e0fdf2ec1cd"
+    },
+    {
+      "path": "evidence/audit-helpers.log",
+      "bytes": 16824,
+      "sha256": "03ad3cab9c33d85e886a6509a0cdd1e2249a55be3d2c645fd969f0071fcd6cf0"
+    },
+    {
+      "path": "evidence/baseline.log",
+      "bytes": 228,
+      "sha256": "e360899b51be46e0aba9b9e1cae8c16d4e7be980f3d9e10aacf19ba03300250c"
+    },
+    {
+      "path": "evidence/compile-1.log",
+      "bytes": 2122,
+      "sha256": "bf7ffdee11a08d32b5d35ffbdfa2be043da9225223ee52039fbe68b45206827f"
+    },
+    {
+      "path": "evidence/compose.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/experiments-2.log",
+      "bytes": 17781,
+      "sha256": "e41d5319335efac8409dba3095c48d78f8c1f5f5bb0be46f8407abd5a3af1128"
+    },
+    {
+      "path": "evidence/experiments.log",
+      "bytes": 102635,
+      "sha256": "268f899faf2ddd276ed9e2a85487f327459028ffc31694c6b43992028849731f"
+    },
+    {
+      "path": "evidence/focused-1.log",
+      "bytes": 4421,
+      "sha256": "f72d844b74f733d6bdd4c82fa46ffe09c351232c859950844df2d4948a302a39"
+    },
+    {
+      "path": "evidence/focused-2.log",
+      "bytes": 39453,
+      "sha256": "f3f2e1cfce98c6ded55bc0613ed6459992ab70c106847930a048fdf5fad121c8"
+    },
+    {
+      "path": "evidence/full-assert-1.log",
+      "bytes": 2187,
+      "sha256": "b51651b238709006495bdbfa4675ec88b3b8411c5e53b10e5166260bd9bf5699"
+    },
+    {
+      "path": "evidence/full-assert-2.jsonl",
+      "bytes": 59515,
+      "sha256": "d2fbbbb8a4bdd09bab036d707ebc4cc26798fe424cbdf3830209488cb9cb9c1e"
+    },
+    {
+      "path": "evidence/full-assert-2.log",
+      "bytes": 24250,
+      "sha256": "f8fc7d0245266422efe6fbec2b8213ade266c4efc619fce4cbbf969fc4bfbef3"
+    },
+    {
+      "path": "evidence/full-assert-3.jsonl",
+      "bytes": 214766,
+      "sha256": "6e6d47e712450830cc7f8709f2f8f8e346ff0d83cac0e98d584c2038e0d2d01c"
+    },
+    {
+      "path": "evidence/full-assert-3.log",
+      "bytes": 71212,
+      "sha256": "25742b26c14d199215895ca0d70016e9a9d6db4b108b7211faa9429a691b53aa"
+    },
+    {
+      "path": "evidence/full-assert-4.jsonl",
+      "bytes": 333781,
+      "sha256": "49cb1375e45549c392dcb92098a84105690e3f1562ad3c1cc8e6d439181f35d6"
+    },
+    {
+      "path": "evidence/full-assert-4.log",
+      "bytes": 99279,
+      "sha256": "3acab9a44c12ce4531ad336b56000defdd536b8a6da8645d4406468f4eff08eb"
+    },
+    {
+      "path": "evidence/java-verify.log",
+      "bytes": 131233,
+      "sha256": "ef9d9bddba168fc4f8a5e79caffdad9032329b4790a28293d4aba971da7e49bf"
+    },
+    {
+      "path": "evidence/non-intrusive-1.jsonl",
+      "bytes": 337770,
+      "sha256": "ac6260ad15904f096b316ad378b3d18169b5c064df3ea95876e58e2dc1bb76a7"
+    },
+    {
+      "path": "evidence/non-intrusive-1.log",
+      "bytes": 101836,
+      "sha256": "7060b53348bdb29c3c16393f933f626e8071441a23b58d8542e2d53824241c9b"
+    },
+    {
+      "path": "evidence/nullability-1.log",
+      "bytes": 2716,
+      "sha256": "8d159a2caa6680475e25b20177cf617d4e55e5ce2e25424be80ef0921ffca800"
+    },
+    {
+      "path": "evidence/nullability-2.log",
+      "bytes": 7492,
+      "sha256": "f9e6e93100adf5b0dc6879b96febc751ba0ccbedbf778803e4e820f14f48e569"
+    },
+    {
+      "path": "evidence/nullability-3.log",
+      "bytes": 39287,
+      "sha256": "6047d65be63016d1f29f35e38fdb85726996d980b636f51512f1eb4e02978b14"
+    },
+    {
+      "path": "evidence/nullability-4.log",
+      "bytes": 150928,
+      "sha256": "58dd6d407db8e332c5dd63bc4d7a97f5710b655e82a31187e52c3b3675abb664"
+    },
+    {
+      "path": "evidence/nullability-final.log",
+      "bytes": 152574,
+      "sha256": "a532bd461af6d900af4a25c9a7374f90fefd7580fad749538a1c326a9397c28f"
+    },
+    {
+      "path": "evidence/phase-assert-1.jsonl",
+      "bytes": 334299,
+      "sha256": "be50f9da6faeb0936b06cec368791321f3ef1d3ea6767b52408ad1f51d39a813"
+    },
+    {
+      "path": "evidence/phase-assert-1.log",
+      "bytes": 99834,
+      "sha256": "50199d4d042fbee8762fff621f9de5b4ae1507c32d78e5148bf793cdc4580a51"
+    },
+    {
+      "path": "evidence/portal-build-2.log",
+      "bytes": 4155,
+      "sha256": "067d2c0b3916a42cbd15bbd495c3646db5b30967112c2e2e5360f851506f645e"
+    },
+    {
+      "path": "evidence/portal-build.log",
+      "bytes": 335,
+      "sha256": "68bd507e3de0234250033c57aa3b1e8ce5ac3028012c07f34e977f9d374d009c"
+    },
+    {
+      "path": "evidence/portal-lint.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/portal-nullability.log",
+      "bytes": 4422,
+      "sha256": "bc3c4ff89f5e21a355ccfd0a5530e38d9f5b2ea28d10877f1baebb86bc940ced"
+    },
+    {
+      "path": "evidence/portal-typecheck.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/portal-unit.log",
+      "bytes": 10054,
+      "sha256": "f14ab68cf8e67b7f0abea8454b0cab5188daaffb764d11533ad7f05615215326"
+    }
+  ]
+}

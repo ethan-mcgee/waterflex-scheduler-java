@@ -1,0 +1,1593 @@
+Failed to find real location of C:\Python314\python.exe
+test_booking_cost_requires_same_customers (test_experiments.AnalysisTests.test_booking_cost_requires_same_customers) ... ok
+test_booking_nulls_missing_indices_and_routing_rejected (test_experiments.AnalysisTests.test_booking_nulls_missing_indices_and_routing_rejected) ... ok
+test_conflicting_fixture_duplicate_not_averaged (test_experiments.AnalysisTests.test_conflicting_fixture_duplicate_not_averaged) ... ok
+test_correct_pairing_and_signed_costs (test_experiments.AnalysisTests.test_correct_pairing_and_signed_costs) ... ok
+test_duplicates_all_excluded (test_experiments.AnalysisTests.test_duplicates_all_excluded) ... ok
+test_equal_seed_weighting (test_experiments.AnalysisTests.test_equal_seed_weighting) ... ok
+test_frozen_calendar_evidence_requires_both_isolation_observations (test_experiments.AnalysisTests.test_frozen_calendar_evidence_requires_both_isolation_observations) ... ok
+test_missing_control_or_fixture_mismatch_is_unavailable (test_experiments.AnalysisTests.test_missing_control_or_fixture_mismatch_is_unavailable) ... ok
+test_missing_latency_and_historical_mixed_latency_excluded (test_experiments.AnalysisTests.test_missing_latency_and_historical_mixed_latency_excluded) ... ok
+test_missing_null_metrics_preserved (test_experiments.AnalysisTests.test_missing_null_metrics_preserved) ... ok
+test_null_request_observation_rejected (test_experiments.AnalysisTests.test_null_request_observation_rejected) ... ok
+test_overlapping_served_incomplete_and_pooled_percentiles (test_experiments.AnalysisTests.test_overlapping_served_incomplete_and_pooled_percentiles) ... ok
+test_partial_raw_kept_and_reported (test_experiments.AnalysisTests.test_partial_raw_kept_and_reported) ... ERROR
+test_booking_identity_reuses_saved_reference_on_resume (test_experiments.ArchiveTests.test_booking_identity_reuses_saved_reference_on_resume) ... ERROR
+test_changed_booking_identity_rejected_before_launch (test_experiments.ArchiveTests.test_changed_booking_identity_rejected_before_launch) ... ERROR
+test_changed_booking_identity_rejected_before_launch (test_experiments.ArchiveTests.test_changed_booking_identity_rejected_before_launch) ... ERROR
+test_child_cleanup_only_owned_process (test_experiments.ArchiveTests.test_child_cleanup_only_owned_process) ... ERROR
+test_child_cleanup_only_owned_process (test_experiments.ArchiveTests.test_child_cleanup_only_owned_process) ... ERROR
+test_config_mismatch (test_experiments.ArchiveTests.test_config_mismatch) ... ERROR
+test_config_mismatch (test_experiments.ArchiveTests.test_config_mismatch) ... ERROR
+test_database_scope_and_credential_metadata (test_experiments.ArchiveTests.test_database_scope_and_credential_metadata) ... ERROR
+test_duplicate_completion_and_changed_raw_rejected (test_experiments.ArchiveTests.test_duplicate_completion_and_changed_raw_rejected) ... ERROR
+test_duplicate_completion_and_changed_raw_rejected (test_experiments.ArchiveTests.test_duplicate_completion_and_changed_raw_rejected) ... ERROR
+test_environment_blocks_case_insensitive_isolation_overrides (test_experiments.ArchiveTests.test_environment_blocks_case_insensitive_isolation_overrides) ... ERROR
+test_exited_parent_still_terminates_owned_descendants (test_experiments.ArchiveTests.test_exited_parent_still_terminates_owned_descendants) ... skipped 'POSIX process group cleanup'
+test_frozen_mismatch (test_experiments.ArchiveTests.test_frozen_mismatch) ... ERROR
+test_frozen_mismatch (test_experiments.ArchiveTests.test_frozen_mismatch) ... ERROR
+test_historical_import_is_read_only (test_experiments.ArchiveTests.test_historical_import_is_read_only) ... ERROR
+test_historical_import_is_read_only (test_experiments.ArchiveTests.test_historical_import_is_read_only) ... ERROR
+test_interruption_resume_keeps_prior_attempts_and_completed_evidence (test_experiments.ArchiveTests.test_interruption_resume_keeps_prior_attempts_and_completed_evidence) ... ERROR
+test_interruption_resume_keeps_prior_attempts_and_completed_evidence (test_experiments.ArchiveTests.test_interruption_resume_keeps_prior_attempts_and_completed_evidence) ... ERROR
+test_lock_excludes_competing_runs_and_releases (test_experiments.ArchiveTests.test_lock_excludes_competing_runs_and_releases) ... ERROR
+test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts) ... ERROR
+test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts) ... ERROR
+test_timeout_and_nonzero_exit_do_not_create_success (test_experiments.ArchiveTests.test_timeout_and_nonzero_exit_do_not_create_success) ... ERROR
+test_timeout_and_nonzero_exit_do_not_create_success (test_experiments.ArchiveTests.test_timeout_and_nonzero_exit_do_not_create_success) ... ERROR
+test_unique_runs_and_immutable_receipts (test_experiments.ArchiveTests.test_unique_runs_and_immutable_receipts) ... ERROR
+test_unique_runs_and_immutable_receipts (test_experiments.ArchiveTests.test_unique_runs_and_immutable_receipts) ... ERROR
+test_daily_flags_are_identical_for_every_case_and_gc_log_stays_outside_frozen_tree (test_experiments.ConfigurationTests.test_daily_flags_are_identical_for_every_case_and_gc_log_stays_outside_frozen_tree) ... ok
+test_dry_run_wall_time_simulates_slots_in_dispatch_order (test_experiments.ConfigurationTests.test_dry_run_wall_time_simulates_slots_in_dispatch_order) ... ok
+test_duplicate_json_fields (test_experiments.ConfigurationTests.test_duplicate_json_fields) ... ERROR
+test_initial_matrices (test_experiments.ConfigurationTests.test_initial_matrices) ... ok
+test_parallel_cases_rejected_in_booking_and_shipped_configs_valid (test_experiments.ConfigurationTests.test_parallel_cases_rejected_in_booking_and_shipped_configs_valid) ... ok
+test_planned_three_workload_matrices (test_experiments.ConfigurationTests.test_planned_three_workload_matrices) ... ok
+test_reject_bad_configuration (test_experiments.ConfigurationTests.test_reject_bad_configuration) ... ok
+test_reproducible_unique_counterbalanced_cases_and_budget_propagation (test_experiments.ConfigurationTests.test_reproducible_unique_counterbalanced_cases_and_budget_propagation) ... ok
+test_median_ratio_excludes_partially_loaded_and_missing_pairs (test_experiments.ContentionTests.test_median_ratio_excludes_partially_loaded_and_missing_pairs) ... ERROR
+test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted (test_experiments.ContentionTests.test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted) ... ERROR
+test_booking_requires_explicit_test_database_before_setup (test_experiments.LauncherTests.test_booking_requires_explicit_test_database_before_setup) ... ok
+Installing booking Node dependencies...
+Generating Prisma client...
+test_booking_setup_installs_missing_node_dependencies (test_experiments.LauncherTests.test_booking_setup_installs_missing_node_dependencies) ... ERROR
+test_custom_config_cannot_silently_launch_other_kind (test_experiments.LauncherTests.test_custom_config_cannot_silently_launch_other_kind) ... ok
+test_launcher_finds_jdk_home_when_java_is_on_path (test_experiments.LauncherTests.test_launcher_finds_jdk_home_when_java_is_on_path) ... ERROR
+daily dry-run: 1280 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-budget.json
+Total elapsed: 00:00:00
+daily smoke: 4 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-smoke.json
+Total elapsed: 00:00:00
+booking full: 120 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\booking-comparison.json
+Total elapsed: 00:00:00
+test_modes_select_expected_config_and_skip_setup_for_dry_run (test_experiments.LauncherTests.test_modes_select_expected_config_and_skip_setup_for_dry_run) ... ok
+test_progress_counts_completed_cases_and_elapsed_time (test_experiments.LauncherTests.test_progress_counts_completed_cases_and_elapsed_time) ... ok
+test_command_polls_and_honors_stop_event (test_experiments.ParallelDispatchTests.test_command_polls_and_honors_stop_event) ... ERROR
+test_command_polls_and_honors_stop_event (test_experiments.ParallelDispatchTests.test_command_polls_and_honors_stop_event) ... ERROR
+test_dispatch_order_follows_saved_cases (test_experiments.ParallelDispatchTests.test_dispatch_order_follows_saved_cases) ... ERROR
+test_dispatch_order_follows_saved_cases (test_experiments.ParallelDispatchTests.test_dispatch_order_follows_saved_cases) ... ERROR
+test_every_case_runs_once_within_slots_and_no_mask_is_shared (test_experiments.ParallelDispatchTests.test_every_case_runs_once_within_slots_and_no_mask_is_shared) ... ERROR
+test_every_case_runs_once_within_slots_and_no_mask_is_shared (test_experiments.ParallelDispatchTests.test_every_case_runs_once_within_slots_and_no_mask_is_shared) ... ERROR
+test_failure_stops_dispatch_but_keeps_in_flight_receipts (test_experiments.ParallelDispatchTests.test_failure_stops_dispatch_but_keeps_in_flight_receipts) ... ERROR
+test_failure_stops_dispatch_but_keeps_in_flight_receipts (test_experiments.ParallelDispatchTests.test_failure_stops_dispatch_but_keeps_in_flight_receipts) ... ERROR
+test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished (test_experiments.ParallelDispatchTests.test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished) ... ERROR
+test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished (test_experiments.ParallelDispatchTests.test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished) ... ERROR
+test_parallel_cases_beyond_saved_topology_is_rejected_before_launch (test_experiments.ParallelDispatchTests.test_parallel_cases_beyond_saved_topology_is_rejected_before_launch) ... ERROR
+test_parallel_cases_beyond_saved_topology_is_rejected_before_launch (test_experiments.ParallelDispatchTests.test_parallel_cases_beyond_saved_topology_is_rejected_before_launch) ... ERROR
+test_resume_rejected_after_topology_change (test_experiments.ParallelDispatchTests.test_resume_rejected_after_topology_change) ... ERROR
+test_resume_rejected_after_topology_change (test_experiments.ParallelDispatchTests.test_resume_rejected_after_topology_change) ... ERROR
+test_resume_rejected_when_saved_slot_masks_do_not_match (test_experiments.ParallelDispatchTests.test_resume_rejected_when_saved_slot_masks_do_not_match) ... ERROR
+test_resume_rejected_when_saved_slot_masks_do_not_match (test_experiments.ParallelDispatchTests.test_resume_rejected_when_saved_slot_masks_do_not_match) ... ERROR
+test_invalid_move_statistics_rejected (test_experiments.ThroughputTests.test_invalid_move_statistics_rejected) ... ok
+test_rates_are_moves_per_second_and_missing_values_stay_null (test_experiments.ThroughputTests.test_rates_are_moves_per_second_and_missing_values_stay_null) ... ok
+test_solver_summary_never_zero_fills (test_experiments.ThroughputTests.test_solver_summary_never_zero_fills) ... ok
+test_cores_that_do_not_partition_into_l3_groups_are_rejected (test_experiments.TopologyTests.test_cores_that_do_not_partition_into_l3_groups_are_rejected) ... ok
+test_job_object_confines_child_to_requested_physical_core (test_experiments.TopologyTests.test_job_object_confines_child_to_requested_physical_core) ... ERROR
+test_launch_passes_affinity_to_child_job (test_experiments.TopologyTests.test_launch_passes_affinity_to_child_job) ... ERROR
+test_occupancy_records_fewest_neighbors (test_experiments.TopologyTests.test_occupancy_records_fewest_neighbors) ... ok
+test_progress_counts_concurrent_completions_exactly (test_experiments.TopologyTests.test_progress_counts_concurrent_completions_exactly) ... ok
+test_real_topology_has_distinct_physical_cores_inside_l3_groups (test_experiments.TopologyTests.test_real_topology_has_distinct_physical_cores_inside_l3_groups) ... ok
+test_slots_skip_core_zero_and_alternate_between_l3_groups (test_experiments.TopologyTests.test_slots_skip_core_zero_and_alternate_between_l3_groups) ... ok
+test_too_many_cases_or_unsupported_platform_fail_clearly (test_experiments.TopologyTests.test_too_many_cases_or_unsupported_platform_fail_clearly) ... ok
+
+======================================================================
+ERROR: test_partial_raw_kept_and_reported (test_experiments.AnalysisTests.test_partial_raw_kept_and_reported)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 316, in test_partial_raw_kept_and_reported
+    evidence(path, expand(config())[0])
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 51, in evidence
+    path.write_text(json.dumps(PROVENANCE) + '\n' + json.dumps(raw_daily(case)) + '\n', encoding='utf-8')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 814, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpv5kl_h2l\\raw.jsonl'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpv5kl_h2l'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 314, in test_partial_raw_kept_and_reported
+    with tempfile.TemporaryDirectory() as d:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpv5kl_h2l'
+
+======================================================================
+ERROR: test_booking_identity_reuses_saved_reference_on_resume (test_experiments.ArchiveTests.test_booking_identity_reuses_saved_reference_on_resume)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpgitys8dz'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpgitys8dz'
+
+======================================================================
+ERROR: test_changed_booking_identity_rejected_before_launch (test_experiments.ArchiveTests.test_changed_booking_identity_rejected_before_launch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 390, in test_changed_booking_identity_rejected_before_launch
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpr020ss5o\\20261006T214716Z-booking-fc0c2c63'
+
+======================================================================
+ERROR: test_changed_booking_identity_rejected_before_launch (test_experiments.ArchiveTests.test_changed_booking_identity_rejected_before_launch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpr020ss5o'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpr020ss5o'
+
+======================================================================
+ERROR: test_child_cleanup_only_owned_process (test_experiments.ArchiveTests.test_child_cleanup_only_owned_process)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 446, in test_child_cleanup_only_owned_process
+    with rt.launch([sys.executable, '-c', 'import time; time.sleep(60)'], self.base, os.environ.copy(), log) as process:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 218, in launch
+    with log.open('xb') as output:
+         ~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp863nvv0y\\child.log'
+
+======================================================================
+ERROR: test_child_cleanup_only_owned_process (test_experiments.ArchiveTests.test_child_cleanup_only_owned_process)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp863nvv0y'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp863nvv0y'
+
+======================================================================
+ERROR: test_config_mismatch (test_experiments.ArchiveTests.test_config_mismatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 366, in test_config_mismatch
+    run = self.make_run()
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 333, in make_run
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpyhhknxbu\\20261006T214716Z-test-647d0b4d'
+
+======================================================================
+ERROR: test_config_mismatch (test_experiments.ArchiveTests.test_config_mismatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpyhhknxbu'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpyhhknxbu'
+
+======================================================================
+ERROR: test_database_scope_and_credential_metadata (test_experiments.ArchiveTests.test_database_scope_and_credential_metadata)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp2ktbvum9'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp2ktbvum9'
+
+======================================================================
+ERROR: test_duplicate_completion_and_changed_raw_rejected (test_experiments.ArchiveTests.test_duplicate_completion_and_changed_raw_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 374, in test_duplicate_completion_and_changed_raw_rejected
+    run = self.make_run()
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 333, in make_run
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmphvjrfpnf\\20261006T214716Z-test-d0918c20'
+
+======================================================================
+ERROR: test_duplicate_completion_and_changed_raw_rejected (test_experiments.ArchiveTests.test_duplicate_completion_and_changed_raw_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmphvjrfpnf'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmphvjrfpnf'
+
+======================================================================
+ERROR: test_environment_blocks_case_insensitive_isolation_overrides (test_experiments.ArchiveTests.test_environment_blocks_case_insensitive_isolation_overrides)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxtnq94wg'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxtnq94wg'
+
+======================================================================
+ERROR: test_frozen_mismatch (test_experiments.ArchiveTests.test_frozen_mismatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 360, in test_frozen_mismatch
+    run = self.make_run()
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 333, in make_run
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpnmp2u72v\\20261006T214716Z-test-43c1afdd'
+
+======================================================================
+ERROR: test_frozen_mismatch (test_experiments.ArchiveTests.test_frozen_mismatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpnmp2u72v'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpnmp2u72v'
+
+======================================================================
+ERROR: test_historical_import_is_read_only (test_experiments.ArchiveTests.test_historical_import_is_read_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 487, in test_historical_import_is_read_only
+    archive.mkdir()
+    ~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp4jzezmho\\historical'
+
+======================================================================
+ERROR: test_historical_import_is_read_only (test_experiments.ArchiveTests.test_historical_import_is_read_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp4jzezmho'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp4jzezmho'
+
+======================================================================
+ERROR: test_interruption_resume_keeps_prior_attempts_and_completed_evidence (test_experiments.ArchiveTests.test_interruption_resume_keeps_prior_attempts_and_completed_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 421, in test_interruption_resume_keeps_prior_attempts_and_completed_evidence
+    run = self.make_run()
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 333, in make_run
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpf5ew_249\\20261006T214716Z-test-431f743f'
+
+======================================================================
+ERROR: test_interruption_resume_keeps_prior_attempts_and_completed_evidence (test_experiments.ArchiveTests.test_interruption_resume_keeps_prior_attempts_and_completed_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpf5ew_249'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpf5ew_249'
+
+======================================================================
+ERROR: test_lock_excludes_competing_runs_and_releases (test_experiments.ArchiveTests.test_lock_excludes_competing_runs_and_releases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp6wl2levt'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp6wl2levt'
+
+======================================================================
+ERROR: test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 469, in test_second_config_and_analysis_preserve_first_artifacts
+    run = self.make_run()
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 333, in make_run
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpq_bb87tg\\20261006T214716Z-test-4c472017'
+
+======================================================================
+ERROR: test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpq_bb87tg'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpq_bb87tg'
+
+======================================================================
+ERROR: test_timeout_and_nonzero_exit_do_not_create_success (test_experiments.ArchiveTests.test_timeout_and_nonzero_exit_do_not_create_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 452, in test_timeout_and_nonzero_exit_do_not_create_success
+    rt.command([sys.executable, '-c', 'import time; time.sleep(60)'], self.base,
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               os.environ.copy(), self.base / 'timeout.log', timeout=.1)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 261, in command
+    with launch(args, cwd, env, log, affinity) as process:
+         ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 218, in launch
+    with log.open('xb') as output:
+         ~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpljcdlcn_\\timeout.log'
+
+======================================================================
+ERROR: test_timeout_and_nonzero_exit_do_not_create_success (test_experiments.ArchiveTests.test_timeout_and_nonzero_exit_do_not_create_success)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpljcdlcn_'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpljcdlcn_'
+
+======================================================================
+ERROR: test_unique_runs_and_immutable_receipts (test_experiments.ArchiveTests.test_unique_runs_and_immutable_receipts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 342, in test_unique_runs_and_immutable_receipts
+    a, b = self.make_run(), self.make_run()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 333, in make_run
+    run = rt.new_run(self.base, c, json.dumps(c).encode())
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpvu9mz56m\\20261006T214716Z-test-8ad876ae'
+
+======================================================================
+ERROR: test_unique_runs_and_immutable_receipts (test_experiments.ArchiveTests.test_unique_runs_and_immutable_receipts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpvu9mz56m'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpvu9mz56m'
+
+======================================================================
+ERROR: test_duplicate_json_fields (test_experiments.ConfigurationTests.test_duplicate_json_fields)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 97, in test_duplicate_json_fields
+    path.write_text('{"version":1,"version":1}')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 814, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpj_jt9m68\\bad.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpj_jt9m68'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 95, in test_duplicate_json_fields
+    with tempfile.TemporaryDirectory() as d:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpj_jt9m68'
+
+======================================================================
+ERROR: test_median_ratio_excludes_partially_loaded_and_missing_pairs (test_experiments.ContentionTests.test_median_ratio_excludes_partially_loaded_and_missing_pairs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 765, in report
+    (run / 'config.json').write_text(json.dumps({'daily': {'parallel_cases': 6}}))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 814, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpcb8_kmey\\config.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpcb8_kmey'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 772, in test_median_ratio_excludes_partially_loaded_and_missing_pairs
+    report = self.report(seq, par)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 763, in report
+    with tempfile.TemporaryDirectory() as folder:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpcb8_kmey'
+
+======================================================================
+ERROR: test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted (test_experiments.ContentionTests.test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 765, in report
+    (run / 'config.json').write_text(json.dumps({'daily': {'parallel_cases': 6}}))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 814, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp5tbl280h\\config.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp5tbl280h'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 779, in test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted
+    self.assertFalse(self.report([self.row(1000, 0)], [self.row(900, 5)])['accepted'])
+                     ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 763, in report
+    with tempfile.TemporaryDirectory() as folder:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp5tbl280h'
+
+======================================================================
+ERROR: test_booking_setup_installs_missing_node_dependencies (test_experiments.LauncherTests.test_booking_setup_installs_missing_node_dependencies)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp44sh1nqk'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 168, in test_booking_setup_installs_missing_node_dependencies
+    with tempfile.TemporaryDirectory() as folder, patch.object(launcher, 'ROOT', Path(folder)), \
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp44sh1nqk'
+
+======================================================================
+ERROR: test_launcher_finds_jdk_home_when_java_is_on_path (test_experiments.LauncherTests.test_launcher_finds_jdk_home_when_java_is_on_path)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpjtydin8u\\jdk-25\\bin'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 178, in test_launcher_finds_jdk_home_when_java_is_on_path
+    (home / 'bin').mkdir(parents=True)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1020, in mkdir
+    self.parent.mkdir(parents=True, exist_ok=True)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpjtydin8u\\jdk-25'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpjtydin8u'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 176, in test_launcher_finds_jdk_home_when_java_is_on_path
+    with tempfile.TemporaryDirectory() as folder:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpjtydin8u'
+
+======================================================================
+ERROR: test_command_polls_and_honors_stop_event (test_experiments.ParallelDispatchTests.test_command_polls_and_honors_stop_event)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpmtg09ybq\\20261006T214716Z-test-07d1f681'
+
+======================================================================
+ERROR: test_command_polls_and_honors_stop_event (test_experiments.ParallelDispatchTests.test_command_polls_and_honors_stop_event)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpmtg09ybq'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpmtg09ybq'
+
+======================================================================
+ERROR: test_dispatch_order_follows_saved_cases (test_experiments.ParallelDispatchTests.test_dispatch_order_follows_saved_cases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpce5jjnol\\20261006T214716Z-test-9fa0b176'
+
+======================================================================
+ERROR: test_dispatch_order_follows_saved_cases (test_experiments.ParallelDispatchTests.test_dispatch_order_follows_saved_cases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpce5jjnol'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpce5jjnol'
+
+======================================================================
+ERROR: test_every_case_runs_once_within_slots_and_no_mask_is_shared (test_experiments.ParallelDispatchTests.test_every_case_runs_once_within_slots_and_no_mask_is_shared)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmph2ps8wbq\\20261006T214716Z-test-74e74c6a'
+
+======================================================================
+ERROR: test_every_case_runs_once_within_slots_and_no_mask_is_shared (test_experiments.ParallelDispatchTests.test_every_case_runs_once_within_slots_and_no_mask_is_shared)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmph2ps8wbq'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmph2ps8wbq'
+
+======================================================================
+ERROR: test_failure_stops_dispatch_but_keeps_in_flight_receipts (test_experiments.ParallelDispatchTests.test_failure_stops_dispatch_but_keeps_in_flight_receipts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpscplyq0y\\20261006T214716Z-test-b7d36500'
+
+======================================================================
+ERROR: test_failure_stops_dispatch_but_keeps_in_flight_receipts (test_experiments.ParallelDispatchTests.test_failure_stops_dispatch_but_keeps_in_flight_receipts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpscplyq0y'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpscplyq0y'
+
+======================================================================
+ERROR: test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished (test_experiments.ParallelDispatchTests.test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmppm4df_ua\\20261006T214716Z-test-0811a92c'
+
+======================================================================
+ERROR: test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished (test_experiments.ParallelDispatchTests.test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmppm4df_ua'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmppm4df_ua'
+
+======================================================================
+ERROR: test_parallel_cases_beyond_saved_topology_is_rejected_before_launch (test_experiments.ParallelDispatchTests.test_parallel_cases_beyond_saved_topology_is_rejected_before_launch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpzqo1c74_\\20261006T214716Z-test-2c1bb51c'
+
+======================================================================
+ERROR: test_parallel_cases_beyond_saved_topology_is_rejected_before_launch (test_experiments.ParallelDispatchTests.test_parallel_cases_beyond_saved_topology_is_rejected_before_launch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpzqo1c74_'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpzqo1c74_'
+
+======================================================================
+ERROR: test_resume_rejected_after_topology_change (test_experiments.ParallelDispatchTests.test_resume_rejected_after_topology_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxk2b49y2\\20261006T214716Z-test-73cb393e'
+
+======================================================================
+ERROR: test_resume_rejected_after_topology_change (test_experiments.ParallelDispatchTests.test_resume_rejected_after_topology_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxk2b49y2'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxk2b49y2'
+
+======================================================================
+ERROR: test_resume_rejected_when_saved_slot_masks_do_not_match (test_experiments.ParallelDispatchTests.test_resume_rejected_when_saved_slot_masks_do_not_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 575, in setUp
+    self.run = rt.new_run(self.base, c, json.dumps(c).encode())
+               ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 158, in new_run
+    run.mkdir(parents=True, exist_ok=False)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 1016, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpzzd13e0o\\20261006T214716Z-test-4a99f77a'
+
+======================================================================
+ERROR: test_resume_rejected_when_saved_slot_masks_do_not_match (test_experiments.ParallelDispatchTests.test_resume_rejected_when_saved_slot_masks_do_not_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpzzd13e0o'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpzzd13e0o'
+
+======================================================================
+ERROR: test_job_object_confines_child_to_requested_physical_core (test_experiments.TopologyTests.test_job_object_confines_child_to_requested_physical_core)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 535, in test_job_object_confines_child_to_requested_physical_core
+    with rt.launch([sys.executable, '-c', script], folder, os.environ.copy(), log, affinity=mask) as process:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 218, in launch
+    with log.open('xb') as output:
+         ~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpb5hfnndf\\child.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpb5hfnndf'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 533, in test_job_object_confines_child_to_requested_physical_core
+    with tempfile.TemporaryDirectory() as folder:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpb5hfnndf'
+
+======================================================================
+ERROR: test_launch_passes_affinity_to_child_job (test_experiments.TopologyTests.test_launch_passes_affinity_to_child_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 541, in test_launch_passes_affinity_to_child_job
+    with rt.launch([sys.executable, '-c', 'pass'], folder, os.environ.copy(), Path(folder) / 'a.log', affinity=0xc) as process:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\experiment_runtime.py", line 218, in launch
+    with log.open('xb') as output:
+         ~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp72_47048\\a.log'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp72_47048'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_experiments.py", line 540, in test_launch_passes_affinity_to_child_job
+    with tempfile.TemporaryDirectory() as folder, patch.object(rt, 'child_job', return_value=lambda: None) as job:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp72_47048'
+
+----------------------------------------------------------------------
+Ran 63 tests in 0.394s
+
+FAILED (errors=48, skipped=1)

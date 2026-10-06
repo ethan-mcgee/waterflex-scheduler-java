@@ -1,0 +1,13 @@
+
+> waterflex-web@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+
+   Creating an optimized production build ...
+Failed to compile.
+
+Error: EPERM: operation not permitted, mkdir 'C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\web\.next\types\app\api\dispatch'
+
+
+> Build failed because of webpack errors
