@@ -23,8 +23,9 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
     values.reduce((sum, route) => sum + route[field], 0);
   const beforeCost = run.fleet_cost_before_cents ?? run.policy_analysis?.before.costCents;
   const afterCost = run.fleet_cost_after_cents ?? run.policy_analysis?.after.costCents;
+  const applicable = run.score_model_version === "bendable-decimal-repair-v2" && run.calculation_outcome?.policyEligible === true;
   async function apply() {
-    if (run.status !== "PREVIEW" || disabled || !window.confirm("Apply this exact optimization proposal?")) return;
+    if (run.status !== "PREVIEW" || !applicable || disabled || !window.confirm("Apply this exact optimization proposal?")) return;
     setBusy(true); setMessage(null);
     try {
       const response = await fetch("/api/dispatch/optimize/apply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ runId: run.run_id }) });
@@ -37,9 +38,14 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
   return <section className={styles.optimizationPanel}>
     <div className={styles.optimizationHeader}>
       <div><strong>{run.status.replaceAll("_", " ")}</strong><span>Run {run.run_id.slice(0, 8)} | {run.solve_ms} ms</span></div>
-      {run.status === "PREVIEW" && <button className={styles.applyButton} disabled={disabled || busy} onClick={() => void apply()}>{busy ? "Applying..." : "Apply proposal"}</button>}
+      {run.status === "PREVIEW" && <button className={styles.applyButton} disabled={disabled || busy || !applicable} onClick={() => void apply()}>{busy ? "Applying..." : "Apply proposal"}</button>}
     </div>
     {run.status === "SKIPPED" && <p><strong>Not applyable.</strong> {run.reason ?? "The optimizer did not produce an independently validated policy improvement."}</p>}
+    {run.calculation_outcome ? <p>Demand coverage: {run.calculation_outcome.assignedVisitIds.length} assigned,
+      {" "}{run.calculation_outcome.unassignedVisitIds.length} unresolved. Served work independently validated:
+      {" "}{run.calculation_outcome.assignedWorkFeasible ? "yes" : "no"}.
+      {!run.calculation_outcome.complete && " A complete schedule is required before application."}</p>
+      : <p>Coverage provenance unavailable. Generate a fresh preview before applying.</p>}
     {run.policy_analysis ? <div>
       <p>Policy: {run.policy_analysis.decision.reason.replaceAll("_", " ").toLowerCase()}.
         {" "}Modeled cost change: {run.policy_analysis.costChangeCents > 0 ? "+" : ""}${formatCents(run.policy_analysis.costChangeCents)}.

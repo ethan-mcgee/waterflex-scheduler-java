@@ -2,143 +2,98 @@ package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.Monetary;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
-/** Evaluates working intervals separated by approved absences. */
+/** Exact feasible timing, with an explicitly diagnostic relaxed trajectory for repair gradients. */
 final class RouteTimeline {
-    record Result(long hardPenalty, long costCents, Map<String, Instant> arrivals,
-                  long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) { }
-    private record Segment(String previous, Instant departure, Instant done) { }
-    private record Block(Instant start, Instant end) { }
-    private record Timing(PlanVisit visit, long waitingBefore) { }
-
+    record Violations(long qualifications, long unavailableRoads, long latenessSeconds,
+                      long availabilitySeconds, long capacityMinutes) {
+        long total() { return Math.addExact(Math.addExact(qualifications, unavailableRoads),
+                Math.addExact(Math.addExact(latenessSeconds, availabilitySeconds), capacityMinutes)); }
+    }
+    record Result(Violations violations, long costCents, Map<String, Instant> arrivals,
+                  long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) {
+        long hardPenalty() { return violations.total(); }
+    }
     private RouteTimeline() { }
-
     static Result evaluate(DayPlan plan, TechRoute route) {
-        List<RouteTimingSearch.Block> intervals = new ArrayList<>();
-        for (Block block : available(route)) intervals.add(new RouteTimingSearch.Block(block.start(), block.end()));
-        var canonical = RouteTimingSearch.solve(plan, route, intervals);
-        if (canonical == null) {
-            Result invalid = infeasibleTiming(plan, route);
-            return new Result(Math.max(1, invalid.hardPenalty()), invalid.costCents(), invalid.arrivals(), invalid.paidMinutes(),
-                    invalid.overtimeMinutes(), invalid.driveMinutes(), invalid.waitingMinutes(), invalid.meters());
+        List<RouteTimingSearch.Block> blocks = available(route);
+        var canonical = RouteTimingSearch.solve(plan, route, blocks);
+        long qualifications = route.getVisits().stream().filter(visit -> !route.getQualifiedServiceIds().contains(visit.getServiceId())).count();
+        if (canonical != null) {
+            return result(plan, new Violations(qualifications, 0, 0, 0, 0), canonical.arrivals(),
+                    canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
         }
-        long hard = 0;
-        for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) hard += 1_000_000;
-        long cost = Monetary.cents(canonical.paid(), canonical.overtime(), canonical.meters(), plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
-        return new Result(hard, cost, Required.value(Map.copyOf(canonical.arrivals())), canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
-    }
-
-    private static Result infeasibleTiming(DayPlan plan, TechRoute route) {
-        List<Block> blocks = available(route);
-        Map<String, Instant> arrivals = new HashMap<>();
-        long hard = 0, paid = 0, overtime = 0, drive = 0, waiting = 0, meters = 0;
-        int blockIndex = 0;
-        Segment segment = null;
-        long segmentMeters = 0, segmentDrive = 0, segmentWaiting = 0;
-        List<Timing> timings = new ArrayList<>();
-        long departureSlack = Long.MAX_VALUE;
+        // This trajectory is a direction of improvement, never an independent feasible-placement proof.
+        // A categorical road failure has no known travel duration. Do not invent one for timing.
+        long unavailableRoads = 0;
+        String previous = route.getId();
         for (PlanVisit visit : route.getVisits()) {
-            if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) hard += 1_000_000;
-            boolean placed = false;
-            while (blockIndex < blocks.size()) {
-                Block block = blocks.get(blockIndex);
-                String origin = segment == null ? route.getId() : segment.previous();
-                DayPlan.RoadLeg leg = plan.getMatrix().get(origin + ">" + visit.getId());
-                if (leg == null) { hard += 1_000_000; break; }
-                long travel = buffered(plan, leg);
-                Instant proposedDeparture = segment == null ? max(block.start(), Required.value(visit.getWindowStart().minus(Duration.ofMinutes(travel)))) : segment.departure();
-                Instant start = segment == null ? proposedDeparture : segment.done();
-                Instant arrival = max(Required.value(start.plus(Duration.ofMinutes(travel))), visit.getWindowStart());
-                DayPlan.RoadLeg home = plan.getMatrix().get(visit.getId() + ">" + route.getId() + ":return");
-                if (home == null) { hard += 1_000_000; break; }
-                Instant homeReturn = arrival.plus(Duration.ofMinutes(visit.getDurationMinutes() + buffered(plan, home)));
-                if (arrival.isBefore(visit.getWindowEnd()) && !homeReturn.isAfter(block.end())) {
-
-                    segmentWaiting += Math.max(0, Duration.between(start.plus(Duration.ofMinutes(travel)), arrival).toMinutes());
-                    departureSlack = Math.min(departureSlack, Duration.between(arrival, visit.getWindowEnd().minusNanos(1)).toMinutes() + segmentWaiting);
-                    timings.add(new Timing(visit, segmentWaiting));
-                    segmentDrive += travel;
-                    segmentMeters += leg.meters();
-                    segment = new Segment(visit.getId(), proposedDeparture, Required.value(arrival.plus(Duration.ofMinutes(visit.getDurationMinutes()))));
-                    arrivals.put(visit.getId(), arrival);
-                    placed = true;
-                    break;
-                }
-                if (segment != null) {
-                    DayPlan.RoadLeg returnHome = plan.getMatrix().get(segment.previous() + ">" + route.getId() + ":return");
-                    if (returnHome == null) { hard += 1_000_000; break; }
-                    Instant finish = segment.done().plus(Duration.ofMinutes(buffered(plan, returnHome)));
-                    if (finish.isAfter(block.end())) hard += 1_000_000;
-                    long delay = Math.max(0, Math.min(departureSlack, segmentWaiting));
-                    retime(timings, delay, arrivals);
-                    Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
-                    paid = Math.addExact(paid, Duration.between(departure, finish).toMinutes());
-                    overtime = Math.addExact(overtime, overtime(departure, finish, route.getShiftEnd()));
-                    drive += segmentDrive + buffered(plan, returnHome);
-                    waiting += segmentWaiting - delay;
-                    timings.clear(); departureSlack = Long.MAX_VALUE;
-                    meters = Math.addExact(meters, segmentMeters + returnHome.meters());
-                    segment = null;
-                    segmentMeters = segmentDrive = segmentWaiting = 0;
-                }
-                blockIndex++;
-            }
-            if (!placed) hard += 1_000_000;
+            if (!plan.getMatrix().containsKey(previous + ">" + visit.getId())) unavailableRoads++;
+            previous = visit.getId();
         }
-        if (segment != null) {
-            DayPlan.RoadLeg home = plan.getMatrix().get(segment.previous() + ">" + route.getId() + ":return");
-            if (home == null) hard += 1_000_000;
-            else {
-                Instant finish = segment.done().plus(Duration.ofMinutes(buffered(plan, home)));
-                if (finish.isAfter(blocks.get(blockIndex).end())) hard += 1_000_000;
-                long delay = Math.max(0, Math.min(departureSlack, segmentWaiting));
-                retime(timings, delay, arrivals);
-                Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
-                paid = Math.addExact(paid, Duration.between(departure, finish).toMinutes());
-                overtime = Math.addExact(overtime, overtime(departure, finish, route.getShiftEnd()));
-                drive += segmentDrive + buffered(plan, home);
-                waiting += segmentWaiting - delay;
-                meters = Math.addExact(meters, segmentMeters + home.meters());
-            }
+        if (!route.getVisits().isEmpty() && !plan.getMatrix().containsKey(previous + ">" + route.getId() + ":return")) unavailableRoads++;
+        if (unavailableRoads > 0) return result(plan, new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        if (route.getVisits().isEmpty()) return result(plan, new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        PlanVisit first = Required.value(route.getVisits().getFirst());
+        long initialTravel = buffered(plan, Required.value(plan.getMatrix().get(route.getId() + ">" + first.getId())));
+        Instant departure = later(route.getShiftStart(), Required.value(first.getWindowStart().minusSeconds(Math.multiplyExact(initialTravel, 60))));
+        Instant cursor = departure;
+        previous = route.getId();
+        long drive = 0, waiting = 0, meters = 0, lateness = 0;
+        Map<String, Instant> arrivals = new LinkedHashMap<>();
+        for (PlanVisit visit : route.getVisits()) {
+            DayPlan.RoadLeg road = Required.value(plan.getMatrix().get(previous + ">" + visit.getId()));
+            long travel = buffered(plan, road);
+            Instant earliest = Required.value(cursor.plusSeconds(Math.multiplyExact(travel, 60)));
+            Instant arrival = later(earliest, visit.getWindowStart());
+            if (!arrival.isBefore(visit.getWindowEnd())) lateness = Math.addExact(lateness,
+                    Math.addExact(Duration.between(visit.getWindowEnd(), arrival).getSeconds(), 1));
+            waiting = Math.addExact(waiting, Duration.between(earliest, arrival).toMinutes());
+            drive = Math.addExact(drive, travel); meters = Math.addExact(meters, road.meters());
+            arrivals.put(visit.getId(), arrival);
+            cursor = Required.value(arrival.plusSeconds(visit.getDurationMinutes() * 60L)); previous = visit.getId();
         }
-        if (paid > route.getMaxDailyMinutes()) hard += 1_000_000 + paid - route.getMaxDailyMinutes();
-        if (overtime > route.getMaxOvertimeMinutes()) hard += 1_000_000 + overtime - route.getMaxOvertimeMinutes();
+        DayPlan.RoadLeg home = Required.value(plan.getMatrix().get(previous + ">" + route.getId() + ":return"));
+        long returnMinutes = buffered(plan, home);
+        Instant returned = Required.value(cursor.plusSeconds(Math.multiplyExact(returnMinutes, 60)));
+        drive = Math.addExact(drive, returnMinutes); meters = Math.addExact(meters, home.meters());
+        long paid = Duration.between(departure, returned).toMinutes();
+        long overtime = Math.max(0, Duration.between(later(departure, route.getShiftEnd()), returned).toMinutes());
+        Duration permitted = Duration.ZERO;
+        for (RouteTimingSearch.Block block : blocks) {
+            Instant start = later(departure, block.start()), end = earlier(returned, block.end());
+            if (start.isBefore(end)) permitted = permitted.plus(Duration.between(start, end));
+        }
+        Duration unavailable = Duration.between(departure, returned).minus(permitted);
+        long unavailableSeconds = unavailable.isZero() ? 0 : Math.addExact(unavailable.getSeconds(), unavailable.getNano() == 0 ? 0 : 1);
+        long capacity = Math.addExact(Math.max(0, paid - route.getMaxDailyMinutes()), Math.max(0, overtime - route.getMaxOvertimeMinutes()));
+        return result(plan, new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
+    }
+    private static Result result(DayPlan plan, Violations violations, Map<String, Instant> arrivals,
+            long paid, long overtime, long drive, long waiting, long meters) {
         long cents = Monetary.cents(paid, overtime, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
-        return new Result(hard, cents, arrivals, paid, overtime, drive, waiting, meters);
+        return new Result(violations, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
     }
-
-    private static void retime(List<Timing> timings, long delay, Map<String, Instant> arrivals) {
-        for (Timing timing : timings) {
-            Instant arrival = Required.value(arrivals.get(timing.visit().getId()), "scored arrival");
-            arrivals.put(timing.visit().getId(), Required.value(arrival.plus(Duration.ofMinutes(Math.max(0, delay - timing.waitingBefore())))));
-        }
-    }
-
-    private static List<Block> available(TechRoute route) {
-        Instant end = route.getShiftEnd().plus(Duration.ofMinutes(route.getMaxOvertimeMinutes()));
-        List<Block> blocks = new ArrayList<>();
+    private static List<RouteTimingSearch.Block> available(TechRoute route) {
+        Instant end = Required.value(route.getShiftEnd().plusSeconds(route.getMaxOvertimeMinutes() * 60L));
+        List<RouteTimingSearch.Block> blocks = new ArrayList<>();
         Instant cursor = route.getShiftStart();
         List<TechRoute.Unavailable> unavailable = new ArrayList<>(route.getUnavailable());
         unavailable.sort(Comparator.comparing((TechRoute.Unavailable absence) -> absence.start()));
         for (TechRoute.Unavailable absence : unavailable) {
-            if (absence.start().isAfter(cursor)) blocks.add(new Block(cursor, min(absence.start(), Required.value(end))));
+            if (absence.start().isAfter(cursor)) blocks.add(new RouteTimingSearch.Block(cursor, earlier(absence.start(), end)));
             if (absence.end().isAfter(cursor)) cursor = absence.end();
             if (!cursor.isBefore(end)) break;
         }
-        if (cursor.isBefore(end)) blocks.add(new Block(cursor, Required.value(end)));
-        blocks.removeIf(block -> !block.start().isBefore(block.end()));
-        return blocks;
+        if (cursor.isBefore(end)) blocks.add(new RouteTimingSearch.Block(cursor, end));
+        blocks.removeIf(block -> !block.start().isBefore(block.end())); return blocks;
     }
     private static long buffered(DayPlan plan, DayPlan.RoadLeg leg) {
         return (long) Math.ceil(leg.seconds() * (1 + plan.getTravelBufferPct()) / 60.0) + plan.getTravelBufferMinutes();
     }
-    private static long overtime(Instant departure, Instant finish, Instant shiftEnd) {
-        return Math.max(0, Duration.between(max(departure, shiftEnd), finish).toMinutes());
-    }
-    private static Instant max(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
-    private static Instant min(Instant a, Instant b) { return a.isBefore(b) ? a : b; }
+    private static Instant later(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
+    private static Instant earlier(Instant a, Instant b) { return a.isBefore(b) ? a : b; }
 }

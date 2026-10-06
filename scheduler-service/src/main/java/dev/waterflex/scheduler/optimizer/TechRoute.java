@@ -5,6 +5,7 @@ import dev.waterflex.scheduler.Required;
 
 import ai.timefold.solver.core.api.domain.common.PlanningId;
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
+import ai.timefold.solver.core.api.domain.entity.PlanningPinToIndex;
 import ai.timefold.solver.core.api.domain.variable.PlanningListVariable;
 
 import java.time.Instant;
@@ -23,7 +24,8 @@ public class TechRoute {
     private @Nullable Set<String> qualifiedServiceIds;
     private List<Unavailable> unavailable = new ArrayList<>();
     private boolean frozen;
-    @PlanningListVariable(valueRangeProviderRefs = "visits")
+    @PlanningPinToIndex private int pinnedPrefix;
+    @PlanningListVariable(valueRangeProviderRefs = "visits", allowsUnassignedValues = true)
     private List<PlanVisit> visits = new ArrayList<>();
 
     public TechRoute() { }
@@ -46,7 +48,9 @@ public class TechRoute {
         this.unavailable = new ArrayList<>(unavailable);
     }
     PlanFacts.Technician facts() {
-        return new PlanFacts.Technician(getId(), getShiftStart(), getShiftEnd(), getMaxDailyMinutes(), getMaxOvertimeMinutes(), getQualifiedServiceIds(), getUnavailable());
+        PlanFacts.check(pinnedPrefix >= 0 && pinnedPrefix <= visits.size(), "pinned prefix exceeds assigned route");
+        return new PlanFacts.Technician(getId(), getShiftStart(), getShiftEnd(), getMaxDailyMinutes(), getMaxOvertimeMinutes(), getQualifiedServiceIds(), getUnavailable(),
+                Required.value(visits.subList(0, pinnedPrefix).stream().map(visit -> visit.getId()).toList()));
     }
     void freeze() {
         qualifiedServiceIds = Required.value(Set.copyOf(getQualifiedServiceIds()));
@@ -54,4 +58,10 @@ public class TechRoute {
     }
     public List<PlanVisit> getVisits() { return visits; }
     public void setVisits(List<PlanVisit> visits) { this.visits = visits; }
+    public int getPinnedPrefix() { return pinnedPrefix; }
+    public void setPinnedPrefix(int prefix) {
+        PlanFacts.check(!frozen, "pinning is immutable after plan initialization");
+        PlanFacts.check(prefix >= 0 && prefix <= visits.size(), "pinned prefix exceeds assigned route");
+        pinnedPrefix = prefix;
+    }
 }

@@ -35,8 +35,33 @@ public final class SavedJson {
     public static long moneyCents(JsonNode node, String key) {
         long value = integer(node, key); if (value < 0 || value > Monetary.MAX_CENTS) throw invalid(); return value;
     }
+    public static void currentScoreModel(JsonNode node) {
+        object(node);
+        if (!dev.waterflex.scheduler.optimizer.DailyDataset.SCORE_MODEL.equals(node.path("scoreModelVersion").textValue()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A fresh preview with the current score model is required");
+        JsonNode outcome = dailyOutcome(Required.value(node.path("calculationOutcome")));
+        if (!outcome.path("complete").booleanValue() || !outcome.path("policyEligible").booleanValue())
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A complete eligible preview is required");
+    }
+    public static JsonNode dailyOutcome(JsonNode node) {
+        object(node);
+        if (!java.util.Set.of("ASSIGNED", "COLD", "PARTIAL", "REPAIR").contains(text(node, "mode"))) throw invalid();
+        if (!dev.waterflex.scheduler.optimizer.DailyDataset.SCORE_MODEL.equals(text(node, "scoreModelVersion"))) throw invalid();
+        java.util.Set<String> identities = new HashSet<>();
+        for (String field : new String[]{"assignedVisitIds", "unassignedVisitIds"})
+            for (JsonNode value : array(Required.value(node.path(field))))
+                if (!value.isTextual() || value.asText().isBlank() || !identities.add(value.asText())) throw invalid();
+        for (String field : new String[]{"complete", "assignedWorkFeasible", "scoringMatchesValidation", "policyEligible"})
+            if (!node.path(field).isBoolean()) throw invalid();
+        if (node.path("complete").booleanValue() != node.path("unassignedVisitIds").isEmpty()) throw invalid();
+        if (node.path("scoringMatchesValidation").booleanValue() && !node.path("assignedWorkFeasible").booleanValue()) throw invalid();
+        if (node.path("policyEligible").booleanValue() && (!node.path("complete").booleanValue()
+                || !node.path("scoringMatchesValidation").booleanValue())) throw invalid();
+        return node;
+    }
     public static JsonNode solverAnalysis(JsonNode node) {
         object(node); text(node, "engine"); text(node, "configurationXml");
+        if (node.hasNonNull("constructionConfigurationXml")) text(node, "constructionConfigurationXml");
         JsonNode phases = array(Required.value(node.path("phases"))); if (phases.isEmpty()) throw invalid();
         for (JsonNode phase : phases) {
             text(Required.value(phase), "name"); JsonNode statistics = object(Required.value(phase.path("statistics")));
