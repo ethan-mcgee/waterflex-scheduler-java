@@ -328,7 +328,7 @@ public class OptimizationService {
         return operation(requestKey, canonical(Required.value(List.of("REPAIR", metroId, day.toString(), absentTechnicianId, startMin, endMin))), day,
                 claim -> createRepair(metroId, day, absentTechnicianId, startMin, endMin, Required.value(claim)), value -> Required.value(value), _ -> null);
     }
-    private record RepairPrelude(boolean held, boolean shift, int appointments, String revision) { }
+    private record RepairPrelude(boolean held, boolean shift, int appointments, String revision, @Nullable RawProblem raw) { }
     private PreparedResult immediate(String revision, Map<String, Object> result, DailyAttempts.Claim claim) {
         String routing = roads.activeIdentity();
         snapshot(() -> { validateRevision(parseDay(Required.value((String) result.get("serviceDate"))), revision); attempts.bind(claim, revision, routing); return Boolean.TRUE; });
@@ -337,14 +337,18 @@ public class OptimizationService {
     private PreparedResult createRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin, DailyAttempts.Claim claim) {
         SearchDeadline.checkpoint();
         if (ScheduleCutoff.frozen(day, Required.value(clock.instant()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Frozen date requires CSR coordination");
-        RepairPrelude prelude = snapshot(() -> new RepairPrelude(hasHolds(Required.value(Set.<String>of(absentTechnicianId)), day),
-                WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) != null,
-                Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, absentTechnicianId, dayStamp(day)), inputRevision(day)));
+        RepairPrelude prelude = snapshot(() -> {
+            boolean held = hasHolds(Required.value(Set.<String>of(absentTechnicianId)), day);
+            boolean shift = WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) != null;
+            int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, absentTechnicianId, dayStamp(day));
+            // One snapshot includes initialization of missing version rows. It cannot invalidate itself.
+            RawProblem raw = held || !shift ? null : capture(metroId, day);
+            return new RepairPrelude(held, shift, appointments, raw == null ? inputRevision(day) : raw.revision(), raw);
+        });
         if (prelude.held()) return immediate(prelude.revision(), Required.value(Map.of("serviceDate", day.toString(), "status", "SKIPPED", "reason", "ACTIVE_RESERVATIONS")), claim);
         if (!prelude.shift()) return immediate(prelude.revision(), Required.value(Map.of("serviceDate", day.toString(), "status", prelude.appointments() == 0 ? "NO_SHIFT" : "SKIPPED",
                 "reason", prelude.appointments() == 0 ? "No technician shift on this date" : "Appointments remain on a date without a technician shift")), claim);
-        Problem baseline = build(metroId, day, claim);
-        if (!prelude.revision().equals(baseline.revision())) throw new Stale();
+        Problem baseline = hydrate(Required.value(prelude.raw(), "repair scheduling snapshot"), day, claim, true);
         if (baseline.held()) return skipped(metroId, day, baseline, "ACTIVE_RESERVATIONS");
         var before = DayScoreCalculator.evaluate(baseline.plan());
         if (baseline.plan().getRoutes().stream().noneMatch(route -> route.getId().equals(absentTechnicianId)))
@@ -706,6 +710,9 @@ public class OptimizationService {
     private Problem build(String metroId, LocalDate day, DailyAttempts.@Nullable Claim claim) {
         boolean daily = DailyOperation.current() != null;
         RawProblem raw = daily ? snapshot(() -> capture(metroId, day)) : capture(metroId, day);
+        return hydrate(raw, day, claim, daily);
+    }
+    private Problem hydrate(RawProblem raw, LocalDate day, DailyAttempts.@Nullable Claim claim, boolean daily) {
         var techs = raw.techs(); var visits = raw.visits(); var points = raw.points(); var rates = raw.rates();
         // Bind this request's matrix explicitly; another caller may change RoadClient's cached identity.
         @Nullable String routing = daily ? roads.activeIdentity() : null;

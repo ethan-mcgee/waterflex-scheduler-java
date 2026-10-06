@@ -85,6 +85,20 @@ class DailyAttemptDatabaseIT {
         }
     }
 
+    @Test void freshRepairCapturesItsOwnVersionInitializationAndCanApplyIndependently() {
+        try (var f = new Fixture(true)) {
+            assertEquals(0, Required.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
+            String key = f.id + "-fresh-repair";
+            var result = f.service.previewRepair(f.id, f.day, f.id + "-far", 480, 1020, key);
+            assertEquals("REPAIR_PREVIEW", result.get("status")); assertEquals("SUCCEEDED", f.state(key)); assertTrue(f.solves.get() > 0);
+            assertEquals(2, Required.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
+            String run = Required.value((String) result.get("run_id"));
+            var applied = Required.value(f.tx.execute(_ -> f.service.applyRepair(run, f.id + "-far", f.day, 480, 1020, false)));
+            assertEquals("APPLIED", applied.get("status"));
+            assertEquals(f.id + "-near", Required.query(f.jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, f.id + "-appointment"));
+        }
+    }
+
     @Test void routingRunsOutsideSnapshotTransactionAndChangedInputsPreventCalculation() {
         try (var f = new Fixture(true)) {
             f.matrixHook.set(() -> f.jdbc.update("UPDATE appointment SET sequence=sequence+1 WHERE id=?", f.id + "-appointment"));
