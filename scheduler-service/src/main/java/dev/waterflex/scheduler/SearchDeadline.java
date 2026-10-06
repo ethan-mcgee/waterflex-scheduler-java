@@ -79,6 +79,13 @@ public final class SearchDeadline {
         try { return work.get(); }
         finally { CURRENT.remove(); }
     }
+    /** Calculation scoring must depend on facts, not a caller's request clock. */
+    public static <T> T withoutRequestClock(Supplier<T> work) {
+        SearchDeadline previous = CURRENT.get();
+        CURRENT.remove();
+        try { return work.get(); }
+        finally { if (previous != null) CURRENT.set(previous); }
+    }
     public static @Nullable SearchDeadline current() { return CURRENT.get(); }
     public static Duration networkTimeout(Duration maximum) {
         SearchDeadline current = CURRENT.get();

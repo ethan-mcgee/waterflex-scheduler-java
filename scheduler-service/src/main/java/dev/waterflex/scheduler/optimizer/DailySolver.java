@@ -20,7 +20,17 @@ public final class DailySolver {
         constructionDefinition = SolverEngine.configuration(SolverEngine.Variant.valueOf(variant), seed, false, true);
     }
     public SolverEngine.Result solve(DayPlan initial, Duration budget) {
-        return SolverEngine.solve(initial.getUnassignedVisitIds().isEmpty() ? definition : constructionDefinition, initial, budget);
+        var selected = initial.getUnassignedVisitIds().isEmpty() ? definition : constructionDefinition;
+        DailyOperation operation = DailyOperation.current();
+        if (operation == null) return SolverEngine.solve(selected, initial, budget);
+        Duration allocated = operation.budget(budget);
+        try {
+            return dev.waterflex.scheduler.SearchDeadline.withoutRequestClock(() -> SolverEngine.solve(selected, initial, allocated,
+                    null, false, new SolverEngine.Cancellation() {
+                        @Override public void started(ai.timefold.solver.core.api.solver.Solver<DayPlan> solver) { operation.started(solver); }
+                        @Override public void stopped() { operation.stopped(); }
+                    }));
+        } finally { operation.finishPhase(); }
     }
     public Diagnostics diagnostics(List<Phase> phases) {
         return new Diagnostics(EngineProvenance.loaded().label(), definition.configurationXml(), Required.value(List.copyOf(phases)), constructionDefinition.configurationXml());

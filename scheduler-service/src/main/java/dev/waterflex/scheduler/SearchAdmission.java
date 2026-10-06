@@ -58,6 +58,7 @@ public final class SearchAdmission {
             deadline.requireTime();
             locked = lock.tryLock(deadline.remainingNanos(), TimeUnit.NANOSECONDS);
             if (!locked) throw new Busy("Search admission deadline exhausted");
+            deadline.requireTime();
             if (canStart(kind) && queue.isEmpty()) return start(kind, started);
             if (bookings.size() + background.size() >= queueLimit) throw new Busy("Search queue is full");
             queue.addLast(ticket);
