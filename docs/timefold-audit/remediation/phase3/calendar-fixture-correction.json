@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-06T20:17:37.305746+00:00",
+  "failedRevision": "18f95772d2b3861221cdbfb8addaf90cc484e39e",
+  "failedRun": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37524754106",
+  "observed": "Build and browser passed. PostgreSQL migration/schema and MonetaryMigrationDatabaseIT passed. Frozen-calendar fixture assertions failed because standalone offers lacked required set provenance.",
+  "correction": "Fixture creates linked current offer sets and holds. Explicit legacy offer/set cases assert rejection before selection or appointment writes; original expiry and issuance assertions retained.",
+  "checks": [
+    {
+      "id": "java-nullability",
+      "status": "passed",
+      "tests": 210,
+      "log": "evidence/java-nullability-correction2.log"
+    },
+    {
+      "id": "integration",
+      "status": "required-ci-pending-at-recording"
+    }
+  ],
+  "retainedEvidence": [
+    {
+      "path": "evidence/ci-integration-run-37524754106.log",
+      "sha256": "a2605cefce05c0bdbf2ad874d94cd8fed2c061631fddf79d7465ff9d7350e0aa",
+      "bytes": 339336,
+      "encoding": "UTF-16LE"
+    },
+    {
+      "path": "evidence/java-nullability-correction2.log",
+      "sha256": "a7eaae363475cf50e4e829ba41d7bff688a5df2b8e200fb8d1072b29c0eb069e",
+      "bytes": 238390,
+      "encoding": "UTF-16LE"
+    }
+  ],
+  "correctedSources": [
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSnapshotDatabaseIT.java",
+      "sha256": "44a0f240abb9ac01a82dbe55355e8c102f9a42266b70254443b360b972ee5f97",
+      "encoding": "UTF-8 canonical LF"
+    }
+  ]
+}
