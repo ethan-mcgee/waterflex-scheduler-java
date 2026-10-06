@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 def inline(paragraph, text, size=None):
-    lead = re.match(r'^(Evidence|Impact|Recommendation|Acceptance|Priority|Classification|Status|Reference|References): ', text)
+    lead = re.match(r'^(Current behavior|Current gap|Consequence|Guidance and change|Why this helps|Acceptance|Proposed integration|Configuration example|Verification|Proposed corpus|Proposed pilot|Worked example|Proposed analysis|Correctness gate|Quality gate|Performance gate|Implementation sequence|Example resolved campaign|Evidence|Impact|Recommendation|Priority|Classification|Status|Reference|References): ', text)
     if lead:
         paragraph.add_run(lead[0]).bold = True
         text = text[lead.end():]
@@ -52,10 +52,18 @@ def table(doc, lines):
         'Finding': [0.8, 6.2],
         'Concern': [1.25, 2.875, 2.875],
         'Check': [2.1, 4.9],
-        'Source': [2.1, 2.0, 2.9],
+        'Source': [0.7, 6.3],
+        'Decision': [1.5, 5.5],
+        'Layer': [1.25, 2.75, 3.0],
+        'Measurement': [1.7, 5.3],
+        'Contract': [1.1, 5.9],
+        'Stage': [1.4, 3.2, 2.4],
+        'Term': [1.55, 5.45],
         'Local chapter and official source': [3.0, 4.0],
     }
-    widths = widths_by_header[rows[0][0]]
+    widths = widths_by_header.get(rows[0][0], [7 / len(rows[0])] * len(rows[0]))
+    if len(widths) != len(rows[0]) or any(len(row) != len(widths) for row in rows):
+        raise ValueError('Table schema does not match column widths')
     compact = rows[0][0] == 'ID'
     font_size = 9 if compact else 10
     for column, width in zip(grid.columns, widths): column.width = Inches(width)
@@ -113,7 +121,7 @@ def main():
     section.header_distance = Inches(.25); section.footer_distance = Inches(.3)
     section.different_first_page_header_footer = True
     normal = doc.styles['Normal']
-    normal.font.name = 'Calibri'; normal.font.size = Pt(10.5)
+    normal.font.name = 'Calibri'; normal.font.size = Pt(11)
     normal.paragraph_format.space_after = Pt(6)
     normal.paragraph_format.line_spacing = 1.08
     normal.paragraph_format.widow_control = True
@@ -133,7 +141,7 @@ def main():
         style.paragraph_format.space_after = Pt(0)
     header = section.header.paragraphs[0]
     header.add_run('WATERFLEX').bold = True
-    header.add_run('\tTimefold audit and stateless service readiness')
+    header.add_run('\tTimefold audit and benchmark design')
     header.paragraph_format.tab_stops.add_tab_stop(Inches(7), WD_TAB_ALIGNMENT.RIGHT)
     for run in header.runs:
         run.font.size = Pt(8)
@@ -148,8 +156,8 @@ def main():
         for run in footer.runs:
             run.font.size = Pt(8)
             run.font.color.rgb = RGBColor.from_string('555555')
-    doc.core_properties.title = 'WaterFlex Timefold Audit and Stateless Service Readiness'
-    doc.core_properties.subject = 'Timefold documentation comparison and stateless solver readiness'
+    doc.core_properties.title = 'WaterFlex Timefold Audit and Benchmark Design'
+    doc.core_properties.subject = 'Explained architecture findings and benchmark redesign specification'
     doc.core_properties.author = 'WaterFlex'
     lines = source.splitlines(); i = 0
     while i < len(lines):
@@ -168,12 +176,12 @@ def main():
             title.paragraph_format.space_after = Pt(10)
         elif line.startswith('## '):
             heading = doc.add_paragraph(line[3:], 'Heading 1')
-            if line in ('## Findings and required fixes', '## Expanded documentation coverage register'):
+            if line == '## Benchmark redesign':
                 heading.paragraph_format.page_break_before = True
         elif line.startswith('### '): doc.add_paragraph(line[4:], 'Heading 2')
         elif line.strip():
             paragraph = doc.add_paragraph()
-            paragraph.paragraph_format.keep_together = True
+            paragraph.paragraph_format.keep_together = False
             inline(paragraph, line)
             if line.startswith('Priority '):
                 paragraph.paragraph_format.keep_with_next = True

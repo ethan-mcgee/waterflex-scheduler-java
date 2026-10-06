@@ -1,0 +1,75 @@
+{
+  "review_date": "2026-10-06",
+  "production_baseline": "499fde2cc3fe79a8b7413a942a66cfc97b5d0e94",
+  "runtime_changes": false,
+  "benchmark_campaign_run": false,
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "runtime": "JAVA_HOME=C:/Program Files/Java/jdk-25",
+      "status": "passed",
+      "tests": 189,
+      "characterization_tests_included": 7,
+      "log": "java-nullability.log",
+      "note": "Existing informational null type-conversion diagnostics remain in unchanged source; no Java or TypeScript is modified."
+    },
+    {
+      "command": "npm.cmd --prefix web run test:nullability",
+      "status": "passed",
+      "log": "web-test-nullability.log",
+      "tests": 17
+    },
+    {
+      "command": "npm.cmd --prefix web run lint",
+      "status": "passed",
+      "log": "web-lint.log"
+    },
+    {
+      "command": "npm.cmd --prefix web run typecheck",
+      "status": "passed",
+      "log": "web-typecheck.log"
+    },
+    {
+      "command": "npm.cmd --prefix web run test:unit",
+      "status": "passed",
+      "tests": 102,
+      "log": "web-test-unit.log"
+    },
+    {
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "runtime": "Codex document runtime Python 3.12.14",
+      "status": "failed_environment",
+      "log": "experiment-tests.log",
+      "reason": "Matplotlib unavailable; plot test errored and launcher test observed a dependency-install attempt in its mock."
+    },
+    {
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "runtime": "Project Python with Matplotlib 3.11.2",
+      "status": "passed",
+      "tests": 63,
+      "skipped": 1,
+      "log": "experiment-tests-project-python.log",
+      "skip_reason": "POSIX process group cleanup is not applicable on Windows"
+    },
+    {
+      "command": "python -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "runtime": "Codex document runtime Python 3.12.14",
+      "status": "passed",
+      "tests": 7,
+      "log": "report-tests.log"
+    }
+  ],
+  "document_checks": {
+    "parity": "Exact ordered Markdown paragraphs/table cells and hyperlink label-target pairs checked by verify_evidence.py",
+    "packaged_renderer": "Attempted; LibreOffice soffice.exe absent. See renderer-attempt.log.",
+    "fallback": "Microsoft Word hidden read-only export from a local temporary copy, then bundled Poppler at 120 dpi.",
+    "first_word_attempt": "Direct export from the OneDrive path did not finish after several minutes; only the newly created Word process was stopped. The local-copy export succeeded.",
+    "visual_qa": "See visual-qa.json for final hashes, page count and inspection record."
+  },
+  "evidence_limits": [
+    "Historical archive receipts preserved; no new full archive traversal claimed.",
+    "Characterization tests assert existing unsafe behavior, not remediation.",
+    "Native benchmark examples and version 2 schemas are proposed specifications, not compiled or implemented runtime changes.",
+    "CI and database/browser integration outcomes must be read from the PR checks."
+  ]
+}
