@@ -53,7 +53,15 @@ public class OptimizationService {
     private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
                              Instant windowStart, Instant windowEnd) { }
     private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
-                           String configurationVersion, String routingIdentity, Map<String, RouteEndpoints> endpoints, SchedulingPolicy.Rules policy) { }
+                           String configurationVersion, String routingIdentity, Map<String, RouteEndpoints> endpoints, SchedulingPolicy.Rules policy) {
+        Problem withPlan(DayPlan replacement) {
+            Map<String, PlanVisit> canonical = new HashMap<>();
+            replacement.getVisits().forEach(visit -> canonical.put(visit.getId(), visit));
+            List<VisitData> updated = new ArrayList<>();
+            for (VisitData visit : visits) updated.add(new VisitData(Required.value(canonical.get(visit.visit().getId()), "replacement visit"), visit.point(), visit.technicianId(), visit.sequence(), visit.windowStart(), visit.windowEnd()));
+            return new Problem(replacement, versions, updated, configurationVersion, routingIdentity, endpoints, policy);
+        }
+    }
 
     public OptimizationService(JdbcTemplate jdbc, RoadClient roads, DailySolver solver, SearchAdmission admission,
                                org.springframework.transaction.PlatformTransactionManager transactionManager) {
@@ -177,9 +185,10 @@ public class OptimizationService {
         Problem baseline = build(metroId, day);
         if (hasHolds(Required.value(baseline.versions().keySet()), day)) return skipped(metroId, day, baseline, "ACTIVE_RESERVATIONS");
         var before = DayScoreCalculator.evaluate(baseline.plan());
-        TechRoute absent = baseline.plan().getRoutes().stream().filter(route -> route.getId().equals(absentTechnicianId)).findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Technician not in metro"));
-        absent.getUnavailable().add(new TechRoute.Unavailable(localInstant(day, startMin, false), localInstant(day, endMin, true)));
+        if (baseline.plan().getRoutes().stream().noneMatch(route -> route.getId().equals(absentTechnicianId)))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Technician not in metro");
+        baseline = baseline.withPlan(PlanCopies.withAbsence(baseline.plan(), absentTechnicianId,
+                new TechRoute.Unavailable(localInstant(day, startMin, false), localInstant(day, endMin, true))));
         long started = System.nanoTime();
         var repairSearch = solver.solve(baseline.plan(), Required.value(Duration.ofSeconds(15)));
         DayPlan solved = repairSearch.plan();
@@ -334,8 +343,8 @@ public class OptimizationService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing map changed");
             if (!Objects.equals(SavedJson.provenance(Required.value(mapper.readTree(run.weights()))).path("configVersion").asText(), configurationVersion(run.metroId(), Required.value(day))))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Scheduling configuration changed");
-            if (absentTechnicianId != null) current.plan().getRoutes().stream().filter(route -> route.getId().equals(absentTechnicianId))
-                    .forEach(route -> route.getUnavailable().add(new TechRoute.Unavailable(localInstant(Required.value(repairDay, "repair day"), startMin, false), localInstant(Required.value(repairDay, "repair day"), endMin, true))));
+            if (absentTechnicianId != null) current = current.withPlan(PlanCopies.withAbsence(current.plan(), absentTechnicianId,
+                    new TechRoute.Unavailable(localInstant(Required.value(repairDay, "repair day"), startMin, false), localInstant(Required.value(repairDay, "repair day"), endMin, true))));
             JsonNode assignments = SavedJson.assignments(Required.value(mapper.readTree(run.assignments())));
             Map<String, JsonNode> proposed = new HashMap<>();
             for (JsonNode node : assignments) proposed.put(node.path("appointmentId").asText(), node);
@@ -536,10 +545,14 @@ public class OptimizationService {
         visits.forEach(visit -> points.put(visit.visit().getId(), visit.point()));
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
         roads.matrix(points).forEach((pair, leg) -> matrix.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
+        // RoadClient.matrix completed every requested pair; its omitted pairs are explicitly unroutable.
+        Set<String> unreachable = new HashSet<>();
+        for (String from : points.keySet()) for (String to : points.keySet())
+            if (!from.equals(to) && !matrix.containsKey(from + ">" + to)) unreachable.add(from + ">" + to);
         Map<String, Double> settings = new HashMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(Required.string(rs, 1), Required.number(rs, 2)));
         var rates = dev.waterflex.scheduler.BookingSnapshot.Rates.read(settings);
-        DayPlan plan = new DayPlan(Required.value(techs.stream().<TechRoute>map((TechData tech) -> tech.route()).toList()), Required.value(visits.stream().<PlanVisit>map((VisitData visit) -> visit.visit()).toList()), matrix,
+        DayPlan plan = new DayPlan(Required.value(techs.stream().<TechRoute>map((TechData tech) -> tech.route()).toList()), Required.value(visits.stream().<PlanVisit>map((VisitData visit) -> visit.visit()).toList()), matrix, unreachable,
                 rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
         Map<String, Integer> versions = new LinkedHashMap<>();
         for (TechData tech : techs) {
