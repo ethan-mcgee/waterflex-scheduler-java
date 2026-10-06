@@ -78,17 +78,28 @@ export const policyAnalysis = z.object({ version: z.enum(["overtime-fairness-v1"
     overtimeTargetMinutes: z.int().nonnegative(), costCeilingCents: z.int().nonnegative() }),
   rules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: finite.min(0).max(1),
     fairnessAllowance: finite.min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }), costChangeCents: z.int() });
-export const solverAnalysis = z.object({ engine: text, configurationXml: text, phases: z.array(z.object({
+export const solverAnalysis = z.object({ engine: text, configurationXml: text, constructionConfigurationXml: text.nullish(), phases: z.array(z.object({
   name: text, statistics: z.object({ variant: text, seed: z.int(), configurationFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
     termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED"]),
     budgetMs: z.int().positive(), stepLimit: z.int().positive().nullable(), steps: z.int().nonnegative(),
     moveEvaluations: z.int().nonnegative(), scoreCalculations: z.int().nonnegative(), solveMs: z.int().nonnegative(), timeToBestMs: z.int().nonnegative().nullable(),
   }),
 })).min(1) });
+export const dailyOutcome = z.object({
+  mode: z.enum(["ASSIGNED", "COLD", "PARTIAL", "REPAIR"]), scoreModelVersion: z.literal("bendable-decimal-repair-v2"),
+  assignedVisitIds: z.array(text), unassignedVisitIds: z.array(text), complete: z.boolean(),
+  assignedWorkFeasible: z.boolean(), scoringMatchesValidation: z.boolean(), policyEligible: z.boolean(),
+}).refine(value => new Set([...value.assignedVisitIds, ...value.unassignedVisitIds]).size
+  === value.assignedVisitIds.length + value.unassignedVisitIds.length, "Demand identities must occur once")
+  .refine(value => value.complete === (value.unassignedVisitIds.length === 0), "Completeness requires coverage")
+  .refine(value => !value.scoringMatchesValidation || value.assignedWorkFeasible, "Validated scoring requires feasible served work")
+  .refine(value => !value.policyEligible || (value.complete && value.scoringMatchesValidation), "Partial or invalid work is ineligible");
 export const optimization = z.object({
   run_id: text, metro_id: text, service_date: date, status: text, reason: z.string().nullable(),
   solver_status: text, solve_ms: finite.nonnegative(), routing_identity: text, configuration_version: text,
   cost_model_version: costModelVersion.nullish(),
+  score_model_version: z.enum(["hard-medium-soft-decimal-v1", "bendable-decimal-repair-v2"]).nullish(),
+  calculation_outcome: dailyOutcome.nullish(),
   fleet_cost_before_cents: z.int().nonnegative().nullish(), fleet_cost_after_cents: z.int().nonnegative().nullish(),
   objective_improvement: z.int(), churn_penalty_minutes: finite, optimized: z.boolean(),
   appointments_moved: z.int().nonnegative(), created_at: instant, applied_at: instant.nullable(), warnings: z.array(z.string()),
@@ -98,7 +109,9 @@ export const optimization = z.object({
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
 }).refine(value => value.cost_model_version !== "exact-fleet-half-up-v2"
-  || (value.fleet_cost_before_cents != null && value.fleet_cost_after_cents != null), "Current cost model requires recorded fleet costs");
+  || (value.fleet_cost_before_cents != null && value.fleet_cost_after_cents != null), "Current cost model requires recorded fleet costs")
+  .refine(value => value.score_model_version !== "bendable-decimal-repair-v2" || value.calculation_outcome != null,
+    "Current score model requires calculation coverage and validation");
 export const optimizationRuns = z.object({ runs: z.array(optimization) });
 export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,

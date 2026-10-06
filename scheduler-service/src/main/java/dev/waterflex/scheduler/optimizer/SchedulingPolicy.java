@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import org.jspecify.annotations.Nullable;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
@@ -142,7 +143,7 @@ public final class SchedulingPolicy {
         }
         return Integer.compare(left.size(), right.size());
     }
-    private record Assignment(Instant window, String technician, int position, String visit, String original) { }
+    private record Assignment(Instant window, String technician, int position, String visit, @Nullable String original) { }
     private static List<Assignment> assignments(DayPlan plan) {
         List<Assignment> result = new ArrayList<>();
         for (TechRoute route : plan.getRoutes()) for (int position = 0; position < route.getVisits().size(); position++) {

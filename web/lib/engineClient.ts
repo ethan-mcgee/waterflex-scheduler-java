@@ -5,7 +5,7 @@ import { locationValidation } from "./contracts";
 export function validateBookingLocation(point: { lat: number; lng: number }, signal?: AbortSignal) {
   return request("/v1/book/location/validate", locationValidation, point, 8000, signal);
 }
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis, solverAnalysis } from "./contracts";
+import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis, solverAnalysis, dailyOutcome } from "./contracts";
 import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
 // Server-only client for the Java scheduling service. Never import
 // this from a Client Component; it carries the shared internal secret.
@@ -118,6 +118,8 @@ export function validatePurgeRoutes(jobIds: string[], days: Array<{ technicianId
 }
 
 export interface OptimizationRun {
+  score_model_version?: "hard-medium-soft-decimal-v1" | "bendable-decimal-repair-v2" | null;
+  calculation_outcome?: z.infer<typeof dailyOutcome> | null;
   policy_analysis?: z.infer<typeof policyAnalysis> | null;
   solver_analysis?: z.infer<typeof solverAnalysis> | null;
   run_id: string;

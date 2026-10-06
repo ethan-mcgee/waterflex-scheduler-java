@@ -102,6 +102,9 @@ async function main() {
     assert.ok(policy.after.costCents <= policy.decision.costCeilingCents);
     assert.equal(policy.costChangeCents, -preview.objective_improvement);
     assert.equal(preview.cost_model_version, "exact-fleet-half-up-v2");
+    assert.equal(preview.score_model_version, "bendable-decimal-repair-v2");
+    assert.equal(required(preview.calculation_outcome).complete, true);
+    assert.equal(required(preview.calculation_outcome).unassignedVisitIds.length, 0);
     assert.equal(preview.fleet_cost_before_cents, policy.before.costCents);
     assert.equal(preview.fleet_cost_after_cents, policy.after.costCents);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}`, "current", [7.420, 43.735]);
@@ -115,6 +118,12 @@ async function main() {
     assert.equal(incompatibleMoney.status, 409);
     assert.deepEqual(await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } }, orderBy: { id: "asc" } }), beforeInvalidApply);
     await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { weights: required(savedRun.weights) } });
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { weights: { ...provenance, scoreModelVersion: "hard-medium-soft-decimal-v1" } } });
+    const incompatibleScore = await fetch(`${base}/v1/optimize/runs/${runId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(incompatibleScore.status, 409);
+    assert.deepEqual(await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } }, orderBy: { id: "asc" } }), beforeInvalidApply);
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { weights: required(savedRun.weights) } });
+
     await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { scheduleVersions: [] } });
     const invalidApply = await fetch(`${base}/v1/optimize/runs/${runId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(invalidApply.status, 409);

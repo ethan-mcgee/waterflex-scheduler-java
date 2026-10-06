@@ -5,6 +5,7 @@ import dev.waterflex.scheduler.Monetary;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
+import org.jspecify.annotations.Nullable;
 
 /** One immutable revision; planning copies own assignment and shadow state only. */
 public record PlanFacts(List<Technician> technicians, List<Visit> demand,
@@ -12,7 +13,11 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
         double travelBufferPct, long travelBufferMinutes, Set<String> demandServices) {
     public record Technician(String id, Instant start, Instant end, int maxDaily, int maxOvertime,
-            Set<String> qualifications, List<TechRoute.Unavailable> absences) {
+            Set<String> qualifications, List<TechRoute.Unavailable> absences, List<String> pinnedVisits) {
+        public Technician(String id, Instant start, Instant end, int maxDaily, int maxOvertime,
+                Set<String> qualifications, List<TechRoute.Unavailable> absences) {
+            this(id, start, end, maxDaily, maxOvertime, qualifications, absences, Required.value(List.of()));
+        }
         public Technician {
             identity(id, "technician.id"); check(start.isBefore(end), "technician.shift must have start < end");
             check(maxDaily >= 0 && maxOvertime >= 0, "technician.capacity must be nonnegative");
@@ -20,14 +25,17 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
             qualifications.forEach(value -> identity(Required.value(value), "technician.qualification"));
             absences = Required.value(List.copyOf(absences));
             absences.forEach(value -> check(value.start().isBefore(value.end()), "absence must have start < end"));
+            pinnedVisits = Required.value(List.copyOf(pinnedVisits));
+            check(new HashSet<>(pinnedVisits).size() == pinnedVisits.size(), "duplicate pinned visit");
         }
     }
     public record Visit(String id, String service, Instant start, Instant end, int minutes,
-            String originalTechnician, Instant originalStart) {
+            @Nullable String originalTechnician, @Nullable Instant originalStart) {
         public Visit {
-            identity(id, "visit.id"); identity(service, "visit.service"); identity(originalTechnician, "visit.originalTechnician");
+            identity(id, "visit.id"); identity(service, "visit.service");
+            check((originalTechnician == null) == (originalStart == null), "original assignment must be entirely present or absent");
+            if (originalTechnician != null) identity(originalTechnician, "visit.originalTechnician");
             check(start.isBefore(end), "visit.window must have start < end"); check(minutes > 0, "visit.duration must be positive");
-            Objects.requireNonNull(originalStart, "visit.originalStart");
         }
     }
     public PlanFacts {
@@ -88,7 +96,7 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
                 check(assigned.add(visit.getId()), "duplicate assigned visit: " + visit.getId());
             }
         }
-        if (complete) check(assigned.size() == visits.size(), "partial/unassigned daily demand is unsupported until construction is enabled");
+        if (complete) check(assigned.size() == visits.size(), "complete demand coverage is required");
     }
     public static void identity(String id, String field) {
         check(!id.isBlank() && !id.contains(">") && !id.endsWith(":return"), field + " is blank or uses reserved legacy endpoint syntax");

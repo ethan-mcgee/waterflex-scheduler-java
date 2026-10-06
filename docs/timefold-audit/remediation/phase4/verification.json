@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 1,
+  "step": 4,
+  "recordedAtUtc": "2026-10-06T21:00:27.934585+00:00",
+  "startingRevision": "7c0be97def3599ec129f4b81079f86f9a75f7651",
+  "scoreModelVersion": "bendable-decimal-repair-v2",
+  "costModelVersion": "exact-fleet-half-up-v2",
+  "scope": "Construction, explicit unresolved demand, pinned prefixes, lexicographic quantitative repair scoring, independent outcomes and complete-only application. No deployment or performance experiment.",
+  "checks": [
+    {
+      "id": "java-verify",
+      "command": ".\\mvnw.cmd verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/java-verify-final.log",
+      "tests": 222
+    },
+    {
+      "id": "java-nullability",
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/java-nullability-final.log",
+      "tests": 222
+    },
+    {
+      "id": "portal-lint",
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-lint-final-browser.log"
+    },
+    {
+      "id": "portal-typecheck",
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-typecheck-final.log"
+    },
+    {
+      "id": "portal-unit",
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-unit.log",
+      "tests": 107
+    },
+    {
+      "id": "portal-nullability",
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-nullability.log",
+      "tests": 17
+    },
+    {
+      "id": "portal-build",
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-build.log"
+    },
+    {
+      "id": "experiment-regressions",
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/experiment-tests.log",
+      "tests": 63,
+      "skipped": 1,
+      "skipReason": "POSIX process-group test is skipped on Windows"
+    },
+    {
+      "id": "audit-helper-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/audit-helper-tests-final.log",
+      "tests": 10
+    },
+    {
+      "id": "historical-baseline",
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/baseline-preservation-final.log"
+    }
+  ],
+  "historicalBaseline": {
+    "baselineFiles": 225,
+    "historicalFiles": 203,
+    "sourceTrees": 3,
+    "dependencyArtifacts": 101
+  },
+  "pendingAtRecording": [
+    "Exact-head CI: database migration, schema contract, booking/reservation/optimizer/time-off workflows and browser regressions",
+    "Owner review"
+  ],
+  "limits": [
+    "No local database integration or browser run; required exact-head CI is reported in the PR.",
+    "Production scheduling cutoffs, promises and zero-overtime acceptance retained.",
+    "No latency, capacity or production savings claim.",
+    "Steps 5-16 and all benchmark/promotion studies remain pending."
+  ],
+  "failedAttempts": [
+    {
+      "log": "evidence/compile1.log",
+      "reason": "Initial score accessor and renamed benchmark reference compilation errors; corrected before final verification."
+    },
+    {
+      "log": "evidence/construction1.log",
+      "reason": "Initial generic valueToTree inference produced an Object test value; explicitly typed JsonNode before final verification."
+    },
+    {
+      "log": "evidence/audit-helper-tests.log",
+      "reason": "Default Python lacks python-docx; reran successfully using the existing audit environment. No dependency upgrade."
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/audit-helper-tests-final.log",
+      "sha256": "e44a8a073e12256c653b0efde57846121b6e6f5177eeed346b4afaa9defca361",
+      "bytes": 3808,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/audit-helper-tests.log",
+      "sha256": "897442187d88cdeae9b0521cb74c6c002539c94fb2aa15ce5c3486d45d4b6ade",
+      "bytes": 2422,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "retained initial failure"
+    },
+    {
+      "path": "evidence/baseline-preservation-final.log",
+      "sha256": "bc3065dbfdd6000a8a5ef17c786049a6fb2990b69ffdb0650cf579b32f1ff497",
+      "bytes": 344,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/compile1.log",
+      "sha256": "219b19d33947259552c52fd984db2608d2d83e8857d3471a6f15e0da81a5ad0e",
+      "bytes": 43342,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "retained initial failure"
+    },
+    {
+      "path": "evidence/construction1.log",
+      "sha256": "9cf88657a3356314576de527b0d115bf06e9b7afbfd86a680dc90cf5bca10f88",
+      "bytes": 39488,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "retained initial failure"
+    },
+    {
+      "path": "evidence/construction2.log",
+      "sha256": "0cacdf0f6dc221b6228daa267d2b6237b2574e762bcd78d4d3030aeb65c97c08",
+      "bytes": 38248,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/experiment-tests.log",
+      "sha256": "7a81a3df49f10b6a80bd659b7b95e45b06d2de87a983c576426bc1e7d4ed1134",
+      "bytes": 18312,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/focused1.log",
+      "sha256": "063323776a945558d0c2c43cd4ec932cf4c6bfa9c3f563c97b3c050f6f2e2451",
+      "bytes": 38836,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/focused2.log",
+      "sha256": "0534897e33b596d0aee5fbd69b8c4363924b274eeff441d74c44352ba0c3f141",
+      "bytes": 71522,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/java-nullability-final.log",
+      "sha256": "6be3dc752136f79e8d41f05f269d66ada529924fc94f989d143e3648b12ed727",
+      "bytes": 286020,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/java-verify-final.log",
+      "sha256": "d3ef73ef1eac2db7bfb9937f4240a0c2837aa33a73828d9372af0bdf035cec56",
+      "bytes": 244298,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/java-verify1.log",
+      "sha256": "8bc8914249ec33f1891b0c4d8c0b90fcdb08e3238998d0e75b59dccd1e672d7c",
+      "bytes": 244592,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/portal-build.log",
+      "sha256": "6c3b10eef4ef364cda7d39d9f8a71c89a94156ff0072d08f94fabb88b97112e1",
+      "bytes": 8018,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/portal-lint-final-browser.log",
+      "sha256": "eda915d8da378f98daa58c7dc74ad00c0bdacc595c0488f4dd9dde471819d65c",
+      "bytes": 250,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/portal-nullability.log",
+      "sha256": "1e1d43b584354c2dfd75f937ee7090032a9ae2676d2deaad0b1b2c5756734b31",
+      "bytes": 8360,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/portal-typecheck-final.log",
+      "sha256": "06590b6d79f253b2b81b09e2578e8d6ab7221a047d6fbe6d61c65288551af5ad",
+      "bytes": 108,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    },
+    {
+      "path": "evidence/portal-unit.log",
+      "sha256": "a0732c6a9ea4f4bd88a6c4bb1d14203843ad17483427e9af22edc88ba184afcb",
+      "bytes": 19458,
+      "encoding": "UTF-16LE with BOM",
+      "disposition": "passed"
+    }
+  ],
+  "implementationSources": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SavedJson.java",
+      "sha256CanonicalLf": "42e5d32dc4e45f9d89af03f0a2b087429c295f9b7ac5b00eda9a8f9fb8f20841"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/TimeOffService.java",
+      "sha256CanonicalLf": "0ea8f28dafc7562a9478b8db4bf6b1190b9252c2125698b88de73a98c951bd01"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyDataset.java",
+      "sha256CanonicalLf": "e79d790d86601dd26f4fdc39dd83b07b90d572d62cd0d6f6631b9b07cf2385fa"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyOutcome.java",
+      "sha256CanonicalLf": "0217d4a3da1d5b4cd94771edaac25b25d9ff55a28a6906b7665dfaefbfc57138"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "sha256CanonicalLf": "7f4dc064e6a60599078c3cac92ec87e9fff59e3a1b5d4cbf49ffdce08d179594"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayConstraintProvider.java",
+      "sha256CanonicalLf": "f13baaee71c3a1197b3da49159f4f9cf7e1549342390bbb9b5aaf4b0f91bf198"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayPlan.java",
+      "sha256CanonicalLf": "4dfc8237eb3f0453df312c943d8302df6a7a47db88b3952542ec5994d3f4e0b4"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayScoreCalculator.java",
+      "sha256CanonicalLf": "ba8b317d413f3bcab56eb758527f1d334996a5e1539d7ff44ad434c86c7e29cb"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayScores.java",
+      "sha256CanonicalLf": "bab97d7a22d37cc9245628d614e65c0509f535247c9b9b910a463b017834bc59"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "sha256CanonicalLf": "6686d34d95fecd193113a1e9a33eacb144dcc4790d1199eb24ceca2bd0ffd4db"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanCopies.java",
+      "sha256CanonicalLf": "20eb24807ed6202e1dc699bc638dece30007ed2749b18111208160374ee142f2"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanFacts.java",
+      "sha256CanonicalLf": "ad8866b016d2dea4f8d7f2c885d580c59f59cb4f29cd694752f5abdd9abc31ad"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanVisit.java",
+      "sha256CanonicalLf": "6d5f6e3a31f87817d2e3220354cd663110be59fc976919daef061a6b3710069d"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteEvaluator.java",
+      "sha256CanonicalLf": "c241bba917f516f7a45a8a56912b9fcafbe430dafc3cfe671e8e02c9d50878a7"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteScoringFacts.java",
+      "sha256CanonicalLf": "a3407fa3e6f3afb7d4c3af9dc0235e2d47fe6f3cc2e378ac9649c66036003986"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimeline.java",
+      "sha256CanonicalLf": "b3c3cccc58a001848d80fb86487042e65fa62c05388c56d1e6bca718b33baaec"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SchedulingPolicy.java",
+      "sha256CanonicalLf": "601a24530b03e27dd1b59e73ecb6e5f4716e08ce986dd462fd3722fced062286"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SolverExperiment.java",
+      "sha256CanonicalLf": "b253d211321c4675c449feaac4a78c9899e0b8c64f977b2b2552dad0a7d00df5"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/TechRoute.java",
+      "sha256CanonicalLf": "2ad21214a64c9e8921be333cfd92b4706ab5adc0215a6e909439450daa63b0ca"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingMoneyTest.java",
+      "sha256CanonicalLf": "8bf5eebcf837bad0cd7a80fc48558530e3566bd29f9bc18a14d4729e975d10f6"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/MonetaryMigrationDatabaseIT.java",
+      "sha256CanonicalLf": "ecc8b8550f9f6a0dfd6519dc1be8dda174f0d22d1db2bae0bd8162c89624519a"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyConstructionTest.java",
+      "sha256CanonicalLf": "036429e6b9bbf25a0e4e70ad460447936a70208922a26055f15bad04b820eb20"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyDatasetTest.java",
+      "sha256CanonicalLf": "7d3d250de45a0f8c9ea523c4194b2054045ea2a4e784722c46ce1d3a73dad27c"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DayConstraintProviderTest.java",
+      "sha256CanonicalLf": "eb35220cc756ce24d041aab40e9bd7d09d05a1b4391224233e2a7129d702647e"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/PlanFactsTest.java",
+      "sha256CanonicalLf": "a560c22661082be21035d0416451d27ba468209c05adedef2eb82593b54e822e"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverBenchmark.java",
+      "sha256CanonicalLf": "a2916921b36cd113b9da1625fc7132cf07e8f1a847290a8dbf4e048a7a1d3710"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java",
+      "sha256CanonicalLf": "49ee0bcb1ecd40aed650994ec9309c37000f02e624c59399cdce9c2a5437497e"
+    },
+    {
+      "path": "scheduler-service/src/test/resources/daily-dataset-v1.json",
+      "sha256CanonicalLf": "47e7a6660e57840f41f5940d4a5af425e8d610c173fef37c8f6fe96f717b26d9"
+    },
+    {
+      "path": "web/app/dispatch/OptimizationReview.tsx",
+      "sha256CanonicalLf": "8b1bed9dc2d662a2705722c4ca1d607e8467ca88dbf29d44194d1c45085d710e"
+    },
+    {
+      "path": "web/app/time-off/TimeOffDemo.tsx",
+      "sha256CanonicalLf": "636201d35f9f4414672024cc582b0a0de111b2f86feda34aa0e0bd145f6bf60e"
+    },
+    {
+      "path": "web/lib/contracts.ts",
+      "sha256CanonicalLf": "d878f2c69ceb313f6a042179defa5705c2715da632d106367a70953563b84742"
+    },
+    {
+      "path": "web/lib/dailyOutcome.test.ts",
+      "sha256CanonicalLf": "b07d79ab60d44f3e14411b9cb574bc8d49d2654ce24d3cb9b24e67f8ef7406c3"
+    },
+    {
+      "path": "web/lib/engineClient.ts",
+      "sha256CanonicalLf": "c2cef27a6883b3983263140fcbd374c57f0e9b56bd0f560a95da9dca99fd5ff9"
+    },
+    {
+      "path": "web/lib/timeOffView.ts",
+      "sha256CanonicalLf": "dd0defeb474bbe48532102f1cc29d949212f163870f990a4ee85e1ece349a03f"
+    },
+    {
+      "path": "web/prisma/migrations/20261006212000_daily_score_contract/migration.sql",
+      "sha256CanonicalLf": "4bd4378d179b013ce472b21b7159ca53da455b98063531580ef4deff31dbf2f6"
+    },
+    {
+      "path": "web/scripts/smoke-optimizer.ts",
+      "sha256CanonicalLf": "efb7bf8fd55878338b411f574f2510d1b90f46fb3268806d5fe273a524b6c498"
+    },
+    {
+      "path": "web/scripts/smoke-time-off.ts",
+      "sha256CanonicalLf": "da41571c6915a64a3c70279b77a31c9cb9214c1cfe83c7d548e69ac0f1ecb4ec"
+    },
+    {
+      "path": "web/tests/nullability.spec.ts",
+      "sha256CanonicalLf": "4d3c859cfbe4ee10caeecad69ed0f217812aa468913e521e3d2a9b519745d978"
+    }
+  ]
+}

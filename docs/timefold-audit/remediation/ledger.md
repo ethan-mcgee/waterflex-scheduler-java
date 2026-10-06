@@ -8,12 +8,13 @@ Owner means the numbered implementation step accountable for completion, not a p
 | --- | --- |
 | Step 1 | Implemented and reviewed in [PR #51](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/51), merged as `e197204ee72ab6b6aae0c2943b0e42633fd344b0`. Starting receipts remain immutable. |
 | Step 2 / TF03 / TF10 | Implemented and reviewed in [PR #52](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/52), merged as `076966698ebf8fa54127ec8d592666616969833b`. Strict daily datasets, validation before maps/copy, immutable facts, clone isolation and missing/unreachable distinction. [Contracts](phase2/README.md), [local receipt](phase2/verification.json) and [successful exact-head CI](https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37518942658). Earlier receipts remain unchanged. |
-| Step 3 / TF04 | Implementation delivered in [PR #53](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/53): exact decimal rates, rational labor/mileage, fleet half-up rounding, before/after booking deltas, decimal migration receipts, compatible reporting and stale-model guards. See [phase 3 contract/rollout/tests](phase3/README.md) and [local verification receipt](phase3/verification.json). Correction receipts preserve failed CI attempts and updated source identities. Required CI status is recorded in the PR; owner review remains the delivery gate. |
-| TF02 | Interim assigned-input rejection implemented by step 2. Construction, unassigned demand and repair scoring remain pending step 4. |
+| Step 3 / TF04 | Implemented and reviewed in [PR #53](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/53), merged as `7c0be97def3599ec129f4b81079f86f9a75f7651`: exact decimals, rational labor/mileage, fleet rounding, booking deltas, migration receipts and stale-model guards. See [phase 3 contract/rollout/tests](phase3/README.md), [local receipt](phase3/verification.json) and [successful exact-head CI](https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37526208805). Correction receipts preserve failed attempts. |
+| Step 4 / TF02 / TF06 / CR02 | Construction, assigned/cold/partial/repair modes, explicit unresolved demand, nullable new-demand origins, pinned prefixes, quantitative repair gradients and complete-only application implemented. [Contracts/rollout](phase4/README.md), [local receipt](phase4/verification.json); exact-head integration/CI and owner review are delivery gates recorded in the PR. |
+| CR03 | Step 4 implements feasibility/coverage/target ordering and complete compatible reference validation. Nonzero-overtime fairness skipping and its policy explanation remain pending step 9. |
 | CR09 | Step 2 daily indexed contract and dense/sparse correctness delivered. Booking/service integration and encoding performance selection remain pending steps 8/15. |
 | TF01 / TF08 / CR10 | Step 2 provides validated offline daily input and compatible immutable copying; service/workflow extraction and new isolated constraint/native compatibility probes remain pending their owner steps. |
 
-All benchmark studies and steps 4-16 remain pending. Step 3 awaits its review/verification delivery gate. No experimental recommendation has an adopt/reject performance disposition yet.
+All benchmark studies and steps 5-16 remain pending. Step 4 awaits its review/verification delivery gate. No experimental recommendation has an adopt/reject performance disposition yet.
 
 ## Delivery sequence
 
@@ -101,7 +102,7 @@ These rows cover the benchmark redesign sections and the accepted plan's measure
 
 ## Existing characterization replacement map
 
-Retain the original test/log identities in baseline.json when these tests change. A passing characterization currently reproduces a defect.
+Retain the original test/log identities in baseline.json when these tests change. All seven characterizations now assert desired behavior after steps 2-4; their original evidence remains immutable.
 
 | Existing TimefoldAuditEvidenceTest method | Desired replacement owner |
 | --- | --- |
@@ -117,4 +118,4 @@ Retain the original test/log identities in baseline.json when these tests change
 
 Every implementation PR runs Java 25 Maven verify and `-Pnullability clean verify`. Interface/persisted-data changes additionally run portal lint/typecheck/nullability/unit/build. Migrations/workflows require schema-contract and DB integration; affected booking/reservation/optimizer/time-off/cancellation/browser regressions remain gates. Benchmark changes run experiment/archive/import/resume/evidence checks; packaging/CI changes validate workflows and Compose. Never weaken nullability or fabricate scheduling defaults to pass.
 
-Historical baseline: see baseline.json. Phase 1 verification: see verification.json. Step 2 evidence: see phase2/verification.json and PR #52/CI. Step 3 evidence: see phase3/verification.json and its associated PR/CI. Overall audit: **open**. Step 4 awaits step 3 review; performance studies have not started.
+Historical baseline: see baseline.json. Phase 1 verification: see verification.json. Step 2 evidence: see phase2/verification.json and PR #52/CI. Step 3 evidence: see phase3/verification.json and PR #53/CI. Step 4 evidence: see phase4/verification.json and its associated PR/CI. Overall audit: **open**. Step 4 awaits owner review and its exact-head verification gates; performance studies have not started.

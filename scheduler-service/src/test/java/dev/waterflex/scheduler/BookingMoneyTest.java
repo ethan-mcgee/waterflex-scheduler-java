@@ -41,7 +41,7 @@ class BookingMoneyTest {
         var factory = SolverFactory.<DayPlan>create(new SolverConfig().withSolutionClass(DayPlan.class)
                 .withEntityClasses(TechRoute.class, PlanVisit.class).withConstraintProviderClass(DayConstraintProvider.class));
         SolutionManager.create(factory).update(full);
-        assertEquals(-1, Required.value(full.getScore()).softScore().longValueExact());
+        assertEquals(-1, Required.value(full.getScore()).softScore(1).longValueExact());
         assertEquals(2, evaluator.route("a", Required.value(after.routes().get("a")), facts, false).costCents()
                 + evaluator.route("b", Required.value(after.routes().get("b")), facts, false).costCents());
         Arrangement repartitioned = new Arrangement(Required.value(Map.of("a", List.of("old", "new"), "b", List.of())));
