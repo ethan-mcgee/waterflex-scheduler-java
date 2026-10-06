@@ -78,12 +78,27 @@ export const policyAnalysis = z.object({ version: z.enum(["overtime-fairness-v1"
     overtimeTargetMinutes: z.int().nonnegative(), costCeilingCents: z.int().nonnegative() }),
   rules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: finite.min(0).max(1),
     fairnessAllowance: finite.min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }), costChangeCents: z.int() });
+const legacySolverStatistics = z.object({ variant: text, seed: z.int(), configurationFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED"]),
+  budgetMs: z.int().positive(), stepLimit: z.int().positive().nullable(), steps: z.int().nonnegative(),
+  moveEvaluations: z.int().nonnegative(), scoreCalculations: z.int().nonnegative(), solveMs: z.int().nonnegative(), timeToBestMs: z.int().nonnegative().nullable(),
+  format: z.undefined(),
+});
+const engineProvenance = z.object({ artifact: z.literal("timefold-solver-core"), version: text.nullable(),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(), unavailableReason: text.nullable(),
+}).refine(v => (v.unavailableReason != null) === (v.version == null) && (v.unavailableReason != null) === (v.sha256 == null), "Missing artifact provenance needs a reason");
+const solverStatisticsV2 = legacySolverStatistics.extend({ format: z.literal(2),
+  termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN"]),
+  steps: z.int().nonnegative().nullable(), moveEvaluations: z.int().nonnegative().nullable(), scoreCalculations: z.int().nonnegative().nullable(),
+  diagnosticsUnavailableReason: text.nullable(), timeToBestUnavailableReason: text.nullable(), terminationBasis: z.enum(["OBSERVED", "INFERRED"]),
+  environmentMode: z.enum(["NO_ASSERT", "FULL_ASSERT", "NON_INTRUSIVE_FULL_ASSERT", "PHASE_ASSERT"]),
+  instrumentation: z.enum(["NONE", "TIMEFOLD_INTERNAL_2_6_0"]), provenance: engineProvenance,
+}).refine(v => [v.steps, v.moveEvaluations, v.scoreCalculations].every(n => (n == null) === (v.diagnosticsUnavailableReason != null)), "Unavailable counters need a reason")
+  .refine(v => (v.timeToBestMs == null) === (v.timeToBestUnavailableReason != null), "Unavailable time to best needs a reason")
+  .refine(v => (["SOLVE_RETURNED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
+    : v.terminationBasis === "INFERRED" && v.diagnosticsUnavailableReason == null), "Stopping cause must distinguish inference from observation");
 export const solverAnalysis = z.object({ engine: text, configurationXml: text, constructionConfigurationXml: text.nullish(), phases: z.array(z.object({
-  name: text, statistics: z.object({ variant: text, seed: z.int(), configurationFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-    termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED"]),
-    budgetMs: z.int().positive(), stepLimit: z.int().positive().nullable(), steps: z.int().nonnegative(),
-    moveEvaluations: z.int().nonnegative(), scoreCalculations: z.int().nonnegative(), solveMs: z.int().nonnegative(), timeToBestMs: z.int().nonnegative().nullable(),
-  }),
+  name: text, statistics: z.union([solverStatisticsV2, legacySolverStatistics]),
 })).min(1) });
 export const dailyOutcome = z.object({
   mode: z.enum(["ASSIGNED", "COLD", "PARTIAL", "REPAIR"]), scoreModelVersion: z.literal("bendable-decimal-repair-v2"),

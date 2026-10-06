@@ -67,10 +67,35 @@ public final class SavedJson {
             text(Required.value(phase), "name"); JsonNode statistics = object(Required.value(phase.path("statistics")));
             text(statistics, "variant");
             if (!text(statistics, "configurationFingerprint").matches("[a-f0-9]{64}")) throw invalid();
-            if (!java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED").contains(text(statistics, "termination"))) throw invalid();
+            boolean current = statistics.has("format");
+            if (current && integer(statistics, "format") != 2) throw invalid();
+            String termination = text(statistics, "termination");
+            if (!(current ? java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN")
+                    : java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED")).contains(termination)) throw invalid();
             integer(statistics, "seed");
-            for (String key : new String[]{"budgetMs", "steps", "moveEvaluations", "scoreCalculations", "solveMs"})
+            for (String key : new String[]{"budgetMs", "solveMs"})
                 if (integer(statistics, Required.value(key)) < 0) throw invalid();
+            boolean unavailable = current && statistics.hasNonNull("diagnosticsUnavailableReason");
+            for (String key : new String[]{"steps", "moveEvaluations", "scoreCalculations"}) {
+                if (unavailable) { if (!statistics.path(key).isNull()) throw invalid(); }
+                else if (integer(statistics, Required.value(key)) < 0) throw invalid();
+            }
+            if (current) {
+                nullableText(statistics, "diagnosticsUnavailableReason");
+                nullableText(statistics, "timeToBestUnavailableReason");
+                if (statistics.path("timeToBestMs").isNull() != statistics.hasNonNull("timeToBestUnavailableReason")) throw invalid();
+                String basis = text(statistics, "terminationBasis");
+                boolean observed = java.util.Set.of("SOLVE_RETURNED", "TERMINATED_EARLY", "NOT_RUN").contains(termination);
+                if (!(observed ? "OBSERVED" : "INFERRED").equals(basis) || (!observed && unavailable)) throw invalid();
+                if (!java.util.Set.of("NO_ASSERT", "FULL_ASSERT", "NON_INTRUSIVE_FULL_ASSERT", "PHASE_ASSERT").contains(text(statistics, "environmentMode"))) throw invalid();
+                if (!java.util.Set.of("NONE", "TIMEFOLD_INTERNAL_2_6_0").contains(text(statistics, "instrumentation"))) throw invalid();
+                JsonNode provenance = object(Required.value(statistics.path("provenance")));
+                if (!"timefold-solver-core".equals(text(provenance, "artifact"))) throw invalid();
+                nullableText(provenance, "version"); nullableText(provenance, "sha256"); nullableText(provenance, "unavailableReason");
+                boolean missing = provenance.hasNonNull("unavailableReason");
+                if (missing != provenance.path("version").isNull() || missing != provenance.path("sha256").isNull()) throw invalid();
+                if (!missing && !text(provenance, "sha256").matches("[a-f0-9]{64}")) throw invalid();
+            }
             if (integer(statistics, "budgetMs") == 0) throw invalid();
             for (String key : new String[]{"stepLimit", "timeToBestMs"}) {
                 if (!statistics.has(key)) throw invalid();
@@ -79,6 +104,10 @@ public final class SavedJson {
             if (statistics.hasNonNull("stepLimit") && integer(statistics, "stepLimit") == 0) throw invalid();
         }
         return node;
+    }
+    private static void nullableText(JsonNode node, String field) {
+        if (!node.has(field)) throw invalid();
+        if (!node.path(field).isNull()) text(node, field);
     }
     public static JsonNode policyAnalysis(JsonNode node) {
         object(node);

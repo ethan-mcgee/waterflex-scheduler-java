@@ -1,0 +1,57 @@
+name: Solver assertion campaigns
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scheduler-service/**'
+      - '.github/workflows/solver-assertions.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  assertions:
+    name: ${{ matrix.mode }} correctness campaign
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [FULL_ASSERT, NON_INTRUSIVE_FULL_ASSERT, PHASE_ASSERT]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run bounded campaign once with retained receipts
+        env:
+          MODE: ${{ matrix.mode }}
+          REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+          OUTPUT: ${{ github.workspace }}/artifacts/assertions/${{ matrix.mode }}-${{ github.run_id }}-${{ github.run_attempt }}.jsonl
+          EVENT: ${{ github.event_name }}
+        run: |
+          profile=solver-assertions
+          if [ "$MODE" = PHASE_ASSERT ]; then profile=phase-assert-evaluation; fi
+          budget=2000
+          if [ "$EVENT" = pull_request ]; then budget=250; fi
+          ./mvnw -pl scheduler-service -P"$profile" test --batch-mode --no-transfer-progress \
+            -Dassertions.mode="$MODE" -Dassertions.budgetMs="$budget" \
+            -Dassertions.revision="$REVISION" -Dassertions.output="$OUTPUT"
+      - name: Preserve successful, failed and interrupted evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: solver-assertions-${{ matrix.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/assertions/
+            scheduler-service/target/surefire-reports/
+          retention-days: 30
+          if-no-files-found: error
