@@ -26,8 +26,10 @@ class RouteTimelineTest {
     @Test void doesNotPruneAGroupBecauseAnIntermediateStopCannotReturnDirectly() {
         for (boolean unreachable : List.of(false, true)) {
             DayPlan day = intervalChoicePlan();
-            if (unreachable) day.getMatrix().remove("first>home:return");
-            else day.getMatrix().put("first>home:return", new DayPlan.RoadLeg(36000, 100000));
+            Map<String, DayPlan.RoadLeg> roads = new HashMap<>(day.getMatrix());
+            if (unreachable) roads.remove("first>home:return");
+            else roads.put("first>home:return", new DayPlan.RoadLeg(36000, 100000));
+            day = withRoads(day, roads);
             var result = RouteEvaluator.evaluate(day);
             assertTrue(result.feasible());
             assertEquals(150, result.paidMinutes());
@@ -48,6 +50,9 @@ class RouteTimelineTest {
         return new DayPlan(Required.value(List.of(route)), Required.value(List.of(first, second)), matrix, 30, 45, 0.67, 0, 0);
     }
 
+    private static DayPlan withRoads(DayPlan day, Map<String, DayPlan.RoadLeg> roads) {
+        return new DayPlan(day.getRoutes(), day.getVisits(), roads, day.getRegularHourly(), day.getOvertimeHourly(), day.getMileagePerMile(), day.getTravelBufferPct(), day.getTravelBufferMinutes());
+    }
     private static Instant at(String value) { return Required.value(Instant.parse("2026-09-21T" + value + "Z")); }
 
     private static DayPlan plan(int maxDaily, Instant absenceStart, Instant absenceEnd) {
@@ -94,10 +99,12 @@ class RouteTimelineTest {
             DayPlan day = plan(500, at("17:00:00"), at("18:00:00"));
             int outboundSeconds = depotStart ? 1200 : 600;
             int returnSeconds = depotReturn ? 1800 : 600;
+            Map<String, DayPlan.RoadLeg> roads = new HashMap<>(day.getMatrix());
             for (String stop : List.of("first", "second")) {
-                day.getMatrix().put("home>" + stop, new DayPlan.RoadLeg(outboundSeconds, 1000));
-                day.getMatrix().put(stop + ">home:return", new DayPlan.RoadLeg(returnSeconds, 2000));
+                roads.put("home>" + stop, new DayPlan.RoadLeg(outboundSeconds, 1000));
+                roads.put(stop + ">home:return", new DayPlan.RoadLeg(returnSeconds, 2000));
             }
+            day = withRoads(day, roads);
             var independent = RouteEvaluator.evaluate(day);
             var score = DayScoreCalculator.evaluate(day);
             assertTrue(independent.feasible(), depotStart + " to " + depotReturn);
@@ -115,9 +122,8 @@ class RouteTimelineTest {
         PlanVisit unknown = new PlanVisit("unknown", "service", at("19:00:00"), at("20:00:00"),
                 60, "home", at("19:00:00"));
         route.getVisits().set(1, unknown);
-        plan.getMatrix().put("home>unknown", new DayPlan.RoadLeg(600, 3000));
-        plan.getMatrix().put("unknown>home:return", new DayPlan.RoadLeg(600, 3000));
-        assertFalse(RouteEvaluator.evaluate(plan).feasible());
+        assertThrows(IllegalArgumentException.class, () -> RouteEvaluator.evaluate(plan));
+        assertThrows(IllegalArgumentException.class, () -> PlanCopies.copy(plan));
     }
 
     @Test
@@ -158,7 +164,7 @@ class RouteTimelineTest {
         DayPlan day = plan(600, at("22:00:00"), at("23:00:00"));
         PlanVisit first = new PlanVisit("first", "service", at("14:00:00"), at("19:00:00"), 60, "home", at("14:00:00"));
         day.getRoutes().getFirst().getVisits().set(0, first);
-        day.setVisits(Required.value(List.of(first, day.getVisits().get(1))));
+        day = new DayPlan(day.getRoutes(), Required.value(List.of(first, day.getVisits().get(1))), day.getMatrix(), day.getRegularHourly(), day.getOvertimeHourly(), day.getMileagePerMile(), day.getTravelBufferPct(), day.getTravelBufferMinutes());
         var result = RouteEvaluator.evaluate(day);
         assertTrue(result.feasible());
         assertEquals(0, result.waitingMinutes());

@@ -30,7 +30,9 @@ public class PlanVisit {
         this.originalPlannedStart = originalPlannedStart;
     }
     public String getId() { return Required.value(id, "PlanVisit.id before initialization"); }
-    public void setId(String id) { this.id = id; }
+    PlanFacts.Visit facts() {
+        return new PlanFacts.Visit(getId(), getServiceId(), getWindowStart(), getWindowEnd(), getDurationMinutes(), getOriginalTechnicianId(), getOriginalPlannedStart());
+    }
     public String getServiceId() { return Required.value(serviceId, "PlanVisit.serviceId before initialization"); }
     public Instant getWindowStart() { return Required.value(windowStart, "PlanVisit.windowStart before initialization"); }
     public Instant getWindowEnd() { return Required.value(windowEnd, "PlanVisit.windowEnd before initialization"); }

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "operation": "DAILY",
+  "mode": "ASSIGNED",
+  "snapshotId": "fixture-only",
+  "contentHash": null,
+  "versions": {"policy": "zero-overtime-four-hour-v2", "cost": "legacy-double-v1", "score": "hard-medium-soft-decimal-v1"},
+  "routing": {"provider": "fixture", "profile": "car", "identity": "asymmetric-v1"},
+  "revisions": {"schedule": ["s0", "s1"], "configuration": "c0", "reservation": "r0"},
+  "search": {"variant": "TABU", "seed": 17, "remainingMillis": 20000},
+  "rates": {"regularHourly": "20.0200", "overtimeHourly": "30.03", "mileagePerMile": "0.67", "travelBufferPct": "0", "travelBufferMinutes": 0},
+  "locations": [
+    {"id": "departure0", "latitude": 41, "longitude": -96},
+    {"id": "return0", "latitude": 41.01, "longitude": -96},
+    {"id": "departure1", "latitude": 41, "longitude": -96.01},
+    {"id": "return1", "latitude": 41.01, "longitude": -96.01},
+    {"id": "customer0", "latitude": 41.02, "longitude": -96.02},
+    {"id": "customer1", "latitude": 41.03, "longitude": -96.03}
+  ],
+  "services": [{"id": "service"}],
+  "technicians": [
+    {"id": "t0", "departureLocation": 0, "returnLocation": 1, "shiftStart": "2026-10-12T10:00:00Z", "shiftEnd": "2026-10-12T16:00:00Z", "maxDailyMinutes": 360, "maxOvertimeMinutes": 0, "qualifications": [0], "absences": [], "assigned": [0], "pinnedPrefix": 0},
+    {"id": "t1", "departureLocation": 2, "returnLocation": 3, "shiftStart": "2026-10-12T10:00:00Z", "shiftEnd": "2026-10-12T16:00:00Z", "maxDailyMinutes": 360, "maxOvertimeMinutes": 0, "qualifications": [0], "absences": [], "assigned": [1], "pinnedPrefix": 0}
+  ],
+  "visits": [
+    {"id": "v0", "service": 0, "location": 4, "windowStart": "2026-10-12T10:00:00Z", "windowEnd": "2026-10-12T14:00:00Z", "durationMinutes": 60, "originalTechnician": 0, "originalPlannedStart": "2026-10-12T10:00:00Z"},
+    {"id": "v1", "service": 0, "location": 5, "windowStart": "2026-10-12T10:00:00Z", "windowEnd": "2026-10-12T14:00:00Z", "durationMinutes": 60, "originalTechnician": 1, "originalPlannedStart": "2026-10-12T10:00:00Z"}
+  ],
+  "unassigned": [],
+  "roads": {"encoding": "SPARSE", "size": 6, "entries": [
+    {"from": 0, "to": 4, "state": "REACHABLE", "seconds": 60, "meters": 100},
+    {"from": 0, "to": 5, "state": "REACHABLE", "seconds": 120, "meters": 200},
+    {"from": 2, "to": 4, "state": "REACHABLE", "seconds": 180, "meters": 300},
+    {"from": 2, "to": 5, "state": "REACHABLE", "seconds": 240, "meters": 400},
+    {"from": 4, "to": 1, "state": "REACHABLE", "seconds": 300, "meters": 500},
+    {"from": 5, "to": 1, "state": "REACHABLE", "seconds": 360, "meters": 600},
+    {"from": 4, "to": 3, "state": "REACHABLE", "seconds": 420, "meters": 700},
+    {"from": 5, "to": 3, "state": "REACHABLE", "seconds": 480, "meters": 800},
+    {"from": 4, "to": 5, "state": "REACHABLE", "seconds": 540, "meters": 900},
+    {"from": 5, "to": 4, "state": "REACHABLE", "seconds": 600, "meters": 1000}
+  ]}
+}

@@ -64,6 +64,8 @@ public final class SolverExperiment {
 
     public static Result solve(Definition definition, DayPlan initial, Duration budget) {
         if (budget.isNegative() || budget.isZero()) throw new IllegalArgumentException("Positive solver budget required");
+        initial.getFacts().validateEntities(initial, true);
+        initial.getFacts().requireSearchRoads();
         // The override replaces termination configuration; preserve the diagnostic step cap explicitly.
         var termination = new ai.timefold.solver.core.config.solver.termination.TerminationConfig().withSpentLimit(budget);
         termination.setStepCountLimit(definition.stepLimit());

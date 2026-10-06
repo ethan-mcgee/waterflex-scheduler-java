@@ -14,6 +14,7 @@ public final class DayScoreCalculator {
                              long overtimeMinutes, long meters, long driveMinutes, long waitingMinutes) { }
 
     public static Evaluation evaluate(DayPlan plan) {
+        plan.getFacts().validateEntities(plan, false);
         long hard = 0, paid = 0, overtime = 0, meters = 0, drive = 0, waiting = 0;
         Map<String, Instant> arrivals = new HashMap<>();
         for (TechRoute route : plan.getRoutes()) {
