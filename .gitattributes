@@ -13,3 +13,4 @@ infra/build-scheduler-algorithm-comparison.py text eol=lf
 docs/evidence/reliable-experiments-validation-2026-09-30/** -text whitespace=cr-at-eol
 docs/evidence/reliable-experiments-validation-2026-09-30/**/*.svg -diff
 docs/timefold-documentation/Timefold-Solver-Docs.md -text whitespace=cr-at-eol
+docs/timefold-audit/Timefold_Second_Review.md -text whitespace=cr-at-eol
