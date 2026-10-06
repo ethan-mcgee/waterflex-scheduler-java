@@ -1,0 +1,258 @@
+Failed to find real location of C:\Python314\python.exe
+test_campaign_arithmetic_rejects_wrong_counts (test_verification.EvidenceBoundaryTest.test_campaign_arithmetic_rejects_wrong_counts) ... ok
+test_campaign_null_and_nonfinite_inputs_rejected (test_verification.EvidenceBoundaryTest.test_campaign_null_and_nonfinite_inputs_rejected) ... ok
+test_changed_evidence_rejected (test_verification.EvidenceBoundaryTest.test_changed_evidence_rejected) ... ok
+test_community_and_resource_contract_rejects_incompatible_design (test_verification.EvidenceBoundaryTest.test_community_and_resource_contract_rejects_incompatible_design) ... ok
+test_duplicate_fields_rejected (test_verification.EvidenceBoundaryTest.test_duplicate_fields_rejected) ... ERROR
+test_nonfinite_rejected (test_verification.EvidenceBoundaryTest.test_nonfinite_rejected) ... ERROR
+test_parameter_inventory_missing_null_unknown_and_nonfinite_fields_rejected (test_verification.EvidenceBoundaryTest.test_parameter_inventory_missing_null_unknown_and_nonfinite_fields_rejected) ... ok
+test_word_link_target_mismatch_rejected (test_verification.EvidenceBoundaryTest.test_word_link_target_mismatch_rejected) ... ERROR
+test_word_omission_and_reordering_rejected (test_verification.EvidenceBoundaryTest.test_word_omission_and_reordering_rejected) ... ERROR
+test_worked_arithmetic_is_bound_to_json_parameters (test_verification.EvidenceBoundaryTest.test_worked_arithmetic_is_bound_to_json_parameters) ... ok
+
+======================================================================
+ERROR: test_duplicate_fields_rejected (test_verification.EvidenceBoundaryTest.test_duplicate_fields_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 14, in test_duplicate_fields_rejected
+    path=Path(directory)/'input.json';path.write_text('{"cost":1,"cost":2}')
+                                      ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 814, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxdus_a6w\\input.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxdus_a6w'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 13, in test_duplicate_fields_rejected
+    with tempfile.TemporaryDirectory() as directory:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpxdus_a6w'
+
+======================================================================
+ERROR: test_nonfinite_rejected (test_verification.EvidenceBoundaryTest.test_nonfinite_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 20, in test_nonfinite_rejected
+    path.write_text('{"cost":'+value+'}')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 814, in write_text
+    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\pathlib\__init__.py", line 776, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp4be73ztn\\input.json'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp4be73ztn'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 17, in test_nonfinite_rejected
+    with tempfile.TemporaryDirectory() as directory:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmp4be73ztn'
+
+======================================================================
+ERROR: test_word_link_target_mismatch_rejected (test_verification.EvidenceBoundaryTest.test_word_link_target_mismatch_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 33, in test_word_link_target_mismatch_rejected
+    inline(doc.add_paragraph(), '[Guide](https://example.com/wrong)');doc.save(path)
+                                                                      ~~~~~~~~^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\document.py", line 204, in save
+    self._part.save(path_or_stream)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\parts\document.py", line 114, in save
+    self.package.save(path_or_stream)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\opc\package.py", line 166, in save
+    PackageWriter.write(pkg_file, self.rels, self.parts)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\opc\pkgwriter.py", line 34, in write
+    phys_writer = PhysPkgWriter(pkg_file)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\opc\phys_pkg.py", line 109, in __init__
+    self._zipf = ZipFile(pkg_file, "w", compression=ZIP_DEFLATED)
+                 ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\zipfile\__init__.py", line 1440, in __init__
+    self.fp = io.open(file, filemode)
+              ~~~~~~~^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpd3mb06rj\\report.docx'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpd3mb06rj'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 31, in test_word_link_target_mismatch_rejected
+    with tempfile.TemporaryDirectory() as directory:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmpd3mb06rj'
+
+======================================================================
+ERROR: test_word_omission_and_reordering_rejected (test_verification.EvidenceBoundaryTest.test_word_omission_and_reordering_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 26, in test_word_omission_and_reordering_rejected
+    path=Path(directory)/'report.docx';doc=Document();doc.add_paragraph('First');doc.add_paragraph('Second');doc.save(path)
+                                                                                                             ~~~~~~~~^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\document.py", line 204, in save
+    self._part.save(path_or_stream)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\parts\document.py", line 114, in save
+    self.package.save(path_or_stream)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\opc\package.py", line 166, in save
+    PackageWriter.write(pkg_file, self.rels, self.parts)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\opc\pkgwriter.py", line 34, in write
+    phys_writer = PhysPkgWriter(pkg_file)
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\.scratch\timefold-audit-python\Lib\site-packages\docx\opc\phys_pkg.py", line 109, in __init__
+    self._zipf = ZipFile(pkg_file, "w", compression=ZIP_DEFLATED)
+                 ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\zipfile\__init__.py", line 1440, in __init__
+    self.fp = io.open(file, filemode)
+              ~~~~~~~^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmptpfjdheg\\report.docx'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Python314\Lib\shutil.py", line 707, in _rmtree_unsafe
+    os.rmdir(path)
+    ~~~~~~~~^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmptpfjdheg'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\docs\timefold-audit\test_verification.py", line 25, in test_word_omission_and_reordering_rejected
+    with tempfile.TemporaryDirectory() as directory:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\shutil.py", line 711, in _rmtree_unsafe
+    onexc(os.rmdir, path, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 927, in onexc
+    _resetperms(path)
+    ~~~~~~~~~~~^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 287, in _resetperms
+    _dont_follow_symlinks(_os.chmod, path, 0o700)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\tempfile.py", line 276, in _dont_follow_symlinks
+    func(path, *args, follow_symlinks=False)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [WinError 5] Access is denied: 'C:\\Users\\mcgee\\AppData\\Local\\Packages\\sandbox.{0375db3b-1efb-4680-a8ec-b22e7ba6be12}\\AC\\Temp\\tmptpfjdheg'
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.104s
+
+FAILED (errors=4)

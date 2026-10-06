@@ -14,3 +14,4 @@ docs/evidence/reliable-experiments-validation-2026-09-30/** -text whitespace=cr-
 docs/evidence/reliable-experiments-validation-2026-09-30/**/*.svg -diff
 docs/timefold-documentation/Timefold-Solver-Docs.md -text whitespace=cr-at-eol
 docs/timefold-audit/Timefold_Second_Review.md -text whitespace=cr-at-eol
+docs/timefold-audit/remediation/phase5/evidence/** -text -whitespace

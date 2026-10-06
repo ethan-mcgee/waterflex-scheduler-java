@@ -75,6 +75,18 @@ test("solver diagnostics require measured phase counts and explicit unavailable 
     assert.equal(solverAnalysis.safeParse({ ...result, phases: [{ name: "REFERENCE", statistics: invalid }] }).success, false);
 });
 
+test("v2 solver diagnostics preserve nulls and reject missing reasons or false observation", () => {
+  const statistics = { format: 2, variant: "TABU", seed: 17, configurationFingerprint: "a".repeat(64), termination: "SOLVE_RETURNED",
+    budgetMs: 100, stepLimit: null, steps: null, moveEvaluations: null, scoreCalculations: null, solveMs: 120, timeToBestMs: null,
+    diagnosticsUnavailableReason: "NOT_ENABLED", timeToBestUnavailableReason: "NOT_ENABLED", terminationBasis: "OBSERVED", environmentMode: "NO_ASSERT", instrumentation: "NONE",
+    provenance: { artifact: "timefold-solver-core", version: "2.6.0", sha256: "b".repeat(64), unavailableReason: null } };
+  const parse = (value: unknown) => solverAnalysis.safeParse({ engine: "Timefold-2.6.0", configurationXml: "<solver/>", phases: [{ name: "REFERENCE", statistics: value }] }).success;
+  assert.equal(parse(statistics), true);
+  for (const invalid of [{ ...statistics, diagnosticsUnavailableReason: null }, { ...statistics, steps: 0 },
+    { ...statistics, timeToBestUnavailableReason: undefined }, { ...statistics, termination: "TIME_LIMIT" },
+    { ...statistics, provenance: { ...statistics.provenance, sha256: null } }, { ...statistics, format: 3 }]) assert.equal(parse(invalid), false);
+});
+
 test("depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates", () => {
   const candidate = { lat: 41.256, lng: -95.934, precision: "ROOFTOP" as const };
   assert.deepEqual(nearbyCandidate({ lat: 41.257, lng: -95.934 }, [candidate]), candidate);

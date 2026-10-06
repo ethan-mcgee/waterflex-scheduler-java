@@ -1,0 +1,17 @@
+{
+  "recordedAtUtc": "2026-10-06T21:58:35.487527+00:00",
+  "reason": "Explicit nonnull ConstraintVerifier solution type removes the new informational null type-conversion diagnostic. No runtime behavior change. Original verification receipt remains unchanged.",
+  "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+  "status": "passed",
+  "exitCode": 0,
+  "testsIncludingSkipped": 234,
+  "skipped": 1,
+  "log": "evidence/nullability-annotated.log",
+  "logSha256": "510d609ffb07db3ddc97bc0730cd6dcd2bb619888f27df828eb722154c8f526b",
+  "sourceFiles": [
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/ConstraintRulesTest.java",
+      "sha256CanonicalLf": "04c4e99d22b2931f1d2e6d9e3e02f89708926555296ef247e0c78137c6ce2fb6"
+    }
+  ]
+}

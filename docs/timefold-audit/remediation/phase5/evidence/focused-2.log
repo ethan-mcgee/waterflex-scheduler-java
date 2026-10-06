@@ -1,0 +1,203 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 79 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\src\main\java\dev\waterflex\scheduler\BookingService.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ scheduler-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 59 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ scheduler-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.scheduler.optimizer.ConstraintRulesTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.473 s -- in dev.waterflex.scheduler.optimizer.ConstraintRulesTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyConstructionTest
+16:46:22.223 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (6), best score ([0/0/-3/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:22.226 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (3), approximate problem scale (60).
+16:46:22.257 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (40), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (387/sec), step total (3).
+16:46:22.468 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (1595/sec), step total (1).
+16:46:22.469 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (1382/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:22.475 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-2/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:22.475 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (3), approximate problem scale (60).
+16:46:22.479 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (5), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (1750/sec), step total (2).
+16:46:22.725 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (3353/sec), step total (1).
+16:46:22.725 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (3314/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:22.770 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:22.770 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+16:46:22.773 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (4), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (1333/sec), step total (2).
+16:46:23.020 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3493/sec), step total (1).
+16:46:23.020 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3454/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:23.024 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:23.024 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+16:46:23.027 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (4), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (1333/sec), step total (2).
+16:46:23.274 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3485/sec), step total (1).
+16:46:23.274 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3446/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:23.285 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/-1800/0/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:23.285 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+16:46:23.533 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (250), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3758/sec), step total (2).
+16:46:23.533 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (250), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3728/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:23.536 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/-1800/0/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:23.536 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+16:46:23.787 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-1500]soft), move evaluation speed (3920/sec), step total (1).
+16:46:23.787 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-1500]soft), move evaluation speed (3920/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:23.791 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:23.792 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+16:46:23.794 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (4), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (2000/sec), step total (2).
+16:46:24.040 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (250), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3479/sec), step total (1).
+16:46:24.041 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3426/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:24.043 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/-3601/0/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:24.043 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+16:46:24.044 [main] WARN ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase --     No doable selected move at step index (0), time spent (1). Terminating phase early.
+16:46:24.044 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (1), best score ([0/-3601/0/0/0]hard/[0/-1500]soft), move evaluation speed (0/sec), step total (0).
+16:46:24.044 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (1), best score ([0/-3601/0/0/0]hard/[0/-1500]soft), move evaluation speed (0/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:24.349 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:24.350 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:24.363 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (15), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2000/sec), step total (4).
+16:46:24.449 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2800/sec), step total (3).
+16:46:24.449 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2613/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:24.525 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:24.526 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:24.538 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (14), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2363/sec), step total (4).
+16:46:24.624 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3941/sec), step total (4).
+16:46:24.624 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3650/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:24.679 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:24.679 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:24.690 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (12), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2363/sec), step total (4).
+16:46:24.778 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1227/sec), step total (98).
+16:46:24.778 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1340/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:24.829 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:24.829 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:24.836 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (8), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3714/sec), step total (4).
+16:46:24.928 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1307/sec), step total (113).
+16:46:24.928 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1450/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:24.931 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:24.931 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:24.939 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (9), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3250/sec), step total (4).
+16:46:25.030 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (4604/sec), step total (1).
+16:46:25.031 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (4450/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:25.085 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.085 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.094 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (11), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2888/sec), step total (4).
+16:46:25.184 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1466/sec), step total (125).
+16:46:25.184 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1564/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:25.232 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.234 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.242 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (10), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3250/sec), step total (4).
+16:46:25.332 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1155/sec), step total (103).
+16:46:25.332 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1300/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:25.375 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.376 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.384 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (10), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3250/sec), step total (4).
+16:46:25.474 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1101/sec), step total (96).
+16:46:25.474 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1240/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.700 s -- in dev.waterflex.scheduler.optimizer.DailyConstructionTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SolverEngineTest
+16:46:25.549 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.549 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.550 [pool-2-thread-1] WARN io.micrometer.core.instrument.MeterRegistry -- This Gauge has been already registered (MeterId{name='timefold.solver.move.evaluation.count', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+16:46:25.550 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.551 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.699 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (94033/sec), step total (142).
+16:46:25.699 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (93641/sec), step total (139).
+16:46:25.699 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (92393/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:25.699 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (94033/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:25.729 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.730 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.829 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (203040/sec), step total (4).
+16:46:25.829 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (201010/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:25.832 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.832 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:25.932 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (276505/sec), step total (4).
+16:46:25.932 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (273740/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:25.935 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:25.936 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:26.035 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (325808/sec), step total (5).
+16:46:26.035 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (322550/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:26.039 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:26.039 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:26.137 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (354693/sec), step total (5).
+16:46:26.137 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (347600/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:26.141 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:26.141 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:26.241 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (344680/sec), step total (5).
+16:46:26.241 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (344680/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.773 s -- in dev.waterflex.scheduler.optimizer.SolverEngineTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SolverExperimentTest
+16:46:27.598 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:27.598 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:27.697 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4141/sec), step total (5).
+16:46:27.698 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4059/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:27.702 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:27.702 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:27.801 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4414/sec), step total (5).
+16:46:27.801 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4370/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:27.806 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:27.806 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:27.906 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (2880/sec), step total (49).
+16:46:27.906 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (2851/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:27.910 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:27.910 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.009 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3494/sec), step total (81).
+16:46:28.009 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3460/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:28.011 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:28.011 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.111 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16691]soft), move evaluation speed (4930/sec), step total (1).
+16:46:28.111 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16691]soft), move evaluation speed (4930/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:28.115 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:28.115 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.215 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4101/sec), step total (60).
+16:46:28.215 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4060/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:28.219 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:28.219 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.318 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3080/sec), step total (52).
+16:46:28.318 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3050/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:28.323 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+16:46:28.324 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.423 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3444/sec), step total (51).
+16:46:28.423 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3410/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+16:46:28.427 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:28.427 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.527 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (299410/sec), step total (300).
+16:46:28.527 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (299410/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+16:46:28.535 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+16:46:28.535 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+16:46:28.831 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (298), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (337837/sec), step total (1000).
+16:46:28.831 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (298), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (335570/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.578 s -- in dev.waterflex.scheduler.optimizer.SolverExperimentTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  16.070 s
+[INFO] Finished at: 2026-10-06T16:46:28-05:00
+[INFO] ------------------------------------------------------------------------

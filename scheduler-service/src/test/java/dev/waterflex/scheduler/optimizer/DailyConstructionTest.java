@@ -26,10 +26,10 @@ class DailyConstructionTest {
         for (PlanVisit from : visits) for (PlanVisit to : visits) if (from != to) roads.put(from.getId() + ">" + to.getId(), new DayPlan.RoadLeg(0, 0));
         DayPlan plan = new DayPlan(routes, visits, roads, 30, 45, 0, 0, 0); plan.setMode(mode); return plan;
     }
-    private static SolverExperiment.Result solve(DayPlan plan) {
-        return SolverExperiment.solve(SolverExperiment.configuration(SolverExperiment.Variant.TABU, 17, true), plan, Required.value(Duration.ofMillis(250)));
+    private static SolverEngine.Result solve(DayPlan plan) {
+        return SolverExperiment.solve(SolverEngine.configuration(SolverEngine.Variant.TABU, 17, true), plan, Required.value(Duration.ofMillis(250)));
     }
-    private static void coverage(SolverExperiment.Result result, int demand) {
+    private static void coverage(SolverEngine.Result result, int demand) {
         Set<String> identities = new HashSet<>(result.outcome().assignedVisitIds());
         for (String id : result.outcome().unassignedVisitIds()) assertTrue(identities.add(id));
         assertEquals(demand, identities.size()); assertEquals(demand, result.plan().getVisits().size());
@@ -113,9 +113,13 @@ class DailyConstructionTest {
         }
     }
     @Test void everySupportedNeighborhoodConstructsAndPreservesPinningUnderFullAssert() {
-        for (var variant : SolverExperiment.Variant.values()) {
+        for (var variant : SolverEngine.Variant.values()) {
             DayPlan initial = fixture(3, 6, 2, 1, DayPlan.Mode.PARTIAL);
-            var result = SolverExperiment.solve(SolverExperiment.configuration(Required.value(variant), 17, true), initial, Required.value(Duration.ofMillis(100)));
+            if (variant == SolverEngine.Variant.RUIN_RECREATE) {
+                assertThrows(IllegalArgumentException.class, () -> SolverExperiment.solve(SolverEngine.configuration(Required.value(variant), 17, true), initial, Required.value(Duration.ofMillis(100))));
+                continue;
+            }
+            var result = SolverExperiment.solve(SolverEngine.configuration(Required.value(variant), 17, true), initial, Required.value(Duration.ofMillis(100)));
             coverage(result, 6); assertTrue(result.outcome().complete(), variant.name());
             assertTrue(result.outcome().policyEligible(), variant.name());
             assertEquals("v0", result.plan().getRoutes().getFirst().getVisits().getFirst().getId());
@@ -132,7 +136,7 @@ class DailyConstructionTest {
         assertThrows(IllegalArgumentException.class, () -> reference.getScoringFacts().withTarget(reference, 1));
         for (int higher = 0; higher < 4; higher++)
             assertTrue(DayScores.hard(higher).negate().compareTo(DayScores.hard(higher + 1).multiply(-1_000_000)) < 0);
-        reference.setScoringFacts(target); SolutionManager.create(SolverExperiment.configuration(SolverExperiment.Variant.TABU, 17).factory()).update(reference);
+        reference.setScoringFacts(target); SolutionManager.create(SolverEngine.configuration(SolverEngine.Variant.TABU, 17).factory()).update(reference);
         assertEquals(0, Required.value(reference.getScore()).hardScore(DayScores.OVERTIME_TARGET).compareTo(BigDecimal.ZERO));
     }
     @Test void nullableOriginalPairsAndPersistedCoverageAreValidatedBeforeUse() throws Exception {

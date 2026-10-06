@@ -1,0 +1,39 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] scheduler-service                                                  [jar]
+[INFO] routing-service                                                    [jar]
+[INFO] waterflex-scheduler                                                [pom]
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT                          [1/3]
+[INFO]   from scheduler-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ scheduler-service ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for waterflex-scheduler 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] scheduler-service .................................. FAILURE [  0.653 s]
+[INFO] routing-service .................................... SKIPPED
+[INFO] waterflex-scheduler ................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.940 s
+[INFO] Finished at: 2026-10-06T16:46:56-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-clean-plugin:3.5.0:clean (default-clean) on project scheduler-service: Failed to clean project: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

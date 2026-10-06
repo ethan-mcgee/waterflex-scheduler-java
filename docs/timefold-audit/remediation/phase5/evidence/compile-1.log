@@ -1,0 +1,27 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Recompiling the module because of added or removed source files.
+[INFO] Compiling 80 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\src\main\java\dev\waterflex\scheduler\BookingService.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: Recompile with -Xlint:deprecation for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.144 s
+[INFO] Finished at: 2026-10-06T16:43:31-05:00
+[INFO] ------------------------------------------------------------------------
