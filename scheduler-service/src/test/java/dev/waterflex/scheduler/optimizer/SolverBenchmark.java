@@ -82,7 +82,7 @@ public final class SolverBenchmark {
         long remaining = budgetMs - (System.nanoTime() - started) / 1_000_000;
         if (remaining > 0) {
             DayPlan fairnessSeed = PlanCopies.copy(reference);
-            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(new RouteScoringFacts.Target(referenceMetrics.overtimeMinutes(), rules.costCeiling(referenceMetrics.costCents()))));
+            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(reference, rules.costCeiling(referenceMetrics.costCents())));
             var fair = SolverExperiment.solve(definition, fairnessSeed, Required.value(Duration.ofMillis(remaining)));
             validate(fair.plan()); fairStatistics = fair.statistics();
             var metrics = SchedulingPolicy.measure(fair.plan());
@@ -105,6 +105,7 @@ public final class SolverBenchmark {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("variant", definition.variant().name()); row.put("seed", definition.seed());
         row.put("costModelVersion", dev.waterflex.scheduler.Monetary.COST_MODEL);
+        row.put("scoreModelVersion", DailyDataset.SCORE_MODEL);
         row.put("budgetMs", budgetMs);
         row.put("referencePhase", cost.statistics());
         if (fairStatistics != null) row.put("fairnessPhase", fairStatistics);

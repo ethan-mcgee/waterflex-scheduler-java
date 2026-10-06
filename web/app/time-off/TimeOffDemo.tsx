@@ -46,6 +46,7 @@ function metric(value: number | undefined, suffix = "") { return value == null ?
 function dayReason(reason: string | null | undefined): string {
   if (reason === "ACTIVE_RESERVATIONS") return "Active booking reservations need to expire or be resolved before analysis.";
   if (reason === "VALIDATED_CONSTRAINT_CONFLICT") return "The requested absence conflicts with appointment or route constraints.";
+  if (reason === "UNRESOLVED_DEMAND") return "The repair left unresolved demand. The schedule remains unchanged.";
   if (reason === "SEARCH_BUDGET_EXHAUSTED") return "The solver could not find a feasible repair in its search time.";
   return reason ?? "No reason reported";
 }
@@ -149,7 +150,7 @@ function ReportDetails({ report }: { report: ParsedTimeOffReport }) {
   if (report.kind === "failure") return <p className={styles.invalid}>Analysis failure reason: {report.reason}</p>;
   const summary = report.summary;
   return <div className={styles.report}><p>{summary.reassigned_jobs == null ? "Reassignment count missing" : `${summary.reassigned_jobs} reassigned job${summary.reassigned_jobs === 1 ? "" : "s"}`}</p>
-    {summary.days.map(day => <div className={styles.reportDay} key={`${day.service_date}-${day.start_min}`}><strong>{day.service_date}: {day.status === "NO_SHIFT" ? "No scheduled shift" : day.status === "SKIPPED" ? "Needs coordination" : day.status === "FROZEN_CSR_COORDINATION" ? "Past scheduling cutoff" : "Repair preview"}</strong><span>{dayReason(day.reason)}</span>{day.status === "REPAIR_PREVIEW" && <><span>{day.reassigned_jobs == null ? "Reassignment count missing" : `${day.reassigned_jobs} reassigned`}</span><MetricComparison before={day.daily_before} after={day.daily_after} /></>}</div>)}
+    {summary.days.map(day => <div className={styles.reportDay} key={`${day.service_date}-${day.start_min}`}><strong>{day.service_date}: {day.status === "NO_SHIFT" ? "No scheduled shift" : day.status === "SKIPPED" ? "Needs coordination" : day.status === "FROZEN_CSR_COORDINATION" ? "Past scheduling cutoff" : "Repair preview"}</strong><span>{dayReason(day.reason)}</span>{day.calculation_outcome && <span>{day.calculation_outcome.unassignedVisitIds.length} unresolved visits. {day.calculation_outcome.unassignedVisitIds.length > 0 && "The repair cannot be applied until all demand is covered."}</span>}{day.status === "REPAIR_PREVIEW" && <><span>{day.reassigned_jobs == null ? "Reassignment count missing" : `${day.reassigned_jobs} reassigned`}</span><MetricComparison before={day.daily_before} after={day.daily_after} /></>}</div>)}
     <strong>Combined metrics</strong><MetricComparison before={summary.total_before ?? undefined} after={summary.total_after ?? undefined} />
     <TravelComparison before={summary.travel_before} after={summary.travel_after} /></div>;
 }

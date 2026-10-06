@@ -6,15 +6,17 @@ import dev.waterflex.scheduler.Monetary;
 import java.math.BigDecimal;
 import ai.timefold.solver.core.api.domain.solution.*;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
-import ai.timefold.solver.core.api.score.HardMediumSoftBigDecimalScore;
+import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
 import java.util.*;
 
 @PlanningSolution
 public class DayPlan {
     @PlanningEntityCollectionProperty private @Nullable List<TechRoute> routes;
     @PlanningEntityCollectionProperty @ValueRangeProvider(id = "visits") private @Nullable List<PlanVisit> visits;
-    @PlanningScore private @Nullable HardMediumSoftBigDecimalScore score;
+    @PlanningScore(bendableHardLevelsSize = 5, bendableSoftLevelsSize = 2) private @Nullable BendableBigDecimalScore score;
     @ProblemFactProperty private @Nullable RouteScoringFacts scoringFacts;
+    public enum Mode { ASSIGNED, COLD, PARTIAL, REPAIR }
+    private Mode mode = Mode.ASSIGNED;
 
     public record RoadLeg(long seconds, long meters) {
         public RoadLeg {
@@ -52,8 +54,19 @@ public class DayPlan {
     public BigDecimal getMileagePerMile() { return getFacts().mileagePerMile(); }
     public double getTravelBufferPct() { return getFacts().travelBufferPct(); }
     public long getTravelBufferMinutes() { return getFacts().travelBufferMinutes(); }
-    public @Nullable HardMediumSoftBigDecimalScore getScore() { return score; }
-    public void setScore(@Nullable HardMediumSoftBigDecimalScore score) { this.score = score; }
+    public @Nullable BendableBigDecimalScore getScore() { return score; }
+    public void setScore(@Nullable BendableBigDecimalScore score) { this.score = score; }
+    public Mode getMode() { return mode; }
+    public void setMode(Mode mode) { this.mode = mode; }
+    public List<String> getUnassignedVisitIds() {
+        Set<String> assigned = new HashSet<>();
+        for (TechRoute route : getRoutes()) for (PlanVisit visit : route.getVisits()) assigned.add(visit.getId());
+        return Required.value(getVisits().stream().filter(visit -> !assigned.contains(visit.getId())).map(visit -> visit.getId()).toList());
+    }
+    public void validateInputMode() {
+        getFacts().validateEntities(this, mode == Mode.ASSIGNED);
+        if (mode == Mode.COLD) PlanFacts.check(getUnassignedVisitIds().size() == getVisits().size(), "cold input must have no assignments");
+    }
     public RouteScoringFacts getScoringFacts() { return Required.value(scoringFacts, "scoring facts before initialization"); }
     public void setScoringFacts(RouteScoringFacts facts) {
         PlanFacts.check(facts.facts() == getFacts(), "scoring target must use the same immutable fact revision");

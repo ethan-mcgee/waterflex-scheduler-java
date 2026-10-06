@@ -24,7 +24,7 @@ public class PlanVisit {
 
     public PlanVisit() { }
     public PlanVisit(String id, String serviceId, Instant windowStart, Instant windowEnd, int durationMinutes,
-                     String originalTechnicianId, Instant originalPlannedStart) {
+                     @Nullable String originalTechnicianId, @Nullable Instant originalPlannedStart) {
         this.id = id; this.serviceId = serviceId; this.windowStart = windowStart; this.windowEnd = windowEnd;
         this.durationMinutes = durationMinutes; this.originalTechnicianId = originalTechnicianId;
         this.originalPlannedStart = originalPlannedStart;
@@ -37,8 +37,8 @@ public class PlanVisit {
     public Instant getWindowStart() { return Required.value(windowStart, "PlanVisit.windowStart before initialization"); }
     public Instant getWindowEnd() { return Required.value(windowEnd, "PlanVisit.windowEnd before initialization"); }
     public int getDurationMinutes() { return Required.value(durationMinutes, "PlanVisit.durationMinutes before initialization"); }
-    public String getOriginalTechnicianId() { return Required.value(originalTechnicianId, "PlanVisit.originalTechnicianId before initialization"); }
-    public Instant getOriginalPlannedStart() { return Required.value(originalPlannedStart, "PlanVisit.originalPlannedStart before initialization"); }
+    public @Nullable String getOriginalTechnicianId() { return originalTechnicianId; }
+    public @Nullable Instant getOriginalPlannedStart() { return originalPlannedStart; }
     public @Nullable TechRoute getTechnician() { return technician; }
     public void setTechnician(@Nullable TechRoute technician) { this.technician = technician; }
 }

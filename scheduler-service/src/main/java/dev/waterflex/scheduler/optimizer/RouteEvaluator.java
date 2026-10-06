@@ -22,6 +22,13 @@ public final class RouteEvaluator {
     private RouteEvaluator() { }
 
     public static Result evaluate(DayPlan plan) {
+        return evaluate(plan, true);
+    }
+    /** Validates served work independently; callers must inspect unresolved demand separately. */
+    public static Result evaluateAssigned(DayPlan plan) {
+        return evaluate(plan, false);
+    }
+    private static Result evaluate(DayPlan plan, boolean requireCoverage) {
         plan.getFacts().validateEntities(plan, false);
         Set<String> expected = new HashSet<>();
         boolean feasible = true;
@@ -40,7 +47,7 @@ public final class RouteEvaluator {
             paid = Math.addExact(paid, result.paid()); overtime = Math.addExact(overtime, result.overtime()); drive += result.drive();
             waiting += result.waiting(); meters = Math.addExact(meters, result.meters());
         }
-        feasible &= seen.equals(expected) && arrivals.keySet().equals(expected);
+        feasible &= arrivals.keySet().equals(seen) && (!requireCoverage || seen.equals(expected));
         long cents = Monetary.cents(paid, overtime, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         return new Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters, Required.value(Map.copyOf(segments)));
     }

@@ -11,8 +11,17 @@ import org.jspecify.annotations.NonNull;
 
 /** Request-local facts; scoring never loads scheduling data or road legs. */
 public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
-    public record Target(long overtimeMinutes, long costCeilingCents) {
-        public Target { PlanFacts.check(overtimeMinutes >= 0 && costCeilingCents >= 0, "invalid fairness target"); }
+    public RouteScoringFacts {
+        PlanFacts.check(target == null || target.facts == facts, "target fact revision mismatch");
+    }
+    public static final class Target {
+        private final PlanFacts facts;
+        private final long overtimeMinutes, costCeilingCents;
+        private Target(PlanFacts facts, long overtimeMinutes, long costCeilingCents) {
+            this.facts = facts; this.overtimeMinutes = overtimeMinutes; this.costCeilingCents = costCeilingCents;
+        }
+        public long overtimeMinutes() { return overtimeMinutes; }
+        public long costCeilingCents() { return costCeilingCents; }
     }
     record ScoredRoute(String technicianId, long capacity, boolean eligible, RouteTimeline.Result metrics) { }
     ScoredRoute evaluate(TechRoute route) {
@@ -34,15 +43,24 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
             work.add(new SchedulingPolicy.Workload(route.technicianId(), route.metrics().paidMinutes(), route.capacity(), Required.value(BigDecimal.ZERO)));
         return SchedulingPolicy.fairness(work).variance();
     }
-    long targetViolation(List<@NonNull ScoredRoute> routes) {
+    long overtimeDeviation(List<@NonNull ScoredRoute> routes) {
         Target fixed = target;
         if (fixed == null) return 0;
         long overtime = 0;
         for (ScoredRoute route : routes) overtime = Math.addExact(overtime, route.metrics().overtimeMinutes());
-        return Math.abs(overtime - fixed.overtimeMinutes()) + Math.max(0, cost(routes) - fixed.costCeilingCents());
+        return Math.abs(overtime - fixed.overtimeMinutes());
     }
-    public RouteScoringFacts withTarget(Target fixed) {
-        PlanFacts.check(fixed.overtimeMinutes() >= 0 && fixed.costCeilingCents() >= 0, "invalid fairness target");
-        return new RouteScoringFacts(facts, fixed);
+    long costExcess(List<@NonNull ScoredRoute> routes) {
+        Target fixed = target; return fixed == null ? 0 : Math.max(0, cost(routes) - fixed.costCeilingCents());
+    }
+    public RouteScoringFacts withTarget(DayPlan reference, long ceiling) {
+        PlanFacts.check(reference.getFacts() == facts, "reference fact revision mismatch");
+        facts.validateEntities(reference, true);
+        var independent = RouteEvaluator.evaluate(reference);
+        var scored = DayScoreCalculator.evaluate(reference);
+        PlanFacts.check(independent.feasible() && scored.hardPenalty() == 0 && independent.costCents() == scored.costCents()
+                && independent.arrivals().equals(scored.arrivals()), "fairness reference must be complete and independently valid");
+        PlanFacts.check(ceiling >= independent.costCents() && ceiling <= Monetary.MAX_CENTS, "invalid fairness ceiling");
+        return new RouteScoringFacts(facts, new Target(facts, independent.overtimeMinutes(), ceiling));
     }
 }

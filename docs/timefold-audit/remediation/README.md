@@ -1,6 +1,6 @@
 # Timefold remediation program
 
-This directory tracks implementation of the [audit](../Timefold_Audit.md) and the accepted 16-step plan. Phase 1 established the baseline in merged [PR #51](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/51). [Step 2](phase2/README.md), merged in PR #52, introduces validated indexed daily inputs and immutable runtime fact revisions. [Step 3](phase3/README.md) adds exact money, migration receipts and compatible reporting. The ledger records delivered fixes and remaining review/verification gates; performance studies are still pending.
+This directory tracks implementation of the [audit](../Timefold_Audit.md) and the accepted 16-step plan. Phase 1 established the baseline in merged [PR #51](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/51). [Step 2](phase2/README.md), merged in PR #52, introduces validated indexed daily inputs and immutable runtime fact revisions. [Step 3](phase3/README.md), merged in PR #53, adds exact money, migration receipts and compatible reporting. [Step 4](phase4/README.md) adds construction, explicit unresolved demand, pinned prefixes and lexicographic repair scoring. The ledger records delivered fixes and remaining review/verification gates; performance studies are still pending.
 
 - [Remediation ledger](ledger.md): all TF01-TF14, CR01-CR11, benchmark requirements, owner steps, tests, and evidence gates.
 - [Community compatibility inventory](compatibility.md): existing coverage and required version-specific probes.

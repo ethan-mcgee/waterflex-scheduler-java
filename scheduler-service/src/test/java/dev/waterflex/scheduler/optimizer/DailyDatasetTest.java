@@ -70,7 +70,7 @@ class DailyDatasetTest {
         reject(root -> ((ArrayNode) root.path("unassigned")).add(0));
         reject(root -> ((ArrayNode) first(root, "technicians").path("assigned")).removeAll());
         reject(root -> { ((ArrayNode) first(root, "technicians").path("assigned")).removeAll(); ((ArrayNode) root.path("unassigned")).add(0); });
-        reject(root -> root.put("mode", "COLD")); reject(root -> first(root, "technicians").put("pinnedPrefix", 1));
+        reject(root -> root.put("mode", "COLD")); reject(root -> first(root, "technicians").put("pinnedPrefix", 2));
         reject(root -> ((ObjectNode) root.path("search")).put("remainingMillis", 0));
         reject(root -> ((ObjectNode) root.path("versions")).put("cost", "unknown"));
         reject(root -> ((ArrayNode) root.path("revisions").path("schedule")).removeAll());
@@ -120,5 +120,36 @@ class DailyDatasetTest {
         ObjectNode roads = root.putObject("roads"); roads.put("encoding", "SPARSE").put("size", 0).putArray("entries");
         DayPlan plan = DailyDataset.parse(DailyDataset.seal(Required.value(root.toString()))).toDayPlan();
         assertTrue(RouteEvaluator.evaluate(plan).feasible()); assertEquals(0, RouteEvaluator.evaluate(plan).costCents());
+    }
+    @Test void coldPartialAndPinnedDatasetsRoundTripExplicitUnresolvedDemandAndNullableOriginals() throws Exception {
+        for (String mode : List.of("COLD", "PARTIAL", "REPAIR")) {
+            ObjectNode root = draft(); root.put("mode", mode);
+            for (var visit : root.path("visits")) ((ObjectNode) visit).putNull("originalTechnician").putNull("originalPlannedStart");
+            ((ArrayNode) root.path("unassigned")).add(mode.equals("COLD") ? 0 : 1);
+            ((ArrayNode) root.path("technicians").get(1).path("assigned")).removeAll();
+            if (mode.equals("COLD")) {
+                ((ArrayNode) root.path("technicians").get(0).path("assigned")).removeAll();
+                ((ArrayNode) root.path("unassigned")).add(1);
+            } else first(root, "technicians").put("pinnedPrefix", 1);
+            var dataset = DailyDataset.parse(DailyDataset.seal(Required.value(root.toString())));
+            var dense = DailyDataset.parse(dataset.json(DailyDataset.Encoding.DENSE));
+            DayPlan plan = dense.toDayPlan();
+            assertEquals(dataset.contentHash(), dense.contentHash()); assertEquals(mode, plan.getMode().name());
+            assertEquals(mode.equals("COLD") ? List.of("v0", "v1") : List.of("v1"), plan.getUnassignedVisitIds());
+            assertNull(plan.getVisits().getFirst().getOriginalTechnicianId()); assertNull(plan.getVisits().getFirst().getOriginalPlannedStart());
+            assertEquals(mode.equals("COLD") ? 0 : 1, PlanCopies.copy(plan).getRoutes().getFirst().getPinnedPrefix());
+        }
+        reject(root -> first(root, "visits").putNull("originalPlannedStart"));
+        reject(root -> first(root, "visits").putNull("originalTechnician"));
+        reject(root -> first(root, "technicians").putArray("pinnedVisits").add(0));
+        reject(root -> ((ObjectNode) root.path("versions")).put("score", "hard-medium-soft-decimal-v1"));
+    }
+    @Test void zeroTechniciansPreservesNonemptyDemandAsExplicitUnassigned() throws Exception {
+        ObjectNode root = draft(); root.put("mode", "COLD"); root.putArray("technicians");
+        ((ObjectNode) root.path("revisions")).putArray("schedule"); root.putArray("unassigned").add(0).add(1);
+        for (var visit : root.path("visits")) ((ObjectNode) visit).putNull("originalTechnician").putNull("originalPlannedStart");
+        DayPlan plan = DailyDataset.parse(DailyDataset.seal(Required.value(root.toString()))).toDayPlan();
+        assertEquals(List.of("v0", "v1"), plan.getUnassignedVisitIds());
+        plan.getFacts().requireSearchRoads();
     }
 }

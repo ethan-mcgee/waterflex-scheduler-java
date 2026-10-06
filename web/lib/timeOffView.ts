@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { date, minute, text, travelBreakdown } from "./contracts";
+import { date, minute, text, travelBreakdown, dailyOutcome, solverAnalysis } from "./contracts";
 
 export const timeOffIntervalView = z.object({ date, startMin: minute, endMin: minute }).refine(value => value.startMin < value.endMin);
 const metrics = z.object({
@@ -10,6 +10,8 @@ const reportDay = z.object({
   service_date: date, start_min: minute, end_min: minute, status: text, run_id: text.optional(), reason: z.string().nullable().optional(),
   reassigned_jobs: z.number().int().nonnegative().optional(), daily_before: metrics.optional(), daily_after: metrics.optional(),
   travel_before: travelBreakdown.nullish(), travel_after: travelBreakdown.nullish(),
+  calculation_outcome: dailyOutcome.nullish(), solver_analysis: solverAnalysis.nullish(),
+  score_model_version: z.enum(["hard-medium-soft-decimal-v1", "bendable-decimal-repair-v2"]).nullish(),
 }).refine(value => value.start_min < value.end_min);
 const completedReport = z.object({ technician_id: text, days: z.array(reportDay), total_before: metrics.nullable().optional(),
   total_after: metrics.nullable().optional(), reassigned_jobs: z.number().int().nonnegative().optional(),

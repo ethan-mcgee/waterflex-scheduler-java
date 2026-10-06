@@ -16,15 +16,15 @@ public final class PlanCopies {
             TechRoute clone = new TechRoute(route.getId(), route.getShiftStart(), route.getShiftEnd(), route.getMaxDailyMinutes(),
                     route.getMaxOvertimeMinutes(), Required.value(Set.copyOf(route.getQualifiedServiceIds())));
             clone.setUnavailable(new ArrayList<>(route.getUnavailable()));
-            clone.freeze();
             for (PlanVisit visit : route.getVisits()) {
                 PlanVisit cloned = Required.value(visits.get(visit.getId()), "copied visit");
                 cloned.setTechnician(clone);
                 clone.getVisits().add(cloned);
             }
-            routes.add(clone);
+            clone.setPinnedPrefix(route.getPinnedPrefix()); clone.freeze(); routes.add(clone);
         }
-        return new DayPlan(routes, new ArrayList<>(visits.values()), source.getScoringFacts());
+        DayPlan copy = new DayPlan(routes, new ArrayList<>(visits.values()), source.getScoringFacts());
+        copy.setMode(source.getMode()); return copy;
     }
     /** Fact changes create a new revision before solving or applying. */
     public static DayPlan withAbsence(DayPlan source, String technician, TechRoute.Unavailable absence) {
@@ -34,9 +34,11 @@ public final class PlanCopies {
             List<TechRoute.Unavailable> absences = new ArrayList<>(route.getUnavailable());
             if (route.getId().equals(technician)) { absences.add(absence); found = true; }
             replacement.setUnavailable(absences); replacement.setVisits(new ArrayList<>(route.getVisits()));
+            replacement.setPinnedPrefix(route.getPinnedPrefix());
             replacement.getVisits().forEach(visit -> visit.setTechnician(replacement)); routes.add(replacement);
         }
         PlanFacts.check(found, "absence technician not in plan: " + technician);
-        return new DayPlan(routes, isolated.getVisits(), source.getMatrix(), source.getFacts().unreachable(), source.getRegularHourly(), source.getOvertimeHourly(), source.getMileagePerMile(), source.getTravelBufferPct(), source.getTravelBufferMinutes());
+        DayPlan repair = new DayPlan(routes, isolated.getVisits(), source.getMatrix(), source.getFacts().unreachable(), source.getRegularHourly(), source.getOvertimeHourly(), source.getMileagePerMile(), source.getTravelBufferPct(), source.getTravelBufferMinutes());
+        repair.setMode(DayPlan.Mode.REPAIR); return repair;
     }
 }

@@ -10,7 +10,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Boundary regressions plus retained money and score-plateau characterizations for later phases. */
+/** Desired-behavior regressions replacing all seven historical audit characterizations. */
 class TimefoldAuditEvidenceTest {
     private static Instant at(int hour) {
         return Required.value(Instant.parse("2026-10-05T" + hour + ":00:00Z"));
@@ -45,9 +45,12 @@ class TimefoldAuditEvidenceTest {
         for (double invalid : new double[]{Double.NaN, Double.POSITIVE_INFINITY, -1})
             assertThrows(IllegalArgumentException.class, () -> plan(Required.value(List.of(route)), Required.value(List.of(visit)), invalid));
     }
-    @Test void unassignedDailyDemandRejectedBeforeSolve() {
+    @Test void coldDailyDemandConstructsWithoutLosingInput() {
         DayPlan unassigned = plan(Required.value(List.of(route())), Required.value(List.of(visit("one"))), 30);
-        assertThrows(IllegalArgumentException.class, () -> new DailySolver("TABU", 17).solve(unassigned, Required.value(Duration.ofSeconds(2))));
+        unassigned.setMode(DayPlan.Mode.COLD);
+        var result = new DailySolver("TABU", 17).solve(unassigned, Required.value(Duration.ofMillis(200)));
+        assertTrue(result.outcome().complete()); assertTrue(result.outcome().policyEligible());
+        assertEquals(List.of("one"), result.outcome().assignedVisitIds());
         assertEquals(1, unassigned.getVisits().size());
     }
     @Test void matrixAndScoringShareAnImmutableRevision() {
@@ -60,7 +63,7 @@ class TimefoldAuditEvidenceTest {
         assertTrue(RouteEvaluator.evaluate(plan).feasible());
         assertEquals(0, plan.getScoringFacts().evaluate(route).metrics().hardPenalty());
     }
-    @Test void hardPenaltyPlateauHidesSizeOfWindowViolation() {
+    @Test void quantitativeWindowPenaltyPreservesExclusiveBoundaryAndImprovementDirection() {
         var penalties = new ArrayList<Long>();
         for (int seconds : new int[]{4 * 3600, 5 * 3600}) {
             TechRoute route = route(); PlanVisit visit = visit("one"); route.getVisits().add(visit);
@@ -69,8 +72,8 @@ class TimefoldAuditEvidenceTest {
                     30, 45, 0, 0, 0);
             penalties.add(DayScoreCalculator.evaluate(plan).hardPenalty());
         }
-        assertEquals(1_000_000L, penalties.getFirst());
-        assertEquals(penalties.getFirst(), penalties.getLast());
+        assertTrue(penalties.getFirst() > 0);
+        assertTrue(penalties.getLast() > penalties.getFirst());
     }
     @Test void exactDecimalHalfCentRoundsUpInBothEvaluators() {
         TechRoute route = route();

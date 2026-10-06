@@ -14,7 +14,7 @@ import java.util.*;
 /** Strict, replayable daily input. No database, routing callbacks or application authority. */
 public final class DailyDataset {
     public static final String COST_MODEL = Monetary.COST_MODEL;
-    public static final String SCORE_MODEL = "hard-medium-soft-decimal-v1";
+    public static final String SCORE_MODEL = "bendable-decimal-repair-v2";
     public enum Encoding { DENSE, SPARSE }
     private static final ObjectMapper JSON = mapper();
     private static ObjectMapper mapper() {
@@ -79,10 +79,13 @@ public final class DailyDataset {
                 for (JsonNode absence : array(tech, "absences")) {
                     ObjectNode value = object(Required.value(absence), "absence", "start", "end"); absences.add(new TechRoute.Unavailable(instant(value, "start"), instant(value, "end")));
                 }
+                List<Integer> route = indices(array(tech, "assigned"), visits.size(), "assigned visit");
+                int pinned = (int) integer(tech, "pinnedPrefix", 0, route.size());
+                List<String> pinnedIds = new ArrayList<>();
+                for (int v : route.subList(0, pinned)) pinnedIds.add(string(Required.value(visits.get(v)), "id"));
                 techFacts.add(new PlanFacts.Technician(id, instant(tech, "shiftStart"), instant(tech, "shiftEnd"),
-                        (int) integer(tech, "maxDailyMinutes", 0, Integer.MAX_VALUE), (int) integer(tech, "maxOvertimeMinutes", 0, Integer.MAX_VALUE), qualifications, absences));
-                assigned.add(indices(array(tech, "assigned"), visits.size(), "assigned visit"));
-                check(integer(tech, "pinnedPrefix", 0, Integer.MAX_VALUE) == 0, "pinned prefixes are unsupported until the pinning model is enabled");
+                        (int) integer(tech, "maxDailyMinutes", 0, Integer.MAX_VALUE), (int) integer(tech, "maxOvertimeMinutes", 0, Integer.MAX_VALUE), qualifications, absences, pinnedIds));
+                assigned.add(route);
             }
             List<PlanFacts.Visit> visitFacts = new ArrayList<>(); List<Integer> visitLocations = new ArrayList<>();
             Set<String> demandServices = new HashSet<>();
@@ -90,18 +93,20 @@ public final class DailyDataset {
                 ObjectNode visit = object(Required.value(node), "visit", "id", "service", "location", "windowStart", "windowEnd", "durationMinutes", "originalTechnician", "originalPlannedStart");
                 String id = string(visit, "id"); unique(visitIds, id, "visit");
                 String service = Required.value(serviceNames.get(index(visit, "service", services.size())));
-                int original = index(visit, "originalTechnician", techFacts.size());
+                JsonNode original = required(visit, "originalTechnician"), originalStart = required(visit, "originalPlannedStart");
+                check(original.isNull() == originalStart.isNull(), "original assignment must be entirely present or absent");
                 visitLocations.add(index(visit, "location", locations.size())); demandServices.add(service);
                 visitFacts.add(new PlanFacts.Visit(id, service, instant(visit, "windowStart"), instant(visit, "windowEnd"),
-                        (int) integer(visit, "durationMinutes", 1, Integer.MAX_VALUE), techFacts.get(original).id(), instant(visit, "originalPlannedStart")));
+                        (int) integer(visit, "durationMinutes", 1, Integer.MAX_VALUE), original.isNull() ? null : techFacts.get(index(visit, "originalTechnician", techFacts.size())).id(),
+                        originalStart.isNull() ? null : instant(visit, "originalPlannedStart")));
             }
             Set<Integer> coverage = new HashSet<>();
             for (List<Integer> route : assigned) for (Integer visit : route) check(coverage.add(visit), "visit assigned more than once: " + visit);
             List<Integer> unassigned = indices(array(root, "unassigned"), visits.size(), "unassigned visit");
             for (Integer visit : unassigned) check(coverage.add(visit), "visit is assigned and unassigned: " + visit);
             check(coverage.size() == visits.size(), "every demand identity must occur exactly once");
-            check(unassigned.isEmpty(), "partial/unassigned daily demand is unsupported until construction is enabled");
-            check(visits.isEmpty() || Set.of("ASSIGNED", "REPAIR").contains(mode), "cold/partial planning is unsupported until construction is enabled");
+            check(!mode.equals("ASSIGNED") || unassigned.isEmpty(), "assigned input requires complete demand coverage");
+            check(!mode.equals("COLD") || unassigned.size() == visits.size(), "cold input must have no assignments");
             ObjectNode revisions = object(required(root, "revisions"), "revisions", "schedule", "configuration", "reservation");
             string(revisions, "configuration"); string(revisions, "reservation"); ArrayNode schedule = array(revisions, "schedule");
             check(schedule.size() == techFacts.size(), "schedule revision count must equal technician count");
@@ -120,6 +125,8 @@ public final class DailyDataset {
                     for (int next : eligible) if (v != next) requiredPairs.add(pair(visitLocations.get(v), visitLocations.get(next)));
                 }
             }
+            for (int v = 0; v < visitFacts.size(); v++) for (int next = 0; next < visitFacts.size(); next++) if (v != next)
+                requiredPairs.add(pair(visitLocations.get(v), visitLocations.get(next)));
             for (long key : requiredPairs) check(roadStates.containsKey(key), "missing required directed road " + (key >>> 32) + "->" + (key & 0xffffffffL));
             Map<String, DayPlan.RoadLeg> matrix = new HashMap<>(); Set<String> unreachable = new HashSet<>();
             // The compatibility bridge preserves stable demand/technician IDs and each depot's role.
@@ -152,9 +159,10 @@ public final class DailyDataset {
             TechRoute route = new TechRoute(tech.id(), tech.start(), tech.end(), tech.maxDaily(), tech.maxOvertime(), tech.qualifications());
             route.setUnavailable(tech.absences());
             for (int index : assignments.get(t)) { PlanVisit visit = values.get(index); route.getVisits().add(visit); visit.setTechnician(route); }
-            route.freeze(); routes.add(route);
+            route.setPinnedPrefix(tech.pinnedVisits().size()); route.freeze(); routes.add(route);
         }
-        DayPlan plan = new DayPlan(routes, values, new RouteScoringFacts(facts, null)); facts.validateEntities(plan, true); return plan;
+        DayPlan plan = new DayPlan(routes, values, new RouteScoringFacts(facts, null));
+        plan.setMode(DayPlan.Mode.valueOf(string(canonical, "mode"))); plan.validateInputMode(); return plan;
     }
     public String json(Encoding encoding) {
         ObjectNode output = canonical.deepCopy(); output.put("contentHash", hash);
