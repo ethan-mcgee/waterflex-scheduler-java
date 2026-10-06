@@ -1,0 +1,15 @@
+test_campaign_arithmetic_rejects_wrong_counts (test_verification.EvidenceBoundaryTest.test_campaign_arithmetic_rejects_wrong_counts) ... ok
+test_campaign_null_and_nonfinite_inputs_rejected (test_verification.EvidenceBoundaryTest.test_campaign_null_and_nonfinite_inputs_rejected) ... ok
+test_changed_evidence_rejected (test_verification.EvidenceBoundaryTest.test_changed_evidence_rejected) ... ok
+test_community_and_resource_contract_rejects_incompatible_design (test_verification.EvidenceBoundaryTest.test_community_and_resource_contract_rejects_incompatible_design) ... ok
+test_duplicate_fields_rejected (test_verification.EvidenceBoundaryTest.test_duplicate_fields_rejected) ... ok
+test_nonfinite_rejected (test_verification.EvidenceBoundaryTest.test_nonfinite_rejected) ... ok
+test_parameter_inventory_missing_null_unknown_and_nonfinite_fields_rejected (test_verification.EvidenceBoundaryTest.test_parameter_inventory_missing_null_unknown_and_nonfinite_fields_rejected) ... ok
+test_word_link_target_mismatch_rejected (test_verification.EvidenceBoundaryTest.test_word_link_target_mismatch_rejected) ... ok
+test_word_omission_and_reordering_rejected (test_verification.EvidenceBoundaryTest.test_word_omission_and_reordering_rejected) ... ok
+test_worked_arithmetic_is_bound_to_json_parameters (test_verification.EvidenceBoundaryTest.test_worked_arithmetic_is_bound_to_json_parameters) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.102s
+
+OK

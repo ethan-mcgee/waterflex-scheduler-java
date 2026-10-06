@@ -36,6 +36,10 @@ public final class SolverEngine {
     }
     @FunctionalInterface interface Probe { Measurements finish(); }
     @FunctionalInterface interface Telemetry { Probe attach(Solver<DayPlan> solver); }
+    interface Cancellation {
+        void started(Solver<DayPlan> solver);
+        void stopped();
+    }
     public static final class DiagnosticsFailure extends IllegalStateException {
         private static final long serialVersionUID = 1L;
         private final transient Result result;
@@ -97,12 +101,16 @@ public final class SolverEngine {
         return solve(definition, initial, budget, null, false);
     }
     static Result solve(Definition definition, DayPlan initial, Duration budget, @Nullable Telemetry telemetry, boolean required) {
+        return solve(definition, initial, budget, telemetry, required, null);
+    }
+    static Result solve(Definition definition, DayPlan initial, Duration budget, @Nullable Telemetry telemetry, boolean required,
+            @Nullable Cancellation cancellation) {
         if (budget.isNegative() || budget.isZero() || budget.toMillis() == 0) throw new IllegalArgumentException("Positive millisecond solver budget required");
         initial.validateInputMode(); initial.getFacts().requireSearchRoads();
         if (definition.variant() == Variant.RUIN_RECREATE && initial.getRoutes().stream().anyMatch(route -> route.getPinnedPrefix() > 0))
             throw new IllegalArgumentException("RUIN_RECREATE with pinned prefixes is unsupported on Timefold 2.6.0: observed list corruption during undo");
         if (!initial.getUnassignedVisitIds().isEmpty() && !definition.construction())
-            return solve(configuration(definition.variant(), definition.seed(), definition.environmentMode(), true), initial, budget, telemetry, required);
+            return solve(configuration(definition.variant(), definition.seed(), definition.environmentMode(), true), initial, budget, telemetry, required, cancellation);
         DayPlan working = PlanCopies.copy(initial);
         long started = System.nanoTime();
         if (initial.getVisits().isEmpty() || initial.getRoutes().isEmpty()) {
@@ -120,7 +128,11 @@ public final class SolverEngine {
             catch (RuntimeException | LinkageError failure) { unavailable = "ATTACH_FAILED:" + failure.getClass().getSimpleName(); }
         }
         started = System.nanoTime();
-        DayPlan solved = Required.value(solver.solve(working));
+        DayPlan solved;
+        try {
+            if (cancellation != null) cancellation.started(solver);
+            solved = Required.value(solver.solve(working));
+        } finally { if (cancellation != null) cancellation.stopped(); }
         long solveMs = elapsed(started);
         @Nullable Measurements measured = null;
         if (probe != null) {

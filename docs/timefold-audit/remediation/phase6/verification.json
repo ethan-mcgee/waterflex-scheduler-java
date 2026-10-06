@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "step": 6,
+  "recordedAtUtc": "2026-10-06T22:33:22.405811+00:00",
+  "startingRevision": "30136b22f7f88b1bceb05517d8b397fca4e3678e",
+  "scope": "Local daily operation deadline, shared phase allocation, cooperative cancellation, deterministic scoring, rollback and prepared HTTP JSON body. No deployment or performance study.",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/java-complete.log",
+      "testsIncludingSkipped": 244,
+      "skipped": 1
+    },
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/nullability-complete.log",
+      "testsIncludingSkipped": 244,
+      "skipped": 1
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-lint.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-typecheck.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-unit.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-build.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/experiments.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/audit-helpers.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/baseline-2.log"
+    }
+  ],
+  "priorAttempts": [
+    {
+      "log": "evidence/first-tests.log",
+      "status": "interrupted",
+      "reason": "Sandbox run stalled at Mockito attachment; interrupted explicitly before normal-context execution."
+    },
+    {
+      "log": "evidence/targeted-tests.log",
+      "status": "failed",
+      "reason": "Scoring test attempted to mutate an immutable fact list; changed fixture to a new absence fact revision."
+    },
+    {
+      "log": "evidence/nullability-1.log",
+      "status": "failed",
+      "reason": "Five new annotation and nullable-field-read errors; fixed without suppression."
+    },
+    {
+      "log": "evidence/nullability-2.log",
+      "status": "passed-superseded",
+      "reason": "Intermediate source passed before expanded solver and rollback regressions."
+    },
+    {
+      "log": "evidence/nullability-3.log",
+      "status": "failed",
+      "reason": "ECJ required the SolutionManager score type to be explicit."
+    },
+    {
+      "log": "evidence/nullability-4.log",
+      "status": "failed",
+      "reason": "Real Timefold 2.6.0 solve rejected sub-millisecond spent limit; allocation now floors to milliseconds."
+    },
+    {
+      "log": "evidence/nullability-5.log",
+      "status": "passed-superseded",
+      "reason": "Intermediate source passed before HTTP response encoding changes."
+    },
+    {
+      "log": "evidence/nullability-final.log",
+      "status": "failed",
+      "reason": "Jackson callback null contracts and Function lambda input needed explicit validation."
+    },
+    {
+      "log": "evidence/nullability-final-2.log",
+      "status": "passed-superseded",
+      "reason": "Passed before final late-result receipt and saved-response expiry distinctions."
+    },
+    {
+      "log": "evidence/java-final.log",
+      "status": "passed-superseded",
+      "reason": "Passed before final ISO response encoder and receipt refinements."
+    },
+    {
+      "log": "evidence/java-final-2.log",
+      "status": "passed-superseded",
+      "reason": "Passed before final late-result receipt and saved-response expiry distinctions."
+    },
+    {
+      "log": "evidence/baseline.log",
+      "status": "failed",
+      "reason": "Sandbox Python launcher could not resolve C:/Python314/python.exe; working project Python used in normal context."
+    }
+  ],
+  "limitations": [
+    "Hosted exact-head database/schema/browser integration and assertion jobs remain PR gates at recording time.",
+    "Cooperative worker cleanup can exceed requested caps. Capacity remains held; overshoot and returned late values are logged.",
+    "Local operation starts at service invocation before admission; socket delivery after the controller returns is not a caller acknowledgement.",
+    "Cross-process remaining-budget and explicit remote cancellation/transport tests wait for the step 8 service boundary.",
+    "Long solve transactions remain until step 7. Commit acknowledgement failure needs durable attempt/reuse semantics there.",
+    "The initial one-second reserve has not been calibrated against production workloads. These fixtures do not establish production latency or cost savings.",
+    "Java ordinary suite skips the opt-in assertion campaign; the Python suite has one existing Windows POSIX-process-group skip."
+  ],
+  "sourceFiles": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SearchAdmission.java",
+      "sha256CanonicalLf": "966535e09e9aa47c53df20cd8ccb1f899527a04a0277f800e3df90eed4ea1d42"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SearchDeadline.java",
+      "sha256CanonicalLf": "84b57b9b96c091657e044ffd7c67a8425779164e60809d744565f2c8a3918d56"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyOperation.java",
+      "sha256CanonicalLf": "59b7599e016a9ae4a10480fe85f24b44cc6e15000ea01e16b6aeff5275f28d15"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "sha256CanonicalLf": "a9d57c8ad87f2586251968419a305d7913701ac2010c6b88481c02b9471985fd"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationController.java",
+      "sha256CanonicalLf": "eb610885d1a00d929b67d6872bbbb934955acd1d3647cb8094df2d63013579e8"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "sha256CanonicalLf": "6611c321a79fa0105068c3dbd1bffe1540f8d0cf1b717b6911c4a5d366f2ae47"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimingSearch.java",
+      "sha256CanonicalLf": "4bb06a8c615defb523640e4855c177ca62fa777639f8c2c3a17b9a543555c3fd"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SolverEngine.java",
+      "sha256CanonicalLf": "c8340297003a10ef239567efba3bd279fbf7804a9a222d45aca92496c0325676"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyOperationTest.java",
+      "sha256CanonicalLf": "be9847ab88e55debd2a1d549442362fa6d04e61146a73529658a8133c689a2ec"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/OptimizationServiceTest.java",
+      "sha256CanonicalLf": "f75aff58b44539b47b454d9e2a4c6e94d2002d089fed8dd977513fa1b4c8f0c3"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/audit-helpers.log",
+      "bytes": 1506,
+      "sha256": "acce743a1e5f818b1407e72cc442f1348a6c03afd5084bf2999d9b1292851afd"
+    },
+    {
+      "path": "evidence/baseline-2.log",
+      "bytes": 171,
+      "sha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d"
+    },
+    {
+      "path": "evidence/baseline.log",
+      "bytes": 228,
+      "sha256": "e360899b51be46e0aba9b9e1cae8c16d4e7be980f3d9e10aacf19ba03300250c"
+    },
+    {
+      "path": "evidence/experiments.log",
+      "bytes": 17755,
+      "sha256": "d3648ba4039653f55ac7d2c4ab64f0a5a3344e92cb49f762ea1713eda382f39c"
+    },
+    {
+      "path": "evidence/first-tests.log",
+      "bytes": 3350,
+      "sha256": "24b9d120cb8de745ca4e87a9e09f95654cf55cca2b2cee91a6f4c0384b736767"
+    },
+    {
+      "path": "evidence/java-complete.log",
+      "bytes": 135474,
+      "sha256": "6bdc2cee529ef3cf3579ba1d58b8b72befe6aa913f1b3597a6d4c454eb7e7490"
+    },
+    {
+      "path": "evidence/java-final-2.log",
+      "bytes": 135584,
+      "sha256": "9332ddad7107e2a80ceeaf8b8334f03242e93cf22fef6880ebafb1675dd6bbf7"
+    },
+    {
+      "path": "evidence/java-final.log",
+      "bytes": 135592,
+      "sha256": "1098a0a4756ee2735fbd8a8e7bcc087d8ed8a0cf87c19c70404f34683da86f55"
+    },
+    {
+      "path": "evidence/nullability-1.log",
+      "bytes": 8845,
+      "sha256": "e7b2786247d98fffe63e284bb6aa6f8e34dccbeb361dea4254b9589581f279f2"
+    },
+    {
+      "path": "evidence/nullability-2.log",
+      "bytes": 152569,
+      "sha256": "927109583bc2735e858d696e7771d2d5a9773cd01ead21dc1df2537c6021a482"
+    },
+    {
+      "path": "evidence/nullability-3.log",
+      "bytes": 24553,
+      "sha256": "fca6a7ae9cb9130c2b4ef046557d7b3c6c5ccf337f634e687dc756462311cc81"
+    },
+    {
+      "path": "evidence/nullability-4.log",
+      "bytes": 137337,
+      "sha256": "60eee17f99bf0065366f6f3a94f9deb766a30efd95de9bcca05d5352993ad163"
+    },
+    {
+      "path": "evidence/nullability-5.log",
+      "bytes": 153836,
+      "sha256": "4235bd23550325094a2bca727c5239b834ad2db33475f6c97434e8c2170a67a6"
+    },
+    {
+      "path": "evidence/nullability-complete.log",
+      "bytes": 153678,
+      "sha256": "ed2c9149023b21a0f16cb2df0af39bb4e4a537f472ad92c51f8329c280aff0b8"
+    },
+    {
+      "path": "evidence/nullability-final-2.log",
+      "bytes": 153790,
+      "sha256": "c2b26b5422fe644fdd1c47b92d45e3d15a0eaa7aa0397021c2f04ca8ec454ae8"
+    },
+    {
+      "path": "evidence/nullability-final.log",
+      "bytes": 9747,
+      "sha256": "e1e7d8882d929265f0e7528d0f71ecce2945d672c4ede26a0839f74c20adb7ec"
+    },
+    {
+      "path": "evidence/portal-build.log",
+      "bytes": 4155,
+      "sha256": "3953137050f75c7a285c2f14e2b3b212a986d7c441f70a0bb105190f91333be1"
+    },
+    {
+      "path": "evidence/portal-lint.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/portal-nullability.log",
+      "bytes": 4422,
+      "sha256": "7a5b44160172fe7e1a3227419045357d0e7aa858fdc175b6124a878a32851301"
+    },
+    {
+      "path": "evidence/portal-typecheck.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/portal-unit.log",
+      "bytes": 10052,
+      "sha256": "ade19270b273f980a0aca417904b827590772da4d7f5f52940e16f83f438bfe1"
+    },
+    {
+      "path": "evidence/targeted-tests.log",
+      "bytes": 16301,
+      "sha256": "96c0d6c3b05adb51a4624cdb0b98d44cf84840ce87cb8f7dfa0a411a448f2177"
+    }
+  ]
+}

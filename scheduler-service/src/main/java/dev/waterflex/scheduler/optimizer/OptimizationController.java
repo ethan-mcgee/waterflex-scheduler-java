@@ -10,9 +10,9 @@ import java.util.Map;
 public class OptimizationController {
     private final OptimizationService service;
     public OptimizationController(OptimizationService service) { this.service = service; }
-    @PostMapping("/v1/optimize/day/preview")
-    public Map<String, Object> preview(@RequestBody OptimizationService.Request request) {
-        try { return service.preview(request); }
+    @PostMapping(value = "/v1/optimize/day/preview", produces = "application/json")
+    public byte[] preview(@RequestBody OptimizationService.Request request) {
+        try { return service.previewJson(request); }
         catch (SearchAdmission.Busy | SearchDeadline.Expired exception) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
                     "Optimization service temporarily busy; retry", exception);
