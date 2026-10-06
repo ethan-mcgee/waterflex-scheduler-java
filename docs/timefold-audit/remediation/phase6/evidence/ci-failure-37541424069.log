@@ -1,0 +1,34 @@
+Booking and optimizer integration	Optimizer smoke	﻿2026-10-06T22:37:44.4814529Z ##[group]Run node ../infra/run-check.mjs test:optimizer:integration npm run test:optimizer:integration
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4815725Z ^[[36;1mnode ../infra/run-check.mjs test:optimizer:integration npm run test:optimizer:integration^[[0m
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4905575Z shell: /usr/bin/bash -e {0}
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4905885Z env:
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4906398Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4906850Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4907261Z   DATABASE_USER: waterflex
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4907536Z   DATABASE_PASSWORD: waterflex
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4908023Z   ROUTING_URL: http://127.0.0.1:18001
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4908395Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4908729Z   ENGINE_URL: http://127.0.0.1:18000
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4909014Z   SERVER_PORT: 18000
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4909258Z   TIME_OFF_POLL_DELAY_MS: 1000
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4909659Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4910570Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4911190Z   MAVEN_ARGS: -ntp
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.4911537Z ##[endgroup]
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.6296990Z 
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.6298303Z > waterflex-web@0.1.0 test:optimizer:integration
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.6299294Z > tsx scripts/smoke-optimizer.ts
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:37:44.6299858Z 
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4450821Z ZodError: [
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4451492Z   {
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4451867Z     "expected": "object",
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4452658Z     "code": "invalid_type",
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4453070Z     "path": [],
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4453631Z     "message": "Invalid input: expected object, received string"
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4454188Z   }
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4454480Z ]
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4455381Z     at post (/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/web/scripts/smoke-optimizer.ts:27:29)
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4456695Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4457527Z     at async main (/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/web/scripts/smoke-optimizer.ts:85:21)
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4761937Z test:optimizer:integration: failed in 15.9s
+Booking and optimizer integration	Optimizer smoke	2026-10-06T22:38:00.4836586Z ##[error]Process completed with exit code 1.

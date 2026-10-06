@@ -1,0 +1,122 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ scheduler-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 60 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ scheduler-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyOperationTest
+17:21:17.955 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+[ERROR] Tests run: 6, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.830 s <<< FAILURE! -- in dev.waterflex.scheduler.optimizer.DailyOperationTest
+[ERROR] dev.waterflex.scheduler.optimizer.DailyOperationTest.scoringSplitShiftsIsIndependentOfExpiredOrCancelledRequestClock -- Time elapsed: 0.023 s <<< ERROR!
+java.lang.UnsupportedOperationException
+	at java.base/java.util.ImmutableCollections.uoe(ImmutableCollections.java:159)
+	at java.base/java.util.ImmutableCollections$AbstractImmutableCollection.add(ImmutableCollections.java:164)
+	at dev.waterflex.scheduler.optimizer.DailyOperationTest.scoringSplitShiftsIsIndependentOfExpiredOrCancelledRequestClock(DailyOperationTest.java:106)
+
+[INFO] Running dev.waterflex.scheduler.optimizer.OptimizationServiceTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\mcgee\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.702 s -- in dev.waterflex.scheduler.optimizer.OptimizationServiceTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SolverEngineTest
+17:21:18.760 [daily-9f883033-9fd4-4240-89dc-799be134b3b4] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=9f883033-9fd4-4240-89dc-799be134b3b4, outcome=FAILED, elapsedMs=26, queueMs=0, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, lateResult=false]
+17:21:19.048 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (5), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:19.048 [pool-2-thread-1] WARN io.micrometer.core.instrument.MeterRegistry -- This Gauge has been already registered (MeterId{name='timefold.solver.move.evaluation.count', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+17:21:19.049 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (6), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:19.049 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:19.049 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:19.194 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (151), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (19284/sec), step total (28).
+17:21:19.194 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (151), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (20611/sec), step total (30).
+17:21:19.194 [pool-2-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (151), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (19655/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:19.194 [pool-2-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (151), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (18390/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:19.270 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:19.270 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:19.811 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (543), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (184842/sec), step total (1000).
+17:21:19.812 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (544), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (183823/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:19.829 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (3), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:19.830 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.097 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (271), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (374531/sec), step total (1000).
+17:21:20.098 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (272), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (367647/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:20.103 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:20.104 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.202 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (392459/sec), step total (385).
+17:21:20.202 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (384610/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:20.269 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:20.269 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.368 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (186818/sec), step total (3).
+17:21:20.368 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (184950/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:20.375 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:20.375 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.474 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (299656/sec), step total (4).
+17:21:20.474 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (296660/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:20.480 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:20.480 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.579 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (332787/sec), step total (5).
+17:21:20.579 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (329460/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:20.585 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:20.585 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.683 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (381887/sec), step total (5).
+17:21:20.683 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (374250/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+17:21:20.688 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+17:21:20.688 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+17:21:20.787 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (395939/sec), step total (5).
+17:21:20.787 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (391980/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.156 s -- in dev.waterflex.scheduler.optimizer.SolverEngineTest
+[INFO] Running dev.waterflex.scheduler.SearchAdmissionTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.089 s -- in dev.waterflex.scheduler.SearchAdmissionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   DailyOperationTest.scoringSplitShiftsIsIndependentOfExpiredOrCancelledRequestClock:106 � UnsupportedOperation
+[INFO] 
+[ERROR] Tests run: 22, Failures: 0, Errors: 1, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  9.423 s
+[INFO] Finished at: 2026-10-06T17:21:21-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project scheduler-service: 
+[ERROR] 
+[ERROR] See C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

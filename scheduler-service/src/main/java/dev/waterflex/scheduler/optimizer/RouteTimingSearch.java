@@ -2,7 +2,6 @@ package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.Monetary;
-import dev.waterflex.scheduler.SearchDeadline;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -27,14 +26,12 @@ final class RouteTimingSearch {
         Map<Integer, List<Timing>> frontier = new TreeMap<>();
         frontier.put(0, new ArrayList<>(List.of(empty)));
         for (int interval = 0; interval < blocks.size(); interval++) {
-            SearchDeadline.checkpoint();
             Map<Integer, List<Timing>> next = new TreeMap<>();
             for (var entry : frontier.entrySet()) {
                 int first = entry.getKey();
                 for (Timing prefix : entry.getValue()) retain(next, first, Required.value(prefix), plan);
                 Map<Integer, Timing> options = segments(plan, route, Required.value(blocks.get(interval)), first, true);
                 for (var option : options.entrySet()) {
-                    SearchDeadline.checkpoint();
                     int end = option.getKey();
                     Timing part = Required.value(option.getValue());
                     for (Timing prefix : entry.getValue()) {
@@ -58,7 +55,6 @@ final class RouteTimingSearch {
         String previous = route.getId();
         long drive = 0, waiting = 0, meters = 0, slack = Long.MAX_VALUE;
         for (int index = first; index < route.getVisits().size(); index++) {
-            SearchDeadline.checkpoint();
             PlanVisit visit = Required.value(route.getVisits().get(index));
             DayPlan.RoadLeg leg = plan.getMatrix().get(previous + ">" + visit.getId());
             if (leg == null) break;

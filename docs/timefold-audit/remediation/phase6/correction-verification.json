@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "step": 6,
+  "recordedAtUtc": "2026-10-06T22:43:31.457143+00:00",
+  "correctionBaseRevision": "98c11604db9f27712129298ff48c18fa9dd5450c",
+  "originalReceipt": "verification.json",
+  "originalReceiptSha256CanonicalLf": "7ed8276414cd99e7b0e95222666c2cb2e27f9a26793d028a970e9d0a83705ac9",
+  "failure": {
+    "url": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37541424069",
+    "head": "98c11604db9f27712129298ff48c18fa9dd5450c",
+    "job": "Booking and optimizer integration",
+    "step": "Optimizer smoke",
+    "log": "evidence/ci-failure-37541424069.log",
+    "reason": "Strict JSON converter encoded prepared byte[] as base64 JSON string; client expected an object."
+  },
+  "correction": "Write prepared UTF-8 response bytes directly. Reproduce through MVC with the actual strict application converter; assert exact bytes/object/null/Unicode and preserve expiry 503.",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/correction-nullability-2.log",
+      "testsIncludingSkipped": 246,
+      "skipped": 1
+    },
+    {
+      "command": ".\\mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/correction-java.log",
+      "testsIncludingSkipped": 246,
+      "skipped": 1
+    }
+  ],
+  "inheritedUnchangedGates": [
+    "Portal lint/typecheck/nullability/unit/build, experiment regressions, audit regressions and baseline preservation from verification.json; these source paths are unchanged."
+  ],
+  "priorAttempts": [
+    {
+      "log": "evidence/mvc-reproduction.log",
+      "status": "failed",
+      "reason": "Mockito matcher intentionally returned null; explicit validation rejected it. Changed stubbing to concrete record arguments."
+    },
+    {
+      "log": "evidence/mvc-reproduction-2.log",
+      "status": "failed-reproduction",
+      "reason": "Concrete MVC reproduction confirmed 91 prepared bytes became a 126-byte base64 JSON string."
+    },
+    {
+      "log": "evidence/correction-nullability.log",
+      "status": "failed",
+      "reason": "New MVC request builder required explicit validation of framework return type."
+    }
+  ],
+  "limitations": [
+    "Hosted CI on the corrected head and owner review remain delivery gates at recording time. No rerun of the failed measurement or rewriting of its identity.",
+    "Socket delivery still is not a caller acknowledgement; durable attempt/reuse semantics remain step 7."
+  ],
+  "sourceFiles": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationController.java",
+      "sha256CanonicalLf": "a96adc641f059bd8c843f6cd4aee5ea2e283f3c7d1e9265b25f99c53bb7797a4"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/OptimizationControllerTest.java",
+      "sha256CanonicalLf": "d13d94920cbae03460f8761bc32887b522612316986e061c4949b7ca61063488"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/ci-failure-37541424069.log",
+      "bytes": 4150,
+      "sha256": "3c6e5b8a8a9bf7764a2b004a243a76e8251d2d5df64dc46cef18dd68688e2062"
+    },
+    {
+      "path": "evidence/mvc-reproduction.log",
+      "bytes": 8285,
+      "sha256": "df44f07d4e4dec1d3d80de206c312c1c3b3d58917016a226ced43e2dc028bdd3"
+    },
+    {
+      "path": "evidence/mvc-reproduction-2.log",
+      "bytes": 6184,
+      "sha256": "ae2fcf9a06954f4fff07bf295f4a7965be186ab9c39b19ad8472bd8e69dc7fbf"
+    },
+    {
+      "path": "evidence/correction-nullability.log",
+      "bytes": 25240,
+      "sha256": "b61753a06f393fdaf5081d6cbc89e7c9f1da9c4b2dbd6d0b7bb0c05a87b8f669"
+    },
+    {
+      "path": "evidence/correction-nullability-2.log",
+      "bytes": 154676,
+      "sha256": "6d8130979c17e22a7e71d66ec1e212823011f5cc3bc3042e2c92f921654a9a38"
+    },
+    {
+      "path": "evidence/correction-java.log",
+      "bytes": 136565,
+      "sha256": "713b08e39fac15dff298327748a08a2dc80990a783d9bc51f8f9ccc933cc51dd"
+    }
+  ]
+}

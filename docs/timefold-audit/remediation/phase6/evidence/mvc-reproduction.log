@@ -1,0 +1,119 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ scheduler-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ scheduler-service ---
+[INFO] Recompiling the module because of added or removed source files.
+[INFO] Compiling 61 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ scheduler-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.scheduler.optimizer.OptimizationControllerTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\mcgee\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[ERROR] Tests run: 2, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 0.587 s <<< FAILURE! -- in dev.waterflex.scheduler.optimizer.OptimizationControllerTest
+[ERROR] dev.waterflex.scheduler.optimizer.OptimizationControllerTest.strictApplicationConverterMustNotEncodePreparedJsonAsABase64String -- Time elapsed: 0.558 s <<< ERROR!
+org.springframework.web.server.ResponseStatusException: 409 CONFLICT "Incomplete scheduling data: required value"
+	at dev.waterflex.scheduler.Required.value(Required.java:16)
+	at dev.waterflex.scheduler.Required.value(Required.java:19)
+	at dev.waterflex.scheduler.optimizer.OptimizationControllerTest.strictApplicationConverterMustNotEncodePreparedJsonAsABase64String(OptimizationControllerTest.java:20)
+
+[ERROR] dev.waterflex.scheduler.optimizer.OptimizationControllerTest.expiredOperationKeepsServiceUnavailableStatusBeforeWritingAnyPreparedBody -- Time elapsed: 0.011 s <<< ERROR!
+org.mockito.exceptions.misusing.InvalidUseOfMatchersException: 
+
+Misplaced or misused argument matcher detected here:
+
+-> at dev.waterflex.scheduler.optimizer.OptimizationControllerTest.strictApplicationConverterMustNotEncodePreparedJsonAsABase64String(OptimizationControllerTest.java:20)
+
+You cannot use argument matchers outside of verification or stubbing.
+Examples of correct usage of argument matchers:
+    when(mock.get(anyInt())).thenReturn(null);
+    doThrow(new RuntimeException()).when(mock).someVoidMethod(any());
+    verify(mock).someMethod(contains("foo"))
+
+This message may appear after an NullPointerException if the last matcher is returning an object 
+like any() but the stubbed method signature expect a primitive argument, in this case,
+use primitive alternatives.
+    when(mock.get(any())); // bad use, will raise NPE
+    when(mock.get(anyInt())); // correct usage use
+
+Also, this error might show up because you use argument matchers with methods that cannot be mocked.
+Following methods *cannot* be stubbed/verified: final/private/equals()/hashCode().
+Mocking methods declared on non-public parent classes is not supported.
+
+	at dev.waterflex.scheduler.optimizer.OptimizationControllerTest.expiredOperationKeepsServiceUnavailableStatusBeforeWritingAnyPreparedBody(OptimizationControllerTest.java:33)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   OptimizationControllerTest.expiredOperationKeepsServiceUnavailableStatusBeforeWritingAnyPreparedBody:33 InvalidUseOfMatchers 
+Misplaced or misused argument matcher detected here:
+
+-> at dev.waterflex.scheduler.optimizer.OptimizationControllerTest.strictApplicationConverterMustNotEncodePreparedJsonAsABase64String(OptimizationControllerTest.java:20)
+
+You cannot use argument matchers outside of verification or stubbing.
+Examples of correct usage of argument matchers:
+    when(mock.get(anyInt())).thenReturn(null);
+    doThrow(new RuntimeException()).when(mock).someVoidMethod(any());
+    verify(mock).someMethod(contains("foo"))
+
+This message may appear after an NullPointerException if the last matcher is returning an object 
+like any() but the stubbed method signature expect a primitive argument, in this case,
+use primitive alternatives.
+    when(mock.get(any())); // bad use, will raise NPE
+    when(mock.get(anyInt())); // correct usage use
+
+Also, this error might show up because you use argument matchers with methods that cannot be mocked.
+Following methods *cannot* be stubbed/verified: final/private/equals()/hashCode().
+Mocking methods declared on non-public parent classes is not supported.
+
+[ERROR]   OptimizationControllerTest.strictApplicationConverterMustNotEncodePreparedJsonAsABase64String:20 � ResponseStatus 409 CONFLICT "Incomplete scheduling data: required value"
+[INFO] 
+[ERROR] Tests run: 2, Failures: 0, Errors: 2, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.405 s
+[INFO] Finished at: 2026-10-06T17:40:12-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project scheduler-service: 
+[ERROR] 
+[ERROR] See C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
