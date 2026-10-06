@@ -137,9 +137,8 @@ public class TimeOffService {
             if (preview.containsKey("route_summary_after")) saved.put("after", preview.get("route_summary_after"));
             if (preview.containsKey("changes")) saved.put("changes", preview.get("changes"));
             if (saved.containsKey("before") && saved.containsKey("after") && saved.containsKey("changes")) {
-                JsonNode numeric = Required.value(mapper.<@Nullable JsonNode>valueToTree(preview));
-                Map<String, Long> before = totals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("before"))), SavedJson.moneyCents(numeric, "fleet_cost_before_cents"));
-                Map<String, Long> after = totals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("after"))), SavedJson.moneyCents(numeric, "fleet_cost_after_cents"));
+                Map<String, Long> before = totals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("before"))), previewFleetCents(preview, "fleet_cost_before_cents"));
+                Map<String, Long> after = totals(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("after"))), previewFleetCents(preview, "fleet_cost_after_cents"));
                 saved.put("cost_model_version", Monetary.COST_MODEL);
                 int moved = reassigned(Required.value(mapper.<@Nullable JsonNode>valueToTree(saved.get("changes"))));
                 saved.put("daily_before", before); saved.put("daily_after", after); saved.put("reassigned_jobs", moved);
@@ -307,6 +306,12 @@ public class TimeOffService {
         return new TravelBreakdown(road, Required.value(buffer), Required.value(rounding), modeled, legs);
     }
 
+    static long previewFleetCents(Map<String, Object> preview, String field) {
+        if (!Monetary.COST_MODEL.equals(preview.get("cost_model_version"))
+                || !(preview.get(field) instanceof Long cents) || cents < 0 || cents > Monetary.MAX_CENTS)
+            throw SavedJson.invalid();
+        return cents;
+    }
     static Map<String, Long> totals(JsonNode routes, long fleetCents) {
         if (fleetCents < 0 || fleetCents > Monetary.MAX_CENTS) throw SavedJson.invalid();
         Map<String, Long> values = new LinkedHashMap<>();

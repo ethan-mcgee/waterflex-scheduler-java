@@ -38,4 +38,20 @@ class TimeOffTravelTest {
         assertEquals(1L, totals.get("modeled_cost_cents")); assertEquals(120L, totals.get("route_minutes"));
         assertThrows(RuntimeException.class, () -> TimeOffService.totals(Required.value(mapper.createArrayNode()), -1));
     }
+    @Test void validatesPreviewMoneyWithoutSerializingUnrelatedInstantMetadata() {
+        java.util.Map<String, Object> preview = new java.util.LinkedHashMap<>();
+        preview.put("created_at", java.time.Instant.parse("2030-01-01T00:00:00Z"));
+        preview.put("cost_model_version", Monetary.COST_MODEL);
+        preview.put("fleet_cost_before_cents", 8509L);
+        assertEquals(8509L, TimeOffService.previewFleetCents(preview, "fleet_cost_before_cents"));
+        assertThrows(RuntimeException.class, () -> TimeOffService.previewFleetCents(preview, "fleet_cost_after_cents"));
+        for (Object invalid : new Object[]{null, -1L, Monetary.MAX_CENTS + 1, 8509.0, "8509"}) {
+            if (invalid == null) preview.remove("fleet_cost_before_cents");
+            else preview.put("fleet_cost_before_cents", invalid);
+            assertThrows(RuntimeException.class, () -> TimeOffService.previewFleetCents(preview, "fleet_cost_before_cents"));
+        }
+        preview.put("fleet_cost_before_cents", 8509L);
+        preview.put("cost_model_version", "legacy-double-v1");
+        assertThrows(RuntimeException.class, () -> TimeOffService.previewFleetCents(preview, "fleet_cost_before_cents"));
+    }
 }
