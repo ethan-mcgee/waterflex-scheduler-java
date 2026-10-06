@@ -80,6 +80,25 @@ class MonetaryMigrationDatabaseIT {
     private static void migration(Connection connection) throws Exception {
         try (Statement sql = connection.createStatement()) { sql.execute(migrationSql("20261006194000_exact_monetary_contract")); }
     }
+    @Test void scoreMigrationRetiresOnlyUnappliedIncompatiblePreviewsAndKeepsEvidence() throws Exception {
+        fixture(20.02, connection -> {
+            try (Statement sql = connection.createStatement()) {
+                sql.execute("ALTER TABLE optimization_run ADD COLUMN weights jsonb; UPDATE optimization_run SET weights='{\"scoreModelVersion\":\"hard-medium-soft-decimal-v1\",\"evidence\":\"retained\"}'; INSERT INTO optimization_run (id,status,weights) VALUES ('current','PREVIEW','{\"scoreModelVersion\":\"bendable-decimal-repair-v2\"}')");
+                sql.execute(migrationSql("20261006212000_daily_score_contract"));
+                try (ResultSet rows = sql.executeQuery("SELECT id,status,reason,weights->>'evidence' FROM optimization_run ORDER BY id")) {
+                    assertTrue(rows.next()); assertEquals("applied", rows.getString(1)); assertEquals("APPLIED", rows.getString(2)); assertNull(rows.getString(3)); assertEquals("retained", rows.getString(4));
+                    assertTrue(rows.next()); assertEquals("current", rows.getString(1)); assertEquals("PREVIEW", rows.getString(2)); assertNull(rows.getString(3));
+                    for (String id : new String[]{"preview", "repair"}) {
+                        assertTrue(rows.next()); assertEquals(id, rows.getString(1)); assertEquals("STALE", rows.getString(2)); assertEquals("SCORE_MODEL_CHANGED", rows.getString(3)); assertEquals("retained", rows.getString(4));
+                    }
+                    assertFalse(rows.next());
+                }
+                sql.execute("UPDATE optimization_run SET status='PREVIEW',reason=NULL,weights='{}' WHERE id='preview'");
+                sql.execute(migrationSql("20261006212000_daily_score_contract"));
+                try (ResultSet rows = sql.executeQuery("SELECT status FROM optimization_run WHERE id='preview'")) { assertTrue(rows.next()); assertEquals("STALE", rows.getString(1)); }
+            }
+        });
+    }
     private static String migrationSql(String name) throws Exception {
         Path root = Path.of(Required.value(System.getProperty("user.dir")));
         Path migration = root.resolve("web/prisma/migrations/" + name + "/migration.sql");

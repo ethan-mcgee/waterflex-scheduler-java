@@ -1,7 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import ai.timefold.solver.core.api.solver.SolverFactory;
-import ai.timefold.solver.core.api.score.HardMediumSoftBigDecimalScore;
+import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import ai.timefold.solver.core.config.solver.EnvironmentMode;
 import ai.timefold.solver.core.config.solver.termination.TerminationConfig;
@@ -41,15 +41,15 @@ class DayConstraintProviderTest {
         assertEquals(independent.arrivals(), full.arrivals());
         assertEquals(independent.costCents(), full.costCents());
         assertEquals(originalMetrics, RouteEvaluator.evaluate(original), "Solver must not mutate the original");
-        assertEquals(HardMediumSoftBigDecimalScore.of(Required.value(BigDecimal.ZERO), Required.value(BigDecimal.valueOf(-independent.overtimeMinutes())),
-                Required.value(BigDecimal.valueOf(-independent.costCents()))), solved.getScore());
+        assertEquals(BendableBigDecimalScore.of(new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO},
+                new BigDecimal[]{BigDecimal.valueOf(-independent.overtimeMinutes()), BigDecimal.valueOf(-independent.costCents())}), solved.getScore());
     }
     @Test void fairnessPhaseRespectsReferenceTargetAndCeiling() {
         DayPlan reference = solve(fixture());
         var metrics = SchedulingPolicy.measure(reference);
         DayPlan seed = PlanCopies.copy(reference);
         long ceiling = SchedulingPolicy.Rules.defaults().costCeiling(metrics.costCents());
-        seed.setScoringFacts(seed.getScoringFacts().withTarget(new RouteScoringFacts.Target(metrics.overtimeMinutes(), ceiling)));
+        seed.setScoringFacts(seed.getScoringFacts().withTarget(reference, ceiling));
         DayPlan fair = solve(seed);
         var result = SchedulingPolicy.measure(fair);
         assertEquals(metrics.overtimeMinutes(), result.overtimeMinutes());
@@ -67,7 +67,7 @@ class DayConstraintProviderTest {
             matrix.put(from + ">" + to, new DayPlan.RoadLeg(0, 0));
         DayPlan seed = new DayPlan(Required.value(List.<TechRoute>of(first, idle)), Required.value(List.<PlanVisit>of(one, two)), matrix, 30, 45, 0, 0, 0);
         var baseline = SchedulingPolicy.measure(seed);
-        seed.setScoringFacts(seed.getScoringFacts().withTarget(new RouteScoringFacts.Target(0, 6000)));
+        seed.setScoringFacts(seed.getScoringFacts().withTarget(seed, 6000));
         var result = SchedulingPolicy.measure(solve(seed));
         assertEquals(6000, result.costCents());
         assertEquals(0, result.overtimeMinutes());

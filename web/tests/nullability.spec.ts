@@ -255,12 +255,36 @@ test("address generation progress survives pause, reload, and resume into bookin
   await expect(page.getByText(/Address generation complete/)).toBeVisible();
 });
 
+test("partial preview diagnostics cannot enable application", async ({ page }) => {
+  const id = "33333333-3333-4333-8333-333333333333";
+  const preview = { run_id: "partial-preview", metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
+    solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 0,
+    churn_penalty_minutes: 0, optimized: false, appointments_moved: 0, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
+    route_summary_before: [], route_summary_after: [], changes: [], score_model_version: "bendable-decimal-repair-v2",
+    calculation_outcome: { mode: "REPAIR", scoreModelVersion: "bendable-decimal-repair-v2", assignedVisitIds: [], unassignedVisitIds: ["unplaced"],
+      complete: false, assignedWorkFeasible: true, scoringMatchesValidation: true, policyEligible: false } };
+  const run = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
+    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
+    previews: [{ id: "partial", serviceDate: "2026-10-05", optimizationId: "partial-preview", result: preview, error: null }], applied: [] };
+  await page.route("http://localhost:8083/**", route => route.fulfill({ status: 404 }));
+  await page.route("**/api/dispatch/geometry**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase: "after", features: [], stops: [],
+  }) }));
+  await page.route("**/api/dispatch/testing**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(
+    new URL(route.request().url()).searchParams.has("id") ? run : { runs: [run], horizon: ["2026-10-05"] }) }));
+  await page.goto(`/dispatch/testing?run=${id}`);
+  await expect(page.getByRole("button", { name: "Apply proposal" })).toBeDisabled();
+  await expect(page.getByText(/1 unresolved/)).toBeVisible();
+});
+
 test("sequential review confirms guarded apply, reports conflicts, refreshes routes, and confirms purge", async ({ page }) => {
   const id = "11111111-1111-4111-8111-111111111111", optimizationId = "preview-ui-test";
   const preview = { run_id: optimizationId, metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
     solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 100,
     churn_penalty_minutes: 0, optimized: false, appointments_moved: 1, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
-    route_summary_before: [], route_summary_after: [], changes: [] };
+    route_summary_before: [], route_summary_after: [], changes: [], score_model_version: "bendable-decimal-repair-v2",
+    calculation_outcome: { mode: "ASSIGNED", scoreModelVersion: "bendable-decimal-repair-v2", assignedVisitIds: [], unassignedVisitIds: [],
+      complete: true, assignedWorkFeasible: true, scoringMatchesValidation: true, policyEligible: true } };
   const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
     purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
     previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }],

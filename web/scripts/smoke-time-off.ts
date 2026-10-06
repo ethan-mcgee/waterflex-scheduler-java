@@ -147,7 +147,21 @@ async function main() {
       () => prisma.timeOffReport.findUniqueOrThrow({ where: { requestId: impossible.requestId } }),
       row => !["QUEUED", "ANALYZING"].includes(row.status));
     assert.equal(impossibleReport.status, "NEEDS_COORDINATION");
-    assert.match(JSON.stringify(impossibleReport.data), /VALIDATED_CONSTRAINT_CONFLICT|SEARCH_BUDGET_EXHAUSTED/);
+    const diagnostic = parseTimeOffReport(impossibleReport.data);
+    assert.equal(diagnostic.kind, "complete");
+    if (diagnostic.kind !== "complete") throw new Error("Missing partial repair diagnostic");
+    const unresolved = required(diagnostic.summary.days[0]);
+    assert.equal(unresolved.reason, "UNRESOLVED_DEMAND");
+    assert.equal(required(unresolved.calculation_outcome).complete, false);
+    assert.equal(required(unresolved.calculation_outcome).assignedWorkFeasible, true);
+    assert.equal(required(unresolved.calculation_outcome).policyEligible, false);
+    const unchanged = await prisma.appointment.findUniqueOrThrow({ where: { jobId: impossibleJobId } });
+    assert.deepEqual(required(unresolved.calculation_outcome).unassignedVisitIds, [unchanged.id]);
+    const partialApproval = await fetch(`${base}/v1/time-off/${impossible.requestId}/approve`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    });
+    assert.equal(partialApproval.status, 409);
+    assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { jobId: impossibleJobId } }), unchanged);
     assert.equal((await prisma.appointment.findUniqueOrThrow({ where: { jobId: impossibleJobId } })).technicianId, techA);
     assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: impossible.requestId } })).status, "PENDING");
     await prisma.technicianQualification.create({ data: { technicianId: techB, serviceId: service.id } });

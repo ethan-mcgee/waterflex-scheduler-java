@@ -23,13 +23,16 @@ public final class SolverExperiment {
     public record Statistics(String variant, long seed, String configurationFingerprint, String termination,
             long budgetMs, @Nullable Integer stepLimit, long steps, long moveEvaluations, long scoreCalculations,
             long solveMs, @Nullable Long timeToBestMs) { }
-    public record Result(DayPlan plan, Statistics statistics) { }
+    public record Result(DayPlan plan, Statistics statistics, DailyOutcome outcome) { }
     private SolverExperiment() { }
 
     public static Definition configuration(Variant variant, long seed) {
         return configuration(variant, seed, false);
     }
     public static Definition configuration(Variant variant, long seed, boolean verifyMoves) {
+        return configuration(variant, seed, verifyMoves, false);
+    }
+    public static Definition configuration(Variant variant, long seed, boolean verifyMoves, boolean construction) {
         String xml;
         if (variant == Variant.CURRENT_CAPPED || variant == Variant.CURRENT_UNCAPPED) {
             try (var stream = Required.value(SolverExperiment.class.getResourceAsStream("/solverConfig.xml"))) {
@@ -55,17 +58,26 @@ public final class SolverExperiment {
                     + moves + "</unionMoveSelector><acceptor>" + acceptor + "</acceptor><forager><acceptedCountLimit>" + accepted + "</acceptedCountLimit></forager></localSearch></solver>";
         }
         if (verifyMoves) xml = xml.replace("<environmentMode>NO_ASSERT</environmentMode>", "<environmentMode>FULL_ASSERT</environmentMode>");
+        if (construction) xml = xml.replace("<localSearch>", "<constructionHeuristic/><localSearch>");
         SolverConfig config = Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(seed));
         try {
-            String fingerprint = Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((xml + "|seed=" + seed).getBytes(StandardCharsets.UTF_8))));
+            String fingerprint = Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((xml + "|seed=" + seed + "|score=" + DailyDataset.SCORE_MODEL).getBytes(StandardCharsets.UTF_8))));
             return new Definition(variant, seed, Required.value(xml), fingerprint, Required.value(config.getTerminationConfig()).getStepCountLimit(), Required.value(SolverFactory.create(config)));
         } catch (java.security.NoSuchAlgorithmException failure) { throw new IllegalStateException(failure); }
     }
 
     public static Result solve(Definition definition, DayPlan initial, Duration budget) {
         if (budget.isNegative() || budget.isZero()) throw new IllegalArgumentException("Positive solver budget required");
-        initial.getFacts().validateEntities(initial, true);
+        initial.validateInputMode();
         initial.getFacts().requireSearchRoads();
+        if (initial.getVisits().isEmpty() || initial.getRoutes().isEmpty()) {
+            DayPlan empty = PlanCopies.copy(initial);
+            ai.timefold.solver.core.api.solver.SolutionManager.create(definition.factory()).update(empty);
+            return new Result(empty, new Statistics(Required.value(definition.variant().name()), definition.seed(), definition.fingerprint(), "PHASE_COMPLETED",
+                    budget.toMillis(), definition.stepLimit(), 0, 0, 1, 0, 0L), DailyOutcome.assess(empty));
+        }
+        if (!initial.getUnassignedVisitIds().isEmpty() && !definition.configurationXml().contains("<constructionHeuristic"))
+            return solve(configuration(definition.variant(), definition.seed(), definition.configurationXml().contains("FULL_ASSERT"), true), initial, budget);
         // The override replaces termination configuration; preserve the diagnostic step cap explicitly.
         var termination = new ai.timefold.solver.core.config.solver.termination.TerminationConfig().withSpentLimit(budget);
         termination.setStepCountLimit(definition.stepLimit());
@@ -84,6 +96,6 @@ public final class SolverExperiment {
                 : stepLimit ? "STEP_LIMIT" : timeLimit ? "TIME_LIMIT" : "PHASE_COMPLETED";
         return new Result(solved, new Statistics(Required.value(definition.variant().name()), definition.seed(), definition.fingerprint(), reason,
                 budget.toMillis(), cap, steps[0], measured.getMoveEvaluationCount(), measured.getScoreCalculationCount(), elapsed,
-                measured.getSolverScope().getBestSolutionTimeMillisSpent()));
+                measured.getSolverScope().getBestSolutionTimeMillisSpent()), DailyOutcome.assess(solved));
     }
 }

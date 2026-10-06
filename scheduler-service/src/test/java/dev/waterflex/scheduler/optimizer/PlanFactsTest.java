@@ -21,7 +21,7 @@ class PlanFactsTest {
         assertThrows(IllegalArgumentException.class, () -> copy.setScoringFacts(DayConstraintProviderTest.fixture().getScoringFacts()));
     }
     @Test void callerFactChangeCreatesNewRevisionAndClearsIncompatibleTarget() {
-        DayPlan source = DayConstraintProviderTest.fixture(); source.setScoringFacts(source.getScoringFacts().withTarget(new RouteScoringFacts.Target(0, 100000)));
+        DayPlan source = DayConstraintProviderTest.fixture(); source.setScoringFacts(source.getScoringFacts().withTarget(source, 100000));
         var before = RouteEvaluator.evaluate(source);
         DayPlan changed = PlanCopies.withAbsence(source, "t0", new TechRoute.Unavailable(Required.value(Instant.parse("2026-09-23T08:00:00Z")), Required.value(Instant.parse("2026-09-23T09:00:00Z"))));
         assertNotSame(source.getFacts(), changed.getFacts()); assertNull(changed.getScoringFacts().target());

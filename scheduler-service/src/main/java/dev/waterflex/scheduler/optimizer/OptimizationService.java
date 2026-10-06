@@ -127,8 +127,7 @@ public class OptimizationService {
         DayPlan referencePlan = reference == candidatePolicy ? Required.value(solved) : baseline.plan();
         if (candidateValid) {
             DayPlan fairnessSeed = PlanCopies.copy(referencePlan);
-            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(new RouteScoringFacts.Target(
-                    reference.overtimeMinutes(), baseline.policy().costCeiling(reference.costCents()))));
+            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(referencePlan, baseline.policy().costCeiling(reference.costCents())));
             long remaining = (Duration.ofSeconds(15).toNanos() - (System.nanoTime() - started)) / 1_000_000;
             if (remaining > 0) {
                 var fairnessSearch = solver.solve(fairnessSeed, Required.value(Duration.ofMillis(remaining)));
@@ -200,8 +199,13 @@ public class OptimizationService {
         if (!status.equals("REPAIR_PREVIEW"))
             reason = after.hardPenalty() == 0 ? "VALIDATED_CONSTRAINT_CONFLICT"
                     : individuallyImpossible(baseline.plan()) ? "VALIDATED_CONSTRAINT_CONFLICT" : "SEARCH_BUDGET_EXHAUSTED";
-        if (!status.equals("REPAIR_PREVIEW"))
-            return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", Required.value(reason)));
+        if (!status.equals("REPAIR_PREVIEW")) {
+            DailyOutcome outcome = repairSearch.outcome();
+            String diagnosticReason = outcome.complete() ? Required.value(reason) : "UNRESOLVED_DEMAND";
+            return Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", diagnosticReason,
+                    "score_model_version", DailyDataset.SCORE_MODEL, "calculation_outcome", outcome,
+                    "solver_analysis", solver.diagnostics(Required.value(List.of(new DailySolver.Phase("REPAIR", repairSearch.statistics()))))));
+        }
         return persist(metroId, day, baseline, Required.value(solved), before, after, solveMs, status, null, null,
                 solver.diagnostics(Required.value(List.<DailySolver.Phase>of(new DailySolver.Phase("REPAIR", repairSearch.statistics())))));
     }
@@ -267,6 +271,8 @@ public class OptimizationService {
             provenance.put("mapVersion", baseline.routingIdentity()); provenance.put("configVersion", baseline.configurationVersion());
             provenance.put("policyVersion", SchedulingPolicy.VERSION);
             provenance.put("costModelVersion", dev.waterflex.scheduler.Monetary.COST_MODEL);
+            provenance.put("scoreModelVersion", DailyDataset.SCORE_MODEL);
+            provenance.put("calculationOutcome", DailyOutcome.assess(proposal));
             provenance.put("fleetCostBeforeCents", before.costCents()); provenance.put("fleetCostAfterCents", after.costCents());
             provenance.put("monetaryRates", Map.of("regularHourly", dev.waterflex.scheduler.Monetary.canonical(baseline.plan().getRegularHourly()),
                     "overtimeHourly", dev.waterflex.scheduler.Monetary.canonical(baseline.plan().getOvertimeHourly()),
@@ -300,10 +306,10 @@ public class OptimizationService {
                 int toSequence = assignment.sequence();
                 Instant planned = Instant.parse(assignment.plannedStart());
                 if (source.technicianId().equals(toTech) && source.sequence() == toSequence
-                        && source.visit().getOriginalPlannedStart().equals(planned)) continue;
+                        && Required.value(source.visit().getOriginalPlannedStart(), "saved appointment start").equals(planned)) continue;
                 jdbc.update("INSERT INTO optimization_change (id, \"runId\", \"appointmentId\", \"fromTechnicianId\", \"toTechnicianId\", \"fromSequence\", \"toSequence\", \"fromPlannedArrivalMin\", \"toPlannedArrivalMin\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         UUID.randomUUID().toString(), id, appointmentId, source.technicianId(), toTech,
-                        source.sequence(), toSequence, localMinute(source.visit().getOriginalPlannedStart()), localMinute(Required.value(planned)));
+                        source.sequence(), toSequence, localMinute(Required.value(source.visit().getOriginalPlannedStart(), "saved appointment start")), localMinute(Required.value(planned)));
             }
         } catch (Exception e) { throw new IllegalStateException("Could not save optimization preview", e); }
         return response(Required.value(id));
@@ -333,6 +339,7 @@ public class OptimizationService {
         if (ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
         try {
             SavedJson.currentCostModel(Required.value(mapper.readTree(run.weights())));
+            SavedJson.currentScoreModel(Required.value(mapper.readTree(run.weights())));
             JsonNode versionNode = SavedJson.versions(Required.value(mapper.readTree(run.versions())));
             List<String> techIds = new ArrayList<>();
             versionNode.fieldNames().forEachRemaining(techIds::add);
@@ -421,7 +428,7 @@ public class OptimizationService {
         if (modeled != null) return modeled;
         // An infeasible repair baseline can lack a modeled placement. Preserve its actual saved
         // appointment time for historical display, without claiming that the route is feasible.
-        if (before.hardPenalty() > 0) return visit.visit().getOriginalPlannedStart();
+        if (before.hardPenalty() > 0) return Required.value(visit.visit().getOriginalPlannedStart(), "saved appointment start");
         throw new IllegalStateException("Feasible baseline is missing an appointment arrival");
     }
 
@@ -471,6 +478,9 @@ public class OptimizationService {
             value.put("routing_identity", provenance.path("mapVersion").asText(""));
             value.put("configuration_version", provenance.path("configVersion").asText(""));
             value.put("cost_model_version", provenance.hasNonNull("costModelVersion") ? SavedJson.text(provenance, "costModelVersion") : null);
+            value.put("score_model_version", provenance.hasNonNull("scoreModelVersion") ? SavedJson.text(provenance, "scoreModelVersion") : null);
+            value.put("calculation_outcome", provenance.hasNonNull("calculationOutcome")
+                    ? mapper.treeToValue(SavedJson.dailyOutcome(Required.value(provenance.path("calculationOutcome"))), DailyOutcome.class) : null);
             value.put("fleet_cost_before_cents", provenance.hasNonNull("fleetCostBeforeCents") ? SavedJson.moneyCents(provenance, "fleetCostBeforeCents") : null);
             value.put("fleet_cost_after_cents", provenance.hasNonNull("fleetCostAfterCents") ? SavedJson.moneyCents(provenance, "fleetCostAfterCents") : null);
             value.put("solver_analysis", provenance.hasNonNull("solverAnalysis")
@@ -606,7 +616,7 @@ public class OptimizationService {
                 Integer.class, Required.value(args.toArray(new @Nullable Object[0]))) > 0;
     }
     private String configurationVersion(String metroId, LocalDate day) {
-        StringBuilder raw = new StringBuilder(dev.waterflex.scheduler.Monetary.COST_MODEL).append(';');
+        StringBuilder raw = new StringBuilder(dev.waterflex.scheduler.Monetary.COST_MODEL).append(';').append(DailyDataset.SCORE_MODEL).append(';');
         jdbc.query("SELECT key, value, \"updatedAt\" FROM omaha_setting ORDER BY key",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(Required.string(rs, 3)).append(';'));
         jdbc.query("SELECT t.id, t.active, t.\"homeLat\", t.\"homeLng\", t.\"shiftStartMin\", t.\"shiftEndMin\", t.\"maxDailyMinutes\", t.\"maxOvertimeMinutes\", p.\"dealershipId\", ep.departure, ep.\"returnTo\", p.id, p.lat, p.lng FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",

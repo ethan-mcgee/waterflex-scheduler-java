@@ -133,6 +133,9 @@ public class TimeOffService {
             saved.put("status", preview.get("status"));
             if (preview.containsKey("run_id")) saved.put("run_id", preview.get("run_id"));
             if (preview.containsKey("reason")) saved.put("reason", preview.get("reason"));
+            if (preview.containsKey("calculation_outcome")) saved.put("calculation_outcome", preview.get("calculation_outcome"));
+            if (preview.containsKey("score_model_version")) saved.put("score_model_version", preview.get("score_model_version"));
+            if (preview.containsKey("solver_analysis")) saved.put("solver_analysis", preview.get("solver_analysis"));
             if (preview.containsKey("route_summary_before")) saved.put("before", preview.get("route_summary_before"));
             if (preview.containsKey("route_summary_after")) saved.put("after", preview.get("route_summary_after"));
             if (preview.containsKey("changes")) saved.put("changes", preview.get("changes"));
