@@ -89,7 +89,16 @@ async function main() {
     const solver = required(preview.solver_analysis);
     assert.equal(solver.engine, "Timefold-2.6.0");
     assert.ok(solver.phases.some(phase => phase.name === "REFERENCE"));
-    assert.ok(solver.phases.every(phase => phase.statistics.scoreCalculations > 0));
+    for (const phase of solver.phases) {
+      assert.equal(phase.statistics.format, 2);
+      if (phase.statistics.format !== 2) throw new Error("Current preview requires v2 diagnostics");
+      assert.equal(phase.statistics.instrumentation, "NONE");
+      assert.equal(phase.statistics.scoreCalculations, null);
+      assert.equal(phase.statistics.diagnosticsUnavailableReason, "NOT_ENABLED");
+      assert.equal(phase.statistics.terminationBasis, "OBSERVED");
+      assert.equal(phase.statistics.provenance.version, "2.6.0");
+      assert.match(required(phase.statistics.provenance.sha256), /^[a-f0-9]{64}$/);
+    }
     for (const route of [...preview.route_summary_before, ...preview.route_summary_after]) {
       const travel = required(route.travel_breakdown);
       assert.equal(travel.modeled_travel_minutes, route.drive_minutes);
