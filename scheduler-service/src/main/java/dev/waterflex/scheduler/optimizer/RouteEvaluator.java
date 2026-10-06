@@ -21,6 +21,7 @@ public final class RouteEvaluator {
     private RouteEvaluator() { }
 
     public static Result evaluate(DayPlan plan) {
+        plan.getFacts().validateEntities(plan, false);
         Set<String> expected = new HashSet<>();
         boolean feasible = true;
         for (PlanVisit visit : plan.getVisits()) if (!expected.add(visit.getId())) feasible = false;

@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "step": 2,
+  "recordedAtUtc": "2026-10-06T19:25:14.047373+00:00",
+  "startingRevision": "e197204ee72ab6b6aae0c2943b0e42633fd344b0",
+  "scope": "Strict indexed daily wire contract and immutable runtime facts. Booking wire/service packaging, exact money, construction/pinning and performance encoding selection remain later steps.",
+  "checks": [
+    {
+      "id": "java-verify",
+      "command": ".\\mvnw.cmd verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": 202,
+      "log": "evidence/java-verify-final.log"
+    },
+    {
+      "id": "java-nullability",
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": 202,
+      "log": "evidence/java-nullability-exact.log"
+    },
+    {
+      "id": "portal-nullability",
+      "command": "npm.cmd --prefix web run test:nullability",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": 17,
+      "log": "evidence/web-nullability.log"
+    },
+    {
+      "id": "portal-lint",
+      "command": "npm.cmd --prefix web run lint",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/web-lint.log"
+    },
+    {
+      "id": "portal-typecheck",
+      "command": "npm.cmd --prefix web run typecheck",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/web-typecheck.log"
+    },
+    {
+      "id": "portal-unit",
+      "command": "npm.cmd --prefix web run test:unit",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": 102,
+      "log": "evidence/web-unit.log"
+    },
+    {
+      "id": "portal-build",
+      "command": "npm.cmd --prefix web run build",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/web-build.log"
+    },
+    {
+      "id": "experiment-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": 63,
+      "skipped": 1,
+      "skipReason": "POSIX process-group regression is skipped on Windows.",
+      "log": "evidence/experiment-tests.log"
+    },
+    {
+      "id": "audit-helper-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "tests": 10,
+      "log": "evidence/audit-helper-tests.log"
+    },
+    {
+      "id": "baseline-preservation",
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "exitCode": 0,
+      "baselineFiles": 225,
+      "historicalFiles": 203,
+      "dependencies": 101,
+      "log": "evidence/baseline-preservation.log"
+    },
+    {
+      "id": "local-database-environment",
+      "command": "docker ps --format {{.Names}}",
+      "status": "unavailable",
+      "exitCode": 1,
+      "reason": "Docker Desktop Linux engine is stopped. Isolated PostgreSQL and workflow/browser gates run in the implementation PR CI.",
+      "log": "evidence/local-docker-precheck.log"
+    }
+  ],
+  "ciGate": "Required before verification is complete. Inspect the associated PR head for Build and unit, Booking and optimizer integration, and Browser regressions, including schema/optimizer/time-off/reservation/cancellation workflows. This local receipt does not certify CI.",
+  "failedBuildEvidence": [
+    {
+      "log": "evidence/nullability-focused-initial.log",
+      "reason": "New Jackson/JDK null type boundary warnings; fixed with required-value checks and explicit generic nullability."
+    },
+    {
+      "log": "evidence/nullability-focused-2.log",
+      "reason": "New test fixture lambda/cast/string boundary nullability warnings; corrected without suppressions."
+    },
+    {
+      "log": "evidence/java-nullability.log",
+      "reason": "Clean compilation found a remaining unannotated field-name boundary; corrected."
+    },
+    {
+      "log": "evidence/java-nullability-final.log",
+      "reason": "Strict clean verification rejected new unused imports and a generic JSON factory builder null warning; removed unused imports and used an explicitly initialized factory."
+    }
+  ],
+  "artifactHashConvention": "Raw logs hashed byte for byte, retaining UTF-16LE BOMs from PowerShell redirects. New source text hashes normalize CRLF to LF; no binary evidence normalization.",
+  "artifacts": [
+    {
+      "path": "evidence/audit-helper-tests.log",
+      "sha256": "2b7897ccc4bb0e4aac50a20639ee99bc71967e7d2f65d490d87b6d6e70970184",
+      "bytes": 3812
+    },
+    {
+      "path": "evidence/baseline-preservation.log",
+      "sha256": "bc3065dbfdd6000a8a5ef17c786049a6fb2990b69ffdb0650cf579b32f1ff497",
+      "bytes": 344
+    },
+    {
+      "path": "evidence/compile.log",
+      "sha256": "0b468a03f704582d2fe1b97c6079a4a3ca5063ba4067db39a97acd483b44885b",
+      "bytes": 4954
+    },
+    {
+      "path": "evidence/experiment-tests.log",
+      "sha256": "0882f0bf048138b1907b86ff48e146899b58c2a48e83686129fa2602b090daa8",
+      "bytes": 36558
+    },
+    {
+      "path": "evidence/java-nullability-exact.log",
+      "sha256": "229063c3a06560e8d0f5026196d1c1794208304ba7a5762998b1091c81328d94",
+      "bytes": 237678
+    },
+    {
+      "path": "evidence/java-nullability-final-2.log",
+      "sha256": "b9494ca22ac4996c275f456477941c52fc94b90461e517292a360ad6ed7cfb83",
+      "bytes": 237674
+    },
+    {
+      "path": "evidence/java-nullability-final.log",
+      "sha256": "f898a23d9584282fa63e2c4ef5e0698046c9d17983b436947768bbb89972bdbe",
+      "bytes": 13386
+    },
+    {
+      "path": "evidence/java-nullability.log",
+      "sha256": "0c646a76cdb27a726c15bf48e41d2462af829faf803a889cd112333a60b8bb5b",
+      "bytes": 13244
+    },
+    {
+      "path": "evidence/java-verify-final.log",
+      "sha256": "79b768ed88f01b91940cbc83e2caf508b284508ceb2bcf35fbd07868b4c70347",
+      "bytes": 202828
+    },
+    {
+      "path": "evidence/java-verify.log",
+      "sha256": "98329d85589523c9358502ca1baf1c60e4a077915d77bb170a4cb512629414ac",
+      "bytes": 203112
+    },
+    {
+      "path": "evidence/local-docker-precheck.log",
+      "sha256": "1e02564d32ad32c7e1c6e685b36cb8ef62a8f8437c200706504713bf853b8aae",
+      "bytes": 1136
+    },
+    {
+      "path": "evidence/nullability-focused-2.log",
+      "sha256": "d5b1af421cfff0605ebf52fad1300d656525ba2a5ffeaa3eb1d9ba7de022b76f",
+      "bytes": 82980
+    },
+    {
+      "path": "evidence/nullability-focused-3.log",
+      "sha256": "0e75587652f2b052ecc3017177511a08b02b48943665b6e7093412be2cfae849",
+      "bytes": 36364
+    },
+    {
+      "path": "evidence/nullability-focused-initial.log",
+      "sha256": "08eccec3e267ed872ffbc494783f33e58ad26f8023278f9bf4f163d7e17ed54b",
+      "bytes": 41388
+    },
+    {
+      "path": "evidence/tests-initial.log",
+      "sha256": "f01737eaebaf883fa06a2eb7461aa010dd2b7918f72d466a89796736f535650b",
+      "bytes": 169158
+    },
+    {
+      "path": "evidence/web-build.log",
+      "sha256": "d5f5055cab33afcc3fe4ebd5d90312ff825e8d219521794e5f31c7358a1f72c2",
+      "bytes": 8018
+    },
+    {
+      "path": "evidence/web-lint.log",
+      "sha256": "eda915d8da378f98daa58c7dc74ad00c0bdacc595c0488f4dd9dde471819d65c",
+      "bytes": 250
+    },
+    {
+      "path": "evidence/web-nullability.log",
+      "sha256": "82aed6fa644977beefccfaaf2651f959f67f184bd3ef72af80f5e493645a8c68",
+      "bytes": 8356
+    },
+    {
+      "path": "evidence/web-typecheck.log",
+      "sha256": "06590b6d79f253b2b81b09e2578e8d6ab7221a047d6fbe6d61c65288551af5ad",
+      "bytes": 108
+    },
+    {
+      "path": "evidence/web-unit.log",
+      "sha256": "28be7490c3c401052909bdf66aa69a71076081a9fdd1e0fa281b45cf31829d1f",
+      "bytes": 18432
+    }
+  ],
+  "noPerformanceCampaign": true,
+  "productionEncodingSelected": false,
+  "remainingCharacterizations": [
+    "binaryRateRoundsHalfCentDownInBothEvaluators (step 3)",
+    "hardPenaltyPlateauHidesSizeOfWindowViolation (step 4)"
+  ]
+}

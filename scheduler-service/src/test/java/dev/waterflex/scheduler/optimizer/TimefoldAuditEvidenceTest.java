@@ -10,9 +10,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Audit characterizations of existing boundary gaps, not desired behavior contracts.
- * Replace the affected assertions with rejection/initialization tests when fixing the findings.
- */
+/** Boundary regressions plus retained money and score-plateau characterizations for later phases. */
 class TimefoldAuditEvidenceTest {
     private static Instant at(int hour) {
         return Required.value(Instant.parse("2026-10-05T" + hour + ":00:00Z"));
@@ -31,47 +29,36 @@ class TimefoldAuditEvidenceTest {
         }
         return new DayPlan(routes, visits, matrix, rate, 45, 0, 0, 0);
     }
-    @Test void duplicateTechnicianIdentityPassesIndependentValidation() {
+    @Test void duplicateTechnicianIdentityRejectedBeforeValidation() {
         TechRoute first = route(), second = route();
         PlanVisit one = visit("one"), two = visit("two");
         first.getVisits().add(one); second.getVisits().add(two);
-        var result = RouteEvaluator.evaluate(plan(Required.value(List.of(first, second)), Required.value(List.of(one, two)), 30));
-        assertTrue(result.feasible());
-        assertEquals(result.arrivals().get("one"), result.arrivals().get("two"));
-        assertEquals(1, result.segments().size(), "Duplicate route keys overwrite the segment output");
+        assertThrows(IllegalArgumentException.class, () -> plan(Required.value(List.of(first, second)), Required.value(List.of(one, two)), 30));
     }
-    @Test void copySilentlyCollapsesDuplicateVisitFacts() {
-        TechRoute route = route();
-        PlanVisit one = visit("same"), two = visit("same");
-        route.getVisits().add(one);
-        DayPlan original = plan(Required.value(List.of(route)), Required.value(List.of(one, two)), 30);
-        assertFalse(RouteEvaluator.evaluate(original).feasible());
-        DayPlan copied = PlanCopies.copy(original);
-        assertEquals(1, copied.getVisits().size());
-        assertTrue(RouteEvaluator.evaluate(copied).feasible());
+    @Test void duplicateVisitFactsRejectedBeforeCopying() {
+        TechRoute route = route(); PlanVisit one = visit("same"), two = visit("same"); route.getVisits().add(one);
+        assertThrows(IllegalArgumentException.class, () -> plan(Required.value(List.of(route)), Required.value(List.of(one, two)), 30));
+        assertEquals(2, List.of(one, two).size());
     }
-    @Test void nonFiniteRateBecomesFeasibleZeroCostAtCoreBoundary() {
+    @Test void nonFiniteRateRejectedBeforeScoring() {
         TechRoute route = route(); PlanVisit visit = visit("one"); route.getVisits().add(visit);
-        DayPlan malformed = plan(Required.value(List.of(route)), Required.value(List.of(visit)), Double.NaN);
-        var result = RouteEvaluator.evaluate(malformed);
-        assertTrue(result.feasible()); assertEquals(0, result.costCents());
-        assertEquals(0, DayScoreCalculator.evaluate(malformed).costCents());
+        for (double invalid : new double[]{Double.NaN, Double.POSITIVE_INFINITY, -1})
+            assertThrows(IllegalArgumentException.class, () -> plan(Required.value(List.of(route)), Required.value(List.of(visit)), invalid));
     }
-    @Test void unassignedDatasetReturnsZeroScoreWithoutServingVisit() {
+    @Test void unassignedDailyDemandRejectedBeforeSolve() {
         DayPlan unassigned = plan(Required.value(List.of(route())), Required.value(List.of(visit("one"))), 30);
-        var result = new DailySolver("TABU", 17).solve(unassigned, Required.value(Duration.ofSeconds(2)));
-        assertFalse(RouteEvaluator.evaluate(result.plan()).feasible());
-        assertTrue(result.plan().getRoutes().getFirst().getVisits().isEmpty());
-        assertEquals("0hard/0medium/0soft", Required.value(result.plan().getScore()).toString());
-        assertEquals("PHASE_COMPLETED", result.statistics().termination());
+        assertThrows(IllegalArgumentException.class, () -> new DailySolver("TABU", 17).solve(unassigned, Required.value(Duration.ofSeconds(2))));
+        assertEquals(1, unassigned.getVisits().size());
     }
-    @Test void routeFactsCanDisagreeAfterReplacingMatrix() {
+    @Test void matrixAndScoringShareAnImmutableRevision() {
         TechRoute route = route(); PlanVisit visit = visit("one"); route.getVisits().add(visit);
         DayPlan plan = plan(Required.value(List.of(route)), Required.value(List.of(visit)), 30);
-        plan.setMatrix(Required.value(Map.of()));
-        assertFalse(RouteEvaluator.evaluate(plan).feasible());
+        assertThrows(UnsupportedOperationException.class, () -> plan.getMatrix().clear());
+        DayPlan copy = PlanCopies.copy(plan);
+        assertSame(plan.getFacts(), copy.getFacts());
+        assertSame(plan.getMatrix(), copy.getMatrix());
+        assertTrue(RouteEvaluator.evaluate(plan).feasible());
         assertEquals(0, plan.getScoringFacts().evaluate(route).metrics().hardPenalty());
-        assertTrue(PlanCopies.copy(plan).getMatrix().isEmpty(), "Solve copy reconstructs scoring facts, limiting current exposure");
     }
     @Test void hardPenaltyPlateauHidesSizeOfWindowViolation() {
         var penalties = new ArrayList<Long>();

@@ -1,6 +1,18 @@
 # Remediation ledger
 
-Owner means the numbered implementation step accountable for completion, not a person. Status is **pending** for every finding and benchmark requirement below. Phase 1 supplies traceability and baseline evidence only. Each future PR updates its rows with exact test methods, verification receipts, experiment attempt IDs, PR URL, and one disposition: implemented, adopt, reject, inconclusive, or prerequisite-not-met. Conditional recommendations require evidence for their disposition; mandatory correctness fixes cannot be closed as experimental rejections.
+Owner means the numbered implementation step accountable for completion, not a person. Status is **pending** unless the delivery status below records completed work. Each implementation PR records exact tests, verification receipts, experiment attempt IDs where applicable and its PR URL, with one disposition: implemented, adopt, reject, inconclusive, or prerequisite-not-met. Conditional recommendations require evidence for their disposition; mandatory correctness fixes cannot be closed as experimental rejections.
+
+## Delivery status
+
+| Delivery | Disposition and evidence |
+| --- | --- |
+| Step 1 | Implemented and reviewed in [PR #51](https://github.com/ethan-mcgee/waterflex-scheduler-java/pull/51), merged as `e197204ee72ab6b6aae0c2943b0e42633fd344b0`. Starting receipts remain immutable. |
+| Step 2 / TF03 / TF10 | Implementation delivered: strict daily dataset parsing, validation before maps/copy, immutable authoritative facts, clone isolation, missing/unreachable distinction. See [phase 2 contracts and test inventory](phase2/README.md) and [verification receipt](phase2/verification.json). Review PR and CI remain the delivery gate. |
+| TF02 | Interim assigned-input rejection implemented by step 2. Construction, unassigned demand and repair scoring remain pending step 4. |
+| CR09 | Step 2 daily indexed contract and dense/sparse correctness delivered. Booking/service integration and encoding performance selection remain pending steps 8/15. |
+| TF01 / TF08 / CR10 | Step 2 provides validated offline daily input and compatible immutable copying; service/workflow extraction and new isolated constraint/native compatibility probes remain pending their owner steps. |
+
+All benchmark studies and steps 3-16 remain pending. No experimental recommendation has an adopt/reject performance disposition yet.
 
 ## Delivery sequence
 
@@ -104,4 +116,4 @@ Retain the original test/log identities in baseline.json when these tests change
 
 Every implementation PR runs Java 25 Maven verify and `-Pnullability clean verify`. Interface/persisted-data changes additionally run portal lint/typecheck/nullability/unit/build. Migrations/workflows require schema-contract and DB integration; affected booking/reservation/optimizer/time-off/cancellation/browser regressions remain gates. Benchmark changes run experiment/archive/import/resume/evidence checks; packaging/CI changes validate workflows and Compose. Never weaken nullability or fabricate scheduling defaults to pass.
 
-Historical baseline: see baseline.json. Phase 1 verification and PR receipt: see verification.json. Subsequent implementation and experiment evidence: **none yet**. Overall audit: **open**. Step 2 and later await the first PR review.
+Historical baseline: see baseline.json. Phase 1 verification: see verification.json. Step 2 implementation evidence: see phase2/verification.json and its associated PR/CI. Overall audit: **open**. Step 3 awaits step 2 review; performance studies have not started.
