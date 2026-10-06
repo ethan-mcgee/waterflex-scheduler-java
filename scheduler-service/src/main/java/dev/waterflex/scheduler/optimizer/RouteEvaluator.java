@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.SearchDeadline;
 import org.jspecify.annotations.Nullable;
 
@@ -36,13 +37,11 @@ public final class RouteEvaluator {
             RouteResult result = validateRoute(plan, route, arrivals, routeSegments);
             segments.put(route.getId(), Required.value(List.copyOf(routeSegments)));
             feasible &= result.feasible();
-            paid += result.paid(); overtime += result.overtime(); drive += result.drive();
-            waiting += result.waiting(); meters += result.meters();
+            paid = Math.addExact(paid, result.paid()); overtime = Math.addExact(overtime, result.overtime()); drive += result.drive();
+            waiting += result.waiting(); meters = Math.addExact(meters, result.meters());
         }
         feasible &= seen.equals(expected) && arrivals.keySet().equals(expected);
-        long cents = Math.round((paid - overtime) * plan.getRegularHourly() * 100 / 60.0
-                + overtime * plan.getOvertimeHourly() * 100 / 60.0
-                + meters / 1609.344 * plan.getMileagePerMile() * 100);
+        long cents = Monetary.cents(paid, overtime, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         return new Result(feasible, cents, Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters, Required.value(Map.copyOf(segments)));
     }
 
@@ -132,7 +131,7 @@ public final class RouteEvaluator {
                 clock = Required.value(arrival.plus(Duration.ofMinutes(visit.getDurationMinutes())));
                 if (clock.isAfter(work.end())) return null;
                 waiting += Duration.between(reached, arrival).toMinutes();
-                driving += minutes; meters += road.meters(); earliest.add(arrival); waits.add(waiting); ids.add(visit.getId());
+                driving += minutes; meters = Math.addExact(meters, road.meters()); earliest.add(arrival); waits.add(waiting); ids.add(visit.getId());
             }
             Instant returned = Required.value(clock.plus(Duration.ofMinutes(travel(plan, home))));
             if (returned.isAfter(work.end())) return null;
@@ -160,17 +159,16 @@ public final class RouteEvaluator {
         }
 
         boolean allowed(Placement value) { return value.paid() <= route.getMaxDailyMinutes() && value.overtime() <= route.getMaxOvertimeMinutes(); }
-        double cost(Placement value) {
-            return (value.paid() - value.overtime()) * plan.getRegularHourly() * 100 / 60.0
-                    + value.overtime() * plan.getOvertimeHourly() * 100 / 60.0 + value.meters() / 1609.344 * plan.getMileagePerMile() * 100;
+        java.math.BigDecimal cost(Placement value) {
+            return Monetary.numerator(value.paid(), value.overtime(), value.meters(), plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         }
         boolean dominates(Placement first, Placement second) {
             return first.paid() <= second.paid() && first.overtime() <= second.overtime() && first.waiting() <= second.waiting()
-                    && cost(first) <= cost(second) && first.segments().size() == second.segments().size() && departureOrder(first, second) <= 0;
+                    && cost(first).compareTo(cost(second)) <= 0 && first.segments().size() == second.segments().size() && departureOrder(first, second) <= 0;
         }
         int compare(Placement first, Placement second) {
             int order = Long.compare(first.overtime(), second.overtime());
-            if (order == 0) order = Double.compare(cost(first), cost(second));
+            if (order == 0) order = cost(first).compareTo(cost(second));
             if (order == 0) order = Long.compare(first.waiting(), second.waiting());
             if (order == 0) order = Long.compare(first.paid(), second.paid());
             return order == 0 ? departureOrder(first, second) : order;
@@ -224,9 +222,9 @@ public final class RouteEvaluator {
                     Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
                     segments.add(new WorkingSegment(departure, Required.value(back),
                             Required.value(segmentTimings.stream().<String>map((Timing timing) -> timing.visit().getId()).toList())));
-                    paid += Duration.between(departure, back).toMinutes();
-                    overtime += Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes());
-                    drive += segmentDrive + travel(plan, home); waiting += segmentWaiting - delay; meters += segmentMeters + home.meters();
+                    paid = Math.addExact(paid, Duration.between(departure, back).toMinutes());
+                    overtime = Math.addExact(overtime, Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes()));
+                    drive += segmentDrive + travel(plan, home); waiting += segmentWaiting - delay; meters = Math.addExact(meters, segmentMeters + home.meters());
                     segmentTimings.clear();
                     segment = null;
                     segmentDrive = segmentWaiting = segmentMeters = 0;
@@ -245,9 +243,9 @@ public final class RouteEvaluator {
                 Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
                 segments.add(new WorkingSegment(departure, Required.value(back),
                         Required.value(segmentTimings.stream().<String>map((Timing timing) -> timing.visit().getId()).toList())));
-                paid += Duration.between(departure, back).toMinutes();
-                overtime += Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes());
-                drive += segmentDrive + travel(plan, home); waiting += segmentWaiting - delay; meters += segmentMeters + home.meters();
+                paid = Math.addExact(paid, Duration.between(departure, back).toMinutes());
+                overtime = Math.addExact(overtime, Math.max(0, Duration.between(latest(departure, route.getShiftEnd()), back).toMinutes()));
+                drive += segmentDrive + travel(plan, home); waiting += segmentWaiting - delay; meters = Math.addExact(meters, segmentMeters + home.meters());
             }
         }
         if (paid > route.getMaxDailyMinutes() || overtime > route.getMaxOvertimeMinutes()) feasible = false;

@@ -114,6 +114,20 @@ async function main() {
     assert.equal(await prisma.slotHold.count({ where: { jobId, releasedAt: null } }), refreshed.offers.length, "Stale release preserves the newer set");
     const staleSelection = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: required(offered.offers[0]).offerId }) });
     assert.equal(staleSelection.status, 409);
+    const moneyOffer = await prisma.bookingOffer.findUniqueOrThrow({ where: { id: required(refreshed.offers[0]).offerId } });
+    assert.equal(moneyOffer.costModelVersion, "exact-fleet-half-up-v2");
+    assert.equal(required(moneyOffer.incrementalCostDollars).mul(100).isInteger(), true, "Stored delta is exact cents");
+    const moneySetId = required(moneyOffer.offerSetId);
+    for (const target of ["offer", "set"] as const) {
+      if (target === "offer") await prisma.bookingOffer.update({ where: { id: moneyOffer.id }, data: { costModelVersion: "legacy-double-v1" } });
+      else await prisma.bookingOfferSet.update({ where: { id: moneySetId }, data: { costModelVersion: "legacy-double-v1" } });
+      const incompatible = await fetch(`${base}/v1/offers/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jobId, offerId: moneyOffer.id }) });
+      assert.equal(incompatible.status, 409, `${target} numeric contract must be current`);
+      assert.equal(await prisma.appointment.count({ where: { jobId } }), 0);
+      assert.equal((await prisma.job.findUniqueOrThrow({ where: { id: jobId } })).status, "PENDING");
+      if (target === "offer") await prisma.bookingOffer.update({ where: { id: moneyOffer.id }, data: { costModelVersion: "exact-fleet-half-up-v2" } });
+      else await prisma.bookingOfferSet.update({ where: { id: moneySetId }, data: { costModelVersion: "exact-fleet-half-up-v2" } });
+    }
     const selected = await post(selection, "/v1/offers/select", { jobId, offerId: required(refreshed.offers[0]).offerId });
     assert.ok(selected.holdId);
     assert.ok(selected.appointmentId, "Selection commits the appointment");

@@ -113,9 +113,9 @@ public final class BookingSnapshotLoader {
         SearchDeadline.database(jdbc);
         if (pendingRequired && !"PENDING".equals(Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, requestingJobId)))
             throw conflict("Job is no longer pending");
-        Map<String, Double> settings = new TreeMap<>();
+        Map<String, java.math.BigDecimal> settings = new TreeMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting ORDER BY key", (org.springframework.jdbc.core.RowCallbackHandler) rs ->
-                settings.put(Required.string(rs, 1), Required.number(rs, 2)));
+                settings.put(Required.string(rs, 1), Required.decimal(rs, 2)));
         Rates rates = Rates.read(settings);
         var policy = PolicySettings.read(settings);
         SearchDeadline.policyLimit(policy.bookingDeadlineMs());
@@ -125,8 +125,8 @@ public final class BookingSnapshotLoader {
         Map<LocalDate, Day> days = new TreeMap<>();
         Map<LocalDate, Map<String, ReservationState.Hold>> holds = new TreeMap<>();
         StringBuilder configuration = new StringBuilder();
-        append(configuration, metroId);
-        settings.forEach((key, value) -> { append(configuration, Required.value(key)); append(configuration, Required.value(value.toString())); });
+        append(configuration, metroId); append(configuration, Monetary.COST_MODEL);
+        settings.forEach((key, value) -> { append(configuration, Required.value(key)); append(configuration, Required.value(value.stripTrailingZeros().toPlainString())); });
         for (LocalDate date : dates) {
             LocalDate day = Required.value(date);
             SearchDeadline.database(jdbc);

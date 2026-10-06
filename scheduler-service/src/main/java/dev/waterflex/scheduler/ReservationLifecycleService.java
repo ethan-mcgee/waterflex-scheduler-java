@@ -17,7 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 public final class ReservationLifecycleService {
     private record Offer(String holdId, String offerId, String jobId, LocalDate day, String metroId, Instant expiresAt,
             @Nullable Instant releasedAt, @Nullable String setId, @Nullable String selectedOfferId,
-            @Nullable Instant supersededAt, String status, RoadClient.Point address, @Nullable Integer reservedOvertimeDelta) { }
+            @Nullable Instant supersededAt, String status, RoadClient.Point address, @Nullable Integer reservedOvertimeDelta,
+            @Nullable String costModelVersion, @Nullable String setCostModelVersion) { }
     private record Cancellation(String jobId, LocalDate day, String metroId, boolean cancelled) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
@@ -131,14 +132,14 @@ public final class ReservationLifecycleService {
     }
 
     private Offer offer(String predicate, @Nullable Object... parameters) {
-        var rows = jdbc.query("SELECT h.id,h.\"offerToken\",h.\"jobId\",h.\"serviceDate\",p.\"metroId\",h.\"expiresAt\",h.\"releasedAt\",s.id,s.\"selectedOfferId\",s.\"supersededAt\",j.status::text,ad.lat,ad.lng,o.\"incrementalOvertimeMinutes\" "
+        var rows = jdbc.query("SELECT h.id,h.\"offerToken\",h.\"jobId\",h.\"serviceDate\",p.\"metroId\",h.\"expiresAt\",h.\"releasedAt\",s.id,s.\"selectedOfferId\",s.\"supersededAt\",j.status::text,ad.lat,ad.lng,o.\"incrementalOvertimeMinutes\",o.\"costModelVersion\",s.\"costModelVersion\" "
                 + "FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" "
                 + "LEFT JOIN booking_offer o ON o.id=h.\"offerToken\" AND o.\"jobId\"=h.\"jobId\" "
                 + "JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=h.\"technicianId\" AND \"effectiveDate\"<=h.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) a ON true JOIN depot p ON p.id=a.\"depotId\" WHERE " + predicate,
                 (rs, _) -> new Offer(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3),
                         Required.value(Required.timestamp(rs, 4).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), Required.string(rs, 5),
                         Required.value(Required.timestamp(rs, 6).toInstant()), instant(rs.getTimestamp(7)), rs.getString(8), rs.getString(9),
-                        instant(rs.getTimestamp(10)), Required.string(rs, 11), Required.location(rs, 12, 13, HttpStatus.CONFLICT), rs.getObject(14, Integer.class)), parameters);
+                        instant(rs.getTimestamp(10)), Required.string(rs, 11), Required.location(rs, 12, 13, HttpStatus.CONFLICT), rs.getObject(14, Integer.class), rs.getString(15), rs.getString(16)), parameters);
         if (rows.size() != 1) throw conflict("Reserved offer is missing or ambiguous");
         return Required.value(rows.getFirst());
     }
@@ -150,6 +151,8 @@ public final class ReservationLifecycleService {
         return Required.value(rows.getFirst());
     }
     private static void pending(Offer offer) {
+        if (!Monetary.COST_MODEL.equals(offer.costModelVersion()) || !Monetary.COST_MODEL.equals(offer.setCostModelVersion()))
+            throw conflict("A fresh offer with the current cost model is required");
         if (!offer.status().equals("PENDING") || offer.releasedAt() != null || offer.supersededAt() != null || !offer.expiresAt().isAfter(Instant.now()))
             throw conflict("Offer is no longer available");
     }

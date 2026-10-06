@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,10 +24,9 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
         long paid = 0, overtime = 0, meters = 0;
         for (ScoredRoute item : routes) {
             RouteTimeline.Result route = item.metrics();
-            paid += route.paidMinutes(); overtime += route.overtimeMinutes(); meters += route.meters();
+            paid = Math.addExact(paid, route.paidMinutes()); overtime = Math.addExact(overtime, route.overtimeMinutes()); meters = Math.addExact(meters, route.meters());
         }
-        return Math.round((paid - overtime) * facts.regularHourly() * 100 / 60.0
-                + overtime * facts.overtimeHourly() * 100 / 60.0 + meters / 1609.344 * facts.mileagePerMile() * 100);
+        return Monetary.cents(paid, overtime, meters, facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
     }
     BigDecimal fairness(List<@NonNull ScoredRoute> routes) {
         List<SchedulingPolicy.Workload> work = new ArrayList<>();
@@ -38,7 +38,7 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
         Target fixed = target;
         if (fixed == null) return 0;
         long overtime = 0;
-        for (ScoredRoute route : routes) overtime += route.metrics().overtimeMinutes();
+        for (ScoredRoute route : routes) overtime = Math.addExact(overtime, route.metrics().overtimeMinutes());
         return Math.abs(overtime - fixed.overtimeMinutes()) + Math.max(0, cost(routes) - fixed.costCeilingCents());
     }
     public RouteScoringFacts withTarget(Target fixed) {

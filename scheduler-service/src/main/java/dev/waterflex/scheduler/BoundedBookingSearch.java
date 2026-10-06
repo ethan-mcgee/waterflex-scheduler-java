@@ -318,7 +318,7 @@ public final class BoundedBookingSearch {
                     if (!result.feasible() || !regularChanges(proposal, facts)) continue;
                     if (evaluation.hasReservations() && !evaluation.metrics(proposal, facts, true).feasible()) continue;
                     BigDecimal fairness = evaluation.fairness(proposal, facts);
-                    var merit = new Merit(result.costCents() - baseline.costCents(), Required.value(fairness.subtract(baselineFairness)),
+                    var merit = new Merit(Math.subtractExact(result.costCents(), baseline.costCents()), Required.value(fairness.subtract(baselineFairness)),
                             changedAssignments, Required.value(tech), position, proposal);
                     retain(merit, result.overtimeMinutes() - baseline.overtimeMinutes(), source, facts);
                 }
@@ -605,7 +605,7 @@ public final class BoundedBookingSearch {
                 String assigned = arrangement.routes().entrySet().stream().filter(route -> route.getValue().contains(request.jobId()))
                         .map(route -> route.getKey()).findFirst().orElseThrow();
                 Arrangement existing = ReservationOffers.without(arrangement, Required.value(Set.<String>of(request.jobId())));
-                retain(new Merit(result.costCents() - baseline.costCents(), Required.value(evaluation.fairness(arrangement, facts).subtract(baselineFairness)),
+                retain(new Merit(Math.subtractExact(result.costCents(), baseline.costCents()), Required.value(evaluation.fairness(arrangement, facts).subtract(baselineFairness)),
                         changes(existing), Required.value(assigned), Required.value(arrangement.routes().get(assigned)).indexOf(request.jobId()), arrangement),
                         result.overtimeMinutes() - baseline.overtimeMinutes(), "RUIN_RECREATE", facts);
             }

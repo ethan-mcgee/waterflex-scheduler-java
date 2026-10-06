@@ -27,16 +27,17 @@ class TravelBreakdownTest {
     }
 
     @Test void missingAndMalformedRequiredRatesNeverReceiveDefaults() {
-        Map<String, Double> settings = new HashMap<>(Map.of("regular_hourly_dollars", 30.0, "overtime_hourly_dollars", 45.0,
-                "mileage_dollars_per_mile", .67, "travel_buffer_pct", .2, "travel_buffer_minutes_per_leg", 5.0));
+        Map<String, java.math.BigDecimal> settings = new HashMap<>();
+        Map.of("regular_hourly_dollars", "30", "overtime_hourly_dollars", "45", "mileage_dollars_per_mile", "0.67", "travel_buffer_pct", "0.2", "travel_buffer_minutes_per_leg", "5")
+                .forEach((key, value) -> settings.put(key, new java.math.BigDecimal(value)));
         for (String key : Required.value(List.copyOf(settings.keySet()))) {
-            Double saved = settings.remove(key);
+            java.math.BigDecimal saved = settings.remove(key);
             assertThrows(RuntimeException.class, () -> BookingSnapshot.Rates.read(settings)); settings.put(key, Required.value(saved));
         }
-        settings.put("travel_buffer_minutes_per_leg", 1.5);
-        assertThrows(IllegalArgumentException.class, () -> BookingSnapshot.Rates.read(settings));
-        settings.put("travel_buffer_minutes_per_leg", 5.0); settings.put("regular_hourly_dollars", Double.NaN);
-        assertThrows(IllegalArgumentException.class, () -> BookingSnapshot.Rates.read(settings));
+        settings.put("travel_buffer_minutes_per_leg", new java.math.BigDecimal("1.5"));
+        assertThrows(RuntimeException.class, () -> BookingSnapshot.Rates.read(settings));
+        settings.put("travel_buffer_minutes_per_leg", new java.math.BigDecimal("5")); settings.put("regular_hourly_dollars", new java.math.BigDecimal("-1"));
+        assertThrows(RuntimeException.class, () -> BookingSnapshot.Rates.read(settings));
     }
 
     @Test void persistedTravelRejectsNullComponentsAndInconsistentTotalsButAllowsHistory() throws Exception {
