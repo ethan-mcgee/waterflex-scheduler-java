@@ -87,10 +87,12 @@ class DailyAttemptDatabaseIT {
 
     @Test void freshRepairCapturesItsOwnVersionInitializationAndCanApplyIndependently() {
         try (var f = new Fixture(true)) {
+            // This can be the first real repair solve in a cold JVM. Initialization consumes the cap too.
+            f.fixtureSearchMillis.set(1000);
             assertEquals(0, Required.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
             String key = f.id + "-fresh-repair";
             var result = f.service.previewRepair(f.id, f.day, f.id + "-far", 480, 1020, key);
-            assertEquals("REPAIR_PREVIEW", result.get("status")); assertEquals("SUCCEEDED", f.state(key)); assertTrue(f.solves.get() > 0);
+            assertEquals("REPAIR_PREVIEW", result.get("status"), result.toString()); assertEquals("SUCCEEDED", f.state(key)); assertTrue(f.solves.get() > 0);
             assertEquals(2, Required.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
             String run = Required.value((String) result.get("run_id"));
             var applied = Required.value(f.tx.execute(_ -> f.service.applyRepair(run, f.id + "-far", f.day, 480, 1020, false)));
@@ -222,6 +224,7 @@ class DailyAttemptDatabaseIT {
         final AtomicReference<@Nullable Runnable> matrixHook = new AtomicReference<>(), solveHook = new AtomicReference<>();
         final AtomicReference<@Nullable Runnable> persistHook = new AtomicReference<>();
         final AtomicInteger solves = new AtomicInteger();
+        final AtomicInteger fixtureSearchMillis = new AtomicInteger(100);
         final AtomicReference<Instant> now = new AtomicReference<>(Required.value(Instant.now()));
         final Clock clock = new Clock() {
             @Override public ZoneId getZone() { return Required.value(ZoneOffset.UTC); }
@@ -265,7 +268,7 @@ class DailyAttemptDatabaseIT {
                 if (!invocation.getMethod().getName().equals("solve")) return org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation);
                 assertFalse(TransactionSynchronizationManager.isActualTransactionActive()); solves.incrementAndGet();
                 Runnable hook = solveHook.getAndSet(null); if (hook != null) hook.run();
-                return actual.solve(Required.value(invocation.getArgument(0)), Required.value(Duration.ofMillis(100)));
+                return actual.solve(Required.value(invocation.getArgument(0)), Required.value(Duration.ofMillis(fixtureSearchMillis.get())));
             });
             if (appointment) {
                 jdbc.update("INSERT INTO dealership (id,name,\"updatedAt\") VALUES (?,?,CURRENT_TIMESTAMP)", id, id);
