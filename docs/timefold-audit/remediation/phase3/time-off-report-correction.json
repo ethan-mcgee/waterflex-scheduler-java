@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-06T20:24:24.302779+00:00",
+  "failedRevision": "c7412d8754c0b04a357c25147de452e54dc949df",
+  "failedRun": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37525353311",
+  "observed": "Build/browser, migration/schema, calendar, booking, optimizer and preceding integration gates passed. Time-off repair failed when its bare mapper serialized preview created_at Instant metadata.",
+  "correction": "Read and validate only typed current-model fleet-cent fields. Unrelated preview metadata is never serialized for money extraction. Regression covers Instant metadata, missing values, numeric bounds/types and stale provenance.",
+  "checks": [
+    {
+      "id": "java-nullability",
+      "status": "passed",
+      "tests": 211,
+      "log": "evidence/java-nullability-correction3.log"
+    },
+    {
+      "id": "java-verify",
+      "status": "passed",
+      "tests": 211,
+      "log": "evidence/java-verify-correction3.log"
+    },
+    {
+      "id": "integration",
+      "status": "required-ci-pending-at-recording"
+    }
+  ],
+  "retainedEvidence": [
+    {
+      "path": "evidence/ci-integration-run-37525353311.log",
+      "sha256": "a9c44371bde96aa1ed6f066b4f9479e7a62b2bf7b7ca0b8c1f6cad76dab3e687",
+      "bytes": 645010,
+      "encoding": "UTF-16LE"
+    },
+    {
+      "path": "evidence/java-nullability-correction3.log",
+      "sha256": "998493b4bcf6b8bd47c79453429d7fbc6d79847eada9c46b58431ee57947d388",
+      "bytes": 238422,
+      "encoding": "UTF-16LE"
+    },
+    {
+      "path": "evidence/java-verify-correction3.log",
+      "sha256": "3356dec6d3bd8877f58d5fec6fc7478ca26667e0ce3da07f49cc53d32999d766",
+      "bytes": 203570,
+      "encoding": "UTF-16LE"
+    }
+  ],
+  "correctedSources": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/TimeOffService.java",
+      "sha256": "1190eb666b153e54ef3e4295089904cd3a7e139d93a78fca20351bc1d92b9edd",
+      "encoding": "UTF-8 canonical LF"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/TimeOffTravelTest.java",
+      "sha256": "0e82fc59f26f3fcaf0f9faa082254602166bc339ada485356c9d526962dba5b6",
+      "encoding": "UTF-8 canonical LF"
+    }
+  ]
+}

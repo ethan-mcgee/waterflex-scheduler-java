@@ -1,13 +1,15 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 
 /** One immutable revision; planning copies own assignment and shadow state only. */
 public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         Map<String, DayPlan.RoadLeg> matrix, Set<String> unreachable,
-        double regularHourly, double overtimeHourly, double mileagePerMile,
+        BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
         double travelBufferPct, long travelBufferMinutes, Set<String> demandServices) {
     public record Technician(String id, Instant start, Instant end, int maxDaily, int maxOvertime,
             Set<String> qualifications, List<TechRoute.Unavailable> absences) {
@@ -32,8 +34,8 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         technicians = Required.value(List.copyOf(technicians)); demand = Required.value(List.copyOf(demand));
         matrix = Required.value(Map.copyOf(matrix)); unreachable = Required.value(Set.copyOf(unreachable));
         demandServices = Required.value(Set.copyOf(demandServices));
-        number(regularHourly, "regularHourly"); number(overtimeHourly, "overtimeHourly");
-        number(mileagePerMile, "mileagePerMile"); number(travelBufferPct, "travelBufferPct");
+        regularHourly = Monetary.rate(regularHourly); overtimeHourly = Monetary.rate(overtimeHourly);
+        mileagePerMile = Monetary.rate(mileagePerMile); number(travelBufferPct, "travelBufferPct");
         check(travelBufferMinutes >= 0 && travelBufferMinutes <= Integer.MAX_VALUE, "travelBufferMinutes out of range");
         Set<String> locations = new HashSet<>(); Set<String> ids = new HashSet<>();
         for (Technician tech : technicians) {
@@ -51,7 +53,7 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         for (String key : unreachable) { roadKey(Required.value(key)); check(!matrix.containsKey(key), "road is both reachable and unreachable: " + key); }
     }
     public static PlanFacts capture(List<TechRoute> routes, List<PlanVisit> visits, Map<String, DayPlan.RoadLeg> roads,
-            Set<String> unreachable, double regular, double overtime, double mileage, double pct, long minutes) {
+            Set<String> unreachable, BigDecimal regular, BigDecimal overtime, BigDecimal mileage, double pct, long minutes) {
         List<Technician> technicians = new ArrayList<>(); List<Visit> demand = new ArrayList<>(); Set<String> services = new HashSet<>();
         for (TechRoute route : routes) technicians.add(route.facts());
         for (PlanVisit visit : visits) { demand.add(visit.facts()); services.add(visit.getServiceId()); }

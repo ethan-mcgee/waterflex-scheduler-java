@@ -88,7 +88,7 @@ public final class BookingCoordinator {
                         if (position < 0) throw conflict("Reserved placeholder is unassigned");
                         jdbc.update("INSERT INTO booking_offer (id,\"jobId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"expiresAt\",\"incrementalRegularMinutes\",\"incrementalOvertimeMinutes\",\"incrementalRoadMeters\",\"incrementalCostDollars\",\"offerSetId\",\"overtimeAuthorized\") VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                                 reserved.offerId(), jobId, stamp(date), stamp(candidate.window().start()), stamp(candidate.window().end()), stamp(publicationExpiry),
-                                regularDelta, candidate.overtimeDelta(), proposed.meters() - baseline.meters(), candidate.costDeltaCents() / 100.0, setId, reserved.overtimeAuthorized());
+                                regularDelta, candidate.overtimeDelta(), proposed.meters() - baseline.meters(), Monetary.dollars(candidate.costDeltaCents()), setId, reserved.overtimeAuthorized());
                         jdbc.update("INSERT INTO slot_hold (id,\"offerToken\",\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",\"insertPosition\",\"locationLat\",\"locationLng\",\"expiresAt\",\"offerSetId\") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                                 reserved.holdId(), reserved.offerId(), jobId, candidate.technicianId(), stamp(date), stamp(candidate.window().start()), stamp(candidate.window().end()), stamp(arrival),
                                 stamp(Required.value(arrival.plusSeconds(context.request().durationMinutes() * 60L))), position, context.request().location().lat(), context.request().location().lng(), stamp(publicationExpiry), setId);

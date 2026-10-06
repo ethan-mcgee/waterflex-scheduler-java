@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
 
 
 import java.time.Instant;
@@ -20,13 +21,11 @@ public final class DayScoreCalculator {
         for (TechRoute route : plan.getRoutes()) {
             var result = RouteTimeline.evaluate(plan, Required.value(route));
             hard += result.hardPenalty();
-            paid += result.paidMinutes(); overtime += result.overtimeMinutes();
-            meters += result.meters(); drive += result.driveMinutes(); waiting += result.waitingMinutes();
+            paid = Math.addExact(paid, result.paidMinutes()); overtime = Math.addExact(overtime, result.overtimeMinutes());
+            meters = Math.addExact(meters, result.meters()); drive += result.driveMinutes(); waiting += result.waitingMinutes();
             arrivals.putAll(result.arrivals());
         }
-        long cents = Math.round((paid - overtime) * plan.getRegularHourly() * 100 / 60.0
-                + overtime * plan.getOvertimeHourly() * 100 / 60.0
-                + meters / 1609.344 * plan.getMileagePerMile() * 100);
+        long cents = Monetary.cents(paid, overtime, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         return new Evaluation(hard, cents, arrivals, paid, overtime, meters, drive, waiting);
     }
 }

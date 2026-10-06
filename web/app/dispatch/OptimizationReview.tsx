@@ -2,6 +2,7 @@
 
 import { optimization, readResponse, errorMessage } from "@/lib/contracts";
 import type { OptimizationRun } from "@/lib/engineClient";
+import { formatCents } from "@/lib/money";
 import { useEffect, useState, type ReactNode } from "react";
 import styles from "@/app/dispatch/dispatch.module.css";
 
@@ -20,6 +21,8 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
   useEffect(() => { setPhase(run.status === "PREVIEW" ? "after" : "current"); setMessage(null); }, [run.run_id, run.status]);
   const total = (values: OptimizationRun["route_summary_before"], field: "drive_minutes" | "route_minutes" | "overtime_minutes" | "waiting_minutes" | "distance_meters" | "modeled_cost_cents") =>
     values.reduce((sum, route) => sum + route[field], 0);
+  const beforeCost = run.fleet_cost_before_cents ?? run.policy_analysis?.before.costCents;
+  const afterCost = run.fleet_cost_after_cents ?? run.policy_analysis?.after.costCents;
   async function apply() {
     if (run.status !== "PREVIEW" || disabled || !window.confirm("Apply this exact optimization proposal?")) return;
     setBusy(true); setMessage(null);
@@ -39,9 +42,9 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
     {run.status === "SKIPPED" && <p><strong>Not applyable.</strong> {run.reason ?? "The optimizer did not produce an independently validated policy improvement."}</p>}
     {run.policy_analysis ? <div>
       <p>Policy: {run.policy_analysis.decision.reason.replaceAll("_", " ").toLowerCase()}.
-        {" "}Modeled cost change: {run.policy_analysis.costChangeCents > 0 ? "+" : ""}${(run.policy_analysis.costChangeCents / 100).toFixed(2)}.
-        {" "}Reference cost: ${(run.policy_analysis.decision.referenceCostCents / 100).toFixed(2)};
-        {" "}allowed ceiling: ${(run.policy_analysis.decision.costCeilingCents / 100).toFixed(2)}.</p>
+        {" "}Modeled cost change: {run.policy_analysis.costChangeCents > 0 ? "+" : ""}${formatCents(run.policy_analysis.costChangeCents)}.
+        {" "}Reference cost: ${formatCents(run.policy_analysis.decision.referenceCostCents)};
+        {" "}allowed ceiling: ${formatCents(run.policy_analysis.decision.costCeilingCents)}.</p>
       <p>Workload variance: {run.policy_analysis.before.fairness.variance.toFixed(4)} to {run.policy_analysis.after.fairness.variance.toFixed(4)}.
         {" "}Maximum utilization: {(100 * run.policy_analysis.before.fairness.maximumUtilization).toFixed(1)}% to {(100 * run.policy_analysis.after.fairness.maximumUtilization).toFixed(1)}%.</p>
       {run.policy_analysis.after.fairness.workloads.map(workload => <p key={workload.technicianId}>
@@ -65,7 +68,7 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
       <span>Overtime: {total(run.route_summary_before, "overtime_minutes")} to {total(run.route_summary_after, "overtime_minutes")} min</span>
       <span>Waiting: {total(run.route_summary_before, "waiting_minutes")} to {total(run.route_summary_after, "waiting_minutes")} min</span>
       <span>Distance: {(total(run.route_summary_before, "distance_meters") / 1000).toFixed(1)} to {(total(run.route_summary_after, "distance_meters") / 1000).toFixed(1)} km</span>
-      <span>Modeled cost: ${(total(run.route_summary_before, "modeled_cost_cents") / 100).toFixed(2)} to ${(total(run.route_summary_after, "modeled_cost_cents") / 100).toFixed(2)}</span>
+      <span>Modeled fleet cost: {beforeCost == null ? "unavailable" : `$${formatCents(beforeCost)}`} to {afterCost == null ? "unavailable" : `$${formatCents(afterCost)}`}</span>
     </div>
     <div className={styles.comparisonGrid}>{run.route_summary_before.map(before => {
       const after = run.route_summary_after.find(route => route.technician_id === before.technician_id);

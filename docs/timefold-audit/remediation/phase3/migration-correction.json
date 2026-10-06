@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-06T20:12:35.028794+00:00",
+  "failedRevision": "18a6cddf45af684ac64626d4a10377ae9e90ca9e",
+  "failedRun": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37523736444",
+  "cause": "Migration attempted UPDATE of read-only UNION reservation_obligation view. Build/unit passed; integration and browser setup failed before tests.",
+  "correction": "Release only backing slot_hold rows. Database regression loads actual reservation_obligation migration and verifies direct/dependent pending release and confirmed preservation.",
+  "checks": [
+    {
+      "id": "java-verify",
+      "status": "passed",
+      "tests": 210,
+      "log": "evidence/java-verify-correction1-final.log"
+    },
+    {
+      "id": "java-nullability",
+      "status": "passed",
+      "tests": 210,
+      "log": "evidence/java-nullability-correction1-final.log"
+    },
+    {
+      "id": "postgres-and-browser",
+      "status": "required-ci-pending-at-recording"
+    }
+  ],
+  "retainedEvidence": [
+    {
+      "path": "evidence/ci-full-run-37523736444.log",
+      "sha256": "51e80da7b814ad78231390700d924694c228c39de399ca96f22d6b8df084f1c9",
+      "bytes": 1254200,
+      "encoding": "UTF-16LE"
+    },
+    {
+      "path": "evidence/java-nullability-correction1.log",
+      "sha256": "76a0b8693d0b7a1a1fc98f46b06fdf1318699816df2a655f4360f1c8ae8118cf",
+      "bytes": 43170,
+      "encoding": "UTF-16LE"
+    },
+    {
+      "path": "evidence/java-nullability-correction1-final.log",
+      "sha256": "cd096791c5ab55ee0048d011b2efddf5e7e28c27642862b18383424d9717b0e0",
+      "bytes": 238394,
+      "encoding": "UTF-16LE"
+    },
+    {
+      "path": "evidence/java-verify-correction1-final.log",
+      "sha256": "577a9989e4f3980ebde38dc5d7981ecf41a1c7c9a2c98fc6d64017e6aa177651",
+      "bytes": 203542,
+      "encoding": "UTF-16LE"
+    }
+  ],
+  "correctedSources": [
+    {
+      "path": "web/prisma/migrations/20261006194000_exact_monetary_contract/migration.sql",
+      "sha256": "70486f9c5ed5e411f95b7ea73ef3d207c4c7c9ef895104b59a1c37d2f83a3cf9",
+      "encoding": "UTF-8 canonical LF"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/MonetaryMigrationDatabaseIT.java",
+      "sha256": "56a12c67ffa608bb5de2c9e77d28b5c049e5bec1335fae68fc424387786d0972",
+      "encoding": "UTF-8 canonical LF"
+    }
+  ],
+  "originalReceipt": "verification.json remains immutable and describes the original local implementation verification."
+}

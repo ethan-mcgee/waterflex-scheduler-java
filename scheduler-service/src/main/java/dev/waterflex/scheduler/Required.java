@@ -28,6 +28,9 @@ public final class Required {
         if (rs.wasNull() || !Double.isFinite(v)) throw missing(column);
         return v;
     }
+    public static java.math.BigDecimal decimal(ResultSet rs, int column) throws SQLException {
+        return value(rs.getBigDecimal(column), "decimal column " + column);
+    }
     public static RoadClient.Point location(ResultSet rs, int lat, int lng, HttpStatus status) throws SQLException {
         double latitude = rs.getDouble(lat); boolean latitudeMissing = rs.wasNull();
         double longitude = rs.getDouble(lng); boolean longitudeMissing = rs.wasNull();

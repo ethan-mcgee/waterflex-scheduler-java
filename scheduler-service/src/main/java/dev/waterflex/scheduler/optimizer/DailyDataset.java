@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.node.*;
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -12,7 +13,7 @@ import java.util.*;
 
 /** Strict, replayable daily input. No database, routing callbacks or application authority. */
 public final class DailyDataset {
-    public static final String COST_MODEL = "legacy-double-v1";
+    public static final String COST_MODEL = Monetary.COST_MODEL;
     public static final String SCORE_MODEL = "hard-medium-soft-decimal-v1";
     public enum Encoding { DENSE, SPARSE }
     private static final ObjectMapper JSON = mapper();
@@ -51,7 +52,8 @@ public final class DailyDataset {
             SolverExperiment.Variant.valueOf(string(search, "variant")); integer(search, "seed", Long.MIN_VALUE, Long.MAX_VALUE);
             integer(search, "remainingMillis", 1, 20000);
             ObjectNode rates = object(required(root, "rates"), "rates", "regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "travelBufferMinutes");
-            double regular = decimal(rates, "regularHourly"), overtime = decimal(rates, "overtimeHourly"), mileage = decimal(rates, "mileagePerMile"), pct = decimal(rates, "travelBufferPct");
+            BigDecimal regular = money(rates, "regularHourly"), overtime = money(rates, "overtimeHourly"), mileage = money(rates, "mileagePerMile");
+            double pct = decimal(rates, "travelBufferPct");
             long minutes = integer(rates, "travelBufferMinutes", 0, Integer.MAX_VALUE);
             ArrayNode locations = array(root, "locations"), services = array(root, "services"), technicians = array(root, "technicians"), visits = array(root, "visits");
             Set<String> locationIds = new HashSet<>(), serviceIds = new HashSet<>(), technicianIds = new HashSet<>(), visitIds = new HashSet<>();
@@ -231,6 +233,10 @@ public final class DailyDataset {
         String text = string(node, field); check(text.matches("(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?"), field + " must be a nonnegative decimal string");
         BigDecimal value = new BigDecimal(text); double number = value.doubleValue(); PlanFacts.number(number, field);
         check(value.signum() == 0 || number > 0, field + " underflows legacy numeric model"); node.put(field, value.stripTrailingZeros().toPlainString()); return number;
+    }
+    private static BigDecimal money(ObjectNode node, String field) {
+        String text = string(node, field); check(text.matches("(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?"), field + " must be a nonnegative decimal string");
+        BigDecimal value = Monetary.rate(new BigDecimal(text)); node.put(field, Monetary.canonical(value)); return value;
     }
     private static void coordinate(JsonNode node, String field, int bound) { JsonNode value = required(node, field); check(value.isNumber() && Double.isFinite(value.doubleValue()) && Math.abs(value.doubleValue()) <= bound, field + " coordinate out of range"); }
     private static void unique(Set<String> ids, String id, String field) { check(ids.add(id), "duplicate " + field + " identity: " + id); }

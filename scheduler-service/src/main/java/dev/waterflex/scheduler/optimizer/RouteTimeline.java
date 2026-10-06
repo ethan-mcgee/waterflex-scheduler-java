@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -27,8 +28,7 @@ final class RouteTimeline {
         }
         long hard = 0;
         for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) hard += 1_000_000;
-        long cost = Math.round((canonical.paid() - canonical.overtime()) * plan.getRegularHourly() * 100 / 60.0
-                + canonical.overtime() * plan.getOvertimeHourly() * 100 / 60.0 + canonical.meters() / 1609.344 * plan.getMileagePerMile() * 100);
+        long cost = Monetary.cents(canonical.paid(), canonical.overtime(), canonical.meters(), plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         return new Result(hard, cost, Required.value(Map.copyOf(canonical.arrivals())), canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
     }
 
@@ -76,12 +76,12 @@ final class RouteTimeline {
                     long delay = Math.max(0, Math.min(departureSlack, segmentWaiting));
                     retime(timings, delay, arrivals);
                     Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
-                    paid += Duration.between(departure, finish).toMinutes();
-                    overtime += overtime(departure, finish, route.getShiftEnd());
+                    paid = Math.addExact(paid, Duration.between(departure, finish).toMinutes());
+                    overtime = Math.addExact(overtime, overtime(departure, finish, route.getShiftEnd()));
                     drive += segmentDrive + buffered(plan, returnHome);
                     waiting += segmentWaiting - delay;
                     timings.clear(); departureSlack = Long.MAX_VALUE;
-                    meters += segmentMeters + returnHome.meters();
+                    meters = Math.addExact(meters, segmentMeters + returnHome.meters());
                     segment = null;
                     segmentMeters = segmentDrive = segmentWaiting = 0;
                 }
@@ -98,18 +98,16 @@ final class RouteTimeline {
                 long delay = Math.max(0, Math.min(departureSlack, segmentWaiting));
                 retime(timings, delay, arrivals);
                 Instant departure = Required.value(segment.departure().plus(Duration.ofMinutes(delay)));
-                paid += Duration.between(departure, finish).toMinutes();
-                overtime += overtime(departure, finish, route.getShiftEnd());
+                paid = Math.addExact(paid, Duration.between(departure, finish).toMinutes());
+                overtime = Math.addExact(overtime, overtime(departure, finish, route.getShiftEnd()));
                 drive += segmentDrive + buffered(plan, home);
                 waiting += segmentWaiting - delay;
-                meters += segmentMeters + home.meters();
+                meters = Math.addExact(meters, segmentMeters + home.meters());
             }
         }
         if (paid > route.getMaxDailyMinutes()) hard += 1_000_000 + paid - route.getMaxDailyMinutes();
         if (overtime > route.getMaxOvertimeMinutes()) hard += 1_000_000 + overtime - route.getMaxOvertimeMinutes();
-        long cents = Math.round((paid - overtime) * plan.getRegularHourly() * 100 / 60.0
-                + overtime * plan.getOvertimeHourly() * 100 / 60.0
-                + meters / 1609.344 * plan.getMileagePerMile() * 100);
+        long cents = Monetary.cents(paid, overtime, meters, plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
         return new Result(hard, cents, arrivals, paid, overtime, drive, waiting, meters);
     }
 
