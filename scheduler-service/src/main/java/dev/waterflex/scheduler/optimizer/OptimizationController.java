@@ -11,8 +11,16 @@ public class OptimizationController {
     private final OptimizationService service;
     public OptimizationController(OptimizationService service) { this.service = service; }
     @PostMapping(value = "/v1/optimize/day/preview", produces = "application/json")
-    public byte[] preview(@RequestBody OptimizationService.Request request) {
-        try { return service.previewJson(request); }
+    public void preview(@RequestBody OptimizationService.Request request,
+                        jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        try {
+            byte[] body = service.previewJson(request);
+            // The strict JSON converter would encode byte[] as base64. Write the already encoded object verbatim.
+            response.setCharacterEncoding("UTF-8");
+            response.setContentType("application/json");
+            response.setContentLength(body.length);
+            dev.waterflex.scheduler.Required.value(response.getOutputStream(), "preview response stream").write(body);
+        }
         catch (SearchAdmission.Busy | SearchDeadline.Expired exception) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
                     "Optimization service temporarily busy; retry", exception);
