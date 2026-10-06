@@ -12,8 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parents[1]
-REVIEW = ROOT / 'evidence/third-review'
+REVIEW = ROOT / 'evidence/fourth-review'
 BASELINE = '499fde2cc3fe79a8b7413a942a66cfc97b5d0e94'
+PREVIOUS = '09fb326d24d845ef0812debf301ac4fe7e1f92f7'
 
 
 def write(name, value):
@@ -32,8 +33,9 @@ def sources():
     guide = REPO / 'docs/timefold-documentation/Timefold-Solver-Docs.md'
     lines = guide.read_text(encoding='utf-8').splitlines()
     # Exact sections actually used; ranges identify their contents, not a new full-guide audit.
-    selected = ['10.', '12.', '16.2.', '16.3.', '16.5.', '16.11.', '16.14.', '17.',
-                '25.', '31.', '32.1.', '38.1.', '39.4.', '39.5.', '39.6.', '42.1.']
+    selected = ['10.', '10.8.', '11.3.', '12.', '16.2.', '16.3.', '16.5.', '16.11.', '16.14.', '17.',
+                '25.', '31.', '32.1.', '37.2.4.', '38.1.', '39.4.', '39.5.', '39.6.', '42.1.',
+                '57.2.', '62.2.']
     headings = [(i + 1, line) for i, line in enumerate(lines) if re.match(r'^#{2,4} ', line)]
     sections = []
     for prefix in selected:
@@ -54,9 +56,11 @@ def sources():
         'source_scope': 'Selected relevant Markdown sections; no new complete PDF or 66-chapter review claimed',
         'sections': sections, 'official_urls': urls,
         'live_checks': [
-            {'url': 'https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/benchmarking-and-tweaking', 'observed_version': '2.7.0'},
-            {'url': 'https://docs.timefold.ai/timefold-solver/latest/constraints-and-score/performance', 'observed_version': '2.7.1'},
-            {'url': 'https://docs.timefold.ai/timefold-solver/latest/optimization-algorithms/local-search', 'observed_version': '2.7.1'}],
+            {'url': 'https://docs.timefold.ai/timefold-solver/latest/optimization-algorithms/overview', 'observed_version': '2.7.1'},
+            {'url': 'https://docs.timefold.ai/timefold-solver/latest/constraints-and-score/overview', 'observed_version': '2.7.1'},
+            {'url': 'https://docs.timefold.ai/timefold-solver/latest/domain-modeling/modeling-planning-problems', 'observed_version': '2.7.0', 'method': 'official search result'},
+            {'url': 'https://docs.timefold.ai/timefold-solver/latest/upgrading-timefold-solver/upgrade-from-v1', 'observed_version': '2.7.1', 'method': 'official search result'}],
+        'pinned_api_check': 'JDK 25 javap of core 2.6.0 TerminationFactory, AbstractPhaseFactory and HardMediumSoftScore; no proposed treatment executions',
         'notes': ['Live URLs are mutable. Local source bytes identify the supplied edition.',
                   'Examples remain proposed and have not been compiled against the benchmark artifact.',
                   'Chapter ranges identify cited context; selection does not imply every nested example was executed.']})
@@ -67,14 +71,15 @@ def manifest():
         raise ValueError('Complete verification and visual QA before recording manifest')
     paths = [p for p in ROOT.iterdir() if p.is_file() and p.suffix in ('.py', '.md', '.docx')]
     paths += [p for p in REVIEW.iterdir() if p.is_file() and p.name not in ('manifest.json', 'final-verification.log')]
-    historical = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', BASELINE, '--',
+    historical = subprocess.check_output(['git', 'ls-tree', '-r', '--name-only', PREVIOUS, '--',
                                          'docs/timefold-audit/evidence'], cwd=REPO, text=True).splitlines()
     history = []
     for name in historical:
-        data = subprocess.check_output(['git', 'show', f'{BASELINE}:{name}'], cwd=REPO)
+        data = subprocess.check_output(['git', 'show', f'{PREVIOUS}:{name}'], cwd=REPO)
         history.append({'path': name, 'sha256': hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest(),
                         'normalize_crlf': True})
     write('manifest.json', {'review_date': '2026-10-06', 'production_baseline': BASELINE,
+                           'previous_report_revision': PREVIOUS,
                            'historical_artifacts': history,
                            'artifacts': [receipt(p, p.suffix != '.docx') for p in sorted(paths)]})
 

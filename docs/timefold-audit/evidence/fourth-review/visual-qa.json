@@ -1,0 +1,197 @@
+{
+  "pages": 31,
+  "all_pages_inspected": true,
+  "exporter": "Microsoft Word hidden read-only local-copy PDF export",
+  "renderer": "Codex bundled Poppler at 120 dpi",
+  "docx_sha256": "9fb9c2bacc7b408f3a07147c347c2a12fa6a5c01f499d271aeb272edcd47ab49",
+  "pdf_sha256": "b74581196dd87cc240e5c57f4c7fe5b280b63294e0759a2dc03bbd0f0f48fc78",
+  "inspection_method": "Every initial page visually inspected at full-page resolution. Final correction changed page 16 only: all 31 final pages compared pixel-for-pixel and page 16 visually reinspected. Remaining 30 pages are pixel-identical to inspected pages, including headers and footers.",
+  "page_reviews": [
+    {
+      "page": 1,
+      "sha256": "a554eaae05e5e2ccebb6e5402ef4df3c132b7cb7c1018b5dc3e9ff6f71991c50",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 2,
+      "sha256": "60421e672cb4eb20f3a0fd1b3345e765d71135ee6a887705c61888c180e6dc21",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 3,
+      "sha256": "0b669f6767e0a489eef4cb325982320c54333b78d1acfd3bd88fa20a5961cbe8",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 4,
+      "sha256": "8ac72e378af2440757f0aff273dfcb232f9a67afa093e90c86fbaa927eb09a85",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 5,
+      "sha256": "43298a1883ea414f90791e16937530f1d8fec21c4f9d7d0d93618f25183a5ceb",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 6,
+      "sha256": "830012a8b73ab228ed9e36439bd4f29ec562d0073555868279cd72855575fcfe",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 7,
+      "sha256": "08f0bbdbb547a48449610eee15af77d2425c201e5e0fd021d0a8deeff27f76cd",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 8,
+      "sha256": "76dc6bd1b311a10725ad4c9a17cf720d0106b6a9bf732464e7da377563ac8fbf",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 9,
+      "sha256": "9b0fd35240b4edc090622c67dcefc559b49d610f957979717c306d291ad02a58",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 10,
+      "sha256": "7ed06717502aa85345a4728b09a49f5a27de5c0d2c345795cfb4004583cc9b43",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 11,
+      "sha256": "831fd5a7d6073dabb5ed016a0e221c18a1ed87eadf1455feb58e41d91cb9aa49",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 12,
+      "sha256": "c98490f7c4e02e963c8fe6cb36f810914a4450b34ac42d50d1d02088ed015b5e",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 13,
+      "sha256": "2fd00ac7c7c9af89db0232c870a7a9af2db581be6d3c33e12620c37378fea5a6",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 14,
+      "sha256": "74fc147d8b795a8120276f5d3ee2969bf4309800616bc04133d0f613b67b76d8",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 15,
+      "sha256": "1a985823bc38c342907b68cf6e1c6e4c2bc352e0ce46b0669969146256051b9f",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 16,
+      "sha256": "52319aabc2ad6aa4cd81238785346bec961b7a6f105380ed267c202916ec4ced",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Final page visually reinspected"
+    },
+    {
+      "page": 17,
+      "sha256": "070064c1179a946d5ee2723d409bfe53269c560522fb1576b0314f92d15bd414",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 18,
+      "sha256": "9018a7d6f89ec2ea60045b8b2d8c27a41696e2b026a2039b1e6a1a13b68de324",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 19,
+      "sha256": "15e4bedbb7e64a7af9da521cfbef1826b81a86102b71fcc2a7dd7974ef92e31d",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 20,
+      "sha256": "07c832fb09a4268927b00223b036bb532e58bd5ac4427398398f2572c9b07b73",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 21,
+      "sha256": "4f54caee91bad3404fb245e78d5a1fbd42b817ee2f3997c0e34977109e04875e",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 22,
+      "sha256": "618dbb76cf1dd38fe5c01eb263ed2634b8339f0c7e5803778697c0cacf013791",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 23,
+      "sha256": "9644815d80af977b83f39dcecf0b703bfb38883480d34b4619f37487b1ada37b",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 24,
+      "sha256": "3380cc2cd4ebcc3cc927fdf5380616b8e7737ec831ebffdfba3319a96c988556",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 25,
+      "sha256": "83c9a6ab9f04933b6680589ecc4f4aa8213673b4880491f1592e2c77f4f6b0fc",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 26,
+      "sha256": "4dfc5d6deb4779b1554aa12962358d6c6a2e7d8ae078393a8983d3d7e644d5c6",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 27,
+      "sha256": "577a2d83a8e96287c56fc3a1a50917e0bae70170d7fc4ba27159b566129643a8",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 28,
+      "sha256": "d087cf5f43d9b8c5cdf36aa18f96b2af5f6e757ddbc6ca5641050668fd4fae3c",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 29,
+      "sha256": "3f491aaadffca53799439cb2c654ef9d5bb3121bea4a0240456f239d9d9b16d4",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 30,
+      "sha256": "9d330c96f6ebdc9440e847f33345cc6118794876c7628c21393a1d5a0035d3db",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    },
+    {
+      "page": 31,
+      "sha256": "a69800bc7196bb254699eefe02a7267af526467fef7637734bc2e547eecd61ff",
+      "status": "inspected: readable, no clipping or overlap",
+      "method": "Visually inspected; final image pixel-identical"
+    }
+  ]
+}

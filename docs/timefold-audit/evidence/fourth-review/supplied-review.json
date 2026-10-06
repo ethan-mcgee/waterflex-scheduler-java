@@ -1,0 +1,15 @@
+{
+  "status": "supplied inputs preserved without edits",
+  "artifacts": [
+    {
+      "path": "docs/timefold-audit/Timefold_Second_Review.md",
+      "sha256": "76ddaabf076af5b8dbf34707633b1f0a6c0dc53994dce9c6928f40922207d900",
+      "bytes": 39359
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Second_Review.docx",
+      "sha256": "02181f228bb8e4fd09fc8e12bdf899d1944fefb292b1ba14d782e79402a5de08",
+      "bytes": 53810
+    }
+  ]
+}
