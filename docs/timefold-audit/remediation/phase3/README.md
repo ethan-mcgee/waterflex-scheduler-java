@@ -34,6 +34,8 @@ Rollback of a dependency, algorithm or adapter must retain the corrected monetar
 
 The local [verification receipt](verification.json) retains command outcomes, hashes and intermediate compilation failures. Required PostgreSQL, workflow and browser checks also run in the implementation PR CI; a local receipt is not a certification of those remote checks.
 
+The [migration correction receipt](migration-correction.json) preserves the first failed CI run and the correction. Reservation obligations are a read-only union view over holds and dependencies. Migration releases the underlying holds; both direct and dependent obligations inherit that release. The database regression loads the actual obligation-view migration and checks pending release and confirmed preservation through both branches.
+
 - `MonetaryTest`: 255 minutes at 20.02 = 8,509 cents; half-cent neighbors; overtime; exact mileage; 1,000 independently seeded generic BigInteger fraction comparisons; repartition/summation; overflow and exact JSON bounds; canonical wire strings; stale provenance.
 - `BookingMoneyTest`: cached booking insertion, full independent evaluation and Timefold scoring agree on fleet rounding; an unchanged half-cent route changes the booking delta; repartition preserves cost and fairness.
 - `MonetaryMigrationDatabaseIT`: the actual SQL migration in disposable test schemas; decimal rendering and original bits, receipts, stale previews/searches, pending release, confirmed promises, new defaults, invalid legacy rollback and numeric constraints. CI invokes this explicitly with the existing snapshot integration gate.
