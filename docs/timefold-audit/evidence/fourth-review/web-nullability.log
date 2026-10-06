@@ -1,0 +1,121 @@
+
+> waterflex-web@0.1.0 test:nullability
+> tsx --test lib/nullability.test.ts
+
+TAP version 13
+# Subtest: refresh preserves the browser deadline and rejects expired or malformed values before scheduling
+ok 1 - refresh preserves the browser deadline and rejects expired or malformed values before scheduling
+  ---
+  duration_ms: 20.3235
+  type: 'test'
+  ...
+# Subtest: time-off travel retains unavailable history and rejects malformed accounting
+ok 2 - time-off travel retains unavailable history and rejects malformed accounting
+  ---
+  duration_ms: 1.1362
+  type: 'test'
+  ...
+# Subtest: road travel and buffer reporting rejects missing or inconsistent components
+ok 3 - road travel and buffer reporting rejects missing or inconsistent components
+  ---
+  duration_ms: 0.397
+  type: 'test'
+  ...
+# Subtest: solver diagnostics require measured phase counts and explicit unavailable optional metrics
+ok 4 - solver diagnostics require measured phase counts and explicit unavailable optional metrics
+  ---
+  duration_ms: 1.1171
+  type: 'test'
+  ...
+# Subtest: depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates
+ok 5 - depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates
+  ---
+  duration_ms: 0.1782
+  type: 'test'
+  ...
+# Subtest: invalid request bodies fail before downstream requests or writes
+ok 6 - invalid request bodies fail before downstream requests or writes
+  ---
+  duration_ms: 13.8225
+  type: 'test'
+  ...
+# Subtest: depot ownership and technician assignment fields are required
+ok 7 - depot ownership and technician assignment fields are required
+  ---
+  duration_ms: 1.2819
+  type: 'test'
+  ...
+# Subtest: scheduler client preserves status and rejects malformed success and transport failures
+ok 8 - scheduler client preserves status and rejects malformed success and transport failures
+  ---
+  duration_ms: 1.86
+  type: 'test'
+  ...
+# Subtest: geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero
+ok 9 - geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero
+  ---
+  duration_ms: 3.5749
+  type: 'test'
+  ...
+# Subtest: browser and journal decoders reject incomplete state while permitting unavailable shifts
+ok 10 - browser and journal decoders reject incomplete state while permitting unavailable shifts
+  ---
+  duration_ms: 1.5831
+  type: 'test'
+  ...
+# Subtest: appointment outcomes reject missing or contradictory search evidence
+ok 11 - appointment outcomes reject missing or contradictory search evidence
+  ---
+  duration_ms: 0.8245
+  type: 'test'
+  ...
+# Subtest: scheduler search timing is kept separate from client transport duration
+ok 12 - scheduler search timing is kept separate from client transport duration
+  ---
+  duration_ms: 0.3213
+  type: 'test'
+  ...
+# Subtest: selection conflicts preserve retryable refresh outcomes and transport failures
+ok 13 - selection conflicts preserve retryable refresh outcomes and transport failures
+  ---
+  duration_ms: 1.6774
+  type: 'test'
+  ...
+# Subtest: an already abandoned search sends only durable cancellation with its own live signal
+ok 14 - an already abandoned search sends only durable cancellation with its own live signal
+  ---
+  duration_ms: 0.3308
+  type: 'test'
+  ...
+# Subtest: calendar utilities reject missing or invalid calendar values
+ok 15 - calendar utilities reject missing or invalid calendar values
+  ---
+  duration_ms: 12.5105
+  type: 'test'
+  ...
+# Subtest: time-off contracts reject invalid categories, intervals, and persisted reports
+ok 16 - time-off contracts reject invalid categories, intervals, and persisted reports
+  ---
+  duration_ms: 1.1388
+  type: 'test'
+  ...
+# Subtest: repair approval sums increases by day without cancelling them against another day's reduction
+ok 17 - repair approval sums increases by day without cancelling them against another day's reduction
+  ---
+  duration_ms: 0.4922
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 473.2189
+npm notice
+npm notice New minor version of npm available! 11.6.2 -> 11.21.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.21.0
+npm notice To update run: npm install -g npm@11.21.0
+npm notice

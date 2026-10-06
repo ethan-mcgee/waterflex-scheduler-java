@@ -1,46 +1,62 @@
 # Timefold audit package
 
-Read [the canonical Markdown audit](Timefold_Audit.md) or [the Word edition](Timefold_Audit.docx). The expanded review covers booking/daily algorithms, computation, stateless service readiness, TF01-TF11 reassessment and three additional optimization opportunities (TF12-TF14). It changes no production behavior or business policy.
+Read the [rewritten Markdown audit](Timefold_Audit.md) or [matching Word edition](Timefold_Audit.docx). This 6 October 2026 edition replaces the accumulated reviews with one technical explanation of current behavior, consequences, relevant Timefold guidance, proposed changes, expected benefits, tradeoffs, and acceptance criteria.
 
-## Baselines and sources
+The report retains TF01 through TF14 and integrates CR01 through CR11 from the supplied second review. It specifies cooperative deadline ownership, indexed directed-road datasets, overconstrained diagnostic planning, policy-based fairness skipping, explicit target weighting, overnight observability, and independently measurable timing, score-representation, and aggregation changes. Benchmark foundations and profiling precede performance work; shadow-variable remodeling remains later work.
 
-Original baseline: `164a1e111370d21ea93f634e674c5fdee4edc90f`. Expanded production baseline: `afa035ddf2101d26c12508067d2d9016601db6c3`, refreshed main at authoring. Branch: `codex/timefold-audit-expanded`. The original checkout's unrelated AGENTS.md change was preserved.
+Community Edition is an explicit constraint. Booking insertion/refinement, independently validated ordering and business explanations, external profiling, and parallel independent solves form the recommended approach. Enterprise purchase evaluation, custom multithreaded move evaluation, and a solver fork are excluded from the recommended sequence. Public, preview, and internal dependencies need separate compatibility checks.
 
-The primary source is the user-supplied `Timefold-Solver-Docs.md` under `C:/Users/mcgee/Documents/Codex/2026-10-02/c-users-mcgee-downloads-timefold-solver/outputs/`. SHA-256: `832e78aecbdce7a57497953029fdc5efcb7879e7e256b35377829db4d274da7d`. Neither it nor its assets was changed. The coverage register records 66 chapters, section lines, 122 image references, 113 unique asset hashes, eight inspected diagrams, applicability and 60 retrieved official guide URLs. The local/official guidance identifies 2.7.0; installed solver is 2.6.0. Complete coverage means this inventoried Solver guide, not all APIs, old versions, external blogs, Platform or managed-model manuals. Exact examples were spot-checked, not all compiled.
+The three benchmark layers, shared fairness references, held-out datasets, uncertainty limits, and failure preservation remain. One proposed versioned JSON file contains every adjustable campaign parameter. Coverage, per-solve allowance, and CPU/concurrency are separate decisions. Dry-run expansion and overhead-aware duration formulas replace mandatory stage durations. A campaign cutoff stops new comparison blocks without shortening configured solves. Proposed datasets, schema version 2, calibration, statistics, and promotion gates are design work only. No runtime behavior, production policy, dependency, or benchmark runner changes are implemented here. No new performance campaign was run.
 
-## Evidence boundaries
+## Sources and historical evidence
 
-`evidence/summary.json` and original logs are unchanged historical records. The verifier checks original authoring hashes against their retained Git revision and original raw logs against current files. `evidence/second-review/manifest.json` hashes the delivered expanded artifacts. It excludes itself and its final verification log to avoid circular hashing. Text hashes normalize CRLF; raw logs and binary artifacts do not.
+Reviewed baseline: `499fde2cc3fe79a8b7413a942a66cfc97b5d0e94`. Runtime and benchmark sources are unchanged from the prior expanded review baseline `afa035ddf2101d26c12508067d2d9016601db6c3`.
 
-`second-review/retained-evidence.json` identifies measured revisions, configuration, selected raw hashes and metadata receipts. The current review validated 360 booking cases, 1,280 daily-budget cases, and two 24-case contention runs, including frozen artifact hashes. Only 60 booking pairs match served customer identities; 120 concurrent pairs do not. Contention revisions differ, precluding a clean causal concurrency claim. No new measurement was run. Original failed/interrupted campaigns remain unchanged. Two initial helper schema assumptions failed and were corrected; their logs are retained and distinct from experiment failures.
+The supplied `docs/timefold-documentation/` directory is included in this PR: the Markdown guide, PDF, and 113 figure assets. Git preserves the Markdown source bytes without line-ending conversion. Their hashes and selected section ranges are in [source-register.json](evidence/fourth-review/source-register.json). We do not claim another complete 66-chapter or PDF review. Runtime is 2.6.0; current overview pages returned 2.7.1 labels, so examples require compatibility checks before implementation. The Timefold 2.x long-based class is `HardMediumSoftScore`; the second review's `HardMediumSoftLongScore` name is obsolete.
 
-Fresh Java verification: seven existing `TimefoldAuditEvidenceTest` cases passed with nullability at the new baseline. They characterize unsafe behavior, not desired contracts. Four helper boundary tests check malformed evidence, hash changes and Word omission/reordering. Full original Java/portal gates are historical; no Java/TypeScript changed in this update. PR CI provides its own current result.
+Original, second-review, and third-review manifests, raw logs, coverage, retained archive receipts, and visual QA are preserved. Historical report/helper hashes are checked against their retained Git revisions, including the previous report revision `09fb326d24d845ef0812debf301ac4fe7e1f92f7`. Fourth-review receipts identify the current report and helpers and check all preserved historical evidence. The supplied [second-review Markdown](Timefold_Second_Review.md) and Word files are preserved byte for byte with a separate receipt. Line-ending normalization for historical text is explicit. New receipts never overwrite old findings or relabel old measurements.
 
-## Reproduce
+The prior retained archive review covered 360 booking cases, 1,280 daily cases, and two 24-case contention runs. This edition preserves those review receipts rather than claiming a new full archive traversal. Seven Java characterization tests reproduce unsafe core behavior; passing them does not mean the findings are fixed.
 
-Use JDK 25 and Python with python-docx and lxml, without Python `-O`. From the repository root:
+## Reproduce verification
+
+Use JDK 25, Python with python-docx and lxml for document helpers, and the project experiment dependencies for the experiment suite. Do not use Python `-O`, which disables evidence assertions.
 
 ```powershell
 $env:JAVA_HOME = 'C:/Program Files/Java/jdk-25'
-.\mvnw.cmd -Pnullability -pl scheduler-service '-Dtest=TimefoldAuditEvidenceTest' test --batch-mode --no-transfer-progress
+.\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress
+python -m unittest discover -s infra -p test_experiments.py -v
 python -m unittest discover -s docs/timefold-audit -p test_verification.py -v
+python docs/timefold-audit/verify_evidence.py
+python docs/timefold-audit/verify_evidence.py --external
+npm.cmd --prefix web run test:nullability
+npm.cmd --prefix web run lint
+npm.cmd --prefix web run typecheck
+npm.cmd --prefix web run test:unit
+```
+
+`--external` additionally checks the included source Markdown/PDF hashes and selected section ranges. The option retains its original name; these inputs are now tracked in this repository. The verifier checks exact ordered Markdown/Word text and hyperlink pairs, historical hashes, pinned source links, explained finding coverage, campaign arithmetic, and visual QA receipts.
+
+Current commands, runtimes, and outcomes are recorded in [verification.json](evidence/fourth-review/verification.json). Previous test failures and successful reruns remain historical evidence in their original directories.
+
+[campaign-example.json](evidence/fourth-review/campaign-example.json) is a complete illustrative parameter inventory for a reference-only Community study. It is not accepted by `run_experiment.py`. `campaign_spec.py` validates this illustration's shape, nullability, version/edition, resource bounds, and matching arithmetic. It is not a runtime configuration parser, dataset validator, JVM launcher, or proof that the proposed Timefold settings compile. `acceptorParameter` means entity tabu size for TABU and history size for LA; phase-specific termination parameters apply only to their named policy. Reference setup and application load fields are explicitly inapplicable in this Layer A example. The future schema must dispatch on layer/algorithm/move family and declare any additional bounds required by new treatments.
+
+The original and resolved JSON, deterministic expansion, artifact hashes, and discovered hardware/effective runtime settings must be archived when the future runner is implemented. Credentials remain outside JSON. Runtime settings in this example are requested values, not measured machine metadata. Daytime and overnight comparisons use explicitly selected parameters, with no automatic preset selection or experiment retries.
+
+## Regenerate the report
+
+```powershell
+python docs/timefold-audit/build_report.py
+python docs/timefold-audit/refresh_review.py --sources
+```
+
+The builder preserves Calibri, pale-blue tables, repeated headers, accessible body text, running headers, and page counts. Render and inspect every page after changing text or styles. The packaged renderer was attempted; LibreOffice is absent in this Windows runtime. Microsoft Word PDF export plus bundled Poppler is the fallback. PDF/page images are internal QA under ignored `qa/`, not additional deliverables.
+
+After completing tests and recording page inspection, refresh the fourth-review manifest and rerun verification:
+
+```powershell
+python docs/timefold-audit/refresh_review.py --manifest
 python docs/timefold-audit/verify_evidence.py --external
 ```
 
-`--external` requires the original local guide/assets path. Omit it for portable repository-only verification. To recheck retained experiments without launching measurements or editing archives:
-
-```powershell
-python docs/timefold-audit/collect_retained_evidence.py --archive-root C:/Projects/waterflex-scheduler-java/experiments/runs
-```
-
-This regenerates the compact second-review evidence JSON, not the archives. Inspect differences and refresh the delivered manifest only after verification and review.
-
-## Word regeneration and QA
-
-`python docs/timefold-audit/build_report.py` regenerates the same Word companion with Calibri, pale blue tables and no em dashes. `verify_evidence.py` checks exact ordered paragraph/table-cell text and links, not just substring presence. DOCX ZIP timestamps can change its hash; the manifest identifies the reviewed delivered bytes.
-
-The formatting revision preserves the canonical report text and all hyperlink labels/targets. It adds balanced title lines, wider explanation columns, larger table text, alternating pale row shading, bold finding lead-ins, running headers and page totals. Paragraphs and finding introductions stay together. The revised document has 26 inspected pages; `second-review/formatting-review.json` records the comparison with the prior Word edition and distinguishes this presentation check from the earlier source review and Java tests.
-
-The packaged renderer was attempted but LibreOffice was unavailable. Microsoft Word exported the report to PDF and bundled Poppler rendered pages. See `evidence/second-review/visual-qa.json` for the final page-by-page receipt. PDF and page images remain ignored under `qa/`. Re-render and inspect every page after content/style changes before updating artifact hashes.
-
-Historical log verification uses `second-review/historical-line-endings.json`: all 14 original Git blobs have LF endings, while the original manifest describes CRLF output. Both byte identities are retained; reconstructing CRLF reproduces every original hash and size exactly. No historical file or manifest was rewritten.
+Do not refresh historical manifests to make them match rewritten content. `refresh_review.py` changes only fourth-review receipts. Its `campaign-design.json` companion checks worked formulas without enforcing mandatory stages or durations. The production example has 96 cases, 960 seconds solving, 2,880 seconds per-JVM warmup, and 384 seconds estimated overhead; the ideal two-worker estimate is 2,112 seconds. The separate 60-second cohort gives 4,512 seconds under the same assumptions. Neither estimate is a measured runtime or completion guarantee.
