@@ -1,0 +1,122 @@
+
+> waterflex-web@0.1.0 test:nullability
+> tsx --test lib/nullability.test.ts
+
+TAP version 13
+# Subtest: refresh preserves the browser deadline and rejects expired or malformed values before scheduling
+ok 1 - refresh preserves the browser deadline and rejects expired or malformed values before scheduling
+  ---
+  duration_ms: 18.6839
+  type: 'test'
+  ...
+# Subtest: time-off travel retains unavailable history and rejects malformed accounting
+ok 2 - time-off travel retains unavailable history and rejects malformed accounting
+  ---
+  duration_ms: 1.0089
+  type: 'test'
+  ...
+# Subtest: road travel and buffer reporting rejects missing or inconsistent components
+ok 3 - road travel and buffer reporting rejects missing or inconsistent components
+  ---
+  duration_ms: 0.3467
+  type: 'test'
+  ...
+# Subtest: solver diagnostics require measured phase counts and explicit unavailable optional metrics
+ok 4 - solver diagnostics require measured phase counts and explicit unavailable optional metrics
+  ---
+  duration_ms: 1.9407
+  type: 'test'
+  ...
+# Subtest: v2 solver diagnostics preserve nulls and reject missing reasons or false observation
+ok 5 - v2 solver diagnostics preserve nulls and reject missing reasons or false observation
+  ---
+  duration_ms: 1.1914
+  type: 'test'
+  ...
+# Subtest: depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates
+ok 6 - depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates
+  ---
+  duration_ms: 0.1695
+  type: 'test'
+  ...
+# Subtest: invalid request bodies fail before downstream requests or writes
+ok 7 - invalid request bodies fail before downstream requests or writes
+  ---
+  duration_ms: 11.4579
+  type: 'test'
+  ...
+# Subtest: depot ownership and technician assignment fields are required
+ok 8 - depot ownership and technician assignment fields are required
+  ---
+  duration_ms: 1.1946
+  type: 'test'
+  ...
+# Subtest: scheduler client preserves status and rejects malformed success and transport failures
+ok 9 - scheduler client preserves status and rejects malformed success and transport failures
+  ---
+  duration_ms: 1.7428
+  type: 'test'
+  ...
+# Subtest: geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero
+ok 10 - geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero
+  ---
+  duration_ms: 3.3353
+  type: 'test'
+  ...
+# Subtest: browser and journal decoders reject incomplete state while permitting unavailable shifts
+ok 11 - browser and journal decoders reject incomplete state while permitting unavailable shifts
+  ---
+  duration_ms: 1.4544
+  type: 'test'
+  ...
+# Subtest: appointment outcomes reject missing or contradictory search evidence
+ok 12 - appointment outcomes reject missing or contradictory search evidence
+  ---
+  duration_ms: 0.5963
+  type: 'test'
+  ...
+# Subtest: scheduler search timing is kept separate from client transport duration
+ok 13 - scheduler search timing is kept separate from client transport duration
+  ---
+  duration_ms: 0.2423
+  type: 'test'
+  ...
+# Subtest: selection conflicts preserve retryable refresh outcomes and transport failures
+ok 14 - selection conflicts preserve retryable refresh outcomes and transport failures
+  ---
+  duration_ms: 1.8535
+  type: 'test'
+  ...
+# Subtest: an already abandoned search sends only durable cancellation with its own live signal
+ok 15 - an already abandoned search sends only durable cancellation with its own live signal
+  ---
+  duration_ms: 0.3745
+  type: 'test'
+  ...
+# Subtest: calendar utilities reject missing or invalid calendar values
+ok 16 - calendar utilities reject missing or invalid calendar values
+  ---
+  duration_ms: 15.1844
+  type: 'test'
+  ...
+# Subtest: time-off contracts reject invalid categories, intervals, and persisted reports
+ok 17 - time-off contracts reject invalid categories, intervals, and persisted reports
+  ---
+  duration_ms: 1.9881
+  type: 'test'
+  ...
+# Subtest: repair approval sums increases by day without cancelling them against another day's reduction
+ok 18 - repair approval sums increases by day without cancelling them against another day's reduction
+  ---
+  duration_ms: 0.4501
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 524.4133

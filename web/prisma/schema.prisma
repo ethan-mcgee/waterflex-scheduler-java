@@ -553,6 +553,24 @@ model OptimizationRun {
   @@map("optimization_run")
 }
 
+model DailyCalculationAttempt {
+  id                 String @id
+  requestKey         String @unique
+  requestFingerprint String
+  ownerToken         String
+  state              String
+  expiresAt          DateTime @db.Timestamptz(6)
+  snapshotRevision   String?
+  routingIdentity    String?
+  resultRunId        String?
+  resultJson         Json?
+  failureReason      String?
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @db.Timestamptz(6)
+  @@index([state, expiresAt], map: "daily_calculation_attempt_state_expiry")
+  @@map("daily_calculation_attempt")
+}
+
 // Local sequential booking harness. Jobs use stable IDs derived from request IDs.
 model BookingTestRun {
   id String @id
