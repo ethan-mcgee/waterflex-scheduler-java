@@ -1,0 +1,9 @@
+{
+  "kind": "worked arithmetic only, not executed",
+  "calibration_example": {"factors": [2, 2, 2, 3, 3], "observations": 72},
+  "stages": [
+    {"id": "production-reference", "factors": [2, 3, 4, 2, 2], "budgets_seconds": [10], "fresh_jvms": 96, "warmup_seconds": 30, "overhead_seconds_per_case": 4, "serial_analysis_seconds": 0, "parallel_cases": 2, "expected_cases": 96, "expected_solve_seconds": 960, "expected_warmup_seconds": 2880, "expected_overhead_seconds": 384, "expected_serial_seconds": 4224, "expected_parallel_seconds": 2112, "report_counts": ["96 observations", "960 seconds solving", "2,880 seconds warmup", "384 seconds overhead", "4,224 seconds serial", "2,112 seconds or 35.2 minutes"]},
+    {"id": "longer-reference", "factors": [2, 3, 4, 2, 2], "budgets_seconds": [60], "fresh_jvms": 96, "warmup_seconds": 30, "overhead_seconds_per_case": 4, "serial_analysis_seconds": 0, "parallel_cases": 2, "expected_cases": 96, "expected_solve_seconds": 5760, "expected_warmup_seconds": 2880, "expected_overhead_seconds": 384, "expected_serial_seconds": 9024, "expected_parallel_seconds": 4512, "report_counts": ["96 observations", "5,760 seconds solving", "2,880 seconds warmup", "384 seconds overhead", "9,024 seconds serial", "4,512 seconds or 75.2 minutes"]}
+  ],
+  "limitations": ["One fresh JVM per case in these examples; other explicitly configured grouping needs its own calculation.", "Ideal parallel estimates omit contention and imbalance.", "Fairness reference setup and serial analysis are separate when applicable.", "No configuration or campaign has been run."]
+}

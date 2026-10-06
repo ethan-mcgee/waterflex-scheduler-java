@@ -1,0 +1,583 @@
+{
+  "files": [
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p020-01.png",
+      "bytes": 146921,
+      "sha256": "63506c74bb7b274a4b9a232f55e740736e7e9056fd9fdb66d4be1cae4af1b373"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p028-01.png",
+      "bytes": 91494,
+      "sha256": "41a31d4b13b1a77151a1e5cb486614746276f56af9c4cbd2d96775d306346049"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p031-01.png",
+      "bytes": 39342,
+      "sha256": "f58582aea01f9dc86d56978ac42cfd2a206ce9fd110fd1a483aa17d231fb2753"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p033-01.png",
+      "bytes": 67986,
+      "sha256": "f39b3450a93e36626e2e451a162b10ca6c0bde23193e5678f94cda8cdb471570"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p042-01.png",
+      "bytes": 289037,
+      "sha256": "7d3fe4024b89137a0e51eed120564828abd203635a0991f2c40310ddf5574492"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p109-01.png",
+      "bytes": 119961,
+      "sha256": "d84c0fbc87a2952f7e625649140959baa9d503e79318ac920b8971bc783e018c"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p110-01.png",
+      "bytes": 164630,
+      "sha256": "0a47c50fc8866e24fa16481d714e366d5476bc63459685e68e4c64a2c145dcae"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p125-01.png",
+      "bytes": 37342,
+      "sha256": "6e07e1b97283d154fb2ae99556e7935e35ce53488af79af016b70aac1921e176"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p151-01.png",
+      "bytes": 114979,
+      "sha256": "da33ec7fdbebac9c0c18b6c9ea5811c03ccfc53bea9d2a5aa3396a2e1962ebf7"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p163-01.png",
+      "bytes": 65090,
+      "sha256": "e3d268d2fce93f47236dec4fdbe86117e53478b160e4c5b3167a22ebf0fb81f3"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p174-01.png",
+      "bytes": 116396,
+      "sha256": "a3920a1d84ad22c1cba101fb77ae7e1bfd17fdb331f53fb07a2b79bf153d2d39"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p175-01.png",
+      "bytes": 111849,
+      "sha256": "c0c58aafd7caed5d2b2c61e0a9c6fe3e02a6a3881d12c74e7d6a778d68cf3e00"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p177-01.png",
+      "bytes": 123568,
+      "sha256": "da7576ad5c7ffacc99d759e0b349124fa1f75eb806550ce95aa92c8a6858a5dd"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p178-01.png",
+      "bytes": 100685,
+      "sha256": "7d4007c1f0c92e72bbb6187859756368122d0b75540614112628bee7799ec33b"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p179-01.png",
+      "bytes": 103007,
+      "sha256": "fc3b993984309c0a32c6125b7f3498e053fcdb7fae96a8f64da5f3a7e756b64d"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p181-01.png",
+      "bytes": 64484,
+      "sha256": "e5f7634f37fcca5cf89eaa61703a393ef68030b6456c7bf83d4020acb8b3e485"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p184-01.png",
+      "bytes": 110521,
+      "sha256": "bf31070453795a1de5e6e01e971deb5dc55dec01bab72985cb03f32085574ecd"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p185-01.png",
+      "bytes": 76872,
+      "sha256": "a97b784003e8823ed90e7be8298ca01ce611860fc6363acc6e2604213017db1a"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p186-01.png",
+      "bytes": 65352,
+      "sha256": "e9ef04e2211d7ea75947f693303f6815cc8ea340b63cbacd551e91198f97c793"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p187-01.png",
+      "bytes": 54935,
+      "sha256": "4e4e60accb86b42c68f8655cafb5d7d74589f64bd2067658f0f88ede396967bd"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p188-01.png",
+      "bytes": 60749,
+      "sha256": "65d2f89c4b7e20948310eccf3c48319317f2909bd8991a69989ae5c30cfbd6a9"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p189-01.png",
+      "bytes": 69553,
+      "sha256": "c4fa93654c823522cb69767013d6b2e160abafc90f1d1802a35efb3682602235"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p191-01.png",
+      "bytes": 94371,
+      "sha256": "17530f25dbbef1c8172b9903d58a4a9d31317ea256bd61e845d6bd9a515345ac"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p192-01.png",
+      "bytes": 67904,
+      "sha256": "4a93bba489936bcba98985f8793b21a7e3b5425e1e9deae36c2261fcdaaaa92a"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p193-01.png",
+      "bytes": 59448,
+      "sha256": "3fa2b7acf56fe862bb5f26e4fc4e250b90038cb742ccc4fb4cd5c05a30293bee"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p194-01.png",
+      "bytes": 64256,
+      "sha256": "dd3c8e6b3680b738c5fc4f3d327a9a42ce7770f94ed19d2d5c2dc92867f2fe55"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p200-01.png",
+      "bytes": 102609,
+      "sha256": "de6f5e49c3c6e1ec998225967ae5bd4dac8a1bf066953cd7e092eb00277cf549"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p201-01.png",
+      "bytes": 120054,
+      "sha256": "c7649efb9b02ec30131a926decad195cc7bf52e00b4f08f108cc490baa7f2ec3"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p202-01.png",
+      "bytes": 100434,
+      "sha256": "5bd209d197fa3e7db3963a3eb2acc6f283337d7688959eb5fb46fcdad155e4ee"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p209-01.png",
+      "bytes": 95128,
+      "sha256": "f664c31a08d569850f05a56b50347bb419e31a0ca20de36e42eea92f340ca96c"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p210-01.png",
+      "bytes": 135739,
+      "sha256": "830db4978d4f4545d56fbed56d4c0d1f2f249079f7310efccafbd93b9ce0b482"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p211-01.png",
+      "bytes": 92675,
+      "sha256": "2bed13f45e61e2bf1b3d1dc1ea41436d8516aa106e52596df1dd158f74c81378"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p214-01.png",
+      "bytes": 84086,
+      "sha256": "bc517bd24b8016602517400946a2853add0c9a7da685a9503b2eab3899c5a8f6"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p219-01.png",
+      "bytes": 112177,
+      "sha256": "9e3f1544e809cf3ea1069e92b71d558005d23ab0097ff829356c08637de71458"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p220-01.png",
+      "bytes": 83083,
+      "sha256": "8e9a7e26baf1fe30de2d676acb5be8d6fba9c08d5cefe0ad9afe34edeca96da4"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p221-01.png",
+      "bytes": 123369,
+      "sha256": "5d14dccd4760d58b52bbd6bcb2efc8d332ac4edd9dfd68a6184a7a0b14c9abba"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p227-01.png",
+      "bytes": 95764,
+      "sha256": "85d66a80b18b0f70049647c6c8620f80130c5a52d78a69f1d761678d7654cbb1"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p232-01.png",
+      "bytes": 76492,
+      "sha256": "923e18010e9f12b231339494bd278071f94bb3dc7cc94705f756ee334e4fe12c"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p244-01.png",
+      "bytes": 117830,
+      "sha256": "0c12bb6245555f1bee40f176a6f22663ea4dc78e246426ba8b9d4f323614f80d"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p252-01.png",
+      "bytes": 68251,
+      "sha256": "d785b1761f6359ce17d93f78e83827426707eea76af3afb2bd2985552da424b1"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p257-01.png",
+      "bytes": 116097,
+      "sha256": "450c32873b4d4c429379c22dd04cb339f1df301dfa9b2059cae21cba196c4f91"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p266-01.png",
+      "bytes": 61423,
+      "sha256": "bdc1d32ca657912b5a87d0babaa311f02304415a1ec7c8f8d851b38cd1dd3bde"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p270-01.png",
+      "bytes": 67092,
+      "sha256": "c18fe9c8eb0c16372ccd8699c9a48947c7d287177c41c348ee2ff0d5f90cb53a"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p284-01.png",
+      "bytes": 54220,
+      "sha256": "75db70cf503c2cf82b1dcf06dd61c0663e05d0a6eaa24df4bfbf599cea68c514"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p350-01.png",
+      "bytes": 73886,
+      "sha256": "958131a8d3f4702d4612ce69f26bf0aef87a7f5a2a202314607eb9655e4e3689"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p360-01.png",
+      "bytes": 83622,
+      "sha256": "4f1a52edb04e50a8a9b2d98ddb0fcd49c3b541806740895b610abb3e04e16b70"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p361-01.png",
+      "bytes": 52980,
+      "sha256": "79947ed6399f53deefb662c200e148be3cadce5c7d1c713ef2633e8950accc6c"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p364-01.png",
+      "bytes": 61546,
+      "sha256": "7cd1de5327ec5f20d0bbf4a371b28b03d981c89c1cb8e66e32d6f4cd8a2caf08"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p364-02.png",
+      "bytes": 90398,
+      "sha256": "fbbf3e627db4e964b3131b2b44588960a4a4d20b95f42da47585171dda5f10b1"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p365-01.png",
+      "bytes": 138814,
+      "sha256": "ee1820d650a522a6291d3ae83748ca253b75aa71bf51411fefe3419e7e725259"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p366-01.png",
+      "bytes": 243950,
+      "sha256": "d1709ce2ab24bbbd099ba3a7371ffb794b1e106b6409da9bc8ccfa65426c11fb"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p366-02.png",
+      "bytes": 73688,
+      "sha256": "6dec010651a34b7aaeefe1a862d4ed5f946501961d6dc591da2c7f9f2429bcb9"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p367-01.png",
+      "bytes": 82652,
+      "sha256": "bd2194cf35683edcbfbc6a2aa99b0f8e7cb6191687d3cf9acd2229a0b20ee9e1"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p368-01.png",
+      "bytes": 176150,
+      "sha256": "0c4cae130faf260a29346a67022ea56c6f79ff1a238c4d0e91b119ac75131e75"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p369-01.png",
+      "bytes": 97162,
+      "sha256": "590f824ffcf45045d3e143a48f8625e9cec92078d63867aeb269c1bf8fad6987"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p369-02.png",
+      "bytes": 126558,
+      "sha256": "133bb3fa3e39b01c01d976bc1a16c23155848d7b44bfb15e42af1c374617758e"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p371-01.png",
+      "bytes": 95329,
+      "sha256": "3582deddcb8c852860f9cbb3ac07886b0522204489700267c079ded4cbf0ce62"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p371-02.png",
+      "bytes": 167595,
+      "sha256": "477b31f7e02516f33ffbe5672654ce55bbd17e4a8c7b2e3f3bc5480a369f9026"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p372-01.png",
+      "bytes": 95307,
+      "sha256": "bc81933c6ef2d8ab295acd6575ca6ba3e87f6b6344cfd0ba151f46438b0fca67"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p373-01.png",
+      "bytes": 220850,
+      "sha256": "85ce847fc06f925153b15e706d55ff426fc7c12d6e85693907b449870a8f44de"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p377-01.png",
+      "bytes": 57220,
+      "sha256": "2d8a209c763f65dd0cbe86e5ae74e2b4b0dbfc45828062c92f0ef2a9fe60d437"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p378-01.png",
+      "bytes": 63630,
+      "sha256": "f961540ffd9b8cbfcd06afea8e90a2a7b5d79e228506acdbc632eb0529f82c76"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p409-01.png",
+      "bytes": 104467,
+      "sha256": "0803e4a4dab340ffaa0b1941fb03a33419919d9518dd5dfb2ffd09776918934e"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p411-01.png",
+      "bytes": 129812,
+      "sha256": "2a54dfbf755982a8871da9a1ecffe4096dbd8fbc724e10ca161cbc7e7886a04c"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p413-01.png",
+      "bytes": 92976,
+      "sha256": "aa2e8b762972c192d75e7e6d796a41626933db0e947d533b9e7682fb7c2dc9aa"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p415-01.png",
+      "bytes": 58155,
+      "sha256": "49e3cd0898014b82f9b6bf53737eb50f772ed15f60349e1e977fd64afbc9f318"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p416-01.png",
+      "bytes": 74234,
+      "sha256": "88100d20adc8c2535d8394a3605c96a2d2c27b3eb647910f5cae537b256706a6"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p425-01.png",
+      "bytes": 201274,
+      "sha256": "690a964656cbe2ad3874950327ba71696fa0b9e21d418be0e4c85d1ae0d9bc1f"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p429-01.png",
+      "bytes": 8806,
+      "sha256": "f66914851a408aa99c7e4a1f7598f61e228141184bc8f58a9c1c021914f406c0"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p429-02.png",
+      "bytes": 17565,
+      "sha256": "0aa3ec50c2f462ea3f2c94a9db8f74fb458d68c9e75383d55979d07454f69084"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p430-01.png",
+      "bytes": 15192,
+      "sha256": "49f0db88619d4b0abf9268d19176e1c26e8908ef2982b0a00506106607969979"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p431-01.png",
+      "bytes": 114868,
+      "sha256": "c8c0f816ae0376364aaabd3f32a1581484d1ac18d6509d7da177ab91592a6dec"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p433-01.png",
+      "bytes": 135931,
+      "sha256": "9d038a127ded63e685a8ca73262666f0cd5f0fc4eb240f4551acbf929e9e4072"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p442-01.png",
+      "bytes": 153796,
+      "sha256": "983d51c7a7c9496eb9e138bc0170a2045026ce56ebc0d75cfb091a4ee18b2765"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p447-01.png",
+      "bytes": 126027,
+      "sha256": "1c5e7145f3bb5d7c0b935c09bce0e5c7483a720f1e17f241bf952b013a9d5eae"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p449-01.png",
+      "bytes": 24148,
+      "sha256": "b6d3178d17cadfe9df6ac4594ff46f6812007064484cfe1e555968b96d7e720b"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p450-01.png",
+      "bytes": 70207,
+      "sha256": "41e409256afcc2972855d922202281cc5bf2031f7921e70fa35af9e93649803b"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p452-01.png",
+      "bytes": 65103,
+      "sha256": "ed28592f849ec24d24a0f3e2d8985309d769f10bbea6ab5782b20510495bbf7e"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p454-01.png",
+      "bytes": 134703,
+      "sha256": "eb6fc74b8dd193cbc6550a0ace32549531a63e21ae5d25074c8910cae6fdbc22"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p455-01.png",
+      "bytes": 156990,
+      "sha256": "3a1a3ddb43053163e6797d202cf7cf38f8e482169e9c359bf7b1dfb18993b75d"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p456-01.png",
+      "bytes": 173771,
+      "sha256": "a6cb7716afe7806054d62267621083010f5dc2592795047c3c355bd39e54cab0"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p459-01.png",
+      "bytes": 149495,
+      "sha256": "f3dcabf42fa2aa3d16d6773c56c025b8b4e2a93180e17735d29d8eef2b832eeb"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p460-01.png",
+      "bytes": 119251,
+      "sha256": "ba7b5493ee559aface8542c8007ad6da302dae7bb7351501a9f1f43eec289145"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p467-01.png",
+      "bytes": 100767,
+      "sha256": "2d7ca554c0377d4bac5b6e4e98cf7670fdca9c659e5ca3646d54d48d5980d843"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p469-01.png",
+      "bytes": 107383,
+      "sha256": "e14a6e3129341949f372b83561ca3f89ce1bfb958939f0770e8b914c2e93ad62"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p472-01.png",
+      "bytes": 56673,
+      "sha256": "5f62eb852a2180db10e7274cc1d77117acac74a43bdeed2d5cc70c24289db6e5"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p499-01.png",
+      "bytes": 84466,
+      "sha256": "69e3873459c2d993191e9e0967c9006b08a86bcd51e91a7ee1b1d6ec7348a502"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p501-01.png",
+      "bytes": 136713,
+      "sha256": "93da7279c26e82269a02534c399044efe890bf315cc9693651b6a5e491615c4e"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p506-01.png",
+      "bytes": 99373,
+      "sha256": "41a16b7b519a06e2a5b6884e5a11585e57263b09a3a58567e939afab700b2026"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p507-01.png",
+      "bytes": 108657,
+      "sha256": "723825c5900638dea6c7bd8941c7a730dd7587fb5d11349af00f3a6af354ca9b"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p509-01.png",
+      "bytes": 97592,
+      "sha256": "aa9515b6c7f176fcfe34f71a65625e1044df968568cd33021628b4d5dd87d9b8"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p514-01.png",
+      "bytes": 134098,
+      "sha256": "12f7ed88857051f4b3579bb55f638f1b52318b2a16c8f0aa0eb586b3fecf61ac"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p516-01.png",
+      "bytes": 127945,
+      "sha256": "95647994d8ba4911aa6e052ae69a0b233176d2115e80f44d77669c735d22c2cb"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p517-01.png",
+      "bytes": 92205,
+      "sha256": "ba3dbec40d154c7f4c3f261da8064e2fad007a3972a9612a3e9a35a6ed88f8cd"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p518-01.png",
+      "bytes": 101754,
+      "sha256": "dbfa49db3edb59c9f390c93f36d346a87ddb9c10b3ed7c61a142028fd3bea439"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p523-01.png",
+      "bytes": 72738,
+      "sha256": "cfefd6596c20dc3855d00353c1d55983294b3361690a3d1b52a1b6eff2c60fff"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p525-01.png",
+      "bytes": 74644,
+      "sha256": "fcc2c664821668d4b9da964a351815ce521b0f415160f9803956dc20c34533f2"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p526-01.png",
+      "bytes": 48193,
+      "sha256": "77f55330de4a3802b70c507ad283c9184fb65ac3f12671f4eb7ccd51eae967ab"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p528-01.png",
+      "bytes": 50056,
+      "sha256": "639a760a9cd3599a10f582db180b117a56ee9f5c3388641d731a09c7f2113ecc"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p535-01.png",
+      "bytes": 59078,
+      "sha256": "3b41758b3c21e23e9c4a20c6f397b70f02de9d57d02d723ce88f9aebcc8a5846"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p544-01.png",
+      "bytes": 136930,
+      "sha256": "d5cce7b9cad6dc53b1691fa26a430d3879461691af51bd24b5faa31756cade76"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p545-01.png",
+      "bytes": 70945,
+      "sha256": "cd4641ab45f43fae70ba49f66d8c99097c87faca51366cc3766f4834b5654465"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p547-01.png",
+      "bytes": 100348,
+      "sha256": "4e89a677a7a9fb6bf338b3f8c4a859ceeae30bd3815c979ea48f36d10ebb94fc"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p548-01.png",
+      "bytes": 39296,
+      "sha256": "724b97a35a96fc15aa75647dff555ae971d388c115a883865f4083d99196508f"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p551-01.png",
+      "bytes": 124621,
+      "sha256": "867f00738c010920eb2c3e74f11a3f0db7860970f0c20df619dda9340bd51d95"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p554-01.png",
+      "bytes": 77943,
+      "sha256": "4dfb862fb78e8fb717f59051c4397575124ec9704a1fbfc75801e081aee86957"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p560-01.png",
+      "bytes": 1791842,
+      "sha256": "de5bb88c1f0c30417d030d0f5239cb9c63945e41b88edb49f69801285503f43b"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p564-01.png",
+      "bytes": 28375,
+      "sha256": "eaeab07e2ba9185243fa65f17e56bef0cdde51d98ae3ddf334dde2a7ff5db4a8"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p571-01.png",
+      "bytes": 64368,
+      "sha256": "a5144f0ef2c7e09b9db146af983544d1c844afaac125892d0310a1ddfa8ce3bd"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p592-01.png",
+      "bytes": 54384,
+      "sha256": "3817e0fae3662d4644462fb1914a11eebd1040ddb65fe177ae1c953c6e78b162"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p593-01.png",
+      "bytes": 80409,
+      "sha256": "483c74c57f8cd3dd7d4004655927efdf60d23cae97fad102bfb5e191084872fa"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p643-01.png",
+      "bytes": 39956,
+      "sha256": "396c095083121b89fb53da9ba545a4346bd56c3be334db610051d418852e6316"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p647-01.png",
+      "bytes": 97779,
+      "sha256": "f18a1c51c6d7eaeeb5bc1d28fc79336b1e33df829e7989e0bd62ab49f36adc02"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs.md",
+      "bytes": 1132939,
+      "sha256": "c165efce8a6394a3c019d20ecf3f88f0041435c45d50381939c8a8ebf456ae16"
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs.pdf",
+      "bytes": 26338262,
+      "sha256": "92f8152b78ffd5d577a638c7a2d88e9186fa79a91c322e1a0e2cc9aff4ce8088"
+    }
+  ],
+  "file_count": 115,
+  "image_reference_count": 122,
+  "unique_image_count": 113,
+  "validation": "All source files match staged Git blobs byte-for-byte; every Markdown image reference resolves."
+}

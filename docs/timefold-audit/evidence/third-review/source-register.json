@@ -1,0 +1,164 @@
+{
+  "review_date": "2026-10-06",
+  "production_baseline": "499fde2cc3fe79a8b7413a942a66cfc97b5d0e94",
+  "runtime_version": "2.6.0",
+  "primary_source": {
+    "path": "docs/timefold-documentation/Timefold-Solver-Docs.md",
+    "sha256": "c165efce8a6394a3c019d20ecf3f88f0041435c45d50381939c8a8ebf456ae16",
+    "bytes": 1132939,
+    "normalize_crlf": false
+  },
+  "pdf": {
+    "path": "docs/timefold-documentation/Timefold-Solver-Docs.pdf",
+    "sha256": "92f8152b78ffd5d577a638c7a2d88e9186fa79a91c322e1a0e2cc9aff4ce8088",
+    "bytes": 26338262,
+    "normalize_crlf": false
+  },
+  "source_scope": "Selected relevant Markdown sections; no new complete PDF or 66-chapter review claimed",
+  "sections": [
+    {
+      "section": "10",
+      "heading": "## Chapter 10. Modeling building blocks",
+      "start_line": 4351,
+      "end_line": 7040,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "12",
+      "heading": "## Chapter 12. Constraints and Score: Overview",
+      "start_line": 7287,
+      "end_line": 7670,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "16.2",
+      "heading": "### 16.2. Move evaluation and score calculation speed",
+      "start_line": 9831,
+      "end_line": 9845,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "16.3",
+      "heading": "### 16.3. Incremental score calculation (with deltas)",
+      "start_line": 9846,
+      "end_line": 9860,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "16.5",
+      "heading": "### 16.5. Avoid calling remote services during score calculation",
+      "start_line": 9868,
+      "end_line": 9876,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "16.11",
+      "heading": "### 16.11. Constraint Profiling",
+      "start_line": 10059,
+      "end_line": 10218,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "16.14",
+      "heading": "### 16.14. Score trap",
+      "start_line": 10235,
+      "end_line": 10260,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "17",
+      "heading": "## Chapter 17. Using Timefold Solver: Overview",
+      "start_line": 10273,
+      "end_line": 10318,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "25",
+      "heading": "## Chapter 25. Using Timefold Solver as a Library",
+      "start_line": 11990,
+      "end_line": 12317,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "31",
+      "heading": "## Chapter 31. Benchmarking",
+      "start_line": 13497,
+      "end_line": 14751,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "32.1",
+      "heading": "### 32.1. Environment mode: are there bugs in my code?",
+      "start_line": 14757,
+      "end_line": 14947,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "38.1",
+      "heading": "### 38.1. Overview",
+      "start_line": 16510,
+      "end_line": 16518,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "39.4",
+      "heading": "### 39.4. Tabu search",
+      "start_line": 17538,
+      "end_line": 17640,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "39.5",
+      "heading": "### 39.5. Simulated annealing",
+      "start_line": 17641,
+      "end_line": 17692,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "39.6",
+      "heading": "### 39.6. Late acceptance",
+      "start_line": 17693,
+      "end_line": 17752,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    },
+    {
+      "section": "42.1",
+      "heading": "### 42.1. What is a MoveSelector?",
+      "start_line": 19183,
+      "end_line": 20124,
+      "use": "Source context for recommendations; see chapter and section citations in report"
+    }
+  ],
+  "official_urls": [
+    "https://docs.timefold.ai/timefold-solver/latest/constraints-and-score/overview",
+    "https://docs.timefold.ai/timefold-solver/latest/constraints-and-score/performance",
+    "https://docs.timefold.ai/timefold-solver/latest/domain-modeling/modeling-planning-problems",
+    "https://docs.timefold.ai/timefold-solver/latest/optimization-algorithms/construction-heuristics",
+    "https://docs.timefold.ai/timefold-solver/latest/optimization-algorithms/local-search",
+    "https://docs.timefold.ai/timefold-solver/latest/optimization-algorithms/move-selector-reference",
+    "https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/benchmarking-and-tweaking",
+    "https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/library/library-integration",
+    "https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/multithreaded-solving",
+    "https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/overview",
+    "https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/solver-diagnostics"
+  ],
+  "live_checks": [
+    {
+      "url": "https://docs.timefold.ai/timefold-solver/latest/running-timefold-solver/benchmarking-and-tweaking",
+      "observed_version": "2.7.0"
+    },
+    {
+      "url": "https://docs.timefold.ai/timefold-solver/latest/constraints-and-score/performance",
+      "observed_version": "2.7.1"
+    },
+    {
+      "url": "https://docs.timefold.ai/timefold-solver/latest/optimization-algorithms/local-search",
+      "observed_version": "2.7.1"
+    }
+  ],
+  "notes": [
+    "Live URLs are mutable. Local source bytes identify the supplied edition.",
+    "Examples remain proposed and have not been compiled against the benchmark artifact.",
+    "Chapter ranges identify cited context; selection does not imply every nested example was executed."
+  ]
+}

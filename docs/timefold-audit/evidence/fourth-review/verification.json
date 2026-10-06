@@ -1,0 +1,79 @@
+{
+  "review_date": "2026-10-06",
+  "production_baseline": "499fde2cc3fe79a8b7413a942a66cfc97b5d0e94",
+  "previous_report_revision": "09fb326d24d845ef0812debf301ac4fe7e1f92f7",
+  "runtime_changes": false,
+  "benchmark_campaign_run": false,
+  "document_python": "Codex primary runtime 3.12.14",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "runtime": "JDK 25, JAVA_HOME=C:/Program Files/Java/jdk-25",
+      "status": "passed",
+      "tests": 189,
+      "log": "java-nullability.log"
+    },
+    {
+      "command": "npm.cmd --prefix web run test:nullability",
+      "exit_code": 0,
+      "log": "web-nullability.log",
+      "status": "passed"
+    },
+    {
+      "command": "npm.cmd --prefix web run lint",
+      "exit_code": 0,
+      "log": "web-lint.log",
+      "status": "passed"
+    },
+    {
+      "command": "npm.cmd --prefix web run typecheck",
+      "exit_code": 0,
+      "log": "web-typecheck.log",
+      "status": "passed"
+    },
+    {
+      "command": "npm.cmd --prefix web run test:unit",
+      "exit_code": 0,
+      "log": "web-unit.log",
+      "status": "passed"
+    },
+    {
+      "command": "C:/Python314/python.exe -m unittest discover -s infra -p test_experiments.py -v",
+      "exit_code": 0,
+      "log": "experiment-tests.log",
+      "status": "passed"
+    },
+    {
+      "command": "document-runtime python -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "tests": 10,
+      "log": "report-tests.log"
+    },
+    {
+      "command": "document-runtime python -m py_compile report helpers",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "status": "passed"
+    }
+  ],
+  "counts": {
+    "java_tests": 189,
+    "web_nullability_tests": 17,
+    "web_unit_tests": 102,
+    "experiment_tests": 63,
+    "experiment_skipped": 1,
+    "report_tests": 10
+  },
+  "notes": [
+    "POSIX process-group test skipped on Windows.",
+    "Java null type-conversion informational diagnostics remain in unchanged source.",
+    "No new full archive traversal or production-quality/performance claim.",
+    "Community JSON illustration is a document specification; proposed settings have not been compiled or executed.",
+    "Pinned API bytecode inspected using JDK 25 javap, not an experiment.",
+    "Packaged renderer failed because LibreOffice is absent; failure log retained. Final export used hidden Word from a local temporary copy and bundled Poppler at 120 dpi.",
+    "Git scope checked: no scheduler-service, routing-service, infra or web modifications.",
+    "Final evidence verification separately recorded in final-verification.log."
+  ]
+}

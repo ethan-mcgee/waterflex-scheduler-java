@@ -1,0 +1,13 @@
+{
+  "kind": "proposed specification, not executable runner configuration",
+  "stages": [
+    {"id": "warmup", "factors": [2, 2, 2, 3], "budgets_seconds": [10, 10, 10], "warmup_per_observation_seconds": [0.2, 30, 60], "expected_cases": 72, "expected_solve_seconds": 720, "expected_warmup_seconds": 2164.8, "report_count": "72 observations"},
+    {"id": "reference-screen", "factors": [2, 12, 5, 2], "budgets_seconds": [10, 60], "batches": 8, "warmup_seconds": 60, "expected_cases": 480, "expected_solve_seconds": 16800, "expected_warmup_seconds": 480},
+    {"id": "fairness-screen", "factors": [2, 12, 5, 2], "budgets_seconds": [5, 30], "batches": 8, "warmup_seconds": 60, "expected_cases": 480, "expected_solve_seconds": 8400, "expected_warmup_seconds": 480},
+    {"id": "move-screen", "factors": [4, 12, 5, 2], "budgets_seconds": [10, 60], "batches": 16, "warmup_seconds": 60, "expected_cases": 960, "expected_solve_seconds": 33600, "expected_warmup_seconds": 960, "report_count": "960 observations"},
+    {"id": "confirmation", "factors": [2, 12, 10, 3], "budgets_seconds": [15, 60], "batches": 12, "warmup_seconds": 60, "expected_cases": 1440, "expected_solve_seconds": 54000, "expected_warmup_seconds": 720, "report_count": "1,440 observations"},
+    {"id": "booking", "factors": [2, 2, 2, 3, 3], "requests_per_case": 200, "expected_cases": 72, "expected_requests": 14400, "report_count": "72 cases and 14,400 requests"}
+  ],
+  "fairness_reference_setup": {"datasets": 12, "budget_seconds": 60, "expected_solve_seconds": 720},
+  "limitations": ["Measured solve allowances exclude startup, input loading, validation and report generation.", "Warmup may increase after calibration.", "The matrices have not been executed."]
+}

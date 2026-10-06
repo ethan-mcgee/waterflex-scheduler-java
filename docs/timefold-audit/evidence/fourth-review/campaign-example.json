@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "kind": "proposed design only",
+  "campaignId": "illustrative-production-reference",
+  "purpose": "Matched algorithm and termination comparison, not executed",
+  "edition": "COMMUNITY",
+  "layer": "solver",
+  "deploymentModel": "long-lived",
+  "scoringVersion": "current-2.6-reference",
+  "controlId": "tabu-change-swap",
+  "datasets": {
+    "generatorVersion": "proposed-indexed-v2",
+    "fleetSizes": [20, 50],
+    "scenarioFamilies": ["clustered", "absence"],
+    "datasetSeeds": [101],
+    "initialState": "assigned",
+    "role": "tuning",
+    "routingIdentity": "proposed-directed-fixture-v2"
+  },
+  "algorithms": [
+    {
+      "id": "tabu-change-swap",
+      "acceptor": "TABU",
+      "acceptorParameter": 7,
+      "acceptedCountLimit": 1000,
+      "selectedCountLimit": 10000,
+      "moves": [{"family": "listChange", "weight": 45}, {"family": "listSwap", "weight": 45}]
+    },
+    {
+      "id": "la-change-swap",
+      "acceptor": "LATE_ACCEPTANCE",
+      "acceptorParameter": 400,
+      "acceptedCountLimit": 1,
+      "selectedCountLimit": 10000,
+      "moves": [{"family": "listChange", "weight": 45}, {"family": "listSwap", "weight": 45}]
+    }
+  ],
+  "solverSeeds": [17, 23],
+  "processRepetitions": 2,
+  "budgetCohorts": [{"phase": "reference", "seconds": 10, "purpose": "production"}],
+  "phaseAllocation": {"referenceFraction": 0.6666666666666666, "transferUnusedToFairness": true, "validationReserveSeconds": 1},
+  "fairnessReference": {"applicable": false, "reason": "Reference-only Layer A example; these declared setup settings apply if a fairness cohort is configured", "controlId": "tabu-change-swap", "seed": 17, "budgetSeconds": 10},
+  "terminationPolicies": [
+    {"id": "fixed", "kind": "fixed", "solverSpentCap": true, "phaseScope": "local-search", "windowSeconds": 2, "minimumImprovementRatio": 0.2, "unimprovedSeconds": 2},
+    {"id": "diminished", "kind": "diminished-returns", "solverSpentCap": true, "phaseScope": "local-search", "windowSeconds": 2, "minimumImprovementRatio": 0.2, "unimprovedSeconds": 2},
+    {"id": "unimproved", "kind": "unimproved-time", "solverSpentCap": true, "phaseScope": "local-search", "windowSeconds": 2, "minimumImprovementRatio": 0.2, "unimprovedSeconds": 2}
+  ],
+  "warmup": {"secondsPerFreshJvm": 30, "paths": ["selected-algorithm/reference"], "disposableInputs": true, "calibrationSeconds": [0.2, 30, 60], "calibrationRepetitions": 3, "stabilityTolerancePercent": 5},
+  "runtime": {"jvmPath": "C:/Program Files/Java/jdk-25/bin/java.exe", "jdkVersion": "25", "heapMinMiB": 512, "heapMaxMiB": 1024, "gc": "SerialGC", "activeProcessorCount": 1, "flags": ["-Dfile.encoding=UTF-8"], "environmentMode": "NO_ASSERT", "processLifetime": "one-case-per-jvm", "moveThreads": "NONE", "nativeParallelBenchmarkCount": 1},
+  "resources": {"parallelCases": 2, "totalCpuAllocation": 2, "cpuPerCase": 1, "affinityPolicy": "disjoint-physical-cores", "concurrencyCalibration": [1, 2]},
+  "instrumentation": {"cohort": "quality-basic", "statistics": ["BEST_SCORE", "MOVE_EVALUATION_SPEED", "SCORE_CALCULATION_SPEED"], "jfrEnabled": false, "jfrSettings": "profile", "sampleIntervalMs": 100, "internalDiagnostics": false, "constraintProfiling": false},
+  "analysis": {"pairKeys": ["datasetHash", "phaseTargetHash", "budget", "solverSeed", "forkBlock", "scoreVersion", "runtimeHash"], "method": "paired-dataset-bootstrap", "draws": 10000, "seed": 20261006, "confidenceLevel": 0.95, "scenarioGroups": ["clustered", "absence"], "selection": "tuning-only", "latencyNoninferiorityPercent": 5, "failureTolerance": 0, "costDifferenceUpperBoundCents": 0},
+  "applicationLoad": {"applicable": false, "reason": "Layer A example; declared load parameters apply only to a separately configured Layer C study", "operation": "daily-preview", "mode": "paced-arrival", "requestsPerCase": 200, "requestsPerSecond": 1, "concurrency": 2, "cacheState": "scheduler-warm-provider-recorded", "timeoutSeconds": 20, "observeCancellation": true},
+  "execution": {"orderSeed": 20261006, "failurePolicy": "stop-new-blocks", "automaticRetries": false, "resumePolicy": "hash-verified-blocks", "campaignCutoffUtc": null},
+  "estimation": {"startupSecondsPerCase": 1, "preparationSecondsPerCase": 1, "validationSecondsPerCase": 1, "reportingSecondsPerCase": 1, "serialAnalysisSeconds": 0},
+  "outputLocation": "experiments/runs/illustrative-production-reference"
+}
