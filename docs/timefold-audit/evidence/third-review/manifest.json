@@ -249,6 +249,12 @@
       "normalize_crlf": true
     },
     {
+      "path": "docs/timefold-audit/evidence/third-review/source-inclusion.json",
+      "sha256": "81564219c8d51420ab21507a574353345896c320f9e68ea71666494d762e937e",
+      "bytes": 24375,
+      "normalize_crlf": true
+    },
+    {
       "path": "docs/timefold-audit/evidence/third-review/source-register.json",
       "sha256": "8faecbdd1f4fdf6ca8182b3ca9d60bc674cccf94407a9ea534a1f92f207e9091",
       "bytes": 6456,
@@ -262,8 +268,8 @@
     },
     {
       "path": "docs/timefold-audit/evidence/third-review/visual-qa.json",
-      "sha256": "deaf7d566cc504e02079a561c4f658665da7eac313c7513d6ea7a9f56fd0e098",
-      "bytes": 6791,
+      "sha256": "bd8e1f05c407e75b224b346c67beba18eae33f60e2116fd4cae5b59d07579b1f",
+      "bytes": 6761,
       "normalize_crlf": true
     },
     {
@@ -292,8 +298,8 @@
     },
     {
       "path": "docs/timefold-audit/README.md",
-      "sha256": "6d5404980be2db78f577e9651e1dc7aab868d856ef7eb1e2868aad7ecfb2f3fc",
-      "bytes": 4743,
+      "sha256": "949ebdc464f841bcfcd139bfe8d09c45a94164df5bbbdf835e63677d0422da2d",
+      "bytes": 4826,
       "normalize_crlf": true
     },
     {
@@ -310,14 +316,14 @@
     },
     {
       "path": "docs/timefold-audit/Timefold_Audit.docx",
-      "sha256": "a0cf08bc1ef5fd3b44e393296249a71e7f611b8fd0800bc5632c8b389c44e786",
-      "bytes": 70958,
+      "sha256": "d0a9c94b30eaefcd6d159602dc691811c55e761b0ae58749dd391c032f9ba3e2",
+      "bytes": 70988,
       "normalize_crlf": false
     },
     {
       "path": "docs/timefold-audit/Timefold_Audit.md",
-      "sha256": "3f42d9447c4e901cca30afde713d388a527101255379e8396e43af9ad8f70179",
-      "bytes": 80389,
+      "sha256": "5723ad70c4c000399d605d998b8a721214faf5ef1381f7f1dd7da4f1ed69e82b",
+      "bytes": 80443,
       "normalize_crlf": true
     },
     {

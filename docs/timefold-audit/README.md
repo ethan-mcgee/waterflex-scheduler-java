@@ -8,7 +8,7 @@ The report retains TF01 through TF14, explains the architecture and algorithm ch
 
 Reviewed baseline: `499fde2cc3fe79a8b7413a942a66cfc97b5d0e94`. Runtime and benchmark sources are unchanged from the prior expanded review baseline `afa035ddf2101d26c12508067d2d9016601db6c3`.
 
-The supplied `docs/timefold-documentation/Timefold-Solver-Docs.md` and PDF remain external local inputs, not additions to this PR. Their hashes and selected section ranges are in [source-register.json](evidence/third-review/source-register.json). This conversion differs from the earlier source. We do not claim another complete 66-chapter or PDF review. Runtime is 2.6.0; live latest pages returned 2.7.0 and 2.7.1 labels, so examples require compatibility checks before implementation.
+The supplied `docs/timefold-documentation/` directory is included in this PR: the Markdown guide, PDF, and 113 figure assets. Git preserves the Markdown source bytes without line-ending conversion. Their hashes and selected section ranges are in [source-register.json](evidence/third-review/source-register.json). This conversion differs from the earlier source. We do not claim another complete 66-chapter or PDF review. Runtime is 2.6.0; live latest pages returned 2.7.0 and 2.7.1 labels, so examples require compatibility checks before implementation.
 
 Original and second-review manifests, raw logs, coverage, retained archive receipts, and visual QA are preserved. Historical report/helper hashes are checked against their retained Git revisions. The third-review manifest checks the rewritten report and new helpers against current bytes, and checks all preserved historical evidence against baseline identities. Line-ending normalization is explicit. New receipts never overwrite old findings or relabel old measurements.
 
@@ -31,7 +31,7 @@ npm.cmd --prefix web run typecheck
 npm.cmd --prefix web run test:unit
 ```
 
-`--external` additionally checks the current supplied Markdown/PDF hashes and selected section ranges. Repository-only verification does not require those untracked inputs. The verifier checks exact ordered Markdown/Word text and hyperlink pairs, historical hashes, pinned source links, explained finding coverage, campaign arithmetic, and visual QA receipts.
+`--external` additionally checks the included source Markdown/PDF hashes and selected section ranges. The option retains its original name; these inputs are now tracked in this repository. The verifier checks exact ordered Markdown/Word text and hyperlink pairs, historical hashes, pinned source links, explained finding coverage, campaign arithmetic, and visual QA receipts.
 
 The first experiment-suite attempt used the document runtime, which lacked Matplotlib. Its failure log is retained. The project Python rerun passed. Exact commands, runtimes, outcomes, and the one skipped experiment test are recorded in [verification.json](evidence/third-review/verification.json).
 

@@ -3,151 +3,151 @@
   "all_pages_inspected": true,
   "exporter": "Microsoft Word PDF export from local temporary copy",
   "renderer": "Bundled Poppler at 120 dpi",
-  "docx_sha256": "a0cf08bc1ef5fd3b44e393296249a71e7f611b8fd0800bc5632c8b389c44e786",
-  "pdf_sha256": "10685170fbcd541aba1a38da23bf4d3cf7c841f24da966bc2b5a4dd62211f4be",
+  "docx_sha256": "d0a9c94b30eaefcd6d159602dc691811c55e761b0ae58749dd391c032f9ba3e2",
+  "pdf_sha256": "39743fe68a9015015212a251fdbaa9cda4aa807edc33db5cc36a2d0f7660b7f0",
   "corrections": [
     "Removed mostly empty page before reference register",
     "Corrected score direction wording on page 13"
   ],
-  "inspection_method": "All 24 initial pages inspected visually. After final changes, page bodies 1-21 matched pixel-for-pixel except page 13; re-inspected final pages 13, 22, 23 and all 23 final footer strips.",
+  "inspection_method": "All 24 initial pages inspected visually. After final changes, page bodies 1-21 matched pixel-for-pixel except page 13; re-inspected final pages 13, 22, 23 and all 23 final footer strips. After source inclusion, all 23 pages were rendered again; pages 1-22 are pixel-identical to the inspected final edition and page 23 was visually reinspected.",
   "page_reviews": [
     {
       "page": 1,
       "sha256": "c36ea4d3b85023cbbff75b19fa0168e880a9b9f19ce20abfb293ba45bc6344bc",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 2,
       "sha256": "5f1a77a55b1bfbd50a888ed152934a526048fd087766d311eda4ed7334a002b3",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 3,
       "sha256": "20e4ec7703bf59e56ac3865f9df9a3a4cdad2855faf3ac360a7ecfba8b85f5a4",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 4,
       "sha256": "9b2a39484612ead1a98ea143b5174d4f8d07937eb06e7a9fb7b289da9400291b",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 5,
       "sha256": "56c894cb73222e0a94ddc510f5af85d6bd7800ea47ce444f3a0da2852d98cc2c",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 6,
       "sha256": "fe693b73f15b41bb1355c6ea26d607e831f81f9d44d58c828d636a51dd837016",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 7,
       "sha256": "072c1eabb0bead6c2718795cb54656439af3b0e645c5996018ca93a764c3aa5b",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 8,
       "sha256": "27f25345a6fa39d10a476289a2ea86933b7c23efa5b1570a4d5aef1ce7798bc2",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 9,
       "sha256": "85c54a12864aa87a95840b1708526ae0ed425afbeb10bcb10de8e9d476b5e684",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 10,
       "sha256": "797dda3343bb1a72faf5d06b10b1a819978a1fb548a156aad600e3835a34bbdf",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 11,
       "sha256": "1c2ff14b38bc7df2fa38871ea2b495a9900ec56639f82e0152e5bd01078519a6",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 12,
       "sha256": "86cd32394df67ae612353080e0d4b20c0e57fa8439a28849ee91f6c2852b9e18",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 13,
       "sha256": "1950bb3a6d6d1894e12eb1082d513177373215e5daf1b310820dc987ca5e57ce",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Final page visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 14,
       "sha256": "dda6e6ea3b2f574645840efd136b191be9082c6e2e388f71aff321d8d1aeeca9",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 15,
       "sha256": "c957da2a216fa4d29bc30ef54672910020a69ed74d2e797cc85e4f305f9e9ef7",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 16,
       "sha256": "2bc736a296f65061736187e87fca289ca67ae27b7ac742ef34d8037d62eef509",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 17,
       "sha256": "0a13585a06adab34b967d00c50ec088c6644b54714a0c5a80a42171eee84c9e0",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 18,
       "sha256": "54cf819f3a49ee7942f7e3d29a2aeefc54531e3835cef4beb467db5cbc73b57f",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 19,
       "sha256": "f264a1a942ccdc505ed6e11f8617d8694329f9030df9c256c6d2b6150cc078e3",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 20,
       "sha256": "8ccf804f6737b2c73631f9a871e2933c3ba2712d8585c10db8ad07d1d28601ae",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 21,
       "sha256": "5d88577c1df7c4003e6c06ef6f64d99b882dbcfd92976d7efed94dc1a3b4eb9e",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Previously inspected body pixel-identical; final footer visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 22,
       "sha256": "747080bba5bb21371374731afdcfd98234fa4b2ed5c772822b1dc9f0100dbc5f",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Final page visually inspected"
+      "method": "Previously inspected page pixel-identical, including footer"
     },
     {
       "page": 23,
-      "sha256": "872e8e11147b68a10c75359e13900c64add096f61e96f5189a34d8ee91082c87",
+      "sha256": "93679ecc5b7880bbb78a76af88bbaf8e326cf528a1a207d88cb0170c4b26db56",
       "status": "inspected: readable, no clipping or overlap",
-      "method": "Final page visually inspected"
+      "method": "Visually reinspected after source inclusion; readable with no clipping or overlap"
     }
   ]
 }
