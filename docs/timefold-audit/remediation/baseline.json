@@ -1,0 +1,2387 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-10-06T18:49:49.216380+00:00",
+  "startingRevision": "b5044d69fd25ba6c9a7e42e7921d67c66a9f82ab",
+  "auditReviewedRevision": "499fde2cc3fe79a8b7413a942a66cfc97b5d0e94",
+  "hashConvention": "SHA-256 over Git blob bytes; current historical files compared using Git clean filters, never newline-normalized binary files.",
+  "runtime": {
+    "java": "java version \"25.0.1\" 2025-10-21 LTS\r\nJava(TM) SE Runtime Environment (build 25.0.1+8-LTS-27)\r\nJava HotSpot(TM) 64-Bit Server VM (build 25.0.1+8-LTS-27, mixed mode, sharing)",
+    "maven": "Apache Maven 3.9.16 (2bdd9fddda4b155ebf8000e807eb73fd829a51d5)\r\nMaven home: C:\\Users\\mcgee\\.m2\\wrapper\\dists\\apache-maven-3.9.16-bin\\4200fbc6\\apache-maven-3.9.16\r\nJava version: 25.0.1, vendor: Oracle Corporation, runtime: C:\\Program Files\\Java\\jdk-25\r\nDefault locale: en_US, platform encoding: UTF-8\r\nOS name: \"windows 11\", version: \"10.0\", arch: \"amd64\", family: \"windows\"",
+    "timefold": "2.6.0",
+    "edition": "Community",
+    "os": "Windows-11-10.0.26200-SP0",
+    "pythonForReceipt": "3.14.0"
+  },
+  "configurationScope": "Tracked repository defaults and source configuration only. Deployed overrides and persisted customer settings were not queried.",
+  "productionDefaults": {
+    "dailyVariant": "TABU",
+    "solverSeed": 17,
+    "environmentMode": "NO_ASSERT",
+    "listChangeWeight": 45,
+    "listSwapWeight": 45,
+    "selectedCountLimit": 10000,
+    "entityTabuSize": 7,
+    "acceptedCountLimit": 1000,
+    "referenceAllowanceSeconds": 10,
+    "nominalCombinedSearchSeconds": 15,
+    "admissionDeadlineSeconds": 20,
+    "wholeOperationDeadlineInstalled": false,
+    "constructionPhase": false,
+    "unassignedListValues": false,
+    "scoreType": "HardMediumSoftBigDecimalScore",
+    "policyVersion": "zero-overtime-four-hour-v2",
+    "fairnessAllowance": "0.02",
+    "dailyAcceptanceRequiresZeroOvertime": true,
+    "bookingNoNewOvertime": true,
+    "bookingBoundedEnabled": false,
+    "bookingVariant": "BOUNDED",
+    "bookingRefinementMillis": 250,
+    "bookingDeadlineMillis": 5000,
+    "cutoff": "06:00 America/Chicago",
+    "legacyResourceNote": "solverConfig.xml is the CURRENT_CAPPED configuration, not the generated production TABU default."
+  },
+  "sourceTrees": [
+    {
+      "path": "scheduler-service/src",
+      "gitTree": "846688dc788dcacb9d1c0ed9d32a86b2097612d2",
+      "changedPathsSinceAudit": []
+    },
+    {
+      "path": "infra",
+      "gitTree": "de80da94d6482f78ce987654cf8de39da81458a3",
+      "changedPathsSinceAudit": []
+    },
+    {
+      "path": "web/scripts",
+      "gitTree": "e23a370b2ab663d9d95c1626a5a6c4807a08bbc4",
+      "changedPathsSinceAudit": []
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "gitBlob": "088c5659fc8c6497f94871b5eac72004fcd3e227",
+      "sha256": "5b193d24c42307c386b00324a1a8fa4e3f5ee08d71f044ebf39515393c26a565",
+      "bytes": 15638,
+      "preserve": false
+    },
+    {
+      "path": ".github/workflows/maintenance.yml",
+      "gitBlob": "d0fe0c8ce97c4ca311242c2d8dbf8e658e3a0a6e",
+      "sha256": "953f9742c57d639d957a5b6be256971d51dfa13b1e2700390f95e8be39d808d9",
+      "bytes": 1615,
+      "preserve": false
+    },
+    {
+      "path": ".mvn/wrapper/maven-wrapper.properties",
+      "gitBlob": "7459a15ac4023ee4bd154178cbb3d466533ea51a",
+      "sha256": "e4df0fac71efd6651f5dd4f721c8d6f381bae0eb196ac644199800664f1593ab",
+      "bytes": 139,
+      "preserve": false
+    },
+    {
+      "path": ".settings/org.eclipse.jdt.core.prefs",
+      "gitBlob": "2d8ed820165b9d6a31fcba00e8c0129fef6ff216",
+      "sha256": "d259cc0152b860079a83f3cec60e862c08b34a832eac6ebecb7ac29b15315002",
+      "bytes": 1112,
+      "preserve": false
+    },
+    {
+      "path": "docker-compose.map-active.yml",
+      "gitBlob": "79d03cdfc3cee3ee7028588c820abb1842d282b2",
+      "sha256": "2f8b6aaf0a71657bdf943aaccf1f822dc11a6eb113abc20d9b6ec4eaf99fc4d7",
+      "bytes": 912,
+      "preserve": false
+    },
+    {
+      "path": "docker-compose.map-preview.yml",
+      "gitBlob": "3ba6cec4ba7888ea17f389649ce91cf81e783685",
+      "sha256": "998563075f9e39cc3e790603e85dfc24b9845de19a254a799bf0180d35da28dd",
+      "bytes": 1372,
+      "preserve": false
+    },
+    {
+      "path": "docker-compose.yml",
+      "gitBlob": "6bcf642e36e6e45b26c282f40e1afed31e994650",
+      "sha256": "86b0b69bd25b52dcf4b8f6c6e9bc6b597b11011d682b9cc28d49503511fa0310",
+      "bytes": 3283,
+      "preserve": false
+    },
+    {
+      "path": "docs/timefold-audit/.gitignore",
+      "gitBlob": "4137d87dcd5840ea8de82800169c8784a2e423b7",
+      "sha256": "85377e6fca0ee6b2624dc17ae91ab8802729148fdaf7e35fe61b07680bacfdb0",
+      "bytes": 17,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/README.md",
+      "gitBlob": "c201a2dc891283ec97bde73f6a4e9b356b169207",
+      "sha256": "0844077ba392b2aa33e219c1380dba4fd2757630073c8985e8d367cd47a01028",
+      "bytes": 7795,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Audit.docx",
+      "gitBlob": "e784322bd3dcbdd8fbf3b9ca9279ea74d59cdfd8",
+      "sha256": "9fb9c2bacc7b408f3a07147c347c2a12fa6a5c01f499d271aeb272edcd47ab49",
+      "bytes": 81668,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Audit.md",
+      "gitBlob": "5f6af9243e6a40f1aa4e94773537abdf137d08c2",
+      "sha256": "1ba2fcc5c19bbd72ad4992c5e1b7a8da7bdae4f3423a944bad96c90e8a39d486",
+      "bytes": 115570,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Second_Review.docx",
+      "gitBlob": "a4a84e5ac15e997d1ea131573193aac27ffabaef",
+      "sha256": "02181f228bb8e4fd09fc8e12bdf899d1944fefb292b1ba14d782e79402a5de08",
+      "bytes": 53810,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/Timefold_Second_Review.md",
+      "gitBlob": "6d70c6a782191200a439c898c9041e501efe3a6a",
+      "sha256": "76ddaabf076af5b8dbf34707633b1f0a6c0dc53994dce9c6928f40922207d900",
+      "bytes": 39359,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/build_report.py",
+      "gitBlob": "737a73064349c02fb0cd9c05828be1cd4659dc5a",
+      "sha256": "e64f3b0b0d1cddb1b476553f4fef743d9ab2f0855ceef4c6f7e32495a29d6fa6",
+      "bytes": 10680,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/campaign_spec.py",
+      "gitBlob": "097f92b1a007add270863e00abfb26c2acaab4b8",
+      "sha256": "1487ab9d1c1c14846a423724241e15780aa69250f90ed1b63501210411180eb7",
+      "bytes": 8313,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/collect_retained_evidence.py",
+      "gitBlob": "dd2bc904e22774408a16552a7ac1ea2052b50eca",
+      "sha256": "8d53f1104c0d279131424c8bdc35c36a63eb3fbb60dffc3cf5b4cd51c7aa2295",
+      "bytes": 6486,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/.gitattributes",
+      "gitBlob": "2c37124d8681c2e02cda2240715ffbe8f6ef19f0",
+      "sha256": "13bc2a16656e6bd7b019daddafcdecb205fd150e5592cde1130ff176a749edef",
+      "bytes": 83,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-experiment-system-python.log",
+      "gitBlob": "93f577c92ad7060a126ec3ea491af47b02b61daa",
+      "sha256": "747ee7863fbef891f5c49c1c9ce270413b81c4a08892a6bcabae5152227b76a3",
+      "bytes": 3897,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-experiment-tests.log",
+      "gitBlob": "fecb8c00414a8bfd7d8b35ff4d920e39c4bbd4ce",
+      "sha256": "de0f10ad0fba03ae98669377aa1c6b0a376dedad73b331e20169cb7081ab0b77",
+      "bytes": 4914,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-final-java.log",
+      "gitBlob": "222796795e486097aa7ba5215d1064f12508a84f",
+      "sha256": "1b58f5f9b663b5f1874dfe0df10610fa12d1ac5e971606850a70cdd4c0365738",
+      "bytes": 117965,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-final-reproductions.log",
+      "gitBlob": "802f8a93b32ac54ddde303f17bacea94a10d663b",
+      "sha256": "ae933d9fb5df040f26a35ac6d33c2055ba0559c32507728630deed8798b6ed40",
+      "bytes": 18807,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-java-check.log",
+      "gitBlob": "97cf6d30640524517adfc1ba44f29025dc259543",
+      "sha256": "331e1d361df9357c82f25e82d836b94a14255f44a8eced1861c42f4700804f5e",
+      "bytes": 115096,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-npm-install.log",
+      "gitBlob": "dc783a90090b89d34b234893822dda3728a6661f",
+      "sha256": "440e79b04196e5cf76cf2f12f5fdfff20abc97ce2076b2884f3dfe70a3712e2b",
+      "bytes": 1227,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-prisma.log",
+      "gitBlob": "f8d6206b93aa549b5db1de11a65391987da8f58e",
+      "sha256": "428a6b5c8a1e86365a7f8d3b64c9894482bebc288012570f29b4ad84d485c63b",
+      "bytes": 386,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-render.log",
+      "gitBlob": "2d04b81a43c893810b771e39e2253b6e22df94d3",
+      "sha256": "dc1f08937de09b18d1d25c4082d6c7d6c6c91a164bf9919dca08593c38808afc",
+      "bytes": 1170,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-reproductions-cold-start-failure.log",
+      "gitBlob": "38d7956b455c792cbdc3eb345dbef845b7228805",
+      "sha256": "f9d366558b4482b4ae0bc1612ec1703fb0d81dc82d6bd750d2333f74f51e5137",
+      "bytes": 20578,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-reproductions-initial.log",
+      "gitBlob": "8be95f4ec8c2ad7e2cc178409231da21256c3550",
+      "sha256": "0f3a1c981a5fd0b9abde994a354999f021e4b4bbfd6b17278c78a31d9bd510f3",
+      "bytes": 20528,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-reproductions.log",
+      "gitBlob": "38d7956b455c792cbdc3eb345dbef845b7228805",
+      "sha256": "f9d366558b4482b4ae0bc1612ec1703fb0d81dc82d6bd750d2333f74f51e5137",
+      "bytes": 20578,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-web-lint.log",
+      "gitBlob": "c8d23c76fbed19133d24f13fd731785d794e3331",
+      "sha256": "11a0d6f7907693c0d8bbdc784becf6dcc6b0a33b327d382cff722f9dadfe3e51",
+      "bytes": 120,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-web-tests.log",
+      "gitBlob": "4cac49d160935a12373adfea83ff662b1c3cbb03",
+      "sha256": "6cf16271353f9152c4ec8c96808de35d38ccd3a664a99cd533b466cee8365e25",
+      "bytes": 8734,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/audit-web-typecheck.log",
+      "gitBlob": "7f0da4db000738fe6893a300b22ae94fefa11926",
+      "sha256": "b50c606130632c42d9a378de9a21e293c5b7ba64d88531da398c745ca883ca31",
+      "bytes": 49,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/campaign-design.json",
+      "gitBlob": "36e23b89c3dccc2a2ae9dd7a560137cb200ed442",
+      "sha256": "134cf2d33c985079225939e6bd4c0e438d953333211ac67a72bed31d2b904554",
+      "bytes": 1588,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/campaign-example.json",
+      "gitBlob": "18a11d63178d2eafcf6725d9025582d660da8ed2",
+      "sha256": "9f7ac835078a93da04246ac334da0cdd18465f0d37d09a0a3dfcfb97980a92d3",
+      "bytes": 4400,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/check-results.json",
+      "gitBlob": "5dc802cac6ff65ea2fddd1cbd3a62464a81d79ae",
+      "sha256": "8fae701eca669df305e799fb337b4f6cf06de4021f7cf75c7fa33d8a28936972",
+      "bytes": 610,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/experiment-tests.log",
+      "gitBlob": "65e1d7f20af7fe1449191b4a3089f048c0ec37e6",
+      "sha256": "60af285bbc9576cf887a0442035da1cb42e355301d900e0ef48e2351b97c9ba8",
+      "bytes": 17781,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/final-verification.log",
+      "gitBlob": "7d339285592d5b7497a97b51f692e4d170dbfd47",
+      "sha256": "c0f3f408c38091f53e891fce6f9dc4db6e2d0e2d7262c97dad37e7cd2ac5afe0",
+      "bytes": 654,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/java-nullability.log",
+      "gitBlob": "b806a70f3b74edb543c9f9fc72e304246d4bb247",
+      "sha256": "3862af0ededfeb7b8a24a97a7c580aa7cf194567e8ccf61c8a695a65d821bf46",
+      "bytes": 238672,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/manifest.json",
+      "gitBlob": "fc28a3974224284b0d97d0e326bab2b1974af1e4",
+      "sha256": "c404b083f84884bad81befe9f4777d8c3037a6252b2a9a0f5d3c02fec8eb19ec",
+      "bytes": 17998,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/page-render.log",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/phase-factory.txt",
+      "gitBlob": "d9d0d155481806fa963f9ab952a740a453a19e6b",
+      "sha256": "2f5c5485332784a0454d55f046587a2919171b904486a5b754f856c2f3d05a80",
+      "bytes": 23180,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/renderer-attempt.log",
+      "gitBlob": "09d06abdfca01d9db6764f72f90e081d81957eb0",
+      "sha256": "cb6887ac3373d955750e507941e2bbcb68086336a07ca3eb961827f5fa09d511",
+      "bytes": 3336,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/report-tests.log",
+      "gitBlob": "4fcd0695ac89f533241b7d09f76ee4ef95f6dd51",
+      "sha256": "15ff0c9ddccffcb7bfeae333ac71eaf42f5edb75e2f4b7371f46a709b9b3c3cb",
+      "bytes": 3752,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/score-api.txt",
+      "gitBlob": "fa5fdafee1032ac1f4dc8638328881660deb5ed5",
+      "sha256": "7fe5f37dfb8628ff25ccfd842030b92e45463d2ce1e99ba26f30ebdd04312565",
+      "bytes": 5484,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/source-register.json",
+      "gitBlob": "b82262acadd01e3b9c47fb683bc714aea2589520",
+      "sha256": "4bde81c46bfe7e2ac8bee1f547f114237a8696f54164891d0cc00e7e25820d88",
+      "bytes": 8098,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/supplied-review.json",
+      "gitBlob": "c96dcc0e415138b5908f0bbcd32c0aa4c8f60dd0",
+      "sha256": "1e982410405173ce2fd3c3ce56dd45648924dcaedcbb9cb132559ed3c6c3af75",
+      "bytes": 443,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/termination-factory.txt",
+      "gitBlob": "1a2e57caf1641b3251b41c97611f94371608a37e",
+      "sha256": "5739c4dd6552fde45283707ebcdcbfe9e09dc479817b732d3f26dfce96803ad9",
+      "bytes": 60380,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/verification.json",
+      "gitBlob": "95e1f373252b21e5fc465ba4820e4d55c23e55c1",
+      "sha256": "e4eb5557687ce6dee231ff77bd36804ef26f1bb46d358980a34c8dbff2c38ce9",
+      "bytes": 2707,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/visual-qa.json",
+      "gitBlob": "272c4128c899234b2bda78e9ffd732bb2d6d5d48",
+      "sha256": "c8ab35341029514b907858fec2dffbff1995ae181e8540a33f968ceb4f0c8ad7",
+      "bytes": 8198,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/web-lint.log",
+      "gitBlob": "c8d23c76fbed19133d24f13fd731785d794e3331",
+      "sha256": "11a0d6f7907693c0d8bbdc784becf6dcc6b0a33b327d382cff722f9dadfe3e51",
+      "bytes": 120,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/web-nullability.log",
+      "gitBlob": "14f6323c3fbb8043cca14dcfb01ac7279aefb9f8",
+      "sha256": "9b5ed99c77efe2c9820db03e33b8818a26a4e31a8dadee1e2de2bc81c7b0585f",
+      "bytes": 4272,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/web-typecheck.log",
+      "gitBlob": "7f0da4db000738fe6893a300b22ae94fefa11926",
+      "sha256": "b50c606130632c42d9a378de9a21e293c5b7ba64d88531da398c745ca883ca31",
+      "bytes": 49,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/fourth-review/web-unit.log",
+      "gitBlob": "5bd645a909a04b1b77fba1016065f0506a89a00f",
+      "sha256": "15964d06081336666fc2faf700fa88726fc185327bc285ee44793813aea461f3",
+      "bytes": 9304,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/baseline.json",
+      "gitBlob": "37a65b374b7914e183741d22132a0e17016361fc",
+      "sha256": "66e828db63e3cfa0941256b62c2b3a9d539450532d096d4b67adaa223b746358",
+      "bytes": 1317,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/characterization.log",
+      "gitBlob": "a974ae2d428b1ea73ab06058d57eeaaf6fc3f1f1",
+      "sha256": "34c4220f90508b073e3366bc28006db29afada1279a6eb843347bb67ba6fc9ea",
+      "bytes": 20376,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/coverage.json",
+      "gitBlob": "e235f4df83600dfef07d175ddb4895e7275775ec",
+      "sha256": "80f8ae3e222cc4fa58a2abbdb62e755007440e8defc3d434f4de5c207407c25c",
+      "bytes": 569874,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-helper-tests.log",
+      "gitBlob": "d10947db098c42efd99fb6fe58240795f2f6f0f4",
+      "sha256": "cc0c35ada42f099c810e8dc2b2f422ab92fc69ca0213bb78ea9ebf6eb036efe6",
+      "bytes": 557,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-packaged-render.log",
+      "gitBlob": "eae9e2158c8f4c3bff052211e43fbdbe8bac0387",
+      "sha256": "d04f33a295046b3a857e9e43ed25ee7e055c500de050b64b934b8a1bf908bccf",
+      "bytes": 1184,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-page-render.log",
+      "gitBlob": "672713ae02725ca557f93224438d20388171867f",
+      "sha256": "6650eba4edf59091330addde10921907a8905ce7a9ee8e1c18df0f5fa1dbc744",
+      "bytes": 4690,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-review.json",
+      "gitBlob": "5eb0d3a9553df4b95f8fc4fad1d6ef55161819ce",
+      "sha256": "68cb8a5b886b6dcb68b6dbd317d7f93967a8a8e1c0a92c5b9e3ff4cb45176ef1",
+      "bytes": 1019,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/formatting-verification.log",
+      "gitBlob": "56e8ef511d51176c25ac93df09e13a85d58a8787",
+      "sha256": "25e2ab294f724d754b7cfd79be75c86c488142ac392d7e068a32c4d3434bdd96",
+      "bytes": 300,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/helper-tests.log",
+      "gitBlob": "457d281de128544d29eff9510ba6f963d2fccc27",
+      "sha256": "988b887848a1adb32d5a49128f2e9ad144aae0a6aa2ddec62f5e8628e5cdab34",
+      "bytes": 557,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/historical-line-endings.json",
+      "gitBlob": "756cf862de793dfe7bc2a75847ad6916d8088f57",
+      "sha256": "8c08b7988bab0eff1e07495e16d01f293f1feb6f8084cf5c2111ef656c5c3b22",
+      "bytes": 7097,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/installed-2.6-local-search.txt",
+      "gitBlob": "31fd0bede8cb0e4c93bb0ae53eed05f2d5bc81c8",
+      "sha256": "f42e56bfbef16ba589d6a5915a42a6f2811b9cf42ed67dded8f8fd35312fba53",
+      "bytes": 60937,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/manifest.json",
+      "gitBlob": "3c9efaeec3420ba897bfe453803becc411db551f",
+      "sha256": "d1f0bddac0efda75912ac131ab25d69898ff4b34031b2b67834c204c89c1503f",
+      "bytes": 6984,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/packaged-render.log",
+      "gitBlob": "eae9e2158c8f4c3bff052211e43fbdbe8bac0387",
+      "sha256": "d04f33a295046b3a857e9e43ed25ee7e055c500de050b64b934b8a1bf908bccf",
+      "bytes": 1184,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/page-render.log",
+      "gitBlob": "bdf8fb90ce1a3c77e1b892afe27bfefb350a4fc6",
+      "sha256": "793c47bb5ed9c2572b9c80d8cbb3dbd4285f53e4eb0f7df777069ca423e8b6ff",
+      "bytes": 4330,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/report-initial-hash-failure.log",
+      "gitBlob": "3bf44d98731c2a183584ba9cea3b18c4b79469b1",
+      "sha256": "9356bab6f22b9c6eb21b6c3b25ed7fa135c50e5a88a44ae2222020830e26f45d",
+      "bytes": 788,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/report-verification.log",
+      "gitBlob": "f63f05a663e9f41a27b2b95e98d7346f6b0dfd26",
+      "sha256": "820bea29553ebc7805cfdcf534a75a226d7fb7c71c07cde9961fd8ce848fd68c",
+      "bytes": 200,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-evidence.json",
+      "gitBlob": "fbd6c0022a8d69ed858d43475fed97bed39ea446",
+      "sha256": "767e325fcb4fe14f42c8d96d9d805edb443de3365f362db390b27695295f8d9b",
+      "bytes": 256414,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-initial-field-failure.log",
+      "gitBlob": "81e8da14c2359c313757b1828cb6a8fdb0ef5db9",
+      "sha256": "499005137f45f6e2083411abe5b737f89aefe45323da3cfae60706c37a324ea8",
+      "bytes": 569,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-initial-schema-failure.log",
+      "gitBlob": "c7efd1d994c724f73d6d97820e926ee7583760d1",
+      "sha256": "1e5ec6193a4e4082efecb5dea7e2d854cf1a1e8b949d5f90d47b852046e98fe8",
+      "bytes": 638,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/retained-verification.log",
+      "gitBlob": "2fefaa6d887f2bbf4ea52beaf79b71f11440beba",
+      "sha256": "b8d431ca7634a41d5b1948bc51bbc598481b2f418a9c81f916adec0f73ad140c",
+      "bytes": 394,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/syntax-check.log",
+      "gitBlob": "380246dab7b73f013dc25ce7ce2117cee40a1d4f",
+      "sha256": "0177c6a77699c7fcd68c00f41a4519342b89334bf860d3463a05bf22347713c1",
+      "bytes": 96,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/second-review/visual-qa.json",
+      "gitBlob": "12637cc104f7fa67198294b20057d8b1b60c2a70",
+      "sha256": "b0d5ab86d134579870153688d0316dd2b66bc01528b26fd6907d390286f078d2",
+      "bytes": 5658,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/summary.json",
+      "gitBlob": "ee2c97bf8f704f34339377028e01428e83b9f0e4",
+      "sha256": "e4e28fa0840262a27150f7d9e546e4654f39b236fac8fd3aec24ce805ecf5590",
+      "bytes": 4953,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/campaign-design.json",
+      "gitBlob": "db6359611c076c656f92efdb7335051907801784",
+      "sha256": "a4c8c586694e7dd2489f006af64eb3d14f6e2e3d663fc75927f21a9d6612a791",
+      "bytes": 1728,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/experiment-tests-project-python.log",
+      "gitBlob": "875f33f387753963bc788180a5688e57d8712cfe",
+      "sha256": "7035fa14faba23106d79ccbc93bff729a12e44e74cfc7c865db0ccb484d44bdc",
+      "bytes": 36416,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/experiment-tests.log",
+      "gitBlob": "2b0820648086198d8aec6bd93b9d8a30b77dc372",
+      "sha256": "dd2bfd96e61d1d8eed3994df4d85aef8706af92dec99910e5736b4ad1eb07e3e",
+      "bytes": 40928,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/final-verification.log",
+      "gitBlob": "8b111ad78af7113c3349b3d095d6789061588f72",
+      "sha256": "2f2213b386fc732c20513394cb02891111b8b8528ad54b7df11ab81f6c563f28",
+      "bytes": 496,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/java-nullability.log",
+      "gitBlob": "aaa06987a0c648bace37b1c04ba417c1bda54056",
+      "sha256": "568f3eb0682987bc1f74c845256725b2482a74a33bc7788d05cfbdf106f571c2",
+      "bytes": 238716,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/manifest.json",
+      "gitBlob": "676905f38704e784b7a915378c091dcfb42607e3",
+      "sha256": "c91ae8b161104df2470877a3a199df4f26d900fb855fb066f7e2d7d7408eb31a",
+      "bytes": 12923,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/page-render.log",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/renderer-attempt.log",
+      "gitBlob": "3851bf3f4900283495e076dc0cad5abe7971b3d3",
+      "sha256": "057ca5897939a48a017a4eecacfc2af25dcdbd69dffd78d994d4168b5e8edc0f",
+      "bytes": 3356,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/report-tests.log",
+      "gitBlob": "7d5b57a456e1dfc8fb751df6362e9694264c7905",
+      "sha256": "a5b12f8e64887b7b3e6297a84daf960168df40758d79b4a42a0daae0b64454ae",
+      "bytes": 2670,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/source-inclusion.json",
+      "gitBlob": "e07d1f66a1c1948649b07ecc6aa2463a13a431f5",
+      "sha256": "81564219c8d51420ab21507a574353345896c320f9e68ea71666494d762e937e",
+      "bytes": 24375,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/source-register.json",
+      "gitBlob": "601b739f0d2cf875561184aac4b8b5a4d2a3cad5",
+      "sha256": "8faecbdd1f4fdf6ca8182b3ca9d60bc674cccf94407a9ea534a1f92f207e9091",
+      "bytes": 6456,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/verification.json",
+      "gitBlob": "f122b55d14171558af66b5ebd033d3fb54d435cf",
+      "sha256": "bbcdb02c1745f11938bf702858c40f0d79158f6bc329ecf4091f0139dac21e62",
+      "bytes": 3171,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/visual-qa.json",
+      "gitBlob": "cdc7c82cbe0a7f764b09cd5cc02d037ca9f50208",
+      "sha256": "bd8e1f05c407e75b224b346c67beba18eae33f60e2116fd4cae5b59d07579b1f",
+      "bytes": 6761,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/web-lint.log",
+      "gitBlob": "63ce46d234151ec93c04d24421fe10fc3f5cadb7",
+      "sha256": "eda915d8da378f98daa58c7dc74ad00c0bdacc595c0488f4dd9dde471819d65c",
+      "bytes": 250,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/web-test-nullability.log",
+      "gitBlob": "a6f2c01b4bcbde32e567b34483b48272f57fbe30",
+      "sha256": "5e84c2ccf794a59bd1b2fd08d305209fae6e41363785be35b4491ee5195381a1",
+      "bytes": 8362,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/web-test-unit.log",
+      "gitBlob": "c27651554e2a3daa86123dbda796a081e32d8aa0",
+      "sha256": "a1ae17e66e5b3386d7304a3e5260d2911dd64aa73874f0e17cb1f83e29f021c1",
+      "bytes": 18444,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/evidence/third-review/web-typecheck.log",
+      "gitBlob": "61981f538367900657e67450a4ebe4bcbb05ef88",
+      "sha256": "06590b6d79f253b2b81b09e2578e8d6ab7221a047d6fbe6d61c65288551af5ad",
+      "bytes": 108,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/refresh_review.py",
+      "gitBlob": "3a8287cb76ef59a18990fd512d5fa2f393958c99",
+      "sha256": "09fc6109e2aace9e455365558539caeaba9e60f18abecd754f3645a099ee4314",
+      "bytes": 5613,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/test_verification.py",
+      "gitBlob": "0149f67474807a1c29156815b13cfdb7595699b3",
+      "sha256": "a9b3c4a2fec7e7fdd5d6f6b93f7b8f5659a3cc0a60a2ff3d1a6e11fb06d8aca6",
+      "bytes": 6547,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-audit/verify_evidence.py",
+      "gitBlob": "aedcf67940746497eb8eb2d383ea4776b20a904f",
+      "sha256": "e1288fd0690217c0e4dcc171a4a1b169c69e64c7375d731636eec337ca0d4841",
+      "bytes": 12592,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p020-01.png",
+      "gitBlob": "cc6b4495587afd4913ca0802aa4dd7aa93a493f2",
+      "sha256": "63506c74bb7b274a4b9a232f55e740736e7e9056fd9fdb66d4be1cae4af1b373",
+      "bytes": 146921,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p028-01.png",
+      "gitBlob": "82b977a21bb0cba7854ce05b938d4a12b4526c39",
+      "sha256": "41a31d4b13b1a77151a1e5cb486614746276f56af9c4cbd2d96775d306346049",
+      "bytes": 91494,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p031-01.png",
+      "gitBlob": "99b85144e0625a68d7874bc959c0bbf4ff0207d2",
+      "sha256": "f58582aea01f9dc86d56978ac42cfd2a206ce9fd110fd1a483aa17d231fb2753",
+      "bytes": 39342,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p033-01.png",
+      "gitBlob": "38fff90c053da9a2a1f84d376cd491ca3b064ec0",
+      "sha256": "f39b3450a93e36626e2e451a162b10ca6c0bde23193e5678f94cda8cdb471570",
+      "bytes": 67986,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p042-01.png",
+      "gitBlob": "5d7828386cea3f5e85f2a0459df316d002d774d7",
+      "sha256": "7d3fe4024b89137a0e51eed120564828abd203635a0991f2c40310ddf5574492",
+      "bytes": 289037,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p109-01.png",
+      "gitBlob": "e3522d72d6e0e386a85c9f28de6e9d2b17f5fed1",
+      "sha256": "d84c0fbc87a2952f7e625649140959baa9d503e79318ac920b8971bc783e018c",
+      "bytes": 119961,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p110-01.png",
+      "gitBlob": "39811dcd183fc0bc9a6a92bda71a14cf80b01a24",
+      "sha256": "0a47c50fc8866e24fa16481d714e366d5476bc63459685e68e4c64a2c145dcae",
+      "bytes": 164630,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p125-01.png",
+      "gitBlob": "2c802bf37dd7192c78176ff3737ed6937879f9d4",
+      "sha256": "6e07e1b97283d154fb2ae99556e7935e35ce53488af79af016b70aac1921e176",
+      "bytes": 37342,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p151-01.png",
+      "gitBlob": "2e5cd9e8569e8a5e2cc81c09bd16c16075979b0c",
+      "sha256": "da33ec7fdbebac9c0c18b6c9ea5811c03ccfc53bea9d2a5aa3396a2e1962ebf7",
+      "bytes": 114979,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p163-01.png",
+      "gitBlob": "a77b9a665b596ef3d5ed612c6c2bb13d6cf33e5b",
+      "sha256": "e3d268d2fce93f47236dec4fdbe86117e53478b160e4c5b3167a22ebf0fb81f3",
+      "bytes": 65090,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p174-01.png",
+      "gitBlob": "5bc982017df9ffadf6e0527425ed11c1a527087c",
+      "sha256": "a3920a1d84ad22c1cba101fb77ae7e1bfd17fdb331f53fb07a2b79bf153d2d39",
+      "bytes": 116396,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p175-01.png",
+      "gitBlob": "8e005c8a3da91bcbb08eaf0a840b313574e08acb",
+      "sha256": "c0c58aafd7caed5d2b2c61e0a9c6fe3e02a6a3881d12c74e7d6a778d68cf3e00",
+      "bytes": 111849,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p177-01.png",
+      "gitBlob": "3d0c9a3719ce8d2d6a952dea52f143862141f590",
+      "sha256": "da7576ad5c7ffacc99d759e0b349124fa1f75eb806550ce95aa92c8a6858a5dd",
+      "bytes": 123568,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p178-01.png",
+      "gitBlob": "28e45445ba9803cce3838a9d9e9c58e5265e3df9",
+      "sha256": "7d4007c1f0c92e72bbb6187859756368122d0b75540614112628bee7799ec33b",
+      "bytes": 100685,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p179-01.png",
+      "gitBlob": "77dc982ecb4327a939d2b8975c44ed38ef69a5d9",
+      "sha256": "fc3b993984309c0a32c6125b7f3498e053fcdb7fae96a8f64da5f3a7e756b64d",
+      "bytes": 103007,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p181-01.png",
+      "gitBlob": "7668c7a5ed2a0efeeb9fe7f6e43ae538bc2e9457",
+      "sha256": "e5f7634f37fcca5cf89eaa61703a393ef68030b6456c7bf83d4020acb8b3e485",
+      "bytes": 64484,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p184-01.png",
+      "gitBlob": "53c196bf476f419f7b9624dec7322958ca75aded",
+      "sha256": "bf31070453795a1de5e6e01e971deb5dc55dec01bab72985cb03f32085574ecd",
+      "bytes": 110521,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p185-01.png",
+      "gitBlob": "6bd5853f47a6869a81bd1e492f251c6d5270db8b",
+      "sha256": "a97b784003e8823ed90e7be8298ca01ce611860fc6363acc6e2604213017db1a",
+      "bytes": 76872,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p186-01.png",
+      "gitBlob": "a86ab0158c3823c34f6c9ad0ebec2504cdf82c9d",
+      "sha256": "e9ef04e2211d7ea75947f693303f6815cc8ea340b63cbacd551e91198f97c793",
+      "bytes": 65352,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p187-01.png",
+      "gitBlob": "74a7da1e229b82658d8d5deb0746eb25a4df6b5b",
+      "sha256": "4e4e60accb86b42c68f8655cafb5d7d74589f64bd2067658f0f88ede396967bd",
+      "bytes": 54935,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p188-01.png",
+      "gitBlob": "4b17a296e4fa84cd7fb7af1586ad77311be3dd9d",
+      "sha256": "65d2f89c4b7e20948310eccf3c48319317f2909bd8991a69989ae5c30cfbd6a9",
+      "bytes": 60749,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p189-01.png",
+      "gitBlob": "044ba57fe3cfc35a90bf160f7e755300c5f0c51e",
+      "sha256": "c4fa93654c823522cb69767013d6b2e160abafc90f1d1802a35efb3682602235",
+      "bytes": 69553,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p191-01.png",
+      "gitBlob": "05623da605e16b73b3d0b2b47b8d7963ac187cfd",
+      "sha256": "17530f25dbbef1c8172b9903d58a4a9d31317ea256bd61e845d6bd9a515345ac",
+      "bytes": 94371,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p192-01.png",
+      "gitBlob": "f07283d30c19643c1fa4e5047f614ec9d4c40641",
+      "sha256": "4a93bba489936bcba98985f8793b21a7e3b5425e1e9deae36c2261fcdaaaa92a",
+      "bytes": 67904,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p193-01.png",
+      "gitBlob": "30a50470d714648a0efd1687028cfa0443acf831",
+      "sha256": "3fa2b7acf56fe862bb5f26e4fc4e250b90038cb742ccc4fb4cd5c05a30293bee",
+      "bytes": 59448,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p194-01.png",
+      "gitBlob": "3d5213cc11378277467a40ce8caee50e42deeb48",
+      "sha256": "dd3c8e6b3680b738c5fc4f3d327a9a42ce7770f94ed19d2d5c2dc92867f2fe55",
+      "bytes": 64256,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p200-01.png",
+      "gitBlob": "45540613aed026acad0ae71d1d7273d70c539928",
+      "sha256": "de6f5e49c3c6e1ec998225967ae5bd4dac8a1bf066953cd7e092eb00277cf549",
+      "bytes": 102609,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p201-01.png",
+      "gitBlob": "353f6453afe22f73ef2a3c05257ff2f279db4b16",
+      "sha256": "c7649efb9b02ec30131a926decad195cc7bf52e00b4f08f108cc490baa7f2ec3",
+      "bytes": 120054,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p202-01.png",
+      "gitBlob": "0e0ecaad0a7bf4ab205644305ea76841ac98ac58",
+      "sha256": "5bd209d197fa3e7db3963a3eb2acc6f283337d7688959eb5fb46fcdad155e4ee",
+      "bytes": 100434,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p209-01.png",
+      "gitBlob": "09099dc542611fe0465813bbf5b14821686f68df",
+      "sha256": "f664c31a08d569850f05a56b50347bb419e31a0ca20de36e42eea92f340ca96c",
+      "bytes": 95128,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p210-01.png",
+      "gitBlob": "7459e42c7f13493bd28fcfa927e8da36b2986abc",
+      "sha256": "830db4978d4f4545d56fbed56d4c0d1f2f249079f7310efccafbd93b9ce0b482",
+      "bytes": 135739,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p211-01.png",
+      "gitBlob": "0edeade1c6a39ccec3675a85cf9feb6ea391e703",
+      "sha256": "2bed13f45e61e2bf1b3d1dc1ea41436d8516aa106e52596df1dd158f74c81378",
+      "bytes": 92675,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p214-01.png",
+      "gitBlob": "a069c4a0299bd2d39eab2afed348fd795051d6ae",
+      "sha256": "bc517bd24b8016602517400946a2853add0c9a7da685a9503b2eab3899c5a8f6",
+      "bytes": 84086,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p219-01.png",
+      "gitBlob": "a76ec026f6930f468cfd1e8d243a28d937644f78",
+      "sha256": "9e3f1544e809cf3ea1069e92b71d558005d23ab0097ff829356c08637de71458",
+      "bytes": 112177,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p220-01.png",
+      "gitBlob": "c698d6ab4a38b2bd787e0d703ff74a34e53967bc",
+      "sha256": "8e9a7e26baf1fe30de2d676acb5be8d6fba9c08d5cefe0ad9afe34edeca96da4",
+      "bytes": 83083,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p221-01.png",
+      "gitBlob": "618662a0e6695c14476e2ef0a30a7ea2226d2659",
+      "sha256": "5d14dccd4760d58b52bbd6bcb2efc8d332ac4edd9dfd68a6184a7a0b14c9abba",
+      "bytes": 123369,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p227-01.png",
+      "gitBlob": "5a90be62d12d32c90be1a59a32d39e05b4272f5f",
+      "sha256": "85d66a80b18b0f70049647c6c8620f80130c5a52d78a69f1d761678d7654cbb1",
+      "bytes": 95764,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p232-01.png",
+      "gitBlob": "0b58f014119c480c12a8ba7ec80627d5342ac9a3",
+      "sha256": "923e18010e9f12b231339494bd278071f94bb3dc7cc94705f756ee334e4fe12c",
+      "bytes": 76492,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p244-01.png",
+      "gitBlob": "bde50ef66fa6e77b4fd73adc656c519cb59e05d0",
+      "sha256": "0c12bb6245555f1bee40f176a6f22663ea4dc78e246426ba8b9d4f323614f80d",
+      "bytes": 117830,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p252-01.png",
+      "gitBlob": "6b5c4a5479a57355c86b3731300a1edd1986707e",
+      "sha256": "d785b1761f6359ce17d93f78e83827426707eea76af3afb2bd2985552da424b1",
+      "bytes": 68251,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p257-01.png",
+      "gitBlob": "65b8055e59372e76e2bfe5d640cae3a9034762da",
+      "sha256": "450c32873b4d4c429379c22dd04cb339f1df301dfa9b2059cae21cba196c4f91",
+      "bytes": 116097,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p266-01.png",
+      "gitBlob": "7c694ebb226af5b972045a7fec1c1ede9715ce4d",
+      "sha256": "bdc1d32ca657912b5a87d0babaa311f02304415a1ec7c8f8d851b38cd1dd3bde",
+      "bytes": 61423,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p270-01.png",
+      "gitBlob": "82efa57e52325fd3faa7b89d0da45fd2be8cc5ed",
+      "sha256": "c18fe9c8eb0c16372ccd8699c9a48947c7d287177c41c348ee2ff0d5f90cb53a",
+      "bytes": 67092,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p284-01.png",
+      "gitBlob": "8c67a13cae70af4ae447a604c0fe35c5b729ca60",
+      "sha256": "75db70cf503c2cf82b1dcf06dd61c0663e05d0a6eaa24df4bfbf599cea68c514",
+      "bytes": 54220,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p350-01.png",
+      "gitBlob": "7e64ca5fa73cdc34e9ede11b3c7619aac5df8624",
+      "sha256": "958131a8d3f4702d4612ce69f26bf0aef87a7f5a2a202314607eb9655e4e3689",
+      "bytes": 73886,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p360-01.png",
+      "gitBlob": "08c1ef7555928cbefdd74a508d66ec1218cbb872",
+      "sha256": "4f1a52edb04e50a8a9b2d98ddb0fcd49c3b541806740895b610abb3e04e16b70",
+      "bytes": 83622,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p361-01.png",
+      "gitBlob": "bb75b3c85f4907386ab34c75aec72496567873f0",
+      "sha256": "79947ed6399f53deefb662c200e148be3cadce5c7d1c713ef2633e8950accc6c",
+      "bytes": 52980,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p364-01.png",
+      "gitBlob": "0c1a61752e09bbffe28d9dbfe0aa400e916d07be",
+      "sha256": "7cd1de5327ec5f20d0bbf4a371b28b03d981c89c1cb8e66e32d6f4cd8a2caf08",
+      "bytes": 61546,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p364-02.png",
+      "gitBlob": "4ab2f17af6933dbbe91293afbcbe969e1b2af64d",
+      "sha256": "fbbf3e627db4e964b3131b2b44588960a4a4d20b95f42da47585171dda5f10b1",
+      "bytes": 90398,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p365-01.png",
+      "gitBlob": "e4da3987a59bd44c3ce9c9a140881e786e3b5468",
+      "sha256": "ee1820d650a522a6291d3ae83748ca253b75aa71bf51411fefe3419e7e725259",
+      "bytes": 138814,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p366-01.png",
+      "gitBlob": "00ab452f76c6e81d75053b5a248fa752875b11ff",
+      "sha256": "d1709ce2ab24bbbd099ba3a7371ffb794b1e106b6409da9bc8ccfa65426c11fb",
+      "bytes": 243950,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p366-02.png",
+      "gitBlob": "342e69ce578a812bc591c71a1da88cc44055196a",
+      "sha256": "6dec010651a34b7aaeefe1a862d4ed5f946501961d6dc591da2c7f9f2429bcb9",
+      "bytes": 73688,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p367-01.png",
+      "gitBlob": "57793200d7b63542fae98ad0b56e25c80f861a7e",
+      "sha256": "bd2194cf35683edcbfbc6a2aa99b0f8e7cb6191687d3cf9acd2229a0b20ee9e1",
+      "bytes": 82652,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p368-01.png",
+      "gitBlob": "0d1deb94e7ff001c904c58f85c41e68a6c157b83",
+      "sha256": "0c4cae130faf260a29346a67022ea56c6f79ff1a238c4d0e91b119ac75131e75",
+      "bytes": 176150,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p369-01.png",
+      "gitBlob": "b6ca8720cb8879587a5b7f49af6e69502e61bcbe",
+      "sha256": "590f824ffcf45045d3e143a48f8625e9cec92078d63867aeb269c1bf8fad6987",
+      "bytes": 97162,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p369-02.png",
+      "gitBlob": "cec20aa28711320e4313b3ecab5da3c5e2ed5c55",
+      "sha256": "133bb3fa3e39b01c01d976bc1a16c23155848d7b44bfb15e42af1c374617758e",
+      "bytes": 126558,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p371-01.png",
+      "gitBlob": "7041b23cfd15811d7e0dd680e6a032aa1d402f24",
+      "sha256": "3582deddcb8c852860f9cbb3ac07886b0522204489700267c079ded4cbf0ce62",
+      "bytes": 95329,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p371-02.png",
+      "gitBlob": "524319b80d2058b56f4a4fa0d046a9042d7746c3",
+      "sha256": "477b31f7e02516f33ffbe5672654ce55bbd17e4a8c7b2e3f3bc5480a369f9026",
+      "bytes": 167595,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p372-01.png",
+      "gitBlob": "d3d7154934f7a0edf4dcbb1bd5d8ec5c08322f9e",
+      "sha256": "bc81933c6ef2d8ab295acd6575ca6ba3e87f6b6344cfd0ba151f46438b0fca67",
+      "bytes": 95307,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p373-01.png",
+      "gitBlob": "70ec984f41aeee1116fd2a629e5876f449ea7fb1",
+      "sha256": "85ce847fc06f925153b15e706d55ff426fc7c12d6e85693907b449870a8f44de",
+      "bytes": 220850,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p377-01.png",
+      "gitBlob": "2d4d0cdce80c4eb636cad1162ac3efd2164875b4",
+      "sha256": "2d8a209c763f65dd0cbe86e5ae74e2b4b0dbfc45828062c92f0ef2a9fe60d437",
+      "bytes": 57220,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p378-01.png",
+      "gitBlob": "0e0fc41c5622f32f161ac6971b0b80466163391c",
+      "sha256": "f961540ffd9b8cbfcd06afea8e90a2a7b5d79e228506acdbc632eb0529f82c76",
+      "bytes": 63630,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p409-01.png",
+      "gitBlob": "3df762ea6205474996aa53a1c494a91bd3b87981",
+      "sha256": "0803e4a4dab340ffaa0b1941fb03a33419919d9518dd5dfb2ffd09776918934e",
+      "bytes": 104467,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p411-01.png",
+      "gitBlob": "70827b9496456cfd6611695bfdc473d39a6185f4",
+      "sha256": "2a54dfbf755982a8871da9a1ecffe4096dbd8fbc724e10ca161cbc7e7886a04c",
+      "bytes": 129812,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p413-01.png",
+      "gitBlob": "ece0fd11436fc58009e9867f190e22795ad9a000",
+      "sha256": "aa2e8b762972c192d75e7e6d796a41626933db0e947d533b9e7682fb7c2dc9aa",
+      "bytes": 92976,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p415-01.png",
+      "gitBlob": "45f67636e57d093e45f8152aac09674658f18e68",
+      "sha256": "49e3cd0898014b82f9b6bf53737eb50f772ed15f60349e1e977fd64afbc9f318",
+      "bytes": 58155,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p416-01.png",
+      "gitBlob": "849c5991595911e66b151f83e292ce01008ca15d",
+      "sha256": "88100d20adc8c2535d8394a3605c96a2d2c27b3eb647910f5cae537b256706a6",
+      "bytes": 74234,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p425-01.png",
+      "gitBlob": "705087beb374299c6a11c62e43920b8c8f927ccd",
+      "sha256": "690a964656cbe2ad3874950327ba71696fa0b9e21d418be0e4c85d1ae0d9bc1f",
+      "bytes": 201274,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p429-01.png",
+      "gitBlob": "07befd3708cff252fb42c074d938aa88fd4e601b",
+      "sha256": "f66914851a408aa99c7e4a1f7598f61e228141184bc8f58a9c1c021914f406c0",
+      "bytes": 8806,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p429-02.png",
+      "gitBlob": "b8d192dfc2739c9660718609f3284226b9a2658d",
+      "sha256": "0aa3ec50c2f462ea3f2c94a9db8f74fb458d68c9e75383d55979d07454f69084",
+      "bytes": 17565,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p430-01.png",
+      "gitBlob": "94a82b84a4c87fc04660c6cdfd85a9e57bbbb578",
+      "sha256": "49f0db88619d4b0abf9268d19176e1c26e8908ef2982b0a00506106607969979",
+      "bytes": 15192,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p431-01.png",
+      "gitBlob": "4bf25687fa68d41aac3142fc719d27d953bdad4a",
+      "sha256": "c8c0f816ae0376364aaabd3f32a1581484d1ac18d6509d7da177ab91592a6dec",
+      "bytes": 114868,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p433-01.png",
+      "gitBlob": "3ab5892fdda1b78ee2e6f9524f1c2635af1bacd7",
+      "sha256": "9d038a127ded63e685a8ca73262666f0cd5f0fc4eb240f4551acbf929e9e4072",
+      "bytes": 135931,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p442-01.png",
+      "gitBlob": "be72978156aa4bec8d6544cc4122bcb8ca56cdf9",
+      "sha256": "983d51c7a7c9496eb9e138bc0170a2045026ce56ebc0d75cfb091a4ee18b2765",
+      "bytes": 153796,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p447-01.png",
+      "gitBlob": "2cea0106c84d5c50a3e563b346e16d106f51ed28",
+      "sha256": "1c5e7145f3bb5d7c0b935c09bce0e5c7483a720f1e17f241bf952b013a9d5eae",
+      "bytes": 126027,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p449-01.png",
+      "gitBlob": "2647edee033cfbd77ce691fb7d6e0886e2087b5f",
+      "sha256": "b6d3178d17cadfe9df6ac4594ff46f6812007064484cfe1e555968b96d7e720b",
+      "bytes": 24148,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p450-01.png",
+      "gitBlob": "de851f47d88c34df6ce88ca53b726f8e50b0bb1f",
+      "sha256": "41e409256afcc2972855d922202281cc5bf2031f7921e70fa35af9e93649803b",
+      "bytes": 70207,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p452-01.png",
+      "gitBlob": "bc0edd166f38d6b86eddad0e9cb0494c3df7724f",
+      "sha256": "ed28592f849ec24d24a0f3e2d8985309d769f10bbea6ab5782b20510495bbf7e",
+      "bytes": 65103,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p454-01.png",
+      "gitBlob": "631f09ea157f6175ecb197a379b84c7a92fcfa7d",
+      "sha256": "eb6fc74b8dd193cbc6550a0ace32549531a63e21ae5d25074c8910cae6fdbc22",
+      "bytes": 134703,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p455-01.png",
+      "gitBlob": "2c03d5890f84b6126160daf8ce9aa5f944818519",
+      "sha256": "3a1a3ddb43053163e6797d202cf7cf38f8e482169e9c359bf7b1dfb18993b75d",
+      "bytes": 156990,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p456-01.png",
+      "gitBlob": "ff4ace5d3b389aff6ae6d0fb93e0980029da0800",
+      "sha256": "a6cb7716afe7806054d62267621083010f5dc2592795047c3c355bd39e54cab0",
+      "bytes": 173771,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p459-01.png",
+      "gitBlob": "f3a8a3f16713430b97811a3d7633cdb06413d9cf",
+      "sha256": "f3dcabf42fa2aa3d16d6773c56c025b8b4e2a93180e17735d29d8eef2b832eeb",
+      "bytes": 149495,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p460-01.png",
+      "gitBlob": "a5be812c88f5fa977dbc300529a7619082472a50",
+      "sha256": "ba7b5493ee559aface8542c8007ad6da302dae7bb7351501a9f1f43eec289145",
+      "bytes": 119251,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p467-01.png",
+      "gitBlob": "327e27fd5a1280647bec462e48f06b35eed1f52b",
+      "sha256": "2d7ca554c0377d4bac5b6e4e98cf7670fdca9c659e5ca3646d54d48d5980d843",
+      "bytes": 100767,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p469-01.png",
+      "gitBlob": "8443d61810648381a8be0589e9456fa46528f82e",
+      "sha256": "e14a6e3129341949f372b83561ca3f89ce1bfb958939f0770e8b914c2e93ad62",
+      "bytes": 107383,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p472-01.png",
+      "gitBlob": "d09866da02bbf896721212a32dc76902b776a0ea",
+      "sha256": "5f62eb852a2180db10e7274cc1d77117acac74a43bdeed2d5cc70c24289db6e5",
+      "bytes": 56673,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p499-01.png",
+      "gitBlob": "150fb5a81f92aee96947d74adacb6868efc341ba",
+      "sha256": "69e3873459c2d993191e9e0967c9006b08a86bcd51e91a7ee1b1d6ec7348a502",
+      "bytes": 84466,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p501-01.png",
+      "gitBlob": "456cf93b063f984141ccf8f12bd2b6ae389234e4",
+      "sha256": "93da7279c26e82269a02534c399044efe890bf315cc9693651b6a5e491615c4e",
+      "bytes": 136713,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p506-01.png",
+      "gitBlob": "2bd813e2b335064075fe7be5715c4c379d2e8782",
+      "sha256": "41a16b7b519a06e2a5b6884e5a11585e57263b09a3a58567e939afab700b2026",
+      "bytes": 99373,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p507-01.png",
+      "gitBlob": "278d4484bc03b8b4f3be890e407fba9473c24891",
+      "sha256": "723825c5900638dea6c7bd8941c7a730dd7587fb5d11349af00f3a6af354ca9b",
+      "bytes": 108657,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p509-01.png",
+      "gitBlob": "c736cc26a1119ac736fabe84ea0a3437ee2e834d",
+      "sha256": "aa9515b6c7f176fcfe34f71a65625e1044df968568cd33021628b4d5dd87d9b8",
+      "bytes": 97592,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p514-01.png",
+      "gitBlob": "5c7785fc66d155e85fb587384f3d795bbb3ec465",
+      "sha256": "12f7ed88857051f4b3579bb55f638f1b52318b2a16c8f0aa0eb586b3fecf61ac",
+      "bytes": 134098,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p516-01.png",
+      "gitBlob": "5901f7fccb4d894f5a7201a15f095c4eb5fca59c",
+      "sha256": "95647994d8ba4911aa6e052ae69a0b233176d2115e80f44d77669c735d22c2cb",
+      "bytes": 127945,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p517-01.png",
+      "gitBlob": "46c279b7255ddf24c8e71a50b7cc70bf6ad6c85e",
+      "sha256": "ba3dbec40d154c7f4c3f261da8064e2fad007a3972a9612a3e9a35a6ed88f8cd",
+      "bytes": 92205,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p518-01.png",
+      "gitBlob": "dd3c287b97ea4faf9ccccec50424d980a648c46d",
+      "sha256": "dbfa49db3edb59c9f390c93f36d346a87ddb9c10b3ed7c61a142028fd3bea439",
+      "bytes": 101754,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p523-01.png",
+      "gitBlob": "ed89edaa494c74d45f06f04478520ef2840fa8a9",
+      "sha256": "cfefd6596c20dc3855d00353c1d55983294b3361690a3d1b52a1b6eff2c60fff",
+      "bytes": 72738,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p525-01.png",
+      "gitBlob": "d112a7d3e958e27a414a91fee87630426892b99f",
+      "sha256": "fcc2c664821668d4b9da964a351815ce521b0f415160f9803956dc20c34533f2",
+      "bytes": 74644,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p526-01.png",
+      "gitBlob": "079f86a2a5caf1226605ab2e00ad64ef37cd2ee9",
+      "sha256": "77f55330de4a3802b70c507ad283c9184fb65ac3f12671f4eb7ccd51eae967ab",
+      "bytes": 48193,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p528-01.png",
+      "gitBlob": "a6399ff82df462980bfba1c606e03b7f4c1153f3",
+      "sha256": "639a760a9cd3599a10f582db180b117a56ee9f5c3388641d731a09c7f2113ecc",
+      "bytes": 50056,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p535-01.png",
+      "gitBlob": "0b6034a5810807935a365086d72a557fc8c182bb",
+      "sha256": "3b41758b3c21e23e9c4a20c6f397b70f02de9d57d02d723ce88f9aebcc8a5846",
+      "bytes": 59078,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p544-01.png",
+      "gitBlob": "bd90559a5856ffbf109d6b14eab29ba90a03901b",
+      "sha256": "d5cce7b9cad6dc53b1691fa26a430d3879461691af51bd24b5faa31756cade76",
+      "bytes": 136930,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p545-01.png",
+      "gitBlob": "47687a42b457e779a4db6a978e35c5ad0ca32da1",
+      "sha256": "cd4641ab45f43fae70ba49f66d8c99097c87faca51366cc3766f4834b5654465",
+      "bytes": 70945,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p547-01.png",
+      "gitBlob": "92b38cad5e251c92ccc5da330c853002afad0671",
+      "sha256": "4e89a677a7a9fb6bf338b3f8c4a859ceeae30bd3815c979ea48f36d10ebb94fc",
+      "bytes": 100348,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p548-01.png",
+      "gitBlob": "9810db48d444b217e0394dfa2d592f0e7a3b3b22",
+      "sha256": "724b97a35a96fc15aa75647dff555ae971d388c115a883865f4083d99196508f",
+      "bytes": 39296,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p551-01.png",
+      "gitBlob": "570f8ac9f948a7f7a7d126baf9583275b77c9f5e",
+      "sha256": "867f00738c010920eb2c3e74f11a3f0db7860970f0c20df619dda9340bd51d95",
+      "bytes": 124621,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p554-01.png",
+      "gitBlob": "fecdc1a9c1bde70753db4e70182344c3f5c67764",
+      "sha256": "4dfb862fb78e8fb717f59051c4397575124ec9704a1fbfc75801e081aee86957",
+      "bytes": 77943,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p560-01.png",
+      "gitBlob": "d7b91e21293ae7e43cf4e01961f6ac283ab51c70",
+      "sha256": "de5bb88c1f0c30417d030d0f5239cb9c63945e41b88edb49f69801285503f43b",
+      "bytes": 1791842,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p564-01.png",
+      "gitBlob": "8fb9758ad271da970874d530dda2e8015524ca31",
+      "sha256": "eaeab07e2ba9185243fa65f17e56bef0cdde51d98ae3ddf334dde2a7ff5db4a8",
+      "bytes": 28375,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p571-01.png",
+      "gitBlob": "bf0325aa23da44d2d75f84975451f5ec870e57d5",
+      "sha256": "a5144f0ef2c7e09b9db146af983544d1c844afaac125892d0310a1ddfa8ce3bd",
+      "bytes": 64368,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p592-01.png",
+      "gitBlob": "f9532bd790743f754c24b9825665ef6fe9dc9f6b",
+      "sha256": "3817e0fae3662d4644462fb1914a11eebd1040ddb65fe177ae1c953c6e78b162",
+      "bytes": 54384,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p593-01.png",
+      "gitBlob": "c477deb4b6301d53b3d42d5387a7354bb65f1e80",
+      "sha256": "483c74c57f8cd3dd7d4004655927efdf60d23cae97fad102bfb5e191084872fa",
+      "bytes": 80409,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p643-01.png",
+      "gitBlob": "b90463ac66b925fefb0126556223efb2133c2c98",
+      "sha256": "396c095083121b89fb53da9ba545a4346bd56c3be334db610051d418852e6316",
+      "bytes": 39956,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs-assets/figure-p647-01.png",
+      "gitBlob": "502eb209172d17fac67ac352802a226860af5ea2",
+      "sha256": "f18a1c51c6d7eaeeb5bc1d28fc79336b1e33df829e7989e0bd62ab49f36adc02",
+      "bytes": 97779,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs.md",
+      "gitBlob": "1e147ebb4b390cfce1942494db907f3ba75c0742",
+      "sha256": "c165efce8a6394a3c019d20ecf3f88f0041435c45d50381939c8a8ebf456ae16",
+      "bytes": 1132939,
+      "preserve": true
+    },
+    {
+      "path": "docs/timefold-documentation/Timefold-Solver-Docs.pdf",
+      "gitBlob": "0e665e9632cf3cc0adcda9c5378e07b6ea4e9684",
+      "sha256": "92f8152b78ffd5d577a638c7a2d88e9186fa79a91c322e1a0e2cc9aff4ce8088",
+      "bytes": 26338262,
+      "preserve": true
+    },
+    {
+      "path": "infra/requirements-experiments.txt",
+      "gitBlob": "915dcf7afb23e058c5146ac1d182dfed7722dc68",
+      "sha256": "47efd43c1214958d9a6dd5fb235a3c34db3a0d12c82897ea04af8374c7b21935",
+      "bytes": 19,
+      "preserve": false
+    },
+    {
+      "path": "pom.xml",
+      "gitBlob": "e21973a0b1a0342d04f1aebcc52aadac63f84413",
+      "sha256": "7d47933a01f829b806a55b09f9904581de13db2c49063e8629e2edb3e6143969",
+      "bytes": 1291,
+      "preserve": false
+    },
+    {
+      "path": "routing-service/pom.xml",
+      "gitBlob": "26ee774d3a3689d2bbb360aaefd190e1d72dfa44",
+      "sha256": "907534304d09c73633946950b1addfb1313238f76c46b3775679b8564d54e1de",
+      "bytes": 2122,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/pom.xml",
+      "gitBlob": "7b53d4b23f357d33db935ee8e513cf8777cc2994",
+      "sha256": "fc314c4833aba7f83d1b6a0727ca9e43dd4dc24715f8e5f35b4fc3f2b0f66359",
+      "bytes": 2806,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchPipeline.java",
+      "gitBlob": "834f126c952a2e61058d64bcb4c524c05c83ff2f",
+      "sha256": "dafaa84d360e211da884924ee55c94fb2e15a38c3207a9b36b201e95170726dc",
+      "bytes": 9650,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java",
+      "gitBlob": "3694e07f2f4350c74230b23859dc344669f133c2",
+      "sha256": "7bad1c5a3a01c37a493b6545505c99e60e10e3faa3fc893a678c5eeacfb6c013",
+      "bytes": 40538,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "gitBlob": "092ab00738ae6c3a33a5c698430ed2b285f16bcc",
+      "sha256": "17e0f2875d8c2bd39a6a79fdcb1adf6883f895e3ea43704286d9ecd39839f1cf",
+      "bytes": 1209,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "gitBlob": "4d4ad15896b2ca11a2ccc3c9bcbab71cf634b8f9",
+      "sha256": "9fda4b12c223b14097fdd8c24f7902bcebc744287b06264d4b21e105cfa31df6",
+      "bytes": 54500,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SchedulingPolicy.java",
+      "gitBlob": "33a108aabc83883a4c7889bee133bcb72c37b0df",
+      "sha256": "a2ae8d2bf43be64fac5903637f1799c3f3a320c1b86188fd808cfa73d4c78faf",
+      "bytes": 10016,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SolverExperiment.java",
+      "gitBlob": "70af6667deb2631045aa179f90eada07a1ae4ff3",
+      "sha256": "c4ede0f5ec7ec70e3737cf55c86cd4d43f8b68cb1adc5188f8928b756bb6f488",
+      "bytes": 7369,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/resources/application.properties",
+      "gitBlob": "75a5f23664f8cdea835fd19e68bb17905334dc89",
+      "sha256": "e808937a235174a27c5564cdf917e6a6780054c2a8fa62357ed590563da060d1",
+      "bytes": 627,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/main/resources/solverConfig.xml",
+      "gitBlob": "de8971d3f24bac149a98f8af4ad5265b531dc419",
+      "sha256": "2c6e5a54b3c83fd9ab572ee6d062547679d341008fedf7a8dbff5df290827e2f",
+      "bytes": 885,
+      "preserve": false
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java",
+      "gitBlob": "422d8478656212d673180595d1a577d898cbb421",
+      "sha256": "70733b1bd1acc7249d8d3fa2afc6cc7a11ed40db8fd373ac20e8ce73100c85be",
+      "bytes": 5842,
+      "preserve": false
+    },
+    {
+      "path": "web/package-lock.json",
+      "gitBlob": "3770638072f8c636bc8e2e73c880f05fea0aaab3",
+      "sha256": "491fc51cb9527a53543eeb8b4121632b46f6d5ef1cadb919a88c8e18bc51ade0",
+      "bytes": 225471,
+      "preserve": false
+    },
+    {
+      "path": "web/package.json",
+      "gitBlob": "8637211b95df2f10e7cd4335d83aacd702a8f7a2",
+      "sha256": "a5d4684198b9f445a0db2bd1f733e2e4a51930b0d479988d4a6079bf2354236d",
+      "bytes": 3095,
+      "preserve": false
+    }
+  ],
+  "dependencyArtifacts": [
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-bom:pom:2.6.0",
+      "scope": "dependency-metadata",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-bom/2.6.0/timefold-solver-bom-2.6.0.pom",
+      "sha256": "6ae46124858a5d78bf927285aacb59aada01225ab4cfdf4f6be5bf36cf88f09f",
+      "bytes": 21098
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-core:jar:2.6.0",
+      "scope": "compile",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-core/2.6.0/timefold-solver-core-2.6.0.jar",
+      "sha256": "6c5d37d1d94d21d7fb687bd78e446cff71b6314854f98ad32b3045a7300d1e0f",
+      "bytes": 3586043
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-core:pom:2.6.0",
+      "scope": "dependency-metadata",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-core/2.6.0/timefold-solver-core-2.6.0.pom",
+      "sha256": "af11c70583b3d59c2e25840d9d219f1738afbd396cbe90821eb0456a3ce4734b",
+      "bytes": 7676
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-jackson:jar:2.6.0",
+      "scope": "compile",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-jackson/2.6.0/timefold-solver-jackson-2.6.0.jar",
+      "sha256": "c809a8105b74ef8278fa13bb8c125ecb958678a2f506b0d5711754203e18a556",
+      "bytes": 49564
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-jackson:pom:2.6.0",
+      "scope": "dependency-metadata",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-jackson/2.6.0/timefold-solver-jackson-2.6.0.pom",
+      "sha256": "c8710b68662b1a4989e2f52f7cabe131dd79c8a6ce05ed813e59d33ea4c28648",
+      "bytes": 3257
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-spring-boot-autoconfigure:jar:2.6.0",
+      "scope": "compile",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-spring-boot-autoconfigure/2.6.0/timefold-solver-spring-boot-autoconfigure-2.6.0.jar",
+      "sha256": "a536a6de8ee9a33281f8cdf82a7bb90e1fd4ea6caa621e89568da067660e5cb1",
+      "bytes": 64550
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-spring-boot-autoconfigure:pom:2.6.0",
+      "scope": "dependency-metadata",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-spring-boot-autoconfigure/2.6.0/timefold-solver-spring-boot-autoconfigure-2.6.0.pom",
+      "sha256": "5ed1d35bf0206e98e3a8c8628b358a32c8e19507b72833bd260d9730e5233d62",
+      "bytes": 5325
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-spring-boot-starter:jar:2.6.0",
+      "scope": "compile",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-spring-boot-starter/2.6.0/timefold-solver-spring-boot-starter-2.6.0.jar",
+      "sha256": "734049e6b6af34bbec7f4632fb160717d9ac78113b31d1cae10c8e340d626332",
+      "bytes": 2570
+    },
+    {
+      "coordinates": "ai.timefold.solver:timefold-solver-spring-boot-starter:pom:2.6.0",
+      "scope": "dependency-metadata",
+      "repositoryPath": "ai/timefold/solver/timefold-solver-spring-boot-starter/2.6.0/timefold-solver-spring-boot-starter-2.6.0.pom",
+      "sha256": "2582eaed7e7d2db515952bbe1a0405819e8524da814d4ec85284e5852044f2eb",
+      "bytes": 2408
+    },
+    {
+      "coordinates": "ch.qos.logback:logback-classic:jar:1.5.38",
+      "scope": "compile",
+      "repositoryPath": "ch/qos/logback/logback-classic/1.5.38/logback-classic-1.5.38.jar",
+      "sha256": "afb439c61fa287c9e1925523b13baab03617e724406a389d48b61c2c3e46b700",
+      "bytes": 287122
+    },
+    {
+      "coordinates": "ch.qos.logback:logback-core:jar:1.5.38",
+      "scope": "compile",
+      "repositoryPath": "ch/qos/logback/logback-core/1.5.38/logback-core-1.5.38.jar",
+      "sha256": "a855a0fc97b1d06f4efb1c3bba5ebd0eb508d8b58e68e89e4bbc23a85135c883",
+      "bytes": 641090
+    },
+    {
+      "coordinates": "com.fasterxml.jackson.core:jackson-annotations:jar:2.21",
+      "scope": "compile",
+      "repositoryPath": "com/fasterxml/jackson/core/jackson-annotations/2.21/jackson-annotations-2.21.jar",
+      "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b",
+      "bytes": 82104
+    },
+    {
+      "coordinates": "com.fasterxml.jackson.core:jackson-core:jar:2.21.5",
+      "scope": "compile",
+      "repositoryPath": "com/fasterxml/jackson/core/jackson-core/2.21.5/jackson-core-2.21.5.jar",
+      "sha256": "b64b5874162b503a0e58a8f7758266e8dd9f91bf49e3a59ae0b5f47589a231b7",
+      "bytes": 594187
+    },
+    {
+      "coordinates": "com.fasterxml.jackson.core:jackson-databind:jar:2.20.1",
+      "scope": "compile",
+      "repositoryPath": "com/fasterxml/jackson/core/jackson-databind/2.20.1/jackson-databind-2.20.1.jar",
+      "sha256": "34bbeb4526fff4f8565b12106bf85a6afcbae858966d489b54214ac46b2e26e8",
+      "bytes": 1688480
+    },
+    {
+      "coordinates": "com.jayway.jsonpath:json-path:jar:2.10.0",
+      "scope": "test",
+      "repositoryPath": "com/jayway/jsonpath/json-path/2.10.0/json-path-2.10.0.jar",
+      "sha256": "890daa95dd3892d34d9fabc27cd5153656e6f369358625c88f4dc7b79cbd6c5a",
+      "bytes": 279148
+    },
+    {
+      "coordinates": "com.sun.istack:istack-commons-runtime:jar:4.1.2",
+      "scope": "runtime",
+      "repositoryPath": "com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar",
+      "sha256": "7fd6792361f4dd00f8c56af4a20cecc0066deea4a8f3dec38348af23fc2296ee",
+      "bytes": 25788
+    },
+    {
+      "coordinates": "com.vaadin.external.google:android-json:jar:0.0.20131108.vaadin1",
+      "scope": "test",
+      "repositoryPath": "com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar",
+      "sha256": "dfb7bae2f404cfe0b72b4d23944698cb716b7665171812a0a4d0f5926c0fac79",
+      "bytes": 18279
+    },
+    {
+      "coordinates": "com.zaxxer:HikariCP:jar:7.0.2",
+      "scope": "compile",
+      "repositoryPath": "com/zaxxer/HikariCP/7.0.2/HikariCP-7.0.2.jar",
+      "sha256": "f1e612fa27345be3107a85431e8a8aeb205c15364ab2f2d411e40a9d7bb08095",
+      "bytes": 172312
+    },
+    {
+      "coordinates": "io.micrometer:micrometer-commons:jar:1.17.1",
+      "scope": "compile",
+      "repositoryPath": "io/micrometer/micrometer-commons/1.17.1/micrometer-commons-1.17.1.jar",
+      "sha256": "f2cee6ef046e72eec8128474c7f58c6217173b45ae373c30de0289f2a56ab0fd",
+      "bytes": 51810
+    },
+    {
+      "coordinates": "io.micrometer:micrometer-core:jar:1.17.1",
+      "scope": "compile",
+      "repositoryPath": "io/micrometer/micrometer-core/1.17.1/micrometer-core-1.17.1.jar",
+      "sha256": "9ca47dfa831409b40253c8dc98c17b9d3e050ebbde4d1543c5521dca2b95ad56",
+      "bytes": 915235
+    },
+    {
+      "coordinates": "io.micrometer:micrometer-observation:jar:1.17.1",
+      "scope": "compile",
+      "repositoryPath": "io/micrometer/micrometer-observation/1.17.1/micrometer-observation-1.17.1.jar",
+      "sha256": "eb34f0cd84a879393ae5c21160fc06385ccdc74f36a4d1e31b199f59acfdaf71",
+      "bytes": 84311
+    },
+    {
+      "coordinates": "io.quarkus.gizmo:gizmo2:jar:2.1.1",
+      "scope": "compile",
+      "repositoryPath": "io/quarkus/gizmo/gizmo2/2.1.1/gizmo2-2.1.1.jar",
+      "sha256": "777af2f3b98bbc238938e95c0679c5a1473ec86513e1b88c36901a30c58c9b8e",
+      "bytes": 564254
+    },
+    {
+      "coordinates": "io.smallrye.classfile:jdk-classfile-backport:jar:26",
+      "scope": "compile",
+      "repositoryPath": "io/smallrye/classfile/jdk-classfile-backport/26/jdk-classfile-backport-26.jar",
+      "sha256": "2eb2741b04c632ca361fb7dc947e993785639e76233129e84b2c85d618ae12ca",
+      "bytes": 967151
+    },
+    {
+      "coordinates": "io.smallrye.common:smallrye-common-constraint:jar:2.16.0",
+      "scope": "compile",
+      "repositoryPath": "io/smallrye/common/smallrye-common-constraint/2.16.0/smallrye-common-constraint-2.16.0.jar",
+      "sha256": "9ce104ceb2284024fcf8d427ad2abcbb533e6afedf517a2b8727269f6a5920a6",
+      "bytes": 13613
+    },
+    {
+      "coordinates": "io.smallrye.common:smallrye-common-resource:jar:2.16.0",
+      "scope": "compile",
+      "repositoryPath": "io/smallrye/common/smallrye-common-resource/2.16.0/smallrye-common-resource-2.16.0.jar",
+      "sha256": "00fefb18cf87306ad8427d444c8f098de5c64c82183579b0b7d7c14f28308413",
+      "bytes": 30431
+    },
+    {
+      "coordinates": "jakarta.activation:jakarta.activation-api:jar:2.1.4",
+      "scope": "compile",
+      "repositoryPath": "jakarta/activation/jakarta.activation-api/2.1.4/jakarta.activation-api-2.1.4.jar",
+      "sha256": "c9db52100ce6c8aac95cc39075f95720d2e561b11f8051b81c121ad4effd7004",
+      "bytes": 67380
+    },
+    {
+      "coordinates": "jakarta.annotation:jakarta.annotation-api:jar:3.0.0",
+      "scope": "compile",
+      "repositoryPath": "jakarta/annotation/jakarta.annotation-api/3.0.0/jakarta.annotation-api-3.0.0.jar",
+      "sha256": "b01f55552284cfb149411e64eabca75e942d26d2e1786b32914250e4330afaa2",
+      "bytes": 26378
+    },
+    {
+      "coordinates": "jakarta.xml.bind:jakarta.xml.bind-api:jar:4.0.5",
+      "scope": "compile",
+      "repositoryPath": "jakarta/xml/bind/jakarta.xml.bind-api/4.0.5/jakarta.xml.bind-api-4.0.5.jar",
+      "sha256": "5e489b6c874c4119e003ff1403db523ee3a8959ec499f3de29e77245efccf216",
+      "bytes": 131219
+    },
+    {
+      "coordinates": "net.bytebuddy:byte-buddy-agent:jar:1.18.11",
+      "scope": "test",
+      "repositoryPath": "net/bytebuddy/byte-buddy-agent/1.18.11/byte-buddy-agent-1.18.11.jar",
+      "sha256": "780b3601c34150ab9fb822673c472f7229c1041e8e2a12facf6a5de9ba7a2d64",
+      "bytes": 267557
+    },
+    {
+      "coordinates": "net.bytebuddy:byte-buddy:jar:1.18.11",
+      "scope": "test",
+      "repositoryPath": "net/bytebuddy/byte-buddy/1.18.11/byte-buddy-1.18.11.jar",
+      "sha256": "e32f454c2c1f4aca982f9ec764ed892d9a6eee7e8a77f435cbdd180f6ffdb821",
+      "bytes": 4656510
+    },
+    {
+      "coordinates": "net.minidev:accessors-smart:jar:2.6.0",
+      "scope": "test",
+      "repositoryPath": "net/minidev/accessors-smart/2.6.0/accessors-smart-2.6.0.jar",
+      "sha256": "222c9f547bb20a99fc486403a398352d1306fb671b38abd7ecab6401df170e61",
+      "bytes": 30245
+    },
+    {
+      "coordinates": "net.minidev:json-smart:jar:2.6.0",
+      "scope": "test",
+      "repositoryPath": "net/minidev/json-smart/2.6.0/json-smart-2.6.0.jar",
+      "sha256": "1ae4b561458afb540be8ec5c6dbb4f2e715a319a7ae64854998aaf924770d61b",
+      "bytes": 122808
+    },
+    {
+      "coordinates": "org.apache.logging.log4j:log4j-api:jar:2.25.5",
+      "scope": "compile",
+      "repositoryPath": "org/apache/logging/log4j/log4j-api/2.25.5/log4j-api-2.25.5.jar",
+      "sha256": "64777f73ea0b3104c04eb82befbdccc30a425a19e83ad06cb2f93aa303511863",
+      "bytes": 351427
+    },
+    {
+      "coordinates": "org.apache.logging.log4j:log4j-to-slf4j:jar:2.25.5",
+      "scope": "compile",
+      "repositoryPath": "org/apache/logging/log4j/log4j-to-slf4j/2.25.5/log4j-to-slf4j-2.25.5.jar",
+      "sha256": "b68e8b47342dbc9b35644a14fe2efc0b7bf18da703910cd05ad5501ffe07bba1",
+      "bytes": 24173
+    },
+    {
+      "coordinates": "org.apache.tomcat.embed:tomcat-embed-core:jar:11.0.24",
+      "scope": "compile",
+      "repositoryPath": "org/apache/tomcat/embed/tomcat-embed-core/11.0.24/tomcat-embed-core-11.0.24.jar",
+      "sha256": "e7b966dcaac8c5ffa4f10e44031ebf5b71f2123560c08ac8b7120028615aea08",
+      "bytes": 3623633
+    },
+    {
+      "coordinates": "org.apache.tomcat.embed:tomcat-embed-el:jar:11.0.24",
+      "scope": "compile",
+      "repositoryPath": "org/apache/tomcat/embed/tomcat-embed-el/11.0.24/tomcat-embed-el-11.0.24.jar",
+      "sha256": "ad0546f12dace008aacce18ba13222137760b310ca719e173d3e13021b9af6c6",
+      "bytes": 271215
+    },
+    {
+      "coordinates": "org.apache.tomcat.embed:tomcat-embed-websocket:jar:11.0.24",
+      "scope": "compile",
+      "repositoryPath": "org/apache/tomcat/embed/tomcat-embed-websocket/11.0.24/tomcat-embed-websocket-11.0.24.jar",
+      "sha256": "825160101f0da4a10e19b5730c2ae2f99f8c2c7a7211ac05562726c5e97ab91e",
+      "bytes": 288141
+    },
+    {
+      "coordinates": "org.apiguardian:apiguardian-api:jar:1.1.2",
+      "scope": "test",
+      "repositoryPath": "org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar",
+      "sha256": "b509448ac506d607319f182537f0b35d71007582ec741832a1f111e5b5b70b38",
+      "bytes": 6806
+    },
+    {
+      "coordinates": "org.assertj:assertj-core:jar:3.27.7",
+      "scope": "test",
+      "repositoryPath": "org/assertj/assertj-core/3.27.7/assertj-core-3.27.7.jar",
+      "sha256": "c4a445426c3c2861666863b842cc4ec7bbb1c4226fefd370b6d2fe83d6c4ff0f",
+      "bytes": 1399383
+    },
+    {
+      "coordinates": "org.awaitility:awaitility:jar:4.3.0",
+      "scope": "test",
+      "repositoryPath": "org/awaitility/awaitility/4.3.0/awaitility-4.3.0.jar",
+      "sha256": "ee58568ea5945dcf988551501655183dc184e23e45a8e013fdfd9036194e6f7b",
+      "bytes": 97552
+    },
+    {
+      "coordinates": "org.checkerframework:checker-qual:jar:3.55.1",
+      "scope": "runtime",
+      "repositoryPath": "org/checkerframework/checker-qual/3.55.1/checker-qual-3.55.1.jar",
+      "sha256": "857658c8bdcbff794949a8d9922f88d63ee3751c203c7cd7d21ea97f9e745288",
+      "bytes": 241885
+    },
+    {
+      "coordinates": "org.eclipse.angus:angus-activation:jar:2.0.3",
+      "scope": "runtime",
+      "repositoryPath": "org/eclipse/angus/angus-activation/2.0.3/angus-activation-2.0.3.jar",
+      "sha256": "a6bd35c538cf90fff941ad6258c40c08fca0b5c9c3f536c657114f27ce0527a7",
+      "bytes": 26729
+    },
+    {
+      "coordinates": "org.glassfish.jaxb:jaxb-core:jar:4.0.9",
+      "scope": "runtime",
+      "repositoryPath": "org/glassfish/jaxb/jaxb-core/4.0.9/jaxb-core-4.0.9.jar",
+      "sha256": "6b014df25d22c8446cc2df0a378c5b2137747f197a731d99eb24c756b26f7e8d",
+      "bytes": 139417
+    },
+    {
+      "coordinates": "org.glassfish.jaxb:jaxb-runtime:jar:4.0.9",
+      "scope": "runtime",
+      "repositoryPath": "org/glassfish/jaxb/jaxb-runtime/4.0.9/jaxb-runtime-4.0.9.jar",
+      "sha256": "93e09b7316b6af68d6e2083e4c297daf28e8957f45d725077af812c0b12c39ab",
+      "bytes": 922445
+    },
+    {
+      "coordinates": "org.glassfish.jaxb:txw2:jar:4.0.9",
+      "scope": "runtime",
+      "repositoryPath": "org/glassfish/jaxb/txw2/4.0.9/txw2-4.0.9.jar",
+      "sha256": "d6343e5945d87266ca4e8974a0a2a876e1bd147a00fb65ed3f2e1a3a00f3a82a",
+      "bytes": 73276
+    },
+    {
+      "coordinates": "org.hamcrest:hamcrest:jar:3.0",
+      "scope": "test",
+      "repositoryPath": "org/hamcrest/hamcrest/3.0/hamcrest-3.0.jar",
+      "sha256": "5d66b6a4a680755cb6ed7cb104fa7835ef644667586ff0737adeb977c39ecdbc",
+      "bytes": 126373
+    },
+    {
+      "coordinates": "org.hdrhistogram:HdrHistogram:jar:2.2.2",
+      "scope": "runtime",
+      "repositoryPath": "org/hdrhistogram/HdrHistogram/2.2.2/HdrHistogram-2.2.2.jar",
+      "sha256": "22d1d4316c4ec13a68b559e98c8256d69071593731da96136640f864fa14fad8",
+      "bytes": 177206
+    },
+    {
+      "coordinates": "org.jboss.logging:jboss-logging:jar:3.6.3.Final",
+      "scope": "compile",
+      "repositoryPath": "org/jboss/logging/jboss-logging/3.6.3.Final/jboss-logging-3.6.3.Final.jar",
+      "sha256": "7c12ee575508f81e22b1db9334b969d0ec54ef0fd1dcba24eeab1a44235fc366",
+      "bytes": 62672
+    },
+    {
+      "coordinates": "org.jspecify:jspecify:jar:1.0.0",
+      "scope": "compile",
+      "repositoryPath": "org/jspecify/jspecify/1.0.0/jspecify-1.0.0.jar",
+      "sha256": "1fad6e6be7557781e4d33729d49ae1cdc8fdda6fe477bb0cc68ce351eafdfbab",
+      "bytes": 3819
+    },
+    {
+      "coordinates": "org.junit.jupiter:junit-jupiter-api:jar:6.0.3",
+      "scope": "test",
+      "repositoryPath": "org/junit/jupiter/junit-jupiter-api/6.0.3/junit-jupiter-api-6.0.3.jar",
+      "sha256": "d655d7e6f0c7ae07f10a2f3bbaaebb6d30e9b26204a068ad9e9b3950aa28792c",
+      "bytes": 250715
+    },
+    {
+      "coordinates": "org.junit.jupiter:junit-jupiter-engine:jar:6.0.3",
+      "scope": "test",
+      "repositoryPath": "org/junit/jupiter/junit-jupiter-engine/6.0.3/junit-jupiter-engine-6.0.3.jar",
+      "sha256": "1e2fab61ad27ea08fc7c70dd9677cf8c6d1ae5434d42dcfdd633b12c7e7c04d0",
+      "bytes": 356052
+    },
+    {
+      "coordinates": "org.junit.jupiter:junit-jupiter-params:jar:6.0.3",
+      "scope": "test",
+      "repositoryPath": "org/junit/jupiter/junit-jupiter-params/6.0.3/junit-jupiter-params-6.0.3.jar",
+      "sha256": "cf2947e2302b9f8c8a059259a277881c1cadae8fbc2514c16a925cfeb7beb2e5",
+      "bytes": 296557
+    },
+    {
+      "coordinates": "org.junit.jupiter:junit-jupiter:jar:6.0.3",
+      "scope": "test",
+      "repositoryPath": "org/junit/jupiter/junit-jupiter/6.0.3/junit-jupiter-6.0.3.jar",
+      "sha256": "784b65815f479a0c99a9d3a573b142e2a525efb6025d97f751b19e72f90aeda3",
+      "bytes": 6378
+    },
+    {
+      "coordinates": "org.junit.platform:junit-platform-commons:jar:6.0.3",
+      "scope": "test",
+      "repositoryPath": "org/junit/platform/junit-platform-commons/6.0.3/junit-platform-commons-6.0.3.jar",
+      "sha256": "39f262d09c3d52719fe0b77f080e90a3695e285d779a41b232e17963ae5da200",
+      "bytes": 171256
+    },
+    {
+      "coordinates": "org.junit.platform:junit-platform-engine:jar:6.0.3",
+      "scope": "test",
+      "repositoryPath": "org/junit/platform/junit-platform-engine/6.0.3/junit-platform-engine-6.0.3.jar",
+      "sha256": "491e9e4f745f161b8a8e4186a1a7c6a450ea12c70930c9aedae427215301d947",
+      "bytes": 280233
+    },
+    {
+      "coordinates": "org.mockito:mockito-core:jar:5.23.0",
+      "scope": "test",
+      "repositoryPath": "org/mockito/mockito-core/5.23.0/mockito-core-5.23.0.jar",
+      "sha256": "ae295bebd5d11fab97ab297815dc7617188b86003cbce3dfd5c0d5c3a6cc4a0c",
+      "bytes": 720687
+    },
+    {
+      "coordinates": "org.mockito:mockito-junit-jupiter:jar:5.23.0",
+      "scope": "test",
+      "repositoryPath": "org/mockito/mockito-junit-jupiter/5.23.0/mockito-junit-jupiter-5.23.0.jar",
+      "sha256": "65938526fdc311bb3a1c0015eb1c8a0be81515aa998f22b9f4e92f1b668e4f63",
+      "bytes": 9427
+    },
+    {
+      "coordinates": "org.objenesis:objenesis:jar:3.3",
+      "scope": "test",
+      "repositoryPath": "org/objenesis/objenesis/3.3/objenesis-3.3.jar",
+      "sha256": "02dfd0b0439a5591e35b708ed2f5474eb0948f53abf74637e959b8e4ef69bfeb",
+      "bytes": 49423
+    },
+    {
+      "coordinates": "org.opentest4j:opentest4j:jar:1.3.0",
+      "scope": "test",
+      "repositoryPath": "org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar",
+      "sha256": "48e2df636cab6563ced64dcdff8abb2355627cb236ef0bf37598682ddf742f1b",
+      "bytes": 14304
+    },
+    {
+      "coordinates": "org.ow2.asm:asm:jar:9.7.1",
+      "scope": "test",
+      "repositoryPath": "org/ow2/asm/asm/9.7.1/asm-9.7.1.jar",
+      "sha256": "8cadd43ac5eb6d09de05faecca38b917a040bb9139c7edeb4cc81c740b713281",
+      "bytes": 126093
+    },
+    {
+      "coordinates": "org.postgresql:postgresql:jar:42.7.13",
+      "scope": "runtime",
+      "repositoryPath": "org/postgresql/postgresql/42.7.13/postgresql-42.7.13.jar",
+      "sha256": "6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93",
+      "bytes": 1220948
+    },
+    {
+      "coordinates": "org.skyscreamer:jsonassert:jar:1.5.3",
+      "scope": "test",
+      "repositoryPath": "org/skyscreamer/jsonassert/1.5.3/jsonassert-1.5.3.jar",
+      "sha256": "719095c07d4203961320da593441d8b3b643c18eb1d81aa98ea933bb7eb351ba",
+      "bytes": 31077
+    },
+    {
+      "coordinates": "org.slf4j:jcl-over-slf4j:jar:2.0.18",
+      "scope": "compile",
+      "repositoryPath": "org/slf4j/jcl-over-slf4j/2.0.18/jcl-over-slf4j-2.0.18.jar",
+      "sha256": "ec5c36d57d2dbe100f84878f944575cb7871da32c7a115b8d7e0721277045d67",
+      "bytes": 18422
+    },
+    {
+      "coordinates": "org.slf4j:jul-to-slf4j:jar:2.0.18",
+      "scope": "compile",
+      "repositoryPath": "org/slf4j/jul-to-slf4j/2.0.18/jul-to-slf4j-2.0.18.jar",
+      "sha256": "cbb7d1aaaa9e871eb1a06594abd911bf97027152976edf1edc315be75239204e",
+      "bytes": 6347
+    },
+    {
+      "coordinates": "org.slf4j:slf4j-api:jar:2.0.18",
+      "scope": "compile",
+      "repositoryPath": "org/slf4j/slf4j-api/2.0.18/slf4j-api-2.0.18.jar",
+      "sha256": "44508fd1576500688c790b190acdd16fec4f8c79a3e0b900afd70503cf055f55",
+      "bytes": 69982
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-autoconfigure:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-autoconfigure/4.1.1/spring-boot-autoconfigure-4.1.1.jar",
+      "sha256": "59228756ddd76cea050f95d86deff334789bc53b6688beaa673b1af2b9794592",
+      "bytes": 372740
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-http-converter:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-http-converter/4.1.1/spring-boot-http-converter-4.1.1.jar",
+      "sha256": "52a167430a918c223b2ccd2eb62aff91a8e43e6daebe5a07caa37b9a04c61cb9",
+      "bytes": 54316
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-jackson:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-jackson/4.1.1/spring-boot-jackson-4.1.1.jar",
+      "sha256": "69a9b4d8850a0532a5e44ff7306a03621485b26596e7f9481de7d28e68a2dd42",
+      "bytes": 82549
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-jdbc:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-jdbc/4.1.1/spring-boot-jdbc-4.1.1.jar",
+      "sha256": "30de56a06ccedb40245fd3a69a5107c7b3c0500447bb982a54a3b5da2859ae2c",
+      "bytes": 204578
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-persistence:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-persistence/4.1.1/spring-boot-persistence-4.1.1.jar",
+      "sha256": "0f78d2556ac3ed75f9eaf3134a1fba94ad1ec3414b52aa279c1f690217e71e3c",
+      "bytes": 16032
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-servlet:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-servlet/4.1.1/spring-boot-servlet-4.1.1.jar",
+      "sha256": "4dcb156e311a4c1ad5f1ed7eabd94a78ea74510b05c429a4fcfdcf8beb9d5882",
+      "bytes": 47081
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-sql:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-sql/4.1.1/spring-boot-sql-4.1.1.jar",
+      "sha256": "fa4f6ddded1bb3bbc496897686336d8433e34f1f22daa886872be2aa184def23",
+      "bytes": 36059
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-jackson:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-jackson/4.1.1/spring-boot-starter-jackson-4.1.1.jar",
+      "sha256": "d30e594a3e0f3a090438fc22000a87ab577a3b80c674180a10544ca331207f24",
+      "bytes": 4740
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-jdbc:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-jdbc/4.1.1/spring-boot-starter-jdbc-4.1.1.jar",
+      "sha256": "c51b28a3793168bff837eea90b1ae641efc3a28d6cdb980dd2b0b230914e93ee",
+      "bytes": 4769
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-logging:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-logging/4.1.1/spring-boot-starter-logging-4.1.1.jar",
+      "sha256": "8eca7d72c8434f5c3b935385c656cd5337f473434bdbcb4913b3b3a34897d178",
+      "bytes": 4742
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-test:jar:4.1.1",
+      "scope": "test",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-test/4.1.1/spring-boot-starter-test-4.1.1.jar",
+      "sha256": "37baecb7fdf6bd5ffc1f88320b04ea166da0e0af0b22b35bca17d48bbc7a5d1e",
+      "bytes": 4790
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-tomcat-runtime:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-tomcat-runtime/4.1.1/spring-boot-starter-tomcat-runtime-4.1.1.jar",
+      "sha256": "580f0d9a9d02a1a6e387640e422af42f9dbdf302836d562ec595fdb2b31a1c29",
+      "bytes": 4745
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-tomcat:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-tomcat/4.1.1/spring-boot-starter-tomcat-4.1.1.jar",
+      "sha256": "f224d8504be3b413825ee85ef549a7b1598ee8512e062c6bd5ddce1043cd388a",
+      "bytes": 4764
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter-webmvc:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter-webmvc/4.1.1/spring-boot-starter-webmvc-4.1.1.jar",
+      "sha256": "4aec3edbdf6317fefe23db1b989d8bba143a45a51c1fc32346146ecebf67d625",
+      "bytes": 4749
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-starter:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-starter/4.1.1/spring-boot-starter-4.1.1.jar",
+      "sha256": "de5b2dd28400eda20914fd4a6054d0c201e68d2e4de35a25a4d89f054ccc2e63",
+      "bytes": 4767
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-test-autoconfigure:jar:4.1.1",
+      "scope": "test",
+      "repositoryPath": "org/springframework/boot/spring-boot-test-autoconfigure/4.1.1/spring-boot-test-autoconfigure-4.1.1.jar",
+      "sha256": "fcae103bb2ca65226f225b846b210ba19fbfc42bdec1bf7009d3083baeb819b8",
+      "bytes": 27876
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-test:jar:4.1.1",
+      "scope": "test",
+      "repositoryPath": "org/springframework/boot/spring-boot-test/4.1.1/spring-boot-test-4.1.1.jar",
+      "sha256": "c16efcceaf7c0f7fff6c2cbac5ba1e7e47ee68bacc6a446f8adfe07ffe4ea579",
+      "bytes": 209977
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-tomcat:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-tomcat/4.1.1/spring-boot-tomcat-4.1.1.jar",
+      "sha256": "17f65629e4eb3c979c0572b69b57d630bb12e64869e9d7520adddaa6734256b6",
+      "bytes": 125521
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-transaction:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-transaction/4.1.1/spring-boot-transaction-4.1.1.jar",
+      "sha256": "e7f2fad4fe65bf6aaf1b1a538a68a1cf69988adb558f4a0fc0992a8be4fddf64",
+      "bytes": 21031
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-web-server:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-web-server/4.1.1/spring-boot-web-server-4.1.1.jar",
+      "sha256": "6912fb1fdf7f657a61ac050760fa835fb1e7496399291697e2901f82887a4fee",
+      "bytes": 171647
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot-webmvc:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot-webmvc/4.1.1/spring-boot-webmvc-4.1.1.jar",
+      "sha256": "9f08c1fb938c45a8693fec5f3065be3aca203948a7ab4d56b06444986f75a6b2",
+      "bytes": 175435
+    },
+    {
+      "coordinates": "org.springframework.boot:spring-boot:jar:4.1.1",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/boot/spring-boot/4.1.1/spring-boot-4.1.1.jar",
+      "sha256": "0d92b532b1d4020640e72d78c31af175c23db8e0ddd45b81855b7fdf4c9c70f0",
+      "bytes": 1392217
+    },
+    {
+      "coordinates": "org.springframework:spring-aop:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-aop/7.0.9/spring-aop-7.0.9.jar",
+      "sha256": "b8c5d6bfcb1f4993f2cc124f7ab7fac40edf5256b9e43c2f7250a733cb5510e9",
+      "bytes": 426204
+    },
+    {
+      "coordinates": "org.springframework:spring-beans:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-beans/7.0.9/spring-beans-7.0.9.jar",
+      "sha256": "ff218b827a25c9e8929b0cd56dfb56916cea9d5b669ed97dc7cb262508ff548b",
+      "bytes": 928155
+    },
+    {
+      "coordinates": "org.springframework:spring-context:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-context/7.0.9/spring-context-7.0.9.jar",
+      "sha256": "7552a2fcfa30cea53eb14d7a65a7a8e1b1dd82e832a7164fb7e6fb105f438858",
+      "bytes": 1399435
+    },
+    {
+      "coordinates": "org.springframework:spring-core:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-core/7.0.9/spring-core-7.0.9.jar",
+      "sha256": "5195f4722699b39878d99a832549fe65df2890b159d063b88fff31b1ca65ae36",
+      "bytes": 2035755
+    },
+    {
+      "coordinates": "org.springframework:spring-expression:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-expression/7.0.9/spring-expression-7.0.9.jar",
+      "sha256": "046434c40f43819729b9b1db0e6c659dfa68184c1c2c2efa5f7b3a5b27c4e2e2",
+      "bytes": 327140
+    },
+    {
+      "coordinates": "org.springframework:spring-jdbc:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-jdbc/7.0.9/spring-jdbc-7.0.9.jar",
+      "sha256": "ca0d9af1c5721eef8cac1f94c8b9d27a753248bc33c86e3472bd3d1dbd78f450",
+      "bytes": 480730
+    },
+    {
+      "coordinates": "org.springframework:spring-test:jar:7.0.9",
+      "scope": "test",
+      "repositoryPath": "org/springframework/spring-test/7.0.9/spring-test-7.0.9.jar",
+      "sha256": "6ce8fc116f5d309b9ac50a6738bd1b15ea4012a4a5563c0ee89b795bfc9af0dc",
+      "bytes": 1109299
+    },
+    {
+      "coordinates": "org.springframework:spring-tx:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-tx/7.0.9/spring-tx-7.0.9.jar",
+      "sha256": "bfb15da6e096e2c0752e9db9987d2415bf0da1d744efc988535c10c6b6c2eedd",
+      "bytes": 292080
+    },
+    {
+      "coordinates": "org.springframework:spring-web:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-web/7.0.9/spring-web-7.0.9.jar",
+      "sha256": "941ced476427bde2533872f293da535fd0258de3f3a650a7f1bfe01ed2927302",
+      "bytes": 2226342
+    },
+    {
+      "coordinates": "org.springframework:spring-webmvc:jar:7.0.9",
+      "scope": "compile",
+      "repositoryPath": "org/springframework/spring-webmvc/7.0.9/spring-webmvc-7.0.9.jar",
+      "sha256": "8f114c1461692c5e534e82b27de23b7fb23370db8dee7ce0c92d5106906c9555",
+      "bytes": 1107415
+    },
+    {
+      "coordinates": "org.xmlunit:xmlunit-core:jar:2.11.0",
+      "scope": "test",
+      "repositoryPath": "org/xmlunit/xmlunit-core/2.11.0/xmlunit-core-2.11.0.jar",
+      "sha256": "50970e6069c21182689eb44ae9f8193970e080b6f37fc13f22aa4201cca2dfe4",
+      "bytes": 177638
+    },
+    {
+      "coordinates": "org.yaml:snakeyaml:jar:2.6",
+      "scope": "compile",
+      "repositoryPath": "org/yaml/snakeyaml/2.6/snakeyaml-2.6.jar",
+      "sha256": "c8f7a98e7394adda02f6317249710e4d1b4c7a25aa8c7eace0c2eea52eb8bf85",
+      "bytes": 340068
+    },
+    {
+      "coordinates": "tools.jackson.core:jackson-core:jar:3.1.5",
+      "scope": "compile",
+      "repositoryPath": "tools/jackson/core/jackson-core/3.1.5/jackson-core-3.1.5.jar",
+      "sha256": "9431b7fa2673bbb618c11d865fe15e13222fd182a214ff998cb7e56afd8f35d2",
+      "bytes": 598605
+    },
+    {
+      "coordinates": "tools.jackson.core:jackson-databind:jar:3.1.5",
+      "scope": "compile",
+      "repositoryPath": "tools/jackson/core/jackson-databind/3.1.5/jackson-databind-3.1.5.jar",
+      "sha256": "3a2338d996fd3056791df8d335fa9ba8a62a706ed4245ecf81b3e583df37d08a",
+      "bytes": 1944003
+    }
+  ],
+  "dependencyScope": "Resolved scheduler-service dependency:list JARs including compile/runtime/test plus pinned Timefold BOM and resolved Timefold POMs; build-plugin and routing-service transitives are not an exhaustive binary inventory. All module POMs and web package lock are hashed.",
+  "retainedArchives": [
+    {
+      "archive": "20260930T135624Z-booking-comparison-a752ef8e",
+      "analysis": "20260930T154451Z-5a2c0070",
+      "revision": "e9c01d132f3b99fa03611ee889b7012e8846e3aa",
+      "expected_cases": 360,
+      "raw_hashes_verified": 360,
+      "frozen_hashes_verified": 25360
+    },
+    {
+      "archive": "20261001T065847Z-daily-budget-331df1f1",
+      "analysis": "20261001T113647Z-4d5d82e8",
+      "revision": "bfa0cfec45ce98c770796d8aecdc35c9692b8357",
+      "expected_cases": 1280,
+      "raw_hashes_verified": 1280,
+      "frozen_hashes_verified": 836
+    },
+    {
+      "archive": "20261001T064508Z-daily-contention-6-931421d0",
+      "analysis": "20261001T065328Z-374c8971",
+      "revision": "4291ef2e3673052e00d2815cd9597ef9278edeb1",
+      "expected_cases": 24,
+      "raw_hashes_verified": 24,
+      "frozen_hashes_verified": 836
+    },
+    {
+      "archive": "20261001T145040Z-daily-contention-1-912c78be",
+      "analysis": "20261001T153932Z-c28bb3fc",
+      "revision": "bfa0cfec45ce98c770796d8aecdc35c9692b8357",
+      "expected_cases": 24,
+      "raw_hashes_verified": 24,
+      "frozen_hashes_verified": 836
+    }
+  ],
+  "retainedArchiveScope": "Identities/counts transcribed from the historical second-review receipt. No fresh raw-archive traversal or new performance campaign.",
+  "knownHistoricalDrift": {
+    "revision": "d497a9620c2190695ad09169eec29e6dd9a187a9",
+    "path": "docs/timefold-audit/Timefold_Audit.docx",
+    "note": "Word report bytes changed after the reviewed report commit. Current starting bytes and old receipts are preserved separately. The historical audit verifier passes text/link parity and retained evidence/source checks; see verification.json."
+  }
+}

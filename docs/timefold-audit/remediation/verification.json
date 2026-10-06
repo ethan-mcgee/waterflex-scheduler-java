@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-06T18:52:38.753235+00:00",
+  "phase": 1,
+  "startingRevision": "b5044d69fd25ba6c9a7e42e7921d67c66a9f82ab",
+  "scope": "Ledger, compatibility test inventory, immutable starting receipt and read-only preservation verifier. No runtime, model, dependency, runner, schema, portal or deployment changes.",
+  "javaEnvironment": "JAVA_HOME=C:/Program Files/Java/jdk-25",
+  "checks": [
+    {
+      "id": "java-verify",
+      "command": ".\\mvnw.cmd verify --batch-mode --no-transfer-progress",
+      "exitCode": 0,
+      "status": "passed",
+      "tests": 189,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "evidence/java-verify.log"
+    },
+    {
+      "id": "java-nullability",
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "exitCode": 0,
+      "status": "passed",
+      "tests": 189,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "evidence/java-nullability.log"
+    },
+    {
+      "id": "resolved-dependencies",
+      "command": ".\\mvnw.cmd -pl scheduler-service dependency:list -DoutputAbsoluteArtifactFilename=true --batch-mode --no-transfer-progress",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "evidence/dependency-resolution.log"
+    },
+    {
+      "id": "baseline-preservation",
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "exitCode": 0,
+      "status": "passed",
+      "baselineFiles": 225,
+      "preservedHistoricalFiles": 203,
+      "sourceTrees": 3,
+      "dependencyArtifacts": 101,
+      "log": "evidence/baseline-verification.log"
+    },
+    {
+      "id": "receipt-negative-and-coverage-checks",
+      "command": "Python fixture checks of changed SHA-256, duplicate file identity, duplicate JSON key; ledger coverage; characterization replacement coverage; authored text scan",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "evidence/receipt-negative-checks.log"
+    },
+    {
+      "id": "experiment-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s infra -p test_experiments.py -v",
+      "exitCode": 0,
+      "status": "passed",
+      "tests": 63,
+      "skipped": 1,
+      "log": "evidence/experiment-tests.log",
+      "skipReason": "POSIX process-group descendant cleanup regression is skipped on Windows; covered on Linux CI."
+    },
+    {
+      "id": "report-helper-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "exitCode": 0,
+      "status": "passed",
+      "tests": 10,
+      "log": "evidence/report-tests.log"
+    },
+    {
+      "id": "historical-audit-verifier-initial",
+      "command": "python docs/timefold-audit/verify_evidence.py --external",
+      "exitCode": 1,
+      "status": "failed",
+      "reason": "System Python lacks lxml; no audit check executed. Failed output preserved.",
+      "log": "evidence/historical-audit-verifier.log"
+    },
+    {
+      "id": "isolated-python-dependencies",
+      "command": "python -m venv .scratch/timefold-audit-python; .scratch/timefold-audit-python/Scripts/python.exe -m pip install lxml python-docx matplotlib",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "evidence/python-dependencies.log"
+    },
+    {
+      "id": "historical-audit-verifier-with-dependencies",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe docs/timefold-audit/verify_evidence.py --external",
+      "exitCode": 0,
+      "status": "passed",
+      "log": "evidence/historical-audit-verifier-with-deps.log"
+    },
+    {
+      "id": "diff-whitespace",
+      "command": "git diff --cached --check",
+      "status": "passed",
+      "exitCode": 0
+    }
+  ],
+  "notRun": [
+    {
+      "check": "new capability compatibility probes",
+      "reason": "Construction/unassigned/pinning/Bendable/native benchmark probes are explicitly pending owner steps in compatibility.md; phase 1 adds the inventory."
+    },
+    {
+      "check": "portal lint/typecheck/nullability/unit/build, database/browser/Compose/workflow integration locally",
+      "reason": "No portal/interface/persisted data/DB/workflow/packaging changes in this phase. Existing PR CI runs its configured jobs; current state is reported on the PR."
+    },
+    {
+      "check": "performance campaigns and external raw-archive traversal",
+      "reason": "Phase 1 uses preserved archive identities; no performance or production capacity claim."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "evidence/baseline-verification.log",
+      "sha256": "bc3065dbfdd6000a8a5ef17c786049a6fb2990b69ffdb0650cf579b32f1ff497",
+      "bytes": 344
+    },
+    {
+      "path": "evidence/dependency-resolution.log",
+      "sha256": "2913efd8d351fee8c3fe835f9efdeb4baf30ba6c9b5017340f3b6eaf2d9cfeb1",
+      "bytes": 41754
+    },
+    {
+      "path": "evidence/experiment-tests.log",
+      "sha256": "d69f6dc87023bf6f6e9517cb825c0712508e650d80575e95624a9caa9ae92d70",
+      "bytes": 36506
+    },
+    {
+      "path": "evidence/historical-audit-verifier-with-deps.log",
+      "sha256": "c0f3f408c38091f53e891fce6f9dc4db6e2d0e2d7262c97dad37e7cd2ac5afe0",
+      "bytes": 654
+    },
+    {
+      "path": "evidence/historical-audit-verifier.log",
+      "sha256": "81425722296af0363b12dc4a781fae998fe6646b377cb39bfe621f1177625777",
+      "bytes": 1176
+    },
+    {
+      "path": "evidence/java-nullability.log",
+      "sha256": "dd2e05ed3fb51bf08d7b81ea6c4e9c0ec4067744e23b4c7513d1983d518d1f2f",
+      "bytes": 238718
+    },
+    {
+      "path": "evidence/java-verify.log",
+      "sha256": "118de49be64a27dfaa2cbe9be9be7bdfb59e362b9479f35c59013e22233cf258",
+      "bytes": 203818
+    },
+    {
+      "path": "evidence/python-dependencies.log",
+      "sha256": "dc78729b63fb472b12455601f8f2f68412e66a2e3eb62ff8587b813bb7660535",
+      "bytes": 7008
+    },
+    {
+      "path": "evidence/receipt-negative-checks.log",
+      "sha256": "4bb26eb7a8d38446dc7f85b3d303ccc07deaa63c854abace3517c09aa977deac",
+      "bytes": 680
+    },
+    {
+      "path": "evidence/report-tests.log",
+      "sha256": "536b67f47278362c0966363e2793791e8454798ff11ea24c176a83b09698c8c5",
+      "bytes": 3812
+    }
+  ],
+  "baselineSha256": "d195d39459eaf61785a872b438d869d650483878994f5985b02fc208dadb9c40",
+  "auditStatus": "open",
+  "nextStep": "Step 2 after review of the phase 1 PR",
+  "githubCi": "Report live status from the PR; local receipts do not imply GitHub CI passed.",
+  "logEncoding": "Raw PowerShell redirect output is retained byte for byte, including UTF-16LE BOMs. Failed attempts are not rewritten."
+}
