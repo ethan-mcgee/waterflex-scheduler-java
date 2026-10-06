@@ -72,14 +72,14 @@ class TimefoldAuditEvidenceTest {
         assertEquals(1_000_000L, penalties.getFirst());
         assertEquals(penalties.getFirst(), penalties.getLast());
     }
-    @Test void binaryRateRoundsHalfCentDownInBothEvaluators() {
+    @Test void exactDecimalHalfCentRoundsUpInBothEvaluators() {
         TechRoute route = route();
         PlanVisit visit = new PlanVisit("one", "service", at(10), at(14), 255, "tech", at(10));
         route.getVisits().add(visit);
         DayPlan plan = plan(Required.value(List.of(route)), Required.value(List.of(visit)), 20.02);
         var result = RouteEvaluator.evaluate(plan);
         assertTrue(result.feasible());
-        assertEquals(8508, result.costCents());
+        assertEquals(8509, result.costCents());
         assertEquals(result.costCents(), DayScoreCalculator.evaluate(plan).costCents());
         long decimal = new java.math.BigDecimal("20.02").multiply(java.math.BigDecimal.valueOf(25500))
                 .divide(java.math.BigDecimal.valueOf(60), 0, java.math.RoundingMode.HALF_UP).longValueExact();

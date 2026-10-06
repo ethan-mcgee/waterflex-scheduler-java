@@ -6,6 +6,11 @@ export const text = z.string().trim().min(1);
 export const date = z.iso.date();
 export const instant = z.iso.datetime({ offset: true });
 export const finite = z.number().finite();
+export const costModelVersion = z.enum(["legacy-double-v1", "exact-fleet-half-up-v2"]);
+// NUMERIC(65,30); canonical plain strings keep monetary values out of JS number arithmetic.
+export const monetaryDecimal = z.string().regex(/^(?:0|[1-9][0-9]{0,34})(?:\.[0-9]{0,29}[1-9])?$/);
+export const operatingRates = z.object({ regularHourly: monetaryDecimal, overtimeHourly: monetaryDecimal,
+  mileagePerMile: monetaryDecimal, travelBufferPct: finite.nonnegative(), travelBufferMinutes: z.int().nonnegative() });
 export const minute = z.int().min(0).max(1440);
 export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-180).max(180) });
 export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();
@@ -58,7 +63,7 @@ export const travelBreakdown = z.object({ road_seconds: z.int().nonnegative(), c
   "Travel components must equal modeled travel");
 const routeSummary = z.object({
   technician_id: text, stop_count: z.int().nonnegative(), route_minutes: finite, drive_minutes: finite,
-  waiting_minutes: finite, distance_meters: finite, modeled_cost_cents: finite, workload_minutes: finite,
+  waiting_minutes: finite, distance_meters: finite, modeled_cost_cents: z.int().nonnegative(), workload_minutes: finite,
   overtime_minutes: finite, appointment_ids: z.array(text),
   segments: z.array(z.object({ departure: instant, returned_at: instant, appointment_ids: z.array(text) })).nullish(),
   travel_breakdown: travelBreakdown.nullish(),
@@ -83,14 +88,17 @@ export const solverAnalysis = z.object({ engine: text, configurationXml: text, p
 export const optimization = z.object({
   run_id: text, metro_id: text, service_date: date, status: text, reason: z.string().nullable(),
   solver_status: text, solve_ms: finite.nonnegative(), routing_identity: text, configuration_version: text,
-  objective_improvement: finite, churn_penalty_minutes: finite, optimized: z.boolean(),
+  cost_model_version: costModelVersion.nullish(),
+  fleet_cost_before_cents: z.int().nonnegative().nullish(), fleet_cost_after_cents: z.int().nonnegative().nullish(),
+  objective_improvement: z.int(), churn_penalty_minutes: finite, optimized: z.boolean(),
   appointments_moved: z.int().nonnegative(), created_at: instant, applied_at: instant.nullable(), warnings: z.array(z.string()),
   route_summary_before: z.array(routeSummary), route_summary_after: z.array(routeSummary),
   policy_analysis: policyAnalysis.nullish(),
   solver_analysis: solverAnalysis.nullish(),
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
-});
+}).refine(value => value.cost_model_version !== "exact-fleet-half-up-v2"
+  || (value.fleet_cost_before_cents != null && value.fleet_cost_after_cents != null), "Current cost model requires recorded fleet costs");
 export const optimizationRuns = z.object({ runs: z.array(optimization) });
 export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,

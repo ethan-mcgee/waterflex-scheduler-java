@@ -175,7 +175,7 @@ jobs:
           JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=benchmark_calendar_it
         run: |
           node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
-          ./mvnw -pl scheduler-service '-Dtest=BookingSnapshotDatabaseIT' test --batch-mode --no-transfer-progress
+          ./mvnw -pl scheduler-service '-Dtest=BookingSnapshotDatabaseIT,MonetaryMigrationDatabaseIT' test --batch-mode --no-transfer-progress
       - name: Booking smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration

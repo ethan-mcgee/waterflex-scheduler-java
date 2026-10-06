@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
+import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.SearchDeadline;
 import java.time.Duration;
 import java.time.Instant;
@@ -104,12 +105,12 @@ final class RouteTimingSearch {
     }
     private static boolean dominates(Timing first, Timing second, DayPlan plan) {
         return first.paid() <= second.paid() && first.overtime() <= second.overtime() && first.waiting() <= second.waiting()
-                && cost(first, plan) <= cost(second, plan) && first.departures().size() == second.departures().size()
+                && cost(first, plan).compareTo(cost(second, plan)) <= 0 && first.departures().size() == second.departures().size()
                 && departures(first.departures(), second.departures()) <= 0;
     }
     private static int compare(Timing first, Timing second, DayPlan plan) {
         int order = Long.compare(first.overtime(), second.overtime());
-        if (order == 0) order = Double.compare(cost(first, plan), cost(second, plan));
+        if (order == 0) order = cost(first, plan).compareTo(cost(second, plan));
         if (order == 0) order = Long.compare(first.waiting(), second.waiting());
         if (order == 0) order = Long.compare(first.paid(), second.paid());
         return order == 0 ? departures(first.departures(), second.departures()) : order;
@@ -121,9 +122,8 @@ final class RouteTimingSearch {
         }
         return Integer.compare(first.size(), second.size());
     }
-    private static double cost(Timing value, DayPlan plan) {
-        return (value.paid() - value.overtime()) * plan.getRegularHourly() * 100 / 60.0
-                + value.overtime() * plan.getOvertimeHourly() * 100 / 60.0 + value.meters() / 1609.344 * plan.getMileagePerMile() * 100;
+    private static java.math.BigDecimal cost(Timing value, DayPlan plan) {
+        return Monetary.numerator(value.paid(), value.overtime(), value.meters(), plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
     }
     private static long buffered(DayPlan plan, DayPlan.RoadLeg leg) { return (long) Math.ceil(leg.seconds() * (1 + plan.getTravelBufferPct()) / 60.0) + plan.getTravelBufferMinutes(); }
     private static Instant later(Instant first, Instant second) { return first.isAfter(second) ? first : second; }

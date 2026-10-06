@@ -29,9 +29,9 @@ public class BookingService {
     public record Confirmation(String appointmentId, Instant windowStart, Instant windowEnd) { }
     public record SearchContext(String metroId, BoundedBookingSearch.Request request) { }
     public record Candidate(String techId, LocalDate day, Instant start, Instant end, Instant arrival,
-                            int position, double cost, long regularDeltaMinutes, long overtimeDeltaMinutes, long roadDeltaMeters) { }
+                            int position, long costCents, long regularDeltaMinutes, long overtimeDeltaMinutes, long roadDeltaMeters) { }
     static final Comparator<Candidate> INSERTION_ORDER = Required.value(Comparator.comparingLong((Candidate candidate) -> candidate.overtimeDeltaMinutes())
-            .thenComparingDouble(candidate -> candidate.cost())
+            .thenComparingLong(candidate -> candidate.costCents())
             .thenComparing(candidate -> candidate.start())
             .thenComparing(candidate -> candidate.techId())
             .thenComparingInt(candidate -> candidate.position()));
@@ -46,9 +46,18 @@ public class BookingService {
     private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
     private record Visit(String id, RoadClient.Point point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
     private record EvaluationContext(List<TechRoute.Unavailable> absences, Map<String, DayPlan.RoadLeg> matrix,
-                                     Map<String, Double> settings) { }
+                                     Map<String, java.math.BigDecimal> settings) { }
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
                            long meters, long costCents, Map<String, Instant> arrivals, List<RouteEvaluator.WorkingSegment> segments) { }
+    private record FleetTotals(long paid, long overtime, long meters) {
+        long delta(Metrics before, Metrics after, BookingSnapshot.Rates rates) {
+            long nextPaid = Math.addExact(Math.subtractExact(paid, before.paidMinutes()), after.paidMinutes());
+            long nextOvertime = Math.addExact(Math.subtractExact(overtime, before.overtimeMinutes()), after.overtimeMinutes());
+            long nextMeters = Math.addExact(Math.subtractExact(meters, before.meters()), after.meters());
+            return Math.subtractExact(Monetary.cents(nextPaid, nextOvertime, nextMeters, rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile()),
+                    Monetary.cents(paid, overtime, meters, rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile()));
+        }
+    }
 
     private final ServiceCalendar calendar;
     public BookingService(JdbcTemplate jdbc, RoadClient roads, BookingOfferLimit offerLimit) {
@@ -114,7 +123,7 @@ public class BookingService {
             String id = UUID.randomUUID().toString();
             jdbc.update("INSERT INTO booking_offer (id, \"jobId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"expiresAt\", \"incrementalRegularMinutes\", \"incrementalOvertimeMinutes\", \"incrementalRoadMeters\", \"incrementalCostDollars\", \"offerSetId\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     id, jobId, dayStamp(c.day()), stamp(c.start()), stamp(c.end()), stamp(Required.value(expiry)),
-                    c.regularDeltaMinutes(), c.overtimeDeltaMinutes(), c.roadDeltaMeters(), c.cost(), setId);
+                    reserved.regularDeltaMinutes(), reserved.overtimeDeltaMinutes(), reserved.roadDeltaMeters(), Monetary.dollars(reserved.costCents()), setId);
             jdbc.update("INSERT INTO slot_hold (id, \"offerToken\", \"jobId\", \"technicianId\", \"serviceDate\", \"windowStart\", \"windowEnd\", \"plannedStart\", \"plannedEnd\", \"insertPosition\", \"locationLat\", \"locationLng\", \"expiresAt\", \"offerSetId\") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     UUID.randomUUID().toString(), id, jobId, reserved.techId(), dayStamp(c.day()), stamp(c.start()), stamp(c.end()),
                     stamp(reserved.arrival()), stamp(Required.value(reserved.arrival().plus(Duration.ofMinutes(job.duration())))), reserved.position(),
@@ -164,6 +173,7 @@ public class BookingService {
         }
         if (!job.status().equals("PENDING") || selectedRow.releasedAt() != null || !(selectedRow.expiresAt()).isAfter(Instant.now()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer expired");
+        requireCurrentOfferCost(offerId);
         roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
         var rows = jdbc.query("SELECT o.\"serviceDate\", o.\"windowStart\", o.\"windowEnd\", o.\"offerSetId\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"jobId\"=? AND s.\"supersededAt\" IS NULL AND s.\"expiresAt\">CURRENT_TIMESTAMP",
                 (rs, _) -> new OfferWindow(Required.value(Required.timestamp(rs, 1).toInstant()), Required.value(Required.timestamp(rs, 2).toInstant()), Required.value(Required.timestamp(rs, 3).toInstant()), Required.string(rs, 4)), offerId, jobId);
@@ -203,6 +213,7 @@ public class BookingService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A different offer was selected");
         var existing = jdbc.query("SELECT id FROM appointment WHERE \"jobId\"=? AND \"cancelledAt\" IS NULL", (rs, _) -> Required.string(rs, 1), jobId);
         if (!existing.isEmpty()) return appointment(jobId);
+        requireCurrentOfferCost(h.offerToken());
         if (h.releasedAt() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold released");
         if (!(h.expiresAt()).isAfter(Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold expired");
         Job job = job(jobId, HttpStatus.CONFLICT);
@@ -289,13 +300,14 @@ public class BookingService {
     private List<Candidate> candidates(Job job, @Nullable LocalDate onlyDay, @Nullable Instant onlyStart) {
         List<Candidate> result = new ArrayList<>();
         try {
-        Map<String, Double> sharedSettings = Required.value(Map.copyOf(settings()));
+        Map<String, java.math.BigDecimal> sharedSettings = Required.value(Map.copyOf(settings()));
         SearchDeadline.policyLimit(dev.waterflex.scheduler.optimizer.PolicySettings.read(sharedSettings).bookingDeadlineMs());
         String routingIdentity = roads.activeIdentity();
         List<LocalDate> days = onlyDay == null ? bookingDates(calendar.now()) : Required.value(List.of(Required.value(onlyDay)));
         for (LocalDate day : days) {
             SearchDeadline.database(jdbc);
             LocalDate serviceDay = Required.value(day);
+            FleetTotals fleet = fleet(job, serviceDay, sharedSettings, routingIdentity);
             for (Tech tech : technicians(job.serviceId(), serviceDay, job.metroId())) {
                     SearchDeadline.database(jdbc);
                     List<Visit> visits = visits(tech.id(), serviceDay, job.id());
@@ -309,7 +321,7 @@ public class BookingService {
                         SearchDeadline.checkpoint();
                         Instant start = ScheduleCutoff.localMinute(serviceDay, minute, false);
                         if (onlyStart != null && !start.equals(onlyStart)) continue;
-                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(4))), visits, snapshot, baseline);
+                        Candidate c = evaluateCandidate(job, Required.value(tech), serviceDay, start, Required.value(start.plus(Duration.ofHours(4))), visits, snapshot, baseline, fleet);
                         if (c != null) result.add(c);
                     }
             }
@@ -356,13 +368,15 @@ public class BookingService {
         List<Visit> visits = visits(tech.id(), day, job.id());
         List<Visit> locations = new ArrayList<>(visits);
         locations.add(new Visit(job.id(), job.point(), start, end, start, job.duration(), true));
-        EvaluationContext snapshot = prepare(tech, day, locations, settings(), roads.activeIdentity());
+        Map<String, java.math.BigDecimal> values = settings(); String identity = roads.activeIdentity();
+        FleetTotals fleet = fleet(job, day, values, identity);
+        EvaluationContext snapshot = prepare(tech, day, locations, values, identity);
         Metrics baseline = evaluate(tech, day, visits, snapshot);
-        return evaluateCandidate(job, tech, day, start, end, visits, snapshot, baseline);
+        return evaluateCandidate(job, tech, day, start, end, visits, snapshot, baseline, fleet);
     }
 
     private @Nullable Candidate evaluateCandidate(Job job, Tech tech, LocalDate day, Instant start, Instant end,
-            List<Visit> visits, EvaluationContext snapshot, Metrics baseline) {
+            List<Visit> visits, EvaluationContext snapshot, Metrics baseline, FleetTotals fleet) {
         if (!baseline.feasible() || baseline.overtimeMinutes() != 0) return null;
         Candidate best = null;
         for (int position = 0; position <= visits.size(); position++) {
@@ -371,14 +385,37 @@ public class BookingService {
             proposal.add(position, new Visit(job.id(), job.point(), start, end, start, job.duration(), true));
             Metrics m = evaluate(tech, day, proposal, snapshot);
             if (!m.feasible() || m.overtimeMinutes() != 0 || m.newArrival() == null) continue;
-            double paidDelta = m.paidMinutes() - baseline.paidMinutes();
-            double overtimeDelta = m.overtimeMinutes() - baseline.overtimeMinutes();
-            double cost = (m.costCents() - baseline.costCents()) / 100.0;
+            long paidDelta = Math.subtractExact(m.paidMinutes(), baseline.paidMinutes());
+            long overtimeDelta = Math.subtractExact(m.overtimeMinutes(), baseline.overtimeMinutes());
+            long cost = fleet.delta(baseline, m, BookingSnapshot.Rates.read(snapshot.settings()));
             Candidate c = new Candidate(tech.id(), day, start, end, Required.value(m.newArrival(), "candidate arrival"), position, cost,
-                    (long) (paidDelta - overtimeDelta), (long) overtimeDelta, m.meters() - baseline.meters());
+                    Math.subtractExact(paidDelta, overtimeDelta), overtimeDelta, Math.subtractExact(m.meters(), baseline.meters()));
             if (best == null || INSERTION_ORDER.compare(c, best) < 0) best = c;
         }
         return best;
+    }
+
+    /** Unchanged routes still contribute fractional cents to the fleet rounding boundary. */
+    private FleetTotals fleet(Job job, LocalDate day, Map<String, java.math.BigDecimal> values, String identity) {
+        List<TechBase> bases = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
+                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), job.metroId());
+        long paid = 0, overtime = 0, meters = 0;
+        for (TechBase base : bases) {
+            SearchDeadline.checkpoint(); List<Visit> existing = visits(base.id(), day, job.id());
+            if (existing.isEmpty()) continue;
+            WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, base.id(), day);
+            if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Fleet commitment has no working shift");
+            Tech tech = new Tech(base.id(), base.endpoints(), shift.start(), shift.end(), base.maxDaily(), base.maxOvertime());
+            Metrics measured = evaluate(tech, day, existing, prepare(tech, day, existing, values, identity));
+            if (!measured.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Fleet baseline is infeasible");
+            paid = Math.addExact(paid, measured.paidMinutes()); overtime = Math.addExact(overtime, measured.overtimeMinutes()); meters = Math.addExact(meters, measured.meters());
+        }
+        return new FleetTotals(paid, overtime, meters);
+    }
+
+    private void requireCurrentOfferCost(String offerId) {
+        if (Required.query(jdbc, "SELECT count(*) FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"costModelVersion\"=? AND s.\"costModelVersion\"=?", Integer.class, offerId, Monetary.COST_MODEL, Monetary.COST_MODEL) != 1)
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "A fresh offer with the current cost model is required");
     }
 
     private Metrics evaluate(Tech tech, LocalDate day, List<Visit> visits) {
@@ -386,7 +423,7 @@ public class BookingService {
         return evaluate(tech, day, visits, prepare(tech, day, visits, settings(), roads.activeIdentity()));
     }
 
-    private EvaluationContext prepare(Tech tech, LocalDate day, List<Visit> visits, Map<String, Double> settings, String routingIdentity) {
+    private EvaluationContext prepare(Tech tech, LocalDate day, List<Visit> visits, Map<String, java.math.BigDecimal> settings, String routingIdentity) {
         SearchDeadline.database(jdbc);
         List<TechRoute.Unavailable> absences = jdbc.query("SELECT i.\"startMin\", i.\"endMin\" FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.status='APPROVED' AND r.\"technicianId\"=? AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
                 (rs, _) -> new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, Required.integer(rs, 1), false),
@@ -550,9 +587,9 @@ public class BookingService {
         return result;
     }
 
-    private Map<String, Double> settings() {
-        Map<String, Double> values = new HashMap<>();
-        jdbc.query("SELECT key, value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> values.put(Required.string(rs, 1), Required.number(rs, 2)));
+    private Map<String, java.math.BigDecimal> settings() {
+        Map<String, java.math.BigDecimal> values = new HashMap<>();
+        jdbc.query("SELECT key, value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> values.put(Required.string(rs, 1), Required.decimal(rs, 2)));
         return values;
     }
 

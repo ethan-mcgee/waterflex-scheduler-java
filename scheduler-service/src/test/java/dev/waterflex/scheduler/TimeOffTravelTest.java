@@ -32,4 +32,10 @@ class TimeOffTravelTest {
             assertThrows(RuntimeException.class, () -> TimeOffService.travelTotals(routes));
         }
     }
+    @Test void dailyCostUsesFleetBoundaryInsteadOfSumOfRoundedRoutes() throws Exception {
+        var route = ROUTE.replace("\"modeled_cost_cents\":3000", "\"modeled_cost_cents\":1");
+        var totals = TimeOffService.totals(Required.value(mapper.readTree("[" + route + "," + route + "]")), 1);
+        assertEquals(1L, totals.get("modeled_cost_cents")); assertEquals(120L, totals.get("route_minutes"));
+        assertThrows(RuntimeException.class, () -> TimeOffService.totals(Required.value(mapper.createArrayNode()), -1));
+    }
 }

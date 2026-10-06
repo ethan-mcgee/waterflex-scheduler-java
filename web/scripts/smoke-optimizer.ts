@@ -1,4 +1,5 @@
 import { optimization } from "../lib/contracts";
+import { z } from "zod";
 import { required } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -100,11 +101,20 @@ async function main() {
     assert.ok(policy.after.overtimeMinutes <= policy.before.overtimeMinutes);
     assert.ok(policy.after.costCents <= policy.decision.costCeilingCents);
     assert.equal(policy.costChangeCents, -preview.objective_improvement);
+    assert.equal(preview.cost_model_version, "exact-fleet-half-up-v2");
+    assert.equal(preview.fleet_cost_before_cents, policy.before.costCents);
+    assert.equal(preview.fleet_cost_after_cents, policy.after.costCents);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}`, "current", [7.420, 43.735]);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=before`, "before", [7.420, 43.735]);
     await geometry(`/v1/dispatch/geometry?metro_id=${encodeURIComponent(metro.id)}&date=${day}&run_id=${runId}&phase=after`, "after", [7.438, 43.748]);
     const savedRun = await prisma.optimizationRun.findUniqueOrThrow({ where: { id: required(runId) } });
     const beforeInvalidApply = await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } }, orderBy: { id: "asc" } });
+    const provenance = z.record(z.string(), z.json()).parse(savedRun.weights);
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { weights: { ...provenance, costModelVersion: "legacy-double-v1" } } });
+    const incompatibleMoney = await fetch(`${base}/v1/optimize/runs/${runId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(incompatibleMoney.status, 409);
+    assert.deepEqual(await prisma.appointment.findMany({ where: { id: { in: [...appointmentIds] } }, orderBy: { id: "asc" } }), beforeInvalidApply);
+    await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { weights: required(savedRun.weights) } });
     await prisma.optimizationRun.update({ where: { id: required(runId) }, data: { scheduleVersions: [] } });
     const invalidApply = await fetch(`${base}/v1/optimize/runs/${runId}/apply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(invalidApply.status, 409);

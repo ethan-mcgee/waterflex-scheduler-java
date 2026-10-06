@@ -47,7 +47,7 @@ public class OptimizationService {
     private record Assignment(String appointmentId, String technicianId, int sequence, String plannedStart, String plannedEnd, String windowStart, String windowEnd, double locationLat, double locationLng) { }
     private record ExistingPreview(String id, String metroId, LocalDate day) { }
     private record SavedRun(String metroId, Instant day, String versions, String assignments, String weights, String status) { }
-    private record RunResponse(String metroId, Instant day, String status, @Nullable String reason, String solverStatus, int solveMs, int improvement, String before, String after, Instant created, @Nullable Instant applied, String weights) { }
+    private record RunResponse(String metroId, Instant day, String status, @Nullable String reason, String solverStatus, int solveMs, long improvement, String before, String after, Instant created, @Nullable Instant applied, String weights) { }
     private record TechData(String id, RouteEndpoints endpoints, TechRoute route) { }
     private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
     private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
@@ -255,7 +255,7 @@ public class OptimizationService {
                         originalVisit.point().lat(), originalVisit.point().lng()));
             }
         }
-        int improvement = (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, before.costCents() - after.costCents()));
+        long improvement = Math.subtractExact(before.costCents(), after.costCents());
         List<Map<String, Object>> originalAssignments = baseline.visits().stream().map(visit -> Map.<String, Object>of(
                 "appointmentId", visit.visit().getId(), "technicianId", visit.technicianId(),
                 "sequence", visit.sequence(), "plannedStart", baselineArrival(visit, before).toString(),
@@ -266,6 +266,11 @@ public class OptimizationService {
             Map<String, Object> provenance = new LinkedHashMap<>();
             provenance.put("mapVersion", baseline.routingIdentity()); provenance.put("configVersion", baseline.configurationVersion());
             provenance.put("policyVersion", SchedulingPolicy.VERSION);
+            provenance.put("costModelVersion", dev.waterflex.scheduler.Monetary.COST_MODEL);
+            provenance.put("fleetCostBeforeCents", before.costCents()); provenance.put("fleetCostAfterCents", after.costCents());
+            provenance.put("monetaryRates", Map.of("regularHourly", dev.waterflex.scheduler.Monetary.canonical(baseline.plan().getRegularHourly()),
+                    "overtimeHourly", dev.waterflex.scheduler.Monetary.canonical(baseline.plan().getOvertimeHourly()),
+                    "mileagePerMile", dev.waterflex.scheduler.Monetary.canonical(baseline.plan().getMileagePerMile())));
             if (diagnostics != null) provenance.put("solverAnalysis", diagnostics);
             jdbc.update("INSERT INTO optimization_run (id, \"metroId\", \"serviceDate\", \"scheduleVersions\", weights, \"solverStatus\", \"solveMs\", \"routeSummaryBefore\", \"routeSummaryAfter\", warnings, \"proposedAssignments\", \"baselineAssignments\", \"endpointSnapshots\", \"objectiveImprovement\", \"churnCost\", status, reason) VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, 0, ?, ?)",
                     id, metroId, dayStamp(day), mapper.writeValueAsString(baseline.versions()),
@@ -327,6 +332,7 @@ public class OptimizationService {
         LocalDate day = run.day().atZone(ZoneOffset.UTC).toLocalDate();
         if (ScheduleCutoff.frozen(Required.value(day), Required.value(Instant.now()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
         try {
+            SavedJson.currentCostModel(Required.value(mapper.readTree(run.weights())));
             JsonNode versionNode = SavedJson.versions(Required.value(mapper.readTree(run.versions())));
             List<String> techIds = new ArrayList<>();
             versionNode.fieldNames().forEachRemaining(techIds::add);
@@ -445,7 +451,7 @@ public class OptimizationService {
 
     public Map<String, Object> response(String id) {
         var rows = jdbc.query("SELECT \"metroId\", \"serviceDate\", status, reason, \"solverStatus\", \"solveMs\", \"objectiveImprovement\", \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text, \"createdAt\", \"appliedAt\", weights::text FROM optimization_run WHERE id=?",
-                (rs, _) -> new RunResponse(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.string(rs, 3), rs.getString(4), Required.string(rs, 5), Required.integer(rs, 6), Required.integer(rs, 7), Required.string(rs, 8), Required.string(rs, 9), Required.value(Required.timestamp(rs, 10).toInstant()), rs.getTimestamp(11) == null ? null : Required.timestamp(rs, 11).toInstant(), Required.string(rs, 12)), id);
+                (rs, _) -> new RunResponse(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.string(rs, 3), rs.getString(4), Required.string(rs, 5), Required.integer(rs, 6), Required.longValue(rs, 7), Required.string(rs, 8), Required.string(rs, 9), Required.value(Required.timestamp(rs, 10).toInstant()), rs.getTimestamp(11) == null ? null : Required.timestamp(rs, 11).toInstant(), Required.string(rs, 12)), id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
         RunResponse row = rows.getFirst();
         try {
@@ -464,6 +470,9 @@ public class OptimizationService {
             JsonNode provenance = SavedJson.provenance(Required.value(mapper.readTree(row.weights())));
             value.put("routing_identity", provenance.path("mapVersion").asText(""));
             value.put("configuration_version", provenance.path("configVersion").asText(""));
+            value.put("cost_model_version", provenance.hasNonNull("costModelVersion") ? SavedJson.text(provenance, "costModelVersion") : null);
+            value.put("fleet_cost_before_cents", provenance.hasNonNull("fleetCostBeforeCents") ? SavedJson.moneyCents(provenance, "fleetCostBeforeCents") : null);
+            value.put("fleet_cost_after_cents", provenance.hasNonNull("fleetCostAfterCents") ? SavedJson.moneyCents(provenance, "fleetCostAfterCents") : null);
             value.put("solver_analysis", provenance.hasNonNull("solverAnalysis")
                     ? mapper.treeToValue(SavedJson.solverAnalysis(Required.value(provenance.path("solverAnalysis"))), DailySolver.Diagnostics.class) : null);
             var analysis = jdbc.query("SELECT \"policyAnalysis\"::text FROM optimization_run WHERE id=?",
@@ -549,8 +558,8 @@ public class OptimizationService {
         Set<String> unreachable = new HashSet<>();
         for (String from : points.keySet()) for (String to : points.keySet())
             if (!from.equals(to) && !matrix.containsKey(from + ">" + to)) unreachable.add(from + ">" + to);
-        Map<String, Double> settings = new HashMap<>();
-        jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(Required.string(rs, 1), Required.number(rs, 2)));
+        Map<String, java.math.BigDecimal> settings = new HashMap<>();
+        jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(Required.string(rs, 1), Required.decimal(rs, 2)));
         var rates = dev.waterflex.scheduler.BookingSnapshot.Rates.read(settings);
         DayPlan plan = new DayPlan(Required.value(techs.stream().<TechRoute>map((TechData tech) -> tech.route()).toList()), Required.value(visits.stream().<PlanVisit>map((VisitData visit) -> visit.visit()).toList()), matrix, unreachable,
                 rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(), rates.travelBufferMinutes());
@@ -597,7 +606,7 @@ public class OptimizationService {
                 Integer.class, Required.value(args.toArray(new @Nullable Object[0]))) > 0;
     }
     private String configurationVersion(String metroId, LocalDate day) {
-        StringBuilder raw = new StringBuilder();
+        StringBuilder raw = new StringBuilder(dev.waterflex.scheduler.Monetary.COST_MODEL).append(';');
         jdbc.query("SELECT key, value, \"updatedAt\" FROM omaha_setting ORDER BY key",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(Required.string(rs, 3)).append(';'));
         jdbc.query("SELECT t.id, t.active, t.\"homeLat\", t.\"homeLng\", t.\"shiftStartMin\", t.\"shiftEndMin\", t.\"maxDailyMinutes\", t.\"maxOvertimeMinutes\", p.\"dealershipId\", ep.departure, ep.\"returnTo\", p.id, p.lat, p.lng FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",

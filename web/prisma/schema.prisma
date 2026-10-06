@@ -358,6 +358,7 @@ model ReservationDependency {
 }
 
 model BookingOffer {
+  costModelVersion String @default("exact-fleet-half-up-v2")
   policyVersion String @default("zero-overtime-four-hour-v2")
   id String @id @default(cuid())
   jobId String
@@ -370,7 +371,7 @@ model BookingOffer {
   incrementalOvertimeMinutes Int?
   overtimeAuthorized Boolean @default(false)
   incrementalRoadMeters Int?
-  incrementalCostDollars Float?
+  incrementalCostDollars Decimal? @db.Decimal(65, 30)
   createdAt DateTime @default(now())
   offerSetId String?
   offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
@@ -380,6 +381,7 @@ model BookingOffer {
 }
 
 model BookingOfferSet {
+  costModelVersion String @default("exact-fleet-half-up-v2")
   policyVersion String @default("zero-overtime-four-hour-v2")
   id String @id @default(cuid())
   jobId String
@@ -480,10 +482,25 @@ model RoadRouteCache {
 
 model OmahaSetting {
   key String @id
-  value Float
+  value Decimal @db.Decimal(65, 30)
   updatedAt DateTime @updatedAt
 
   @@map("omaha_setting")
+}
+
+// Immutable numeric migration evidence. Original float bits and decimal rendering are retained.
+model MonetaryMigrationReceipt {
+  sourceTable String
+  sourceIdentity String
+  sourceColumn String
+  legacyRendering String
+  legacyBits String
+  decimalValue Decimal @db.Decimal(65, 30)
+  costModelVersion String
+  migratedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([sourceTable, sourceIdentity, sourceColumn])
+  @@map("monetary_migration_receipt")
 }
 
 model BookingOptimization {
@@ -524,7 +541,7 @@ model OptimizationRun {
   baselineAssignments  Json                 @default("[]")
   endpointSnapshots    Json?
   policyAnalysis       Json?
-  objectiveImprovement Int
+  objectiveImprovement BigInt
   churnCost            Int
   status               String
   reason               String?

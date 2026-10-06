@@ -104,6 +104,7 @@ public final class SolverBenchmark {
         }
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("variant", definition.variant().name()); row.put("seed", definition.seed());
+        row.put("costModelVersion", dev.waterflex.scheduler.Monetary.COST_MODEL);
         row.put("budgetMs", budgetMs);
         row.put("referencePhase", cost.statistics());
         if (fairStatistics != null) row.put("fairnessPhase", fairStatistics);

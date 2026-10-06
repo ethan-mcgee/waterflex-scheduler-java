@@ -37,7 +37,7 @@ try {
   const actual = z.array(column).parse(await prisma.$queryRaw`
     SELECT table_name, column_name, data_type, udt_name, is_nullable FROM information_schema.columns WHERE table_schema = current_schema()
   `);
-  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt"]);
+  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt"]);
   const sqlTypes: Record<string, string> = { String: "text", Int: "integer", BigInt: "bigint", Float: "double precision", Decimal: "numeric", Boolean: "boolean", DateTime: "timestamp without time zone", Json: "jsonb", Bytes: "bytea" };
   for (const model of Prisma.dmmf.datamodel.models) {
     const table = model.dbName ?? model.name;

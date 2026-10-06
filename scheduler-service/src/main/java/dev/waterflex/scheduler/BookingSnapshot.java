@@ -7,6 +7,8 @@ import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import dev.waterflex.scheduler.optimizer.TechRoute;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.math.BigDecimal;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.*;
 
 /** Immutable search facts. Creating mutable evaluator plans never mutates this snapshot. */
@@ -25,22 +27,27 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
             throw new Incomplete("Snapshot does not cover the complete booking horizon");
     }
 
-    public record Rates(double regularHourly, double overtimeHourly, double mileagePerMile,
+    public record Rates(@JsonSerialize(using = DecimalStringSerializer.class) BigDecimal regularHourly,
+                        @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal overtimeHourly,
+                        @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal mileagePerMile,
                         double travelBufferPct, long travelBufferMinutes) {
+        public Rates(double regular, double overtime, double mileage, double pct, long minutes) {
+            this(Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), pct, minutes);
+        }
         public Rates {
-            if (!Double.isFinite(regularHourly) || regularHourly < 0 || !Double.isFinite(overtimeHourly)
-                    || overtimeHourly < 0 || !Double.isFinite(mileagePerMile) || mileagePerMile < 0
-                    || !Double.isFinite(travelBufferPct) || travelBufferPct < 0 || travelBufferMinutes < 0)
+            regularHourly = Monetary.rate(regularHourly); overtimeHourly = Monetary.rate(overtimeHourly);
+            mileagePerMile = Monetary.rate(mileagePerMile);
+            if (!Double.isFinite(travelBufferPct) || travelBufferPct < 0 || travelBufferMinutes < 0 || travelBufferMinutes > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("Invalid operating cost or travel settings");
         }
-        public static Rates read(Map<String, Double> settings) {
-            double minutes = Required.value(settings.get("travel_buffer_minutes_per_leg"), "travel buffer minutes");
-            if (!Double.isFinite(minutes) || minutes < 0 || minutes != Math.rint(minutes) || minutes > Integer.MAX_VALUE)
+        public static Rates read(Map<String, BigDecimal> settings) {
+            long minutes = Required.value(settings.get("travel_buffer_minutes_per_leg"), "travel buffer minutes").longValueExact();
+            if (minutes < 0 || minutes > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("Invalid travel buffer minutes");
             return new Rates(Required.value(settings.get("regular_hourly_dollars"), "regular hourly rate"),
                     Required.value(settings.get("overtime_hourly_dollars"), "overtime hourly rate"),
                     Required.value(settings.get("mileage_dollars_per_mile"), "mileage rate"),
-                    Required.value(settings.get("travel_buffer_pct"), "travel buffer percentage"), (long) minutes);
+                    Required.value(settings.get("travel_buffer_pct"), "travel buffer percentage").doubleValue(), minutes);
         }
     }
 

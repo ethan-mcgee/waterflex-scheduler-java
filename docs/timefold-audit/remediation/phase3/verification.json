@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "step": 3,
+  "recordedAtUtc": "2026-10-06T20:03:43.564434+00:00",
+  "startingRevision": "076966698ebf8fa54127ec8d592666616969833b",
+  "costModelVersion": "exact-fleet-half-up-v2",
+  "scope": "Exact decimal monetary storage and validated input, rational fleet calculation, booking deltas, reporting and stale-proposal compatibility. No deployment or performance study.",
+  "checks": [
+    {
+      "id": "java-verify",
+      "command": ".\\mvnw.cmd verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/java-verify-final.log",
+      "tests": 210
+    },
+    {
+      "id": "java-nullability",
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/java-nullability-final.log",
+      "tests": 210
+    },
+    {
+      "id": "portal-nullability",
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-nullability.log",
+      "tests": 17
+    },
+    {
+      "id": "portal-unit",
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-unit.log",
+      "tests": 105
+    },
+    {
+      "id": "portal-lint",
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-lint-complete.log"
+    },
+    {
+      "id": "portal-typecheck",
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-typecheck-complete.log"
+    },
+    {
+      "id": "portal-build",
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/portal-build.log"
+    },
+    {
+      "id": "prisma-generate",
+      "command": "npx prisma generate (web)",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/prisma-generate-final.log"
+    },
+    {
+      "id": "experiment-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/experiment-tests.log",
+      "tests": 63,
+      "skipped": 1,
+      "skipReason": "POSIX process-group test is skipped on Windows"
+    },
+    {
+      "id": "audit-helper-regressions",
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/audit-helper-tests.log",
+      "tests": 10
+    },
+    {
+      "id": "historical-baseline",
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "exitCode": 0,
+      "log": "evidence/baseline-preservation.log",
+      "baselineFiles": 225,
+      "historicalFiles": 203,
+      "sourceTrees": 3,
+      "dependencies": 101
+    }
+  ],
+  "evidence": [
+    {
+      "path": "evidence/audit-helper-tests.log",
+      "bytes": 3808,
+      "sha256": "61b029d7eff31b31f063de6655bc93cac3e3a5036e99ade3327933e9f34ced92",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/baseline-preservation.log",
+      "bytes": 344,
+      "sha256": "bc3065dbfdd6000a8a5ef17c786049a6fb2990b69ffdb0650cf579b32f1ff497",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/experiment-tests.log",
+      "bytes": 36554,
+      "sha256": "0b3fbd224d93e7c7214d3e13bec6cfd56e3ba228b73041e13c88548750e65303",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/initial-java.log",
+      "bytes": 7736,
+      "sha256": "9a5bc40a5878ad128d92749e06ba845a5285170af0ce2813c9b8271749f54a9e",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/java-nullability-final.log",
+      "bytes": 238412,
+      "sha256": "2f3cb37ff47e17626e74e9d16ef073de311cc961d4452bcf94827282539dc34a",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/java-verify-final.log",
+      "bytes": 203540,
+      "sha256": "2cf6dc7a0b6026c6acbb62f95a1a88d3fffe8f7b22f44729abef622a04ab4237",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/local-docker-precheck.log",
+      "bytes": 1140,
+      "sha256": "c056ec5e83e57f197f1e838e3fea6b24dc48a52800cfaa61c9bc10b84fb81533",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/nullability-iteration-1.log",
+      "bytes": 41892,
+      "sha256": "b7855f5ac02607fdcc2fbe5c9e2a54d940120aa8dff9c5303895b550beb4249a",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-build.log",
+      "bytes": 8018,
+      "sha256": "a725a830b090e7bdceef584c1636a7381873bf41af9f9b27beb39b4fc6bd540e",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-lint-complete.log",
+      "bytes": 250,
+      "sha256": "eda915d8da378f98daa58c7dc74ad00c0bdacc595c0488f4dd9dde471819d65c",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-lint-final.log",
+      "bytes": 2974,
+      "sha256": "da41cb4f94e40843e315fd6c5faed3b065afa74ad55aaae593c3a5e79d85c504",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-nullability.log",
+      "bytes": 8360,
+      "sha256": "fc659b303b65779664c1dcbb8153511d1d3d3fde167b1304419047af1ad7c67d",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-typecheck-complete.log",
+      "bytes": 108,
+      "sha256": "06590b6d79f253b2b81b09e2578e8d6ab7221a047d6fbe6d61c65288551af5ad",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-typecheck-final.log",
+      "bytes": 546,
+      "sha256": "18b9fb9d80c71b7fba24eb646535201b58e0f04db70c287297d6bd6ed1d1476d",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/portal-unit.log",
+      "bytes": 19040,
+      "sha256": "876d8ed5bffea231377b3ee3445459da6bb4d7db281bc31555eb5f27189f22f3",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    },
+    {
+      "path": "evidence/prisma-generate-final.log",
+      "bytes": 2580,
+      "sha256": "261c95a292c50af5cf58f186804a0ca08d531475168ce534fdb376fb9fd1dae8",
+      "format": "raw PowerShell command capture (UTF-16LE)"
+    }
+  ],
+  "retainedFailures": [
+    {
+      "log": "evidence/initial-java.log",
+      "reason": "A broad edit affected a generic fingerprint rendering; restored generic toString and retained decimal normalization only for settings."
+    },
+    {
+      "log": "evidence/nullability-iteration-1.log",
+      "reason": "Two new oracle-test null boundaries required explicit Required checks; fixed without suppressions."
+    },
+    {
+      "log": "evidence/portal-lint-final.log",
+      "additionalLog": "evidence/portal-typecheck-final.log",
+      "reason": "New integration fixture omitted the zod import; added it and a JSON-valued provenance decoder; final lint/typecheck passed."
+    }
+  ],
+  "localDatabase": {
+    "status": "unavailable",
+    "reason": "Docker Desktop Linux engine is stopped",
+    "log": "evidence/local-docker-precheck.log"
+  },
+  "requiredCi": {
+    "status": "pending-at-recording",
+    "gates": [
+      "Build and unit (workflow/Compose, Java/nullability and portal)",
+      "Booking and optimizer integration (schema, actual MonetaryMigrationDatabaseIT, booking versions, daily apply, time-off repair, reservations and cancellation)",
+      "Browser regressions"
+    ],
+    "completionEvidence": "Implementation PR records the final exact-head CI result. This local receipt is immutable and does not certify CI."
+  },
+  "implementationFiles": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256CanonicalLf": "b04eaeceed00d34d4f3f0ab78a1fa7e410f3debe63e42e2796db2d1efaaf49a7"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingCoordinator.java",
+      "sha256CanonicalLf": "3718729839d34ced9a5c771cf9c636db3cc5569b1739d25edbb5f199cd004bc1"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingEvaluation.java",
+      "sha256CanonicalLf": "7630838af0451f95c076d7b00d0e28c383d28f3eedfb6f3b74f48a348c0ac6a6"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java",
+      "sha256CanonicalLf": "2702c7a809dcf77a2e30938523f6cd67428c63f3d69ad9417dcf0ada2454c494"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java",
+      "sha256CanonicalLf": "fcb8854bc570f4c12121b776b570265310d0261e0699eb4263932dcc044019ed"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java",
+      "sha256CanonicalLf": "330c0af785afb671e6b17ad1a70d02ac64045d42f33c7e237302d2f27ad4baef"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java",
+      "sha256CanonicalLf": "c5a329bf5d1e06dd711e487d57302f8590d7fbe52e119e0c5105175f9c9f14db"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DecimalStringSerializer.java",
+      "sha256CanonicalLf": "4e89b74efc73fd6717d8e6d5c011803404a6064bbb1e87fa6bb57b8ed7227c4e"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/Monetary.java",
+      "sha256CanonicalLf": "dc538153becdf0dd02112cfccfee7eadd3f34ce16816936c1c317ab54a0ce00f"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/Required.java",
+      "sha256CanonicalLf": "5491322ae1ccbb41c2c7500643ed2e95211f345861c26b33513ad47f295555f1"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationLifecycleService.java",
+      "sha256CanonicalLf": "5a480ef9276bf324dd668f6cfa98aff50dec4ee626b216d7af6555e8b15ca913"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SavedJson.java",
+      "sha256CanonicalLf": "b3ebf87e6ac397955f38140a68084fa51c335a58837050188fae7523d6791c63"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java",
+      "sha256CanonicalLf": "0c19f3944c7814362bd4ad9adc37dccd8c506751653d7e47e7aff4ab24ed9784"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/TimeOffService.java",
+      "sha256CanonicalLf": "da6c822f893ee3f4acca779b189be3f077a5acb7e3f26e83c7759f5ff97ca0fe"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyDataset.java",
+      "sha256CanonicalLf": "2a31b2334af19af266de7a00f45a5fd856f024c3cff256304329022ef6a56b53"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayPlan.java",
+      "sha256CanonicalLf": "2f4244c5c02777eb8f496fe7a300bd8f51eaa29927e3172aa077a4c68dcde12b"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayScoreCalculator.java",
+      "sha256CanonicalLf": "a44664172dc7855e04f54a1925e3d76a3b53d93cbfd8479d829cfefe5c6cbd06"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "sha256CanonicalLf": "b12d9e489906e4fe14f76a151d6a27607be431312f5f34f9ae2825e4d6e7f847"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanFacts.java",
+      "sha256CanonicalLf": "d0c7d14d1ef29ef20b4f446b81d49944ee927c6d2c4a957aff31dead48e50d2e"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PolicySettings.java",
+      "sha256CanonicalLf": "ec52901f08de4855e0d86f986611d4f700150114d751cd7ae1515f86d8566ffb"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteEvaluator.java",
+      "sha256CanonicalLf": "04e009636a7070bcbfdbc183cd829989f6434eba7ee1866a1faa87ee289df366"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteScoringFacts.java",
+      "sha256CanonicalLf": "c9c099a342bdbe0b3270ed4226cb4fa6cc6893c01f5f76aa414a0923348245c4"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimeline.java",
+      "sha256CanonicalLf": "a009698ad3630583fbeff888e057a278614939c34e39ee1ec656209dc5fed0e8"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimingSearch.java",
+      "sha256CanonicalLf": "07efc28d5532a9ad86db349a841bc862eb04acd6d05f80353805b3e1056c19a2"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SchedulingPolicy.java",
+      "sha256CanonicalLf": "0c4614ed6bf307a056eada6b708caf7b3382b7c5e2b2f0626bb53e6effb558ac"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingMoneyTest.java",
+      "sha256CanonicalLf": "1ea7529e23c67bb85919ec1e226254f681b199c0b50258c851697ad7cb74c41d"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/MonetaryMigrationDatabaseIT.java",
+      "sha256CanonicalLf": "6f5272e0f6069be3039f30416043bea0aeb122890eaddb0eb6d73ea771e4e698"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/MonetaryTest.java",
+      "sha256CanonicalLf": "900ea4e788d21f687f6ceb5911661e1b9a5b19005d6477f3d59f9d7e8a914739"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/SmallCaseOracle.java",
+      "sha256CanonicalLf": "0709d7525fb072aa5278771fea41551c128c3858137161f92ad1e5f471206b94"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/TimeOffTravelTest.java",
+      "sha256CanonicalLf": "8da3bf7ed11e7d27ab7af2c905429252f652e47ae2f35cf9f518bc03f4c87c66"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyDatasetTest.java",
+      "sha256CanonicalLf": "a999e7341a2a3a01bfbad0d9d08e2d0a34b78b5b2cbe2a2e54d985930e10246f"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/RouteTimingOracleTest.java",
+      "sha256CanonicalLf": "76c2d9ad3ad01c8014889bda05c48043f38955b85ad763e1fe5dda3ef9b3c952"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SchedulingPolicyTest.java",
+      "sha256CanonicalLf": "396670003123c62fb19ae75df45b99652304d9500a62bfb7a87e988d021c2ac1"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/SolverBenchmark.java",
+      "sha256CanonicalLf": "19f895aa44c23eda44093049210d12050f627dbd5e7d28a0ee113b7509b584d4"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java",
+      "sha256CanonicalLf": "7003781ad20c03c105e0e8b1a0972cc4a5392a0579dbdedad12becfb7f5aec88"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TravelBreakdownTest.java",
+      "sha256CanonicalLf": "01808bcd879f8612fde463d53bf37752b6c20f4dd796cbb32b9f2b5125c45f3e"
+    },
+    {
+      "path": "scheduler-service/src/test/resources/daily-dataset-v1.json",
+      "sha256CanonicalLf": "c6479332280643092043e650aa9d9d7aef4f7d7d841ac20a493d43331416000a"
+    },
+    {
+      "path": "web/app/dispatch/OptimizationReview.tsx",
+      "sha256CanonicalLf": "dc565d25d74b4569de29720e6c55d35a51444f27cf8bc7962ded3a53ed17925c"
+    },
+    {
+      "path": "web/lib/contracts.ts",
+      "sha256CanonicalLf": "8b4230f1ed23c5284974438e8fade4ccd05d1b1ed65b09c32df6da6eb8fd2700"
+    },
+    {
+      "path": "web/lib/engineClient.ts",
+      "sha256CanonicalLf": "84993c4043f5b447cabb39a333341964bb430c87a612c3c67e7738ef13b549a2"
+    },
+    {
+      "path": "web/lib/monetaryContract.test.ts",
+      "sha256CanonicalLf": "014f5c4f5910e42508feb306076afc4497ce3930eda03bded849ab721ae2496e"
+    },
+    {
+      "path": "web/lib/money.ts",
+      "sha256CanonicalLf": "ee6743efe675260e1183124fcc3781142c6a94e0a1fd30cce11246206bb72393"
+    },
+    {
+      "path": "web/prisma/migrations/20261006194000_exact_monetary_contract/migration.sql",
+      "sha256CanonicalLf": "5591314e62731086ef9139728197a7886c3bee78b3c84e55bac20a00afe915b0"
+    },
+    {
+      "path": "web/prisma/schema.prisma",
+      "sha256CanonicalLf": "fde678b55f10c2cf193ec75363c87e5a158a421d54fdc44cec39f107d2bc129d"
+    },
+    {
+      "path": "web/scripts/benchmark-scheduling.ts",
+      "sha256CanonicalLf": "767489e5cd5a17d784cd681326fb2546184050acdd26861b4d01abb71b0c33cc"
+    },
+    {
+      "path": "web/scripts/check-java-schema-contract.ts",
+      "sha256CanonicalLf": "40ed8aa91e46028f5a9046fc93b8ffdb386edfd60b17817f7d07eb85fa813135"
+    },
+    {
+      "path": "web/scripts/smoke-java-booking.ts",
+      "sha256CanonicalLf": "5bfddb378a6691b3c799d2851b13d23ffc4ba7a198cfe7e48caf4a1b33c6ff8b"
+    },
+    {
+      "path": "web/scripts/smoke-optimizer.ts",
+      "sha256CanonicalLf": "fcea19f69387f788e051a0ad5dac6a27806d720b43b869cb7700d28c0d207040"
+    }
+  ]
+}
