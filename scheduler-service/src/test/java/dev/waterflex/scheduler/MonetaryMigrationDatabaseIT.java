@@ -40,6 +40,13 @@ class MonetaryMigrationDatabaseIT {
                     assertTrue(rows.next()); assertEquals("confirmed", rows.getString(1)); assertTrue(rows.getBoolean(2));
                     assertTrue(rows.next()); assertEquals("pending", rows.getString(1)); assertFalse(rows.getBoolean(2));
                 }
+                try (ResultSet rows = sql.executeQuery("SELECT id,\"releasedAt\" IS NULL FROM reservation_obligation ORDER BY id,\"technicianId\"")) {
+                    for (String id : new String[]{"confirmed", "confirmed", "pending", "pending"}) {
+                        assertTrue(rows.next()); assertEquals(id, rows.getString(1));
+                        assertEquals(id.equals("confirmed"), rows.getBoolean(2));
+                    }
+                    assertFalse(rows.next());
+                }
                 try (ResultSet rows = sql.executeQuery("SELECT state,\"stopReason\",\"bestCostDeltaCents\" FROM booking_search_request")) {
                     assertTrue(rows.next()); assertEquals("FAILED", rows.getString(1)); assertEquals("COST_MODEL_CHANGED", rows.getString(2)); assertNull(rows.getObject(3));
                 }
@@ -71,10 +78,13 @@ class MonetaryMigrationDatabaseIT {
         }
     }
     private static void migration(Connection connection) throws Exception {
+        try (Statement sql = connection.createStatement()) { sql.execute(migrationSql("20261006194000_exact_monetary_contract")); }
+    }
+    private static String migrationSql(String name) throws Exception {
         Path root = Path.of(Required.value(System.getProperty("user.dir")));
-        Path migration = root.resolve("web/prisma/migrations/20261006194000_exact_monetary_contract/migration.sql");
-        if (!Files.exists(migration)) migration = Required.value(root.getParent(), "repository parent").resolve("web/prisma/migrations/20261006194000_exact_monetary_contract/migration.sql");
-        try (Statement sql = connection.createStatement()) { sql.execute(Files.readString(migration)); }
+        Path migration = root.resolve("web/prisma/migrations/" + name + "/migration.sql");
+        if (!Files.exists(migration)) migration = Required.value(root.getParent(), "repository parent").resolve("web/prisma/migrations/" + name + "/migration.sql");
+        return Required.value(Files.readString(migration), "migration SQL");
     }
     private interface Check { void run(Connection connection) throws Exception; }
     private static void fixture(double value, Check check) throws Exception {
@@ -88,10 +98,12 @@ class MonetaryMigrationDatabaseIT {
                 sql.execute("CREATE TABLE omaha_setting (key text primary key,value double precision NOT NULL)");
                 sql.execute("INSERT INTO omaha_setting VALUES ('overtime_hourly_dollars',30.03),('mileage_dollars_per_mile',0.67),('adjacent',0.10000000000000002)");
                 try (PreparedStatement insert = connection.prepareStatement("INSERT INTO omaha_setting VALUES ('regular_hourly_dollars',?)")) { insert.setDouble(1, value); insert.executeUpdate(); }
-                sql.execute("CREATE TABLE job (id text primary key,status text); INSERT INTO job VALUES ('pending','PENDING'),('confirmed','SCHEDULED')");
+                sql.execute("CREATE TABLE job (id text primary key,status text,\"serviceId\" text); INSERT INTO job VALUES ('pending','PENDING','requested'),('confirmed','SCHEDULED','requested')");
                 sql.execute("CREATE TABLE booking_offer (id text primary key,\"jobId\" text,\"incrementalCostDollars\" double precision,\"expiresAt\" timestamp); INSERT INTO booking_offer VALUES ('pending','pending',85.08,CURRENT_TIMESTAMP+interval '1 day'),('confirmed','confirmed',12.34,CURRENT_TIMESTAMP+interval '1 day')");
                 sql.execute("CREATE TABLE booking_offer_set (id text,\"jobId\" text,\"supersededAt\" timestamp); INSERT INTO booking_offer_set VALUES ('pending','pending',NULL),('confirmed','confirmed',NULL)");
-                for (String table : new String[]{"slot_hold","reservation_obligation"}) sql.execute("CREATE TABLE " + table + " (id text,\"jobId\" text,\"releasedAt\" timestamp); INSERT INTO " + table + " VALUES ('pending','pending',NULL),('confirmed','confirmed',NULL)");
+                sql.execute("CREATE TABLE slot_hold (id text,\"jobId\" text,\"releasedAt\" timestamp,\"technicianId\" text,\"serviceDate\" date,\"expiresAt\" timestamp); INSERT INTO slot_hold VALUES ('pending','pending',NULL,'direct','2030-01-01',CURRENT_TIMESTAMP+interval '1 day'),('confirmed','confirmed',NULL,'direct','2030-01-01',CURRENT_TIMESTAMP+interval '1 day')");
+                sql.execute("CREATE TABLE reservation_dependency (\"holdId\" text,\"technicianId\" text,\"serviceId\" text); INSERT INTO reservation_dependency VALUES ('pending','dependent','dependent-service'),('confirmed','dependent','dependent-service')");
+                sql.execute(migrationSql("20260924050000_reservation_obligations"));
                 sql.execute("CREATE TABLE optimization_run (id text,status text,reason text,\"objectiveImprovement\" integer DEFAULT 0); INSERT INTO optimization_run (id,status,reason) VALUES ('preview','PREVIEW',NULL),('repair','REPAIR_PREVIEW',NULL),('applied','APPLIED',NULL)");
                 sql.execute("CREATE TABLE booking_search_request (state text,phase text,\"stopReason\" text,\"finishedAt\" timestamp,\"cancelledAt\" timestamp,\"bestCostDeltaCents\" bigint); INSERT INTO booking_search_request (state,phase,\"bestCostDeltaCents\") VALUES ('RUNNING','SEARCH',1)");
                 sql.execute("CREATE TABLE appointment (\"windowStart\" timestamp,\"windowEnd\" timestamp); INSERT INTO appointment VALUES ('2030-01-01 08:00:00','2030-01-01 12:00:00')");

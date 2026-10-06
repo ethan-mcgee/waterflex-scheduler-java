@@ -49,8 +49,8 @@ UPDATE booking_offer o SET "expiresAt"=LEAST(o."expiresAt",CURRENT_TIMESTAMP)
   FROM job j WHERE j.id=o."jobId" AND j.status='PENDING';
 UPDATE slot_hold h SET "releasedAt"=COALESCE(h."releasedAt",CURRENT_TIMESTAMP)
   FROM job j WHERE j.id=h."jobId" AND j.status='PENDING';
-UPDATE reservation_obligation r SET "releasedAt"=COALESCE(r."releasedAt",CURRENT_TIMESTAMP)
-  FROM job j WHERE j.id=r."jobId" AND j.status='PENDING';
+-- reservation_obligation is a read-only UNION view. Both direct and dependent
+-- obligations inherit releasedAt from the slot_hold rows updated above.
 UPDATE booking_search_request SET state='FAILED', phase='FAILED', "stopReason"='COST_MODEL_CHANGED',
   "finishedAt"=CURRENT_TIMESTAMP, "cancelledAt"=COALESCE("cancelledAt",CURRENT_TIMESTAMP), "bestCostDeltaCents"=NULL
   WHERE state IN ('QUEUED','RUNNING');
