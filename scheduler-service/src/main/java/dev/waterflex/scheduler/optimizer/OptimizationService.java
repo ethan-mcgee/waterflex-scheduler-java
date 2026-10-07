@@ -15,7 +15,6 @@ import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.SearchDeadline;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -642,15 +641,6 @@ public class OptimizationService {
         List<Map<String, Object>> runs = jdbc.query("SELECT id FROM optimization_run WHERE \"metroId\"=? AND \"serviceDate\"=? ORDER BY \"createdAt\" DESC LIMIT 20",
                 (rs, _) -> response(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)), metroId, dayStamp(day));
         return Required.value(Map.of("runs", runs));
-    }
-
-    @Scheduled(cron = "${scheduler.optimizer.cron:0 0 2 * * *}", zone = "America/Chicago")
-    public void overnight() {
-        var metros = jdbc.query("SELECT id FROM metro", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1));
-        for (String metro : metros) for (LocalDate day : overnightDates(Required.value(clock.instant()))) {
-            try { preview(new Request(Required.value(metro), Required.value(day.toString()))); }
-            catch (Exception ignored) { /* A failed day remains unchanged and can be retried by dispatch. */ }
-        }
     }
 
     static List<LocalDate> overnightDates(Instant now) {

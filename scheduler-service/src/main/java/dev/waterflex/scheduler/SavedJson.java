@@ -9,6 +9,20 @@ import java.util.HashSet;
 /** Validate persisted proposals before they can influence scheduling mutations. */
 public final class SavedJson {
     private SavedJson() { }
+    public static JsonNode policyDiagnostics(JsonNode node) {
+        object(node);
+        if (integer(node,"schemaVersion") != 1) throw invalid();
+        try {
+            var fairness = dev.waterflex.scheduler.optimizer.DailyPolicyDiagnostics.Fairness.valueOf(text(node,"fairness"));
+            dev.waterflex.scheduler.optimizer.DailyPolicyDiagnostics.Decision.valueOf(text(node,"decision"));
+            for (String key : new String[]{"referenceOvertimeMinutes","candidateOvertimeMinutes"})
+                if (!node.has(key) || node.hasNonNull(key) && integer(node,Required.value(key)) < 0) throw invalid();
+            dailyOutcome(Required.value(node.path("candidate")));
+            if (fairness == dev.waterflex.scheduler.optimizer.DailyPolicyDiagnostics.Fairness.SKIPPED_REFERENCE_OVERTIME
+                    && (!node.hasNonNull("referenceOvertimeMinutes") || integer(node,"referenceOvertimeMinutes") == 0)) throw invalid();
+        } catch (RuntimeException failure) { throw invalid(); }
+        return node;
+    }
     public static JsonNode object(JsonNode node) { if (!node.isObject()) throw invalid(); return node; }
     public static JsonNode array(JsonNode node) { if (!node.isArray()) throw invalid(); return node; }
     public static String text(JsonNode node, String key) {
@@ -61,6 +75,7 @@ public final class SavedJson {
     }
     public static JsonNode solverAnalysis(JsonNode node) {
         object(node); text(node, "engine"); text(node, "configurationXml");
+        if (node.hasNonNull("policy")) policyDiagnostics(Required.value(node.path("policy")));
         if (node.hasNonNull("constructionConfigurationXml")) text(node, "constructionConfigurationXml");
         JsonNode phases = array(Required.value(node.path("phases"))); if (phases.isEmpty()) throw invalid();
         for (JsonNode phase : phases) {

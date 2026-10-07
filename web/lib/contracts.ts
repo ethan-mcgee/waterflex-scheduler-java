@@ -97,7 +97,7 @@ const solverStatisticsV2 = legacySolverStatistics.extend({ format: z.literal(2),
   .refine(v => (v.timeToBestMs == null) === (v.timeToBestUnavailableReason != null), "Unavailable time to best needs a reason")
   .refine(v => (["SOLVE_RETURNED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
     : v.terminationBasis === "INFERRED" && v.diagnosticsUnavailableReason == null), "Stopping cause must distinguish inference from observation");
-export const solverAnalysis = z.object({ engine: text, configurationXml: text, constructionConfigurationXml: text.nullish(), phases: z.array(z.object({
+export const solverAnalysis = z.object({ engine: text, configurationXml: text, constructionConfigurationXml: text.nullish(), policy: z.lazy(() => dailyPolicyDiagnostics).nullish(), phases: z.array(z.object({
   name: text, statistics: z.union([solverStatisticsV2, legacySolverStatistics]),
 })).min(1) });
 export const dailyOutcome = z.object({
@@ -109,6 +109,14 @@ export const dailyOutcome = z.object({
   .refine(value => value.complete === (value.unassignedVisitIds.length === 0), "Completeness requires coverage")
   .refine(value => !value.scoringMatchesValidation || value.assignedWorkFeasible, "Validated scoring requires feasible served work")
   .refine(value => !value.policyEligible || (value.complete && value.scoringMatchesValidation), "Partial or invalid work is ineligible");
+export const dailyPolicyDiagnostics = z.object({ schemaVersion: z.literal(1),
+  fairness: z.enum(["SEARCHED", "SKIPPED_REFERENCE_OVERTIME", "SKIPPED_INVALID_REFERENCE", "SKIPPED_NO_SEARCH_ALLOWANCE", "NOT_APPLICABLE_REPAIR"]),
+  decision: z.enum(["ACCEPTED", "REJECTED_OVERTIME", "REJECTED_UNRESOLVED_DEMAND", "REJECTED_INFEASIBLE_DEMAND", "REJECTED_POLICY"]),
+  referenceOvertimeMinutes: z.int().nonnegative().nullable(), candidate: dailyOutcome, candidateOvertimeMinutes: z.int().nonnegative().nullable(),
+}).refine(value => value.fairness !== "SKIPPED_REFERENCE_OVERTIME" || (value.referenceOvertimeMinutes != null && value.referenceOvertimeMinutes > 0), "Overtime skip requires a nonzero reference")
+  .refine(value => value.decision !== "ACCEPTED" || (value.candidate.policyEligible && value.candidateOvertimeMinutes === 0), "Accepted diagnostic requires an eligible candidate")
+  .refine(value => value.decision !== "REJECTED_OVERTIME" || (value.candidateOvertimeMinutes != null && value.candidateOvertimeMinutes > 0), "Overtime rejection needs measured overtime")
+  .refine(value => value.decision !== "REJECTED_UNRESOLVED_DEMAND" || !value.candidate.complete, "Unresolved rejection needs uncovered demand");
 export const optimization = z.object({
   run_id: text, metro_id: text, service_date: date, status: text, reason: z.string().nullable(),
   solver_status: text, solve_ms: finite.nonnegative(), routing_identity: text, configuration_version: text,

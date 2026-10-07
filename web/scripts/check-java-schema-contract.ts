@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 const expected: Record<string, string[]> = {
+  overnight_optimization_attempt: ["id", "metroId", "serviceDate", "state", "previewKey", "resultRunId", "resultReason", "failureContext", "startedAt", "finishedAt"],
   daily_calculation_attempt: ["id", "requestKey", "requestFingerprint", "ownerToken", "state", "expiresAt", "snapshotRevision", "routingIdentity", "resultRunId", "resultJson", "failureReason"],
   booking_search_request: ["id", "jobId", "deadlineAt", "cancelledAt", "acknowledgedAt", "offerSetId", "cleanedAt"],
   appointment: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "plannedStart", "plannedEnd", "sequence"],
@@ -38,7 +39,8 @@ try {
   const actual = z.array(column).parse(await prisma.$queryRaw`
     SELECT table_name, column_name, data_type, udt_name, is_nullable FROM information_schema.columns WHERE table_schema = current_schema()
   `);
-  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt", "daily_calculation_attempt.expiresAt", "daily_calculation_attempt.createdAt", "daily_calculation_attempt.updatedAt"]);
+  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt", "daily_calculation_attempt.expiresAt", "daily_calculation_attempt.createdAt", "daily_calculation_attempt.updatedAt", "overnight_optimization_attempt.startedAt", "overnight_optimization_attempt.finishedAt"]);
+  const dateColumns = new Set(["overnight_optimization_attempt.serviceDate"]);
   const sqlTypes: Record<string, string> = { String: "text", Int: "integer", BigInt: "bigint", Float: "double precision", Decimal: "numeric", Boolean: "boolean", DateTime: "timestamp without time zone", Json: "jsonb", Bytes: "bytea" };
   for (const model of Prisma.dmmf.datamodel.models) {
     const table = model.dbName ?? model.name;
@@ -46,7 +48,7 @@ try {
       const name = field.dbName ?? field.name;
       const found = required(actual.find(row => row.table_name === table && row.column_name === name), `${table}.${name}`);
       assert.equal(found.is_nullable, field.isRequired ? "NO" : "YES", `${table}.${name} nullability differs from Prisma`);
-      assert.equal(found.data_type, field.kind === "enum" ? "USER-DEFINED" : timestampWithZone.has(`${table}.${name}`) ? "timestamp with time zone" : required(sqlTypes[field.type], `SQL type for ${field.type}`), `${table}.${name} column type`);
+      assert.equal(found.data_type, field.kind === "enum" ? "USER-DEFINED" : timestampWithZone.has(`${table}.${name}`) ? "timestamp with time zone" : dateColumns.has(`${table}.${name}`) ? "date" : required(sqlTypes[field.type], `SQL type for ${field.type}`), `${table}.${name} column type`);
       if (field.kind === "enum") assert.equal(found.udt_name, field.type, `${table}.${name} enum type`);
     }
   }

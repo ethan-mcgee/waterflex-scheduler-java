@@ -59,6 +59,16 @@ export default function OptimizationReview({ run, technicianName, disabled = fal
       </p>)}
     </div> : <p>Policy metrics unavailable for this historical run. Generate a fresh preview before applying.</p>}
     {run.solver_analysis ? <details><summary>Search diagnostics</summary>
+      {run.solver_analysis.policy && <div>
+        <p>Fairness search: {run.solver_analysis.policy.fairness.replaceAll("_", " ").toLowerCase()}.
+          {" "}Candidate decision: {run.solver_analysis.policy.decision.replaceAll("_", " ").toLowerCase()}.</p>
+        {run.solver_analysis.policy.fairness === "SKIPPED_REFERENCE_OVERTIME" && <p>The reference retains {run.solver_analysis.policy.referenceOvertimeMinutes} overtime minutes.
+          {" "}Fairness preserves that target, so it cannot produce an acceptable zero-overtime schedule.</p>}
+        <p>Searched candidate: {run.solver_analysis.policy.candidate.assignedVisitIds.length} assigned,
+          {" "}{run.solver_analysis.policy.candidate.unassignedVisitIds.length} unresolved;
+          {" "}overtime: {run.solver_analysis.policy.candidateOvertimeMinutes ?? "unavailable"} minutes.</p>
+        {run.solver_analysis.policy.candidate.unassignedVisitIds.length > 0 && <p>Unresolved demand: {run.solver_analysis.policy.candidate.unassignedVisitIds.join(", ")}.</p>}
+      </div>}
       {run.solver_analysis.phases.map((phase, index) => <p key={index}>{phase.name.toLowerCase()}: {phase.statistics.variant},
         {" "}{phase.statistics.solveMs} ms, {phase.statistics.moveEvaluations ?? "unavailable"} moves evaluated,
         {" "}{phase.statistics.format === 2 ? phase.statistics.terminationBasis.toLowerCase() : "legacy inferred"} termination: {phase.statistics.termination.replaceAll("_", " ").toLowerCase()}.
