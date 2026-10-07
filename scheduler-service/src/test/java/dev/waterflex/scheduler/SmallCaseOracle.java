@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler;
 
 import dev.waterflex.scheduler.BookingSnapshot.*;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 import org.jspecify.annotations.Nullable;
@@ -75,7 +76,7 @@ final class SmallCaseOracle {
                     String id = Objects.requireNonNull(order.get(stop)); Visit visit = Objects.requireNonNull(visits.get(id));
                     var leg = day.roads().legs().get(from + ">" + id);
                     if (leg == null) { feasible = false; break; }
-                    long travel = (long) Math.ceil((leg.seconds() * (1 + rates.travelBufferPct()) + rates.travelBufferMinutes() * 60) / 60.0);
+                    long travel = buffered(leg.seconds(), rates.travelBufferPct(), rates.travelBufferMinutes());
                     drive += travel; meters += leg.meters(); now = Required.value(now.plusSeconds(travel * 60));
                     if (now.isBefore(visit.windowStart())) { wait += java.time.Duration.between(now, visit.windowStart()).toMinutes(); now = visit.windowStart(); }
                     if (!now.isBefore(visit.windowEnd())) { feasible = false; break; }
@@ -84,7 +85,7 @@ final class SmallCaseOracle {
                 if (!feasible) continue;
                 var back = day.roads().legs().get(from + ">" + tech.id() + ":return");
                 if (back == null) continue;
-                long travel = (long) Math.ceil((back.seconds() * (1 + rates.travelBufferPct()) + rates.travelBufferMinutes() * 60) / 60.0);
+                long travel = buffered(back.seconds(), rates.travelBufferPct(), rates.travelBufferMinutes());
                 drive += travel; meters += back.meters(); now = Required.value(now.plusSeconds(travel * 60));
                 if (now.isAfter(hours.end())) continue;
                 long paid = java.time.Duration.between(departure, now).toMinutes() + rest.paid();
@@ -97,4 +98,10 @@ final class SmallCaseOracle {
         return best;
     }
     private static java.math.BigDecimal cost(Timing value, Rates rates) { return Required.value(rates.regularHourly().multiply(java.math.BigDecimal.valueOf(value.paid())).divide(new java.math.BigDecimal("60"), 80, java.math.RoundingMode.HALF_UP).add(rates.mileagePerMile().multiply(java.math.BigDecimal.valueOf(value.meters())).divide(new java.math.BigDecimal("1609.344"), 80, java.math.RoundingMode.HALF_UP))); }
+    /** Independent exact ceiling: whole minutes plus one when any second fraction remains. */
+    private static long buffered(long seconds, BigDecimal pct, long extraMinutes) {
+        BigDecimal total = BigDecimal.valueOf(seconds).add(BigDecimal.valueOf(seconds).multiply(pct)).add(BigDecimal.valueOf(extraMinutes * 60));
+        BigDecimal[] parts = total.divideAndRemainder(BigDecimal.valueOf(60));
+        return parts[0].longValueExact() + (parts[1].signum() > 0 ? 1 : 0);
+    }
 }
