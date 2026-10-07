@@ -5,7 +5,7 @@ import java.math.RoundingMode;
 
 /** Versioned monetary contract. Decimal rates never pass through binary arithmetic. */
 public final class Monetary {
-    public static final String COST_MODEL = "exact-fleet-half-up-v2";
+    public static final String COST_MODEL = "exact-fleet-half-up-v3";
     public static final long MAX_CENTS = 9_007_199_254_740_991L;
     private static final BigDecimal METERS_PER_MILE = new BigDecimal("1609.344");
     private static final BigDecimal SIXTY = new BigDecimal("60");
@@ -46,6 +46,13 @@ public final class Monetary {
                 .divide(DENOMINATOR, 0, RoundingMode.HALF_UP).longValueExact();
         if (cents < 0 || cents > MAX_CENTS) throw new ArithmeticException("Fleet cents exceed exact JSON integer range");
         return cents;
+    }
+    /** Buffered leg minutes: exact ceiling of seconds * (1 + pct) / 60, then the per-leg allowance. */
+    public static long bufferedMinutes(long seconds, BigDecimal pct, long extraMinutes) {
+        if (seconds < 0 || extraMinutes < 0 || pct.signum() < 0) throw new IllegalArgumentException("Invalid travel buffer inputs");
+        long minutes = BigDecimal.valueOf(seconds).multiply(BigDecimal.ONE.add(pct))
+                .divide(SIXTY, 0, RoundingMode.CEILING).longValueExact();
+        return Math.addExact(minutes, extraMinutes);
     }
     public static BigDecimal dollars(long cents) {
         if (cents < -MAX_CENTS || cents > MAX_CENTS) throw new ArithmeticException("Cents out of range");
