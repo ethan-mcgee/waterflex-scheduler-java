@@ -141,6 +141,7 @@ public final class CampaignMain {
                 result=new TreeMap<>(Map.of("layer","solver","wallMs",(System.nanoTime()-started)/1_000_000,"configurationHash",definition.fingerprint(),
                         "seed",seed,"phaseCount",definition.construction() ? 2 : 1,"outcome",DailyOutcome.assess(solved),
                         "metrics",DayScoreCalculator.evaluate(solved),"proposal",proposal,"nativeReport",Required.value(directory.relativize(report).toString()),"nativeMeasurement",measured));
+                if(DailyOutcome.assess(solved).complete() && DailyOutcome.assess(solved).assignedWorkFeasible()) result.put("policyMetrics",SchedulingPolicy.measure(solved));
                 if(dataset.toDayPlan().getMode()==DayPlan.Mode.REPAIR) result.put("repair",RepairEvidence.assess(DailyOutcome.assess(solved),DailyOutcome.assess(solved)));
             } else {
                 var measured=PolicyBenchmark.run(dataset,settings,seed,budget,policy);
@@ -149,6 +150,8 @@ public final class CampaignMain {
                         "reference",measured.reference(),"candidate",measured.candidate(),"accepted",calculation.accepted(),
                         "retained",measured.retained(),"retainedMetrics",DayScoreCalculator.evaluate(SnapshotFileIO.importProposal(dataset.toDayPlan(),measured.retained())),
                         "diagnostics",calculation.diagnostics()));
+                DayPlan retainedPlan=SnapshotFileIO.importProposal(dataset.toDayPlan(),measured.retained());
+                if(DailyOutcome.assess(retainedPlan).complete() && DailyOutcome.assess(retainedPlan).assignedWorkFeasible()) result.put("policyMetrics",SchedulingPolicy.measure(retainedPlan));
                 if(dataset.toDayPlan().getMode()==DayPlan.Mode.REPAIR) result.put("repair",RepairEvidence.assess(measured.candidate(),DailyOutcome.assess(SnapshotFileIO.importProposal(dataset.toDayPlan(),measured.retained()))));
             }
             receipt.put("result",result);receipt.put("state","SUCCEEDED");

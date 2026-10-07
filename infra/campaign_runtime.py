@@ -22,7 +22,7 @@ import campaign_config as cc
 from experiment_config import digest, fields, read_json, unique_object
 from experiment_runtime import command, sha, stamp, topology, tree_hashes, verify_files, write_new, StopRequested
 
-TOOLKIT = ['campaign_config.py', 'campaign_runtime.py', 'experiments.py', 'experiment_config.py', 'experiment_runtime.py']
+TOOLKIT = ['campaign_config.py', 'campaign_runtime.py', 'campaign_analysis.py', 'campaign_study.py', 'campaign_profile.py', 'experiments.py', 'experiment_config.py', 'experiment_runtime.py']
 
 
 def toolkit_hashes():
@@ -301,7 +301,7 @@ def benchmark_result(result, request):
         cc.choice(repair['terminalCandidateEligible'], True, False)
         cc.choice(repair['terminalRetainedEligible'], True, False)
     if layer == 'solver':
-        fields(result, ['layer', 'wallMs', 'configurationHash', 'seed', 'phaseCount', 'outcome', 'metrics', 'proposal', 'nativeReport', 'nativeMeasurement'] + repair_fields)
+        fields(result, ['layer', 'wallMs', 'configurationHash', 'seed', 'phaseCount', 'outcome', 'metrics', 'proposal', 'nativeReport', 'nativeMeasurement'] + repair_fields + (['policyMetrics'] if 'policyMetrics' in result else []))
         cc.integer(result['wallMs'], 0)
         cc.text(result['configurationHash'])
         cc.integer(result['phaseCount'], 1, 2)
@@ -316,16 +316,20 @@ def benchmark_result(result, request):
         cc.text(native['score'])
         cc.text(result['nativeReport'])
         metrics(result['metrics'])
+        if 'policyMetrics' in result:
+            policy_metrics(result['policyMetrics'])
         proposal(result['proposal'])
         return outcome(result['outcome'])
     if layer == 'policy':
-        fields(result, ['layer', 'wallMs', 'operation', 'baseline', 'reference', 'candidate', 'accepted', 'retained', 'retainedMetrics', 'diagnostics'] + repair_fields)
+        fields(result, ['layer', 'wallMs', 'operation', 'baseline', 'reference', 'candidate', 'accepted', 'retained', 'retainedMetrics', 'diagnostics'] + repair_fields + (['policyMetrics'] if 'policyMetrics' in result else []))
         cc.integer(result['wallMs'], 0)
         cc.choice(result['accepted'], True, False)
         baseline, reference, candidate = (outcome(result[key]) for key in ('baseline', 'reference', 'candidate'))
         cc.check(not result['accepted'] or candidate, 'Accepted policy result must be independently eligible')
         proposal(result['retained'])
         metrics(result['retainedMetrics'])
+        if 'policyMetrics' in result:
+            policy_metrics(result['policyMetrics'])
         cc.check(isinstance(result['operation'], dict) and isinstance(result['diagnostics'], dict), 'Policy receipts required')
         return candidate if result['accepted'] else baseline
     if layer == 'workflow':
@@ -351,6 +355,27 @@ def benchmark_result(result, request):
         cc.check(not result['independentlyValid'] or successful and result['cleanupComplete'], 'Caller failures cannot become valid scheduling evidence')
         return result['independentlyValid']
     raise ValueError('Unknown benchmark result layer')
+
+
+def policy_metrics(value):
+    from campaign_analysis import decimal_number
+    fields(value, ['overtimeMinutes', 'costCents', 'fairness'])
+    cc.integer(value['overtimeMinutes'], 0, 2**53 - 1)
+    cc.integer(value['costCents'], 0, 2**53 - 1)
+    fairness = value['fairness']
+    fields(fairness, ['variance', 'maximumUtilization', 'workloads'])
+    decimal_number(fairness['variance'])
+    decimal_number(fairness['maximumUtilization'])
+    cc.check(isinstance(fairness['workloads'], list), 'Independent fairness workloads required')
+    ids = []
+    for row in fairness['workloads']:
+        fields(row, ['technicianId', 'paidMinutes', 'regularCapacityMinutes', 'utilization'])
+        cc.text(row['technicianId'])
+        ids.append(row['technicianId'])
+        cc.integer(row['paidMinutes'], 0, 2**53 - 1)
+        cc.integer(row['regularCapacityMinutes'], 1, 2**53 - 1)
+        decimal_number(row['utilization'])
+    cc.unique(ids)
 
 
 def outcome(value):
@@ -522,7 +547,7 @@ def analyze(run):
     outcomes = {state: sum(r['state'] == state for r in rows.values()) for state in ('SUCCEEDED', 'FAILED', 'INTERRUPTED', 'ABANDONED')}
     complete = sum(all(c['id'] in rows and rows[c['id']]['state'] == 'SUCCEEDED' for c in b['cases']) for b in blocks)
     requested = sum(len(b['cases']) for b in blocks)
-    validity, contracts = [], 0
+    validity, contracts, loaded = [], 0, {}
     for row in rows.values():
         if row['state'] != 'SUCCEEDED':
             continue
@@ -536,6 +561,7 @@ def analyze(run):
         request = read_json(directory / 'request.json')
         validated = adapter_receipt(receipt_path, request, config)
         valid = benchmark_result(validated['result'], request)
+        loaded[row['case']['id']] = {'valid': valid, 'result': validated['result']}
         if valid is None:
             contracts += 1
         else:
@@ -547,8 +573,12 @@ def analyze(run):
         'validityUnavailableReason': None if validity else 'No successful scheduling benchmark receipts; input contracts and lifecycle fixtures are separate.',
         'expectedInputRejections': contracts,
         'configuredAnalysis': config['analysis'], 'inference': None,
-        'inferenceUnavailableReason': 'Paired equal-dataset inference is phase 12; acceptance and lifecycle inventories cannot select a winner.',
+        'inferenceUnavailableReason': 'Inventory-only analysis was registered; acceptance and lifecycle inventories cannot select a winner.',
         'observations': list(rows.values())}
+    if config['analysis']['method'] == 'paired-dataset-bootstrap':
+        from campaign_analysis import paired
+        report['inference'] = paired(config, blocks, rows, loaded, runtime['runtimeHash'])
+        report['inferenceUnavailableReason'] = None
     destination = run / 'analysis' / f'{stamp()}-{uuid.uuid4().hex[:8]}.json'
     write_new(destination, report)
     return report
