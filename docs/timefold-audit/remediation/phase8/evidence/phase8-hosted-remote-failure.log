@@ -1,0 +1,280 @@
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	﻿2026-10-07T01:08:36.6550673Z ##[group]Run ./mvnw -pl solver-service -am -DskipTests package --batch-mode --no-transfer-progress
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6551786Z ^[[36;1m./mvnw -pl solver-service -am -DskipTests package --batch-mode --no-transfer-progress^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6552776Z ^[[36;1mnode web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6553538Z ^[[36;1mtoken=$(openssl rand -hex 32)^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6565327Z ^[[36;1mSOLVER_AUTH_TOKEN="$token" SERVER_PORT=18004 java -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-solver.log" 2>&1 &^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6566429Z ^[[36;1msolver_pid=$!^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6568039Z ^[[36;1mSCHEDULER_CALCULATION_AUTH_TOKEN="$token" SCHEDULER_CALCULATION_MODE=REMOTE SCHEDULER_CALCULATION_URL=http://127.0.0.1:18004 SERVER_PORT=18003 java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-scheduler.log" 2>&1 &^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6569690Z ^[[36;1mremote_pid=$!^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6570195Z ^[[36;1mtrap 'kill "$remote_pid" "$solver_pid"' EXIT^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6570697Z ^[[36;1mfor _attempt in {1..60}; do^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6571626Z ^[[36;1m  if curl --fail --silent http://127.0.0.1:18003/health > /dev/null && curl --fail --silent http://127.0.0.1:18004/health > /dev/null; then break; fi^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6572559Z ^[[36;1m  sleep 1^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6572903Z ^[[36;1mdone^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6573213Z ^[[36;1mcd web^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6573718Z ^[[36;1mnpx prisma db seed^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6574364Z ^[[36;1mnode ../infra/run-check.mjs remote-booking npm run test:booking:integration^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6575252Z ^[[36;1mnode ../infra/run-check.mjs remote-optimizer npm run test:optimizer:integration^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6576150Z ^[[36;1mnode ../infra/run-check.mjs remote-time-off npm run test:time-off:integration^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6577071Z ^[[36;1mnode ../infra/run-check.mjs remote-bounded npm run test:bounded-booking:integration^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6578107Z ^[[36;1mnode ../infra/run-check.mjs remote-cancellation npm run test:search-cancellation:integration^[[0m
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6736409Z shell: /usr/bin/bash -e {0}
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6736843Z env:
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6737646Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test?schema=remote_calculation_it
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6738538Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=remote_calculation_it
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6739547Z   DATABASE_USER: waterflex
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6739997Z   DATABASE_PASSWORD: waterflex
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6740529Z   ROUTING_URL: http://127.0.0.1:18001
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6741059Z   SCHEDULER_TEST_URL: http://127.0.0.1:18003
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6741572Z   ENGINE_URL: http://127.0.0.1:18003
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6742057Z   SERVER_PORT: 18000
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6742484Z   TIME_OFF_POLL_DELAY_MS: 1000
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6743124Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6744144Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6744783Z   MAVEN_ARGS: -ntp
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6745196Z   SCHEDULER_CONFIRM_URL: http://127.0.0.1:18003
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6745730Z   SCHEDULER_CANCEL_URL: http://127.0.0.1:18003
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6746223Z   BOOKING_RESERVATIONS_ENABLED: true
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6746688Z   BOOKING_SEARCH_BOUNDED: true
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6747122Z   SCHEDULER_RESERVATIONS_TEST: true
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.6747526Z ##[endgroup]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.8888026Z WARNING: A restricted method in java.lang.System has been called
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.8890844Z WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/home/runner/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.8915117Z WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.8955044Z WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:36.8965440Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.2245141Z [INFO] Scanning for projects...
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.6845864Z [INFO] ------------------------------------------------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.6864759Z [INFO] Reactor Build Order:
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.6884419Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.6885439Z [INFO] calculation-engine                                                 [jar]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.6904600Z [INFO] solver-service                                                     [jar]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.7027625Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.7034753Z [INFO] ------------------< dev.waterflex:calculation-engine >------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.7040489Z [INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/2]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.7041478Z [INFO]   from pom.xml
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:38.7042273Z [INFO] --------------------------------[ jar ]---------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.1094984Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.1096442Z [INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.2325269Z [INFO] Copying 0 resource from src/main/resources to target/classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.2345280Z [INFO] Copying 1 resource from src/main/resources to target/classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.2372923Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.2384906Z [INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3775039Z [INFO] Nothing to compile - all classes are up to date.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3814579Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3820327Z [INFO] --- resources:3.5.0:testResources (default-testResources) @ calculation-engine ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3830129Z [INFO] skip non existing resourceDirectory /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/calculation-engine/src/test/resources
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3831335Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3832024Z [INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ calculation-engine ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3894738Z [INFO] No sources to compile
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3953909Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.3954976Z [INFO] --- surefire:3.5.6:test (default-test) @ calculation-engine ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.5075010Z [INFO] Tests are skipped.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.5094679Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.5114742Z [INFO] --- jar:3.5.1:jar (default-jar) @ calculation-engine ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.9584944Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.9605484Z [INFO] --------------------< dev.waterflex:solver-service >--------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.9614646Z [INFO] Building solver-service 0.1.0-SNAPSHOT                             [2/2]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.9625065Z [INFO]   from /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/pom.xml
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:39.9644717Z [INFO] --------------------------------[ jar ]---------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0462842Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0476850Z [INFO] --- resources:3.5.0:resources (default-resources) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0494909Z [INFO] Copying 1 resource from src/main/resources to target/classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0554694Z [INFO] Copying 0 resource from src/main/resources to target/classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0574213Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0574903Z [INFO] --- compiler:3.15.0:compile (default-compile) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0624664Z [INFO] Recompiling the module because of changed source code.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:41.0714828Z [INFO] Compiling 3 source files with javac [debug parameters release 25] to target/classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.3964265Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java: /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java uses or overrides a deprecated API.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.3985928Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java: Recompile with -Xlint:deprecation for details.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4004494Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4005580Z [INFO] --- resources:3.5.0:testResources (default-testResources) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4025014Z [INFO] Copying 1 resource from src/test/resources to target/test-classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4234710Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4264947Z [INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4295772Z [INFO] Recompiling the module because of changed dependency.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:43.4296863Z [INFO] Compiling 4 source files with javac [debug parameters release 25] to target/test-classes
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.3815230Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.3851921Z [INFO] --- surefire:3.5.6:test (default-test) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.3934740Z [INFO] Tests are skipped.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.3935403Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.3974745Z [INFO] --- jar:3.5.1:jar (default-jar) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.4055178Z [INFO] Building jar: /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/target/solver-service-0.1.0-SNAPSHOT.jar
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.4924669Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.4934844Z [INFO] --- spring-boot:4.1.1:repackage (repackage) @ solver-service ---
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9106511Z [INFO] Replacing main artifact /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/target/solver-service-0.1.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9145665Z [INFO] The original artifact has been renamed to /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/target/solver-service-0.1.0-SNAPSHOT.jar.original
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9165011Z [INFO] ------------------------------------------------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9186756Z [INFO] Reactor Summary for calculation-engine 0.1.0-SNAPSHOT:
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9187402Z [INFO] 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9187969Z [INFO] calculation-engine ................................. SUCCESS [  1.254 s]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9188789Z [INFO] solver-service ..................................... SUCCESS [  4.953 s]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9189645Z [INFO] ------------------------------------------------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9190227Z [INFO] BUILD SUCCESS
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9190847Z [INFO] ------------------------------------------------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9191738Z [INFO] Total time:  6.719 s
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9192256Z [INFO] Finished at: 2026-10-07T01:08:44Z
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:44.9192935Z [INFO] ------------------------------------------------------------------------
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.3442502Z Prisma schema loaded from web/prisma/schema.prisma
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.3512808Z Datasource "db": PostgreSQL database "waterflex_test", schema "remote_calculation_it" at "127.0.0.1:5432"
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.4314201Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.4315458Z 37 migrations found in prisma/migrations
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.4334031Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.4731698Z Applying migration `20260904180051_init`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5336335Z Applying migration `20260904182402_slot_hold_job_fk`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5394865Z Applying migration `20260907190000_booking_retry_and_hold_location`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5439296Z Applying migration `20260907220000_omaha_service_area`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5465023Z Applying migration `20260908170000_optimizer_overtime`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5496802Z Applying migration `20260908171000_optimizer_weights`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5527057Z Applying migration `20260909120000_progressive_booking_optimization`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5668146Z Applying migration `20260916120000_java_scheduler_foundation`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5826560Z Applying migration `20260917120000_booking_reservations_time_off`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.5999937Z Applying migration `20260918120000_road_cache_retention`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6035293Z Applying migration `20260918130000_optimization_route_snapshot`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6066228Z Applying migration `20260921190000_booking_test_runs`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6182783Z Applying migration `20260921213000_booking_test_purge`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6210062Z Applying migration `20260921214000_omaha_state_code`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6239963Z Applying migration `20260921220000_resumable_booking_test_generation`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6294657Z Applying migration `20260922120000_time_off_category`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6321036Z Applying migration `20260922230000_technician_profiles_availability`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6418307Z Applying migration `20260923010000_dealership_route_endpoints`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6513759Z Applying migration `20260923120000_multi_depot_dealerships`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6659412Z Applying migration `20260923130000_depot_pin_provenance`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6692372Z Applying migration `20260923190000_technician_home_pin_provenance`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6720962Z Applying migration `20260924010000_scheduling_policy`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6756530Z Applying migration `20260924020000_offer_overtime_authorization`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6787795Z Applying migration `20260924030000_repair_overtime_approval`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6814591Z Applying migration `20260924040000_reservation_arrangements`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6910109Z Applying migration `20260924050000_reservation_obligations`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6948888Z Applying migration `20260924060000_booking_search_diagnostics`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.6975783Z Applying migration `20260924070000_current_route_timing`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7002396Z Applying migration `20260924080000_booking_search_cancellation`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7066419Z Applying migration `20260929180000_booking_location_confirmation`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7092565Z Applying migration `20260929220000_durable_booking_search`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7140994Z Applying migration `20260929223000_booking_search_incumbent`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7170387Z Applying migration `20260929230000_retire_incompatible_promises`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7200980Z Applying migration `20260929233000_retire_legacy_standalone_offers`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7222918Z Applying migration `20261006194000_exact_monetary_contract`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7411572Z Applying migration `20261006212000_daily_score_contract`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7439061Z Applying migration `20261006230000_durable_daily_attempts`
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7524439Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7540238Z The following migration(s) have been applied:
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7542116Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7542928Z migrations/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7544475Z   └─ 20260904180051_init/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7545489Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7546187Z   └─ 20260904182402_slot_hold_job_fk/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7546820Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7547497Z   └─ 20260907190000_booking_retry_and_hold_location/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7548162Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7549171Z   └─ 20260907220000_omaha_service_area/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7550408Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7550994Z   └─ 20260908170000_optimizer_overtime/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7551735Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7552329Z   └─ 20260908171000_optimizer_weights/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7552873Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7553527Z   └─ 20260909120000_progressive_booking_optimization/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7554340Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7554944Z   └─ 20260916120000_java_scheduler_foundation/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7555565Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7556163Z   └─ 20260917120000_booking_reservations_time_off/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7556799Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7557377Z   └─ 20260918120000_road_cache_retention/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7557927Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7558537Z   └─ 20260918130000_optimization_route_snapshot/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7559154Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7559670Z   └─ 20260921190000_booking_test_runs/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7560251Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7560842Z   └─ 20260921213000_booking_test_purge/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7561451Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7562353Z   └─ 20260921214000_omaha_state_code/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7562961Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7563818Z   └─ 20260921220000_resumable_booking_test_generation/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7564543Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7565132Z   └─ 20260922120000_time_off_category/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7565722Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7595318Z   └─ 20260922230000_technician_profiles_availability/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7597986Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7604270Z   └─ 20260923010000_dealership_route_endpoints/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7605184Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7605943Z   └─ 20260923120000_multi_depot_dealerships/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7606595Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7607270Z   └─ 20260923130000_depot_pin_provenance/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7607902Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7608639Z   └─ 20260923190000_technician_home_pin_provenance/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7609293Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7609924Z   └─ 20260924010000_scheduling_policy/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7610504Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7611070Z   └─ 20260924020000_offer_overtime_authorization/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7611710Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7612270Z   └─ 20260924030000_repair_overtime_approval/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7612849Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7613462Z   └─ 20260924040000_reservation_arrangements/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7614319Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7614950Z   └─ 20260924050000_reservation_obligations/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7615673Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7616295Z   └─ 20260924060000_booking_search_diagnostics/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7616865Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7617425Z   └─ 20260924070000_current_route_timing/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7618096Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7618705Z   └─ 20260924080000_booking_search_cancellation/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7619242Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7619918Z   └─ 20260929180000_booking_location_confirmation/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7620696Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7621418Z   └─ 20260929220000_durable_booking_search/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7622167Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7622878Z   └─ 20260929223000_booking_search_incumbent/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7623770Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7624618Z   └─ 20260929230000_retire_incompatible_promises/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7625369Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7626500Z   └─ 20260929233000_retire_legacy_standalone_offers/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7627249Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7627972Z   └─ 20261006194000_exact_monetary_contract/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7628671Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7629414Z   └─ 20261006212000_daily_score_contract/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7630123Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7630869Z   └─ 20261006230000_durable_daily_attempts/
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7631599Z     └─ migration.sql
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7632118Z       
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:45.7632830Z All migrations have been successfully applied.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.1917252Z Running seed command `tsx prisma/seed.ts` ...
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.5901440Z Seed complete.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.6072879Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.6075027Z 🌱  The seed command has been executed.
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.8029344Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.8030547Z > waterflex-web@0.1.0 test:booking:integration
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.8031452Z > tsx scripts/smoke-java-booking.ts
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:08:59.8031925Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:07.8052486Z Java booking lifecycle, scarcity, and offer limit 1 passed (legacyReservationFlag=true)
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:07.8549334Z remote-booking: passed in 8.1s
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:07.9698536Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:07.9699550Z > waterflex-web@0.1.0 test:optimizer:integration
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:07.9700322Z > tsx scripts/smoke-optimizer.ts
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:07.9700704Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:24.2422127Z Timefold preview, current/before/proposed GeoJSON road routes, guarded apply, and promised windows passed
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:24.3035883Z remote-optimizer: passed in 16.4s
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:24.4644346Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:24.4645543Z > waterflex-web@0.1.0 test:time-off:integration
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:24.4646429Z > tsx scripts/smoke-time-off.ts
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:09:24.4646924Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:20.8675674Z Time-off repair, zero-overtime rejection, weekend range, failure detail, retry, denial, and overlap eligibility passed
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:20.9195557Z remote-time-off: passed in 56.6s
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.0365424Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.0366608Z > waterflex-web@0.1.0 test:bounded-booking:integration
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.0367572Z > tsx scripts/smoke-bounded-reservations.ts
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.0368102Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7182023Z AssertionError [ERR_ASSERTION]: [{"jobId":"bounded-efd6da77-8a13-4e3b-91ec-4075e6bb0be5-first","offers":[],"search":{"outcome":"SEARCH_INCOMPLETE","prescribedSearchCompleted":false,"elapsedMs":159,"retryable":true,"queueMs":0,"measurements":{"databaseExecutions":95,"databaseNanos":50577701,"lockStatementNanos":0,"routingPairs":5,"memoryHits":5,"persistentHits":0,"sharedRoutingPairs":0,"foregroundCpuNanos":27835522}},"apiMs":206.69557099999997},{"jobId":"bounded-efd6da77-8a13-4e3b-91ec-4075e6bb0be5-second","offers":[],"search":{"outcome":"SEARCH_INCOMPLETE","prescribedSearchCompleted":false,"elapsedMs":156,"retryable":true,"queueMs":0,"measurements":{"databaseExecutions":95,"databaseNanos":81272114,"lockStatementNanos":0,"routingPairs":5,"memoryHits":5,"persistentHits":0,"sharedRoutingPairs":0,"foregroundCpuNanos":25399869}},"apiMs":181.89579399999997}]
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7198622Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7224514Z 0 !== 1
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7240744Z 
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7263079Z     at main (/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/web/scripts/smoke-bounded-reservations.ts:59:12)
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7279543Z     at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7297910Z   generatedMessage: false,
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7304863Z   code: 'ERR_ASSERTION',
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7307481Z   actual: 0,
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7308300Z   expected: 1,
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7308832Z   operator: 'strictEqual',
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7309361Z   diff: 'simple'
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7309819Z }
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7504536Z remote-bounded: failed in 0.8s
+Booking and optimizer integration	Remote calculation business workflows in an isolated database schema	2026-10-07T01:10:21.7586713Z ##[error]Process completed with exit code 1.

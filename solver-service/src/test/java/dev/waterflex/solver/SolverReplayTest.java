@@ -4,6 +4,7 @@ import dev.waterflex.scheduler.optimizer.*;
 import java.net.*;
 import java.net.http.*;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,6 +33,32 @@ class SolverReplayTest {
         var adapter = new HttpCalculation("http://127.0.0.1:"+port,TOKEN);
         var response = new SearchDeadline(Required.value(Duration.ofSeconds(5))).within(() -> adapter.calculate(request));
         assertEquals(actual,CalculationJson.read(response.payload(),BookingCalculation.Output.class));
+    }
+    @Test void requiredRearrangementReplaysInsertionThenRefinementOverHttp() throws Exception {
+        var original = ReplayFixture.booking(); var source = Required.value(original.snapshot().days().get(ReplayFixture.DAY));
+        var a = new BookingSnapshot.Technician("a",ReplayFixture.START,Required.value(ReplayFixture.START.plusSeconds(14400)),120,0,Required.value(Set.of("service","old-service")),Required.value(List.of()),ReplayFixture.POINT,ReplayFixture.POINT,3);
+        var b = new BookingSnapshot.Technician("b",a.shiftStart(),a.shiftEnd(),120,0,Required.value(Set.of("old-service")),Required.value(List.of()),ReplayFixture.POINT,ReplayFixture.POINT,3);
+        var old = Required.value(source.visits().get("old"));
+        var visit = new BookingSnapshot.Visit(old.id(),old.jobId(),"old-service",old.windowStart(),old.windowEnd(),60,old.location(),"a",ReplayFixture.START,false);
+        Map<String,DayPlan.RoadLeg> roads = new TreeMap<>();
+        for (String from : List.of("a","b","old","new")) for (String to : List.of("old","new","a:return","b:return")) if (!from.equals(to)) roads.put(from+">"+to,new DayPlan.RoadLeg(60,100));
+        var day = new BookingSnapshot.Day(Required.value(Map.of("a",a,"b",b)),Required.value(Map.of("old",visit)),new BookingSnapshot.Arrangement(Required.value(Map.of("a",List.of("old"),"b",List.of()))),2,new BookingSnapshot.Roads(roads,Required.value(Set.of())));
+        Map<LocalDate,BookingSnapshot.Day> days = new TreeMap<>(original.snapshot().days()); days.put(ReplayFixture.DAY,day);
+        var snapshot = new BookingSnapshot("metro",ReplayFixture.CAPTURED,"config-rev","roads-rev",original.snapshot().policy(),original.snapshot().rates(),days);
+        var request = new BoundedBookingSearch.Request("new","service",60,ReplayFixture.POINT);
+        var insertionInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.INSERTION,"BOUNDED",Required.value(Set.of()),null,0);
+        BookingDataset.parse(BookingDataset.encode(insertionInput,BookingDataset.Encoding.SPARSE));
+        var inserted = post(CalculationProtocol.Request.of("BOOKING",5000,insertionInput),TOKEN); assertEquals(200,inserted.statusCode(),inserted.body());
+        var insertion = CalculationJson.read(CalculationJson.read(Required.value(inserted.body()),CalculationProtocol.Response.class).payload(),BookingCalculation.Output.class);
+        assertTrue(insertion.result().candidates().isEmpty());
+        var refinementInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.REFINEMENT,"BOUNDED",Required.value(Set.of()),insertion.result(),0);
+        var decodedRefinement = BookingDataset.parse(BookingDataset.encode(refinementInput,BookingDataset.Encoding.SPARSE));
+        new SearchDeadline(Required.value(Duration.ofSeconds(5))).within(() -> BookingCalculation.run(decodedRefinement));
+        var refined = post(CalculationProtocol.Request.of("BOOKING",5000,refinementInput),TOKEN); assertEquals(200,refined.statusCode(),refined.body());
+        var result = CalculationJson.read(CalculationJson.read(Required.value(refined.body()),CalculationProtocol.Response.class).payload(),BookingCalculation.Output.class).result();
+        assertTrue(result.complete()); assertFalse(result.candidates().isEmpty());
+        assertTrue(result.candidates().stream().anyMatch(candidate -> candidate.fairnessDelta().signum() < 0));
+        BookingCalculation.validate(snapshot,request,result);
     }
     @Test void dailyFixedWorkReplayHasEquivalentProposalsPolicyAndCoverage() throws Exception {
         var request = ReplayFixture.dailyRequest(); var http = post(request,TOKEN); assertEquals(200,http.statusCode(),http.body());

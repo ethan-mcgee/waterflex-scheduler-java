@@ -18,13 +18,19 @@ public final class CalculationJson {
         var mapper = new ObjectMapper(factory);
         mapper.registerModule(new JavaTimeModule());
         var decimal = new SimpleModule();
-        decimal.addSerializer(BigDecimal.class, new DecimalStringSerializer());
+        // Protocol decimals also include signed fairness deltas, which are not monetary rates.
+        decimal.addSerializer(BigDecimal.class, new JsonSerializer<@org.jspecify.annotations.NonNull BigDecimal>() {
+            @Override public void serialize(@Nullable BigDecimal value, @Nullable JsonGenerator generator,
+                    @Nullable SerializerProvider provider) throws java.io.IOException {
+                Required.value(generator).writeString(canonicalDecimal(Required.value(value)));
+            }
+        });
         decimal.addDeserializer(BigDecimal.class, new JsonDeserializer<@org.jspecify.annotations.NonNull BigDecimal>() {
             @Override public BigDecimal deserialize(@Nullable JsonParser parser, @Nullable DeserializationContext context) throws java.io.IOException {
                 JsonParser input = Required.value(parser);
                 if (input.currentToken() != JsonToken.VALUE_STRING) throw new IllegalArgumentException("Decimal must be a canonical string");
                 String text = Required.value(input.getText()); BigDecimal value = new BigDecimal(text);
-                if (!Monetary.canonical(value).equals(text)) throw new IllegalArgumentException("Noncanonical decimal");
+                if (!canonicalDecimal(value).equals(text)) throw new IllegalArgumentException("Noncanonical decimal");
                 return value;
             }
         });
@@ -55,5 +61,11 @@ public final class CalculationJson {
         catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
     public static void text(String value) { if (Required.value(value).isBlank()) throw new IllegalArgumentException("Blank protocol identity"); }
+    private static String canonicalDecimal(BigDecimal value) {
+        BigDecimal normalized = Required.value(value.signum() == 0 ? BigDecimal.ZERO : value.stripTrailingZeros());
+        if (Math.abs((long)normalized.scale()) > MAX_BYTES || normalized.precision() > MAX_BYTES)
+            throw new IllegalArgumentException("Calculation decimal exceeds limit");
+        String text = Required.value(normalized.toPlainString()); checkSize(text); return text;
+    }
     public static void checkSize(String json) { if (json.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES) throw new IllegalArgumentException("Calculation payload exceeds limit"); }
 }
