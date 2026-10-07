@@ -117,15 +117,24 @@ def ratio_interval(values, rules):
 def analyze(root):
     spec = read_json(root / 'original-study.json')
     registration = read_json(root / 'registration.json')
-    cc.check(registration['specification'] == spec and registration['toolkit'] == cr.toolkit_hashes(), 'Study registration or toolkit changed')
-    cc.check(read_json(root / 'terminal.json')['state'] == 'COMPLETE', 'Incomplete/failed study has no calibration recommendation')
+    fields(registration, ['specification', 'toolkit', 'campaigns', 'automaticRetries'])
+    cc.check(registration['specification'] == spec and registration['automaticRetries'] is False, 'Study registration changed')
+    terminal = read_json(root / 'terminal.json')
+    fields(terminal, ['state', 'at', 'failure'])
+    cc.check(terminal['state'] == 'COMPLETE' and terminal['failure'] is None, 'Incomplete/failed study has no calibration recommendation')
     samples, raw, runtimes = {}, {}, {}
     for entry in spec['campaigns']:
         label = entry['label']
         probe = read_json(root / 'probes' / f'{label}.json')
+        fields(probe, ['label', 'run', 'manifestHash'])
+        cc.check(probe['label'] == label, 'Probe label differs from registration')
         run = Path(probe['run'])
         cc.check(probe['manifestHash'] == sha(run / 'manifest.json'), 'Registered probe archive changed')
-        config, blocks, runtime = cr.verify(run)
+        expected = entry['configuration']['sha256']
+        cc.check(registration['campaigns'][label]['sha256'] == expected, 'Registered configuration hash differs')
+        registered_configuration(run, expected)
+        cc.check(read_json(run / 'manifest.json')['toolkit'] == registration['toolkit'], 'Probe toolkit differs from registered study')
+        config, blocks, runtime = cr.verify(run, read_only=True)
         runtimes[label] = runtime
         raw[label] = {'run': str(run), 'runtimeHash': runtime['runtimeHash'], 'resources': config['resources'],
                       'warmup': config['warmup'], 'instrumentation': config['instrumentation']}
@@ -175,5 +184,10 @@ def analyze(root):
         comparisons.append({'label': label, 'groups': evidence,
             'disposition': 'diagnostic-only' if spec['kind'] == 'profile' else 'within-registered-tolerance' if all(row['stable'] for row in evidence) else 'ambiguous-register-new-attempt'})
     return {'version': 1, 'kind': spec['kind'], 'rules': spec['rules'], 'probes': raw, 'comparisons': comparisons,
+            'analyzerToolkit': cr.toolkit_hashes(),
             'recommendation': None, 'reason': 'No automatic defaults or production promotion; ambiguous studies require a new explicit registration',
             'scope': 'Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate'}
+
+
+def registered_configuration(run, expected):
+    cc.check(sha(run / 'original-config.json') == expected, 'Probe configuration bytes differ from registered artifact')

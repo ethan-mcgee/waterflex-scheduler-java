@@ -1,0 +1,1436 @@
+{
+  "version": 1,
+  "baseline": [
+    {
+      "root": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1",
+      "analysisHash": "c3d5ad94ea8a4f6ecde2bc39522caa84bda7964ae041fac0fdc2262539778180",
+      "requestedCases": 16,
+      "outcomes": {
+        "SUCCEEDED": 16,
+        "FAILED": 0,
+        "INTERRUPTED": 0,
+        "ABANDONED": 0
+      },
+      "independentlyValidCases": 16,
+      "inference": {
+        "method": "paired-dataset-bootstrap",
+        "unit": "dataset",
+        "difference": "candidate-minus-control",
+        "rules": {
+          "method": "paired-dataset-bootstrap",
+          "pairKeys": [
+            "datasetHash",
+            "targetHash",
+            "budgetHash",
+            "solverSeed",
+            "fork",
+            "scoreVersion",
+            "modelVersion",
+            "routingIdentity",
+            "runtimeHash"
+          ],
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "selection": "tuning-only",
+          "latencyNoninferiorityPercent": 5,
+          "failureTolerance": 0,
+          "costDifferenceUpperBoundCents": 0
+        },
+        "counts": {
+          "tabu": {
+            "requested": 8,
+            "dispatched": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "interrupted": 0,
+            "abandoned": 0,
+            "missing": 0,
+            "valid": 8,
+            "paired": 8,
+            "reliabilityDenominator": 8
+          },
+          "tabu-eight": {
+            "requested": 8,
+            "dispatched": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "interrupted": 0,
+            "abandoned": 0,
+            "missing": 0,
+            "valid": 8,
+            "paired": 8,
+            "reliabilityDenominator": 8
+          }
+        },
+        "baselines": [
+          {
+            "cohort": [
+              "tabu",
+              "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+              "assigned",
+              "bendable-decimal-repair-v2",
+              "exact-fleet-half-up-v2",
+              "synthetic-euclidean-directed-v1"
+            ],
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "datasets": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32556.5,
+                  "fairnessVariance": "0.02567714361496913580246913580",
+                  "latencyMs": 3471.5,
+                  "moveEvaluationsPerSecond": 8064.989012571122
+                }
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32439,
+                  "fairnessVariance": "0.04742886766975308641975308642",
+                  "latencyMs": 3459.25,
+                  "moveEvaluationsPerSecond": 7769.118218212375
+                }
+              }
+            ],
+            "equalDatasetMeans": {
+              "costCents": 32497.75,
+              "fairnessVariance": "0.03655300564236111111111111111",
+              "latencyMs": 3465.375,
+              "moveEvaluationsPerSecond": 7917.053615391748
+            }
+          },
+          {
+            "cohort": [
+              "tabu-eight",
+              "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+              "assigned",
+              "bendable-decimal-repair-v2",
+              "exact-fleet-half-up-v2",
+              "synthetic-euclidean-directed-v1"
+            ],
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "datasets": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32445.25,
+                  "fairnessVariance": "0.02605040750385802469135802469",
+                  "latencyMs": 3494.25,
+                  "moveEvaluationsPerSecond": 8774.357471725732
+                }
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32428.75,
+                  "fairnessVariance": "0.04733148268711419753086419753",
+                  "latencyMs": 3539.25,
+                  "moveEvaluationsPerSecond": 8637.23258305933
+                }
+              }
+            ],
+            "equalDatasetMeans": {
+              "costCents": 32437.0,
+              "fairnessVariance": "0.03669094509548611111111111111",
+              "latencyMs": 3516.75,
+              "moveEvaluationsPerSecond": 8705.79502739253
+            }
+          }
+        ],
+        "comparisons": [
+          {
+            "candidate": "tabu-eight",
+            "control": "tabu",
+            "cohort": [
+              "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+              "assigned",
+              "bendable-decimal-repair-v2",
+              "exact-fleet-half-up-v2",
+              "synthetic-euclidean-directed-v1"
+            ],
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "pairedCount": 8,
+            "datasetCount": 2,
+            "perDataset": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pairedRepetitions": 4,
+                "effects": {
+                  "costCents": -111.25,
+                  "fairnessVariance": "0.000373263888888888888888888889",
+                  "latencyMs": 22.75,
+                  "moveEvaluationsPerSecond": 709.3684591546114
+                }
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pairedRepetitions": 4,
+                "effects": {
+                  "costCents": -10.25,
+                  "fairnessVariance": "-0.0000973849826388888888888888889",
+                  "latencyMs": 80,
+                  "moveEvaluationsPerSecond": 868.1143648469558
+                }
+              }
+            ],
+            "metrics": {
+              "costCents": {
+                "estimate": -60.75,
+                "interval": [
+                  -111.25,
+                  -10.25
+                ],
+                "unavailableReason": null
+              },
+              "fairnessVariance": {
+                "estimate": "0.0001379394531250000000000000000",
+                "interval": [
+                  "-0.0000973849826388888888888888889",
+                  "0.000373263888888888888888888889"
+                ],
+                "unavailableReason": null
+              },
+              "latencyMs": {
+                "estimate": 51.375,
+                "interval": [
+                  22.75,
+                  80
+                ],
+                "unavailableReason": null
+              },
+              "moveEvaluationsPerSecond": {
+                "estimate": 788.7414120007836,
+                "interval": [
+                  709.3684591546114,
+                  868.1143648469558
+                ],
+                "unavailableReason": null
+              }
+            },
+            "families": {
+              "clustered": {
+                "costCents": -60.75,
+                "fairnessVariance": "0.0001379394531250000000000000000",
+                "latencyMs": 51.375,
+                "moveEvaluationsPerSecond": 788.7414120007836
+              }
+            },
+            "pairs": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": -50,
+                  "moveEvaluationsPerSecond": -83.59488443852933
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": 257,
+                  "moveEvaluationsPerSecond": 928.4737002128313
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 440,
+                  "fairnessVariance": "-0.008605324074074074074074074074",
+                  "latencyMs": 177,
+                  "moveEvaluationsPerSecond": -3619.6505158934397
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": 68,
+                  "moveEvaluationsPerSecond": 8.062937062936726
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": -445,
+                  "fairnessVariance": "0.001493055555555555555555555556",
+                  "latencyMs": -32,
+                  "moveEvaluationsPerSecond": 4698.49888064098
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": -440,
+                  "fairnessVariance": "0.008605324074074074074074074074",
+                  "latencyMs": -98,
+                  "moveEvaluationsPerSecond": 4608.531760561661
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": -41,
+                  "fairnessVariance": "-0.0003895399305555555555555555556",
+                  "latencyMs": -16,
+                  "moveEvaluationsPerSecond": 1555.1025145067706
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": 105,
+                  "moveEvaluationsPerSecond": -1785.493096646942
+                },
+                "unavailable": {}
+              }
+            ],
+            "costGateSatisfied": false,
+            "disposition": "inconclusive-or-gate-not-met",
+            "latencyGateUnavailableReason": "Request p95 and held-out service promotion are separate phase 15 gates"
+          }
+        ],
+        "unmatched": [],
+        "automaticPromotion": false
+      }
+    }
+  ],
+  "studies": [
+    {
+      "root": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa",
+      "specificationHash": "04b3298b626ba5d2135b6263c21227076a3960a56c5384433f49c0769724a1f0",
+      "terminal": {
+        "state": "FAILED",
+        "at": "20261007T044750Z",
+        "failure": {
+          "type": "RuntimeError",
+          "message": "Campaign attempt failed; evidence retained at C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\runs\\20261007T044748Z-phase12-warmup-reference-200-001-42ae71ec\\attempts\\20261007T044749Z-0869aaa4. Explicit resume runs only never-dispatched cases."
+        }
+      },
+      "report": null
+    },
+    {
+      "root": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-002-aff263f4",
+      "specificationHash": "3f6b1724bd576115acb11ec131066505533673f6bd74fdb6e82ebfec3c8c3df7",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T045533Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "warmup",
+        "rules": {
+          "referenceLabel": "probe-60000",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-200": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206",
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-30000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d",
+            "runtimeHash": "d285fc9e15ee93d3fe9b6674a920c0bdd778bc94d4547afaa749a175c647648a",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 30000,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-60000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d",
+            "runtimeHash": "73226737c579625feaa1cf3d22c20677bafc80667c67429f9b600611adc7defb",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 60000,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-200",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.02958003055101432,
+                  0.05477897904456821,
+                  0.03429762502914793
+                ],
+                "meanRatio": 0.03955221154157682,
+                "interval": [
+                  0.02958003055101432,
+                  0.05477897904456821
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          },
+          {
+            "label": "probe-30000",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.6981417978081259,
+                  0.7576663686743407,
+                  0.8744709751215327
+                ],
+                "meanRatio": 0.7767597138679998,
+                "interval": [
+                  0.6981417978081259,
+                  0.8744709751215327
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-002-bb8f7935",
+      "specificationHash": "ca603efdc43f0b2e216bd4e34a9341b3f6895562da7c30ba77134a1c0ad33409",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050116Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "warmup",
+        "rules": {
+          "referenceLabel": "probe-60000",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-200": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37",
+            "runtimeHash": "fd355a2476a7d4ed66b31fcc1c1dc5ffddd561fc6a379ae2359589183539c48b",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "fairness"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-30000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a",
+            "runtimeHash": "b7be92d0418d7e4bf8df20a0724d1127f9c0dbab8e2bad2fbd17f3cc0e67d1c2",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 30000,
+              "paths": [
+                "fairness"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-60000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24",
+            "runtimeHash": "323def76d7f8f38bb3dbac1e245bcf0c86ef2ffe1357137922fdd2416c152e72",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 60000,
+              "paths": [
+                "fairness"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-200",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"68af4112fcc33c50a2216435cf8a36f251b496561f75f31fd2074efb769e7949\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.014493708284165813,
+                  0.01503594851099021,
+                  0.013871287275354225
+                ],
+                "meanRatio": 0.01446698135683675,
+                "interval": [
+                  0.013871287275354225,
+                  0.01503594851099021
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          },
+          {
+            "label": "probe-30000",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"68af4112fcc33c50a2216435cf8a36f251b496561f75f31fd2074efb769e7949\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.974063513912103,
+                  1.0455332359739644,
+                  0.8609010522946425
+                ],
+                "meanRatio": 0.9601659340602366,
+                "interval": [
+                  0.8609010522946425,
+                  1.0455332359739644
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-002-3517e4bf",
+      "specificationHash": "8a9c579446403dd19b6fcec5ad6b0825ae7a8a74ff4b7e98d5592e58cb5dbf79",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050635Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "warmup",
+        "rules": {
+          "referenceLabel": "probe-60000",
+          "metric": "latencyMs",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-200": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651",
+            "runtimeHash": "dc314e9a567d5800a74cfb37884b4811da4197c6a48d4c6984bf6546873f7fd4",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "daily-policy"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-30000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20",
+            "runtimeHash": "b0a5417ee5ce78c613f8a86138e9aa2967d20cf4de810872a0ccba8b29bc89e6",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 30000,
+              "paths": [
+                "daily-policy"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-60000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4",
+            "runtimeHash": "e4a732179d6e331adcc68c35203e72a18f5135330e55fa0b02785ceb54da9281",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 60000,
+              "paths": [
+                "daily-policy"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-200",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"d2d4edc10e65db5ddfc83e8ac5bd9d6097241f567810a66562623f17120d92d4\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.0863095238095237,
+                  1.0338983050847457,
+                  1.0517412935323383
+                ],
+                "meanRatio": 1.0573163741422025,
+                "interval": [
+                  1.0338983050847457,
+                  1.0863095238095237
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          },
+          {
+            "label": "probe-30000",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"d2d4edc10e65db5ddfc83e8ac5bd9d6097241f567810a66562623f17120d92d4\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.2261904761904763,
+                  1.2542372881355932,
+                  1.2069651741293532
+                ],
+                "meanRatio": 1.2291309794851408,
+                "interval": [
+                  1.2069651741293532,
+                  1.2542372881355932
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-002-d4e0e9c6",
+      "specificationHash": "a7488ebdb83426ea6f3886e89f7e3699137420b457e5f7ea98b9b9dd1c0777a7",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050801Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "concurrency",
+        "rules": {
+          "referenceLabel": "probe-1",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-1": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84",
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-2": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30",
+            "runtimeHash": "f5d5700e6d80a0c136e07e4e4b952dea017bf9e256eaafe24ef554b74b00d708",
+            "resources": {
+              "parallelCases": 2,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-2",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.0240752189592994,
+                  0.5146601346738658,
+                  0.6299161010857881
+                ],
+                "meanRatio": 0.7228838182396511,
+                "interval": [
+                  0.5146601346738658,
+                  1.0240752189592994
+                ],
+                "stable": false
+              },
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"239a0f5c773192ab824257d3dbaa2c6628d625f0f490b6b089384613374d5b12\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.9127581611604716,
+                  0.9523202860011063,
+                  1.0198216055500495
+                ],
+                "meanRatio": 1.2949666842372092,
+                "interval": [
+                  0.9523202860011063,
+                  1.9127581611604716
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-002-2df5d41c",
+      "specificationHash": "83eb5a35517693259fc7711ba14d9c3cc78b65a42128d4a17892923cc3f57ff7",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050915Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "profile",
+        "rules": {
+          "referenceLabel": "probe-1",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-1": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d",
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-2": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19",
+            "runtimeHash": "795c8fa270464d158b56f9962691b3fef2cea246cf2ef68f10b5327dbf1a2e35",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "diagnostic",
+              "statistics": [],
+              "jfr": "profile",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-2",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.316523549599124,
+                  0.5871528254061854,
+                  2.233725202407445
+                ],
+                "meanRatio": 1.379133859137585,
+                "interval": [
+                  0.5871528254061854,
+                  2.233725202407445
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "diagnostic-only"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    }
+  ],
+  "profiles": [
+    {
+      "path": "experiments\\runs\\phase12-profile-export-001\\summary.json",
+      "sha256": "8091cdfe16f34c3d7e11bac5def3bbc98980f8f1c15871fe6335cc218c6b6749",
+      "report": {
+        "version": 1,
+        "study": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050802Z-phase12-profile-reference-002-2df5d41c",
+        "records": [
+          {
+            "caseId": "2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f",
+            "recording": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\recording.jfr",
+            "recordingHash": "d054af429bd9019c0b881836fc316826e089182253b9ef6b81ce5099425aedea",
+            "jdkJfrToolHash": "ec838368727d52a1aa662f4f1b2543ef6291e0e710688fd07be2b5e96cd780cb",
+            "exportHash": "e4a3e3859aba3dac78f53c658ce3b080d0bcfd62e4c89250b50ed3349e4c0c1f",
+            "summary": {
+              "eventCounts": {
+                "jdk.ObjectAllocationSample": 887,
+                "jdk.GarbageCollection": 12,
+                "jdk.ExecutionSample": 92
+              },
+              "allocationSampleWeightBytes": 411578632,
+              "allocationUnavailableReason": null,
+              "gcDurationSeconds": 0.109194,
+              "gcUnavailableReason": null,
+              "executionSampleLeafFrames": {
+                "freemarker/core/FMParserTokenManager.jjMoveNfa_0": 8,
+                "java/util/HashMap.putVal": 3,
+                "jdk/internal/icu/impl/NormalizerImpl.getDecompose": 3,
+                "sun/net/www/ParseUtil.firstEncodeIndex": 2,
+                "java/net/URL.<init>": 2,
+                "java/util/ImmutableCollections$MapN.probe": 2,
+                "jdk/jfr/internal/Bits.putInt_": 1,
+                "com/fasterxml/jackson/core/json/ReaderBasedJsonParser.nextToken": 1,
+                "java/lang/ThreadLocal$ThreadLocalMap.set": 1,
+                "java/util/AbstractMap.<init>": 1,
+                "java/net/URLStreamHandler.setURL": 1,
+                "java/util/HashMap$TreeNode.treeify": 1,
+                "java/lang/invoke/DirectMethodHandle$Holder.invokeSpecial": 1,
+                "java/util/logging/Logger.doSetParent": 1,
+                "org/springframework/boot/loader/net/protocol/jar/JarUrlConnection.getJarFile": 1,
+                "jdk/internal/misc/Blocker.begin": 1,
+                "java/lang/ClassLoader.loadClass": 1,
+                "jdk/internal/classfile/impl/DirectClassBuilder.with": 1,
+                "jdk/internal/classfile/impl/DirectCodeBuilder$4.writeBody": 1,
+                "java/util/LinkedHashMap$LinkedHashIterator.nextNode": 1,
+                "com/sun/org/apache/xerces/internal/impl/XMLDocumentFragmentScannerImpl$ElementStack2.<init>": 1,
+                "java/util/HashMap.getNode": 1,
+                "io/smallrye/classfile/impl/AbstractAttributeMapper$MethodParametersMapper.writeBody": 1,
+                "io/quarkus/gizmo2/impl/FieldCreatorImpl.<init>": 1,
+                "io/smallrye/classfile/impl/DirectCodeBuilder.with": 1
+              },
+              "scope": "Whole fresh JVM includes warmup, solving, validation and native report generation; sampled weights are estimates, not exact allocation totals"
+            }
+          },
+          {
+            "caseId": "a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b",
+            "recording": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\recording.jfr",
+            "recordingHash": "e6a705ef6b483d5675cfd97041bf96f6e1383c7a0e3ad5a5d74535ad289a85fe",
+            "jdkJfrToolHash": "ec838368727d52a1aa662f4f1b2543ef6291e0e710688fd07be2b5e96cd780cb",
+            "exportHash": "486468f8d4c42227700d6d1ce7afd2882ebf9447be328eba5b0b12875cf04651",
+            "summary": {
+              "eventCounts": {
+                "jdk.ObjectAllocationSample": 904,
+                "jdk.GarbageCollection": 12,
+                "jdk.ExecutionSample": 101
+              },
+              "allocationSampleWeightBytes": 413220792,
+              "allocationUnavailableReason": null,
+              "gcDurationSeconds": 0.1167076,
+              "gcUnavailableReason": null,
+              "executionSampleLeafFrames": {
+                "freemarker/core/FMParserTokenManager.jjMoveNfa_0": 15,
+                "java/net/URL.<init>": 2,
+                "java/lang/StringLatin1.hashCode": 2,
+                "jdk/internal/util/ArraysSupport.hashCodeOfUnsigned": 2,
+                "freemarker/core/FMParser.jj_ntk_f": 2,
+                "freemarker/core/FMParserTokenManager.jjCheckNAdd": 2,
+                "java/math/BigInteger.implMulAdd": 1,
+                "java/lang/String.equals": 1,
+                "com/fasterxml/jackson/databind/util/internal/PrivateMaxEntriesMap.applyRead": 1,
+                "org/springframework/boot/loader/zip/ZipString.hash": 1,
+                "java/lang/invoke/DirectMethodHandle$Holder.invokeStatic": 1,
+                "java/lang/Class.getConstructor0": 1,
+                "jdk/internal/loader/Resource.cachedInputStream": 1,
+                "jdk/internal/constant/ConstantUtils.referenceClassDesc": 1,
+                "java/lang/Class.createAnnotationData": 1,
+                "java/lang/reflect/Method.getDefaultValue": 1,
+                "org/springframework/boot/loader/zip/ZipContent.getFirstLookupIndex": 1,
+                "java/lang/Class.descriptorString": 1,
+                "com/sun/org/apache/xerces/internal/impl/XMLEntityScanner.scanLiteral": 1,
+                "io/quarkus/gizmo2/desc/InterfaceMethodDesc.of": 1,
+                "ai/timefold/solver/core/impl/domain/common/accessor/MemberAccessorFactory.buildAndCacheMemberAccessor": 1,
+                "io/quarkus/gizmo2/impl/BlockCreatorImpl.set": 1,
+                "java/util/Objects.requireNonNull": 1,
+                "io/smallrye/classfile/impl/AbstractPoolEntry$AbstractMemberRefEntry.nameAndType": 1,
+                "java/nio/ByteBuffer.position": 1
+              },
+              "scope": "Whole fresh JVM includes warmup, solving, validation and native report generation; sampled weights are estimates, not exact allocation totals"
+            }
+          },
+          {
+            "caseId": "f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca",
+            "recording": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\recording.jfr",
+            "recordingHash": "fef71ba510c6a11224cb3697ed932131b51c915f0f39e4f3a34ed6b491b625ca",
+            "jdkJfrToolHash": "ec838368727d52a1aa662f4f1b2543ef6291e0e710688fd07be2b5e96cd780cb",
+            "exportHash": "5ccb0f5659a92062532b2f625b8f941086f13ddfc2d6573e8eb9b3d2a1b22249",
+            "summary": {
+              "eventCounts": {
+                "jdk.ObjectAllocationSample": 857,
+                "jdk.GarbageCollection": 12,
+                "jdk.ExecutionSample": 130
+              },
+              "allocationSampleWeightBytes": 408440736,
+              "allocationUnavailableReason": null,
+              "gcDurationSeconds": 0.1203597,
+              "gcUnavailableReason": null,
+              "executionSampleLeafFrames": {
+                "freemarker/core/FMParserTokenManager.jjMoveNfa_0": 9,
+                "sun/net/www/ParseUtil.firstEncodeIndex": 3,
+                "java/util/concurrent/ConcurrentHashMap.get": 3,
+                "java/net/URLConnection.getDefaultUseCaches": 3,
+                "java/util/HashMap.hash": 2,
+                "java/lang/StringBuilder.append": 2,
+                "org/springframework/boot/loader/net/protocol/jar/Handler.indexOfSeparator": 2,
+                "java/util/ImmutableCollections$MapN.probe": 2,
+                "java/net/URL.<init>": 2,
+                "jdk/internal/event/ExceptionThrownEvent.commit": 1,
+                "sun/invoke/util/VerifyAccess.ensureTypeVisible": 1,
+                "com/fasterxml/jackson/databind/deser/std/BaseNodeDeserializer$ContainerStack.popOrNull": 1,
+                "org/springframework/boot/loader/zip/ZipString.readInBuffer": 1,
+                "org/springframework/boot/loader/jar/NestedJarFile.getVersionedContentEntry": 1,
+                "sun/reflect/generics/factory/CoreReflectionFactory.getDeclsLoader": 1,
+                "com/fasterxml/jackson/databind/cfg/ConstructorDetector.shouldIntrospectorImplicitConstructors": 1,
+                "java/util/Locale.getDefault": 1,
+                "java/time/format/DateTimeFormatterBuilder$InstantPrinterParser.parse": 1,
+                "java/util/HashMap.treeifyBin": 1,
+                "dev/waterflex/scheduler/optimizer/DailyDataset.transfer": 1,
+                "sun/nio/ch/NativeThreadSet.add": 1,
+                "java/lang/reflect/Proxy$ProxyBuilder.proxyClassContext": 1,
+                "java/lang/invoke/MethodTypeForm.cachedLambdaForm": 1,
+                "java/lang/classfile/CodeBuilder.exceptionCatch": 1,
+                "jdk/internal/classfile/impl/StackMapDecoder$1.compare": 1
+              },
+              "scope": "Whole fresh JVM includes warmup, solving, validation and native report generation; sampled weights are estimates, not exact allocation totals"
+            }
+          }
+        ],
+        "performanceComparison": false
+      }
+    }
+  ]
+}
