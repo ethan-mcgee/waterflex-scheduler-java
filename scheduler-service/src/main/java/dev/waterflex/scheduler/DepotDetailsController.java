@@ -53,7 +53,7 @@ public class DepotDetailsController {
             double distance = distanceMeters(Required.value(pin.lat()), Required.value(pin.lng()), Required.value(candidate.lat()), Required.value(candidate.lng()));
             if (distance > 250) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pin is too far from geocode");
         }
-        var depots = jdbc.query("SELECT id FROM depot WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+        var depots = jdbc.query("SELECT id FROM depot WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id);
         if (depots.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Depot not found");
         if (address == null || pin == null || candidate == null) {
             jdbc.update("UPDATE depot SET name=? WHERE id=?", name, id);
@@ -64,21 +64,21 @@ public class DepotDetailsController {
         LocalDate today = Required.value(now.atZone(ZoneId.of("America/Chicago")).toLocalDate());
         Timestamp todayStamp = stamp(today);
         List<String> technicians = jdbc.query("SELECT t.id FROM technician t WHERE EXISTS (SELECT 1 FROM technician_depot_assignment a WHERE a.\"technicianId\"=t.id AND a.\"depotId\"=?) ORDER BY t.id FOR UPDATE OF t",
-                (rs, _) -> Required.string(rs, 1), id);
+                (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id);
         List<BookedDay> booked = new ArrayList<>();
         for (String techId : technicians) {
             var days = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM (SELECT \"serviceDate\" FROM appointment WHERE \"technicianId\"=? AND \"cancelledAt\" IS NULL UNION ALL SELECT \"serviceDate\" FROM reservation_obligation WHERE \"technicianId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP) affected WHERE \"serviceDate\">=? ORDER BY \"serviceDate\"",
-                    (rs, _) -> Required.value(Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), techId, techId, todayStamp);
+                    (rs, _) -> Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), techId, techId, todayStamp);
             for (LocalDate day : days) {
                 LocalDate serviceDay = Required.value(day);
                 Timestamp date = stamp(serviceDay);
-                String assigned = Required.query(jdbc, "SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=? AND \"effectiveDate\"<=? ORDER BY \"effectiveDate\" DESC LIMIT 1", String.class, techId, date);
+                String assigned = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=? AND \"effectiveDate\"<=? ORDER BY \"effectiveDate\" DESC LIMIT 1", String.class, techId, date);
                 if (!id.equals(assigned)) continue;
                 jdbc.update("INSERT INTO schedule_day (id,\"technicianId\",\"serviceDate\",version) VALUES (?,?,?,0) ON CONFLICT (\"technicianId\",\"serviceDate\") DO NOTHING", UUID.randomUUID().toString(), techId, date);
                 jdbc.queryForList("SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", techId, date);
-                if (Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP", Integer.class, techId, date) > 0)
+                if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP", Integer.class, techId, date) > 0)
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Active hold prevents changing this depot location");
-                if (Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, techId, date) > 0) {
+                if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, techId, date) > 0) {
                     if (serviceDay.equals(today) && ScheduleCutoff.frozen(today, now))
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Today's route passed the 6 a.m. cutoff");
                     booked.add(new BookedDay(Required.value(techId), serviceDay));

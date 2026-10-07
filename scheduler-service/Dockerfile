@@ -3,6 +3,8 @@ WORKDIR /src
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
 COPY scheduler-service scheduler-service
+COPY calculation-engine calculation-engine
+COPY solver-service/pom.xml solver-service/pom.xml
 COPY routing-service/pom.xml routing-service/pom.xml
 RUN chmod +x mvnw && ./mvnw -q -pl scheduler-service -am -DskipTests package
 FROM eclipse-temurin:25-jre

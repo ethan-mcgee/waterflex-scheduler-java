@@ -46,7 +46,7 @@ public final class WeeklyAvailability {
                         (Integer)rs.getObject(7), (Integer)rs.getObject(8));
                     if (row.versionId() == null || row.weekday() == null)
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Technician weekly availability is missing");
-                    String id = Required.string(rs, 9);
+                    String id = dev.waterflex.scheduler.DatabaseFacts.string(rs, 9);
                     Availability availability = new Availability(select(row.available(), row.start(), row.end(), row.exceptionAvailable(), row.exceptionStart(), row.exceptionEnd()));
                     if (result.putIfAbsent(id, availability) != null)
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Duplicate technician availability");

@@ -19,19 +19,19 @@ public class BookingLocationController {
     }
     public enum Status { VALID, OUTSIDE_COVERAGE, UNROUTABLE, ROUTING_UNAVAILABLE }
     public record Response(Status status) { }
-    record Circle(RoadClient.Point center, double radius) { }
+    record Circle(RoadPoint center, double radius) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
     public BookingLocationController(JdbcTemplate jdbc, RoadClient roads) { this.jdbc = jdbc; this.roads = roads; }
 
     @PostMapping("/v1/book/location/validate")
     public Response validate(@RequestBody Request request) {
-        var point = new RoadClient.Point(Required.value(request.lat()), Required.value(request.lng()));
+        var point = new RoadPoint(Required.value(request.lat()), Required.value(request.lng()));
         List<Circle> circles = jdbc.query("SELECT d.lat,d.lng,m.\"serviceRadiusMi\" FROM depot d JOIN metro m ON m.id=d.\"metroId\"",
             (rs, _) -> {
-                double radius = Required.number(rs, 3);
+                double radius = dev.waterflex.scheduler.DatabaseFacts.number(rs, 3);
                 if (radius <= 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid coverage radius");
-                return new Circle(Required.location(rs, 1, 2, HttpStatus.CONFLICT), radius);
+                return new Circle(dev.waterflex.scheduler.DatabaseFacts.location(rs, 1, 2, HttpStatus.CONFLICT), radius);
             });
         if (circles.isEmpty()) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Coverage configuration unavailable");
         if (circles.stream().noneMatch(circle -> within(point, Required.value(circle)))) return new Response(Status.OUTSIDE_COVERAGE);
@@ -41,7 +41,7 @@ public class BookingLocationController {
         } catch (RoadClient.RoadUnavailable failure) { return new Response(Status.ROUTING_UNAVAILABLE); }
     }
 
-    static boolean within(RoadClient.Point point, Circle circle) {
+    static boolean within(RoadPoint point, Circle circle) {
         double dLat = Math.toRadians(point.lat() - circle.center().lat());
         double dLng = Math.toRadians(point.lng() - circle.center().lng());
         double a = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(Math.toRadians(point.lat()))

@@ -18,12 +18,12 @@ public class TestAddressRoutabilityService {
 
     public List<Result> check(List<Candidate> candidates) {
         List<Technician> technicians = jdbc.query("SELECT t.id, s.code," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id JOIN service_catalog s ON s.id=q.\"serviceId\" WHERE t.active=true AND p.\"metroId\"='metro-omaha' AND s.active=true ORDER BY t.id,s.code",
-                (rs, _) -> new Technician(Required.string(rs, 1), Required.string(rs, 2), RouteEndpoints.from(rs, 3)),
+                (rs, _) -> new Technician(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), RouteEndpoints.from(rs, 3)),
                 java.sql.Timestamp.from(java.time.LocalDate.now(java.time.ZoneId.of("America/Chicago")).plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()),
                 java.sql.Timestamp.from(java.time.LocalDate.now(java.time.ZoneId.of("America/Chicago")).plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
-        Map<String, RoadClient.Point> points = new LinkedHashMap<>();
+        Map<String, RoadPoint> points = new LinkedHashMap<>();
         technicians.forEach(tech -> { points.put("tech:" + tech.id(), tech.endpoints().departure()); points.put("return:" + tech.id(), tech.endpoints().returnTo()); });
-        candidates.forEach(candidate -> points.put("candidate:" + candidate.id(), new RoadClient.Point(candidate.lat(), candidate.lng())));
+        candidates.forEach(candidate -> points.put("candidate:" + candidate.id(), new RoadPoint(candidate.lat(), candidate.lng())));
         Map<String, RoadClient.Leg> matrix = roads.matrix(points);
         return evaluate(candidates, technicians, matrix);
     }

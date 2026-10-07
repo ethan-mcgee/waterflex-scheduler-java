@@ -15,7 +15,7 @@ class BookingMoneyTest {
     private static final Instant END = Required.value(START.plusSeconds(8 * 3600));
     private static final Rates RATES = new Rates(.3, .45, 0, 0, 0);
     @Test void insertionDeltaIncludesFractionalCostOfUnchangedRoutesAndMatchesFullValidation() {
-        var point = new RoadClient.Point(41.25, -95.93);
+        var point = new RoadPoint(41.25, -95.93);
         var technicians = new TreeMap<String, Technician>();
         for (String id : new String[]{"a", "b"}) technicians.put(id, new Technician(Required.value(id), START, END, 480, 0,
                 Required.value(Set.of("service")), Required.value(List.of()), point, point, 0));

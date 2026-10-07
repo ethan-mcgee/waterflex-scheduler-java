@@ -50,26 +50,26 @@ public final class ReservationCommit {
             Map<LocalDate, ReservationTransition.Prepared> proposals, boolean applyConfirmed, boolean keepAssignments, Supplier<T> mutation) {
         SearchDeadline.beginCommit();
         return Required.value(transaction.execute(_ -> {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override public void beforeCommit(boolean readOnly) { SearchDeadline.beforeCommit(); }
             });
-            if (jdbc.query("SELECT id FROM job WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), jobId).size() != 1)
+            if (jdbc.query("SELECT id FROM job WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), jobId).size() != 1)
                 throw conflict("Job no longer exists");
             Set<LockKey> keys = new TreeSet<>(Comparator.comparing((LockKey key) -> key.technician()).thenComparing(key -> key.date()));
             expected.days().forEach((date, day) -> day.technicians().keySet().forEach(id -> keys.add(new LockKey(Required.value(id), Required.value(date)))));
             Set<String> techniciansToLock = new TreeSet<>();
             keys.forEach(key -> techniciansToLock.add(key.technician()));
             if (!techniciansToLock.isEmpty()) {
-                SearchDeadline.database(jdbc);
+                dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
                 List<Object> technicianArguments = new ArrayList<>(techniciansToLock);
                 if (jdbc.query("SELECT id FROM technician WHERE id IN (" + String.join(",", Collections.nCopies(techniciansToLock.size(), "?")) + ") ORDER BY id FOR SHARE",
-                        (rs, _) -> Required.string(rs, 1), technicianArguments.toArray(new @Nullable Object[0])).size() != techniciansToLock.size())
+                        (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), technicianArguments.toArray(new @Nullable Object[0])).size() != techniciansToLock.size())
                     throw conflict("Technician no longer exists");
             }
             jdbc.queryForList("SELECT key FROM omaha_setting ORDER BY key FOR SHARE");
             if (!keys.isEmpty()) {
-                SearchDeadline.database(jdbc);
+                dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
                 List<@Nullable Object[]> inserts = new ArrayList<>();
                 List<Object> arguments = new ArrayList<>();
                 for (LockKey key : keys) {
@@ -79,7 +79,7 @@ public final class ReservationCommit {
                 jdbc.batchUpdate("INSERT INTO schedule_day (id,\"technicianId\",\"serviceDate\",version) VALUES (?,?,?,0) ON CONFLICT (\"technicianId\",\"serviceDate\") DO NOTHING", inserts);
                 if (jdbc.query("SELECT version FROM schedule_day WHERE (\"technicianId\",\"serviceDate\") IN ("
                         + String.join(",", Collections.nCopies(keys.size(), "(?,?)")) + ") ORDER BY \"technicianId\",\"serviceDate\" FOR UPDATE",
-                        (rs, _) -> Required.integer(rs, 1), arguments.toArray(new @Nullable Object[0])).size() != keys.size())
+                        (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.integer(rs, 1), arguments.toArray(new @Nullable Object[0])).size() != keys.size())
                     throw conflict("Schedule lock coverage changed");
             }
             List<LocalDate> dates = new ArrayList<>(new TreeSet<>(expected.days().keySet()));

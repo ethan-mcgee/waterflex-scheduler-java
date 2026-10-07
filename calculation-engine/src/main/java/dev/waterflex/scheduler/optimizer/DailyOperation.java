@@ -16,12 +16,12 @@ import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 /** One local daily request. Only the worker releases admission, even after its caller leaves. */
-final class DailyOperation {
+public final class DailyOperation {
     private static final ThreadLocal<DailyOperation> CURRENT = new ThreadLocal<>();
     private static final java.util.concurrent.ScheduledExecutorService WATCHDOG = Required.value(Executors.newSingleThreadScheduledExecutor(
             task -> Thread.ofPlatform().daemon().name("daily-cancellation").unstarted(task)));
     private static final long SEARCH_NANOS = Duration.ofSeconds(15).toNanos();
-    record Receipt(String requestId, String outcome, long elapsedMs, @Nullable Long queueMs, long searchMs,
+    public record Receipt(String requestId, String outcome, long elapsedMs, @Nullable Long queueMs, long searchMs,
             @Nullable Long cancellationElapsedMs, @Nullable Long cleanupOvershootMs, long phaseCleanupOvershootMs,
             long searchOvershootMs, boolean lateResult) { }
     private final String id = Required.value(UUID.randomUUID().toString());
@@ -42,17 +42,20 @@ final class DailyOperation {
         deadline = new SearchDeadline(allowance);
         this.recorder = recorder;
     }
-    static @Nullable DailyOperation current() { return CURRENT.get(); }
-    record Preparation<T>(Supplier<T> work, boolean needsAdmission, Consumer<Throwable> failed) { }
+    public static @Nullable DailyOperation current() { return CURRENT.get(); }
+    public record Preparation<T>(Supplier<T> work, boolean needsAdmission, Consumer<Throwable> failed) { }
     static <T> T executePrepared(SearchAdmission admission, Supplier<Preparation<T>> prepare) {
         return launch(admission, Required.value(Duration.ofSeconds(20)), prepare,
                 receipt -> org.slf4j.LoggerFactory.getLogger(DailyOperation.class).info("Daily operation {}", receipt));
+    }
+    public static <T> T executePrepared(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
+        return launch(admission,allowance,prepare,recorder);
     }
     static <T> T execute(SearchAdmission admission, Supplier<T> work) {
         return execute(admission, Required.value(Duration.ofSeconds(20)), work,
                 receipt -> org.slf4j.LoggerFactory.getLogger(DailyOperation.class).info("Daily operation {}", receipt));
     }
-    static <T> T execute(SearchAdmission admission, Duration allowance, Supplier<T> work, Consumer<Receipt> recorder) {
+    public static <T> T execute(SearchAdmission admission, Duration allowance, Supplier<T> work, Consumer<Receipt> recorder) {
         return launch(admission, allowance, () -> new Preparation<>(work, true, _ -> { }), recorder);
     }
     private static <T> T launch(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
@@ -148,7 +151,7 @@ final class DailyOperation {
         return Math.min(SEARCH_NANOS - searchNanos, deadline.explorationNanos()) >= 1_000_000;
     }
     private synchronized boolean isCancelled() { return cancelled; }
-    private synchronized void cancel() {
+    public synchronized void cancel() {
         if (!cancelled) { cancelled = true; cancelledAt = deadline.elapsedMillis(); deadline.cancel(); }
         Solver<DayPlan> solver = activeSolver;
         if (solver != null) solver.terminateEarly();

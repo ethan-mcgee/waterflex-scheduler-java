@@ -80,8 +80,8 @@ class DispatchGeometryControllerTest {
         assertEquals(1, body.at("/features/1/properties/legIndex").asInt());
         assertEquals(800, body.at("/features/0/properties/meters").asInt());
         assertEquals("visit", body.at("/stops/0/id").asText());
-        verify(roads).routeGeometry(Required.value(List.<RoadClient.Point>of(new RoadClient.Point(41.25, -95.93),
-                new RoadClient.Point(41.27, -95.95), new RoadClient.Point(41.25, -95.93))), "test-roads");
+        verify(roads).routeGeometry(Required.value(List.<RoadPoint>of(new RoadPoint(41.25, -95.93),
+                new RoadPoint(41.27, -95.95), new RoadPoint(41.25, -95.93))), "test-roads");
     }
 
     @Test void currentGeometryUsesVersionedSegmentsAndRejectsMalformedCoverage() throws Exception {
@@ -129,8 +129,8 @@ class DispatchGeometryControllerTest {
         assertEquals("saved-before", body.at("/stops/0/id").asText());
         assertEquals(41.28, body.at("/stops/0/lat").asDouble());
         verify(jdbc, never()).query(MockArguments.startsText("SELECT a.id"), MockArguments.<@org.jspecify.annotations.Nullable Object>rowMapper(), MockArguments.equalText("metro"), any(Timestamp.class));
-        verify(roads).routeGeometry(Required.value(List.<RoadClient.Point>of(new RoadClient.Point(41.25, -95.93),
-                new RoadClient.Point(41.28, -95.97), new RoadClient.Point(41.25, -95.93))), "test-roads");
+        verify(roads).routeGeometry(Required.value(List.<RoadPoint>of(new RoadPoint(41.25, -95.93),
+                new RoadPoint(41.28, -95.97), new RoadPoint(41.25, -95.93))), "test-roads");
     }
 
     @Test

@@ -16,15 +16,15 @@ class MonetaryMigrationDatabaseIT {
             migration(connection);
             try (Statement sql = connection.createStatement()) {
                 try (ResultSet rows = sql.executeQuery("SELECT value FROM omaha_setting WHERE key='regular_hourly_dollars'")) {
-                    assertTrue(rows.next()); assertEquals(0, Required.decimal(rows, 1).compareTo(new BigDecimal("20.02")));
+                    assertTrue(rows.next()); assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.decimal(rows, 1).compareTo(new BigDecimal("20.02")));
                 }
                 try (ResultSet rows = sql.executeQuery("SELECT \"legacyRendering\",\"legacyBits\",\"decimalValue\" FROM monetary_migration_receipt WHERE \"sourceIdentity\"='regular_hourly_dollars'")) {
-                    assertTrue(rows.next()); assertEquals(0, new BigDecimal(Required.string(rows, 1)).compareTo(BigDecimal.valueOf(20.02)));
-                    assertEquals("4034051eb851eb85", Required.string(rows, 2)); assertEquals(0, Required.decimal(rows, 3).compareTo(new BigDecimal("20.02")));
+                    assertTrue(rows.next()); assertEquals(0, new BigDecimal(dev.waterflex.scheduler.DatabaseFacts.string(rows, 1)).compareTo(BigDecimal.valueOf(20.02)));
+                    assertEquals("4034051eb851eb85", dev.waterflex.scheduler.DatabaseFacts.string(rows, 2)); assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.decimal(rows, 3).compareTo(new BigDecimal("20.02")));
                 }
                 try (ResultSet rows = sql.executeQuery("SELECT \"legacyRendering\",\"decimalValue\" FROM monetary_migration_receipt WHERE \"sourceIdentity\"='adjacent'")) {
-                    assertTrue(rows.next()); assertEquals(0, new BigDecimal(Required.string(rows, 1)).compareTo(BigDecimal.valueOf(Math.nextUp(.1))));
-                    assertEquals(0, Required.decimal(rows, 2).compareTo(BigDecimal.valueOf(Math.nextUp(.1))));
+                    assertTrue(rows.next()); assertEquals(0, new BigDecimal(dev.waterflex.scheduler.DatabaseFacts.string(rows, 1)).compareTo(BigDecimal.valueOf(Math.nextUp(.1))));
+                    assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.decimal(rows, 2).compareTo(BigDecimal.valueOf(Math.nextUp(.1))));
                 }
                 try (ResultSet rows = sql.executeQuery("SELECT count(*) FROM monetary_migration_receipt")) { assertTrue(rows.next()); assertEquals(6, rows.getInt(1)); }
                 try (ResultSet rows = sql.executeQuery("SELECT status,reason FROM optimization_run ORDER BY id")) {
@@ -57,7 +57,7 @@ class MonetaryMigrationDatabaseIT {
                 assertThrows(SQLException.class, () -> sql.execute("UPDATE omaha_setting SET value='NaN'::numeric WHERE key='regular_hourly_dollars'"));
                 sql.execute("INSERT INTO booking_offer (id,\"jobId\",\"expiresAt\",\"incrementalCostDollars\") VALUES ('new','pending',CURRENT_TIMESTAMP,85.09)");
                 try (ResultSet rows = sql.executeQuery("SELECT \"incrementalCostDollars\",\"costModelVersion\" FROM booking_offer WHERE id='new'")) {
-                    assertTrue(rows.next()); assertEquals(0, Required.decimal(rows, 1).compareTo(new BigDecimal("85.09"))); assertEquals(Monetary.COST_MODEL, rows.getString(2));
+                    assertTrue(rows.next()); assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.decimal(rows, 1).compareTo(new BigDecimal("85.09"))); assertEquals(Monetary.COST_MODEL, rows.getString(2));
                 }
             }
         });

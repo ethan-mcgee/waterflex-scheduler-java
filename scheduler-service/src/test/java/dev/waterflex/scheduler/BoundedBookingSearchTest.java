@@ -171,7 +171,7 @@ class BoundedBookingSearchTest {
     private static final LocalDate DAY = Required.value(LocalDate.parse("2026-10-26"));
     private static final Instant START = Required.value(Instant.parse("2026-10-26T14:00:00Z"));
     private static final Instant END = Required.value(START.plusSeconds(7200));
-    private static final RoadClient.Point POINT = new RoadClient.Point(41.25, -95.93);
+    private static final RoadPoint POINT = new RoadPoint(41.25, -95.93);
     private static final Rates RATES = new Rates(30, 45, 0, 0, 0);
 
     @Test void relocationFindsRegularCapacityThatInsertionMissesWithoutChangingPromises() {

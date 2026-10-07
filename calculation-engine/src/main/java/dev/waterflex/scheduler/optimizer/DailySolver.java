@@ -35,4 +35,9 @@ public final class DailySolver {
     public Diagnostics diagnostics(List<Phase> phases) {
         return new Diagnostics(EngineProvenance.loaded().label(), definition.configurationXml(), Required.value(List.copyOf(phases)), constructionDefinition.configurationXml());
     }
+    public String variant() { return Required.value(definition.variant().name()); }
+    public long seed() { return definition.seed(); }
+    public boolean matches(@org.jspecify.annotations.Nullable String variant, long seed) {
+        return definition.variant().name().equals(variant) && definition.seed() == seed;
+    }
 }
