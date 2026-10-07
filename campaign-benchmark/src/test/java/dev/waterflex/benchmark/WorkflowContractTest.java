@@ -37,7 +37,7 @@ class WorkflowContractTest {
                 response=CalculationJson.tree("{\"independentlyValidated\":true,\"costModelVersion\":\""+DailyDataset.COST_MODEL+"\",\"days\":[{\"policy\":{\"overtimeMinutes\":0}}]}");
             } else response=Map.of("fixtureOnly",true);
             byte[] bytes=CalculationJson.write(Required.value(response)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            exchange.sendResponseHeaders(200,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();
+            exchange.sendResponseHeaders(path.equals("/warm-failure") ? 400 : 200,bytes.length);exchange.getResponseBody().write(bytes);exchange.close();
         });
         server.start();
         try {
@@ -63,6 +63,16 @@ class WorkflowContractTest {
             assertEquals("RESPONSE",Protocol.text(Protocol.get(Required.value(rows.get(0)),"outcome")));
             assertEquals("GENERATOR_CAPACITY",Protocol.text(Protocol.get(Required.value(rows.get(1)),"outcome")));
             assertFalse((Boolean)result.get("independentlyValid"));assertEquals(true,result.get("cleanupComplete"));
+            var failedWarm=new WorkflowBenchmark.Envelope(envelope.version(),envelope.datasetJson(),envelope.baseUrl(),envelope.endpointIdentity(),
+                    envelope.expectedConfiguration(),envelope.preparation(),Required.value(Map.of("booking-offer",List.of(
+                    new WorkflowBenchmark.Request(call("failed-warm","/warm-failure"),null,null,Required.value(List.of()))))),
+                    envelope.requests(),envelope.verification(),envelope.cleanupObservationMs(),envelope.cleanupPollMs());
+            campaign.put("warmup",Map.of("millisecondsPerFreshJvm",1,"paths",List.of("booking-offer"),"disposableInputs",true,"calibrationMs",List.of(1),"calibrationRepetitions",1,"stabilityTolerancePercent",5));
+            Path failedDirectory=Required.value(java.nio.file.Files.createDirectory(Required.value(directory).resolve("failed-warm")));
+            var failure=assertThrows(IllegalArgumentException.class,() -> WorkflowBenchmark.run(CalculationJson.tree(CalculationJson.write(campaign)),CalculationJson.write(failedWarm),failedDirectory));
+            assertTrue(Required.value(failure.getMessage()).contains("Caller warmup failed"));
+            assertTrue(java.nio.file.Files.readString(failedDirectory.resolve("caller-warmup.json")).contains("UNEXPECTED_HTTP_STATUS"));
+            assertEquals(1,measured.get(),"Failed warmup must stop before measured calls");
         } finally { server.stop(0);executor.close(); }
     }
     private static WorkflowBenchmark.Call call(String id,String path) { return new WorkflowBenchmark.Call(id,"POST",path,CalculationJson.tree("{}"),200); }
