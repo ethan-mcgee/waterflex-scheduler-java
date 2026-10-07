@@ -90,7 +90,9 @@ def execute(source):
         with measurement_lock():
             for label, (path, _) in configs.items():
                 print(f'Registered probe: {label}', flush=True)
-                run = cr.new_run(path, base=root / 'runs')
+                # Keep JVM working directories at the normal campaign depth on Windows.
+                # The study retains an immutable manifest-hashed pointer to each independent archive.
+                run = cr.new_run(path)
                 write_new(root / 'probes' / f'{label}.json', {'label': label, 'run': str(run), 'manifestHash': sha(run / 'manifest.json')})
                 cr.execute(run)
                 cr.analyze(run)
