@@ -98,7 +98,12 @@ public final class WorkflowBenchmark {
             int index=0;long minimum=integer(get(warm,"millisecondsPerFreshJvm"),0);
             while((System.nanoTime()-started)/1_000_000<minimum) {
                 if(index>=requests.size()) throw new IllegalArgumentException("Disposable warmup inputs exhausted; declare more unique inputs");
-                warmEvidence.add(benchmark.observe(Required.value(requests.get(index++)),started,System.nanoTime()-started));
+                Observation observation=benchmark.observe(Required.value(requests.get(index++)),started,System.nanoTime()-started);
+                warmEvidence.add(observation);
+                if(!observation.outcome().equals("RESPONSE")) {
+                    SnapshotFileIO.writeText(directory.resolve("caller-warmup.json").toFile(),CalculationJson.write(warmEvidence));
+                    throw new IllegalArgumentException("Caller warmup failed: "+observation.outcome());
+                }
             }
             elapsed.put(path,(System.nanoTime()-started)/1e6);
         }

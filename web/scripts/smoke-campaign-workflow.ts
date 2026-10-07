@@ -63,11 +63,11 @@ async function main() {
     save(join(directory, "caller-snapshot.json"), snapshot);
     for (const operation of ["booking-offer", "daily-preview"] as const) {
       const requests = operation === "booking-offer" ? [0, 1].map(index => {
-        const body = { jobId: `${caseId}-job-${index}`, refresh: true, deadlineEpochMs: null, searchRequestId: `${caseId}-search-${index}` };
+        const body = { jobId: `${caseId}-job-${index}`, refresh: true, deadlineEpochMs: null, searchRequestId: randomUUID() };
         const cancellation = call(`cancel-${index}`, "/v1/offers/cancel-search", { jobId: body.jobId, searchRequestId: body.searchRequestId });
         return { call: call(`booking-${index}`, "/v1/offers", body), cancelAfterMs: index === 0 ? 20 : null, cancellation: index === 0 ? cancellation : null, cleanup: [call(`cleanup-${index}`, "/v1/offers/cancel-search", cancellation.body)] };
       }) : [{ call: call("daily", "/v1/optimize/day/preview", { metro_id: caseId, date: day, request_key: `${caseId}-daily` }), cancelAfterMs: null, cancellation: null, cleanup: [] }];
-      const warmBody = { jobId: `${caseId}-job-2`, refresh: true, deadlineEpochMs: null, searchRequestId: `${caseId}-warm-search` };
+      const warmBody = { jobId: `${caseId}-job-2`, refresh: true, deadlineEpochMs: null, searchRequestId: randomUUID() };
       const warm = operation === "booking-offer" ? { call: call("warm-booking", "/v1/offers", warmBody), cancelAfterMs: null, cancellation: null,
         cleanup: [call("warm-cleanup", "/v1/offers/cancel-search", { jobId: warmBody.jobId, searchRequestId: warmBody.searchRequestId })] }
         : { call: call("warm-daily", "/v1/optimize/day/preview", { metro_id: caseId, date: day, request_key: `${caseId}-warm-daily` }), cancelAfterMs: null, cancellation: null, cleanup: [] };
