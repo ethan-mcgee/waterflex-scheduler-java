@@ -69,12 +69,18 @@ public final class SchedulingBenchmarkController {
         this.optimization=optimization;
     }
     @PostMapping("/internal/benchmark/dataset")
-    public dev.waterflex.scheduler.CalculationProtocol.DailyInput dataset(@RequestBody dev.waterflex.scheduler.optimizer.OptimizationService.Request request) {
+    public DatasetExport dataset(@RequestBody dev.waterflex.scheduler.optimizer.OptimizationService.Request request) {
         isolated();
         if(request.request_key()==null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Explicit dataset snapshot identity required");
         RequestChecks.text(request.request_key(),"request_key");
-        return optimization.exportDataset(request);
+        var input=optimization.exportDataset(request);
+        var policy=input.policy();
+        return new DatasetExport(input.dataset(),new ExportPolicy(policy.regularWindowThreshold(),
+                Required.value(policy.utilizationThreshold().stripTrailingZeros().toPlainString()),
+                Required.value(policy.fairnessAllowance().stripTrailingZeros().toPlainString()),policy.bookingDeadlineMs()));
     }
+    public record ExportPolicy(int regularWindowThreshold,String utilizationThreshold,String fairnessAllowance,int bookingDeadlineMs) { }
+    public record DatasetExport(String dataset,ExportPolicy policy) { }
     private Map<String,Long> persistedCounts() {
         Map<String,Long> counts=new TreeMap<>();
         for(String table:List.of("optimization_run","booking_offer_set","booking_search_request","reservation_obligation","slot_hold","appointment"))

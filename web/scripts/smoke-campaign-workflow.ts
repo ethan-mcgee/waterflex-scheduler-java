@@ -56,7 +56,9 @@ async function main() {
     for (let index = 0; index < 4; index++) await prisma.job.create({ data: { id: `${caseId}-job-${index}`, customerId: `${caseId}-customer`, addressId: `${caseId}-address`, serviceId: `${caseId}-common`, durationMin: 30, status: index === 3 ? "SCHEDULED" : "PENDING" } });
     await prisma.appointment.create({ data: { id: `${caseId}-appointment`, jobId: `${caseId}-job-3`, technicianId: `${caseId}-tech-0`, serviceDate,
       windowStart: new Date(`${day}T16:00:00Z`), windowEnd: new Date(`${day}T20:00:00Z`), plannedStart: new Date(`${day}T16:20:00Z`), plannedEnd: new Date(`${day}T16:50:00Z`), sequence: 0 } });
-    const snapshot = snapshotSchema.parse(await post("/internal/benchmark/dataset", { metro_id: caseId, date: day, request_key: `${caseId}-capture` }));
+    const rawSnapshot = await post("/internal/benchmark/dataset", { metro_id: caseId, date: day, request_key: `${caseId}-capture` });
+    save(join(directory, "caller-snapshot-response.json"), rawSnapshot);
+    const snapshot = snapshotSchema.parse(rawSnapshot);
     const identity = identitySchema.parse(JSON.parse(snapshot.dataset) as unknown);
     save(join(directory, "caller-snapshot.json"), snapshot);
     for (const operation of ["booking-offer", "daily-preview"] as const) {
@@ -103,7 +105,10 @@ async function main() {
       writeFileSync(join(directory, `${operation}-process.log`), output, { flag: "wx" });
       const start = output.indexOf("{\n"); assert.ok(start >= 0, output);
       const inventory = inventorySchema.parse(JSON.parse(output.slice(start)) as unknown);
-      assert.equal(inventory.outcomes.SUCCEEDED, 1); assert.equal(inventory.outcomes.FAILED, 0); assert.equal(inventory.inference, null);
+      assert.equal(inventory.outcomes.SUCCEEDED, 1); assert.equal(inventory.outcomes.FAILED, 0);
+      assert.equal(inventory.outcomes.INTERRUPTED, 0); assert.equal(inventory.outcomes.ABANDONED, 0);
+      assert.equal(inventory.independentlyValidCases, 1, "Caller transport, cleanup and independent audit must all pass");
+      assert.equal(inventory.inference, null);
     }
     successful = true; console.log(`Embedded/remote caller dataset export, booking/daily pacing, persistence, reservations, routing and cancellation smoke passed: ${directory}`);
   } finally {
@@ -111,4 +116,7 @@ async function main() {
     await prisma.$disconnect();
   }
 }
-main().catch(error => { console.error(error); process.exitCode = 1; });
+main().catch(error => {
+  save(join(directory, "failure.json"), { error: String(error), stack: error instanceof Error ? error.stack ?? null : null });
+  console.error(error); process.exitCode = 1;
+});
