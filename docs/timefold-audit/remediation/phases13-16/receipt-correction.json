@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "recordedAt": "2026-10-07T05:54:06.144802+00:00",
+  "originalReceipt": {
+    "path": "docs\\timefold-audit\\remediation\\phases13-16\\verification.json",
+    "sha256": "1b6606a0cec9182c5481cbec59167f613c6ccfff70b940a3161d4a087fadc198"
+  },
+  "reason": "The generator included its own redirected log before the process flushed its final summary. Preserve the original receipt and record the finalized log identity separately.",
+  "correctedLog": {
+    "path": ".scratch\\final-audit-receipt-001.log",
+    "sha256": "b6a73dd82fb052a984091e092cd606755ce6a42f7358d846ef580bc9aff03974"
+  },
+  "allOtherOriginalReferencesVerified": true,
+  "otherReferenceCount": 32,
+  "measuredCampaignsChanged": false,
+  "historicalEvidenceChanged": false
+}
