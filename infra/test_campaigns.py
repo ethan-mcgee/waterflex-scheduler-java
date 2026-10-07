@@ -397,6 +397,69 @@ class CampaignLifecycleTests(unittest.TestCase):
 
 
 class AdapterContractTests(unittest.TestCase):
+    def test_real_results_reject_null_metrics_native_caps_and_false_eligibility(self):
+        config = configuration()
+        request = {'layer': 'solver', 'dataset': {'cohort': 'assigned'}, 'case': {'solverSeed': 17}, 'budget': {'searchMs': 80}}
+        valid = {'mode': 'ASSIGNED', 'scoreModelVersion': 'model', 'assignedVisitIds': ['visit'], 'unassignedVisitIds': [],
+                 'complete': True, 'assignedWorkFeasible': True, 'scoringMatchesValidation': True, 'policyEligible': True}
+        result = {'layer': 'solver', 'wallMs': 12, 'configurationHash': 'hash', 'seed': 17, 'phaseCount': 1,
+                  'outcome': valid, 'metrics': {'hardPenalty': 0, 'costCents': 20, 'arrivals': {'visit': '2026-10-26T10:00:00Z'},
+                  'paidMinutes': 2, 'overtimeMinutes': 0, 'meters': 1, 'driveMinutes': 1, 'waitingMinutes': 0},
+                  'proposal': {'version': 1, 'factsHash': 'facts', 'routes': {'tech': ['visit']}, 'unassigned': [], 'mode': 'ASSIGNED', 'score': None},
+                  'nativeReport': 'native/report', 'nativeMeasurement': {'subSingleCount': 1, 'subSingleIndex': 0, 'seed': 17,
+                  'phaseCount': 1, 'moveThreads': 'NONE', 'spentCapMs': 80, 'solveMs': 10, 'scoreCalculationCount': 3, 'moveEvaluationCount': 2, 'score': 'score'}}
+        self.assertTrue(cr.benchmark_result(result, request))
+        edits = [lambda r: r['metrics'].update(costCents=None), lambda r: r['nativeMeasurement'].update(spentCapMs=81),
+                 lambda r: r['nativeMeasurement'].update(moveEvaluationCount=-1), lambda r: r['nativeMeasurement'].update(seed=18),
+                 lambda r: r['outcome'].update(assignedWorkFeasible=False), lambda r: r['outcome'].update(unassignedVisitIds=['visit'])]
+        for edit in edits:
+            malformed = copy.deepcopy(result)
+            edit(malformed)
+            with self.subTest(edit=edit), self.assertRaises(ValueError):
+                cr.benchmark_result(malformed, request)
+        request['dataset']['cohort'] = 'repair'
+        with self.assertRaises(ValueError):
+            cr.benchmark_result(result, request)
+        result['repair'] = {'timeToFeasibilityMs': None, 'unavailableReason': 'Final proposals only',
+            'unresolvedCandidate': [], 'unresolvedRetained': [], 'terminalCandidateEligible': True, 'terminalRetainedEligible': True}
+        self.assertTrue(cr.benchmark_result(result, request))
+        result['repair']['timeToFeasibilityMs'] = 0
+        with self.assertRaises(ValueError):
+            cr.benchmark_result(result, request)
+        request['dataset']['cohort'] = 'invalid-input'
+        rejection = {'layer': 'input-contract', 'expectedFailure': True, 'failureType': 'IllegalArgumentException', 'failureMessage': 'missing rates'}
+        self.assertIsNone(cr.benchmark_result(rejection, request))
+        rejection['expectedFailure'] = False
+        with self.assertRaises(ValueError):
+            cr.benchmark_result(rejection, request)
+
+    def test_real_policy_is_explicit_and_booking_has_its_own_allowance(self):
+        config = configuration()
+        config['datasets'][0].update(origin='historical', datasetSeed=None)
+        with self.assertRaises(ValueError):
+            cc.validate(config)
+        config['policy'] = {'regularWindowThreshold': 2, 'utilizationThreshold': '0.9', 'fairnessAllowance': '0.02', 'bookingDeadlineMs': 5000}
+        cc.validate(config)
+        config['policy']['fairnessAllowance'] = None
+        with self.assertRaises(ValueError):
+            cc.validate(config)
+        config['policy']['fairnessAllowance'] = '0.02'
+        config['layer'] = 'workflow'
+        config['applicationLoad'] = {'operation': 'booking-offer', 'mode': 'paced-arrival', 'requestsPerCase': 2, 'requestsPerSecond': 1,
+            'concurrency': 1, 'schedulerCache': 'cold', 'providerCache': 'cold', 'timeoutMs': 10000, 'observeCancellation': True,
+            'deployment': 'embedded', 'endpointIdentity': 'fixture'}
+        config['warmup']['paths'] = ['booking-offer']
+        config['budgets'] = [{'id': 'booking', 'purpose': 'production', 'phase': 'booking', 'operationMs': 5000,
+            'searchMs': 4000, 'referenceMs': 0, 'fairnessMs': 0, 'repairMs': 0, 'validationReserveMs': 1000, 'transferUnusedToFairness': False}]
+        cc.validate(config)
+        config['budgets'][0]['operationMs'] = 6000
+        with self.assertRaises(ValueError):
+            cc.validate(config)
+        config['policy']['bookingDeadlineMs'] = 3000
+        config['budgets'][0].update(operationMs=3000,searchMs=2000)
+        with self.assertRaises(ValueError):
+            cc.validate(config)
+
     def fixture(self, directory):
         config = configuration()
         config = cc.resolve(config, directory)

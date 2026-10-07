@@ -1,0 +1,187 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[WARNING] The requested profile "campaign-benchmark" could not be activated because it does not exist.
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] calculation-engine                                                 [jar]
+[INFO] campaign-benchmark                                                 [jar]
+[INFO] 
+[INFO] ------------------< dev.waterflex:calculation-engine >------------------
+[INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/2]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ calculation-engine ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ calculation-engine ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ calculation-engine ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ------------------< dev.waterflex:campaign-benchmark >------------------
+[INFO] Building campaign-benchmark 0.1.0-SNAPSHOT                         [2/2]
+[INFO]   from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ campaign-benchmark ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 6 source files with javac [debug parameters release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ campaign-benchmark ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug parameters release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ campaign-benchmark ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.benchmark.BenchmarkContractTest
+[ERROR] Tests run: 4, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 0.894 s <<< FAILURE! -- in dev.waterflex.benchmark.BenchmarkContractTest
+[ERROR] dev.waterflex.benchmark.BenchmarkContractTest.effectivePhasesAndTerminationArePinnedTo260 -- Time elapsed: 0.331 s <<< ERROR!
+ai.timefold.solver.core.impl.io.jaxb.TimefoldXmlSerializationException: 
+XML validation failed for a root element class (ai.timefold.solver.core.config.solver.SolverConfig).
+cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.
+Node: randomSeed
+
+	at ai.timefold.solver.core.impl.io.jaxb.GenericJaxbIO.readAndValidate(GenericJaxbIO.java:184)
+	at ai.timefold.solver.core.impl.io.jaxb.GenericJaxbIO.readAndValidate(GenericJaxbIO.java:134)
+	at ai.timefold.solver.core.impl.io.jaxb.SolverConfigIO.read(SolverConfigIO.java:20)
+	at ai.timefold.solver.core.config.solver.SolverConfig.createFromXmlReader(SolverConfig.java:192)
+	at ai.timefold.solver.core.config.solver.SolverConfig.createFromXmlReader(SolverConfig.java:180)
+	at dev.waterflex.scheduler.optimizer.CampaignSolverConfiguration.definition(CampaignSolverConfiguration.java:71)
+	at dev.waterflex.benchmark.BenchmarkContractTest.effectivePhasesAndTerminationArePinnedTo260(BenchmarkContractTest.java:30)
+Caused by: jakarta.xml.bind.UnmarshalException
+ - with linked exception:
+[org.xml.sax.SAXParseException; cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.]
+	at jakarta.xml.bind.helpers.AbstractUnmarshallerImpl.createUnmarshalException(AbstractUnmarshallerImpl.java:296)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.createUnmarshalException(UnmarshallerImpl.java:534)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.unmarshal0(UnmarshallerImpl.java:336)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.unmarshal(UnmarshallerImpl.java:308)
+	at ai.timefold.solver.core.impl.io.jaxb.GenericJaxbIO.readAndValidate(GenericJaxbIO.java:174)
+	... 6 more
+Caused by: org.xml.sax.SAXParseException; cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.
+	at java.xml/com.sun.org.apache.xerces.internal.util.ErrorHandlerWrapper.createSAXParseException(ErrorHandlerWrapper.java:204)
+	at java.xml/com.sun.org.apache.xerces.internal.util.ErrorHandlerWrapper.error(ErrorHandlerWrapper.java:135)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.XMLErrorReporter.reportError(XMLErrorReporter.java:396)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.XMLErrorReporter.reportError(XMLErrorReporter.java:327)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.XMLErrorReporter.reportError(XMLErrorReporter.java:284)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator$XSIErrorReporter.reportError(XMLSchemaValidator.java:512)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator.reportSchemaError(XMLSchemaValidator.java:3596)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator.handleStartElement(XMLSchemaValidator.java:1972)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator.startElement(XMLSchemaValidator.java:830)
+	at java.xml/com.sun.org.apache.xerces.internal.jaxp.validation.ValidatorHandlerImpl.startElement(ValidatorHandlerImpl.java:569)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.ValidatingUnmarshaller.startElement(ValidatingUnmarshaller.java:76)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.InterningXmlVisitor.startElement(InterningXmlVisitor.java:49)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.SAXConnector.startElement(SAXConnector.java:137)
+	at org.glassfish.jaxb.core.unmarshaller.DOMScanner.visit(DOMScanner.java:237)
+	at org.glassfish.jaxb.core.unmarshaller.DOMScanner.scan(DOMScanner.java:108)
+	at org.glassfish.jaxb.core.unmarshaller.DOMScanner.scan(DOMScanner.java:86)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.unmarshal0(UnmarshallerImpl.java:327)
+	... 8 more
+
+[ERROR] dev.waterflex.benchmark.BenchmarkContractTest.nativeRetainsReportAndIndependentlyImportableOutput -- Time elapsed: 0.052 s <<< ERROR!
+ai.timefold.solver.core.impl.io.jaxb.TimefoldXmlSerializationException: 
+XML validation failed for a root element class (ai.timefold.solver.core.config.solver.SolverConfig).
+cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.
+Node: randomSeed
+
+	at ai.timefold.solver.core.impl.io.jaxb.GenericJaxbIO.readAndValidate(GenericJaxbIO.java:184)
+	at ai.timefold.solver.core.impl.io.jaxb.GenericJaxbIO.readAndValidate(GenericJaxbIO.java:134)
+	at ai.timefold.solver.core.impl.io.jaxb.SolverConfigIO.read(SolverConfigIO.java:20)
+	at ai.timefold.solver.core.config.solver.SolverConfig.createFromXmlReader(SolverConfig.java:192)
+	at ai.timefold.solver.core.config.solver.SolverConfig.createFromXmlReader(SolverConfig.java:180)
+	at dev.waterflex.scheduler.optimizer.CampaignSolverConfiguration.definition(CampaignSolverConfiguration.java:71)
+	at dev.waterflex.benchmark.BenchmarkContractTest.nativeRetainsReportAndIndependentlyImportableOutput(BenchmarkContractTest.java:52)
+Caused by: jakarta.xml.bind.UnmarshalException
+ - with linked exception:
+[org.xml.sax.SAXParseException; cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.]
+	at jakarta.xml.bind.helpers.AbstractUnmarshallerImpl.createUnmarshalException(AbstractUnmarshallerImpl.java:296)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.createUnmarshalException(UnmarshallerImpl.java:534)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.unmarshal0(UnmarshallerImpl.java:336)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.unmarshal(UnmarshallerImpl.java:308)
+	at ai.timefold.solver.core.impl.io.jaxb.GenericJaxbIO.readAndValidate(GenericJaxbIO.java:174)
+	... 6 more
+Caused by: org.xml.sax.SAXParseException; cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.
+	at java.xml/com.sun.org.apache.xerces.internal.util.ErrorHandlerWrapper.createSAXParseException(ErrorHandlerWrapper.java:204)
+	at java.xml/com.sun.org.apache.xerces.internal.util.ErrorHandlerWrapper.error(ErrorHandlerWrapper.java:135)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.XMLErrorReporter.reportError(XMLErrorReporter.java:396)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.XMLErrorReporter.reportError(XMLErrorReporter.java:327)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.XMLErrorReporter.reportError(XMLErrorReporter.java:284)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator$XSIErrorReporter.reportError(XMLSchemaValidator.java:512)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator.reportSchemaError(XMLSchemaValidator.java:3596)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator.handleStartElement(XMLSchemaValidator.java:1972)
+	at java.xml/com.sun.org.apache.xerces.internal.impl.xs.XMLSchemaValidator.startElement(XMLSchemaValidator.java:830)
+	at java.xml/com.sun.org.apache.xerces.internal.jaxp.validation.ValidatorHandlerImpl.startElement(ValidatorHandlerImpl.java:569)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.ValidatingUnmarshaller.startElement(ValidatingUnmarshaller.java:76)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.InterningXmlVisitor.startElement(InterningXmlVisitor.java:49)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.SAXConnector.startElement(SAXConnector.java:137)
+	at org.glassfish.jaxb.core.unmarshaller.DOMScanner.visit(DOMScanner.java:237)
+	at org.glassfish.jaxb.core.unmarshaller.DOMScanner.scan(DOMScanner.java:108)
+	at org.glassfish.jaxb.core.unmarshaller.DOMScanner.scan(DOMScanner.java:86)
+	at org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.UnmarshallerImpl.unmarshal0(UnmarshallerImpl.java:327)
+	... 8 more
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   BenchmarkContractTest.effectivePhasesAndTerminationArePinnedTo260:30 � TimefoldXmlSerialization XML validation failed for a root element class (ai.timefold.solver.core.config.solver.SolverConfig).
+cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.
+Node: randomSeed
+
+[ERROR]   BenchmarkContractTest.nativeRetainsReportAndIndependentlyImportableOutput:52 � TimefoldXmlSerialization XML validation failed for a root element class (ai.timefold.solver.core.config.solver.SolverConfig).
+cvc-complex-type.2.4.a: Invalid content was found starting with element '{"https://timefold.ai/xsd/solver":randomSeed}'. One of '{"https://timefold.ai/xsd/solver":moveThreadBufferSize, "https://timefold.ai/xsd/solver":threadFactoryClass, "https://timefold.ai/xsd/solver":monitoring, "https://timefold.ai/xsd/solver":solutionClass, "https://timefold.ai/xsd/solver":entityClass, "https://timefold.ai/xsd/solver":scoreDirectorFactory, "https://timefold.ai/xsd/solver":termination, "https://timefold.ai/xsd/solver":nearbyDistanceMeterClass, "https://timefold.ai/xsd/solver":constructionHeuristic, "https://timefold.ai/xsd/solver":customPhase, "https://timefold.ai/xsd/solver":exhaustiveSearch, "https://timefold.ai/xsd/solver":localSearch, "https://timefold.ai/xsd/solver":partitionedSearch}' is expected.
+Node: randomSeed
+
+[INFO] 
+[ERROR] Tests run: 4, Failures: 0, Errors: 2, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for calculation-engine 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] calculation-engine ................................. SUCCESS [  1.002 s]
+[INFO] campaign-benchmark ................................. FAILURE [  3.409 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  4.843 s
+[INFO] Finished at: 2026-10-06T21:55:39-05:00
+[INFO] ------------------------------------------------------------------------
+[WARNING] The requested profile "campaign-benchmark" could not be activated because it does not exist.
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project campaign-benchmark: 
+[ERROR] 
+[ERROR] See C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :campaign-benchmark

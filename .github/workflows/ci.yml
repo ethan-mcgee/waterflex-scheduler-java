@@ -49,6 +49,8 @@ jobs:
           git diff --exit-code -- docs/scheduler-field-validation.md docs/scheduler-field-validation.html docs/scheduler-field-cost-runtime.svg docs/scheduler-field-routes.svg docs/evidence/scheduler-field-2026-09-29/summary.json
       - name: Verify Java modules
         run: ./mvnw verify --batch-mode --no-transfer-progress
+      - name: Verify opt-in native and policy benchmark adapters
+        run: ./mvnw -Pcampaign-benchmark -pl campaign-benchmark -am verify --batch-mode --no-transfer-progress
       - name: Verify algorithm comparison report regressions
         run: |
           python3 -m pip install matplotlib==3.11.2 reportlab==5.0.1 pymupdf==1.28.2
@@ -66,6 +68,8 @@ jobs:
           cp -R routing-service/target/surefire-reports "$RUNNER_TEMP/javac-reports/routing" 2>/dev/null || true
       - name: Verify Java nullability contracts
         run: ./mvnw -Pnullability clean verify --batch-mode --no-transfer-progress
+      - name: Verify opt-in benchmark nullability contracts
+        run: ./mvnw -Pcampaign-benchmark,nullability -pl campaign-benchmark -am clean verify --batch-mode --no-transfer-progress
       - name: Install portal dependencies and generate Prisma client
         working-directory: web
         run: npm ci && npm run prisma:generate
@@ -322,6 +326,91 @@ jobs:
             ${{ runner.temp }}/*.log
             ${{ runner.temp }}/booking-offer-limits-*/
           retention-days: 7
+
+  campaign-workflows:
+    name: Paced caller benchmark acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: waterflex_test
+          POSTGRES_USER: waterflex
+          POSTGRES_PASSWORD: waterflex
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U waterflex -d waterflex_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_USER: waterflex
+      DATABASE_PASSWORD: waterflex
+      ROUTING_URL: http://127.0.0.1:18001
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build adapter and callers once
+        run: ./mvnw -Pcampaign-benchmark -DskipTests package --batch-mode --no-transfer-progress
+      - name: Install fixture dependencies
+        working-directory: web
+        run: npm ci && npm run prisma:generate
+      - name: Exercise real embedded and remote booking/daily caller paths once
+        shell: bash
+        run: |
+          node infra/fixture-routing.mjs > "$RUNNER_TEMP/campaign-routing.log" 2>&1 &
+          routing_pid=$!
+          caller_pid=''
+          solver_pid=''
+          trap 'kill "$routing_pid" ${caller_pid:+"$caller_pid"} ${solver_pid:+"$solver_pid"} 2>/dev/null || true' EXIT
+          for deployment in embedded remote; do
+            export DATABASE_URL="postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=benchmark_campaign_$deployment"
+            export JDBC_DATABASE_URL="jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=benchmark_campaign_$deployment"
+            node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
+            (cd web && npx prisma db seed)
+            if [ "$deployment" = remote ]; then
+              token=$(openssl rand -hex 32)
+              SOLVER_AUTH_TOKEN="$token" SERVER_PORT=18007 java -Xmx512m -XX:ActiveProcessorCount=1 -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/campaign-solver.log" 2>&1 &
+              solver_pid=$!
+              for _attempt in {1..60}; do
+                if curl --fail --silent http://127.0.0.1:18007/health > /dev/null; then break; fi
+                sleep 1
+              done
+              curl --fail --silent http://127.0.0.1:18007/health > /dev/null
+              export SCHEDULER_CALCULATION_AUTH_TOKEN="$token"
+              export SCHEDULER_CALCULATION_URL=http://127.0.0.1:18007
+            fi
+            SPRING_PROFILES_ACTIVE=benchmark SCHEDULER_CALCULATION_MODE="${deployment^^}" SERVER_PORT=18006 java -Xmx512m -XX:ActiveProcessorCount=1 -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/campaign-$deployment-caller.log" 2>&1 &
+            caller_pid=$!
+            for _attempt in {1..60}; do
+              if curl --fail --silent http://127.0.0.1:18006/health > /dev/null; then break; fi
+              sleep 1
+            done
+            curl --fail --silent http://127.0.0.1:18006/health > /dev/null
+            (cd web && SCHEDULER_TEST_URL=http://127.0.0.1:18006 CAMPAIGN_DEPLOYMENT="$deployment" npx tsx scripts/smoke-campaign-workflow.ts)
+            kill "$caller_pid"
+            wait "$caller_pid" || true
+            caller_pid=''
+          done
+      - name: Preserve all caller campaign evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: paced-caller-campaign-evidence
+          path: |
+            experiments/runs/campaign-*/
+            ${{ runner.temp }}/campaign-*.log
+          retention-days: 14
 
   browser-regressions:
     name: Browser regressions

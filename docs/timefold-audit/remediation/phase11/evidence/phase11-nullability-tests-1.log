@@ -1,0 +1,139 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[WARNING] The requested profile "campaign-benchmark" could not be activated because it does not exist.
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] calculation-engine                                                 [jar]
+[INFO] campaign-benchmark                                                 [jar]
+[INFO] 
+[INFO] ------------------< dev.waterflex:calculation-engine >------------------
+[INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/2]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ calculation-engine ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ calculation-engine ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ calculation-engine ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ------------------< dev.waterflex:campaign-benchmark >------------------
+[INFO] Building campaign-benchmark 0.1.0-SNAPSHOT                         [2/2]
+[INFO]   from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ campaign-benchmark ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ campaign-benchmark ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling with eclipse [debug parameters release 25] to target\test-classes
+[INFO] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[87,78] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.benchmark.DatasetTool.@NonNull Family>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.benchmark.DatasetTool.Family>'
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[16,19] The @NonNull field directory may not have been initialized
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[19,17] Null type safety (type annotations): The expression of type 'java.util.List<dev.waterflex.scheduler.optimizer.CampaignSolverConfiguration.@NonNull Move>' needs unchecked conversion to conform to 'java.util.@NonNull List<dev.waterflex.scheduler.optimizer.CampaignSolverConfiguration.@NonNull Move>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[26,53] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[32,47] Potential null pointer access: The method getPhaseConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[34,30] Potential null pointer access: The method getTerminationConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[35,47] Potential null pointer access: The method getPhaseConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[36,28] Potential null pointer access: The method getTerminationConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[45,24] Potential null pointer access: The method getPhaseConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[51,105] Null type safety (type annotations): The expression of type 'java.io.File' needs unchecked conversion to conform to 'java.io.@NonNull File'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[52,81] Null type safety (type annotations): The expression of type 'java.util.List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>' needs unchecked conversion to conform to 'java.util.@NonNull List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[54,24] Potential null pointer access: The method getSolverBenchmarkConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[54,24] Unsafe interpretation of method return type as '@NonNull' based on the receiver type 'java.util.@Nullable List<ai.timefold.solver.benchmark.config.@NonNull SolverBenchmarkConfig>'. Type 'java.util.List<E>' doesn't seem to be designed with null type annotations in mind
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[59,43] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[85,62] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[87,17] Null type safety (type annotations): The expression of type 'java.util.List<java.lang.Long>' needs unchecked conversion to conform to 'java.util.@NonNull List<java.lang.Long>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[87,32] Null type safety (type annotations): The expression of type 'java.util.List<java.lang.String>' needs unchecked conversion to conform to 'java.util.@NonNull List<java.lang.String>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[92,46] Null type safety (type annotations): The expression of type 'dev.waterflex.benchmark.DatasetTool.Family' needs unchecked conversion to conform to 'dev.waterflex.benchmark.DatasetTool.@NonNull Family'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[92,76] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[93,47] Null type safety (type annotations): The expression of type 'dev.waterflex.benchmark.DatasetTool.Family' needs unchecked conversion to conform to 'dev.waterflex.benchmark.DatasetTool.@NonNull Family'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[93,78] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[96,66] Null type safety (type annotations): The expression of type 'dev.waterflex.benchmark.DatasetTool.Family' needs unchecked conversion to conform to 'dev.waterflex.benchmark.DatasetTool.@NonNull Family'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[96,96] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[102,111] Null type safety (type annotations): The expression of type 'java.io.File' needs unchecked conversion to conform to 'java.io.@NonNull File'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[103,81] Null type safety (type annotations): The expression of type 'java.util.List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>' needs unchecked conversion to conform to 'java.util.@NonNull List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[104,18] Potential null pointer access: The method getSolverBenchmarkConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[104,18] Unsafe interpretation of method return type as '@NonNull' based on the receiver type 'java.util.@Nullable List<ai.timefold.solver.benchmark.config.@NonNull SolverBenchmarkConfig>'. Type 'java.util.List<E>' doesn't seem to be designed with null type annotations in mind
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[106,9] Potential null pointer access: The method getSolverConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[106,9] Potential null pointer access: The method getScoreDirectorFactoryConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\FailingConstraintProvider.java:[15,74] Null type safety (type annotations): The expression of type 'java.math.BigDecimal' needs unchecked conversion to conform to 'java.math.@NonNull BigDecimal'
+[INFO] 29 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for calculation-engine 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] calculation-engine ................................. SUCCESS [  0.702 s]
+[INFO] campaign-benchmark ................................. FAILURE [  0.925 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  1.949 s
+[INFO] Finished at: 2026-10-06T22:12:40-05:00
+[INFO] ------------------------------------------------------------------------
+[WARNING] The requested profile "campaign-benchmark" could not be activated because it does not exist.
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:testCompile (default-testCompile) on project campaign-benchmark: Compilation failure: Compilation failure: 
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[16,19] The @NonNull field directory may not have been initialized
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[19,17] Null type safety (type annotations): The expression of type 'java.util.List<dev.waterflex.scheduler.optimizer.CampaignSolverConfiguration.@NonNull Move>' needs unchecked conversion to conform to 'java.util.@NonNull List<dev.waterflex.scheduler.optimizer.CampaignSolverConfiguration.@NonNull Move>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[26,53] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[32,47] Potential null pointer access: The method getPhaseConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[34,30] Potential null pointer access: The method getTerminationConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[35,47] Potential null pointer access: The method getPhaseConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[36,28] Potential null pointer access: The method getTerminationConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[45,24] Potential null pointer access: The method getPhaseConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[51,105] Null type safety (type annotations): The expression of type 'java.io.File' needs unchecked conversion to conform to 'java.io.@NonNull File'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[52,81] Null type safety (type annotations): The expression of type 'java.util.List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>' needs unchecked conversion to conform to 'java.util.@NonNull List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[54,24] Potential null pointer access: The method getSolverBenchmarkConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[54,24] Unsafe interpretation of method return type as '@NonNull' based on the receiver type 'java.util.@Nullable List<ai.timefold.solver.benchmark.config.@NonNull SolverBenchmarkConfig>'. Type 'java.util.List<E>' doesn't seem to be designed with null type annotations in mind
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[59,43] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[85,62] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[87,17] Null type safety (type annotations): The expression of type 'java.util.List<java.lang.Long>' needs unchecked conversion to conform to 'java.util.@NonNull List<java.lang.Long>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[87,32] Null type safety (type annotations): The expression of type 'java.util.List<java.lang.String>' needs unchecked conversion to conform to 'java.util.@NonNull List<java.lang.String>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[92,46] Null type safety (type annotations): The expression of type 'dev.waterflex.benchmark.DatasetTool.Family' needs unchecked conversion to conform to 'dev.waterflex.benchmark.DatasetTool.@NonNull Family'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[92,76] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[93,47] Null type safety (type annotations): The expression of type 'dev.waterflex.benchmark.DatasetTool.Family' needs unchecked conversion to conform to 'dev.waterflex.benchmark.DatasetTool.@NonNull Family'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[93,78] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[96,66] Null type safety (type annotations): The expression of type 'dev.waterflex.benchmark.DatasetTool.Family' needs unchecked conversion to conform to 'dev.waterflex.benchmark.DatasetTool.@NonNull Family'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[96,96] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[102,111] Null type safety (type annotations): The expression of type 'java.io.File' needs unchecked conversion to conform to 'java.io.@NonNull File'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[103,81] Null type safety (type annotations): The expression of type 'java.util.List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>' needs unchecked conversion to conform to 'java.util.@NonNull List<ai.timefold.solver.benchmark.config.statistic.@NonNull ProblemStatisticType>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[104,18] Potential null pointer access: The method getSolverBenchmarkConfigList() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[104,18] Unsafe interpretation of method return type as '@NonNull' based on the receiver type 'java.util.@Nullable List<ai.timefold.solver.benchmark.config.@NonNull SolverBenchmarkConfig>'. Type 'java.util.List<E>' doesn't seem to be designed with null type annotations in mind
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[106,9] Potential null pointer access: The method getSolverConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\BenchmarkContractTest.java:[106,9] Potential null pointer access: The method getScoreDirectorFactoryConfig() may return null
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\java\dev\waterflex\benchmark\FailingConstraintProvider.java:[15,74] Null type safety (type annotations): The expression of type 'java.math.BigDecimal' needs unchecked conversion to conform to 'java.math.@NonNull BigDecimal'
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :campaign-benchmark

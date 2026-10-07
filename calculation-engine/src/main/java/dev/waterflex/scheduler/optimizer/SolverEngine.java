@@ -85,7 +85,7 @@ public final class SolverEngine {
             xml = "<solver xmlns=\"https://timefold.ai/xsd/solver\"><environmentMode>NO_ASSERT</environmentMode>"
                     + "<solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass><entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass><entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>"
                     + "<scoreDirectorFactory><constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass></scoreDirectorFactory>"
-                    + "<termination><spentLimit>15s</spentLimit></termination><localSearch><unionMoveSelector><selectedCountLimit>10000</selectedCountLimit>"
+                    + "<termination><spentLimit>PT15S</spentLimit></termination><localSearch><unionMoveSelector><selectedCountLimit>10000</selectedCountLimit>"
                     + moves + "</unionMoveSelector><acceptor>" + acceptor + "</acceptor><forager><acceptedCountLimit>" + accepted + "</acceptedCountLimit></forager></localSearch></solver>";
         }
         xml = xml.replace("<environmentMode>NO_ASSERT</environmentMode>", "<environmentMode>" + key.mode().name() + "</environmentMode>");
@@ -117,8 +117,10 @@ public final class SolverEngine {
             ai.timefold.solver.core.api.solver.SolutionManager.create(definition.factory()).update(working);
             return result(definition, working, budget, elapsed(started), "NOT_RUN", "OBSERVED", null, "NO_SEARCH", "NONE");
         }
-        // The public override replaces termination: retain the effective diagnostic step cap.
-        var termination = new ai.timefold.solver.core.config.solver.termination.TerminationConfig().withSpentLimit(budget);
+        // The public override replaces termination: retain all declared early stopping rules.
+        var termination = Required.value(ai.timefold.solver.core.config.solver.SolverConfig.createFromXmlReader(
+                new java.io.StringReader(definition.configurationXml())).getTerminationConfig()).copyConfig();
+        termination.overwriteSpentLimit(budget);
         termination.setStepCountLimit(definition.stepLimit());
         Solver<DayPlan> solver = Required.value(definition.factory().buildSolver(new SolverConfigOverride().withTerminationConfig(termination)));
         @Nullable Probe probe = null;

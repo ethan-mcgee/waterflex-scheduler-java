@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "step": 11,
+  "recordedAtUtc": "2026-10-07T03:55:42.820042+00:00",
+  "originalHead": "fb752ceb307d9b874cbf95bb8a7238e549790956",
+  "correction": "Apply the existing -text -whitespace evidence attributes to phase11 so Git retains original raw log bytes. Restore all 73 original log byte sequences; no logs are sanitized or replaced with new executions.",
+  "verification": {
+    "sourceHashes": 30,
+    "stagedRawLogHashes": 73,
+    "status": "passed"
+  },
+  "failure": "Original committed Git log bytes were line-ending normalized and did not match the raw-file receipt. Corrected index hashes now match every recorded original raw log SHA-256.",
+  "limits": [
+    "Hosted exact-head acceptance still required.",
+    "No implementation, test gate or performance evidence result changes."
+  ]
+}

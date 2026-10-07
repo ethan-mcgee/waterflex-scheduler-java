@@ -1,0 +1,4 @@
+
+> waterflex-web@0.1.0 lint
+> eslint app lib scripts prisma tests playwright.config.ts --ext .ts,.tsx --max-warnings 0
+

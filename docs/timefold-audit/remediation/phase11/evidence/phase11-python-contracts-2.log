@@ -1,0 +1,141 @@
+.................[............] 0/1 elapsed 00:00:00 | Preparing run
+[............] 0/1 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/1 elapsed 00:00:00 | Stopped
+..[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Stopped
+....s[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Stopped
+..[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Checking completed cases
+[............] 0/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/2 elapsed 00:00:00 | Stopped
+[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Checking completed cases
+[............] 0/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[######......] 1/2 elapsed 00:00:00 | Finished case 1/2
+[######......] 1/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[############] 2/2 elapsed 00:00:00 | Finished case 2/2
+[############] 2/2 elapsed 00:00:00 | Measurements complete
+[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[############] 2/2 elapsed 00:00:00 | Checking completed cases
+[############] 2/2 elapsed 00:00:00 | Measurements complete
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpglxtr8te\runs\20261007T030851Z-contract-campaign-f6407658
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpglxtr8te\runs\20261007T030851Z-contract-campaign-48664dd9
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpglxtr8te\runs\20261007T030851Z-contract-campaign-cc44eac1
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpglxtr8te\runs\20261007T030851Z-contract-campaign-c2b5f811
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpglxtr8te\runs\20261007T030851Z-contract-campaign-d44e5b7a
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpglxtr8te\runs\20261007T030851Z-contract-campaign-3785f742
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfdl04zqb\runs\20261007T030852Z-contract-campaign-256d5556
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfdl04zqb\runs\20261007T030853Z-contract-campaign-35b1ea2e
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpk4bz3zkm\runs\20261007T030854Z-contract-campaign-9e302089
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpeknqa_ks\runs\20261007T030856Z-contract-campaign-94306e92
+Run: C:\Users\mcgee\AppData\Local\Temp\tmprdlut5lr\runs\20261007T030859Z-contract-campaign-ddb96fee
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpch7l237b\runs\20261007T030901Z-contract-campaign-9d95a356
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpk_rzcmoc\runs\20261007T030901Z-contract-campaign-3d58486b
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpk_rzcmoc\runs\20261007T030902Z-contract-campaign-ae6a4c8e
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfkwoblw4\runs\20261007T030903Z-contract-campaign-76b1430f
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfkwoblw4\runs\20261007T030904Z-contract-campaign-29bbf847
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpu9_h76up\runs\20261007T030906Z-contract-campaign-4ba958ad
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpsqlk9kvx\runs\20261007T030907Z-contract-campaign-c5cb7b50
+Installing booking Node dependencies...
+Generating Prisma client...
+daily dry-run: 1280 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-budget.json
+Total elapsed: 00:00:00
+daily smoke: 4 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-smoke.json
+Total elapsed: 00:00:00
+booking full: 120 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\booking-comparison.json
+Total elapsed: 00:00:00
+............................................[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 3/8
+[###.........] 2/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 1/8
+[####........] 3/8 elapsed 00:00:00 | Finished case 2/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[####........] 3/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[####........] 3/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 4/8
+[########....] 5/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 3/8
+[##..........] 1/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[###.........] 2/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 2/8
+[####........] 3/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[####........] 3/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 4/8
+[######......] 4/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[########....] 5/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 1/8
+[###.........] 2/8 elapsed 00:00:00 | Finished case 2/8
+[###.........] 2/8 elapsed 00:00:00 | Stopped
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 | Finished case 3/8
+[##..........] 1/8 elapsed 00:00:00 | Stopped
+[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[##..........] 1/8 elapsed 00:00:00 | Checking completed cases
+[##..........] 1/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[###.........] 2/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 2/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 1/8
+[######......] 4/8 elapsed 00:00:00 | Finished case 4/8
+[######......] 4/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[########....] 5/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[##########..] 7/8 elapsed 00:00:00 | Finished case 7/8
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+............
+----------------------------------------------------------------------
+Ran 88 tests in 33.143s
+
+OK (skipped=1)

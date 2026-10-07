@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "step": 11,
+  "recordedAtUtc": "2026-10-07T04:05:22.693300+00:00",
+  "failedHead": "4b3f9bf8732c6e638603fc63ad5493f243d8db86",
+  "failedRun": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37569028090",
+  "failure": "Jackson 3 exported policy ratios as JSON numbers; strict decimal-string campaign schema rejected the capture before any measured JVM case was dispatched.",
+  "correction": "Typed canonical decimal-string export policy DTO and real HTTP converter regression. Save raw snapshot before parsing; require independently valid workflow inventory in hosted acceptance. Reject caller booking budgets that differ from its actual fixed five-second public cap; preserve the declared policy match.",
+  "sourceIdentities": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java",
+      "gitBlobSha256": "dd92d7e627fbe479e80ae185bbe2aa8a181d647d1cb533978cc7e5c6bb380692"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/SchedulingBenchmarkControllerTest.java",
+      "gitBlobSha256": "2d2244187412b98bf9d42978f594452a7c0f6c1ed92f017afe2a7043a47bbc25"
+    },
+    {
+      "path": "web/scripts/smoke-campaign-workflow.ts",
+      "gitBlobSha256": "3080ce10d64c4cde7a8445825f3f0d76ee0dc3a6ba470fe579d5b5c9e64fb1b0"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/WorkflowBenchmark.java",
+      "gitBlobSha256": "72c3ee8b770130da20c20ae1fe1e0fd8ea9504bd2123055a6777191f84c33fbf"
+    },
+    {
+      "path": "infra/campaign_config.py",
+      "gitBlobSha256": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36"
+    },
+    {
+      "path": "infra/test_campaigns.py",
+      "gitBlobSha256": "4c3b324eef45fa60e8ba7af3fbcef11f45816dadac694a925f464ca586859e26"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase11-export-wire-ecj.log",
+      "sha256": "e9da488b26f32d060a2387e498eb5fd774e3248045a399ab80515dd9998cd3b4"
+    },
+    {
+      "path": "evidence/phase11-export-wire-ecj-final.log",
+      "sha256": "067ecc9b7d530b6638fa5ea5ce35e02c91bd9bc92a5202699736f6b15c27b798"
+    },
+    {
+      "path": "evidence/phase11-export-wire-javac-final.log",
+      "sha256": "8e5b1b5ee5d5c196756576595380efd8ca39e5f2a4148148d6fd2b3b41dad9c6"
+    },
+    {
+      "path": "evidence/phase11-web-wire-typecheck.log",
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase11-web-wire-lint.log",
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase11-hosted-caller-job-4b3f9bf-raw.log",
+      "sha256": "6c187901792c104912f0b9b67f4d7bc23e59a8f3624ddf787631ec1d686c1af4"
+    },
+    {
+      "path": "evidence/phase11-caller-cap-ecj.log",
+      "sha256": "c8275f2085b6a817d027b3cceb2efc9d6bc9ff68fbbce2927b737328a50a7aee"
+    },
+    {
+      "path": "evidence/phase11-caller-cap-python.log",
+      "sha256": "79bd2efafb4a0f3ea97eb3b621923b31ce4c45c63cb7eb67c7eb02e6fbf37173"
+    },
+    {
+      "path": "evidence/phase11-export-wire-types-ecj.log",
+      "sha256": "cd9dec529bb0bfde71a8b673612dc2f9e644339c606c13a494b0783b3175e9cc"
+    }
+  ],
+  "failedHostedArtifacts": [
+    {
+      "path": "experiments/runs/phase11-hosted-4b3f9bf/_temp/campaign-embedded-caller.log",
+      "sha256": "a2064a6c86f910c6cf1b1f4e215dff65780dfe3eb366c25cdfdb19b4b66566f2"
+    },
+    {
+      "path": "experiments/runs/phase11-hosted-4b3f9bf/_temp/campaign-routing.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "checks": {
+    "fullJavaTests": 275,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "ordinaryBuild": "passed",
+    "strictNullabilityBuild": "passed",
+    "portalLint": "passed",
+    "portalTypecheck": "passed",
+    "newWireRegression": "passed",
+    "campaignTests": 90,
+    "campaignSkipped": 1,
+    "finalBenchmarkTests": 9
+  },
+  "limits": [
+    "Hosted acceptance on corrected head still required.",
+    "Original verification and raw measurements retain their earlier source identity.",
+    "No campaign automatic retry or performance claim."
+  ]
+}

@@ -1,0 +1,12 @@
+{"cases": 126, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-oc6kkfgt\\assembled.jsonl", "sources": 2}
+{"cases": 126, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-4a9hcgrg\\assembled.jsonl", "sources": 2}
+{"cases": 126, "explicitlyReplaced": 4, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-4a9hcgrg\\corrected.jsonl"}
+{"cases": 126, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-rvym23bl\\assembled.jsonl", "sources": 5}
+{"cases": 126, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-knmg0tgm\\assembled.jsonl", "sources": 2}
+{"cases": 126, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-l_00tl07\\assembled.jsonl", "sources": 3}
+{"cases": 126, "output": "C:\\Users\\mcgee\\AppData\\Local\\Temp\\waterflex-assembly-test-0sqkzze6\\assembled.jsonl", "sources": 4}
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.596s
+
+OK

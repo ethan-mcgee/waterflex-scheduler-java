@@ -17,6 +17,7 @@ public final class SearchDeadline {
     private final SearchTelemetry telemetry = new SearchTelemetry();
     public SearchTelemetry telemetry() { return telemetry; }
     private long durationNanos;
+    private final long reserveNanos;
     private boolean committing;
     private boolean durable;
     private volatile @Nullable Long bestCostDeltaCents;
@@ -44,15 +45,22 @@ public final class SearchDeadline {
 
     public SearchDeadline(Duration duration) { this(duration, System::nanoTime); }
     SearchDeadline(Duration duration, LongSupplier clock) {
+        this(duration, Required.value(Duration.ofSeconds(1)), clock);
+    }
+    /** Explicit offline campaign reserve; normal requests retain their one second reserve. */
+    public SearchDeadline(Duration duration, Duration reserve) { this(duration, reserve, System::nanoTime); }
+    private SearchDeadline(Duration duration, Duration reserve, LongSupplier clock) {
         if (duration.isNegative() || duration.isZero() || duration.compareTo(Duration.ofMinutes(2)) > 0)
             throw new IllegalArgumentException("Invalid search duration");
         this.clock = clock;
         this.started = clock.getAsLong();
         this.durationNanos = duration.toNanos();
+        if (reserve.isNegative()) throw new IllegalArgumentException("Negative deadline reserve");
+        reserveNanos = reserve.toNanos();
     }
     public long elapsedMillis() { return Math.max(0, clock.getAsLong() - started) / 1_000_000; }
     public long remainingNanos() { return Math.max(0, durationNanos - (clock.getAsLong() - started)); }
-    public long explorationNanos() { return Math.max(0, remainingNanos() - 1_000_000_000L); }
+    public long explorationNanos() { return Math.max(0, remainingNanos() - reserveNanos); }
     public void requireTime() {
         if (cancelled || remainingNanos() == 0 || Thread.currentThread().isInterrupted()) throw new Expired();
     }

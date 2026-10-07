@@ -1,0 +1,119 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[WARNING] The requested profile "campaign-benchmark" could not be activated because it does not exist.
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] calculation-engine                                                 [jar]
+[INFO] campaign-benchmark                                                 [jar]
+[INFO] 
+[INFO] ------------------< dev.waterflex:calculation-engine >------------------
+[INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/2]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] ------------------< dev.waterflex:campaign-benchmark >------------------
+[INFO] Building campaign-benchmark 0.1.0-SNAPSHOT                         [2/2]
+[INFO]   from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ campaign-benchmark ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling with eclipse [debug parameters release 25] to target\classes
+[INFO] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[95,38] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.optimizer.TechRoute.@NonNull Unavailable>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.scheduler.optimizer.TechRoute.Unavailable>'
+[INFO] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[105,33] Unsafe null type conversion (type annotations): The value of type 'java.util.concurrent.CompletableFuture<dev.waterflex.benchmark.WorkflowBenchmark.@NonNull Observation>' is made accessible using the less-annotated type 'java.util.concurrent.CompletableFuture<dev.waterflex.benchmark.WorkflowBenchmark.Observation>'
+[INFO] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[108,29] Unsafe null type conversion (type annotations): The value of type 'java.util.concurrent.CompletableFuture<dev.waterflex.benchmark.WorkflowBenchmark.@NonNull Observation>' is made accessible using the less-annotated type 'java.util.concurrent.CompletableFuture<dev.waterflex.benchmark.WorkflowBenchmark.Observation>'
+[INFO] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[126,35] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,java.lang.Object>'
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[56,23] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull String>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[81,100] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[81,116] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[92,37] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[92,58] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[95,72] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[95,114] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[106,37] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[106,54] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[123,43] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[124,140] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[138,32] Null type safety (type annotations): The expression of type 'com.fasterxml.jackson.databind.JsonNode' needs unchecked conversion to conform to 'com.fasterxml.jackson.databind.@NonNull JsonNode'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[138,106] Null type safety (type annotations): The expression of type 'com.fasterxml.jackson.databind.JsonNode' needs unchecked conversion to conform to 'com.fasterxml.jackson.databind.@NonNull JsonNode'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[140,64] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[143,151] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[143,209] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[144,191] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[153,16] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[170,16] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[105,219] Null type safety (type annotations): The expression of type 'java.util.List<java.lang.Object>' needs unchecked conversion to conform to 'java.util.@NonNull List<java.lang.Object>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[129,30] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[144,106] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[163,16] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[163,101] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[168,46] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[INFO] 25 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for calculation-engine 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] calculation-engine ................................. SUCCESS [  0.789 s]
+[INFO] campaign-benchmark ................................. FAILURE [  1.330 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.549 s
+[INFO] Finished at: 2026-10-06T22:05:16-05:00
+[INFO] ------------------------------------------------------------------------
+[WARNING] The requested profile "campaign-benchmark" could not be activated because it does not exist.
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project campaign-benchmark: Compilation failure: Compilation failure: 
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[56,23] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull String>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[81,100] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[81,116] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[92,37] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[92,58] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[95,72] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[95,114] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[106,37] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[106,54] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[123,43] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[124,140] Null type safety (type annotations): The expression of type 'java.time.Instant' needs unchecked conversion to conform to 'java.time.@NonNull Instant'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[138,32] Null type safety (type annotations): The expression of type 'com.fasterxml.jackson.databind.JsonNode' needs unchecked conversion to conform to 'com.fasterxml.jackson.databind.@NonNull JsonNode'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[138,106] Null type safety (type annotations): The expression of type 'com.fasterxml.jackson.databind.JsonNode' needs unchecked conversion to conform to 'com.fasterxml.jackson.databind.@NonNull JsonNode'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[140,64] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[143,151] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[143,209] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[144,191] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[153,16] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\DatasetTool.java:[170,16] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[105,219] Null type safety (type annotations): The expression of type 'java.util.List<java.lang.Object>' needs unchecked conversion to conform to 'java.util.@NonNull List<java.lang.Object>'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[129,30] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[144,106] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[163,16] Null type safety (type annotations): The expression of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' needs unchecked conversion to conform to 'java.lang.@NonNull Object'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[163,101] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\java\dev\waterflex\benchmark\WorkflowBenchmark.java:[168,46] Null type safety (type annotations): The expression of type 'java.lang.String' needs unchecked conversion to conform to 'java.lang.@NonNull String'
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :campaign-benchmark

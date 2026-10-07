@@ -1,0 +1,187 @@
+E................[............] 0/1 elapsed 00:00:00 | Preparing run
+[............] 0/1 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/1 elapsed 00:00:00 | Stopped
+..[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Stopped
+....s[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Stopped
+..[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Checking completed cases
+[............] 0/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/2 elapsed 00:00:00 | Stopped
+[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Checking completed cases
+[............] 0/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[######......] 1/2 elapsed 00:00:00 | Finished case 1/2
+[######......] 1/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[############] 2/2 elapsed 00:00:00 | Finished case 2/2
+[############] 2/2 elapsed 00:00:00 | Measurements complete
+[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[############] 2/2 elapsed 00:00:00 | Checking completed cases
+[############] 2/2 elapsed 00:00:00 | Measurements complete
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp3mmab4ld\runs\20261007T030648Z-contract-campaign-6bf2377b
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp3mmab4ld\runs\20261007T030648Z-contract-campaign-a44c2744
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp3mmab4ld\runs\20261007T030649Z-contract-campaign-ef55baaa
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp3mmab4ld\runs\20261007T030649Z-contract-campaign-2bf53c06
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp3mmab4ld\runs\20261007T030649Z-contract-campaign-9503bd4e
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp3mmab4ld\runs\20261007T030649Z-contract-campaign-48ba74cf
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpttvd3d88\runs\20261007T030650Z-contract-campaign-5f903325
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpttvd3d88\runs\20261007T030651Z-contract-campaign-7f48c8cd
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpml8hf_43\runs\20261007T030652Z-contract-campaign-67bc4858
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpbloj6v3y\runs\20261007T030653Z-contract-campaign-531a9c6a
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp2e248naz\runs\20261007T030656Z-contract-campaign-ff1d356c
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpadg9_2pn\runs\20261007T030658Z-contract-campaign-4adab559
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpap8akbww\runs\20261007T030658Z-contract-campaign-d5f5a0bd
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpap8akbww\runs\20261007T030659Z-contract-campaign-42aa0802
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpqofttesa\runs\20261007T030700Z-contract-campaign-96a87d6c
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpqofttesa\runs\20261007T030700Z-contract-campaign-36e539cd
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp592ssob4\runs\20261007T030702Z-contract-campaign-5bff0c7d
+Run: C:\Users\mcgee\AppData\Local\Temp\tmptuow06gv\runs\20261007T030703Z-contract-campaign-635e2e0e
+Installing booking Node dependencies...
+Generating Prisma client...
+daily dry-run: 1280 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-budget.json
+Total elapsed: 00:00:00
+daily smoke: 4 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-smoke.json
+Total elapsed: 00:00:00
+booking full: 120 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\booking-comparison.json
+Total elapsed: 00:00:00
+........E...................................[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[###.........] 2/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 2/8
+[###.........] 2/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 3/8
+[####........] 3/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[####........] 3/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 4/8
+[######......] 4/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[########....] 5/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[###.........] 2/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 2/8
+[####........] 3/8 elapsed 00:00:00 | Finished case 3/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[####........] 3/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[####........] 3/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 4/8
+[########....] 5/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 3/8
+[###.........] 2/8 elapsed 00:00:00 | Finished case 2/8
+[###.........] 2/8 elapsed 00:00:00 | Stopped
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[##..........] 1/8 elapsed 00:00:00 | Finished case 2/8
+[##..........] 1/8 elapsed 00:00:00 | Stopped
+[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[##..........] 1/8 elapsed 00:00:00 | Checking completed cases
+[##..........] 1/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[###.........] 2/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 3/8
+[######......] 4/8 elapsed 00:00:00 | Finished case 4/8
+[######......] 4/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[########....] 5/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+.[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+............
+======================================================================
+ERROR: test_fresh_jvm_warmup_on_explicit_resume_with_real_java25_processes (test_campaigns.AdapterContractTests.test_fresh_jvm_warmup_on_explicit_resume_with_real_java25_processes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_campaigns.py", line 465, in test_fresh_jvm_warmup_on_explicit_resume_with_real_java25_processes
+    subprocess.run([str(jar), '--create', '--file', str(base / 'adapter.jar'), '--main-class', 'CampaignFixture',
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                    '-C', str(base), 'CampaignFixture.class'], check=True, capture_output=True)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\subprocess.py", line 1552, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+                             # no special security
+                             ^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+                             cwd,
+                             ^^^^
+                             startupinfo)
+                             ^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+
+======================================================================
+ERROR: test_nested_unknown_null_boolean_nonfinite_and_unsupported_settings (test_campaigns.CampaignConfigurationTests.test_nested_unknown_null_boolean_nonfinite_and_unsupported_settings) (config={'version': 2, 'name': 'contract-campaign', 'purpose': 'Explicit contract fixture, no solver performance claim', 'edition': 'COMMUNITY', 'layer': 'solver', 'controlId': 'tabu', 'datasets': None, 'configurations': [{'id': 'tabu', 'acceptor': 'TABU', 'acceptorSize': 7, 'acceptedCountLimit': 1, 'selectedCountLimit': 100, 'moves': [{'family': 'listChange', 'weight': 1}, {'family': 'listSwap', 'weight': 1}], 'environmentMode': 'NO_ASSERT', 'moveThreads': 'NONE', 'nativeParallelBenchmarkCount': 1, 'termination': {'kind': 'fixed', 'scope': 'local-search', 'spentCap': True, 'stepCap': None, 'windowMs': None, 'minimumImprovementRatio': None, 'unimprovedMs': None}}, {'id': 'la', 'acceptor': 'LATE_ACCEPTANCE', 'acceptorSize': 400, 'acceptedCountLimit': 1, 'selectedCountLimit': 100, 'moves': [{'family': 'listChange', 'weight': 1}, {'family': 'listSwap', 'weight': 1}], 'environmentMode': 'NO_ASSERT', 'moveThreads': 'NONE', 'nativeParallelBenchmarkCount': 1, 'termination': {'kind': 'fixed', 'scope': 'local-search', 'spentCap': True, 'stepCap': None, 'windowMs': None, 'minimumImprovementRatio': None, 'unimprovedMs': None}}], 'solverSeeds': [17, 23], 'forks': 1, 'budgets': [{'id': 'reference-test', 'purpose': 'contract-test', 'phase': 'reference', 'operationMs': 100, 'searchMs': 80, 'referenceMs': 80, 'fairnessMs': 0, 'repairMs': 0, 'validationReserveMs': 20, 'transferUnusedToFairness': False}], 'warmup': {'millisecondsPerFreshJvm': 10, 'paths': ['reference'], 'disposableInputs': True, 'calibrationMs': [200, 30000, 60000], 'calibrationRepetitions': 3, 'stabilityTolerancePercent': 5}, 'runtime': {'java': {'path': 'input.json', 'sha256': '1111111111111111111111111111111111111111111111111111111111111111'}, 'jdkMajor': 25, 'heapMinMiB': 16, 'heapMaxMiB': 32, 'gc': 'SerialGC', 'activeProcessorCount': 1, 'flags': ['-Dfile.encoding=UTF-8'], 'environment': {'TZ': 'UTC'}, 'processLifetime': 'one-case-per-jvm'}, 'resources': {'parallelCases': 1, 'totalCpuAllocation': 1, 'cpuPerCase': 1, 'affinityPolicy': 'disjoint-physical-cores', 'concurrencyCalibration': [1, 2], 'memoryLimitMiB': 64}, 'instrumentation': {'cohort': 'quality-basic', 'statistics': [], 'jfr': 'disabled', 'sampleIntervalMs': 100, 'internalDiagnostics': False, 'constraintProfiling': False}, 'analysis': {'method': 'inventory-only', 'pairKeys': ['datasetHash', 'targetHash', 'budgetHash', 'solverSeed', 'fork', 'scoreVersion', 'modelVersion', 'routingIdentity', 'runtimeHash'], 'draws': 10000, 'seed': 20261006, 'confidenceLevel': 0.95, 'selection': 'tuning-only', 'latencyNoninferiorityPercent': 5, 'failureTolerance': 0, 'costDifferenceUpperBoundCents': 0}, 'applicationLoad': None, 'execution': {'orderSeed': 99, 'failurePolicy': 'stop-new-blocks', 'automaticRetries': False, 'resumePolicy': 'hash-verified-missing-cases', 'campaignCutoffUtc': None, 'processGraceMs': 5000}, 'estimation': {'startupMsPerJvm': 1, 'preparationMsPerCase': 2, 'validationMsPerCase': 3, 'reportingMsPerCase': 4, 'referenceSetupMsPerDataset': 20, 'serialAnalysisMs': 30}, 'outputLocation': 'runs', 'adapter': {'protocol': 'waterflex-campaign-jvm-v1', 'jar': {'path': 'input.json', 'sha256': '1111111111111111111111111111111111111111111111111111111111111111'}}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\test_campaigns.py", line 100, in test_nested_unknown_null_boolean_nonfinite_and_unsupported_settings
+    cc.validate(config)
+    ~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\infra\campaign_config.py", line 72, in validate
+    if any(dataset.get('origin') != 'contract-fixture' for dataset in config.get('datasets', [])):
+                                                                      ~~~~~~~~~~^^^^^^^^^^^^^^^^
+TypeError: 'NoneType' object is not iterable
+
+----------------------------------------------------------------------
+Ran 88 tests in 20.916s
+
+FAILED (errors=2, skipped=1)

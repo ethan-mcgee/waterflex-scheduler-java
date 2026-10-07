@@ -1,5 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
+import dev.waterflex.scheduler.CalculationProtocol;
+
 import org.jspecify.annotations.Nullable;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.SavedJson;
@@ -275,6 +277,19 @@ public class OptimizationService {
                 calculation.reason(), calculation.reference(), calculation.diagnostics());
     }
 
+    /** Caller-owned benchmark export captures and validates a revision without solving or applying it. */
+    public CalculationProtocol.DailyInput exportDataset(Request request) {
+        String snapshotId=Required.value(request.request_key(),"Explicit export snapshot identity required");
+        return DailyOperation.execute(admission,() -> {
+            LocalDate day=parseDay(request.date());Problem baseline=build(request.metro_id(),day);
+            Map<String,dev.waterflex.scheduler.RoadPoint> points=new TreeMap<>();
+            baseline.endpoints().forEach((id,endpoint) -> {points.put(id,endpoint.departure());points.put(id+":return",endpoint.returnTo());});
+            baseline.visits().forEach(visit -> points.put(visit.visit().getId(),visit.point()));
+            var dataset=DailyDataset.capture(baseline.plan(),points,snapshotId,baseline.revision(),baseline.routingIdentity(),
+                    baseline.configurationVersion(),baseline.versions(),solver.variant(),solver.seed(),20000);
+            return new CalculationProtocol.DailyInput(dataset.json(DailyDataset.Encoding.SPARSE),baseline.policy());
+        });
+    }
     private DailyCalculation.Result calculate(Problem baseline, String snapshotId) {
         Map<String, dev.waterflex.scheduler.RoadPoint> points = new TreeMap<>();
         baseline.endpoints().forEach((id, endpoint) -> { points.put(id,endpoint.departure()); points.put(id+":return",endpoint.returnTo()); });
