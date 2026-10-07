@@ -22,7 +22,9 @@ public final class SchedulingBenchmarkController {
         }
     }
     public record Statistics(RoadClient.HttpMeasurements routing, @org.jspecify.annotations.Nullable Long processCpuNanos,
-            long heapUsedBytes, long peakHeapUsedBytes, long uptimeMs, Map<String, String> configuration) { }
+            long heapUsedBytes, long peakHeapUsedBytes, long uptimeMs, Map<String, String> configuration,
+            SearchAdmission.State admission, dev.waterflex.scheduler.optimizer.DailySolver.Diagnostics solver,
+            Map<String,Long> persistedCounts) { }
 
     @PostMapping("/internal/benchmark/statistics")
     public Statistics statistics(@RequestBody StatisticsRequest request) {
@@ -35,7 +37,8 @@ public final class SchedulingBenchmarkController {
                 ? system.getProcessCpuTime() : -1;
         return new Statistics(roads.httpMeasurements(), cpu < 0 ? null : cpu,
                 java.lang.management.ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed(), peak,
-                java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime(), configuration());
+                java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime(), configuration(),admission.state(),
+                solver.diagnostics(Required.value(List.of())),persistedCounts());
     }
 
     public record Request(String metroId, List<String> dates) {
@@ -55,9 +58,30 @@ public final class SchedulingBenchmarkController {
     private final SnapshotRouting routing;
     private final RoadClient roads;
     private final org.springframework.core.env.Environment environment;
+    private final SearchAdmission admission;
+    private final dev.waterflex.scheduler.optimizer.DailySolver solver;
+    private final dev.waterflex.scheduler.optimizer.OptimizationService optimization;
     public SchedulingBenchmarkController(JdbcTemplate jdbc, BookingSnapshotLoader loader, SnapshotRouting routing, RoadClient roads,
-            org.springframework.core.env.Environment environment) {
+            org.springframework.core.env.Environment environment, SearchAdmission admission, dev.waterflex.scheduler.optimizer.DailySolver solver,
+            dev.waterflex.scheduler.optimizer.OptimizationService optimization) {
         this.jdbc = jdbc; this.loader = loader; this.routing = routing; this.roads = roads; this.environment = environment;
+        this.admission=admission;this.solver=solver;
+        this.optimization=optimization;
+    }
+    @PostMapping("/internal/benchmark/dataset")
+    public dev.waterflex.scheduler.CalculationProtocol.DailyInput dataset(@RequestBody dev.waterflex.scheduler.optimizer.OptimizationService.Request request) {
+        isolated();
+        if(request.request_key()==null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Explicit dataset snapshot identity required");
+        RequestChecks.text(request.request_key(),"request_key");
+        return optimization.exportDataset(request);
+    }
+    private Map<String,Long> persistedCounts() {
+        Map<String,Long> counts=new TreeMap<>();
+        for(String table:List.of("optimization_run","booking_offer_set","booking_search_request","reservation_obligation","slot_hold","appointment"))
+            counts.put(table,DatabaseFacts.query(jdbc,"SELECT count(*) FROM "+table,Long.class));
+        counts.put("cancelledSearches",DatabaseFacts.query(jdbc,"SELECT count(*) FROM booking_search_request WHERE \"cancelledAt\" IS NOT NULL",Long.class));
+        counts.put("cleanedSearches",DatabaseFacts.query(jdbc,"SELECT count(*) FROM booking_search_request WHERE \"cleanedAt\" IS NOT NULL",Long.class));
+        return Required.value(Map.copyOf(counts));
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -74,6 +98,7 @@ public final class SchedulingBenchmarkController {
         values.put("routing.cache.cleanup-cron", environment.getProperty("routing.cache.cleanup-cron", "0 30 3 * * SUN"));
         values.put("time-off.analysis.enabled", environment.getProperty("time-off.analysis.enabled", "true"));
         values.put("benchmark.calendar-reference", calendar.reference());
+        values.put("scheduler.calculation.mode",environment.getProperty("scheduler.calculation.mode","EMBEDDED"));
         values.put("maximumHeapBytes", Long.toString(Runtime.getRuntime().maxMemory()));
         return Required.value(Map.copyOf(values));
     }

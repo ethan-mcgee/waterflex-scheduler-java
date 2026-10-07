@@ -4,6 +4,7 @@ import itertools
 import math
 import random
 import re
+from decimal import Decimal, InvalidOperation
 
 from experiment_config import canonical, digest, fields
 
@@ -51,20 +52,39 @@ def artifact(value):
 
 
 def validate(config):
-    fields(config, ['version', 'name', 'purpose', 'edition', 'layer', 'controlId', 'datasets',
+    base_fields = ['version', 'name', 'purpose', 'edition', 'layer', 'controlId', 'datasets',
         'configurations', 'solverSeeds', 'forks', 'budgets', 'warmup', 'runtime', 'resources',
-        'instrumentation', 'analysis', 'applicationLoad', 'execution', 'estimation', 'outputLocation', 'adapter'])
+        'instrumentation', 'analysis', 'applicationLoad', 'execution', 'estimation', 'outputLocation', 'adapter']
+    fields(config, base_fields + (['policy'] if 'policy' in config else []))
+    if 'policy' in config:
+        policy = config['policy']
+        fields(policy, ['regularWindowThreshold', 'utilizationThreshold', 'fairnessAllowance', 'bookingDeadlineMs'])
+        integer(policy['regularWindowThreshold'], 0)
+        integer(policy['bookingDeadlineMs'], 1000, 5000)
+        for name in ('utilizationThreshold', 'fairnessAllowance'):
+            text(policy[name])
+            try:
+                value = Decimal(policy[name])
+                check(value.is_finite() and 0 <= value <= 1, 'Policy ratio outside 0..1')
+                check(format(value.normalize(), 'f') == policy[name], 'Canonical policy decimal required')
+            except InvalidOperation as error:
+                raise ValueError('Invalid policy decimal') from error
     choice(config['version'], 2)
     slug(config['name'])
     text(config['purpose'])
     choice(config['edition'], 'COMMUNITY')
     choice(config['layer'], 'solver', 'policy', 'workflow')
+    if config['layer'] == 'workflow':
+        fields(config['applicationLoad'], ['operation', 'mode', 'requestsPerCase', 'requestsPerSecond', 'concurrency', 'schedulerCache', 'providerCache', 'timeoutMs', 'observeCancellation', 'deployment', 'endpointIdentity'])
+        choice(config['applicationLoad']['operation'], 'daily-preview', 'booking-offer')
     for key in ('datasets', 'configurations', 'solverSeeds', 'budgets'):
         check(isinstance(config[key], list) and bool(config[key]), f'Nonempty {key} required')
         unique(config[key])
     integer(config['forks'])
     for seed in config['solverSeeds']:
         integer(seed, 0)
+    if any(isinstance(dataset, dict) and dataset.get('origin') != 'contract-fixture' for dataset in config['datasets']):
+        check('policy' in config, 'Real benchmarks require explicit policy')
     for dataset in config['datasets']:
         fields(dataset, ['id', 'input', 'family', 'role', 'cohort', 'origin', 'datasetSeed',
                          'scoreVersion', 'modelVersion', 'routingIdentity', 'target'])
@@ -131,24 +151,28 @@ def validate(config):
                         'repairMs', 'validationReserveMs', 'transferUnusedToFairness'])
         slug(budget['id'])
         choice(budget['purpose'], 'production', 'longer-budget', 'contract-test')
-        choice(budget['phase'], 'reference', 'fairness', 'repair', 'pipeline')
+        choice(budget['phase'], 'reference', 'fairness', 'repair', 'pipeline', 'booking')
         for key in ('operationMs', 'searchMs', 'validationReserveMs'):
             integer(budget[key])
         for key in ('referenceMs', 'fairnessMs', 'repairMs'):
             integer(budget[key], 0)
         choice(budget['transferUnusedToFairness'], True, False)
-        check(budget['referenceMs'] + budget['fairnessMs'] + budget['repairMs'] == budget['searchMs'], 'Phase allowances must sum to search allowance')
+        phase_total = budget['referenceMs'] + budget['fairnessMs'] + budget['repairMs']
+        check(phase_total == (0 if budget['phase'] == 'booking' else budget['searchMs']), 'Phase allowances must sum to search allowance')
         check(budget['searchMs'] + budget['validationReserveMs'] <= budget['operationMs'], 'Search plus reserve exceeds operation')
         if config['layer'] == 'solver':
-            check(budget['phase'] != 'pipeline', 'Solver layer selects one phase')
+            check(budget['phase'] not in ('pipeline', 'booking'), 'Solver layer selects one daily phase')
             check(budget[budget['phase'] + 'Ms'] == budget['searchMs'] and not budget['transferUnusedToFairness'], 'Solver phase allocation mismatch')
             if budget['phase'] == 'fairness':
                 check(all(d['target'] is not None for d in config['datasets']), 'Solver fairness needs frozen targets')
         else:
-            check(budget['phase'] == ('repair' if cohorts == {'repair'} else 'pipeline'), 'Policy/workflow phase mismatch')
+            booking = config['layer'] == 'workflow' and config['applicationLoad']['operation'] == 'booking-offer' and 'policy' in config
+            check(budget['phase'] == ('booking' if booking else 'repair' if cohorts == {'repair'} else 'pipeline'), 'Policy/workflow phase mismatch')
             if budget['phase'] == 'pipeline':
                 check(budget['referenceMs'] > 0 and budget['fairnessMs'] > 0 and budget['repairMs'] == 0, 'Pipeline needs reference and fairness')
-        if budget['purpose'] == 'production' and config['layer'] != 'solver':
+        if budget['phase'] == 'booking':
+            check(not budget['transferUnusedToFairness'] and budget['operationMs'] == config['policy']['bookingDeadlineMs'], 'Booking allowance must match explicit policy')
+        elif budget['purpose'] == 'production' and config['layer'] != 'solver':
             check(budget['operationMs'] == 20000 and budget['searchMs'] == 15000 and
                   (budget['referenceMs'] == 10000 if budget['phase'] == 'pipeline' else budget['repairMs'] == 15000),
                   'Production daily allowances must be preserved')
@@ -157,8 +181,10 @@ def validate(config):
     fields(warm, ['millisecondsPerFreshJvm', 'paths', 'disposableInputs', 'calibrationMs', 'calibrationRepetitions', 'stabilityTolerancePercent'])
     integer(warm['millisecondsPerFreshJvm'], 0)
     strings(warm['paths'])
-    check(set(warm['paths']) <= {'reference', 'fairness', 'repair', 'daily-policy', 'daily-preview', 'booking-offer'}, 'Unsupported warmup path')
-    if config['layer'] == 'solver':
+    check(set(warm['paths']) <= {'reference', 'fairness', 'repair', 'daily-policy', 'daily-preview', 'booking-offer', 'input-contract'}, 'Unsupported warmup path')
+    if cohorts == {'invalid-input'}:
+        check(warm['paths'] == ['input-contract'] and config['layer'] == 'solver', 'Invalid inputs require contract-only warmup')
+    elif config['layer'] == 'solver':
         check({b['phase'] for b in config['budgets']} <= set(warm['paths']), 'Warmup must cover every selected phase')
     elif config['layer'] == 'policy':
         check(('repair' if cohorts == {'repair'} else 'daily-policy') in warm['paths'], 'Policy warmup path required')
@@ -206,6 +232,8 @@ def validate(config):
     choice(inst['internalDiagnostics'], True, False)
     choice(inst['constraintProfiling'], False)
     check(inst['cohort'] == 'diagnostic' or (inst['jfr'] == 'disabled' and not inst['internalDiagnostics']), 'Profiling requires a separate diagnostic cohort')
+    if cohorts == {'invalid-input'}:
+        check(not inst['statistics'] and not inst['internalDiagnostics'], 'Invalid input contracts do not measure native solver statistics')
     analysis = config['analysis']
     fields(analysis, ['method', 'pairKeys', 'draws', 'seed', 'confidenceLevel', 'selection', 'latencyNoninferiorityPercent', 'failureTolerance', 'costDifferenceUpperBoundCents'])
     choice(analysis['method'], 'inventory-only', 'paired-dataset-bootstrap')
