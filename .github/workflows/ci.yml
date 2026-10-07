@@ -420,7 +420,7 @@ jobs:
   browser-regressions:
     name: Browser regressions
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -447,9 +447,19 @@ jobs:
       - name: Install portal dependencies and generate Prisma client
         working-directory: web
         run: npm ci && npm run prisma:generate
+      # apt mirrors occasionally stall; bound each attempt so a stuck mirror cannot consume the job timeout.
+      - name: Install Playwright Chromium
+        working-directory: web
+        timeout-minutes: 10
+        run: |
+          for attempt in 1 2 3; do
+            timeout 180 npx playwright install --with-deps chromium && exit 0
+            echo "Playwright install attempt $attempt failed or timed out"; sleep 10
+          done
+          exit 1
       - name: Browser regressions in an isolated schema
         working-directory: web
-        run: npx prisma migrate deploy && npx playwright install --with-deps chromium && npm run test:ui
+        run: npx prisma migrate deploy && npm run test:ui
       - name: Summarize browser tests
         if: always()
         run: python3 infra/summarize-tests.py 'web/test-results/browser.xml' --label Browser

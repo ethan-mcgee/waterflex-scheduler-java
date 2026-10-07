@@ -6,11 +6,11 @@ export const text = z.string().trim().min(1);
 export const date = z.iso.date();
 export const instant = z.iso.datetime({ offset: true });
 export const finite = z.number().finite();
-export const costModelVersion = z.enum(["legacy-double-v1", "exact-fleet-half-up-v2"]);
+export const costModelVersion = z.enum(["legacy-double-v1", "exact-fleet-half-up-v2", "exact-fleet-half-up-v3"]);
 // NUMERIC(65,30); canonical plain strings keep monetary values out of JS number arithmetic.
 export const monetaryDecimal = z.string().regex(/^(?:0|[1-9][0-9]{0,34})(?:\.[0-9]{0,29}[1-9])?$/);
 export const operatingRates = z.object({ regularHourly: monetaryDecimal, overtimeHourly: monetaryDecimal,
-  mileagePerMile: monetaryDecimal, travelBufferPct: finite.nonnegative(), travelBufferMinutes: z.int().nonnegative() });
+  mileagePerMile: monetaryDecimal, travelBufferPct: monetaryDecimal, travelBufferMinutes: z.int().nonnegative() });
 export const minute = z.int().min(0).max(1440);
 export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-180).max(180) });
 export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();
@@ -88,14 +88,14 @@ const engineProvenance = z.object({ artifact: z.literal("timefold-solver-core"),
   sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(), unavailableReason: text.nullable(),
 }).refine(v => (v.unavailableReason != null) === (v.version == null) && (v.unavailableReason != null) === (v.sha256 == null), "Missing artifact provenance needs a reason");
 const solverStatisticsV2 = legacySolverStatistics.extend({ format: z.literal(2),
-  termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN"]),
+  termination: z.enum(["CANCELLED", "TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN"]),
   steps: z.int().nonnegative().nullable(), moveEvaluations: z.int().nonnegative().nullable(), scoreCalculations: z.int().nonnegative().nullable(),
   diagnosticsUnavailableReason: text.nullable(), timeToBestUnavailableReason: text.nullable(), terminationBasis: z.enum(["OBSERVED", "INFERRED"]),
   environmentMode: z.enum(["NO_ASSERT", "FULL_ASSERT", "NON_INTRUSIVE_FULL_ASSERT", "PHASE_ASSERT"]),
   instrumentation: z.enum(["NONE", "TIMEFOLD_INTERNAL_2_6_0"]), provenance: engineProvenance,
 }).refine(v => [v.steps, v.moveEvaluations, v.scoreCalculations].every(n => (n == null) === (v.diagnosticsUnavailableReason != null)), "Unavailable counters need a reason")
   .refine(v => (v.timeToBestMs == null) === (v.timeToBestUnavailableReason != null), "Unavailable time to best needs a reason")
-  .refine(v => (["SOLVE_RETURNED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
+  .refine(v => (["SOLVE_RETURNED", "CANCELLED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
     : v.terminationBasis === "INFERRED" && v.diagnosticsUnavailableReason == null), "Stopping cause must distinguish inference from observation");
 export const solverAnalysis = z.object({ engine: text, configurationXml: text, constructionConfigurationXml: text.nullish(), policy: z.lazy(() => dailyPolicyDiagnostics).nullish(), phases: z.array(z.object({
   name: text, statistics: z.union([solverStatisticsV2, legacySolverStatistics]),
@@ -131,7 +131,7 @@ export const optimization = z.object({
   solver_analysis: solverAnalysis.nullish(),
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
-}).refine(value => value.cost_model_version !== "exact-fleet-half-up-v2"
+}).refine(value => value.cost_model_version == null || value.cost_model_version === "legacy-double-v1"
   || (value.fleet_cost_before_cents != null && value.fleet_cost_after_cents != null), "Current cost model requires recorded fleet costs")
   .refine(value => value.score_model_version !== "bendable-decimal-repair-v2" || value.calculation_outcome != null,
     "Current score model requires calculation coverage and validation");

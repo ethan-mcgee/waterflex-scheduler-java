@@ -49,7 +49,7 @@ public final class DailyDataset {
         var tokens = revisions.putArray("schedule");
         var rates = root.putObject("rates"); rates.put("regularHourly",Monetary.canonical(plan.getRegularHourly()))
                 .put("overtimeHourly",Monetary.canonical(plan.getOvertimeHourly())).put("mileagePerMile",Monetary.canonical(plan.getMileagePerMile()))
-                .put("travelBufferPct",Monetary.canonical(Required.value(java.math.BigDecimal.valueOf(plan.getTravelBufferPct())))).put("travelBufferMinutes",plan.getTravelBufferMinutes());
+                .put("travelBufferPct",Monetary.canonical(plan.getTravelBufferPct())).put("travelBufferMinutes",plan.getTravelBufferMinutes());
         var locations = root.putArray("locations"); Map<String,Integer> locationIndices = new LinkedHashMap<>();
         for (var point : new TreeMap<>(points).entrySet()) {
             locationIndices.put(point.getKey(),locationIndices.size());
@@ -113,7 +113,7 @@ public final class DailyDataset {
             integer(search, "remainingMillis", 1, 20000);
             ObjectNode rates = object(required(root, "rates"), "rates", "regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "travelBufferMinutes");
             BigDecimal regular = money(rates, "regularHourly"), overtime = money(rates, "overtimeHourly"), mileage = money(rates, "mileagePerMile");
-            double pct = decimal(rates, "travelBufferPct");
+            BigDecimal pct = money(rates, "travelBufferPct");
             long minutes = integer(rates, "travelBufferMinutes", 0, Integer.MAX_VALUE);
             ArrayNode locations = array(root, "locations"), services = array(root, "services"), technicians = array(root, "technicians"), visits = array(root, "visits");
             Set<String> locationIds = new HashSet<>(), serviceIds = new HashSet<>(), technicianIds = new HashSet<>(), visitIds = new HashSet<>();
@@ -297,11 +297,6 @@ public final class DailyDataset {
         for (JsonNode value : array) { check(value.isIntegralNumber() && value.canConvertToInt() && value.intValue() >= 0 && value.intValue() < count, field + " index out of range"); int index = value.intValue(); check(seen.add(index), "duplicate " + field + " index"); result.add(index); } return result;
     }
     private static Instant instant(ObjectNode node, String field) { Instant value = Required.value(Instant.parse(string(node, field))); node.put(field, value.toString()); return value; }
-    private static double decimal(ObjectNode node, String field) {
-        String text = string(node, field); check(text.matches("(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?"), field + " must be a nonnegative decimal string");
-        BigDecimal value = new BigDecimal(text); double number = value.doubleValue(); PlanFacts.number(number, field);
-        check(value.signum() == 0 || number > 0, field + " underflows legacy numeric model"); node.put(field, value.stripTrailingZeros().toPlainString()); return number;
-    }
     private static BigDecimal money(ObjectNode node, String field) {
         String text = string(node, field); check(text.matches("(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?"), field + " must be a nonnegative decimal string");
         BigDecimal value = Monetary.rate(new BigDecimal(text)); node.put(field, Monetary.canonical(value)); return value;
