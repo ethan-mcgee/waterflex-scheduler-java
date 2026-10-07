@@ -30,14 +30,14 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
     public record Rates(@JsonSerialize(using = DecimalStringSerializer.class) BigDecimal regularHourly,
                         @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal overtimeHourly,
                         @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal mileagePerMile,
-                        double travelBufferPct, long travelBufferMinutes) {
+                        @JsonSerialize(using = DecimalStringSerializer.class) BigDecimal travelBufferPct, long travelBufferMinutes) {
         public Rates(double regular, double overtime, double mileage, double pct, long minutes) {
-            this(Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), pct, minutes);
+            this(Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), Monetary.legacy(pct), minutes);
         }
         public Rates {
             regularHourly = Monetary.rate(regularHourly); overtimeHourly = Monetary.rate(overtimeHourly);
-            mileagePerMile = Monetary.rate(mileagePerMile);
-            if (!Double.isFinite(travelBufferPct) || travelBufferPct < 0 || travelBufferMinutes < 0 || travelBufferMinutes > Integer.MAX_VALUE)
+            mileagePerMile = Monetary.rate(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
+            if (travelBufferMinutes < 0 || travelBufferMinutes > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("Invalid operating cost or travel settings");
         }
         public static Rates read(Map<String, BigDecimal> settings) {
@@ -47,7 +47,7 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
             return new Rates(Required.value(settings.get("regular_hourly_dollars"), "regular hourly rate"),
                     Required.value(settings.get("overtime_hourly_dollars"), "overtime hourly rate"),
                     Required.value(settings.get("mileage_dollars_per_mile"), "mileage rate"),
-                    Required.value(settings.get("travel_buffer_pct"), "travel buffer percentage").doubleValue(), minutes);
+                    Required.value(settings.get("travel_buffer_pct"), "travel buffer percentage"), minutes);
         }
     }
 

@@ -96,7 +96,7 @@ class BenchmarkContractTest {
     }
     @Test void corpusRandomnessIsIndependentOfSolverSeedAndRoundTripsAllCohorts() {
         var first=new DatasetTool.Corpus(1,"corpus","unused",Required.value(java.time.Instant.parse("2026-10-12T12:00:00Z")),480,
-                41,-96,111000,15,0.1,new java.math.BigDecimal("20"),new java.math.BigDecimal("30"),new java.math.BigDecimal("0.67"),0,0,
+                41,-96,111000,15,0.1,new java.math.BigDecimal("20"),new java.math.BigDecimal("30"),new java.math.BigDecimal("0.67"),Required.value(java.math.BigDecimal.ZERO),0,
                 Required.value(List.of(1L,2L)),Required.value(List.of("assigned","cold","partial","repair")),Required.value(List.of(new DatasetTool.Family("test",3,8,2,0.02,15,25,240,120,0.2,60,0.4,0))),"TABU",17,20000);
         var second=new DatasetTool.Corpus(first.version(),first.kind(),first.outputDirectory(),first.shiftStart(),first.shiftMinutes(),
                 first.latitude(),first.longitude(),first.roadMetersPerDegree(),first.roadMetersPerSecond(),first.directionBias(),first.regularHourly(),
