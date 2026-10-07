@@ -40,6 +40,29 @@ class CampaignMatrixTests(unittest.TestCase):
         with self.assertRaises(ValueError): cm.register(self.root / 'spec.json')
         self.assertFalse((self.root / 'registered').exists())
 
+    def test_null_and_missing_treatments_fail_before_registering(self):
+        for value in (None, {}, {'id': 'broken'}):
+            control = self.base['configurations'][0]
+            with self.assertRaises(ValueError): cm.factor(control, value, 'algorithm')
+
+    def test_registered_template_requires_real_pins_and_has_one_matched_factor(self):
+        spec = json.loads((Path(__file__).resolve().parents[1] / 'experiments/configs/final-audit-matrix-template.json').read_text())
+        self.assertEqual(spec['baseCampaign']['sha256'], '0' * 64)
+        for study in spec['studies']: cm.factor(study['control'], study['candidates'][0], study['factor'])
+
+    def test_read_only_analysis_validates_manifest_and_original_configuration(self):
+        root = Path(self.register()['directory']); archive = self.root / 'archive'; archive.mkdir()
+        (archive / 'original-config.json').write_bytes((root / 'algorithms.json').read_bytes())
+        toolkit = cm.cr.toolkit_hashes(); write_new(archive / 'manifest.json', {'toolkit': toolkit})
+        write_new(root / 'dispatch.json', {'registrationHash': sha(root / 'registration.json'), 'toolkit': toolkit})
+        write_new(root / 'algorithms-archive.json', {'run': str(archive), 'manifestHash': sha(archive / 'manifest.json')})
+        with patch.object(cm.cr, 'analyze', return_value={'test': True}) as analyzer:
+            self.assertEqual(cm.analyze(root)['campaigns'][0]['analysis'], {'test': True})
+            self.assertEqual(analyzer.call_count, 1)
+            (archive / 'original-config.json').write_text('{}')
+            with self.assertRaises(ValueError): cm.analyze(root)
+            self.assertEqual(analyzer.call_count, 1)
+
     def test_move_family_changes_one_only_with_stable_order(self):
         control = self.base['configurations'][0]; candidate = copy.deepcopy(control)
         candidate['id'] = 'additional'; candidate['moves'].append({'family': 'subListChange', 'weight': 1})

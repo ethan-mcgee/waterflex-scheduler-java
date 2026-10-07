@@ -1,5 +1,5 @@
 """Read-only final audit gates. A decision never changes deployment or solver defaults."""
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext, MAX_EMAX, MIN_EMIN
 from pathlib import Path
 
 import campaign_config as cc
@@ -34,10 +34,21 @@ def workload(value):
         cc.integer(value[name], 0)
     cc.check(value['requested'] > 0 and value['completed'] <= value['requested'], 'Invalid workload denominator')
     cc.check(value['validAccepted'] + value['invalidAccepted'] <= value['completed'], 'Invalid accepted count')
+    cc.check(all(value[key] <= value['completed'] for key in ('failures', 'timeouts', 'incomplete', 'overtimeIncreases')),
+             'Outcome count exceeds completed denominator')
     for name in ('p50Ms', 'p95Ms', 'cleanupP95Ms'):
         cc.check(decimal(value[name]) >= 0, 'Negative latency')
     cc.check(decimal(value['p95Ms']) >= decimal(value['p50Ms']), 'Invalid latency quantiles')
     return value
+
+
+def latency_gate(control, candidate):
+    """Multiplication must not round a long decimal control onto the acceptance boundary."""
+    first, second = decimal(control), decimal(candidate)
+    with localcontext() as context:
+        context.prec = max(28, len(first.as_tuple().digits) + 3)
+        context.Emax, context.Emin = MAX_EMAX, MIN_EMIN
+        return first > 0 and second <= first * Decimal('1.05')
 
 
 def evaluate(receipt):
@@ -87,8 +98,7 @@ def evaluate(receipt):
         'noAdditionalAdverseOutcomes': all(candidate[key] <= control[key] for key in ('failures', 'timeouts', 'incomplete')),
         'noOvertimeIncrease': candidate['overtimeIncreases'] == 0,
         'usefulOutcomes': candidate['validAccepted'] >= control['validAccepted'] > 0,
-        'p95WithinFivePercent': decimal(control['p95Ms']) > 0
-                               and decimal(candidate['p95Ms']) <= decimal(control['p95Ms']) * Decimal('1.05'),
+        'p95WithinFivePercent': latency_gate(control['p95Ms'], candidate['p95Ms']),
         'costUpperBoundBelowZero': decimal(receipt['costUpper95Cents']) < 0,
         'noFamilyRegression': family_pass,
         'historicalEvidence': receipt['origin'] == 'historical',
