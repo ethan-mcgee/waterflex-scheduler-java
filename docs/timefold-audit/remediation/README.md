@@ -12,7 +12,7 @@ Each implementation phase ends with a focused, detailed PR and a pause for owner
 
 ## Agreed contracts
 
-[Step 8](phase8/README.md) is reviewed and merged in PR #58. [Step 9](phase9/README.md) adds policy diagnostics and durable overnight receipts; verification and owner review remain its delivery gates.
+[Step 9](phase9/README.md) is reviewed and merged in PR #60. [Step 10](phase10/README.md) adds campaign v2 orchestration; verification and owner review remain its delivery gates. Production benchmark adapters and statistical analysis remain steps 11-12.
 
 Use Timefold Community 2.6.0 and Java 25 initially. Dependency upgrades are separate treatments. Preserve the 6 a.m. America/Chicago cutoff, promises, strict booking cost order with fairness ties, daily fairness headroom, and zero-overtime acceptance.
 

@@ -782,5 +782,8 @@ class ContentionTests(unittest.TestCase):
         self.assertEqual(empty['groups'], [])
 
 
+# Existing CI entry point covers both versions without changing v1 test semantics.
+from test_campaigns import CampaignConfigurationTests, CampaignLifecycleTests, AdapterContractTests
+
 if __name__ == '__main__':
     unittest.main()
