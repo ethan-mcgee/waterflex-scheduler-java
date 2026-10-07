@@ -12,6 +12,27 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DailyOperationTest {
+    @Test void claimPreparationUsesOriginalClockBeforeAdmissionAndCleanupKeepsTheLease() {
+        var admission = new SearchAdmission(1, 16);
+        var cleaned = new java.util.concurrent.atomic.AtomicInteger();
+        assertThrows(IllegalStateException.class, () -> DailyOperation.executePrepared(admission, () -> {
+            assertNotNull(SearchDeadline.current()); assertNotNull(DailyOperation.current());
+            assertEquals(0, admission.state().active());
+            return new DailyOperation.Preparation<>(() -> {
+                assertEquals(1, admission.state().active()); throw new IllegalStateException("fixture work failure");
+            }, true, _ -> { assertEquals(1, admission.state().active()); cleaned.incrementAndGet(); });
+        }));
+        assertEquals(1, cleaned.get()); assertEquals(0, admission.state().active());
+    }
+    @Test void reusedResultDoesNotQueueBehindAnActiveWorker() {
+        var admission = new SearchAdmission(1, 16);
+        try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, new SearchDeadline(seconds(20)))) {
+            assertTrue(lease.queueMillis() >= 0);
+            assertEquals("cached", DailyOperation.executePrepared(admission,
+                    () -> new DailyOperation.Preparation<>(() -> "cached", false, _ -> fail("No cleanup expected"))));
+            assertEquals(1, admission.state().active()); assertEquals(0, admission.state().queuedBackground());
+        }
+    }
     private static Duration seconds(long value) { return Required.value(Duration.ofSeconds(value)); }
     private static void await(CountDownLatch latch) {
         try { assertTrue(latch.await(5, TimeUnit.SECONDS)); }

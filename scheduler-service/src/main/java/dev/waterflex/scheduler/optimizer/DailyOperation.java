@@ -43,16 +43,24 @@ final class DailyOperation {
         this.recorder = recorder;
     }
     static @Nullable DailyOperation current() { return CURRENT.get(); }
+    record Preparation<T>(Supplier<T> work, boolean needsAdmission, Consumer<Throwable> failed) { }
+    static <T> T executePrepared(SearchAdmission admission, Supplier<Preparation<T>> prepare) {
+        return launch(admission, Required.value(Duration.ofSeconds(20)), prepare,
+                receipt -> org.slf4j.LoggerFactory.getLogger(DailyOperation.class).info("Daily operation {}", receipt));
+    }
     static <T> T execute(SearchAdmission admission, Supplier<T> work) {
         return execute(admission, Required.value(Duration.ofSeconds(20)), work,
                 receipt -> org.slf4j.LoggerFactory.getLogger(DailyOperation.class).info("Daily operation {}", receipt));
     }
     static <T> T execute(SearchAdmission admission, Duration allowance, Supplier<T> work, Consumer<Receipt> recorder) {
+        return launch(admission, allowance, () -> new Preparation<>(work, true, _ -> { }), recorder);
+    }
+    private static <T> T launch(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
         if (CURRENT.get() != null) throw new IllegalStateException("Nested daily operation would reset the allowance");
         DailyOperation operation = new DailyOperation(allowance, recorder);
         CompletableFuture<T> completion = new CompletableFuture<>();
         // Admission bounds active work and its waiting queue. No application thread pool queue resets the clock.
-        Thread.ofVirtual().name("daily-" + operation.id).start(() -> operation.run(admission, work, completion));
+        Thread.ofVirtual().name("daily-" + operation.id).start(() -> operation.run(admission, prepare, completion));
         try {
             T result = Required.value(completion.get(operation.deadline.remainingNanos(), TimeUnit.NANOSECONDS));
             operation.deadline.requireTime();
@@ -68,16 +76,30 @@ final class DailyOperation {
             throw new IllegalStateException("Daily worker failed", cause);
         }
     }
-    private <T> void run(SearchAdmission admission, Supplier<T> work, CompletableFuture<T> completion) {
+    private <T> void run(SearchAdmission admission, Supplier<Preparation<T>> prepare, CompletableFuture<T> completion) {
         String outcome = "FAILED";
         boolean late = false;
         var watchdog = WATCHDOG.scheduleWithFixedDelay(this::tick, 0, 10, TimeUnit.MILLISECONDS);
-        try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline)) {
-            queueMs = lease.queueMillis();
+        try {
             CURRENT.set(this);
             T result = deadline.within(() -> {
                 deadline.requireTime();
-                T value = Required.value(work.get(), "daily operation response");
+                Preparation<T> prepared = prepare.get();
+                T value;
+                if (!prepared.needsAdmission()) value = prepared.work().get();
+                else {
+                    boolean acquired = false;
+                    try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline)) {
+                        acquired = true;
+                        queueMs = lease.queueMillis();
+                        try { value = prepared.work().get(); }
+                        catch (Throwable failure) { prepared.failed().accept(failure); throw failure; }
+                    } catch (Throwable failure) {
+                        // A failed acquisition has no lease; conditional cleanup cannot overwrite a terminal result.
+                        if (!acquired) prepared.failed().accept(failure); throw failure;
+                    }
+                }
+                value = Required.value(value, "daily operation response");
                 resultReturned = true;
                 deadline.requireTime();
                 return value;
