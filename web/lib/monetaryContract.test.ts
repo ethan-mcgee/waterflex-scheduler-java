@@ -18,11 +18,13 @@ test("cent formatting retains cents at safe integer bounds and negative deltas",
   for (const value of [NaN, Infinity, 1.5, Number.MAX_SAFE_INTEGER + 1]) assert.throws(() => formatCents(value));
 });
 test("operating rates and cost provenance preserve the exact wire contract", () => {
-  const rates = { regularHourly: "20.02", overtimeHourly: "30.03", mileagePerMile: "0.67", travelBufferPct: 0.2, travelBufferMinutes: 5 };
+  const rates = { regularHourly: "20.02", overtimeHourly: "30.03", mileagePerMile: "0.67", travelBufferPct: "0.2", travelBufferMinutes: 5 };
   assert.deepEqual(operatingRates.parse(rates), rates);
   assert.equal(operatingRates.safeParse({ ...rates, regularHourly: 20.02 }).success, false);
   assert.equal(operatingRates.safeParse({ ...rates, mileagePerMile: null }).success, false);
   assert.equal(costModelVersion.parse("legacy-double-v1"), "legacy-double-v1");
   assert.equal(costModelVersion.parse("exact-fleet-half-up-v2"), "exact-fleet-half-up-v2");
+  assert.equal(costModelVersion.parse("exact-fleet-half-up-v3"), "exact-fleet-half-up-v3");
+  assert.equal(operatingRates.safeParse({ ...rates, travelBufferPct: 0.2 }).success, false);
   assert.equal(costModelVersion.safeParse("unknown").success, false);
 });

@@ -110,7 +110,7 @@ async function main() {
     assert.ok(policy.after.overtimeMinutes <= policy.before.overtimeMinutes);
     assert.ok(policy.after.costCents <= policy.decision.costCeilingCents);
     assert.equal(policy.costChangeCents, -preview.objective_improvement);
-    assert.equal(preview.cost_model_version, "exact-fleet-half-up-v2");
+    assert.equal(preview.cost_model_version, "exact-fleet-half-up-v3");
     assert.equal(preview.score_model_version, "bendable-decimal-repair-v2");
     assert.equal(required(preview.calculation_outcome).complete, true);
     assert.equal(required(preview.calculation_outcome).unassignedVisitIds.length, 0);

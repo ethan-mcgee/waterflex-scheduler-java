@@ -27,18 +27,18 @@ public class DayPlan {
     public DayPlan() { }
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix,
             double regular, double overtime, double mileage, double pct, long minutes) {
-        this(routes, visits, matrix, Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), pct, minutes);
+        this(routes, visits, matrix, Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), Monetary.legacy(pct), minutes);
     }
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix, Set<String> unreachable,
             double regular, double overtime, double mileage, double pct, long minutes) {
-        this(routes, visits, matrix, unreachable, Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), pct, minutes);
+        this(routes, visits, matrix, unreachable, Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), Monetary.legacy(pct), minutes);
     }
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix,
-            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, double pct, long minutes) {
+            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes) {
         this(routes, visits, matrix, Required.value(Set.of()), regular, overtime, mileage, pct, minutes);
     }
     public DayPlan(List<TechRoute> routes, List<PlanVisit> visits, Map<String, RoadLeg> matrix, Set<String> unreachable,
-            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, double pct, long minutes) {
+            BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes) {
         this.routes = Required.value(List.copyOf(routes)); this.visits = Required.value(List.copyOf(visits));
         this.scoringFacts = new RouteScoringFacts(PlanFacts.capture(routes, visits, matrix, unreachable, regular, overtime, mileage, pct, minutes), null);
     }
@@ -52,7 +52,7 @@ public class DayPlan {
     public BigDecimal getRegularHourly() { return getFacts().regularHourly(); }
     public BigDecimal getOvertimeHourly() { return getFacts().overtimeHourly(); }
     public BigDecimal getMileagePerMile() { return getFacts().mileagePerMile(); }
-    public double getTravelBufferPct() { return getFacts().travelBufferPct(); }
+    public BigDecimal getTravelBufferPct() { return getFacts().travelBufferPct(); }
     public long getTravelBufferMinutes() { return getFacts().travelBufferMinutes(); }
     public @Nullable BendableBigDecimalScore getScore() { return score; }
     public void setScore(@Nullable BendableBigDecimalScore score) { this.score = score; }
