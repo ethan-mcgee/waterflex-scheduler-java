@@ -1,0 +1,1053 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] calculation-engine                                                 [jar]
+[INFO] solver-service                                                     [jar]
+[INFO] scheduler-service                                                  [jar]
+[INFO] routing-service                                                    [jar]
+[INFO] campaign-benchmark                                                 [jar]
+[INFO] waterflex-scheduler                                                [pom]
+[INFO] 
+[INFO] ------------------< dev.waterflex:calculation-engine >------------------
+[INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/6]
+[INFO]   from calculation-engine\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ calculation-engine ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 47 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationJson.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\main\java\dev\waterflex\scheduler\CalculationJson.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationJson.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ calculation-engine ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ calculation-engine ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ calculation-engine ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ calculation-engine ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\target\calculation-engine-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --------------------< dev.waterflex:solver-service >--------------------
+[INFO] Building solver-service 0.1.0-SNAPSHOT                             [2/6]
+[INFO]   from solver-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ solver-service ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ solver-service ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ solver-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\src\main\java\dev\waterflex\solver\SolveController.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ solver-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ solver-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 4 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ solver-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.solver.HttpCalculationCancellationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.542 s -- in dev.waterflex.solver.HttpCalculationCancellationTest
+[INFO] Running dev.waterflex.solver.SolverCancellationTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\mcgee\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.817 s -- in dev.waterflex.solver.SolverCancellationTest
+[INFO] Running dev.waterflex.solver.SolverReplayTest
+22:40:27.514 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [dev.waterflex.solver.SolverReplayTest]: SolverReplayTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+22:40:27.628 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration dev.waterflex.solver.SolverApplication for test class dev.waterflex.solver.SolverReplayTest
+22:40:27.697 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [dev.waterflex.solver.SolverReplayTest]: SolverReplayTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+22:40:27.698 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration dev.waterflex.solver.SolverApplication for test class dev.waterflex.solver.SolverReplayTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-06T22:40:27.961-05:00  INFO 7452 --- [           main] dev.waterflex.solver.SolverReplayTest    : Starting SolverReplayTest using Java 25.0.1 with PID 7452 (started by mcgee in C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service)
+2026-10-06T22:40:27.962-05:00  INFO 7452 --- [           main] dev.waterflex.solver.SolverReplayTest    : No active profile set, falling back to 1 default profile: "default"
+2026-10-06T22:40:28.858-05:00  INFO 7452 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 0 (http)
+2026-10-06T22:40:28.871-05:00  INFO 7452 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-06T22:40:28.872-05:00  INFO 7452 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-06T22:40:28.930-05:00  INFO 7452 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 952 ms
+2026-10-06T22:40:29.958-05:00  INFO 7452 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 54405 (http) with context path '/'
+2026-10-06T22:40:29.963-05:00  INFO 7452 --- [           main] dev.waterflex.solver.SolverReplayTest    : Started SolverReplayTest in 2.233 seconds (process running for 4.403)
+2026-10-06T22:40:30.083-05:00  INFO 7452 --- [1-auto-1-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-06T22:40:30.083-05:00  INFO 7452 --- [1-auto-1-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-06T22:40:30.085-05:00  INFO 7452 --- [1-auto-1-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-10-06T22:40:30.436-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (5), best score ([0/0/-2/0/0]hard/[0/0]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:40:30.437-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:40:30.453-05:00  INFO 7452 --- [5a-0eeef1016c83] .c.i.c.DefaultConstructionHeuristicPhase : Construction Heuristic phase (0) ended: time spent (22), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (437/sec), step total (2).
+2026-10-06T22:40:31.081-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (1) ended: time spent (650), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (159744/sec), step total (1000).
+2026-10-06T22:40:31.083-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (650), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (153856/sec), phase total (2), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:40:31.130-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (3), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:40:31.130-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:40:32.056-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (929), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (108108/sec), step total (1000).
+2026-10-06T22:40:32.057-05:00  INFO 7452 --- [5a-0eeef1016c83] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (930), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (107526/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:40:32.250-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-4680]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:40:32.250-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:40:32.544-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (295), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (340136/sec), step total (1000).
+2026-10-06T22:40:32.544-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (295), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (338983/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:40:32.574-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:40:32.575-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:40:33.072-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (499), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (201207/sec), step total (1000).
+2026-10-06T22:40:33.073-05:00  INFO 7452 --- [a5-11855c03c951] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (500), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (200000/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:40:33.102-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (3), best score ([0/0/0/0/0]hard/[0/-4680]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:40:33.102-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:40:33.348-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (249), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (406504/sec), step total (1000).
+2026-10-06T22:40:33.348-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (249), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (401606/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:40:33.369-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:40:33.370-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:40:33.852-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (484), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (207468/sec), step total (1000).
+2026-10-06T22:40:33.854-05:00  INFO 7452 --- [71-e0ef4f8ae90e] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (486), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (205761/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.444 s -- in dev.waterflex.solver.SolverReplayTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ solver-service ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:4.1.1:repackage (repackage) @ solver-service ---
+[INFO] Replacing main artifact C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar.original
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT                          [3/6]
+[INFO]   from scheduler-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ scheduler-service ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 53 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\src\main\java\dev\waterflex\scheduler\BookingService.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ scheduler-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 67 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Some input files use or override a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSearchOutcomeTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ scheduler-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.scheduler.BenchmarkIsolationTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\mcgee\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+22:40:39.906 [main] INFO org.springframework.scheduling.config.TaskSchedulerRouter -- No TaskScheduler/ScheduledExecutorService bean found for scheduled processing
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.499 s -- in dev.waterflex.scheduler.BenchmarkIsolationTest
+[INFO] Running dev.waterflex.scheduler.BookingLocationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.080 s -- in dev.waterflex.scheduler.BookingLocationTest
+[INFO] Running dev.waterflex.scheduler.BookingMoneyTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.391 s -- in dev.waterflex.scheduler.BookingMoneyTest
+[INFO] Running dev.waterflex.scheduler.BookingOfferLimitTest
+22:40:41.189 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:40:41.238 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:40:41.246 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:40:41.253 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:40:41.261 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.265 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.272 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.277 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.284 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.290 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.297 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.303 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.308 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+22:40:41.312 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'bookingOfferLimit': Failed to instantiate [dev.waterflex.scheduler.BookingOfferLimit]: Constructor threw exception
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.282 s -- in dev.waterflex.scheduler.BookingOfferLimitTest
+[INFO] Running dev.waterflex.scheduler.BookingRefinementTransportTest
+22:40:41.482 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:40:41.585 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.284 s -- in dev.waterflex.scheduler.BookingRefinementTransportTest
+[INFO] Running dev.waterflex.scheduler.BookingRouteBoundsTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.548 s -- in dev.waterflex.scheduler.BookingRouteBoundsTest
+[INFO] Running dev.waterflex.scheduler.BookingSearchOutcomeTest
+22:40:42.555 [main] WARN dev.waterflex.scheduler.BookingController -- Booking routing failure for job job
+dev.waterflex.scheduler.RoadClient$RoadUnavailable: Road unavailable
+	at dev.waterflex.scheduler.BookingCoordinator.offers(BookingCoordinator.java:32)
+	at dev.waterflex.scheduler.BookingController.search(BookingController.java:87)
+	at dev.waterflex.scheduler.BookingController.lambda$offers$0(BookingController.java:66)
+	at dev.waterflex.scheduler.SearchDeadline.within(SearchDeadline.java:86)
+	at dev.waterflex.scheduler.BookingController.offers(BookingController.java:64)
+	at dev.waterflex.scheduler.BookingSearchOutcomeTest.failuresRemainDistinctAndDoNotProduceOffers(BookingSearchOutcomeTest.java:54)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:701)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:502)
+	at org.junit.jupiter.engine.support.MethodReflectionUtils.invoke(MethodReflectionUtils.java:45)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:61)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:124)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:163)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:148)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:123)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:105)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:99)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:66)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:47)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:39)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:104)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:98)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invokeVoid(InterceptingExecutableInvoker.java:71)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$0(TestMethodTestDescriptor.java:219)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:215)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:157)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:70)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:176)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:36)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:52)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.executeEngine(EngineExecutionOrchestrator.java:246)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.failOrExecuteEngine(EngineExecutionOrchestrator.java:218)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:179)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:108)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:66)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:157)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:65)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:125)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:58)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$2(InterceptingLauncher.java:57)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:56)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:58)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.apache.maven.surefire.api.util.ReflectionUtils.invokeMethodWithArray(ReflectionUtils.java:125)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.executeWithCancellationToken(LauncherAdapter.java:68)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.execute(LauncherAdapter.java:54)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:203)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:168)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:136)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+22:40:42.563 [main] WARN dev.waterflex.scheduler.BookingController -- Booking conflict for job job: Changed
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.426 s -- in dev.waterflex.scheduler.BookingSearchOutcomeTest
+[INFO] Running dev.waterflex.scheduler.BookingWeeklyAvailabilityTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.229 s -- in dev.waterflex.scheduler.BookingWeeklyAvailabilityTest
+[INFO] Running dev.waterflex.scheduler.BoundedBookingSearchTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.118 s -- in dev.waterflex.scheduler.BoundedBookingSearchTest
+[INFO] Running dev.waterflex.scheduler.DepotRequestValidationTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.063 s -- in dev.waterflex.scheduler.DepotRequestValidationTest
+[INFO] Running dev.waterflex.scheduler.DirectedLegFlightsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.123 s -- in dev.waterflex.scheduler.DirectedLegFlightsTest
+[INFO] Running dev.waterflex.scheduler.DispatchGeometryControllerTest
+22:40:43.505 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.505 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.507 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 2 ms
+22:40:43.650 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.651 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.651 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.687 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.687 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.687 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.752 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.752 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.752 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.764 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.764 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.764 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.825 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.826 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.826 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.844 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.844 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.844 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.888 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.889 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.889 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:43.900 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:43.900 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:43.900 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.800 s -- in dev.waterflex.scheduler.DispatchGeometryControllerTest
+[INFO] Running dev.waterflex.scheduler.FieldScenarioTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.292 s -- in dev.waterflex.scheduler.FieldScenarioTest
+[INFO] Running dev.waterflex.scheduler.MonetaryTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.032 s -- in dev.waterflex.scheduler.MonetaryTest
+[INFO] Running dev.waterflex.scheduler.NullabilityTest
+22:40:45.264 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:45.264 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:45.265 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+22:40:45.316 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public dev.waterflex.scheduler.BookingController$SearchResponse dev.waterflex.scheduler.BookingController.offers(dev.waterflex.scheduler.BookingController$JobRequest)]
+22:40:45.319 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.BookingController$JobRequest` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.326 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.327 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.BookingController$JobRequest` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.328 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot coerce Integer value (12) to `java.lang.String` value (but could if coercion was enabled using `CoercionConfig`)]
+22:40:45.333 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public dev.waterflex.scheduler.BookingService$Selection dev.waterflex.scheduler.BookingController.select(dev.waterflex.scheduler.BookingController$SelectRequest)]
+22:40:45.334 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.BookingController$SelectRequest` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.337 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.337 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.BookingController$SelectRequest` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.338 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot coerce Integer value (12) to `java.lang.String` value (but could if coercion was enabled using `CoercionConfig`)]
+22:40:45.340 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public dev.waterflex.scheduler.BookingService$Confirmation dev.waterflex.scheduler.BookingController.confirm(dev.waterflex.scheduler.BookingController$ConfirmRequest)]
+22:40:45.341 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.BookingController$ConfirmRequest` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.343 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.343 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.BookingController$ConfirmRequest` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.343 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot coerce Boolean value (false) to `java.lang.String` value (but could if coercion was enabled using `CoercionConfig`)]
+22:40:45.346 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.BookingController.cancel(dev.waterflex.scheduler.BookingController$CancelRequest)]
+22:40:45.346 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.BookingController$CancelRequest` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.347 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.347 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.BookingController$CancelRequest` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.464 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:45.464 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:45.464 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:45.535 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:40:45.536 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:40:45.536 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:40:45.542 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public void dev.waterflex.scheduler.optimizer.OptimizationController.preview(dev.waterflex.scheduler.optimizer.OptimizationService$Request,jakarta.servlet.http.HttpServletResponse) throws java.io.IOException]
+22:40:45.544 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.optimizer.OptimizationService$Request` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.550 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.553 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.optimizer.OptimizationService$Request` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.555 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.optimizer.OptimizationService$Request` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.557 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.optimizer.OptimizationController.apply(java.lang.String,dev.waterflex.scheduler.RequestChecks$Empty)]
+22:40:45.559 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.RequestChecks$Empty` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.560 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.561 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.RequestChecks$Empty` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.561 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.RequestChecks$Empty` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.563 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.TimeOffController.submit(dev.waterflex.scheduler.TimeOffService$Request)]
+22:40:45.564 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.TimeOffService$Request` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.565 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.565 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.TimeOffService$Request` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.566 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.TimeOffService$Request` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.568 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.TimeOffController.approve(java.lang.String,dev.waterflex.scheduler.TimeOffController$Approval)]
+22:40:45.568 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.TimeOffController$Approval` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.569 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.570 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.TimeOffController$Approval` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.571 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.TimeOffController$Approval` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.571 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.TimeOffController.retry(java.lang.String,dev.waterflex.scheduler.RequestChecks$Empty)]
+22:40:45.572 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.RequestChecks$Empty` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.572 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.573 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.RequestChecks$Empty` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.573 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.RequestChecks$Empty` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.573 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.TimeOffController.deny(java.lang.String,dev.waterflex.scheduler.RequestChecks$Empty)]
+22:40:45.575 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.RequestChecks$Empty` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.575 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.576 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.RequestChecks$Empty` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.576 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.RequestChecks$Empty` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.578 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.ScheduleGuardController.availability(dev.waterflex.scheduler.ScheduleGuardController$AvailabilityRequest)]
+22:40:45.578 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.ScheduleGuardController$AvailabilityRequest` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.579 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.581 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.ScheduleGuardController$AvailabilityRequest` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.582 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.ScheduleGuardController$AvailabilityRequest` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+22:40:45.584 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.ScheduleGuardController.qualification(dev.waterflex.scheduler.ScheduleGuardController$QualificationRequest)]
+22:40:45.584 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot deserialize value of type `dev.waterflex.scheduler.ScheduleGuardController$QualificationRequest` from Array value (token `JsonToken.START_ARRAY`)]
+22:40:45.585 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:40:45.586 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.ScheduleGuardController$QualificationRequest` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (false)]
+22:40:45.587 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot construct instance of `dev.waterflex.scheduler.ScheduleGuardController$QualificationRequest` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('text')]
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.352 s -- in dev.waterflex.scheduler.NullabilityTest
+[INFO] Running dev.waterflex.scheduler.optimizer.AssertionCampaignTest
+[WARNING] Tests run: 1, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0 s -- in dev.waterflex.scheduler.optimizer.AssertionCampaignTest
+[INFO] Running dev.waterflex.scheduler.optimizer.ConstraintRulesTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.096 s -- in dev.waterflex.scheduler.optimizer.ConstraintRulesTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyConstructionTest
+22:40:46.247 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (9), best score ([0/0/-3/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:46.248 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (3), approximate problem scale (60).
+22:40:46.293 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (55), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (272/sec), step total (3).
+22:40:46.494 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (256), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (1090/sec), step total (1).
+22:40:46.495 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (256), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (894/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:46.530 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-2/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:46.530 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (3), approximate problem scale (60).
+22:40:46.539 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (11), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (777/sec), step total (2).
+22:40:46.779 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (2443/sec), step total (1).
+22:40:46.779 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/0/0/0]hard/[0/-4500]soft), move evaluation speed (2354/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:46.859 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:46.859 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+22:40:46.864 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (7), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (800/sec), step total (2).
+22:40:47.109 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (252), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (1914/sec), step total (1).
+22:40:47.109 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (252), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (1876/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:47.152 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:47.153 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+22:40:47.156 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (5), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (1333/sec), step total (2).
+22:40:47.402 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (2731/sec), step total (1).
+22:40:47.402 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (2693/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:47.434 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/-1800/0/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:47.434 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+22:40:47.683 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3461/sec), step total (2).
+22:40:47.683 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (3434/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:47.712 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/-1800/0/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:47.712 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+22:40:47.961 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (250), best score ([0/0/0/0/0]hard/[0/-1500]soft), move evaluation speed (3477/sec), step total (1).
+22:40:47.961 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (250), best score ([0/0/0/0/0]hard/[0/-1500]soft), move evaluation speed (3464/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:47.987 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:47.987 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+22:40:47.989 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (3), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (2000/sec), step total (2).
+22:40:48.236 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (250), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (4425/sec), step total (2).
+22:40:48.237 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (251), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (4370/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:48.253 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/-3601/0/0/0]hard/[0/-1500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:48.253 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+22:40:48.254 [main] WARN ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase --     No doable selected move at step index (0), time spent (2). Terminating phase early.
+22:40:48.254 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (2), best score ([0/-3601/0/0/0]hard/[0/-1500]soft), move evaluation speed (0/sec), step total (0).
+22:40:48.254 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (2), best score ([0/-3601/0/0/0]hard/[0/-1500]soft), move evaluation speed (0/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:48.367 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:48.368 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:48.379 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (14), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2363/sec), step total (4).
+22:40:48.465 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2717/sec), step total (3).
+22:40:48.466 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2544/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:48.550 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:48.550 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:48.561 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (13), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2363/sec), step total (4).
+22:40:48.649 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3113/sec), step total (3).
+22:40:48.649 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2970/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:48.726 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:48.726 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:48.736 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (11), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2600/sec), step total (4).
+22:40:48.825 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1112/sec), step total (90).
+22:40:48.826 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1250/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:48.895 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:48.895 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:48.904 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (10), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2888/sec), step total (4).
+22:40:48.994 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1144/sec), step total (99).
+22:40:48.995 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1290/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:49.011 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:49.011 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:49.020 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (10), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2888/sec), step total (4).
+22:40:49.111 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (4144/sec), step total (1).
+22:40:49.111 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (3950/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:49.182 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:49.183 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:49.193 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (11), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2600/sec), step total (4).
+22:40:49.282 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1056/sec), step total (91).
+22:40:49.283 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1188/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:49.366 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-4/0/0]hard/[0/-3000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:49.366 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:49.376 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (12), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (2600/sec), step total (4).
+22:40:49.464 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (840/sec), step total (73).
+22:40:49.464 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-9000]soft), move evaluation speed (1000/sec), phase total (2), environment mode (FULL_ASSERT), move thread count (NONE).
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.805 s -- in dev.waterflex.scheduler.optimizer.DailyConstructionTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyDatasetTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.118 s -- in dev.waterflex.scheduler.optimizer.DailyDatasetTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyOperationTest
+22:40:49.625 [daily-2edfcae4-faae-4a6f-bf4c-fa01675cc7d5] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=2edfcae4-faae-4a6f-bf4c-fa01675cc7d5, outcome=COMPLETED, elapsedMs=1, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+22:40:50.635 [daily-6dbc50da-d245-415f-ae8c-ddd5d64ea822] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=6dbc50da-d245-415f-ae8c-ddd5d64ea822, outcome=FAILED, elapsedMs=0, queueMs=0, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+22:40:50.801 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+22:40:50.939 [daily-52585416-2123-49ca-9270-38edebb71d86] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:40:50.939 [daily-52585416-2123-49ca-9270-38edebb71d86] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:52.823 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+22:40:52.823 [daily-52585416-2123-49ca-9270-38edebb71d86] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (1884), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (250396/sec), step total (49).
+22:40:52.823 [daily-52585416-2123-49ca-9270-38edebb71d86] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (1884), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (250263/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.308 s -- in dev.waterflex.scheduler.optimizer.DailyOperationTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyPolicyDiagnosticsTest
+22:40:52.988 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-4000]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:40:52.988 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (2), approximate problem scale (6).
+22:40:53.088 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-4000]soft), move evaluation speed (404240/sec), step total (405).
+22:40:53.088 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-4000]soft), move evaluation speed (404240/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:40:53.168 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-20/-4500]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:40:53.168 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (2), approximate problem scale (6).
+22:40:53.267 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[-20/-4500]soft), move evaluation speed (374606/sec), step total (371).
+22:40:53.267 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[-20/-4500]soft), move evaluation speed (370860/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.340 s -- in dev.waterflex.scheduler.optimizer.DailyPolicyDiagnosticsTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DailyProposalBoundaryTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in dev.waterflex.scheduler.optimizer.DailyProposalBoundaryTest
+[INFO] Running dev.waterflex.scheduler.optimizer.DayConstraintProviderTest
+22:40:53.304 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.015625/-6000]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:53.304 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+22:40:55.524 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (2221), best score ([0/0/0/0/0]hard/[0E-8/-6000]soft), move evaluation speed (4506/sec), step total (100).
+22:40:55.524 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (2221), best score ([0/0/0/0/0]hard/[0E-8/-6000]soft), move evaluation speed (4502/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:55.553 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:55.554 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:57.463 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (1910), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5238/sec), step total (100).
+22:40:57.464 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (1911), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5232/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:57.487 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.1039943683049779458097038437303088/-16541]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:57.487 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:40:59.524 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (2038), best score ([0/0/0/0/0]hard/[-0.1039943683049779458097038437303088/-16541]soft), move evaluation speed (4909/sec), step total (100).
+22:40:59.524 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (2038), best score ([0/0/0/0/0]hard/[-0.1039943683049779458097038437303088/-16541]soft), move evaluation speed (4906/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:40:59.548 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:40:59.548 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:01.376 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (1830), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5470/sec), step total (100).
+22:41:01.377 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (1830), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5464/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:01.399 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-60/-7500]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:01.400 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+22:41:03.074 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (1676), best score ([0/0/0/0/0]hard/[0/-6000]soft), move evaluation speed (5973/sec), step total (100).
+22:41:03.075 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (1677), best score ([0/0/0/0/0]hard/[0/-6000]soft), move evaluation speed (5963/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.800 s -- in dev.waterflex.scheduler.optimizer.DayConstraintProviderTest
+[INFO] Running dev.waterflex.scheduler.optimizer.OptimizationControllerTest
+22:41:03.081 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:41:03.081 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:41:03.081 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:41:03.102 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:41:03.102 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:41:03.102 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s -- in dev.waterflex.scheduler.optimizer.OptimizationControllerTest
+[INFO] Running dev.waterflex.scheduler.optimizer.OptimizationServiceTest
+22:41:05.123 [daily-e8fcfcdf-79e8-44ca-8299-de7e89960a48] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=e8fcfcdf-79e8-44ca-8299-de7e89960a48, outcome=FAILED, elapsedMs=0, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.020 s -- in dev.waterflex.scheduler.optimizer.OptimizationServiceTest
+[INFO] Running dev.waterflex.scheduler.optimizer.OvernightControllerTest
+22:41:05.133 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:41:05.133 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:41:05.133 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 0 ms
+22:41:05.137 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.web.bind.MissingServletRequestParameterException: Required request parameter 'date' for method parameter type String is not present]
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in dev.waterflex.scheduler.optimizer.OvernightControllerTest
+[INFO] Running dev.waterflex.scheduler.optimizer.PlanFactsTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in dev.waterflex.scheduler.optimizer.PlanFactsTest
+[INFO] Running dev.waterflex.scheduler.optimizer.RouteTimelineTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in dev.waterflex.scheduler.optimizer.RouteTimelineTest
+[INFO] Running dev.waterflex.scheduler.optimizer.RouteTimingOracleTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s -- in dev.waterflex.scheduler.optimizer.RouteTimingOracleTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SchedulingPolicyTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s -- in dev.waterflex.scheduler.optimizer.SchedulingPolicyTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SolverBenchmarkTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in dev.waterflex.scheduler.optimizer.SolverBenchmarkTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SolverEngineTest
+22:41:05.304 [pool-3-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:05.304 [pool-3-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:05.306 [pool-3-thread-1] WARN io.micrometer.core.instrument.MeterRegistry -- This Gauge has been already registered (MeterId{name='timefold.solver.score.calculation.count', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+22:41:05.306 [pool-3-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (3), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:05.306 [pool-3-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:05.453 [pool-3-thread-1] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (66680/sec), step total (99).
+22:41:05.453 [pool-3-thread-2] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (64570/sec), step total (97).
+22:41:05.453 [pool-3-thread-1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (65346/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:05.453 [pool-3-thread-2] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (150), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (64140/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:05.472 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:05.472 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:05.867 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (395), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (253164/sec), step total (1000).
+22:41:05.867 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (395), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (253164/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:05.881 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:05.881 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.218 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (337), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (296735/sec), step total (1000).
+22:41:06.218 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (337), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (296735/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:06.233 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:06.234 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.333 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (267383/sec), step total (265).
+22:41:06.333 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (264710/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:06.353 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:06.354 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.453 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (230707/sec), step total (4).
+22:41:06.453 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (228400/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:06.472 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:06.473 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.572 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (258222/sec), step total (4).
+22:41:06.572 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (255640/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:06.587 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:06.588 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.686 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (264071/sec), step total (4).
+22:41:06.686 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (258790/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:06.701 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:06.701 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.802 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (264425/sec), step total (4).
+22:41:06.802 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (264425/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:06.815 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:06.815 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:06.915 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (273080/sec), step total (4).
+22:41:06.915 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (273080/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.744 s -- in dev.waterflex.scheduler.optimizer.SolverEngineTest
+[INFO] Running dev.waterflex.scheduler.optimizer.SolverExperimentTest
+22:41:08.778 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:08.778 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:08.877 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5939/sec), step total (6).
+22:41:08.877 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5880/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:08.889 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:08.889 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:08.990 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5465/sec), step total (6).
+22:41:08.990 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (5465/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.006 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.006 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.105 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4595/sec), step total (79).
+22:41:09.105 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4550/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.118 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.118 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.219 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4267/sec), step total (92).
+22:41:09.219 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4267/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.230 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.230 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.329 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16691]soft), move evaluation speed (6555/sec), step total (1).
+22:41:09.329 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16691]soft), move evaluation speed (6490/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.345 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.345 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.444 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4000/sec), step total (60).
+22:41:09.444 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3960/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.461 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.462 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.561 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4181/sec), step total (70).
+22:41:09.562 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (4099/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.581 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (3), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (FULL_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.581 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.678 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3948/sec), step total (59).
+22:41:09.678 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (3830/sec), phase total (1), environment mode (FULL_ASSERT), move thread count (NONE).
+22:41:09.692 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (0), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.693 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:09.792 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (204353/sec), step total (203).
+22:41:09.792 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (202310/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+22:41:09.813 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-17241]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:09.813 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (3), genuine variable count (3), approximate value count (6), approximate problem scale (60,480).
+22:41:10.196 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (385), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (261096/sec), step total (1000).
+22:41:10.196 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (385), best score ([0/0/0/0/0]hard/[0/-16541]soft), move evaluation speed (259740/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.188 s -- in dev.waterflex.scheduler.optimizer.SolverExperimentTest
+[INFO] Running dev.waterflex.scheduler.optimizer.TimefoldAuditEvidenceTest
+22:41:10.222 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/-1/0/0]hard/[0/0]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+22:41:10.222 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (1), genuine variable count (1), approximate value count (1), approximate problem scale (2).
+22:41:10.222 [main] INFO ai.timefold.solver.core.impl.constructionheuristic.DefaultConstructionHeuristicPhase -- Construction Heuristic phase (0) ended: time spent (2), best score ([0/0/0/0/0]hard/[0/-3000]soft), move evaluation speed (2000/sec), step total (1).
+22:41:10.420 [main] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (1) ended: time spent (200), best score ([0/0/0/0/0]hard/[0/-3000]soft), move evaluation speed (428444/sec), step total (50).
+22:41:10.420 [main] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (200), best score ([0/0/0/0/0]hard/[0/-3000]soft), move evaluation speed (424170/sec), phase total (2), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.225 s -- in dev.waterflex.scheduler.optimizer.TimefoldAuditEvidenceTest
+[INFO] Running dev.waterflex.scheduler.optimizer.TravelBreakdownTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in dev.waterflex.scheduler.optimizer.TravelBreakdownTest
+[INFO] Running dev.waterflex.scheduler.PurgeRoutesControllerTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.039 s -- in dev.waterflex.scheduler.PurgeRoutesControllerTest
+[INFO] Running dev.waterflex.scheduler.ReservationDeletionTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in dev.waterflex.scheduler.ReservationDeletionTest
+[INFO] Running dev.waterflex.scheduler.ReservationStateTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in dev.waterflex.scheduler.ReservationStateTest
+[INFO] Running dev.waterflex.scheduler.ReservedOvertimeTest
+22:41:10.495 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in dev.waterflex.scheduler.ReservedOvertimeTest
+[INFO] Running dev.waterflex.scheduler.RoadClientTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.581 s -- in dev.waterflex.scheduler.RoadClientTest
+[INFO] Running dev.waterflex.scheduler.RoadPrewarmingTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in dev.waterflex.scheduler.RoadPrewarmingTest
+[INFO] Running dev.waterflex.scheduler.RouteEndpointsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in dev.waterflex.scheduler.RouteEndpointsTest
+[INFO] Running dev.waterflex.scheduler.RoutingFailureAdviceTest
+22:41:11.111 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:41:11.111 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:41:11.112 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+22:41:11.113 [main] WARN dev.waterflex.scheduler.RoutingFailureAdvice -- Operator road routing unavailable
+dev.waterflex.scheduler.RoadClient$RoadUnavailable: fixture routing unavailable
+	at dev.waterflex.scheduler.RoutingFailureAdviceTest$Endpoint.operation(RoutingFailureAdviceTest.java:12)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:252)
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:184)
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:117)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:934)
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:853)
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:86)
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:963)
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:866)
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1000)
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:892)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:622)
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:874)
+	at org.springframework.test.web.servlet.TestDispatcherServlet.service(TestDispatcherServlet.java:72)
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:710)
+	at org.springframework.mock.web.MockFilterChain$ServletFilterProxy.doFilter(MockFilterChain.java:160)
+	at org.springframework.mock.web.MockFilterChain.doFilter(MockFilterChain.java:127)
+	at org.springframework.test.web.servlet.MockMvc.perform(MockMvc.java:199)
+	at dev.waterflex.scheduler.RoutingFailureAdviceTest.operatorFailureIsExplicitAndRetryable(RoutingFailureAdviceTest.java:16)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:701)
+	at org.junit.platform.commons.support.ReflectionSupport.invokeMethod(ReflectionSupport.java:502)
+	at org.junit.jupiter.engine.support.MethodReflectionUtils.invoke(MethodReflectionUtils.java:45)
+	at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:61)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:124)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:163)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:148)
+	at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(InterceptingExecutableInvoker.java:123)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.lambda$invoke$0(InterceptingExecutableInvoker.java:105)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:99)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:66)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:47)
+	at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:39)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:104)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:98)
+	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invokeVoid(InterceptingExecutableInvoker.java:71)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$0(TestMethodTestDescriptor.java:219)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:215)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:157)
+	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.execute(TestMethodTestDescriptor.java:70)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:176)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:42)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$2(NodeTestTask.java:180)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$1(NodeTestTask.java:166)
+	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:138)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$0(NodeTestTask.java:164)
+	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:74)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:163)
+	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:116)
+	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:36)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:52)
+	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:58)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.executeEngine(EngineExecutionOrchestrator.java:246)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.failOrExecuteEngine(EngineExecutionOrchestrator.java:218)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:179)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:108)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:66)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:157)
+	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:65)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:125)
+	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:114)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:58)
+	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$2(InterceptingLauncher.java:57)
+	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:56)
+	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:58)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at org.apache.maven.surefire.api.util.ReflectionUtils.invokeMethodWithArray(ReflectionUtils.java:125)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.executeWithCancellationToken(LauncherAdapter.java:68)
+	at org.apache.maven.surefire.junitplatform.LauncherAdapter.execute(LauncherAdapter.java:54)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.execute(JUnitPlatformProvider.java:203)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invokeAllTests(JUnitPlatformProvider.java:168)
+	at org.apache.maven.surefire.junitplatform.JUnitPlatformProvider.invoke(JUnitPlatformProvider.java:136)
+	at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:385)
+	at org.apache.maven.surefire.booter.ForkedBooter.execute(ForkedBooter.java:162)
+	at org.apache.maven.surefire.booter.ForkedBooter.run(ForkedBooter.java:507)
+	at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:495)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in dev.waterflex.scheduler.RoutingFailureAdviceTest
+[INFO] Running dev.waterflex.scheduler.ScheduleCutoffTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in dev.waterflex.scheduler.ScheduleCutoffTest
+[INFO] Running dev.waterflex.scheduler.ScheduleGuardServiceTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in dev.waterflex.scheduler.ScheduleGuardServiceTest
+[INFO] Running dev.waterflex.scheduler.ScheduleSegmentsTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in dev.waterflex.scheduler.ScheduleSegmentsTest
+[INFO] Running dev.waterflex.scheduler.SchedulingBenchmarkControllerTest
+22:41:11.231 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:41:11.231 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:41:11.232 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 1 ms
+22:41:11.234 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public java.util.Map<java.lang.String, java.lang.Object> dev.waterflex.scheduler.SchedulingBenchmarkController.audit(dev.waterflex.scheduler.SchedulingBenchmarkController$Request)]
+22:41:11.237 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public dev.waterflex.scheduler.SchedulingBenchmarkController$Statistics dev.waterflex.scheduler.SchedulingBenchmarkController.statistics(dev.waterflex.scheduler.SchedulingBenchmarkController$StatisticsRequest)]
+22:41:11.238 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot coerce String value ("true") to `java.lang.Boolean` value (but might if coercion using `CoercionConfig` was enabled)]
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.096 s -- in dev.waterflex.scheduler.SchedulingBenchmarkControllerTest
+[INFO] Running dev.waterflex.scheduler.SearchAdmissionTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.087 s -- in dev.waterflex.scheduler.SearchAdmissionTest
+[INFO] Running dev.waterflex.scheduler.SearchDatabaseTelemetryTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.329 s -- in dev.waterflex.scheduler.SearchDatabaseTelemetryTest
+[INFO] Running dev.waterflex.scheduler.ServiceCalendarTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s -- in dev.waterflex.scheduler.ServiceCalendarTest
+[INFO] Running dev.waterflex.scheduler.SnapshotRoutingTest
+22:41:11.708 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:41:11.708 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:41:11.718 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:41:11.718 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:41:11.725 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+22:41:11.726 [main] INFO dev.waterflex.scheduler.BookingOfferLimit -- Booking offer limit: 1
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s -- in dev.waterflex.scheduler.SnapshotRoutingTest
+[INFO] Running dev.waterflex.scheduler.TestAddressRoutabilityServiceTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in dev.waterflex.scheduler.TestAddressRoutabilityServiceTest
+[INFO] Running dev.waterflex.scheduler.TimeOffEligibilityTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in dev.waterflex.scheduler.TimeOffEligibilityTest
+[INFO] Running dev.waterflex.scheduler.TimeOffPollingTest
+22:41:11.788 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.792 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.796 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.799 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.803 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.806 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.809 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+22:41:11.814 [main] WARN org.springframework.context.annotation.AnnotationConfigApplicationContext -- Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'timeOffPolling': Failed to instantiate [dev.waterflex.scheduler.TimeOffPolling]: Constructor threw exception
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.057 s -- in dev.waterflex.scheduler.TimeOffPollingTest
+[INFO] Running dev.waterflex.scheduler.TimeOffTravelTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in dev.waterflex.scheduler.TimeOffTravelTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 252, Failures: 0, Errors: 0, Skipped: 1
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ scheduler-service ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target\scheduler-service-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:4.1.1:repackage (repackage) @ scheduler-service ---
+[INFO] Replacing main artifact C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target\scheduler-service-0.1.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target\scheduler-service-0.1.0-SNAPSHOT.jar.original
+[INFO] 
+[INFO] -------------------< dev.waterflex:routing-service >--------------------
+[INFO] Building routing-service 0.1.0-SNAPSHOT                            [4/6]
+[INFO]   from routing-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ routing-service ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\routing-service\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ routing-service ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ routing-service ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 5 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/routing-service/src/main/java/dev/waterflex/routing/MatrixController.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\routing-service\src\main\java\dev\waterflex\routing\MatrixController.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/routing-service/src/main/java/dev/waterflex/routing/MatrixController.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ routing-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ routing-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 1 source file with javac [debug parameters release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ routing-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.routing.MatrixControllerTest
+22:41:14.745 [main] INFO com.graphhopper.GraphHopper -- version 11.0|2025-10-14T14:28:00Z (9,24,7,5,2,9)
+22:41:15.041 [main] INFO com.graphhopper.GraphHopper -- No custom areas are used, custom_areas.directory not given
+22:41:15.049 [main] INFO com.graphhopper.GraphHopper -- No country rules available
+22:41:15.049 [main] INFO com.graphhopper.GraphHopper -- start creating graph from C:\Users\mcgee\AppData\Local\Temp\junit-16202017364444852189\fixture-roads.osm
+22:41:15.065 [main] INFO com.graphhopper.GraphHopper -- using car|RAM_STORE|2D|no_turn_cost|nodes:9,edges:24,geometry:7,location_index:5,string_index:2,nodesCH:0,shortcuts:9, memory:totalMB:1024, usedMB:80
+22:41:15.075 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- Start reading OSM file: 'C:\Users\mcgee\AppData\Local\Temp\junit-16202017364444852189\fixture-roads.osm'
+22:41:15.075 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - start
+22:41:15.108 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - start reading OSM ways
+22:41:15.111 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - finished, processed ways: 2, accepted ways: 2, way nodes: 4, relations: 0, totalMB:1024, usedMB:90
+22:41:15.112 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - finished, took: 35.69ms
+22:41:15.114 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- Creating graph. Node count (pillar+tower): 4, totalMB:1024, usedMB:90
+22:41:15.114 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - start
+22:41:15.116 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - start reading OSM nodes
+22:41:15.116 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - start reading OSM ways
+22:41:15.125 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - finished, processed ways: 2, way nodes: 4, nodes with tags: 0, node tag capacity: 1,056,768, ignored barriers at junctions: 0
+22:41:15.125 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - finished, took: 10.79ms
+22:41:15.126 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- Finished reading OSM file. pass1: 0s,  pass2: 0s,  total: 0s
+22:41:15.126 [main] INFO com.graphhopper.reader.osm.OSMReader -- Finished reading OSM file: C:\Users\mcgee\AppData\Local\Temp\junit-16202017364444852189\fixture-roads.osm, nodes: 2, edges: 2, zero distance edges: 0
+22:41:15.129 [main] INFO com.graphhopper.GraphHopper -- sorting graph along Hilbert curve...
+22:41:15.132 [main] INFO com.graphhopper.GraphHopper -- calculating sort order took: 2.90ms
+22:41:15.134 [main] INFO com.graphhopper.GraphHopper -- sort graph for fixed ordering...
+22:41:15.134 [main] INFO com.graphhopper.GraphHopper -- sorting 2 edges took: 673.50�s
+22:41:15.135 [main] INFO com.graphhopper.GraphHopper -- sorting 2 nodes took: 103.80�s
+22:41:15.144 [main] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- Start marking subnetworks, prepare.min_network_size: 200, threads: 1, nodes: 2, edges: 2, jobs: [car_subnetwork|com.graphhopper.routing.weighting.custom.CustomWeighting@6145b81e], totalMB:1024, usedMB:92
+22:41:15.156 [ForkJoinPool-1-worker-1] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- car - Found 2 subnetworks (1 single edges and 1 components with more than one edge, total nodes: 4), took: 0.0048302s
+22:41:15.157 [ForkJoinPool-1-worker-1] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- car - Marked 1 subnetworks (biggest: 1 edges) -> 1 components(s) remain (smallest: 3, biggest: 3 edges), total marked edges: 0, took: 2.337E-4s
+22:41:15.159 [main] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- Finished finding and marking subnetworks for 1 jobs, took: 0.0225118s, totalMB:80, usedMB:26
+22:41:15.160 [main] INFO com.graphhopper.GraphHopper -- nodes: 2, edges: 2
+22:41:15.221 [main] INFO com.graphhopper.storage.index.LocationIndexTree -- location index created in 0.0091269s, size:4, leafs:2, precision:300, depth:7, checksum:0, entries:[16, 16, 16, 16, 16, 4, 4], entriesPerLeaf:2.0
+22:41:15.225 [main] INFO com.graphhopper.GraphHopper -- flushing graph car|RAM_STORE|2D|no_turn_cost|nodes:9,edges:24,geometry:7,location_index:5,string_index:2,nodesCH:0,shortcuts:9, details:edges: 2(1MB), nodes: 2(1MB), bounds: 7.42,7.422,43.735,43.735, name:(1MB), geo:20/-1(1MB), totalMB:80, usedMB:42)
+22:41:15.236 [main] INFO com.graphhopper.GraphHopper -- flushed graph totalMB:80, usedMB:46)
+22:41:15.312 [main] INFO com.graphhopper.GraphHopper -- version 11.0|2025-10-14T14:28:00Z (9,24,7,5,2,9)
+22:41:15.373 [main] INFO com.graphhopper.GraphHopper -- No custom areas are used, custom_areas.directory not given
+22:41:15.374 [main] INFO com.graphhopper.GraphHopper -- No country rules available
+22:41:15.374 [main] INFO com.graphhopper.GraphHopper -- start creating graph from C:\Users\mcgee\AppData\Local\Temp\junit-16202017364444852189\fixture-roads.osm
+22:41:15.375 [main] INFO com.graphhopper.GraphHopper -- using car|RAM_STORE|2D|no_turn_cost|nodes:9,edges:24,geometry:7,location_index:5,string_index:2,nodesCH:0,shortcuts:9, memory:totalMB:96, usedMB:23
+22:41:15.375 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- Start reading OSM file: 'C:\Users\mcgee\AppData\Local\Temp\junit-16202017364444852189\fixture-roads.osm'
+22:41:15.375 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - start
+22:41:15.377 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - start reading OSM ways
+22:41:15.378 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - finished, processed ways: 2, accepted ways: 2, way nodes: 4, relations: 0, totalMB:96, usedMB:29
+22:41:15.378 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass1 - finished, took: 2.34ms
+22:41:15.378 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- Creating graph. Node count (pillar+tower): 4, totalMB:96, usedMB:29
+22:41:15.378 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - start
+22:41:15.379 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - start reading OSM nodes
+22:41:15.379 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - start reading OSM ways
+22:41:15.381 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - finished, processed ways: 2, way nodes: 4, nodes with tags: 0, node tag capacity: 1,056,768, ignored barriers at junctions: 0
+22:41:15.381 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- pass2 - finished, took: 3.04ms
+22:41:15.381 [main] INFO com.graphhopper.reader.osm.WaySegmentParser -- Finished reading OSM file. pass1: 0s,  pass2: 0s,  total: 0s
+22:41:15.381 [main] INFO com.graphhopper.reader.osm.OSMReader -- Finished reading OSM file: C:\Users\mcgee\AppData\Local\Temp\junit-16202017364444852189\fixture-roads.osm, nodes: 2, edges: 2, zero distance edges: 0
+22:41:15.381 [main] INFO com.graphhopper.GraphHopper -- sorting graph along Hilbert curve...
+22:41:15.381 [main] INFO com.graphhopper.GraphHopper -- calculating sort order took: 80.40�s
+22:41:15.381 [main] INFO com.graphhopper.GraphHopper -- sort graph for fixed ordering...
+22:41:15.381 [main] INFO com.graphhopper.GraphHopper -- sorting 2 edges took: 34.50�s
+22:41:15.382 [main] INFO com.graphhopper.GraphHopper -- sorting 2 nodes took: 34.60�s
+22:41:15.382 [main] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- Start marking subnetworks, prepare.min_network_size: 200, threads: 1, nodes: 2, edges: 2, jobs: [car_subnetwork|com.graphhopper.routing.weighting.custom.CustomWeighting@69228e85], totalMB:96, usedMB:29
+22:41:15.382 [ForkJoinPool-2-worker-1] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- car - Found 2 subnetworks (1 single edges and 1 components with more than one edge, total nodes: 4), took: 9.65E-5s
+22:41:15.382 [ForkJoinPool-2-worker-1] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- car - Marked 1 subnetworks (biggest: 1 edges) -> 1 components(s) remain (smallest: 3, biggest: 3 edges), total marked edges: 0, took: 7.0E-6s
+22:41:15.382 [main] INFO com.graphhopper.routing.subnetwork.PrepareRoutingSubnetworks -- Finished finding and marking subnetworks for 1 jobs, took: 8.363E-4s, totalMB:96, usedMB:30
+22:41:15.382 [main] INFO com.graphhopper.GraphHopper -- nodes: 2, edges: 2
+22:41:15.388 [main] INFO com.graphhopper.storage.index.LocationIndexTree -- location index created in 0.0023631s, size:4, leafs:2, precision:300, depth:7, checksum:0, entries:[16, 16, 16, 16, 16, 4, 4], entriesPerLeaf:2.0
+22:41:15.391 [main] INFO com.graphhopper.routing.ch.CHPreparationHandler -- Creating CH preparations, totalMB:96, usedMB:38
+22:41:15.393 [main] INFO com.graphhopper.routing.ch.CHPreparationHandler -- 1/1 Setting up CH preparation for profile 'car' NODE_BASED ... (totalMB:96, usedMB:38)
+22:41:15.396 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- Creating CH prepare graph, totalMB:96, usedMB:42
+22:41:15.399 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- Building CH prepare graph, totalMB:96, usedMB:42
+22:41:15.399 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- Finished building CH prepare graph, took: 3.506E-4s, totalMB:96, usedMB:42
+22:41:15.400 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- Building initial queue of nodes to be contracted: 2 nodes, totalMB:96, usedMB:42
+22:41:15.401 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- Finished building queue, took: 0.0010984s, totalMB:96, usedMB:42
+22:41:15.403 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- node, nodes:          2, shortcuts:          0, updates:  0, checked-nodes:          0, t(total):   0.01,  t(period):   0.00, t(lazy):   0.00, t(neighbor):   0.00, t(contr):   0.00, t(other) :   0.00, dijkstra-ratio:   0.00%, meanDegree: 1.00, dijkstras:          0, mem:        0MB, totalMB:96, usedMB:42
+22:41:15.403 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- node, nodes:          0, shortcuts:          0, updates:  0, checked-nodes:          2, t(total):   0.01,  t(period):   0.00, t(lazy):   0.00, t(neighbor):   0.00, t(contr):   0.00, t(other) :   0.01, dijkstra-ratio:   0.00%, meanDegree: 0.89, dijkstras:          0, mem:        0MB, totalMB:96, usedMB:42
+22:41:15.405 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- new shortcuts: 0, initSize:2, com.graphhopper.routing.weighting.custom.CustomWeighting@12f20c2b, periodic:0, lazy:100, neighbor:100, t(total):   0.01,  t(period):   0.00, t(lazy):   0.00, t(neighbor):   0.00, t(contr):   0.00, t(other) :   0.01, dijkstra-ratio:   0.00%, lazy-overhead: 0%, totalMB:96, usedMB:42
+22:41:15.405 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- shortcuts that exceed maximum weight: 0
+22:41:15.405 [car] INFO com.graphhopper.routing.ch.PrepareContractionHierarchies -- took: 0s, graph now - num edges: 2, num nodes: 2, num shortcuts: 0
+22:41:15.409 [main] INFO com.graphhopper.routing.ch.CHPreparationHandler -- Finished CH preparation, totalMB:96, usedMB:44
+22:41:15.411 [main] INFO com.graphhopper.GraphHopper -- flushing graph car|RAM_STORE|2D|no_turn_cost|nodes:9,edges:24,geometry:7,location_index:5,string_index:2,nodesCH:0,shortcuts:9, details:edges: 2(1MB), nodes: 2(1MB), bounds: 7.42,7.422,43.735,43.735, name:(1MB), geo:20/-1(1MB), totalMB:96, usedMB:44)
+22:41:15.419 [main] INFO com.graphhopper.GraphHopper -- flushed graph totalMB:96, usedMB:44)
+22:41:15.496 [main] INFO com.graphhopper.GraphHopper -- version 11.0|2025-10-14T14:28:00Z (9,24,7,5,2,9)
+22:41:15.497 [main] INFO com.graphhopper.GraphHopper -- graph car|RAM_STORE|2D|no_turn_cost|nodes:9,edges:24,geometry:7,location_index:5,string_index:2,nodesCH:0,shortcuts:9, details:edges: 2(1MB), nodes: 2(1MB), bounds: 7.42,7.422,43.735,43.735, name:(1MB), geo:20/-1(1MB)
+22:41:15.538 [main] INFO com.graphhopper.GraphHopper -- version 11.0|2025-10-14T14:28:00Z (9,24,7,5,2,9)
+22:41:15.539 [main] INFO com.graphhopper.GraphHopper -- graph car|RAM_STORE|2D|no_turn_cost|nodes:9,edges:24,geometry:7,location_index:5,string_index:2,nodesCH:0,shortcuts:9, details:edges: 2(1MB), nodes: 2(1MB), bounds: 7.42,7.422,43.735,43.735, name:(1MB), geo:20/-1(1MB)
+22:41:15.971 [main] INFO org.springframework.mock.web.MockServletContext -- Initializing Spring TestDispatcherServlet ''
+22:41:15.971 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Initializing Servlet ''
+22:41:15.973 [main] INFO org.springframework.test.web.servlet.TestDispatcherServlet -- Completed initialization in 2 ms
+22:41:16.077 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: Required request body is missing: public dev.waterflex.routing.MatrixController$Matrix dev.waterflex.routing.MatrixController.matrix(dev.waterflex.routing.MatrixController$Request)]
+22:41:16.086 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); byte offset: #UNKNOWN])]
+22:41:16.092 [main] WARN org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver -- Resolved [org.springframework.http.converter.HttpMessageNotReadableException: JSON parse error: Cannot coerce String value ("0") to `java.lang.Double` value (but might if coercion using `CoercionConfig` was enabled)]
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.764 s -- in dev.waterflex.routing.MatrixControllerTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ routing-service ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\routing-service\target\routing-service-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:4.1.1:repackage (repackage) @ routing-service ---
+[INFO] Replacing main artifact C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\routing-service\target\routing-service-0.1.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\routing-service\target\routing-service-0.1.0-SNAPSHOT.jar.original
+[INFO] 
+[INFO] ------------------< dev.waterflex:campaign-benchmark >------------------
+[INFO] Building campaign-benchmark 0.1.0-SNAPSHOT                         [5/6]
+[INFO]   from campaign-benchmark\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ campaign-benchmark ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ campaign-benchmark ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 10 source files with javac [debug parameters release 25] to target\classes
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ campaign-benchmark ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ campaign-benchmark ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ campaign-benchmark ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.benchmark.BenchmarkContractTest
+SLF4J(W): No SLF4J providers were found.
+SLF4J(W): Defaulting to no-operation (NOP) logger implementation
+SLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.
+Oct 06, 2026 10:41:19 PM io.micrometer.common.util.internal.logging.WarnThenDebugLogger log
+WARNING: A MeterRegistry is being added to this CompositeMeterRegistry that already has registered Meters. Meter recordings (e.g. increments, recordings) that occurred before this registry was added will not be reflected in it. If adding the registry after registering meters was not intentional, update your configuration to add all MeterRegistries to the composite before registering any Meters. Note that subsequent logs will be logged at debug level.
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.124 s -- in dev.waterflex.benchmark.BenchmarkContractTest
+[INFO] Running dev.waterflex.benchmark.WorkflowContractTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.464 s -- in dev.waterflex.benchmark.WorkflowContractTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ campaign-benchmark ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\target\campaign-benchmark-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:4.1.1:repackage (repackage) @ campaign-benchmark ---
+[INFO] Replacing main artifact C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\target\campaign-benchmark-0.1.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\campaign-benchmark\target\campaign-benchmark-0.1.0-SNAPSHOT.jar.original
+[INFO] 
+[INFO] -----------------< dev.waterflex:waterflex-scheduler >------------------
+[INFO] Building waterflex-scheduler 0.1.0-SNAPSHOT                        [6/6]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.2.0:clean (default-clean) @ waterflex-scheduler ---
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for waterflex-scheduler 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] calculation-engine ................................. SUCCESS [  3.753 s]
+[INFO] solver-service ..................................... SUCCESS [ 10.292 s]
+[INFO] scheduler-service .................................. SUCCESS [ 38.220 s]
+[INFO] routing-service .................................... SUCCESS [  3.575 s]
+[INFO] campaign-benchmark ................................. SUCCESS [  5.273 s]
+[INFO] waterflex-scheduler ................................ SUCCESS [  0.049 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:01 min
+[INFO] Finished at: 2026-10-06T22:41:21-05:00
+[INFO] ------------------------------------------------------------------------

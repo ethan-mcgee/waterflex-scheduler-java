@@ -1,0 +1,84 @@
+Run: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\runs\20261007T031517Z-phase11-native-smoke-001-7f2a066a
+{
+  "version": 2,
+  "requestedCases": 2,
+  "dispatchedCases": 2,
+  "missingCases": 0,
+  "outcomes": {
+    "SUCCEEDED": 2,
+    "FAILED": 0,
+    "INTERRUPTED": 0,
+    "ABANDONED": 0
+  },
+  "requestedBlocks": 1,
+  "completeSuccessfulBlocks": 1,
+  "incompleteBlocks": 0,
+  "runtimeHash": "7c0874040437815ea28549dea8bf2c69c2d40f5897cf5c987ffac040ede12155",
+  "independentlyValidCases": null,
+  "validityUnavailableReason": "Adapter lifecycle success alone does not prove scheduling validity. Layer-specific validation belongs to phase 11.",
+  "configuredAnalysis": {
+    "method": "inventory-only",
+    "pairKeys": [
+      "datasetHash",
+      "targetHash",
+      "budgetHash",
+      "solverSeed",
+      "fork",
+      "scoreVersion",
+      "modelVersion",
+      "routingIdentity",
+      "runtimeHash"
+    ],
+    "draws": 10000,
+    "seed": 20261006,
+    "confidenceLevel": 0.95,
+    "selection": "tuning-only",
+    "latencyNoninferiorityPercent": 5,
+    "failureTolerance": 0,
+    "costDifferenceUpperBoundCents": 0
+  },
+  "inference": null,
+  "inferenceUnavailableReason": "Phase 10 reports lifecycle inventory only. Paired equal-dataset inference is phase 12; this inventory cannot select a winner.",
+  "observations": [
+    {
+      "case": {
+        "datasetId": "clustered-104729",
+        "datasetHash": "f9d750cb292c90c780704f6f75a986041431c8d7c04700e88d0f302ff4fdfcba",
+        "targetHash": null,
+        "budgetId": "adapter-smoke",
+        "budgetHash": "e9cec7e10e28e11149c23120d046a0463d5dc13f72b959bd89cb4a07b7c7adf8",
+        "solverSeed": 17,
+        "fork": 0,
+        "scoreVersion": "bendable-decimal-repair-v2",
+        "modelVersion": "exact-fleet-half-up-v2",
+        "routingIdentity": "synthetic-euclidean-directed-v1",
+        "blockId": "f74262b2280b1a9ea080d90a3890ee479e8456efa45d8c0248a7ae3cec1b4953",
+        "configurationId": "tabu",
+        "configurationHash": "8e03764ffc989ab8a0c9ffc94d555fd9830d54bbdebf973981a56da93e3d9b5b",
+        "id": "17df4be22168593582684466e04d95d0f773d8a3e04696cb066937ddeff7bd55"
+      },
+      "state": "SUCCEEDED",
+      "path": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T031517Z-phase11-native-smoke-001-7f2a066a\\attempts\\20261007T031519Z-b6c4c42d\\cases\\17df4be22168593582684466e04d95d0f773d8a3e04696cb066937ddeff7bd55"
+    },
+    {
+      "case": {
+        "datasetId": "clustered-104729",
+        "datasetHash": "f9d750cb292c90c780704f6f75a986041431c8d7c04700e88d0f302ff4fdfcba",
+        "targetHash": null,
+        "budgetId": "adapter-smoke",
+        "budgetHash": "e9cec7e10e28e11149c23120d046a0463d5dc13f72b959bd89cb4a07b7c7adf8",
+        "solverSeed": 17,
+        "fork": 0,
+        "scoreVersion": "bendable-decimal-repair-v2",
+        "modelVersion": "exact-fleet-half-up-v2",
+        "routingIdentity": "synthetic-euclidean-directed-v1",
+        "blockId": "f74262b2280b1a9ea080d90a3890ee479e8456efa45d8c0248a7ae3cec1b4953",
+        "configurationId": "la",
+        "configurationHash": "7fb217f7d6e174b5c12477cc594ca7acda0af6254e684cb50813ff1e53e9be79",
+        "id": "3f3ffb2bd9609eef4a7b0b9e5d7de82e9ad2c53a878f847de69e33e1b6f8050b"
+      },
+      "state": "SUCCEEDED",
+      "path": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T031517Z-phase11-native-smoke-001-7f2a066a\\attempts\\20261007T031519Z-b6c4c42d\\cases\\3f3ffb2bd9609eef4a7b0b9e5d7de82e9ad2c53a878f847de69e33e1b6f8050b"
+    }
+  ]
+}

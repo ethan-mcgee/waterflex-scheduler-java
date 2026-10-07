@@ -1,0 +1,204 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] calculation-engine                                                 [jar]
+[INFO] solver-service                                                     [jar]
+[INFO] scheduler-service                                                  [jar]
+[INFO] routing-service                                                    [jar]
+[INFO] campaign-benchmark                                                 [jar]
+[INFO] waterflex-scheduler                                                [pom]
+[INFO] 
+[INFO] ------------------< dev.waterflex:calculation-engine >------------------
+[INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/6]
+[INFO]   from calculation-engine\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ calculation-engine ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 47 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationJson.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\main\java\dev\waterflex\scheduler\CalculationJson.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationJson.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ calculation-engine ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ calculation-engine ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ calculation-engine ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ calculation-engine ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\target\calculation-engine-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --------------------< dev.waterflex:solver-service >--------------------
+[INFO] Building solver-service 0.1.0-SNAPSHOT                             [2/6]
+[INFO]   from solver-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ solver-service ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ solver-service ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ solver-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 3 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\src\main\java\dev\waterflex\solver\SolveController.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/solver-service/src/main/java/dev/waterflex/solver/SolveController.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.5.0:testResources (default-testResources) @ solver-service ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ solver-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 4 source files with javac [debug parameters release 25] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.6:test (default-test) @ solver-service ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.waterflex.solver.HttpCalculationCancellationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.643 s -- in dev.waterflex.solver.HttpCalculationCancellationTest
+[INFO] Running dev.waterflex.solver.SolverCancellationTest
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+WARNING: A Java agent has been loaded dynamically (C:\Users\mcgee\.m2\repository\net\bytebuddy\byte-buddy-agent\1.18.11\byte-buddy-agent-1.18.11.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.971 s -- in dev.waterflex.solver.SolverCancellationTest
+[INFO] Running dev.waterflex.solver.SolverReplayTest
+22:34:58.457 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [dev.waterflex.solver.SolverReplayTest]: SolverReplayTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+22:34:58.659 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration dev.waterflex.solver.SolverApplication for test class dev.waterflex.solver.SolverReplayTest
+22:34:58.740 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [dev.waterflex.solver.SolverReplayTest]: SolverReplayTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+22:34:58.741 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration dev.waterflex.solver.SolverApplication for test class dev.waterflex.solver.SolverReplayTest
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-06T22:34:59.060-05:00  INFO 4712 --- [           main] dev.waterflex.solver.SolverReplayTest    : Starting SolverReplayTest using Java 25.0.1 with PID 4712 (started by mcgee in C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service)
+2026-10-06T22:34:59.061-05:00  INFO 4712 --- [           main] dev.waterflex.solver.SolverReplayTest    : No active profile set, falling back to 1 default profile: "default"
+2026-10-06T22:34:59.983-05:00  INFO 4712 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 0 (http)
+2026-10-06T22:35:00.002-05:00  INFO 4712 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-06T22:35:00.003-05:00  INFO 4712 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-06T22:35:00.060-05:00  INFO 4712 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 979 ms
+2026-10-06T22:35:01.050-05:00  INFO 4712 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 51817 (http) with context path '/'
+2026-10-06T22:35:01.056-05:00  INFO 4712 --- [           main] dev.waterflex.solver.SolverReplayTest    : Started SolverReplayTest in 2.273 seconds (process running for 4.938)
+2026-10-06T22:35:01.197-05:00  INFO 4712 --- [1-auto-1-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-06T22:35:01.197-05:00  INFO 4712 --- [1-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-06T22:35:01.199-05:00  INFO 4712 --- [1-auto-1-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-10-06T22:35:01.593-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (6), best score ([0/0/-2/0/0]hard/[0/0]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:35:01.595-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:35:01.611-05:00  INFO 4712 --- [ca-d4f857aba0dc] .c.i.c.DefaultConstructionHeuristicPhase : Construction Heuristic phase (0) ended: time spent (24), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (437/sec), step total (2).
+2026-10-06T22:35:02.257-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (1) ended: time spent (670), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (155279/sec), step total (1000).
+2026-10-06T22:35:02.259-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (670), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (149264/sec), phase total (2), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:35:02.309-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (3), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:35:02.309-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:35:03.189-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (883), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (113636/sec), step total (1000).
+2026-10-06T22:35:03.189-05:00  INFO 4712 --- [ca-d4f857aba0dc] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (883), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (113250/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:35:03.405-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-4680]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:35:03.405-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:35:03.781-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (377), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (266666/sec), step total (1000).
+2026-10-06T22:35:03.781-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (377), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (265251/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:35:03.808-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:35:03.808-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:35:04.327-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (520), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (192678/sec), step total (1000).
+2026-10-06T22:35:04.328-05:00  INFO 4712 --- [ab-f7ac91f2c979] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (521), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (191938/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:35:04.357-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-4680]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:35:04.357-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:35:04.688-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (333), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (303951/sec), step total (1000).
+2026-10-06T22:35:04.688-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (333), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (300300/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T22:35:04.717-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (2), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T22:35:04.717-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T22:35:05.205-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (490), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (204918/sec), step total (1000).
+2026-10-06T22:35:05.205-05:00  INFO 4712 --- [b6-2e19bb440e50] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (490), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (204081/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.854 s -- in dev.waterflex.solver.SolverReplayTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jar:3.5.1:jar (default-jar) @ solver-service ---
+[INFO] Building jar: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar
+[INFO] 
+[INFO] --- spring-boot:4.1.1:repackage (repackage) @ solver-service ---
+[INFO] Replacing main artifact C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar with repackaged archive, adding nested dependencies in BOOT-INF/.
+[INFO] The original artifact has been renamed to C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar.original
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT                          [3/6]
+[INFO]   from scheduler-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ scheduler-service ---
+[INFO] Deleting C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\target
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 53 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\src\main\java\dev\waterflex\scheduler\BookingService.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: Recompile with -Xlint:deprecation for details.
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[279,31] package CalculationProtocol does not exist
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[288,43] package CalculationProtocol does not exist
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for waterflex-scheduler 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] calculation-engine ................................. SUCCESS [  4.554 s]
+[INFO] solver-service ..................................... SUCCESS [ 11.421 s]
+[INFO] scheduler-service .................................. FAILURE [  1.649 s]
+[INFO] routing-service .................................... SKIPPED
+[INFO] campaign-benchmark ................................. SKIPPED
+[INFO] waterflex-scheduler ................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  18.020 s
+[INFO] Finished at: 2026-10-06T22:35:07-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project scheduler-service: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[279,31] package CalculationProtocol does not exist
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[288,43] package CalculationProtocol does not exist
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :scheduler-service

@@ -1,0 +1,2731 @@
+{
+  "schemaVersion": 1,
+  "step": 11,
+  "recordedAtUtc": "2026-10-07T03:53:12.313742+00:00",
+  "startingRevision": "c3aead72aca9b54ece3d521761970aa67c45f8b1",
+  "scope": "Native solver, complete policy and paced caller adapters; independent synthetic corpus, historical snapshot tools and frozen fairness setup.",
+  "checks": [
+    {
+      "command": "./mvnw -Pcampaign-benchmark clean verify",
+      "status": "passed",
+      "log": "evidence/phase11-javac-delivery.log",
+      "tests": 274,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "./mvnw -Pcampaign-benchmark,nullability clean verify",
+      "status": "passed",
+      "log": "evidence/phase11-ecj-final.log",
+      "tests": 274,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "log": "evidence/phase11-python-delivery.log",
+      "tests": 90,
+      "skipped": 1
+    },
+    {
+      "command": "./mvnw -Pcampaign-benchmark,nullability -pl campaign-benchmark -am clean verify",
+      "status": "passed",
+      "log": "evidence/phase11-repair-evidence-ecj-final.log",
+      "benchmarkTests": 9
+    },
+    {
+      "command": "./mvnw -Pcampaign-benchmark -pl campaign-benchmark -am clean verify",
+      "status": "passed",
+      "log": "evidence/phase11-benchmark-javac-final.log",
+      "benchmarkTests": 9
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "log": "evidence/phase11-web-lint-final.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "log": "evidence/phase11-web-typecheck-final.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "log": "evidence/phase11-web-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "log": "evidence/phase11-web-unit.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "log": "evidence/phase11-web-build.log"
+    },
+    {
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "log": "evidence/phase11-baseline.log",
+      "baselineFiles": 225,
+      "historicalFiles": 203,
+      "dependencies": 101
+    },
+    {
+      "command": "python -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "log": "evidence/phase11-audit-helpers.log",
+      "tests": 10
+    },
+    {
+      "command": "python infra/test_booking_baseline_assembly.py",
+      "status": "passed",
+      "log": "evidence/phase11-booking-evidence.log",
+      "tests": 10
+    },
+    {
+      "command": "actionlint 1.7.12 all workflows",
+      "status": "passed",
+      "log": "evidence/phase11-actionlint-delivery.log",
+      "limit": "Local ShellCheck unavailable; hosted actionlint invokes ShellCheck."
+    }
+  ],
+  "sourceIdentities": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "gitBlobSha256": "0dc784286bed26fab033de10f4261b1b145d327fcbe9a89a7c14e3642b7747f8"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/SearchDeadline.java",
+      "gitBlobSha256": "59034778e138f11ab2882b46bfee0ac0a1e28b45839732c503383dda19d510f7"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/CampaignSolverConfiguration.java",
+      "gitBlobSha256": "020bda3e41765770785e2d76897f032cb9397a583c7a3265528e51e7f907662e"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyCalculation.java",
+      "gitBlobSha256": "ea1d3e73ccc8abb82ef81dcfb8cdde726669ecc343c6d7eabd03d76568cfc963"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyOperation.java",
+      "gitBlobSha256": "db5fb3c0236f0b17403df11c8dbb289609a5b7976dfe21f4829a712239cf3f40"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "gitBlobSha256": "ab45d1907d1d1aa41423edd2f849e67d18e33454bb9c857e572f4c07d3c15533"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/SolverEngine.java",
+      "gitBlobSha256": "4a0b8af8440f8968b31fe0054adcf534c86e288e002dc17e464e21b723c5ab84"
+    },
+    {
+      "path": "campaign-benchmark/pom.xml",
+      "gitBlobSha256": "603384fa7df847fcabbd082bdf297664cbcbb9363b30f4d3a8b0d2c60e1cd3c1"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/CampaignMain.java",
+      "gitBlobSha256": "ffff55ca3ddc9136981086e7386049bb35c4cf91b97bda612574999605baee60"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/DatasetTool.java",
+      "gitBlobSha256": "ad54209070051d35452bbae1f3a1f597c912792980766663acd699fbfe127c92"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/FrozenTarget.java",
+      "gitBlobSha256": "7e365ec46dd9ebf443d465b179da596e2f4e27f435492400da7ad7b3cc762a21"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/NativeBenchmark.java",
+      "gitBlobSha256": "87966f000bdbbf8b16365259ab0d1f779783e66a2dea5a268f4a7ecde4e9091c"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/NativeReport.java",
+      "gitBlobSha256": "3159c60beffe5c208aeb63e9717007cfabae461753d53bdecbc4ed783c1d11db"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/PolicyBenchmark.java",
+      "gitBlobSha256": "1e410586fd75b3fcbec861720fbd424f46d92be30e02f98a192846706e5721eb"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/Protocol.java",
+      "gitBlobSha256": "33e49981037b0c0863a7c4044c8fa970b92b1fa211b79c31a12312e19c3cf7e3"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/SnapshotFileIO.java",
+      "gitBlobSha256": "d3fc9df55707c76e1e503913c5d2c16e81f37f713d4793dc6b96d42bc67d289c"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/WorkflowBenchmark.java",
+      "gitBlobSha256": "7d5bf3a7f655c5f5039b8cf9bb038ddf8243aa15f3be327e63a497ef28fcd3f3"
+    },
+    {
+      "path": "campaign-benchmark/src/main/java/dev/waterflex/benchmark/package-info.java",
+      "gitBlobSha256": "cc1c1dd46f008d70b30938abe333ce8d0afe1b26b3ab976e0ac6e1b00b7a1664"
+    },
+    {
+      "path": "campaign-benchmark/src/test/java/dev/waterflex/benchmark/BenchmarkContractTest.java",
+      "gitBlobSha256": "e5eb7eed03e99d9a30510bc523e09009dec086ddbe8f4c2a645b117d87ff6f3b"
+    },
+    {
+      "path": "campaign-benchmark/src/test/java/dev/waterflex/benchmark/FailingConstraintProvider.java",
+      "gitBlobSha256": "66b16b1757e11c215810aba72c29fe60c5116267a5ce09bd2480e98c8c699e91"
+    },
+    {
+      "path": "campaign-benchmark/src/test/java/dev/waterflex/benchmark/WorkflowContractTest.java",
+      "gitBlobSha256": "96288ac3680a4e0395e9a78d52f755e2e2723e8df3f687d5ca58e5c7117db162"
+    },
+    {
+      "path": "experiments/configs/corpus-v1.json",
+      "gitBlobSha256": "088491eaf84325a92b92cd64ffe365a12e5c23a6684d97d9bf7f23ed2bfc6c40"
+    },
+    {
+      "path": "infra/campaign_config.py",
+      "gitBlobSha256": "843b9b1b09654d1e7858a2e7f28f64e0f0c438ad02e1e749fbde17743c4472f2"
+    },
+    {
+      "path": "infra/campaign_runtime.py",
+      "gitBlobSha256": "1f2b4ee4bee063c9abbfc1596a4e983bd0e8a520e049aeb21c78efb8bfebf00b"
+    },
+    {
+      "path": "infra/test_campaigns.py",
+      "gitBlobSha256": "956f4a7a522c5f106517a7ea423da2ef83266e6014760392f76a78890718cfe8"
+    },
+    {
+      "path": "pom.xml",
+      "gitBlobSha256": "3e38111d218cbef89a876e0147128b9352b58ae56687d919fa17f147d6532d5b"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java",
+      "gitBlobSha256": "2203ad98e0a151093574f49f52a7b11b545099fd1b011c7877adaf7da918d496"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "gitBlobSha256": "43cee8818ae95a0cbc9eab47c786da981bbadb7d3b0f9aec9395f8b67794e577"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/SchedulingBenchmarkControllerTest.java",
+      "gitBlobSha256": "8c28a6c9d22ab6022a8bfcdd9294028f0b3eeb9c0f65d395109709373f16735f"
+    },
+    {
+      "path": "web/scripts/smoke-campaign-workflow.ts",
+      "gitBlobSha256": "5c3592169e40394a01401b1f55dd31bc7dfad2fd810bcee27bf0703ae4529e41"
+    }
+  ],
+  "currentBuildArtifacts": [
+    {
+      "path": "scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar",
+      "sha256": "5b3860f50f6fde3af336bb355fbd418033c9dccfd95601533671cfb3a2f7d2a9",
+      "nativeBenchmarkDependencies": []
+    },
+    {
+      "path": "solver-service/target/solver-service-0.1.0-SNAPSHOT.jar",
+      "sha256": "fcd077246bc2b39376368f85e3e65ba4f794f303252850b690e54fccd3937592",
+      "nativeBenchmarkDependencies": []
+    },
+    {
+      "path": "campaign-benchmark/target/campaign-benchmark-0.1.0-SNAPSHOT.jar",
+      "sha256": "c5d09dc5a3072ed955ca31a5aa698756464d9b8b21df871c249bfb62581eff2c",
+      "nativeBenchmarkDependencies": [
+        "BOOT-INF/lib/timefold-solver-benchmark-2.6.0.jar"
+      ]
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase11-actionlint-1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase11-actionlint-delivery.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase11-actionlint-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase11-audit-helpers.log",
+      "bytes": 1506,
+      "sha256": "028e3e83dd399ba4293dcd280ee32cd34e2da3156080d1ff7d2d6817b7298e22"
+    },
+    {
+      "path": "evidence/phase11-baseline.log",
+      "bytes": 171,
+      "sha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d"
+    },
+    {
+      "path": "evidence/phase11-benchmark-dependency.log",
+      "bytes": 1292,
+      "sha256": "41ed8dd201233c8a6fc2802d43f8f4a9c5d25ff98a7d82787c2cefd4e6d0fa5b"
+    },
+    {
+      "path": "evidence/phase11-benchmark-javac-final.log",
+      "bytes": 7834,
+      "sha256": "5df2238d6b77177881d0552ecdd341f41112a243599b6455c3bdd6c4998a17ed"
+    },
+    {
+      "path": "evidence/phase11-booking-evidence.log",
+      "bytes": 1056,
+      "sha256": "96c5c14297448b004af31dba1c4789f1adcebfed5bb8f9d23511c0743e20918c"
+    },
+    {
+      "path": "evidence/phase11-caller-export-nullability-1.log",
+      "bytes": 4194,
+      "sha256": "d72fde81020d176cd95d4726dc5fdd409eaa85ec99cedc84f3381611614fdb7f"
+    },
+    {
+      "path": "evidence/phase11-contract-test-4.log",
+      "bytes": 5567,
+      "sha256": "baf034e472ed057fe436ca4609e82ca675a84d71d44283504b6ddbff7aacfb5d"
+    },
+    {
+      "path": "evidence/phase11-corpus-compile-1.log",
+      "bytes": 3311,
+      "sha256": "f892f76fbb9fdbc214a966915d3b36c866bec1d90b59efda25d91af7ddbae0f9"
+    },
+    {
+      "path": "evidence/phase11-corpus-generation-1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase11-corpus-policy-test-1.log",
+      "bytes": 7569,
+      "sha256": "aed31ea34f0451c45bb854f5fefde1fed02c9ef02782b0657e6e03551585be44"
+    },
+    {
+      "path": "evidence/phase11-ecj-1.log",
+      "bytes": 184048,
+      "sha256": "e52058d705edf38c17da1f61aebb88113b26aa689f1fd13c15695342185f246a"
+    },
+    {
+      "path": "evidence/phase11-ecj-final.log",
+      "bytes": 184044,
+      "sha256": "feaa8a5675aad0af8212f3b18cc2021aa4df40c1926b94e2a8fe16d5c22a4b6d"
+    },
+    {
+      "path": "evidence/phase11-fatjar-build-1.log",
+      "bytes": 4839,
+      "sha256": "4caa7572ba65ec2dbed56e1d5600d553f47cb37a03ddfd279691b7acc6501e0d"
+    },
+    {
+      "path": "evidence/phase11-fatjar-build-2.log",
+      "bytes": 6774,
+      "sha256": "2dcb4cc1d6aefeed9f81fd65a4e8f660375b964d3ba80728ad34e2a93c772385"
+    },
+    {
+      "path": "evidence/phase11-fatjar-build-3.log",
+      "bytes": 6271,
+      "sha256": "06c99c450b6b30101f6047161cd4c2a90f063438410d2f84da65eaf2682ec59f"
+    },
+    {
+      "path": "evidence/phase11-fatjar-build-4.log",
+      "bytes": 6471,
+      "sha256": "dfe52923c91d4b3af5f26cb8c86b20f4f06ad79f13176ff63dd5ab66ff58b668"
+    },
+    {
+      "path": "evidence/phase11-final-smokes-1.log",
+      "bytes": 119,
+      "sha256": "4877a0117c8f132dcb9ec78572af223228e489e99a34e1849e58a1b74a966146"
+    },
+    {
+      "path": "evidence/phase11-initial-compile.log",
+      "bytes": 3947,
+      "sha256": "624fd81fd0ed295ae08fde92b644aa42507867da99a3915247cb587a99485f4b"
+    },
+    {
+      "path": "evidence/phase11-javac-1.log",
+      "bytes": 22220,
+      "sha256": "834305ceec4352bda7cc8af24d040a53366866096538329d6b5a25272f4fd0c5"
+    },
+    {
+      "path": "evidence/phase11-javac-2.log",
+      "bytes": 162137,
+      "sha256": "31c50fe78843b895b91a2484b8cbd3b6d784a4ba03827c4d85c71aa4b4181006"
+    },
+    {
+      "path": "evidence/phase11-javac-delivery.log",
+      "bytes": 162144,
+      "sha256": "5362d836bda808d23d62004e5074a253eea1e6fcb9e59d339131265f0bd95c9c"
+    },
+    {
+      "path": "evidence/phase11-javac-final.log",
+      "bytes": 162104,
+      "sha256": "d7c1f7bd1149d6af59ca3d522c2a6ecf68cf4a94741faf0bba65d7612ab366d5"
+    },
+    {
+      "path": "evidence/phase11-native-contract-test-1.log",
+      "bytes": 20161,
+      "sha256": "28deba50d3b4a70b2bdcbc8c1eea70fca82bb83eb7352ab21b3d9a23b8049a91"
+    },
+    {
+      "path": "evidence/phase11-native-contract-test-2.log",
+      "bytes": 17493,
+      "sha256": "2650fc1d2b4349f83ba6430d5ae4d3888f62f722f3791ef8908cdee87994d277"
+    },
+    {
+      "path": "evidence/phase11-native-contract-test-3.log",
+      "bytes": 5751,
+      "sha256": "6e0d43ea05531ad1508876647822d13ea40b1eb4f9da0ac10b46a8af7e483cc0"
+    },
+    {
+      "path": "evidence/phase11-native-failed-batch-1.log",
+      "bytes": 7542,
+      "sha256": "1eebbb87705fd6fe741050aa815000596db08e242873cfe573e198301323c000"
+    },
+    {
+      "path": "evidence/phase11-native-smoke-001.log",
+      "bytes": 3713,
+      "sha256": "853d60a6045be0468dd1578386ea881c6ff0aab48c1c117c733a16cdec899d2b"
+    },
+    {
+      "path": "evidence/phase11-nullability-compile-1.log",
+      "bytes": 2759,
+      "sha256": "13cadb7b3aae98ec83e6ee83897fbf2d705cf9206da4f0063f4808afe3767418"
+    },
+    {
+      "path": "evidence/phase11-nullability-compile-2.log",
+      "bytes": 7671,
+      "sha256": "e9b4bd9dc2b447b2b92fed452063619073092e5c67472ecb406cbbea304fad65"
+    },
+    {
+      "path": "evidence/phase11-nullability-compile-3.log",
+      "bytes": 15825,
+      "sha256": "60839c79c7b2fe2c432ae93b1902710a122cc0f20e6c74e5600932999d96e3ab"
+    },
+    {
+      "path": "evidence/phase11-nullability-compile-4.log",
+      "bytes": 5227,
+      "sha256": "36692b723316d961bf7de3a33aa29948473dce9e528e7bebed58fdc4bf60eacd"
+    },
+    {
+      "path": "evidence/phase11-nullability-compile-5.log",
+      "bytes": 16453,
+      "sha256": "5a85e85391c6e67f6d83d815891a6f5e08ec6fae802ef95a52c05f85c9e0c705"
+    },
+    {
+      "path": "evidence/phase11-nullability-compile-6.log",
+      "bytes": 3661,
+      "sha256": "8b4b6d7da66cd586272d9d82168442b9c5ae1d60e18a29ff07a170fc584dae23"
+    },
+    {
+      "path": "evidence/phase11-nullability-tests-1.log",
+      "bytes": 24388,
+      "sha256": "037eb06efce556200ee0a1b978979ae0e27833d3b4e8edcee5020afbf8bdbd3c"
+    },
+    {
+      "path": "evidence/phase11-nullability-tests-2.log",
+      "bytes": 7339,
+      "sha256": "db76f082f8bc2bfa8bc5327165a9642bb4e4651a7b9051f2ef2109022b1c0898"
+    },
+    {
+      "path": "evidence/phase11-nullability-tests-3.log",
+      "bytes": 5639,
+      "sha256": "b4c5d4e1edc514f4dd4071949687541cc53565c21315dbb2d4d6cab676a30c02"
+    },
+    {
+      "path": "evidence/phase11-python-contracts-1.log",
+      "bytes": 17119,
+      "sha256": "b4d44c3e442cdc1555dd1c74accd78bb633f76be93a7dd4055e38b77433c0b9b"
+    },
+    {
+      "path": "evidence/phase11-python-contracts-2.log",
+      "bytes": 10687,
+      "sha256": "be2d09a59cb80b4a473b4a9879bfa85ab2df3873b71f21ef5d6a6974888d7214"
+    },
+    {
+      "path": "evidence/phase11-python-contracts-3.log",
+      "bytes": 25836,
+      "sha256": "23fe3c1a6013d12fdede7fbfae0234853632a48d843bc496fa32c87a09e2b2f7"
+    },
+    {
+      "path": "evidence/phase11-python-contracts-4.log",
+      "bytes": 25441,
+      "sha256": "0e0264cc1e515db8fc18f252fa2376ab5fc8710cadb654a4f2432d724aa5165c"
+    },
+    {
+      "path": "evidence/phase11-python-contracts-5.log",
+      "bytes": 24436,
+      "sha256": "6d5f80e9d3b1399de5147784da6c387b1d3437f1d58ae50695bf49ae01b05f55"
+    },
+    {
+      "path": "evidence/phase11-python-delivery.log",
+      "bytes": 24436,
+      "sha256": "a571ef92fed2f44ca2bdddceab1fff79b02ab3e11b1c45897ba01fc254f2d8a9"
+    },
+    {
+      "path": "evidence/phase11-python-final.log",
+      "bytes": 24436,
+      "sha256": "8a68bcbe56b18784759a79f230c926339664af69017fc2be52af04197a7f14f0"
+    },
+    {
+      "path": "evidence/phase11-repair-evidence-ecj-final.log",
+      "bytes": 9895,
+      "sha256": "40e819a5a27cf86287c467f3d9d63f40c260d3bb9c9bc16e274c15fd39374c69"
+    },
+    {
+      "path": "evidence/phase11-repair-evidence-ecj.log",
+      "bytes": 8550,
+      "sha256": "bb3c52376a90a1300fd760b1a789897a899fe3c0fdf6079cc2ca145109d8860a"
+    },
+    {
+      "path": "evidence/phase11-report-import-nullability-1.log",
+      "bytes": 6197,
+      "sha256": "0f2531480eb1df44f0527aba59ba70e6a9f96dd9930f03735a498a0760250ec3"
+    },
+    {
+      "path": "evidence/phase11-setup-contracts-1.log",
+      "bytes": 6057,
+      "sha256": "7f3de9de71a67397c69ee8af406189ad4cb1f585ee55939ed04b4aa4e30e016e"
+    },
+    {
+      "path": "evidence/phase11-setup-contracts-2.log",
+      "bytes": 6437,
+      "sha256": "670b6ac217404bdc0522a00ca77467a8de8fb0e01ad36b088e3b8ab6b14e2e9e"
+    },
+    {
+      "path": "evidence/phase11-setup-contracts-3.log",
+      "bytes": 8840,
+      "sha256": "e63294aecc4b5a5a480c9b5c7289ecec2bf387e4491036ab338ffe6264f25e26"
+    },
+    {
+      "path": "evidence/phase11-setup-contracts-4.log",
+      "bytes": 7457,
+      "sha256": "1a5ac7351665dc443bb0e63e195edbcbaa10f7057a03fed0a53ba58f4891937f"
+    },
+    {
+      "path": "evidence/phase11-setup-contracts-5.log",
+      "bytes": 5831,
+      "sha256": "7e97299d2d54602c34f35620d03a8095a3f17b2ee420f4effa6913f45ce081af"
+    },
+    {
+      "path": "evidence/phase11-web-build.log",
+      "bytes": 4155,
+      "sha256": "24ec07b3e35d1ff6d58dc2a35a83afe0a7e8a41ce5ab9884a4d8b4cc0e116abe"
+    },
+    {
+      "path": "evidence/phase11-web-lint-1.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase11-web-lint-final.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase11-web-nullability.log",
+      "bytes": 4424,
+      "sha256": "0886ba36018b39e2a2d0ecc19bb18dcba7f0710aa67d929efe8875f685c97da5"
+    },
+    {
+      "path": "evidence/phase11-web-typecheck-1.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase11-web-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase11-web-unit.log",
+      "bytes": 10386,
+      "sha256": "7ab45a93b6724b901cfa988bb392eadab22684a1bfc6b9034564ecdfcb00f61c"
+    },
+    {
+      "path": "evidence/phase11-workflow-cap-probe.log",
+      "bytes": 9705,
+      "sha256": "fb562e02d2c04b22bfa87dee099ea5b6a9df3163ab29285ae45b43186b13f815"
+    },
+    {
+      "path": "evidence/phase11-workflow-contracts-1.log",
+      "bytes": 6691,
+      "sha256": "21e392dcca8df30d248d17dda4e13a6757a8cf733e054fff156eb53ad2a931b6"
+    },
+    {
+      "path": "evidence/phase11-workflow-final-ecj-2.log",
+      "bytes": 8462,
+      "sha256": "b9c1c124fbbd8ce8ebe858aee7f15c8afe534c15d45e622d5f2432a0461b5875"
+    },
+    {
+      "path": "evidence/phase11-workflow-final-ecj-3.log",
+      "bytes": 8689,
+      "sha256": "a6530b7b5575ecb7b0b45a9e6848a2a7431fa42a3de90f61df1828478231fcd7"
+    },
+    {
+      "path": "evidence/phase11-workflow-final-ecj-4.log",
+      "bytes": 10440,
+      "sha256": "31fe5ea514a79bedc9631deafe86b93ade7d905182cf081d1b2e01067fabed92"
+    },
+    {
+      "path": "evidence/phase11-workflow-final-ecj-5.log",
+      "bytes": 9894,
+      "sha256": "ae47d0a417ba986a3a8075f6aea90e513228e130d99de73c9a68935c6c029ca9"
+    },
+    {
+      "path": "evidence/phase11-workflow-final-ecj.log",
+      "bytes": 7037,
+      "sha256": "caef2305647a399be17314a36a8292b4c61a56b469303b01df3ef62f0b5c0198"
+    },
+    {
+      "path": "evidence/phase11-workflow-nullability-1.log",
+      "bytes": 22344,
+      "sha256": "78b434c48307116679ed3f8d937e8ebb10a85bfdea29e47c7b4f579c009c3e7a"
+    },
+    {
+      "path": "evidence/phase11-workflow-nullability-2.log",
+      "bytes": 6261,
+      "sha256": "ace8f2ae38e5927280b8afa0fadb3e35ebaf966b2032ba8a75f808e222996b2d"
+    },
+    {
+      "path": "evidence/phase11-workflow-nullability-3.log",
+      "bytes": 5679,
+      "sha256": "0df3bc335fa44fd075eba9d0a194c136689f8bba657093181706a40ae6ffdf98"
+    },
+    {
+      "path": "evidence/phase11-workflow-nullability-4.log",
+      "bytes": 4644,
+      "sha256": "77e105e50b6641c345d72f3a9d0d3b474f177b409ed6c7b35714f580f7cae8e5"
+    },
+    {
+      "path": "evidence/phase11-workflow-nullability-5.log",
+      "bytes": 3298,
+      "sha256": "5f5232d930e9779cdf53ee561594b699c8d1faf3c0a8722116cc80b32e2fc6b5"
+    }
+  ],
+  "acceptanceRuns": [
+    {
+      "path": "experiments/runs/20261007T034141Z-phase11-native-smoke-002-85afe4db",
+      "analysisPath": "experiments/runs/20261007T034141Z-phase11-native-smoke-002-85afe4db/analysis/20261007T034200Z-b5b4b1a9.json",
+      "analysisSha256": "55b21ff51d43fdc59283f6902b702726887c348932e8af3ff44922f840da2870",
+      "outcomes": {
+        "SUCCEEDED": 2,
+        "FAILED": 0,
+        "INTERRUPTED": 0,
+        "ABANDONED": 0
+      },
+      "independentlyValidCases": 2,
+      "expectedInputRejections": 0,
+      "files": [
+        {
+          "path": "analysis/20261007T034200Z-b5b4b1a9.json",
+          "bytes": 3385,
+          "sha256": "55b21ff51d43fdc59283f6902b702726887c348932e8af3ff44922f840da2870"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/blocks/a8b9da4bf907cb0af7f1b75afea64b9a76f2fcc71171888490f8a7bd59f7b520.json",
+          "bytes": 277,
+          "sha256": "df0499c7d3177f4f765b7dcf933c2d1dae1b6aa8f4ac96a75c23aef616c47c87"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/adapter-receipt.json",
+          "bytes": 3005,
+          "sha256": "696db4ad22b7ec67980a23f97bd3379194c732ca26162242fa53efbfaf061e3d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/dispatch.json",
+          "bytes": 906,
+          "sha256": "14b0b52ca4a67d3b3fb457c272ca916b49c0b5fdbfd2d1087a17bf75f9e8570f"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/effective-solver.xml",
+          "bytes": 1093,
+          "sha256": "8a5f2fbc1fa321e5c5cfa72bbc5f87ee9912c7533d5e48c1b239225c9134031a"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/index.html",
+          "bytes": 60687,
+          "sha256": "c1ead027cbb30f8f70570b268b43334e10c7e4cf3190e68e7bf3a552a567bdff"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/native-input/tabu/sub0/BEST_SCORE.csv",
+          "bytes": 41,
+          "sha256": "0cb529a1ef4a36d9595d7f7a7e6b8f87a77e8893901945463a5ddd986e794fc8"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/native-input/tabu/sub0/native-input.proposal.json",
+          "bytes": 430,
+          "sha256": "1b7fb868a45d2783d7464ed8b544fc59dc85d383710e77352ce0fbccf23def8d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/plannerBenchmarkResult.xml",
+          "bytes": 4334,
+          "sha256": "53eb663e66a5b6df20b9ec4a86bda4749dae263547370661c84bebd2746f5b2a"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/css/app.css",
+          "bytes": 899,
+          "sha256": "7627173c0c5909c2b5509fb00e50cac7b0ee61b33271538c0e3bb3b1c4751121"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/css/prettify.css",
+          "bytes": 675,
+          "sha256": "1d2d628605d9eaa7d4712e414de849855f3511947e23943acf1e7219d12a6e9d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/css/timefold-webui.css",
+          "bytes": 2196,
+          "sha256": "453dd2fdd8e3cf980271523d411583f1b18b6828cb5bfbc63196e831d0142319"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/img/timefold-favicon.svg",
+          "bytes": 1391,
+          "sha256": "6eec1ea3cc7c2b38b256062a7de828b6b1bc1713c30772e2395725eb518ca29e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/img/timefold-logo-horizontal-negative.svg",
+          "bytes": 4234,
+          "sha256": "7c90ffa58c695b9b0d233bdb81700196bf4f2343f36206f9fda777dbe0d6972e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/img/timefold-logo-horizontal-positive.svg",
+          "bytes": 4062,
+          "sha256": "8c10ad7b7274c20b5d0d94fdb271e6d1017948f5cc345ae7b13aced0f1192ba6"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/img/timefold-logo-stacked-positive.svg",
+          "bytes": 4081,
+          "sha256": "1e4ccfeec37e8e579734f4e7fc728f6051600f5eea39ee1b3cf5a124deb6aa52"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/app.js",
+          "bytes": 644,
+          "sha256": "db1ec75609e3bcaae209d35d45fda28724cf61ab45b1c5ba200fad22be1abf03"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart0_60508.js",
+          "bytes": 2294,
+          "sha256": "efb7f199066bd1cf78b0b949d2eb290e4c7f18c177f11c71014cc4c01eea865a"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart1_2655c.js",
+          "bytes": 2294,
+          "sha256": "28a76a3d4427eb35df9f5d1c87e25a709126511858e3ae94a1f590319fac1938"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart2_466da.js",
+          "bytes": 2294,
+          "sha256": "08a412a02d5ab659e99b7a7aa049218a17ed3943c5e30a754afb729f088bde49"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart3_2ca40.js",
+          "bytes": 2294,
+          "sha256": "aa91b0e85e7a2ff930f4c7c1cab28827667be9756ce88603fa855b9aff1d1ef1"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart4_2afc8.js",
+          "bytes": 2294,
+          "sha256": "4654229c2091e9d312080fa13004958254623342844b9ad8a8a9434454586c7a"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart5_38b8b.js",
+          "bytes": 2294,
+          "sha256": "fb4d48d44728e6e0e890c05cb4b8e46716f5c7cdb54d95d8022c2c22cdd7e354"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreDistributionSummaryChart6_159a6.js",
+          "bytes": 2324,
+          "sha256": "08334792c4c841877cfa7520cb5bf5f26602342686fd5dbcb0bf9ae959cb4993"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart0_f3407.js",
+          "bytes": 2687,
+          "sha256": "bb4f702046524a59a135d33dae9fcf0c375015f41a117e012f11839e0021e261"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart1_ee37f.js",
+          "bytes": 2687,
+          "sha256": "7785cda26b26ae610da7041dea1787f8e5b16c53c9ba8c065af7271e061dcfba"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart2_b91d1.js",
+          "bytes": 2687,
+          "sha256": "fa2d2548dab1ecf922cab9ac8e5da49e4bf1d4eb03b859734b0fa66c016df62d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart3_2d235.js",
+          "bytes": 2687,
+          "sha256": "b1c9d3cf561593c00255b39cb5533c5396fa72f616d8cfba628ce02da401d2f9"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart4_902c8.js",
+          "bytes": 2687,
+          "sha256": "dcce98f15d7e6fa8766dfb4799fac07435448445e15e7516c2abf04fe2c7e14f"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart5_7ad67.js",
+          "bytes": 2687,
+          "sha256": "cf8c05578c992851b29798e5c2085b5802a4926ed68c4f1ab1db358433ddd213"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScorePerTimeSpentSummaryChart6_48587.js",
+          "bytes": 2695,
+          "sha256": "60c698c6df2057593904a481100448f351adfe01aaa65b3e8b7dd5e2a1bdb2e7"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart0_97826.js",
+          "bytes": 2730,
+          "sha256": "196ae5d9205be8284c4c80eb72aaddc15290d95981c6a949dccaeaaca2fe604d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart1_608bd.js",
+          "bytes": 2730,
+          "sha256": "b888f404530a59bcc4bbc307e6b45150482d87b8070026a9bc8e12f840af5e33"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart2_815e1.js",
+          "bytes": 2730,
+          "sha256": "fbac40d2b97fe16aadc1c300cd59757a37145e39c53d56968cd5fbe771bd8717"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart3_66567.js",
+          "bytes": 2730,
+          "sha256": "2bcb71c6e0a12f447ac8f369341c6213967cb8774bd85806ac9aef70a45bd8da"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart4_21670.js",
+          "bytes": 2730,
+          "sha256": "09128439d18d79e3a563c43932e4db23fcb61555e8c8aaeac733e057a2b5846c"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart5_1df87.js",
+          "bytes": 2730,
+          "sha256": "1759cb5f1798f2dbf450f839883f6c4a4c44a6236d26ddc21780c21fb68ab714"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreProblemStatisticChart6_70678.js",
+          "bytes": 2738,
+          "sha256": "7b3b372ddc65b30bd93d27bb9f3fd6ea653edde8177303c3cc178b3dc0a41c3c"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart0_6ad56.js",
+          "bytes": 2379,
+          "sha256": "93ab1767972e8b33a1fed87c27d65887f426c5ccacf46b33ff3c844ba48b8568"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart1_d2727.js",
+          "bytes": 2379,
+          "sha256": "c8fe86f15432143bdf484d0f00921a3f39808d0237cfe09aef3a9064846ec0be"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart2_11f91.js",
+          "bytes": 2379,
+          "sha256": "59744fed52f46e7acae181570f2d5ac79f3fa87e48c1f4f59503feaa5d8bc444"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart3_d07bb.js",
+          "bytes": 2379,
+          "sha256": "ed88aa1453fd73a6704d70a3cdce5da682511d433a4d010048f1fbf8261c5a46"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart4_93fb9.js",
+          "bytes": 2379,
+          "sha256": "1a14b30754a311c57b7f09f8bb3344138f1db36ace5f6c75179afd6a59bcef2e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart5_94ae9.js",
+          "bytes": 2379,
+          "sha256": "d79fefacd73a82aa509829db4b3e749745ed0d704492d3f75fd264732f6ff2cc"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreScalabilitySummaryChart6_7544e.js",
+          "bytes": 2387,
+          "sha256": "7d64b34366177c7243408f2d6f0d00cbfcef489824cb73637ea964443fc2a4f7"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart0_7e578.js",
+          "bytes": 1997,
+          "sha256": "e2e32e0b7425d101c64d54f4a03259b0c4bb667d8927c520af7ffd9046a88ead"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart1_1a082.js",
+          "bytes": 1997,
+          "sha256": "2f977ab95f7a09b374673807db05664eebb21d76b05baf1daa52aa17a45ddb4f"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart2_e8715.js",
+          "bytes": 1997,
+          "sha256": "e62950fcbc1f3974aa89ac0a254c03b3c4df6ce8e3caa7fdc528b2104aeb53ba"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart3_109a2.js",
+          "bytes": 1997,
+          "sha256": "65c18bec465f31531f1cc20ff6762ba525c9942700eae9a9dbb605365bebf744"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart4_6d5c2.js",
+          "bytes": 1997,
+          "sha256": "07d4f1734f972edb7b313803d4a4658ac60a6fb8eede0ab8c1d84724a35f661b"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart5_bec36.js",
+          "bytes": 1997,
+          "sha256": "8866159850da423f6e80a09306211e9e5fb4a5653810b8edfbe8ea1a42d8a934"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/bestScoreSummaryChart6_f3bea.js",
+          "bytes": 2005,
+          "sha256": "dcc018cded09fcffe4e400e2eac07f03425340e81c37b05be4686e1f5a5fbc09"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/chartjs-plugin-watermark.js",
+          "bytes": 5801,
+          "sha256": "253293a66963309a5395e4043bcd0c8939f8d6e927a0ec1e0a1f906d30944ac4"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/moveEvaluationSpeedSummaryChart_cbaef.js",
+          "bytes": 2381,
+          "sha256": "1b9c85a9ebbfc06d86847cd3f9da8756e2481b2ccf9c514d8f560d61fae3bedf"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/prettify.js",
+          "bytes": 14551,
+          "sha256": "f48d85c6ea701e417a857cd9292de12c2c0ff795c5ba45f7127c51cc6a97cf3d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/scoreCalculationSpeedSummaryChart_2fdb3.js",
+          "bytes": 2393,
+          "sha256": "fef4494ef93821099b46cdbd9a70fe849f31116e7791a824bb8e124989767ce2"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/timefold-webui.js",
+          "bytes": 5906,
+          "sha256": "08dfce38fb1f2ff6cc414afe566151b9d8970827cf33785f8c228e6d2bce8752"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/timeSpentScalabilitySummaryChart_2d7b.js",
+          "bytes": 2736,
+          "sha256": "2089d9edc721a635117fc1394a21c1ac4a27df372c4b6a71b6bbd389eff999f5"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/timeSpentSummaryChart_56b24.js",
+          "bytes": 2480,
+          "sha256": "45b8fda135a9d30e50aa4bc9c10691ef7d95a787e64a9a6e8af16fd850f73d7b"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart0_d1f30.js",
+          "bytes": 2077,
+          "sha256": "72916c17d99a6599c6d51ba55b51d69e3ece57a53f45ec8c5074c335753cae69"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart1_202ce.js",
+          "bytes": 2077,
+          "sha256": "bd2fc1c51fe9d5ceca169b3882a77143bf9905e69e2a1fca1754dac8ef889d1b"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart2_1c385.js",
+          "bytes": 2077,
+          "sha256": "218100bb9bf79a9218a2bb45f516305243223420c2d92800bb5c88b445c12c50"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart3_1f935.js",
+          "bytes": 2077,
+          "sha256": "550fc40170b53f7df1fc123494dee3516556fd40a85cfd86776955a56ee4ae86"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart4_dce2d.js",
+          "bytes": 2077,
+          "sha256": "40d434a5a8940c27b3b79e3c29e936c485532042f50758487f8f3fa43c85bbc4"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart5_9e7e3.js",
+          "bytes": 2077,
+          "sha256": "c30b4d0c14c16082c076002fdbeac26609c521ee2f4a494aa9a91b6266d66c67"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/winningScoreDifferenceSummaryChart6_473af.js",
+          "bytes": 2077,
+          "sha256": "36945b5371133fc6e4c481491001b718352dceb24fdeff22a95f41fb57980795"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreCalculationSpeedDifferencePercentageSummaryChart_638a8.js",
+          "bytes": 2209,
+          "sha256": "73c14e0395f905dd35f7230261669580936b06e849cf9e3e25c8ae12c3b1b22a"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart0_3ae66.js",
+          "bytes": 2127,
+          "sha256": "09c32988941f8c72f4d9a93c43fd9f76bc79e0bd395faec06f3c2df06c35a95d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart1_b52b8.js",
+          "bytes": 2127,
+          "sha256": "9a46e6331429001c8f31164236e45942ffcc26307e66b2bb979cde4d68442e86"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart2_78334.js",
+          "bytes": 2127,
+          "sha256": "7ea25ff0a368ee77713dcbd61ae15fc4ddf78deaafda653862c5905778f9246d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart3_afdb8.js",
+          "bytes": 2127,
+          "sha256": "c90516122ab71d8da33eb5cd68c7460a4c9580ab13d271422c7fa9d7ee1a67ef"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart4_96284.js",
+          "bytes": 2127,
+          "sha256": "edb8e94681560a1d2e9e5b9988155042a87aa552192ca25a03da9e59c883e7c7"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart5_f33f2.js",
+          "bytes": 2127,
+          "sha256": "1917fe817bd2af1dc556ec2953b389c43111693154f90768880f41597c078538"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native/2026-10-06_224148/website/js/worstScoreDifferencePercentageSummaryChart6_81ca0.js",
+          "bytes": 2127,
+          "sha256": "31787dadc7ee91fb050603e353e1a023d0b7835458fc71cf0b7bafc3946a15cc"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/native-input.json",
+          "bytes": 108804,
+          "sha256": "fef09f0f620df11e2ded59df9b65753da0ce43b6b89f0a8421d42c7c711da234"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/process.log",
+          "bytes": 738,
+          "sha256": "d29b2388183fa5a0d51dcde0d8eccf63c29600a1c1e5c9ca2ca70fdab46f532f"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/request.json",
+          "bytes": 3331,
+          "sha256": "89ee4c7042b1758cbc97415f6a5e6d205ed669acbae7afd2d5add8bf9cb20107"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/17493871b08fbef524c6fd63e2890215ff61eaa76077eea316eab12501aff4e4/terminal.json",
+          "bytes": 10997,
+          "sha256": "efe46a5659b97b03af2016cfd850be85705ae6df652cdcea165c8e99fadf0e79"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/adapter-receipt.json",
+          "bytes": 3007,
+          "sha256": "f316ca57935cb0ad204ab86576a15bc5d4623e80d1bc33cdc8864a02b7abd10b"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/dispatch.json",
+          "bytes": 904,
+          "sha256": "ad37ecf4be6611f4b19c862bad80aa013be6fd9f4c9b8bda617016a08e930732"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/effective-solver.xml",
+          "bytes": 1103,
+          "sha256": "489f6a4b4eb4f561bd9bbc3fac0cfcdb808ae8b44e592a096027d31243eb17c2"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/index.html",
+          "bytes": 60655,
+          "sha256": "b3efa119d66be7ad8912692f628819d0756b65c34e580990ad70e543d57e07bf"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/native-input/la/sub0/BEST_SCORE.csv",
+          "bytes": 215,
+          "sha256": "ad515d6abe05d2bbfc52b3cd483025082d762a77be0272b548d37261d5156ab1"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/native-input/la/sub0/native-input.proposal.json",
+          "bytes": 430,
+          "sha256": "870e98eda76f063891e047cd331b4f49cdef39808197409e610f8a2fb0bc7927"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/plannerBenchmarkResult.xml",
+          "bytes": 4342,
+          "sha256": "93c842ff436de176b0bb9a71350b6c8daec519bb39fd10d24f71f3079aff736a"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/css/app.css",
+          "bytes": 899,
+          "sha256": "7627173c0c5909c2b5509fb00e50cac7b0ee61b33271538c0e3bb3b1c4751121"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/css/prettify.css",
+          "bytes": 675,
+          "sha256": "1d2d628605d9eaa7d4712e414de849855f3511947e23943acf1e7219d12a6e9d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/css/timefold-webui.css",
+          "bytes": 2196,
+          "sha256": "453dd2fdd8e3cf980271523d411583f1b18b6828cb5bfbc63196e831d0142319"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/img/timefold-favicon.svg",
+          "bytes": 1391,
+          "sha256": "6eec1ea3cc7c2b38b256062a7de828b6b1bc1713c30772e2395725eb518ca29e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/img/timefold-logo-horizontal-negative.svg",
+          "bytes": 4234,
+          "sha256": "7c90ffa58c695b9b0d233bdb81700196bf4f2343f36206f9fda777dbe0d6972e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/img/timefold-logo-horizontal-positive.svg",
+          "bytes": 4062,
+          "sha256": "8c10ad7b7274c20b5d0d94fdb271e6d1017948f5cc345ae7b13aced0f1192ba6"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/img/timefold-logo-stacked-positive.svg",
+          "bytes": 4081,
+          "sha256": "1e4ccfeec37e8e579734f4e7fc728f6051600f5eea39ee1b3cf5a124deb6aa52"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/app.js",
+          "bytes": 644,
+          "sha256": "db1ec75609e3bcaae209d35d45fda28724cf61ab45b1c5ba200fad22be1abf03"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart0_7c7a3.js",
+          "bytes": 2292,
+          "sha256": "17c3f09c0f3f608eb9eb2f09eb4816352224444aade4f5ae60fbc0aeed6efa94"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart1_b46ac.js",
+          "bytes": 2292,
+          "sha256": "edd97df4213b59d2158d4bce604dd58c9c5bb75ce406b4367cd0d460a9232bc3"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart2_bf195.js",
+          "bytes": 2292,
+          "sha256": "5e064df6e6834d2cd08b75d4e26f8ff596d4dbd5c09fc7ef77539c7119d61681"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart3_33946.js",
+          "bytes": 2292,
+          "sha256": "55d6f259b0aca4a5b3c07d2db9522e036c332333f12e84a7568fa89ee2d44843"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart4_a58ba.js",
+          "bytes": 2292,
+          "sha256": "0da4c8063a580c4004d04a6ee349f0e626b4485417f7980715298a3acedb5826"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart5_b0de8.js",
+          "bytes": 2292,
+          "sha256": "a9e2aae51d12c14dfe5ffd0efac29569c7c5b9e6481006a599adb604b5ec76a2"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreDistributionSummaryChart6_5e7b5.js",
+          "bytes": 2322,
+          "sha256": "65dbf1470e4d1e23420d07062df90c1a84dbfd5bfabe9d71c3d35a44d2bf37dd"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart0_81255.js",
+          "bytes": 2683,
+          "sha256": "2aaeda840497dbe87d0af82ce6be8117693838bae03cb8e6110a197f05ed1671"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart1_6efef.js",
+          "bytes": 2683,
+          "sha256": "c65677f9fc0a6aac607da542285b2cd5832e8a5d9374f6998ac006c518a90a38"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart2_b54bd.js",
+          "bytes": 2683,
+          "sha256": "f9b73d4e7df86e1f23e0f5e9d69e900a8d0ea1aa7e3877249aa88c364079c6a1"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart3_bc6a.js",
+          "bytes": 2679,
+          "sha256": "cdbebe6f62c4ce9fd6ac79675ad7acc3ec7e5867aa138ffdc2c9d871b2c0f239"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart4_f2ea4.js",
+          "bytes": 2683,
+          "sha256": "5a71ce2ce65891f47994a9d6ca7564114e5cf129d4c49650c5ceadc5a04a2e82"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart5_e146b.js",
+          "bytes": 2683,
+          "sha256": "f12bf964868b5421b4b0ea72d3bd0b4494e25f924264d9e9eb7c627dd8b63475"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScorePerTimeSpentSummaryChart6_6331d.js",
+          "bytes": 2691,
+          "sha256": "019220aae013edc0e0b6ac163df269a3cd206e9bdc6b7c6ae23a3ed4d1217a7b"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart0_b0992.js",
+          "bytes": 2741,
+          "sha256": "56a3121c9bdb5268c0cda8dff47e0ddbef4436836c1bfe66abcc1f8d09f77111"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart1_af83c.js",
+          "bytes": 2741,
+          "sha256": "d8639c6829b84459f02e38a945e02df9811b50bb2ed2c4cf1e16920631ef879d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart2_d1303.js",
+          "bytes": 2741,
+          "sha256": "d6d7768ce9e5cddaae352350f3aa7de34ce0b8079d7ecc74d19f7e3f5c183be9"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart3_3ac56.js",
+          "bytes": 2741,
+          "sha256": "93b8621f09e519a5f2bcbd23bdd4f647526f0100617cc091ac45dcd93e5d1f0e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart4_1a52e.js",
+          "bytes": 2741,
+          "sha256": "0e6229a4684ac5ad47d19da6cfa901a8a5840646ddd923dabae86def07cdce88"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart5_ae7d.js",
+          "bytes": 2737,
+          "sha256": "e1128e59c8f4de45cef394f90b1d0790f57a6435bd1bafb73645475f6c7447c6"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreProblemStatisticChart6_4153a.js",
+          "bytes": 2774,
+          "sha256": "0a01128a56ee4d2c1cb8e94bb9256e98d856b18cc24918b1b8ce4fc86d415de7"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart0_6abeb.js",
+          "bytes": 2377,
+          "sha256": "edd55da549305a17bfe42ca8a3f2bf1ccbeeb1cde8e29dad1a287fab701c5940"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart1_5f40e.js",
+          "bytes": 2377,
+          "sha256": "a87890604783d118db796f59ccaad0ef7ec0af9fecaae24400f04d51760a3639"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart2_43bd5.js",
+          "bytes": 2377,
+          "sha256": "629cd953245d91a6f2c402778686d745761d6c1efb44b0aa5dc2e7dd96239b91"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart3_bbefa.js",
+          "bytes": 2377,
+          "sha256": "ac9268f2f57449e502bed490f7df9adda32702c1dcd31dabadc563f4ec3742bf"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart4_763af.js",
+          "bytes": 2377,
+          "sha256": "5297ba1ff042b703903334dd01d30caf7d0fca1bb321289c5889f3e1a894346d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart5_821c5.js",
+          "bytes": 2377,
+          "sha256": "55cb1dcb4599f7d095aa33d637b4ed9665ee1c119704ce4ad804aabe2039a405"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreScalabilitySummaryChart6_db2bc.js",
+          "bytes": 2385,
+          "sha256": "10c6d53ab3c0d9f9acc98bf8d48cd7be9df5aa06e505738d7afef83871aa59e2"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart0_395e1.js",
+          "bytes": 1995,
+          "sha256": "fefb1e007cd5664b545c7281cd1b6827a6efaeed4b0805d2f2c94c1adc354c5d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart1_4adc8.js",
+          "bytes": 1995,
+          "sha256": "727b8918457b1a63281051c95def8560d1317578c69c640b08009e4c21a52f88"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart2_38773.js",
+          "bytes": 1995,
+          "sha256": "95c229266dd94ffa118caf0faea1cfe29160b98dd7638c9e3a56d6923d4cbe39"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart3_da6e6.js",
+          "bytes": 1995,
+          "sha256": "a33bb68427e40b6dd07e9043af6d18eccbfe3271e5e27417069e1829da4a7e21"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart4_a16c6.js",
+          "bytes": 1995,
+          "sha256": "373d5591ac3205a0119aae577e468bbe1328046f8afe9ab7404f8a9375559ffa"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart5_7b9ea.js",
+          "bytes": 1995,
+          "sha256": "790d72bff4eba69333764212d09bd2ed58cfafc8c72f89ec6cb9f7fd501e0f35"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/bestScoreSummaryChart6_458b5.js",
+          "bytes": 2003,
+          "sha256": "64cea8d6991622f7bea170dcf9408c5f0bf0850b9b0de844fc9d36c8dee13339"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/chartjs-plugin-watermark.js",
+          "bytes": 5801,
+          "sha256": "253293a66963309a5395e4043bcd0c8939f8d6e927a0ec1e0a1f906d30944ac4"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/moveEvaluationSpeedSummaryChart_cb206.js",
+          "bytes": 2379,
+          "sha256": "c53891fd96437d89c4c27902296bdfb56762ba3ad84d69a5458b832d643acc33"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/prettify.js",
+          "bytes": 14551,
+          "sha256": "f48d85c6ea701e417a857cd9292de12c2c0ff795c5ba45f7127c51cc6a97cf3d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/scoreCalculationSpeedSummaryChart_5972e.js",
+          "bytes": 2391,
+          "sha256": "42a0934294a21c50856a488515c044231721602f845bb58c1525efe768d581e3"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/timefold-webui.js",
+          "bytes": 5906,
+          "sha256": "08dfce38fb1f2ff6cc414afe566151b9d8970827cf33785f8c228e6d2bce8752"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/timeSpentScalabilitySummaryChart_3b902.js",
+          "bytes": 2736,
+          "sha256": "2d6a36d59668f1837803e0031d78c7d26fa654de938703ef47506014eee33d3e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/timeSpentSummaryChart_c9339.js",
+          "bytes": 2476,
+          "sha256": "1642e9a896e393c545f0f63c8c66b9fba5c8d7a17ecf059a7c4661842396a7af"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart0_ae7cb.js",
+          "bytes": 2075,
+          "sha256": "e8dd5416e2d55c5f6cc86af1fc4c2e08503b0602c6ab200504d88066b91d0b26"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart1_247a5.js",
+          "bytes": 2075,
+          "sha256": "9fa8615b6dd0d89783fdee6032921f157b3e563f4722b6db63f3b5238e861087"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart2_622b3.js",
+          "bytes": 2075,
+          "sha256": "89362a0345428a3c9f68d7f84e1d9f83528d713a8c427064533fcb2f91b73423"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart3_6e55d.js",
+          "bytes": 2075,
+          "sha256": "4cb82498fd58b0e37c587e21eaa3865c4e772f19b72cc65f3d68b83f351361ce"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart4_5bc6.js",
+          "bytes": 2071,
+          "sha256": "12df4342f949a91c67c517e0bac0f1cc8d5f7233e29f55f4d8c1dc8f63d69ece"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart5_1200.js",
+          "bytes": 2071,
+          "sha256": "39276b4432c0df9accd993878862fde571ff0867852cd1440d6a3412bd1a5092"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/winningScoreDifferenceSummaryChart6_bf42b.js",
+          "bytes": 2075,
+          "sha256": "1dc5a1ac2dcfb1b2258a18f697863fd1c658770cbea86586cc2ac49a0c475325"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreCalculationSpeedDifferencePercentageSummaryChart_e1e8a.js",
+          "bytes": 2207,
+          "sha256": "5aa9e553373830465643e653688b81dc05cab6f4661c50be407c7ef249fbe40c"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart0_66870.js",
+          "bytes": 2125,
+          "sha256": "a59241469bd4d09147f2f9e4fadfcbced0324077f9e27e7d48e0ab1b0447fc2d"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart1_af4de.js",
+          "bytes": 2125,
+          "sha256": "102a6532744fff341b97bc2004eed3fc4817ccdf6f44c718f959534181058db2"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart2_7e908.js",
+          "bytes": 2125,
+          "sha256": "d066bbe28034bdacc14254ec8d5813e879258324438016cf904b3bd4745c65bd"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart3_3bb2.js",
+          "bytes": 2121,
+          "sha256": "6cc5f7d10f77ffd258feb6ab7ad57fb6356ba306d5b6c62426a92a2c857fce92"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart4_49017.js",
+          "bytes": 2125,
+          "sha256": "8179b48fe53fe57e7efdbffe5496b95300bcdd80bbd056bdd3ed063d6ce22f1b"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart5_96dd3.js",
+          "bytes": 2125,
+          "sha256": "0782f0e1de59ea12015505e3715a56b9baafce92b6edb7f1ec2868ec7e5a022e"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native/2026-10-06_224156/website/js/worstScoreDifferencePercentageSummaryChart6_3e3f6.js",
+          "bytes": 2125,
+          "sha256": "64f154572c3a00f7b01c21f19e44d82188fd3720de238205aab06d82d4af76aa"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/native-input.json",
+          "bytes": 108804,
+          "sha256": "fef09f0f620df11e2ded59df9b65753da0ce43b6b89f0a8421d42c7c711da234"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/process.log",
+          "bytes": 738,
+          "sha256": "169c340f70796e5ae512a32c4c4d03d913d5f350eb19119b2a75beed6fd722f2"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/request.json",
+          "bytes": 3340,
+          "sha256": "cc2a0d99e90ce018626380934c1e59ca01fe78fa92b65fa1ce3c9cbb9aa32d77"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/cases/4f04a0a917e3a6bf29dc4ca12847441cc48a258843c36717c363628cce55fe04/terminal.json",
+          "bytes": 10989,
+          "sha256": "0ad5a3b551e41c288ca730ce367bb5e542c96d85178b1e45812c7b3dd34e8c01"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/plan.json",
+          "bytes": 302,
+          "sha256": "872c242cdaa09c4eb77468a13eb9985633142fc0b4560c021302fa696ceab680"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/runtime.json",
+          "bytes": 30996,
+          "sha256": "57075b19bf282c3fb7f3047d55e6a161ebce86df62bbcff76eec8b14dc2a98cc"
+        },
+        {
+          "path": "attempts/20261007T034142Z-9edc1f21/terminal.json",
+          "bytes": 108,
+          "sha256": "315153d72c8548eb6fa850b0ed358e0b6ab7ed5af92aec85f9a27c289ec64cdf"
+        },
+        {
+          "path": "blocks.json",
+          "bytes": 1738,
+          "sha256": "e2eba4dc6c15d390f0604b04625a9ebcd33e4740a47595659ff3f3c8976d604a"
+        },
+        {
+          "path": "config.json",
+          "bytes": 5307,
+          "sha256": "61ae3817b4d229beb364208bd6018884d18cc0ddc0f16c4c23b07bd1262f02b9"
+        },
+        {
+          "path": "estimate.json",
+          "bytes": 452,
+          "sha256": "d8f70e8384e0055224376a57a4d17d1952d69ca7a914992436d5b0666014b117"
+        },
+        {
+          "path": "frozen/adapter.jar",
+          "bytes": 22968538,
+          "sha256": "f76b2b6f55e63dff82264eb6c4185b82736660ec294cf6498733c357eb9ee5d1"
+        },
+        {
+          "path": "frozen/datasets/clustered-104729.json",
+          "bytes": 92484,
+          "sha256": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247"
+        },
+        {
+          "path": "frozen/toolkit/campaign_config.py",
+          "bytes": 21907,
+          "sha256": "843b9b1b09654d1e7858a2e7f28f64e0f0c438ad02e1e749fbde17743c4472f2"
+        },
+        {
+          "path": "frozen/toolkit/campaign_runtime.py",
+          "bytes": 32456,
+          "sha256": "1701e3387900b61c531c367e03c6c92be978a7e76b702397ea45c69467dc68ea"
+        },
+        {
+          "path": "frozen/toolkit/experiment_config.py",
+          "bytes": 5939,
+          "sha256": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c"
+        },
+        {
+          "path": "frozen/toolkit/experiment_runtime.py",
+          "bytes": 35538,
+          "sha256": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        {
+          "path": "frozen/toolkit/experiments.py",
+          "bytes": 5970,
+          "sha256": "28177f89dd04b39b24511cb920ed3b5852e5588bc07abd4f792c38db54c7bf40"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 1698,
+          "sha256": "0a7b846daafeb148a48cbf202aa3ad80b8b0fa3d8af1bf0542ffb33b742a438e"
+        },
+        {
+          "path": "original-config.json",
+          "bytes": 5515,
+          "sha256": "6d2b28f4332b77d12b58d0a37f08ea1cae0c61e009da2264943e936508e07e66"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 31835,
+          "sha256": "54fc7df5ade97758a8f68462e59553be078f34bb8815d744eb426b574d78f478"
+        }
+      ]
+    },
+    {
+      "path": "experiments/runs/20261007T034200Z-phase11-fairness-smoke-002-82095a14",
+      "analysisPath": "experiments/runs/20261007T034200Z-phase11-fairness-smoke-002-82095a14/analysis/20261007T034224Z-057cfe93.json",
+      "analysisSha256": "88bdc22ed297475c3ba0bd4932d1998d9c4b93490e0be4f9c6a968cf1a1f5cf6",
+      "outcomes": {
+        "SUCCEEDED": 2,
+        "FAILED": 0,
+        "INTERRUPTED": 0,
+        "ABANDONED": 0
+      },
+      "independentlyValidCases": 2,
+      "expectedInputRejections": 0,
+      "files": [
+        {
+          "path": "analysis/20261007T034224Z-057cfe93.json",
+          "bytes": 3513,
+          "sha256": "88bdc22ed297475c3ba0bd4932d1998d9c4b93490e0be4f9c6a968cf1a1f5cf6"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/blocks/d8a6dc1bf58a92002d1f35f2d8a3b82c198a31443fabdb271f580b56f8a6700b.json",
+          "bytes": 277,
+          "sha256": "ad8385d923ee781cc0eb5a5c6c4ee5745187cb5d89f8e8afa724d65e2631841d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/adapter-receipt.json",
+          "bytes": 3077,
+          "sha256": "60637173b3b4d90c7fe877500d529119a59a1c3ff11d01d434d728fbe4a25f9d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/dispatch.json",
+          "bytes": 968,
+          "sha256": "9f3df24b5be95787ddaeec4f89874705521b1b539744a94d1c54237353c08961"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/effective-solver.xml",
+          "bytes": 1093,
+          "sha256": "8a5f2fbc1fa321e5c5cfa72bbc5f87ee9912c7533d5e48c1b239225c9134031a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/index.html",
+          "bytes": 60800,
+          "sha256": "d7670765a132461e2171ca1ff893e1154564f6be9dd4ff277d12f4cc693dc54c"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/native-input/tabu/sub0/BEST_SCORE.csv",
+          "bytes": 41,
+          "sha256": "0cb529a1ef4a36d9595d7f7a7e6b8f87a77e8893901945463a5ddd986e794fc8"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/native-input/tabu/sub0/native-input.proposal.json",
+          "bytes": 467,
+          "sha256": "fdc9ada95565b7beb9b93c72ab86a41e448002662b442366068dcb1e38fff18b"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/plannerBenchmarkResult.xml",
+          "bytes": 4373,
+          "sha256": "6b8a6a904376aec77658d968f365528a643bbe6db1ba144786afd92dca9f12a7"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/css/app.css",
+          "bytes": 899,
+          "sha256": "7627173c0c5909c2b5509fb00e50cac7b0ee61b33271538c0e3bb3b1c4751121"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/css/prettify.css",
+          "bytes": 675,
+          "sha256": "1d2d628605d9eaa7d4712e414de849855f3511947e23943acf1e7219d12a6e9d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/css/timefold-webui.css",
+          "bytes": 2196,
+          "sha256": "453dd2fdd8e3cf980271523d411583f1b18b6828cb5bfbc63196e831d0142319"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/img/timefold-favicon.svg",
+          "bytes": 1391,
+          "sha256": "6eec1ea3cc7c2b38b256062a7de828b6b1bc1713c30772e2395725eb518ca29e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/img/timefold-logo-horizontal-negative.svg",
+          "bytes": 4234,
+          "sha256": "7c90ffa58c695b9b0d233bdb81700196bf4f2343f36206f9fda777dbe0d6972e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/img/timefold-logo-horizontal-positive.svg",
+          "bytes": 4062,
+          "sha256": "8c10ad7b7274c20b5d0d94fdb271e6d1017948f5cc345ae7b13aced0f1192ba6"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/img/timefold-logo-stacked-positive.svg",
+          "bytes": 4081,
+          "sha256": "1e4ccfeec37e8e579734f4e7fc728f6051600f5eea39ee1b3cf5a124deb6aa52"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/app.js",
+          "bytes": 644,
+          "sha256": "db1ec75609e3bcaae209d35d45fda28724cf61ab45b1c5ba200fad22be1abf03"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart0_58dfc.js",
+          "bytes": 2294,
+          "sha256": "19cbd11d9dd7d6ff2f629265deeb8f02fa3328c30365bfcc1163b3040981dea3"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart1_eac17.js",
+          "bytes": 2294,
+          "sha256": "c56f6b78f94faf45784dbc197c73a5aa334c46260e8d6ce116e040d587616b7f"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart2_df179.js",
+          "bytes": 2294,
+          "sha256": "0c2f0fa585139f774dd1e2732869f9a566c3b3aa7f740d72f6302520aac26cee"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart3_d79ad.js",
+          "bytes": 2294,
+          "sha256": "61cd7cadbc87e3bc10bd693ae6034cdf6a1d51ce246cd247319e5805279a232b"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart4_24e07.js",
+          "bytes": 2294,
+          "sha256": "b04344c0123ba7406496de36d2db740cd35d4a35c9773d8a6b029e649615b1fd"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart5_5b0fb.js",
+          "bytes": 2402,
+          "sha256": "ac9fec06535d2d02f820c1fa398fe7aa2a407e7ef4d5e294f54ee7015a1955ac"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreDistributionSummaryChart6_90fcc.js",
+          "bytes": 2324,
+          "sha256": "fcb1a48144246a3ed9f04e7eb378328d97c39141d5be1fe0a4bce6ff82b7983c"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart0_601b.js",
+          "bytes": 2681,
+          "sha256": "7a7f5223abe54cd4bde4ac2bd91b0b25cf14f2b4c90462649ae3db6fc02a5cad"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart1_a5c3f.js",
+          "bytes": 2685,
+          "sha256": "36ab8425d4fb3f7ed44a00cf2c9a4464ac98dd4e553c08660dc9ceeb2f2d1e25"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart2_e5942.js",
+          "bytes": 2685,
+          "sha256": "bb19567fe4bb47dc271b62a0c1850ce01495d0ddd562041ca4a11161b3a7a45a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart3_91eea.js",
+          "bytes": 2685,
+          "sha256": "a79647048ee6f3a60cf0be3d223f1111e92d694eb2eaa5e47a9b8b670494b705"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart4_f0609.js",
+          "bytes": 2685,
+          "sha256": "3d5204a03d65ceb51a32ca11da65fec6a3d86718a0ca7264b3477ed45b11cade"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart5_586f4.js",
+          "bytes": 2707,
+          "sha256": "892fb9775a461e3da1c5099f7837dfe4f18b5bd40e693d4af8ba67df6282ad7a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScorePerTimeSpentSummaryChart6_3199d.js",
+          "bytes": 2693,
+          "sha256": "c46e8c02f48dde8539291288a2402445211af366c120dd95906bd6ec079835da"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart0_eb6c4.js",
+          "bytes": 2728,
+          "sha256": "6c884d8f733e081e52163a0edb5a4aaaac8454304a111539d2afc08ce81f2abc"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart1_a7ffe.js",
+          "bytes": 2728,
+          "sha256": "ad044eced78060db69bd6e46ff3517f89294210cdc27b4644e720c78600dc301"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart2_36d02.js",
+          "bytes": 2728,
+          "sha256": "a478fb7da7eaa9cbb3767fdf2ad941019396a56eb285c5e6eb8c05d89b7bd786"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart3_c7a5b.js",
+          "bytes": 2728,
+          "sha256": "2a5a7de0f7867d5533ef1955150239459bbdcd47fa8e9512dc8acdbfe379e8ec"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart4_9b180.js",
+          "bytes": 2728,
+          "sha256": "337bb2b0b5203bfcc851fdc01dbb23ccb47ba8eb3e02769a0f10f773c603b7f4"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart5_4c801.js",
+          "bytes": 2750,
+          "sha256": "dd932345ccf0b90be8b979faee90674f39f7582a22f26858de5ad5eed3dcd6d9"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreProblemStatisticChart6_9fbe5.js",
+          "bytes": 2736,
+          "sha256": "7af30ee1bdba61dc9cb22ab06fc4634e4d890a6573b852c46813801e01095c55"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart0_207d0.js",
+          "bytes": 2379,
+          "sha256": "f4db5ec718c05b1750bf9a6db77462baabab297a8d20260127bceec6c3ec0be2"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart1_3f8f9.js",
+          "bytes": 2379,
+          "sha256": "78bd5301f3535c864bac4e4766db91d65233a41edd90c0c28585baf8c2b891b6"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart2_237c.js",
+          "bytes": 2375,
+          "sha256": "6fe9846cedb15a5e6e33cd192c157fdbef4f49b00227962f2ad34525a37d9890"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart3_24645.js",
+          "bytes": 2379,
+          "sha256": "075c54b61e678ad6785580bec8a8a4fd1e7eeb01f417b629777a21a9d70ca5e5"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart4_8be56.js",
+          "bytes": 2379,
+          "sha256": "f22d714603383ca8a3f9a9c2484b5731a84f8823cf323f661967bc2b919de0cb"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart5_6120d.js",
+          "bytes": 2401,
+          "sha256": "37d8e5b7548ec3c2c715223b845a597312d92f97cc46004527928b27aaa8d103"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreScalabilitySummaryChart6_62f83.js",
+          "bytes": 2387,
+          "sha256": "15153922ca152cc40f43c542335bbe6ee56c46b0d0b6398e841598f85e89497d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart0_4a215.js",
+          "bytes": 1997,
+          "sha256": "4de8eb520b0b9d2b72f82ab41922efac2cf78af9fec1528c12e09e8d7f598d41"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart1_c5efb.js",
+          "bytes": 1997,
+          "sha256": "b6620474aed1ee7ede8111a092157055e3bcc07cda6fff494994ddef7f8f7fab"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart2_a3885.js",
+          "bytes": 1997,
+          "sha256": "a091b08a1aa98ba5b15a8ceeb626217bbd92fc2e3ddacafed8ca823dbdc15ecf"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart3_244fd.js",
+          "bytes": 1997,
+          "sha256": "8024e8876660ae7dcc9bc199bc07f32ac9f61bbe9cd579cb7424ce8607c66c76"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart4_3e3fa.js",
+          "bytes": 1997,
+          "sha256": "6d24acd1c358cbfa5828b8ece8c8ef32cb889b518894ecbd9471eaf10b992fcb"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart5_4dead.js",
+          "bytes": 2019,
+          "sha256": "4fe4b8454c3df5ba64a65d822d76d46fd16884f6ae0736e528d85bb86478fc63"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/bestScoreSummaryChart6_dd835.js",
+          "bytes": 2005,
+          "sha256": "fc04e69b5fd549620f3cfa46d81a02e4ea0eac57ecc6200d6c8f1e94f0407a6c"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/chartjs-plugin-watermark.js",
+          "bytes": 5801,
+          "sha256": "253293a66963309a5395e4043bcd0c8939f8d6e927a0ec1e0a1f906d30944ac4"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/moveEvaluationSpeedSummaryChart_b3bde.js",
+          "bytes": 2379,
+          "sha256": "d333e3a366f72538ee333de0dd267fe620ffcbbcc80119d04636773c28affb78"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/prettify.js",
+          "bytes": 14551,
+          "sha256": "f48d85c6ea701e417a857cd9292de12c2c0ff795c5ba45f7127c51cc6a97cf3d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/scoreCalculationSpeedSummaryChart_1a94e.js",
+          "bytes": 2391,
+          "sha256": "4a6df92f10af1a04afc9b72c93dcbe27d0fac631126709fcfd3999f20ae99261"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/timefold-webui.js",
+          "bytes": 5906,
+          "sha256": "08dfce38fb1f2ff6cc414afe566151b9d8970827cf33785f8c228e6d2bce8752"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/timeSpentScalabilitySummaryChart_9cb0.js",
+          "bytes": 2734,
+          "sha256": "43cdde87ab6e6da590d549a14a3c7fbb2ccdc182173cbf1829c7be05cd6696f1"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/timeSpentSummaryChart_4e706.js",
+          "bytes": 2478,
+          "sha256": "0836ba268cc40a86e661c5987c9b052b0a393e808dc0dd969aaaba9e047050bd"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart0_76fb.js",
+          "bytes": 2073,
+          "sha256": "30b45f55ad511fd65a66f761282ce9308f4fc53124653bf276d3a64956d7fd40"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart1_968da.js",
+          "bytes": 2077,
+          "sha256": "eefe0d292b847076ee6469f4f12e75a541e269d928517b1ded90c9c3e153120a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart2_1036c.js",
+          "bytes": 2077,
+          "sha256": "4d6389a672ebdefb84ae23a4cb963bc8ab9680d8c546f2473e8797773272c2dd"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart3_cbf20.js",
+          "bytes": 2077,
+          "sha256": "a0feeb7d6d835838992e0da1bb487668d2be8cfc0bce1b353333b38936f3720a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart4_15017.js",
+          "bytes": 2077,
+          "sha256": "3196a27b979027720dacb0250c747f59f0b946cd195ee9df32e38695baeeb0e4"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart5_c6e24.js",
+          "bytes": 2077,
+          "sha256": "061d35edee791816f4a7518f56f9e0fc0f5986fe78ade8db3ddf2601eb4890e6"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/winningScoreDifferenceSummaryChart6_d97ed.js",
+          "bytes": 2077,
+          "sha256": "4b91623df33ceef2d592bd98b6cd92e0b34733965d0eec8a35860ad56f9858df"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreCalculationSpeedDifferencePercentageSummaryChart_803ea.js",
+          "bytes": 2209,
+          "sha256": "b447a37ae989461296692d58e03af683ba6b0165dcedba3563f6562272f86db3"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart0_bc8f7.js",
+          "bytes": 2127,
+          "sha256": "a67e387c02d05cb8ce139a512d40468617a57e2360150f73327b7fcc4f080683"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart1_52e20.js",
+          "bytes": 2127,
+          "sha256": "a64186979e73753436bbb3bbe26cb62e803d6d849f4530982c4d0c510e34e33a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart2_39f5a.js",
+          "bytes": 2127,
+          "sha256": "7b5ccd857f3ea23c9ccd5b9bec44be049fc2569581f1d7bb55e9c93a75c15f6a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart3_c4872.js",
+          "bytes": 2127,
+          "sha256": "acd78c3e1ba1b4a7a25fc509f9a8d2dfd0bb9474d65fb05f3728447b3724aa37"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart4_2d56d.js",
+          "bytes": 2127,
+          "sha256": "9f4e5fb1237d88b063e77c8b117b910238afb99484364870728ad7e8cd36dd5e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart5_6c295.js",
+          "bytes": 2127,
+          "sha256": "3b02d0b02640077f74bb86f333b95cc342af25d8a2c05f00932f94e0a87e9b2e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native/2026-10-06_224209/website/js/worstScoreDifferencePercentageSummaryChart6_93add.js",
+          "bytes": 2127,
+          "sha256": "609975ab617d56cf7c281f9e062810bd0ea344c29407a233b0fd017a474fb0df"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/native-input.json",
+          "bytes": 110843,
+          "sha256": "6ee08ed4e16b791c3c3fd33503038b7e3dcce883ff3cbc7e22fd70e89be3e98d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/process.log",
+          "bytes": 738,
+          "sha256": "9b8551c88171608f1c0d54346e6ff40c2af1988f0f7e9acd7e7b2e76cf7aa3b6"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/request.json",
+          "bytes": 3682,
+          "sha256": "542663c666543b304c955ecd5b91c4eca3f7dbd1729d3e385a9783c818815754"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/32c2fdbdeaebed8c1797a7d2b7525b14dc3e0b50e889a303861f0d757d79d66e/terminal.json",
+          "bytes": 10995,
+          "sha256": "32d63ac8b96286fe19497e844870303748947e6020024173b07f96be9bf21e47"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/adapter-receipt.json",
+          "bytes": 3077,
+          "sha256": "a8db917ef8b206af0de4346f886f397dab7a2b0170595b11aeb9790dc23e5d1b"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/dispatch.json",
+          "bytes": 966,
+          "sha256": "6d4bcd9677c27395aaa8910e96c65281789d48a3bb3b9a13203e009b29e64652"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/effective-solver.xml",
+          "bytes": 1103,
+          "sha256": "489f6a4b4eb4f561bd9bbc3fac0cfcdb808ae8b44e592a096027d31243eb17c2"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/index.html",
+          "bytes": 60786,
+          "sha256": "f277055f80fa81ed44b74b1e9654a35940f84faf7198df3ec18b49ac5e31d427"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/native-input/la/sub0/BEST_SCORE.csv",
+          "bytes": 117,
+          "sha256": "e360ba1bfd8a850f411195a2f97a3a05a9289684daa77b7b5c64fa717286fcbf"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/native-input/la/sub0/native-input.proposal.json",
+          "bytes": 467,
+          "sha256": "36d8227c51feb5944acf1b8ef63dcab945893a90dfddcdaefeae3218d5b3e6b4"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/plannerBenchmarkResult.xml",
+          "bytes": 4379,
+          "sha256": "d7652494b6aa2c766d9e10d314f971fce34ea99cead5f6836903852324a9a332"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/css/app.css",
+          "bytes": 899,
+          "sha256": "7627173c0c5909c2b5509fb00e50cac7b0ee61b33271538c0e3bb3b1c4751121"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/css/prettify.css",
+          "bytes": 675,
+          "sha256": "1d2d628605d9eaa7d4712e414de849855f3511947e23943acf1e7219d12a6e9d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/css/timefold-webui.css",
+          "bytes": 2196,
+          "sha256": "453dd2fdd8e3cf980271523d411583f1b18b6828cb5bfbc63196e831d0142319"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/img/timefold-favicon.svg",
+          "bytes": 1391,
+          "sha256": "6eec1ea3cc7c2b38b256062a7de828b6b1bc1713c30772e2395725eb518ca29e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/img/timefold-logo-horizontal-negative.svg",
+          "bytes": 4234,
+          "sha256": "7c90ffa58c695b9b0d233bdb81700196bf4f2343f36206f9fda777dbe0d6972e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/img/timefold-logo-horizontal-positive.svg",
+          "bytes": 4062,
+          "sha256": "8c10ad7b7274c20b5d0d94fdb271e6d1017948f5cc345ae7b13aced0f1192ba6"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/img/timefold-logo-stacked-positive.svg",
+          "bytes": 4081,
+          "sha256": "1e4ccfeec37e8e579734f4e7fc728f6051600f5eea39ee1b3cf5a124deb6aa52"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/app.js",
+          "bytes": 644,
+          "sha256": "db1ec75609e3bcaae209d35d45fda28724cf61ab45b1c5ba200fad22be1abf03"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart0_875c8.js",
+          "bytes": 2292,
+          "sha256": "6fe0e4d2114ffcc56b9a48d7ad34ad914cd9b12b0202a79e9c73baeec9bde318"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart1_d1226.js",
+          "bytes": 2292,
+          "sha256": "a186f283c599d740bb764b55bdd4b192dc67bdda81b6d25d195e517d954b5668"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart2_2c3a0.js",
+          "bytes": 2292,
+          "sha256": "90a9a6b0ebb9631d716e8dceb4ca69b3c07bf87b0d69f1b419bb78b4887591a1"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart3_3bd50.js",
+          "bytes": 2292,
+          "sha256": "87ad4661e8a9cc6f7b11470b14483ba797446b6dd594495fdf8953c48575cf3c"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart4_28893.js",
+          "bytes": 2292,
+          "sha256": "f215a11e1eabf3e1d151b09959d939a808fb0a7a4f9a9301dd9d04649783216b"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart5_9e358.js",
+          "bytes": 2412,
+          "sha256": "2d0e69b2d05abdc7d711921bd75691e94db683670f97a3ed934027832b092d3f"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreDistributionSummaryChart6_f2f94.js",
+          "bytes": 2322,
+          "sha256": "8a1bc5a589643c55f9fdb61b18e608e8ae065f57a18ce1bf8ba11223cce28073"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart0_9dd49.js",
+          "bytes": 2685,
+          "sha256": "94bbb7e3d92d0a67db4303154d06f011baaa36ce2a91da3fdcdd684a990dd128"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart1_3cfa6.js",
+          "bytes": 2685,
+          "sha256": "a6afbba929e746cf2a84da430e5086c4e546ed9586df0a9878e35c36a4bd814a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart2_4baf4.js",
+          "bytes": 2685,
+          "sha256": "10247458812edafd57cea7d44e951d01fb362954a3a45fd92d9386fed4ece5d2"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart3_2ab92.js",
+          "bytes": 2685,
+          "sha256": "4893c4d762024e1d476302427c2d6d9f8f696743e18b8888a7f6cd5114fc9a4b"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart4_114ca.js",
+          "bytes": 2685,
+          "sha256": "8592b7df370ce4b7ad368a444973bceb1909e2b754c5de27cd5b4ced372d6325"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart5_ee6a3.js",
+          "bytes": 2709,
+          "sha256": "4cb10a339dfdd2c4fc7c5dc2f0cec4d2a477dfea5a05eb10029b110905b52a7f"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScorePerTimeSpentSummaryChart6_24c69.js",
+          "bytes": 2693,
+          "sha256": "493469e304f892da96a086a97a8ce7878fb9b93fe9949d2f5a04b2db0b90f85e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart0_9fa09.js",
+          "bytes": 2743,
+          "sha256": "1447820810e9f03f0b8a8ff8bacd312e6f816ce321295a4ca8dcd776997b6d3c"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart1_abdcd.js",
+          "bytes": 2743,
+          "sha256": "cb63564ce48d884b3cbc1c88b81932af980e01eaf7fca137fb8930dc97139981"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart2_4973f.js",
+          "bytes": 2743,
+          "sha256": "3654ecc5170a49d6ac46a00184dd8d4c470deabf4b1f04e4fab8652046a117b9"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart3_df7c1.js",
+          "bytes": 2743,
+          "sha256": "870fd44ebd316bee55b0e40b4ec64f75511e3030c57c7659bee4bc3f6eeb9475"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart4_c73fd.js",
+          "bytes": 2743,
+          "sha256": "0280198e8249860bfdffeda0f0e11cb6b8e1f3fc1320f5e2ad817f5a0bfded16"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart5_7d7b6.js",
+          "bytes": 2787,
+          "sha256": "355a7a7b961db91ba47d4899d2504f299b6d046c450b6e7e0c94a625ff5a1fad"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreProblemStatisticChart6_57a7f.js",
+          "bytes": 2756,
+          "sha256": "1344984a3d995c454c663a0ac390cb42402f8384e1ef866c7d996a524775e644"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart0_1b970.js",
+          "bytes": 2377,
+          "sha256": "316b2f3bedcecb298b32689b6a021a4401a023d30796c55d0e278e4f19eaed0e"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart1_77d93.js",
+          "bytes": 2377,
+          "sha256": "0d1de6f269d9a3787c5c3d3b59c9275367f058ba6f8a68ae6e0ee7b1351fce0f"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart2_6eeee.js",
+          "bytes": 2377,
+          "sha256": "1db26b1f415c9eb4ddf6e9ae91337372480b42bb187a6f185031a03b06820742"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart3_c0bc3.js",
+          "bytes": 2377,
+          "sha256": "57b73d2b842aa73b3fb39c023f22f0019c899bb437c1b4408f939edd868ae2ea"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart4_862c7.js",
+          "bytes": 2377,
+          "sha256": "77cacb71f10dda870dcf5203355af791475f021ce0d9714eb81d5bcf593c8288"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart5_120e9.js",
+          "bytes": 2401,
+          "sha256": "f6df6bfe8d8d7c22d4d2581351a60232ca839cb030601dea7d3268f0b16bb573"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreScalabilitySummaryChart6_12679.js",
+          "bytes": 2385,
+          "sha256": "6d3d66eb21e6d8f6e061dcbd0c2cd4de34a84cdf8c58d30cd32a707c0905c912"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart0_79e10.js",
+          "bytes": 1995,
+          "sha256": "7139406deefe05a7127219e62af8f37522aa90429e25192bf1e7793dbe6904da"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart1_4cf5c.js",
+          "bytes": 1995,
+          "sha256": "d060ce3ef4be2e810768d76d0fd45da655b091679e2a941a526569edaff5ea44"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart2_cb3da.js",
+          "bytes": 1995,
+          "sha256": "2314b512d94f02d524300ee8d486dc7ad9d63cb1d7f2329ba5bac82092ba6229"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart3_aaeb3.js",
+          "bytes": 1995,
+          "sha256": "6501e8dc43f5c1289fd4567a9e210b897fceef49dcc62dd26d54698fecb30612"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart4_1386.js",
+          "bytes": 1991,
+          "sha256": "019620dd568a1deb41b9c46ac63f165e376fe39e6ed535fe5b04378c5eafff2a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart5_1acc9.js",
+          "bytes": 2019,
+          "sha256": "e20ebff6fcfd489eb2b5fd34f5c7408a721601142956f5d06f8cd61fba8a2c31"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/bestScoreSummaryChart6_26abd.js",
+          "bytes": 2003,
+          "sha256": "6b298fe2fc9f1ff6791ff9a4733a1edb4053157b103c2ee120eee544982e0a90"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/chartjs-plugin-watermark.js",
+          "bytes": 5801,
+          "sha256": "253293a66963309a5395e4043bcd0c8939f8d6e927a0ec1e0a1f906d30944ac4"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/moveEvaluationSpeedSummaryChart_a6b00.js",
+          "bytes": 2379,
+          "sha256": "63704c4f991ddab8f17911db801c2dafbcbd49e65040c9c7072abf89fde1d5bb"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/prettify.js",
+          "bytes": 14551,
+          "sha256": "f48d85c6ea701e417a857cd9292de12c2c0ff795c5ba45f7127c51cc6a97cf3d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/scoreCalculationSpeedSummaryChart_91b67.js",
+          "bytes": 2391,
+          "sha256": "c81938e31dc1d2fef03d244b093366e1d7b2673b3f6e675c8cbd1df5e9ccad31"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/timefold-webui.js",
+          "bytes": 5906,
+          "sha256": "08dfce38fb1f2ff6cc414afe566151b9d8970827cf33785f8c228e6d2bce8752"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/timeSpentScalabilitySummaryChart_2464e.js",
+          "bytes": 2738,
+          "sha256": "4781d32ed75776f0490de01087e68d9bb520afeb4feec5a9369bab42d5492767"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/timeSpentSummaryChart_c3148.js",
+          "bytes": 2478,
+          "sha256": "1c1db88e34e460882760ed6ca60bd54f9080e2c4080fa2d392f5980fc6f71430"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart0_a18b4.js",
+          "bytes": 2075,
+          "sha256": "c5a0522ddd613afe473e81a603a9588ab9587db4503acb2d51c8db34716fb102"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart1_788bf.js",
+          "bytes": 2075,
+          "sha256": "31c25a43ec5d11083b681621c24b85a76366cc1c94b1b3b651e741132ecb7b7f"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart2_b5ce5.js",
+          "bytes": 2075,
+          "sha256": "5c5b1c6bd09605f59d4becad7bbcd6785ff9fe4bc43960e3cac8e5e249a70f10"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart3_6e2e9.js",
+          "bytes": 2075,
+          "sha256": "6dcdb74b0cca756a201447cd2684313f5d8701b33a4386ce2e2f9942299d29b1"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart4_e9655.js",
+          "bytes": 2075,
+          "sha256": "4f611a6373b05a5bfa52e95dc55aee3b85cf263573df5ad9a17949e37700baa2"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart5_64945.js",
+          "bytes": 2075,
+          "sha256": "4025c7f2d5d0a233210f602c3e5a00f89c0bccc618f837c766cf1afda3a55793"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/winningScoreDifferenceSummaryChart6_a159a.js",
+          "bytes": 2075,
+          "sha256": "1d548585099061e58d7b2087738377f61ac2b27fb41e6a1ef1cfabd25cd73da2"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreCalculationSpeedDifferencePercentageSummaryChart_ee1c4.js",
+          "bytes": 2207,
+          "sha256": "2501c5f1037d7ed793412d8d56643d6054cb7e1b19d9ec12ca12f4cc524b8b44"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart0_b5caf.js",
+          "bytes": 2125,
+          "sha256": "7a08a95a119885c2e360fca2b7f97a9362c73cb9d2493741ccdc461f772118b8"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart1_61125.js",
+          "bytes": 2125,
+          "sha256": "5376a4a67e4155ee1e3c1a4be5b569454ae60da74162e977dc49e299c1ae9d08"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart2_c90df.js",
+          "bytes": 2125,
+          "sha256": "e80e3851ffc0ea58d5258c2e99fcb073383938aff8c60567ea02d86e7ed33542"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart3_1122f.js",
+          "bytes": 2125,
+          "sha256": "e9265df983b2fd2b1f06119d2fe07651ca2346cc0220b1b12068b03ce98f2d3b"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart4_a45fd.js",
+          "bytes": 2125,
+          "sha256": "96e1a22e87ca4b00d05ba4ef15d35eb73a37bb06edd63f8beeedde28f2b63a65"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart5_f2a17.js",
+          "bytes": 2125,
+          "sha256": "7ad50720dd51e2622979166d4287d2e8d33fad20039760f2fceb40dcb143df78"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native/2026-10-06_224220/website/js/worstScoreDifferencePercentageSummaryChart6_d110a.js",
+          "bytes": 2125,
+          "sha256": "7c6b47156991eda3bec9f18e75fbaf7b9b03d8ee8aaddd12164c431f2ea9fa5a"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/native-input.json",
+          "bytes": 110843,
+          "sha256": "6ee08ed4e16b791c3c3fd33503038b7e3dcce883ff3cbc7e22fd70e89be3e98d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/process.log",
+          "bytes": 738,
+          "sha256": "3bb2970e711c28812b98080ba51b123776820198cb96480d46d9bc775168ce25"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/request.json",
+          "bytes": 3691,
+          "sha256": "2ed1fb10c573e9e87069306c4effcd87268b085aa404b5c3353ad2562bf1d2a1"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/cases/6d3f16f2cf02df11ae9ea40d2863023d0823995c8fa64859456a5ffb5aeede3f/terminal.json",
+          "bytes": 10992,
+          "sha256": "d6b74fb1cf7a7b5f5b042df3ebe6a2a32c3b5f1f76dbce5774e5ec792c89c409"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/plan.json",
+          "bytes": 302,
+          "sha256": "d7f55873c33e483516a77a78e390c0f9d6b60ecab3330b674282cbdd6769117d"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/runtime.json",
+          "bytes": 30995,
+          "sha256": "212ff289d3e091c5dd34cbfd5daf2fa04d83c5e7cff752dee10f51ee21861769"
+        },
+        {
+          "path": "attempts/20261007T034201Z-0817599e/terminal.json",
+          "bytes": 107,
+          "sha256": "941c9a4e6dff21b0022b59618ff12a1cbd8cd9d35aa3e3d74f99a1603e3cfbf7"
+        },
+        {
+          "path": "blocks.json",
+          "bytes": 1862,
+          "sha256": "7230e78b0a30ba2c35901cf27860f4b11edd543b631ac6b4aa7db49bf41c09b4"
+        },
+        {
+          "path": "config.json",
+          "bytes": 5553,
+          "sha256": "cb4b4058f720b14f2fbef5825d2b1cac534fad39a74d07912c6796a75b692577"
+        },
+        {
+          "path": "estimate.json",
+          "bytes": 452,
+          "sha256": "d8f70e8384e0055224376a57a4d17d1952d69ca7a914992436d5b0666014b117"
+        },
+        {
+          "path": "frozen/adapter.jar",
+          "bytes": 22968538,
+          "sha256": "f76b2b6f55e63dff82264eb6c4185b82736660ec294cf6498733c357eb9ee5d1"
+        },
+        {
+          "path": "frozen/datasets/clustered-104729.json",
+          "bytes": 92484,
+          "sha256": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247"
+        },
+        {
+          "path": "frozen/targets/clustered-104729.json",
+          "bytes": 2043,
+          "sha256": "929f5b81de8e9f51e74a016dc96e0b1bde697f7cf1d43e2a4e0c2718a8fe1bc5"
+        },
+        {
+          "path": "frozen/toolkit/campaign_config.py",
+          "bytes": 21907,
+          "sha256": "843b9b1b09654d1e7858a2e7f28f64e0f0c438ad02e1e749fbde17743c4472f2"
+        },
+        {
+          "path": "frozen/toolkit/campaign_runtime.py",
+          "bytes": 32456,
+          "sha256": "1701e3387900b61c531c367e03c6c92be978a7e76b702397ea45c69467dc68ea"
+        },
+        {
+          "path": "frozen/toolkit/experiment_config.py",
+          "bytes": 5939,
+          "sha256": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c"
+        },
+        {
+          "path": "frozen/toolkit/experiment_runtime.py",
+          "bytes": 35538,
+          "sha256": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        {
+          "path": "frozen/toolkit/experiments.py",
+          "bytes": 5970,
+          "sha256": "28177f89dd04b39b24511cb920ed3b5852e5588bc07abd4f792c38db54c7bf40"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 1803,
+          "sha256": "d7443f19350bbe506ba92444ec97ab2c0d7cbd919bb0664e0906e5daeaf3dde9"
+        },
+        {
+          "path": "original-config.json",
+          "bytes": 5764,
+          "sha256": "ffd6ad7477d442fdae650064df87a3ad230692d588bed74bad9ac823d8b7099d"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 31999,
+          "sha256": "2a9017863e45cbb1e43a64139d1e1d37cfdd753fc41e0bb6d9fb769b2cbaa5e0"
+        }
+      ]
+    },
+    {
+      "path": "experiments/runs/20261007T034224Z-phase11-policy-smoke-002-81bdfa7a",
+      "analysisPath": "experiments/runs/20261007T034224Z-phase11-policy-smoke-002-81bdfa7a/analysis/20261007T034240Z-394a095f.json",
+      "analysisSha256": "3ab07ac7a832574ff42dca8f50a715521dc548592819c838d4fea345ef6071db",
+      "outcomes": {
+        "SUCCEEDED": 2,
+        "FAILED": 0,
+        "INTERRUPTED": 0,
+        "ABANDONED": 0
+      },
+      "independentlyValidCases": 2,
+      "expectedInputRejections": 0,
+      "files": [
+        {
+          "path": "analysis/20261007T034240Z-394a095f.json",
+          "bytes": 3385,
+          "sha256": "3ab07ac7a832574ff42dca8f50a715521dc548592819c838d4fea345ef6071db"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/blocks/1523c7f0e0526a275f2b8f4a1fe0bb50253b6f094fc1c47d72c5070aa83aed14.json",
+          "bytes": 277,
+          "sha256": "4dd81974022a5f8f81140dcba07d4996d661ecb8c882fdbf5011826cdb30937c"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/db6f93f44f7a768a01abe45e5554a4a147b53ec5908754245ad3fd010e82891a/adapter-receipt.json",
+          "bytes": 8054,
+          "sha256": "195ae800d419b1b966afc27bd4dd04cee3b71049de47e658fb95235f5d05e854"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/db6f93f44f7a768a01abe45e5554a4a147b53ec5908754245ad3fd010e82891a/dispatch.json",
+          "bytes": 906,
+          "sha256": "63356cb9dc6e3133cee6ba12aca2291a8067ef2cccf59d7808e807db4110d00f"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/db6f93f44f7a768a01abe45e5554a4a147b53ec5908754245ad3fd010e82891a/process.log",
+          "bytes": 189,
+          "sha256": "21a52d1e1611076f6869f99d04ee1d7193b3cf49560fc25dcf6a0427aad15089"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/db6f93f44f7a768a01abe45e5554a4a147b53ec5908754245ad3fd010e82891a/request.json",
+          "bytes": 3335,
+          "sha256": "38a31299a707ac08717dd65018d96d6471af2f8e2706e38997fc498a14956ed1"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/db6f93f44f7a768a01abe45e5554a4a147b53ec5908754245ad3fd010e82891a/terminal.json",
+          "bytes": 483,
+          "sha256": "5dff6138e4e44f73211bb80934e3263d26a84c958c3b8bdb868accb22b238b3c"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/eb5376d0e3edb281dabd577aba7dde8e58ef198726e2c6de1f000a37c01e9edb/adapter-receipt.json",
+          "bytes": 8090,
+          "sha256": "72825c982701f90c36f2c1785b58ef2b87765f1c6a4fcac3a03a01cd36bdb09a"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/eb5376d0e3edb281dabd577aba7dde8e58ef198726e2c6de1f000a37c01e9edb/dispatch.json",
+          "bytes": 904,
+          "sha256": "f41d889bc23f742968770b3a43a2aa07d92fe5980f280391a6b736ce5ac0abc6"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/eb5376d0e3edb281dabd577aba7dde8e58ef198726e2c6de1f000a37c01e9edb/process.log",
+          "bytes": 189,
+          "sha256": "21a52d1e1611076f6869f99d04ee1d7193b3cf49560fc25dcf6a0427aad15089"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/eb5376d0e3edb281dabd577aba7dde8e58ef198726e2c6de1f000a37c01e9edb/request.json",
+          "bytes": 3344,
+          "sha256": "4117a1fdf0e2439aba8d40d85f975ce85bb0637ae4cded901c3d9d2c08d03078"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/cases/eb5376d0e3edb281dabd577aba7dde8e58ef198726e2c6de1f000a37c01e9edb/terminal.json",
+          "bytes": 484,
+          "sha256": "a4f6d65e878c86f93c2d09a3ff6a20cb7a777631dd4fc9ec49b868e8cfb91456"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/plan.json",
+          "bytes": 302,
+          "sha256": "3d6cc635ce4f6a0bb6119b3643ef6c7b7da75b2a24a183882afd348a9394a6df"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/runtime.json",
+          "bytes": 31122,
+          "sha256": "fc854940a6bf4f3086f06326478428f05d5c263176dcfacf023019fb7bdef43c"
+        },
+        {
+          "path": "attempts/20261007T034225Z-292be8e7/terminal.json",
+          "bytes": 108,
+          "sha256": "9875790ba11eb5814f363ce5c4566313a94a62f2ed178d8667f22459100ced55"
+        },
+        {
+          "path": "blocks.json",
+          "bytes": 1738,
+          "sha256": "463ed3eb09d702afb16a6cb9729b3e536c08c0aa1c799c4659dd9311f1befd0e"
+        },
+        {
+          "path": "config.json",
+          "bytes": 5311,
+          "sha256": "7d33ffd429b0839c23eb46fcb8731739e9d7ef661b8912ad5eb2c0790852d50e"
+        },
+        {
+          "path": "estimate.json",
+          "bytes": 452,
+          "sha256": "d8f70e8384e0055224376a57a4d17d1952d69ca7a914992436d5b0666014b117"
+        },
+        {
+          "path": "frozen/adapter.jar",
+          "bytes": 22968538,
+          "sha256": "f76b2b6f55e63dff82264eb6c4185b82736660ec294cf6498733c357eb9ee5d1"
+        },
+        {
+          "path": "frozen/datasets/clustered-104729.json",
+          "bytes": 92484,
+          "sha256": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247"
+        },
+        {
+          "path": "frozen/toolkit/campaign_config.py",
+          "bytes": 21907,
+          "sha256": "843b9b1b09654d1e7858a2e7f28f64e0f0c438ad02e1e749fbde17743c4472f2"
+        },
+        {
+          "path": "frozen/toolkit/campaign_runtime.py",
+          "bytes": 32456,
+          "sha256": "1701e3387900b61c531c367e03c6c92be978a7e76b702397ea45c69467dc68ea"
+        },
+        {
+          "path": "frozen/toolkit/experiment_config.py",
+          "bytes": 5939,
+          "sha256": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c"
+        },
+        {
+          "path": "frozen/toolkit/experiment_runtime.py",
+          "bytes": 35538,
+          "sha256": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        {
+          "path": "frozen/toolkit/experiments.py",
+          "bytes": 5970,
+          "sha256": "28177f89dd04b39b24511cb920ed3b5852e5588bc07abd4f792c38db54c7bf40"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 1698,
+          "sha256": "f9e9f0b1d7871b5f5341c021e0662a2c707b02dd1f629c1f241784d42991e987"
+        },
+        {
+          "path": "original-config.json",
+          "bytes": 5519,
+          "sha256": "03662d05cb828e9cb339e74483681d303445fd10e88e5a06f3271aa0b328fc6e"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 31961,
+          "sha256": "89b5a09fe10406eaa1d577222ac6bb61de5267f08f2557cbb5690e5c512de208"
+        }
+      ]
+    },
+    {
+      "path": "experiments/runs/20261007T034241Z-phase11-invalid-smoke-002-ff20761a",
+      "analysisPath": "experiments/runs/20261007T034241Z-phase11-invalid-smoke-002-ff20761a/analysis/20261007T034247Z-e89c8fa8.json",
+      "analysisSha256": "0d0d8ecc73d94c7b9f70660edefce8ff32757122c9fd6a83747b12b72ffe95a5",
+      "outcomes": {
+        "SUCCEEDED": 2,
+        "FAILED": 0,
+        "INTERRUPTED": 0,
+        "ABANDONED": 0
+      },
+      "independentlyValidCases": null,
+      "expectedInputRejections": 2,
+      "files": [
+        {
+          "path": "analysis/20261007T034247Z-e89c8fa8.json",
+          "bytes": 3485,
+          "sha256": "0d0d8ecc73d94c7b9f70660edefce8ff32757122c9fd6a83747b12b72ffe95a5"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/blocks/f7181d7e2b164e3e0b4d22bddbea6cd8f375dd28ed8863ce9bbfa4bd6203a07e.json",
+          "bytes": 277,
+          "sha256": "0e847bb5b3e0103011af18d588e7c029790d9a8860aed86dbb5d948098f94fef"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/6d42b2c602555e0c337ecfb094ce960fc34cd3bedea1f0e628abbb6252c7d6a4/adapter-receipt.json",
+          "bytes": 830,
+          "sha256": "c13dff9b719301d25d42bf1501c7d6754c5712bde7a53b4fcbe017984670cc29"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/6d42b2c602555e0c337ecfb094ce960fc34cd3bedea1f0e628abbb6252c7d6a4/dispatch.json",
+          "bytes": 906,
+          "sha256": "58b6b8f49fcd032fd9b84674de4ca49ff12ae05b8b7b3968b8fb44d5f3650bf2"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/6d42b2c602555e0c337ecfb094ce960fc34cd3bedea1f0e628abbb6252c7d6a4/process.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/6d42b2c602555e0c337ecfb094ce960fc34cd3bedea1f0e628abbb6252c7d6a4/request.json",
+          "bytes": 3298,
+          "sha256": "5bf2ccac68eacccbcf2b11d4c96763cfe6b781c5458b85e343fa2e95c00ddfd0"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/6d42b2c602555e0c337ecfb094ce960fc34cd3bedea1f0e628abbb6252c7d6a4/terminal.json",
+          "bytes": 486,
+          "sha256": "3e7f7ca91395d35eafee52a8ef780a79e6e4bcd44164bbe91e75807ff066fbc7"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/f891d60ea7cba0656175c75083da6f7794e451ce4e0f82b0e3a7f4086eaa5a7d/adapter-receipt.json",
+          "bytes": 830,
+          "sha256": "c3a13b35d895c7ef8c3aba278238388bca0e04cffe3ea7db9fd4f536e23bd1c6"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/f891d60ea7cba0656175c75083da6f7794e451ce4e0f82b0e3a7f4086eaa5a7d/dispatch.json",
+          "bytes": 904,
+          "sha256": "001403e78fec872618aa286d4d97b9e4da8dc1050160748322663b7cf6663e53"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/f891d60ea7cba0656175c75083da6f7794e451ce4e0f82b0e3a7f4086eaa5a7d/process.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/f891d60ea7cba0656175c75083da6f7794e451ce4e0f82b0e3a7f4086eaa5a7d/request.json",
+          "bytes": 3307,
+          "sha256": "0dca6e91fac03ec9224a4685916d0e2eb9e64d0e6be0e95df69743f441cc2d8a"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/cases/f891d60ea7cba0656175c75083da6f7794e451ce4e0f82b0e3a7f4086eaa5a7d/terminal.json",
+          "bytes": 485,
+          "sha256": "b734ec469fa16da2d8ea8e12cb30c7c7664d7d496e71dfffc58f1d561829d2a2"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/plan.json",
+          "bytes": 302,
+          "sha256": "05748a5b9c7475b5a8a4e1c8bc661de3510a6b8be5d8e96b3970b2dfae2be5cd"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/runtime.json",
+          "bytes": 31348,
+          "sha256": "10d4d3c67c9e31325e53ed920eeca43ba37c2a3e9215abc532962ee6a1303937"
+        },
+        {
+          "path": "attempts/20261007T034242Z-bccb401e/terminal.json",
+          "bytes": 107,
+          "sha256": "6987249ae509e144384b05261594966d015cf4b7e0a2bb14a899ffe8fdf646ba"
+        },
+        {
+          "path": "blocks.json",
+          "bytes": 1738,
+          "sha256": "ee6e6d2a54ef50674c38ec62692a9aa14564f7144bdb751823bca2a952392cfe"
+        },
+        {
+          "path": "config.json",
+          "bytes": 5279,
+          "sha256": "8ef18858276724bd219586d4873b1ee751c81ed80bc6f8efc43e1e9ede9f1adf"
+        },
+        {
+          "path": "estimate.json",
+          "bytes": 452,
+          "sha256": "d8f70e8384e0055224376a57a4d17d1952d69ca7a914992436d5b0666014b117"
+        },
+        {
+          "path": "frozen/adapter.jar",
+          "bytes": 22968538,
+          "sha256": "f76b2b6f55e63dff82264eb6c4185b82736660ec294cf6498733c357eb9ee5d1"
+        },
+        {
+          "path": "frozen/datasets/clustered-104729.json",
+          "bytes": 92373,
+          "sha256": "1bb4a58be5530b5af5255a156626180e7470e999537994ff14b9993ca8d23495"
+        },
+        {
+          "path": "frozen/toolkit/campaign_config.py",
+          "bytes": 21907,
+          "sha256": "843b9b1b09654d1e7858a2e7f28f64e0f0c438ad02e1e749fbde17743c4472f2"
+        },
+        {
+          "path": "frozen/toolkit/campaign_runtime.py",
+          "bytes": 32456,
+          "sha256": "1701e3387900b61c531c367e03c6c92be978a7e76b702397ea45c69467dc68ea"
+        },
+        {
+          "path": "frozen/toolkit/experiment_config.py",
+          "bytes": 5939,
+          "sha256": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c"
+        },
+        {
+          "path": "frozen/toolkit/experiment_runtime.py",
+          "bytes": 35538,
+          "sha256": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        {
+          "path": "frozen/toolkit/experiments.py",
+          "bytes": 5970,
+          "sha256": "28177f89dd04b39b24511cb920ed3b5852e5588bc07abd4f792c38db54c7bf40"
+        },
+        {
+          "path": "manifest.json",
+          "bytes": 1698,
+          "sha256": "fccbf4a5f2c68f33b416920ec9118cf8672a510a33639b15c2a8d7af8fffc6af"
+        },
+        {
+          "path": "original-config.json",
+          "bytes": 5484,
+          "sha256": "255b6c596f0d050e46ba33532b66275b3d9206edb79e4acecdf49b586206b105"
+        },
+        {
+          "path": "runtime.json",
+          "bytes": 32242,
+          "sha256": "c462ab51abf8321582f768e91fb90ee4ab645e9217d6c6d2e0181b70b2e4d2d5"
+        }
+      ]
+    }
+  ],
+  "setupArtifacts": [
+    {
+      "path": "experiments/runs/phase11-setup-final-001/corpus-receipt.json",
+      "sha256": "a7c347c19af4bb0b4fd7263ebca0c90c8fde97c7707ae7a19666a41d0796ee85"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/corpus.json",
+      "sha256": "9be7cd62c84b9fa4a2bca7750edd4ba4d0f1deb2d26a9009ba00d05471cf9ba1"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/corpus.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/freeze-target-receipt.json",
+      "sha256": "0d61480ad2559b8bbc4aaefd0a445311123d9dde933179c9be50b878153cfa78"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/freeze-target.json",
+      "sha256": "afdcc2fda97af4e41b7f0d46e4e5772782f65c96086296fa3484ab04618c3fa6"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/freeze-target.log",
+      "sha256": "21a52d1e1611076f6869f99d04ee1d7193b3cf49560fc25dcf6a0427aad15089"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/frozen-target.json",
+      "sha256": "929f5b81de8e9f51e74a016dc96e0b1bde697f7cf1d43e2a4e0c2718a8fe1bc5"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-fairness-smoke-002.json",
+      "sha256": "ffd6ad7477d442fdae650064df87a3ad230692d588bed74bad9ac823d8b7099d"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-fairness-smoke-002.log",
+      "sha256": "3ef4f01af75c687c7ec41470dca875d5926545e00984e7d250931601a6e2772c"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-invalid-smoke-002.json",
+      "sha256": "255b6c596f0d050e46ba33532b66275b3d9206edb79e4acecdf49b586206b105"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-invalid-smoke-002.log",
+      "sha256": "7b799b1a017d1d5b895d67672c18364e492f9e735444f1f2a2649cba8d56a216"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-native-smoke-002.json",
+      "sha256": "6d2b28f4332b77d12b58d0a37f08ea1cae0c61e009da2264943e936508e07e66"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-native-smoke-002.log",
+      "sha256": "8a602b091b77f2d0189b4406ff6f39c4f3e41c1cffda576ed54c4fba9d2a9483"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-policy-smoke-002.json",
+      "sha256": "03662d05cb828e9cb339e74483681d303445fd10e88e5a06f3271aa0b328fc6e"
+    },
+    {
+      "path": "experiments/runs/phase11-setup-final-001/phase11-policy-smoke-002.log",
+      "sha256": "be9a6ee2414f9073fbc3d9251750960e2f2a01007219374df5af67258149d076"
+    }
+  ],
+  "corpus": {
+    "path": "experiments/runs/phase11-corpus-v1-final/manifest.json",
+    "sha256": "a7c347c19af4bb0b4fd7263ebca0c90c8fde97c7707ae7a19666a41d0796ee85",
+    "inputs": 70,
+    "origin": "synthetic",
+    "families": 7,
+    "datasetSeeds": 2,
+    "cohorts": 5
+  },
+  "failureHistory": "Intermediate compile, strict typing and contract failures remain in raw logs. The failed concurrent fresh-JVM diagnostic fixture is retained in the gate log; the complete isolated suite passes. Existing temporary fixture cleanup still applies, so those temporary child archives are not claimed as durable. All real campaign attempts are no-retry and immutable. Early native smoke 001 and the earlier corpus directory remain outside Git.",
+  "limits": [
+    "Eight real offline smoke cases use their individually frozen JAR/toolkit/input bytes. Their adapter build predates final Layer C audit/canonical caller XML tightening; current source gates and hosted caller acceptance verify that final change. No raw artifact is relabeled as a final-head performance study.",
+    "Hosted embedded/remote PostgreSQL caller, integration, browser and assertion checks remain required at recording time. Local Docker is unavailable.",
+    "Acceptance fixtures and the 70-input synthetic corpus do not establish historical savings, calibration, paired inference, a performance winner, promotion or deployment.",
+    "Local actionlint checks workflow syntax; hosted ShellCheck validates shell blocks.",
+    "Owner review remains pending; phase 12 and later phases remain pending."
+  ]
+}

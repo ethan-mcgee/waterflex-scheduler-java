@@ -1,0 +1,231 @@
+test_fresh_jvm_warmup_on_explicit_resume_with_real_java25_processes (test_campaigns.AdapterContractTests.test_fresh_jvm_warmup_on_explicit_resume_with_real_java25_processes) ... ok
+test_missing_null_wrong_identity_runtime_and_warmup_rejected (test_campaigns.AdapterContractTests.test_missing_null_wrong_identity_runtime_and_warmup_rejected) ... ok
+test_real_policy_is_explicit_and_booking_has_its_own_allowance (test_campaigns.AdapterContractTests.test_real_policy_is_explicit_and_booking_has_its_own_allowance) ... ok
+test_real_results_reject_null_metrics_native_caps_and_false_eligibility (test_campaigns.AdapterContractTests.test_real_results_reject_null_metrics_native_caps_and_false_eligibility) ... ok
+test_unavailable_statistic_is_explicit_null_with_reason_and_required_diagnostics_fail (test_campaigns.AdapterContractTests.test_unavailable_statistic_is_explicit_null_with_reason_and_required_diagnostics_fail) ... ok
+test_booking_cost_requires_same_customers (test_experiments.AnalysisTests.test_booking_cost_requires_same_customers) ... ok
+test_booking_nulls_missing_indices_and_routing_rejected (test_experiments.AnalysisTests.test_booking_nulls_missing_indices_and_routing_rejected) ... ok
+test_conflicting_fixture_duplicate_not_averaged (test_experiments.AnalysisTests.test_conflicting_fixture_duplicate_not_averaged) ... ok
+test_correct_pairing_and_signed_costs (test_experiments.AnalysisTests.test_correct_pairing_and_signed_costs) ... ok
+test_duplicates_all_excluded (test_experiments.AnalysisTests.test_duplicates_all_excluded) ... ok
+test_equal_seed_weighting (test_experiments.AnalysisTests.test_equal_seed_weighting) ... ok
+test_frozen_calendar_evidence_requires_both_isolation_observations (test_experiments.AnalysisTests.test_frozen_calendar_evidence_requires_both_isolation_observations) ... ok
+test_missing_control_or_fixture_mismatch_is_unavailable (test_experiments.AnalysisTests.test_missing_control_or_fixture_mismatch_is_unavailable) ... ok
+test_missing_latency_and_historical_mixed_latency_excluded (test_experiments.AnalysisTests.test_missing_latency_and_historical_mixed_latency_excluded) ... ok
+test_missing_null_metrics_preserved (test_experiments.AnalysisTests.test_missing_null_metrics_preserved) ... ok
+test_null_request_observation_rejected (test_experiments.AnalysisTests.test_null_request_observation_rejected) ... ok
+test_overlapping_served_incomplete_and_pooled_percentiles (test_experiments.AnalysisTests.test_overlapping_served_incomplete_and_pooled_percentiles) ... ok
+test_partial_raw_kept_and_reported (test_experiments.AnalysisTests.test_partial_raw_kept_and_reported) ... ok
+test_booking_identity_reuses_saved_reference_on_resume (test_experiments.ArchiveTests.test_booking_identity_reuses_saved_reference_on_resume) ... ok
+test_changed_booking_identity_rejected_before_launch (test_experiments.ArchiveTests.test_changed_booking_identity_rejected_before_launch) ... [............] 0/1 elapsed 00:00:00 | Preparing run
+[............] 0/1 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/1 elapsed 00:00:00 | Stopped
+ok
+test_child_cleanup_only_owned_process (test_experiments.ArchiveTests.test_child_cleanup_only_owned_process) ... ok
+test_config_mismatch (test_experiments.ArchiveTests.test_config_mismatch) ... [............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Stopped
+ok
+test_database_scope_and_credential_metadata (test_experiments.ArchiveTests.test_database_scope_and_credential_metadata) ... ok
+test_duplicate_completion_and_changed_raw_rejected (test_experiments.ArchiveTests.test_duplicate_completion_and_changed_raw_rejected) ... ok
+test_environment_blocks_case_insensitive_isolation_overrides (test_experiments.ArchiveTests.test_environment_blocks_case_insensitive_isolation_overrides) ... ok
+test_exited_parent_still_terminates_owned_descendants (test_experiments.ArchiveTests.test_exited_parent_still_terminates_owned_descendants) ... skipped 'POSIX process group cleanup'
+test_frozen_mismatch (test_experiments.ArchiveTests.test_frozen_mismatch) ... [............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Stopped
+ok
+test_historical_import_is_read_only (test_experiments.ArchiveTests.test_historical_import_is_read_only) ... ok
+test_interruption_resume_keeps_prior_attempts_and_completed_evidence (test_experiments.ArchiveTests.test_interruption_resume_keeps_prior_attempts_and_completed_evidence) ... [............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Checking completed cases
+[............] 0/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/2 elapsed 00:00:00 | Stopped
+[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/2 elapsed 00:00:00 | Checking completed cases
+[............] 0/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[######......] 1/2 elapsed 00:00:00 | Finished case 1/2
+[######......] 1/2 elapsed 00:00:00 running 1 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[############] 2/2 elapsed 00:00:00 | Finished case 2/2
+[############] 2/2 elapsed 00:00:00 | Measurements complete
+[............] 0/2 elapsed 00:00:00 | Preparing run
+[............] 0/2 elapsed 00:00:00 | Checking saved evidence and runtime
+[############] 2/2 elapsed 00:00:00 | Checking completed cases
+[############] 2/2 elapsed 00:00:00 | Measurements complete
+ok
+test_lock_excludes_competing_runs_and_releases (test_experiments.ArchiveTests.test_lock_excludes_competing_runs_and_releases) ... ok
+test_second_config_and_analysis_preserve_first_artifacts (test_experiments.ArchiveTests.test_second_config_and_analysis_preserve_first_artifacts) ... ok
+test_timeout_and_nonzero_exit_do_not_create_success (test_experiments.ArchiveTests.test_timeout_and_nonzero_exit_do_not_create_success) ... ok
+test_unique_runs_and_immutable_receipts (test_experiments.ArchiveTests.test_unique_runs_and_immutable_receipts) ... ok
+test_deterministic_expansion_rotation_and_uneven_estimate (test_campaigns.CampaignConfigurationTests.test_deterministic_expansion_rotation_and_uneven_estimate) ... ok
+test_duplicate_json_keys_and_nonfinite_parsed_before_dispatch (test_campaigns.CampaignConfigurationTests.test_duplicate_json_keys_and_nonfinite_parsed_before_dispatch) ... ok
+test_fairness_requires_target_and_separate_invalid_and_repair_cohorts (test_campaigns.CampaignConfigurationTests.test_fairness_requires_target_and_separate_invalid_and_repair_cohorts) ... ok
+test_nested_unknown_null_boolean_nonfinite_and_unsupported_settings (test_campaigns.CampaignConfigurationTests.test_nested_unknown_null_boolean_nonfinite_and_unsupported_settings) ... ok
+test_policy_pipeline_counted_once_and_no_frozen_reference (test_campaigns.CampaignConfigurationTests.test_policy_pipeline_counted_once_and_no_frozen_reference) ... ok
+test_reject_each_unknown_and_missing_top_level_field (test_campaigns.CampaignConfigurationTests.test_reject_each_unknown_and_missing_top_level_field) ... ok
+test_semantically_duplicate_treatments_and_datasets_rejected (test_campaigns.CampaignConfigurationTests.test_semantically_duplicate_treatments_and_datasets_rejected) ... ok
+test_shipped_template_is_explicit_and_schema_valid_but_not_executable (test_campaigns.CampaignConfigurationTests.test_shipped_template_is_explicit_and_schema_valid_but_not_executable) ... ok
+test_workflow_paced_arrival_estimate_and_explicit_load (test_campaigns.CampaignConfigurationTests.test_workflow_paced_arrival_estimate_and_explicit_load) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpreq_zyjl\runs\20261007T035118Z-contract-campaign-fb1837c8
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpreq_zyjl\runs\20261007T035118Z-contract-campaign-5b9502bc
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpreq_zyjl\runs\20261007T035118Z-contract-campaign-efe85853
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpreq_zyjl\runs\20261007T035118Z-contract-campaign-0ed748d4
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpreq_zyjl\runs\20261007T035119Z-contract-campaign-4fe84741
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpreq_zyjl\runs\20261007T035119Z-contract-campaign-3a5b5efd
+test_changed_config_blocks_runtime_frozen_and_toolkit_rejected (test_campaigns.CampaignLifecycleTests.test_changed_config_blocks_runtime_frozen_and_toolkit_rejected) ... ok
+test_cli_v2_validate_dry_run_no_overrides_and_v1_still_works (test_campaigns.CampaignLifecycleTests.test_cli_v2_validate_dry_run_no_overrides_and_v1_still_works) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpp04t59qw\runs\20261007T035119Z-contract-campaign-5f9d0644
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpp04t59qw\runs\20261007T035120Z-contract-campaign-662c879d
+test_completed_case_tampering_and_duplicate_observation_rejected (test_campaigns.CampaignLifecycleTests.test_completed_case_tampering_and_duplicate_observation_rejected) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp2z8u9c87\runs\20261007T035122Z-contract-campaign-a7c28347
+test_cutoff_before_block_and_crossing_inside_block_preserves_full_allowances (test_campaigns.CampaignLifecycleTests.test_cutoff_before_block_and_crossing_inside_block_preserves_full_allowances) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmp_xm7nt2c\runs\20261007T035123Z-contract-campaign-d4efabe2
+test_failure_finishes_admitted_block_stops_new_blocks_and_resume_never_retries (test_campaigns.CampaignLifecycleTests.test_failure_finishes_admitted_block_stops_new_blocks_and_resume_never_retries) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpehquzggk\runs\20261007T035127Z-contract-campaign-c21597b9
+test_interrupted_and_orphan_dispatch_consumed_missing_block_resumes (test_campaigns.CampaignLifecycleTests.test_interrupted_and_orphan_dispatch_consumed_missing_block_resumes) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfx73ldx7\runs\20261007T035129Z-contract-campaign-acaca7aa
+test_invalid_pin_retains_preparation_failure_and_no_dispatch (test_campaigns.CampaignLifecycleTests.test_invalid_pin_retains_preparation_failure_and_no_dispatch) ... ok
+test_machine_measurement_lock_shared_with_legacy_runner (test_campaigns.CampaignLifecycleTests.test_machine_measurement_lock_shared_with_legacy_runner) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpk2192z60\runs\20261007T035129Z-contract-campaign-dc1d50ce
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpk2192z60\runs\20261007T035130Z-contract-campaign-6997fdde
+test_malformed_persisted_terminal_and_nested_raw_artifact_drift_fail (test_campaigns.CampaignLifecycleTests.test_malformed_persisted_terminal_and_nested_raw_artifact_drift_fail) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfesdkvm9\runs\20261007T035132Z-contract-campaign-584a2906
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpfesdkvm9\runs\20261007T035132Z-contract-campaign-f24b44b6
+test_parallel_cases_have_disjoint_slots_and_next_block_waits (test_campaigns.CampaignLifecycleTests.test_parallel_cases_have_disjoint_slots_and_next_block_waits) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmpcje1469d\runs\20261007T035134Z-contract-campaign-471809f3
+test_provenance_complete_before_first_dispatch_and_original_bytes (test_campaigns.CampaignLifecycleTests.test_provenance_complete_before_first_dispatch_and_original_bytes) ... ok
+Run: C:\Users\mcgee\AppData\Local\Temp\tmptw238t_0\runs\20261007T035135Z-contract-campaign-ad551eb6
+test_runtime_drift_has_failed_attempt_receipt_before_dispatch (test_campaigns.CampaignLifecycleTests.test_runtime_drift_has_failed_attempt_receipt_before_dispatch) ... ok
+test_warmup_instrumentation_and_cache_cohorts_have_distinct_runtime_identity (test_campaigns.CampaignLifecycleTests.test_warmup_instrumentation_and_cache_cohorts_have_distinct_runtime_identity) ... ok
+test_daily_flags_are_identical_for_every_case_and_gc_log_stays_outside_frozen_tree (test_experiments.ConfigurationTests.test_daily_flags_are_identical_for_every_case_and_gc_log_stays_outside_frozen_tree) ... ok
+test_dry_run_wall_time_simulates_slots_in_dispatch_order (test_experiments.ConfigurationTests.test_dry_run_wall_time_simulates_slots_in_dispatch_order) ... ok
+test_duplicate_json_fields (test_experiments.ConfigurationTests.test_duplicate_json_fields) ... ok
+test_initial_matrices (test_experiments.ConfigurationTests.test_initial_matrices) ... ok
+test_parallel_cases_rejected_in_booking_and_shipped_configs_valid (test_experiments.ConfigurationTests.test_parallel_cases_rejected_in_booking_and_shipped_configs_valid) ... ok
+test_planned_three_workload_matrices (test_experiments.ConfigurationTests.test_planned_three_workload_matrices) ... ok
+test_reject_bad_configuration (test_experiments.ConfigurationTests.test_reject_bad_configuration) ... ok
+test_reproducible_unique_counterbalanced_cases_and_budget_propagation (test_experiments.ConfigurationTests.test_reproducible_unique_counterbalanced_cases_and_budget_propagation) ... ok
+test_median_ratio_excludes_partially_loaded_and_missing_pairs (test_experiments.ContentionTests.test_median_ratio_excludes_partially_loaded_and_missing_pairs) ... ok
+test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted (test_experiments.ContentionTests.test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted) ... ok
+test_booking_requires_explicit_test_database_before_setup (test_experiments.LauncherTests.test_booking_requires_explicit_test_database_before_setup) ... ok
+Installing booking Node dependencies...
+Generating Prisma client...
+test_booking_setup_installs_missing_node_dependencies (test_experiments.LauncherTests.test_booking_setup_installs_missing_node_dependencies) ... ok
+test_custom_config_cannot_silently_launch_other_kind (test_experiments.LauncherTests.test_custom_config_cannot_silently_launch_other_kind) ... ok
+test_launcher_finds_jdk_home_when_java_is_on_path (test_experiments.LauncherTests.test_launcher_finds_jdk_home_when_java_is_on_path) ... ok
+daily dry-run: 1280 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-budget.json
+Total elapsed: 00:00:00
+daily smoke: 4 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\daily-smoke.json
+Total elapsed: 00:00:00
+booking full: 120 cases from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\experiments\configs\booking-comparison.json
+Total elapsed: 00:00:00
+test_modes_select_expected_config_and_skip_setup_for_dry_run (test_experiments.LauncherTests.test_modes_select_expected_config_and_skip_setup_for_dry_run) ... ok
+test_progress_counts_completed_cases_and_elapsed_time (test_experiments.LauncherTests.test_progress_counts_completed_cases_and_elapsed_time) ... ok
+test_command_polls_and_honors_stop_event (test_experiments.ParallelDispatchTests.test_command_polls_and_honors_stop_event) ... ok
+test_dispatch_order_follows_saved_cases (test_experiments.ParallelDispatchTests.test_dispatch_order_follows_saved_cases) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[###.........] 2/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 3/8
+[####........] 3/8 elapsed 00:00:00 | Finished case 2/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[####........] 3/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[####........] 3/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 4/8
+[########....] 5/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+ok
+test_every_case_runs_once_within_slots_and_no_mask_is_shared (test_experiments.ParallelDispatchTests.test_every_case_runs_once_within_slots_and_no_mask_is_shared) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[###.........] 2/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 2/8
+[####........] 3/8 elapsed 00:00:00 | Finished case 3/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[####........] 3/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[####........] 3/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 4/8
+[########....] 5/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 | Finished case 6/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[#########...] 6/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Finished case 7/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+ok
+test_failure_stops_dispatch_but_keeps_in_flight_receipts (test_experiments.ParallelDispatchTests.test_failure_stops_dispatch_but_keeps_in_flight_receipts) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 3/8
+[###.........] 2/8 elapsed 00:00:00 | Finished case 2/8
+[###.........] 2/8 elapsed 00:00:00 | Stopped
+ok
+test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished (test_experiments.ParallelDispatchTests.test_interrupt_marks_in_flight_attempts_and_resume_retries_only_unfinished) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Checking completed cases
+[............] 0/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #2 KOPT f5 CLUSTERED s17 0.1s
+[............] 0/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[............] 0/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 | Finished case 2/8
+[##..........] 1/8 elapsed 00:00:00 | Stopped
+[............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[##..........] 1/8 elapsed 00:00:00 | Checking completed cases
+[##..........] 1/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #1 TABU f5 CLUSTERED s17 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #3 KOPT f5 CLUSTERED s23 0.1s
+[##..........] 1/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #4 TABU f5 CLUSTERED s23 0.1s
+[###.........] 2/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 1/8
+[####........] 3/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 4/8
+[######......] 4/8 elapsed 00:00:00 | Finished case 3/8
+[######......] 4/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #5 TABU f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 2 oldest 00:00:00 | #6 KOPT f5 CLUSTERED s41 0.1s
+[######......] 4/8 elapsed 00:00:00 running 3 oldest 00:00:00 | #7 KOPT f5 CLUSTERED s59 0.1s
+[########....] 5/8 elapsed 00:00:00 running 2 oldest 00:00:00 | Finished case 5/8
+[#########...] 6/8 elapsed 00:00:00 running 1 oldest 00:00:00 | Finished case 6/8
+[##########..] 7/8 elapsed 00:00:00 | Finished case 7/8
+[##########..] 7/8 elapsed 00:00:00 running 1 oldest 00:00:00 | #8 TABU f5 CLUSTERED s59 0.1s
+[############] 8/8 elapsed 00:00:00 | Finished case 8/8
+[############] 8/8 elapsed 00:00:00 | Measurements complete
+ok
+test_parallel_cases_beyond_saved_topology_is_rejected_before_launch (test_experiments.ParallelDispatchTests.test_parallel_cases_beyond_saved_topology_is_rejected_before_launch) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+ok
+test_resume_rejected_after_topology_change (test_experiments.ParallelDispatchTests.test_resume_rejected_after_topology_change) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+ok
+test_resume_rejected_when_saved_slot_masks_do_not_match (test_experiments.ParallelDispatchTests.test_resume_rejected_when_saved_slot_masks_do_not_match) ... [............] 0/8 elapsed 00:00:00 | Preparing run
+[............] 0/8 elapsed 00:00:00 | Checking saved evidence and runtime
+[............] 0/8 elapsed 00:00:00 | Stopped
+ok
+test_invalid_move_statistics_rejected (test_experiments.ThroughputTests.test_invalid_move_statistics_rejected) ... ok
+test_rates_are_moves_per_second_and_missing_values_stay_null (test_experiments.ThroughputTests.test_rates_are_moves_per_second_and_missing_values_stay_null) ... ok
+test_solver_summary_never_zero_fills (test_experiments.ThroughputTests.test_solver_summary_never_zero_fills) ... ok
+test_cores_that_do_not_partition_into_l3_groups_are_rejected (test_experiments.TopologyTests.test_cores_that_do_not_partition_into_l3_groups_are_rejected) ... ok
+test_job_object_confines_child_to_requested_physical_core (test_experiments.TopologyTests.test_job_object_confines_child_to_requested_physical_core) ... ok
+test_launch_passes_affinity_to_child_job (test_experiments.TopologyTests.test_launch_passes_affinity_to_child_job) ... ok
+test_occupancy_records_fewest_neighbors (test_experiments.TopologyTests.test_occupancy_records_fewest_neighbors) ... ok
+test_progress_counts_concurrent_completions_exactly (test_experiments.TopologyTests.test_progress_counts_concurrent_completions_exactly) ... ok
+test_real_topology_has_distinct_physical_cores_inside_l3_groups (test_experiments.TopologyTests.test_real_topology_has_distinct_physical_cores_inside_l3_groups) ... ok
+test_slots_skip_core_zero_and_alternate_between_l3_groups (test_experiments.TopologyTests.test_slots_skip_core_zero_and_alternate_between_l3_groups) ... ok
+test_too_many_cases_or_unsupported_platform_fail_clearly (test_experiments.TopologyTests.test_too_many_cases_or_unsupported_platform_fail_clearly) ... ok
+
+----------------------------------------------------------------------
+Ran 90 tests in 36.623s
+
+OK (skipped=1)

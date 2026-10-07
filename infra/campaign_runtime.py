@@ -274,19 +274,136 @@ def adapter_receipt(path, request, config):
     cc.check(inst['internalDiagnosticsEnabled'] == config['instrumentation']['internalDiagnostics'] and
              inst['internalDiagnosticsFailureReason'] is None, 'Required diagnostic failure invalidates this experiment')
     cc.check(isinstance(value['result'], dict), 'Structured adapter result required')
+    if value['evidenceKind'] == 'benchmark' and value['state'] == 'SUCCEEDED':
+        benchmark_result(value['result'], request)
     cc.check(value['state'] == 'SUCCEEDED', f'Adapter outcome: {value["state"]}')
     return value
+
+
+def benchmark_result(result, request):
+    """Validate every field used for phase 11 inventory; raw diagnostics remain evidence."""
+    layer = result.get('layer')
+    if request['dataset']['cohort'] == 'invalid-input':
+        fields(result, ['layer', 'expectedFailure', 'failureType', 'failureMessage'])
+        cc.check(layer == 'input-contract' and result['expectedFailure'] is True, 'Invalid inputs must remain contract-only')
+        cc.text(result['failureType'])
+        cc.text(result['failureMessage'])
+        return None
+    cc.check(layer == request['layer'], 'Adapter result layer differs')
+    repair_fields = ['repair'] if request['dataset']['cohort'] == 'repair' else []
+    if repair_fields:
+        repair = result.get('repair')
+        fields(repair, ['timeToFeasibilityMs', 'unavailableReason', 'unresolvedCandidate', 'unresolvedRetained', 'terminalCandidateEligible', 'terminalRetainedEligible'])
+        cc.check(repair['timeToFeasibilityMs'] is None, 'Independent intermediate feasibility is unavailable from final-only proposals')
+        cc.text(repair['unavailableReason'])
+        cc.strings(repair['unresolvedCandidate'], False)
+        cc.strings(repair['unresolvedRetained'], False)
+        cc.choice(repair['terminalCandidateEligible'], True, False)
+        cc.choice(repair['terminalRetainedEligible'], True, False)
+    if layer == 'solver':
+        fields(result, ['layer', 'wallMs', 'configurationHash', 'seed', 'phaseCount', 'outcome', 'metrics', 'proposal', 'nativeReport', 'nativeMeasurement'] + repair_fields)
+        cc.integer(result['wallMs'], 0)
+        cc.text(result['configurationHash'])
+        cc.integer(result['phaseCount'], 1, 2)
+        cc.check(result['seed'] == request['case']['solverSeed'], 'Native result seed differs')
+        native = result['nativeMeasurement']
+        fields(native, ['subSingleCount', 'subSingleIndex', 'seed', 'phaseCount', 'moveThreads', 'spentCapMs', 'solveMs', 'scoreCalculationCount', 'moveEvaluationCount', 'score'])
+        for key in ('subSingleCount', 'subSingleIndex', 'seed', 'phaseCount', 'spentCapMs', 'solveMs', 'scoreCalculationCount', 'moveEvaluationCount'):
+            cc.integer(native[key], 0)
+        cc.check(native['subSingleCount'] == 1 and native['subSingleIndex'] == 0 and native['seed'] == result['seed'] and
+                 native['phaseCount'] == result['phaseCount'] and native['moveThreads'] == 'NONE' and
+                 native['spentCapMs'] == request['budget']['searchMs'], 'Native effective configuration differs')
+        cc.text(native['score'])
+        cc.text(result['nativeReport'])
+        metrics(result['metrics'])
+        proposal(result['proposal'])
+        return outcome(result['outcome'])
+    if layer == 'policy':
+        fields(result, ['layer', 'wallMs', 'operation', 'baseline', 'reference', 'candidate', 'accepted', 'retained', 'retainedMetrics', 'diagnostics'] + repair_fields)
+        cc.integer(result['wallMs'], 0)
+        cc.choice(result['accepted'], True, False)
+        baseline, reference, candidate = (outcome(result[key]) for key in ('baseline', 'reference', 'candidate'))
+        cc.check(not result['accepted'] or candidate, 'Accepted policy result must be independently eligible')
+        proposal(result['retained'])
+        metrics(result['retainedMetrics'])
+        cc.check(isinstance(result['operation'], dict) and isinstance(result['diagnostics'], dict), 'Policy receipts required')
+        return candidate if result['accepted'] else baseline
+    if layer == 'workflow':
+        fields(result, ['layer', 'datasetHash', 'operation', 'deployment', 'observations', 'before', 'after', 'verification',
+                        'cleanupObservationMs', 'cleanupComplete', 'independentlyValid', 'warmup'])
+        cc.check(result['operation'] == request['applicationLoad']['operation'] and result['deployment'] == request['applicationLoad']['deployment'], 'Caller operation/deployment differs')
+        cc.choice(result['cleanupComplete'], True, False)
+        cc.choice(result['independentlyValid'], True, False)
+        cc.check(isinstance(result['observations'], list) and len(result['observations']) == request['applicationLoad']['requestsPerCase'], 'Every paced arrival needs an observation')
+        successful = True
+        for row in result['observations']:
+            fields(row, ['id', 'outcome', 'intendedArrivalNanos', 'startedNanos', 'responseCompletedNanos', 'completedNanos', 'status', 'response', 'failure', 'cancellation', 'cleanup'])
+            cc.text(row['id'])
+            cc.choice(row['outcome'], 'RESPONSE', 'UNEXPECTED_HTTP_STATUS', 'TRANSPORT_TIMEOUT', 'TRANSPORT_FAILURE', 'GENERATOR_CAPACITY', 'CLEANUP_FAILURE')
+            for key in ('intendedArrivalNanos', 'completedNanos'):
+                cc.integer(row[key], 0, 2**63 - 1)
+            for key in ('startedNanos', 'responseCompletedNanos'):
+                if row[key] is not None:
+                    cc.integer(row[key], 0, 2**63 - 1)
+            cc.check(isinstance(row['cleanup'], list), 'Caller cleanup receipts required')
+            successful &= row['outcome'] == 'RESPONSE' and type(row['status']) is int and 200 <= row['status'] < 300
+        cc.unique([row['id'] for row in result['observations']])
+        cc.check(not result['independentlyValid'] or successful and result['cleanupComplete'], 'Caller failures cannot become valid scheduling evidence')
+        return result['independentlyValid']
+    raise ValueError('Unknown benchmark result layer')
+
+
+def outcome(value):
+    fields(value, ['mode', 'scoreModelVersion', 'assignedVisitIds', 'unassignedVisitIds', 'complete',
+                   'assignedWorkFeasible', 'scoringMatchesValidation', 'policyEligible'])
+    cc.choice(value['mode'], 'ASSIGNED', 'COLD', 'PARTIAL', 'REPAIR')
+    cc.text(value['scoreModelVersion'])
+    cc.strings(value['assignedVisitIds'], False)
+    cc.strings(value['unassignedVisitIds'], False)
+    cc.check(not set(value['assignedVisitIds']) & set(value['unassignedVisitIds']), 'Duplicate demand coverage')
+    for key in ('complete', 'assignedWorkFeasible', 'scoringMatchesValidation', 'policyEligible'):
+        cc.choice(value[key], True, False)
+    cc.check(value['complete'] == (not value['unassignedVisitIds']), 'Incomplete demand cannot claim completeness')
+    cc.check(not value['policyEligible'] or value['complete'] and value['assignedWorkFeasible'] and value['scoringMatchesValidation'], 'Eligibility needs independent complete validation')
+    return value['policyEligible']
+
+
+def proposal(value):
+    fields(value, ['version', 'factsHash', 'routes', 'unassigned', 'mode', 'score'])
+    cc.choice(value['version'], 1)
+    cc.text(value['factsHash'])
+    cc.check(isinstance(value['routes'], dict), 'Route proposal required')
+    for key, visits in value['routes'].items():
+        cc.text(key)
+        cc.strings(visits, False)
+    cc.strings(value['unassigned'], False)
+    cc.choice(value['mode'], 'ASSIGNED', 'COLD', 'PARTIAL', 'REPAIR')
+    if value['score'] is not None:
+        cc.text(value['score'])
+
+
+def metrics(value):
+    fields(value, ['hardPenalty', 'costCents', 'arrivals', 'paidMinutes', 'overtimeMinutes', 'meters', 'driveMinutes', 'waitingMinutes'])
+    for key in ('hardPenalty', 'costCents', 'paidMinutes', 'overtimeMinutes', 'meters', 'driveMinutes', 'waitingMinutes'):
+        cc.integer(value[key], 0, 2**53 - 1)
+    cc.check(isinstance(value['arrivals'], dict), 'Independent arrivals required')
+    for key, arrival in value['arrivals'].items():
+        cc.text(key)
+        cc.text(arrival)
 
 
 def case_request(config, run, case, cpus, runtime_hash):
     dataset = next(d for d in config['datasets'] if d['id'] == case['datasetId'])
     dataset = {**dataset, 'input': {**dataset['input'], 'path': str(run / 'frozen/datasets' / f'{dataset["id"]}.json')},
                'target': None if dataset['target'] is None else {**dataset['target'], 'path': str(run / 'frozen/targets' / f'{dataset["id"]}.json')}}
-    return {'protocol': config['adapter']['protocol'], 'case': case, 'layer': config['layer'], 'dataset': dataset,
+    result = {'protocol': config['adapter']['protocol'], 'case': case, 'layer': config['layer'], 'dataset': dataset,
         'configuration': next(c for c in config['configurations'] if c['id'] == case['configurationId']),
         'budget': next(b for b in config['budgets'] if b['id'] == case['budgetId']), 'warmup': config['warmup'],
         'instrumentation': config['instrumentation'], 'applicationLoad': config['applicationLoad'],
         'jvmFlags': java_flags(config), 'affinityCpus': cpus, 'runtimeHash': runtime_hash}
+    if 'policy' in config:
+        result['policy'] = config['policy']
+    return result
 
 
 def run_case(config, run, directory, case, cpus, runtime_hash, stop):
@@ -405,13 +522,32 @@ def analyze(run):
     outcomes = {state: sum(r['state'] == state for r in rows.values()) for state in ('SUCCEEDED', 'FAILED', 'INTERRUPTED', 'ABANDONED')}
     complete = sum(all(c['id'] in rows and rows[c['id']]['state'] == 'SUCCEEDED' for c in b['cases']) for b in blocks)
     requested = sum(len(b['cases']) for b in blocks)
+    validity, contracts = [], 0
+    for row in rows.values():
+        if row['state'] != 'SUCCEEDED':
+            continue
+        directory = Path(row['path'])
+        receipt_path = directory / 'adapter-receipt.json'
+        if not receipt_path.is_file():
+            continue  # Historical lifecycle-only fixtures do not contain scheduling evidence.
+        receipt = read_json(receipt_path)
+        if receipt.get('evidenceKind') != 'benchmark':
+            continue
+        request = read_json(directory / 'request.json')
+        validated = adapter_receipt(receipt_path, request, config)
+        valid = benchmark_result(validated['result'], request)
+        if valid is None:
+            contracts += 1
+        else:
+            validity.append(valid)
     report = {'version': 2, 'requestedCases': requested, 'dispatchedCases': len(rows), 'missingCases': requested - len(rows),
         'outcomes': outcomes, 'requestedBlocks': len(blocks), 'completeSuccessfulBlocks': complete,
         'incompleteBlocks': len(blocks) - complete, 'runtimeHash': runtime['runtimeHash'],
-        'independentlyValidCases': None,
-        'validityUnavailableReason': 'Adapter lifecycle success alone does not prove scheduling validity. Layer-specific validation belongs to phase 11.',
+        'independentlyValidCases': sum(validity) if validity else None,
+        'validityUnavailableReason': None if validity else 'No successful scheduling benchmark receipts; input contracts and lifecycle fixtures are separate.',
+        'expectedInputRejections': contracts,
         'configuredAnalysis': config['analysis'], 'inference': None,
-        'inferenceUnavailableReason': 'Phase 10 reports lifecycle inventory only. Paired equal-dataset inference is phase 12; this inventory cannot select a winner.',
+        'inferenceUnavailableReason': 'Paired equal-dataset inference is phase 12; acceptance and lifecycle inventories cannot select a winner.',
         'observations': list(rows.values())}
     destination = run / 'analysis' / f'{stamp()}-{uuid.uuid4().hex[:8]}.json'
     write_new(destination, report)
