@@ -20,7 +20,7 @@ public final class DailyOperation {
     private static final ThreadLocal<DailyOperation> CURRENT = new ThreadLocal<>();
     private static final java.util.concurrent.ScheduledExecutorService WATCHDOG = Required.value(Executors.newSingleThreadScheduledExecutor(
             task -> Thread.ofPlatform().daemon().name("daily-cancellation").unstarted(task)));
-    private static final long SEARCH_NANOS = Duration.ofSeconds(15).toNanos();
+    private final long searchLimitNanos;
     public record Receipt(String requestId, String outcome, long elapsedMs, @Nullable Long queueMs, long searchMs,
             @Nullable Long cancellationElapsedMs, @Nullable Long cleanupOvershootMs, long phaseCleanupOvershootMs,
             long searchOvershootMs, boolean lateResult) { }
@@ -40,6 +40,15 @@ public final class DailyOperation {
     private DailyOperation(Duration allowance, Consumer<Receipt> recorder) {
         if (allowance.compareTo(Duration.ofSeconds(20)) > 0) throw new IllegalArgumentException("Daily allowance exceeds 20 seconds");
         deadline = new SearchDeadline(allowance);
+        searchLimitNanos = Duration.ofSeconds(15).toNanos();
+        this.recorder = recorder;
+    }
+    private DailyOperation(Duration allowance, Duration searchAllowance, Duration reserve, Consumer<Receipt> recorder) {
+        if (searchAllowance.isNegative() || searchAllowance.isZero() || reserve.isNegative()
+                || searchAllowance.plus(reserve).compareTo(allowance) > 0)
+            throw new IllegalArgumentException("Campaign search and reserve exceed operation allowance");
+        deadline = new SearchDeadline(allowance, reserve);
+        searchLimitNanos = searchAllowance.toNanos();
         this.recorder = recorder;
     }
     public static @Nullable DailyOperation current() { return CURRENT.get(); }
@@ -59,8 +68,16 @@ public final class DailyOperation {
         return launch(admission, allowance, () -> new Preparation<>(work, true, _ -> { }), recorder);
     }
     private static <T> T launch(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
-        if (CURRENT.get() != null) throw new IllegalStateException("Nested daily operation would reset the allowance");
         DailyOperation operation = new DailyOperation(allowance, recorder);
+        return launch(admission,prepare,operation);
+    }
+    public static <T> T executeBenchmark(SearchAdmission admission, Duration allowance, Duration searchAllowance,
+            Duration reserve, Supplier<T> work, Consumer<Receipt> recorder) {
+        return launch(admission, () -> new Preparation<>(work,true,_ -> { }),
+                new DailyOperation(allowance,searchAllowance,reserve,recorder));
+    }
+    private static <T> T launch(SearchAdmission admission, Supplier<Preparation<T>> prepare, DailyOperation operation) {
+        if (CURRENT.get() != null) throw new IllegalStateException("Nested daily operation would reset the allowance");
         CompletableFuture<T> completion = new CompletableFuture<>();
         // Admission bounds active work and its waiting queue. No application thread pool queue resets the clock.
         Thread.ofVirtual().name("daily-" + operation.id).start(() -> operation.run(admission, prepare, completion));
@@ -126,7 +143,7 @@ public final class DailyOperation {
     synchronized Duration budget(Duration maximum) {
         if (maximum.isNegative() || maximum.isZero()) throw new IllegalArgumentException("Positive search budget required");
         deadline.requireTime();
-        long remaining = Math.min(SEARCH_NANOS - searchNanos, deadline.explorationNanos());
+        long remaining = Math.min(searchLimitNanos - searchNanos, deadline.explorationNanos());
         long nanos = Math.min(maximum.toNanos(), remaining);
         if (nanos < 1_000_000) throw new SearchDeadline.Expired();
         // Timefold 2.6.0 rejects sub-millisecond spent limits. Floor, never round up the remaining allowance.
@@ -148,7 +165,7 @@ public final class DailyOperation {
     }
     synchronized boolean canSearch() {
         deadline.requireTime();
-        return Math.min(SEARCH_NANOS - searchNanos, deadline.explorationNanos()) >= 1_000_000;
+        return Math.min(searchLimitNanos - searchNanos, deadline.explorationNanos()) >= 1_000_000;
     }
     private synchronized boolean isCancelled() { return cancelled; }
     public synchronized void cancel() {
@@ -168,6 +185,6 @@ public final class DailyOperation {
         Long cancellation = cancelledAt;
         return new Receipt(id, outcome, elapsed, queueMs, searchNanos / 1_000_000, cancellation,
                 cancellation == null ? null : Math.max(0, elapsed - cancellation), phaseCleanupOvershoot / 1_000_000,
-                Math.max(0,searchNanos - SEARCH_NANOS) / 1_000_000, late);
+                Math.max(0,searchNanos - searchLimitNanos) / 1_000_000, late);
     }
 }

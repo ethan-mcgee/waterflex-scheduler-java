@@ -6,17 +6,26 @@ import java.util.*;
 public final class DailyCalculation {
     public record Result(DayPlan plan, DayPlan reference, boolean accepted, String reason, int solveMs, DailySolver.Diagnostics diagnostics) { }
     private DailyCalculation() { }
+    public record Allocation(long referenceMs, long fairnessMs, long repairMs, boolean transferUnusedReference) {
+        public Allocation {
+            if (referenceMs < 1 || fairnessMs < 1 || repairMs < 1) throw new IllegalArgumentException("Positive phase allocations required");
+            Math.addExact(referenceMs, fairnessMs);
+        }
+    }
     public static Result run(DayPlan baseline, SchedulingPolicy.Rules policy, DailySolver solver) {
+        return run(baseline, policy, solver, new Allocation(10_000, 5_000, 15_000, true));
+    }
+    public static Result run(DayPlan baseline, SchedulingPolicy.Rules policy, DailySolver solver, Allocation allocation) {
         long started = System.nanoTime();
         if (baseline.getMode() == DayPlan.Mode.REPAIR) {
-            var search = solver.solve(baseline,Required.value(Duration.ofSeconds(15)));
+            var search = solver.solve(baseline,Required.value(Duration.ofMillis(allocation.repairMs())));
             SearchDeadline.checkpoint(); var validation = RouteEvaluator.evaluate(search.plan());
             boolean accepted = valid(search.plan()) && validation.overtimeMinutes() == 0;
             return new Result(search.plan(),search.plan(),accepted,accepted ? "Repair feasible" : "Repair infeasible",
                     (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(Required.value(List.of(new DailySolver.Phase("REPAIR",search.statistics()))))
                             .withPolicy(DailyPolicyDiagnostics.assess(search.plan(),search.plan(),accepted,DailyPolicyDiagnostics.Fairness.NOT_APPLICABLE_REPAIR)));
         }
-        var referenceSearch = solver.solve(baseline,Required.value(Duration.ofSeconds(10)));
+        var referenceSearch = solver.solve(baseline,Required.value(Duration.ofMillis(allocation.referenceMs())));
         SearchDeadline.checkpoint();
         List<DailySolver.Phase> phases = new ArrayList<>(); phases.add(new DailySolver.Phase("REFERENCE",referenceSearch.statistics()));
         DayPlan solved = referenceSearch.plan();
@@ -39,7 +48,8 @@ public final class DailyCalculation {
             DailyOperation operation = DailyOperation.current();
             if (operation != null && operation.canSearch()) {
                 fairnessStatus = DailyPolicyDiagnostics.Fairness.SEARCHED;
-                var fairnessSearch = solver.solve(fairnessSeed,Required.value(Duration.ofSeconds(15)));
+                var fairnessSearch = solver.solve(fairnessSeed,Required.value(Duration.ofMillis(allocation.transferUnusedReference()
+                        ? Math.addExact(allocation.referenceMs(),allocation.fairnessMs()) : allocation.fairnessMs())));
                 SearchDeadline.checkpoint(); phases.add(new DailySolver.Phase("FAIRNESS",fairnessSearch.statistics()));
                 DayPlan fair = fairnessSearch.plan();
                 fair.setMode(baseline.getMode());
