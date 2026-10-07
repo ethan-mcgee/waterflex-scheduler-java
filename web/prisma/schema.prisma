@@ -358,7 +358,7 @@ model ReservationDependency {
 }
 
 model BookingOffer {
-  costModelVersion String @default("exact-fleet-half-up-v2")
+  costModelVersion String @default("exact-fleet-half-up-v3")
   policyVersion String @default("zero-overtime-four-hour-v2")
   id String @id @default(cuid())
   jobId String
@@ -381,7 +381,7 @@ model BookingOffer {
 }
 
 model BookingOfferSet {
-  costModelVersion String @default("exact-fleet-half-up-v2")
+  costModelVersion String @default("exact-fleet-half-up-v3")
   policyVersion String @default("zero-overtime-four-hour-v2")
   id String @id @default(cuid())
   jobId String
