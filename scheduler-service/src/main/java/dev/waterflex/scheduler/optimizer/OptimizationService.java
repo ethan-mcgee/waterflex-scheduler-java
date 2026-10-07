@@ -500,14 +500,18 @@ public class OptimizationService {
             List<String> techIds = new ArrayList<>();
             versionNode.fieldNames().forEachRemaining(techIds::add);
             Collections.sort(techIds);
+            // Capture facts and road legs before locking schedule days, so routing never runs while bookings wait.
+            // The full input revision is compared again under the day locks; any concurrent change is a conflict.
+            Problem current = build(run.metroId(), Required.value(day));
+            DayPlan baselinePlan = PlanCopies.copy(current.plan());
             for (String techId : techIds) {
                 lockDay(Required.value(techId), Required.value(day));
-                int current = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, techId, dayStamp(Required.value(day)));
-                if (current != versionNode.path(techId).asInt()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Schedule changed");
+                int version = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, techId, dayStamp(Required.value(day)));
+                if (version != versionNode.path(techId).asInt()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Schedule changed");
             }
             if (ScheduleCutoff.frozen(Required.value(day), Required.value(clock.instant()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
             if (hasHolds(new HashSet<>(techIds), Required.value(day))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Active hold");
-            Problem current = build(run.metroId(), Required.value(day));
+            if (!current.revision().equals(inputRevision(Required.value(day)))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Schedule inputs changed");
             if (!Objects.equals(SavedJson.provenance(Required.value(mapper.readTree(run.weights()))).path("mapVersion").asText(), roads.currentVersion()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing map changed");
             if (!Objects.equals(SavedJson.provenance(Required.value(mapper.readTree(run.weights()))).path("configVersion").asText(), configurationVersion(run.metroId(), Required.value(day))))
@@ -535,8 +539,7 @@ public class OptimizationService {
             // A separate evaluator checks fresh road legs after the locked version check.
             var evaluated = RouteEvaluator.evaluate(current.plan());
             if (!evaluated.feasible() || evaluated.overtimeMinutes() != 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal must be feasible with zero overtime");
-            Problem baseline = build(run.metroId(), Required.value(day));
-            var baselineMetrics = RouteEvaluator.evaluate(baseline.plan());
+            var baselineMetrics = RouteEvaluator.evaluate(baselinePlan);
             if (absentTechnicianId != null) {
                 if (!baselineMetrics.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Baseline infeasible; a fresh repair is required");
                 requireRepairOvertimeApproval(baselineMetrics.overtimeMinutes(), evaluated.overtimeMinutes(), allowAdditionalOvertime);
@@ -546,11 +549,11 @@ public class OptimizationService {
                 if (!SchedulingPolicy.VERSION.equals(provenance.path("policyVersion").asText()))
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "A fresh policy preview is required");
                 if (!baselineMetrics.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Baseline infeasible");
-                var beforePolicy = SchedulingPolicy.measure(baseline.plan());
+                var beforePolicy = SchedulingPolicy.measure(baselinePlan);
                 var afterPolicy = SchedulingPolicy.measure(current.plan());
                 JsonNode savedPolicy = SavedJson.policyAnalysis(Required.value(mapper.readTree(dev.waterflex.scheduler.DatabaseFacts.query(jdbc,
                         "SELECT \"policyAnalysis\"::text FROM optimization_run WHERE id=?", String.class, runId))));
-                DayPlan referencePlan = restoreReference(baseline.plan(), Required.value(savedPolicy.path("referenceRoutes")));
+                DayPlan referencePlan = restoreReference(baselinePlan, Required.value(savedPolicy.path("referenceRoutes")));
                 var reference = SchedulingPolicy.measure(referencePlan);
                 JsonNode recordedDecision = Required.value(savedPolicy.path("decision"));
                 if (reference.costCents() != SavedJson.integer(recordedDecision, "referenceCostCents")
