@@ -92,7 +92,7 @@ final class RouteTimeline {
         blocks.removeIf(block -> !block.start().isBefore(block.end())); return blocks;
     }
     private static long buffered(DayPlan plan, DayPlan.RoadLeg leg) {
-        return (long) Math.ceil(leg.seconds() * (1 + plan.getTravelBufferPct()) / 60.0) + plan.getTravelBufferMinutes();
+        return dev.waterflex.scheduler.Monetary.bufferedMinutes(leg.seconds(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes());
     }
     private static Instant later(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
     private static Instant earlier(Instant a, Instant b) { return a.isBefore(b) ? a : b; }
