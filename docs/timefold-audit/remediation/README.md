@@ -8,11 +8,11 @@ This directory tracks implementation of the [audit](../Timefold_Audit.md) and th
 - [Baseline receipt](baseline.json): starting Git revision, source identities, dependency and configuration hashes, and retained evidence identities.
 - [Verification receipt](verification.json): commands, outcomes, limits, and raw logs for this phase.
 
-Each implementation phase ends with a focused, detailed PR and a pause for owner review. No automatic merge or promotion. Later steps remain pending until their prerequisites and their own gates pass. An evidence-backed decision to retain the current implementation can close an experimental recommendation; an unrun experiment cannot.
+Steps 1-12 ended with focused PRs and owner review. After merging PR #63, the owner requested one combined review PR for [steps 13-16](phases13-16/README.md). Independent treatments, objective evidence gates and explicit prerequisite-not-met dispositions remain intact. No automatic merge or promotion. An evidence-backed retention decision can close an experimental recommendation; an unrun experiment cannot be presented as successful evidence.
 
 ## Agreed contracts
 
-[Step 9](phase9/README.md) is reviewed and merged in PR #60. [Step 10](phase10/README.md) is reviewed and merged in PR #61. [Step 11](phase11/README.md) adds executable native, policy and paced caller adapters plus corpus/target setup; verification and owner review remain its delivery gates. Statistical analysis and calibration remain phase 12.
+[Step 9](phase9/README.md) is reviewed and merged in PR #60. [Step 10](phase10/README.md) is reviewed and merged in PR #61. [Step 11](phase11/README.md) is reviewed and merged in PR #62. [Step 12](phase12/README.md) is reviewed and merged in PR #63, including the independently valid synthetic baseline, paired analysis and ambiguous calibration results. The combined final delivery records remaining decisions and promotion prerequisites.
 
 Use Timefold Community 2.6.0 and Java 25 initially. Dependency upgrades are separate treatments. Preserve the 6 a.m. America/Chicago cutoff, promises, strict booking cost order with fairness ties, daily fairness headroom, and zero-overtime acceptance.
 
