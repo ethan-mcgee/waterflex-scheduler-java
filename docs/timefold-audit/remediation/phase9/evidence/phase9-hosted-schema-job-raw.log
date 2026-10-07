@@ -1,0 +1,754 @@
+﻿2026-10-07T01:49:35.6072706Z Current runner version: '2.337.0'
+2026-10-07T01:49:35.6110470Z ##[group]Runner Image Provisioner
+2026-10-07T01:49:35.6112093Z Hosted Compute Agent
+2026-10-07T01:49:35.6113253Z Version: 20260901.588
+2026-10-07T01:49:35.6114458Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-07T01:49:35.6115847Z Build Date: 2026-09-01T19:56:44Z
+2026-10-07T01:49:35.6117019Z Worker ID: {211d3690-ef28-4b2b-995f-dcab3fe90d79}
+2026-10-07T01:49:35.6118701Z Azure Region: westus2
+2026-10-07T01:49:35.6119928Z ##[endgroup]
+2026-10-07T01:49:35.6122520Z ##[group]Operating System
+2026-10-07T01:49:35.6123813Z Ubuntu
+2026-10-07T01:49:35.6124702Z 24.04.5
+2026-10-07T01:49:35.6125529Z LTS
+2026-10-07T01:49:35.6126505Z ##[endgroup]
+2026-10-07T01:49:35.6127547Z ##[group]Runner Image
+2026-10-07T01:49:35.6129037Z Image: ubuntu-24.04
+2026-10-07T01:49:35.6130095Z Version: 20260927.320.1
+2026-10-07T01:49:35.6132355Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-07T01:49:35.6135137Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-07T01:49:35.6136907Z ##[endgroup]
+2026-10-07T01:49:35.6139286Z ##[group]GITHUB_TOKEN Permissions
+2026-10-07T01:49:35.6142080Z Contents: read
+2026-10-07T01:49:35.6143157Z Metadata: read
+2026-10-07T01:49:35.6144127Z ##[endgroup]
+2026-10-07T01:49:35.6147379Z Secret source: Actions
+2026-10-07T01:49:35.6150323Z Cache mode: write
+2026-10-07T01:49:35.6151686Z Prepare workflow directory
+2026-10-07T01:49:35.7020337Z Prepare all required actions
+2026-10-07T01:49:35.7097709Z Getting action download info
+2026-10-07T01:49:36.2334639Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-07T01:49:36.3690286Z Download action repository 'actions/setup-java@v6' (SHA:de7274f081f381c8f8158605e0321c36c376e2e6)
+2026-10-07T01:49:36.7898296Z Download action repository 'actions/setup-node@v7' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-10-07T01:49:36.9149321Z Download action repository 'actions/upload-artifact@v7' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+2026-10-07T01:49:37.1657336Z Complete job name: Booking and optimizer integration
+2026-10-07T01:49:37.2406663Z ##[group]Checking docker version
+2026-10-07T01:49:37.2420235Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-10-07T01:49:38.3202110Z '1.48'
+2026-10-07T01:49:38.3214642Z Docker daemon API version: '1.48'
+2026-10-07T01:49:38.3216795Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-10-07T01:49:38.3498804Z '1.48'
+2026-10-07T01:49:38.3512640Z Docker client API version: '1.48'
+2026-10-07T01:49:38.3518296Z ##[endgroup]
+2026-10-07T01:49:38.3522244Z ##[group]Clean up resources from previous jobs
+2026-10-07T01:49:38.3528792Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=7a339c"
+2026-10-07T01:49:38.3726075Z ##[command]/usr/bin/docker network prune --force --filter "label=7a339c"
+2026-10-07T01:49:38.3874425Z ##[endgroup]
+2026-10-07T01:49:38.3875571Z ##[group]Create local container network
+2026-10-07T01:49:38.3887442Z ##[command]/usr/bin/docker network create --label 7a339c github_network_3a1e1067798a4a1db5e7785111fbef7f
+2026-10-07T01:49:38.4553641Z 35c19ca92ad3c1fa13a2eb6a0ae0b0711b40a9bc64b2bb51d763ba54662fe728
+2026-10-07T01:49:38.4572749Z ##[endgroup]
+2026-10-07T01:49:38.4601248Z ##[group]Starting postgres service container
+2026-10-07T01:49:38.4623405Z ##[command]/usr/bin/docker pull postgres:16
+2026-10-07T01:49:39.4140723Z 16: Pulling from library/postgres
+2026-10-07T01:49:39.6680049Z ecc510c1e359: Pulling fs layer
+2026-10-07T01:49:39.6687408Z 79faf13a8736: Pulling fs layer
+2026-10-07T01:49:39.6688908Z 6456bfbf35e7: Pulling fs layer
+2026-10-07T01:49:39.6689642Z b353db459ed1: Pulling fs layer
+2026-10-07T01:49:39.6690384Z 99f49de4fe2b: Pulling fs layer
+2026-10-07T01:49:39.6691002Z 83d1a2a3917c: Pulling fs layer
+2026-10-07T01:49:39.6691621Z 715ea0948cb1: Pulling fs layer
+2026-10-07T01:49:39.6693682Z 486e8305f56f: Pulling fs layer
+2026-10-07T01:49:39.6696014Z e7d675f11ded: Pulling fs layer
+2026-10-07T01:49:39.6697600Z c49864c27f35: Pulling fs layer
+2026-10-07T01:49:39.6698373Z 770ef8b308ea: Pulling fs layer
+2026-10-07T01:49:39.6698984Z 50c25daa0302: Pulling fs layer
+2026-10-07T01:49:39.6699453Z 8309db3ae5b6: Pulling fs layer
+2026-10-07T01:49:39.6699810Z 9731e27f2541: Pulling fs layer
+2026-10-07T01:49:39.6700194Z 486e8305f56f: Waiting
+2026-10-07T01:49:39.6700510Z e7d675f11ded: Waiting
+2026-10-07T01:49:39.6700820Z c49864c27f35: Waiting
+2026-10-07T01:49:39.6701207Z 770ef8b308ea: Waiting
+2026-10-07T01:49:39.6701518Z 50c25daa0302: Waiting
+2026-10-07T01:49:39.6701820Z 8309db3ae5b6: Waiting
+2026-10-07T01:49:39.6702131Z 9731e27f2541: Waiting
+2026-10-07T01:49:39.6702609Z 99f49de4fe2b: Waiting
+2026-10-07T01:49:39.6702948Z 83d1a2a3917c: Waiting
+2026-10-07T01:49:39.6703258Z 715ea0948cb1: Waiting
+2026-10-07T01:49:39.6703586Z b353db459ed1: Waiting
+2026-10-07T01:49:39.9060009Z 79faf13a8736: Download complete
+2026-10-07T01:49:39.9839791Z 6456bfbf35e7: Verifying Checksum
+2026-10-07T01:49:39.9849999Z 6456bfbf35e7: Download complete
+2026-10-07T01:49:40.0857270Z ecc510c1e359: Verifying Checksum
+2026-10-07T01:49:40.0863089Z ecc510c1e359: Download complete
+2026-10-07T01:49:40.1991221Z b353db459ed1: Download complete
+2026-10-07T01:49:40.3073558Z 99f49de4fe2b: Verifying Checksum
+2026-10-07T01:49:40.3074333Z 99f49de4fe2b: Download complete
+2026-10-07T01:49:40.3755472Z 83d1a2a3917c: Verifying Checksum
+2026-10-07T01:49:40.3756079Z 83d1a2a3917c: Download complete
+2026-10-07T01:49:40.4270090Z 715ea0948cb1: Verifying Checksum
+2026-10-07T01:49:40.4276615Z 715ea0948cb1: Download complete
+2026-10-07T01:49:40.5353433Z 486e8305f56f: Verifying Checksum
+2026-10-07T01:49:40.5355072Z 486e8305f56f: Download complete
+2026-10-07T01:49:40.6535796Z c49864c27f35: Verifying Checksum
+2026-10-07T01:49:40.7968508Z c49864c27f35: Download complete
+2026-10-07T01:49:40.7969169Z 770ef8b308ea: Verifying Checksum
+2026-10-07T01:49:40.7969901Z 770ef8b308ea: Download complete
+2026-10-07T01:49:40.9134483Z 50c25daa0302: Verifying Checksum
+2026-10-07T01:49:40.9141729Z 50c25daa0302: Download complete
+2026-10-07T01:49:41.0843502Z 8309db3ae5b6: Verifying Checksum
+2026-10-07T01:49:41.0851110Z 8309db3ae5b6: Download complete
+2026-10-07T01:49:41.1595659Z e7d675f11ded: Verifying Checksum
+2026-10-07T01:49:41.1597168Z e7d675f11ded: Download complete
+2026-10-07T01:49:41.1887665Z 9731e27f2541: Verifying Checksum
+2026-10-07T01:49:41.1894169Z 9731e27f2541: Download complete
+2026-10-07T01:49:41.4114513Z ecc510c1e359: Pull complete
+2026-10-07T01:49:42.2700818Z 79faf13a8736: Pull complete
+2026-10-07T01:49:42.4802542Z 6456bfbf35e7: Pull complete
+2026-10-07T01:49:42.5310075Z b353db459ed1: Pull complete
+2026-10-07T01:49:42.8910243Z 99f49de4fe2b: Pull complete
+2026-10-07T01:49:43.0083559Z 83d1a2a3917c: Pull complete
+2026-10-07T01:49:43.0196537Z 715ea0948cb1: Pull complete
+2026-10-07T01:49:43.0294581Z 486e8305f56f: Pull complete
+2026-10-07T01:49:47.2925561Z e7d675f11ded: Pull complete
+2026-10-07T01:49:47.3423087Z c49864c27f35: Pull complete
+2026-10-07T01:49:47.3623744Z 770ef8b308ea: Pull complete
+2026-10-07T01:49:47.3746921Z 50c25daa0302: Pull complete
+2026-10-07T01:49:47.3858683Z 8309db3ae5b6: Pull complete
+2026-10-07T01:49:47.3953132Z 9731e27f2541: Pull complete
+2026-10-07T01:49:47.3993964Z Digest: sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+2026-10-07T01:49:47.4005281Z Status: Downloaded newer image for postgres:16
+2026-10-07T01:49:47.4012806Z docker.io/library/postgres:16
+2026-10-07T01:49:47.4080997Z ##[command]/usr/bin/docker create --name 371f6df69a324e03bbb0e46871540122_postgres16_9eb548 --label 7a339c --network github_network_3a1e1067798a4a1db5e7785111fbef7f --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U waterflex -d waterflex_test" --health-interval 10s --health-timeout 5s --health-retries 5 -e "POSTGRES_USER=waterflex" -e "POSTGRES_PASSWORD=waterflex" -e "POSTGRES_DB=waterflex_test" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+2026-10-07T01:49:47.4398578Z 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:47.4424307Z ##[command]/usr/bin/docker start 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:48.2113006Z 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:48.2144876Z ##[command]/usr/bin/docker ps --all --filter id=672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-10-07T01:49:48.2395306Z 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d Up Less than a second (health: starting)
+2026-10-07T01:49:48.2423788Z ##[command]/usr/bin/docker port 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:48.2638924Z 5432/tcp -> 0.0.0.0:5432
+2026-10-07T01:49:48.2648556Z 5432/tcp -> [::]:5432
+2026-10-07T01:49:48.2713765Z ##[endgroup]
+2026-10-07T01:49:48.2726580Z ##[group]Waiting for all services to be ready
+2026-10-07T01:49:48.2746506Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:48.2952560Z starting
+2026-10-07T01:49:48.2983994Z postgres service is starting, waiting 2 seconds before checking again.
+2026-10-07T01:49:50.2981841Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:50.3263634Z starting
+2026-10-07T01:49:50.3277601Z postgres service is starting, waiting 4 seconds before checking again.
+2026-10-07T01:49:54.7260035Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:49:54.7398805Z starting
+2026-10-07T01:49:54.7410675Z postgres service is starting, waiting 7 seconds before checking again.
+2026-10-07T01:50:02.0967422Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:50:02.1118064Z healthy
+2026-10-07T01:50:02.1137652Z postgres service is healthy.
+2026-10-07T01:50:02.1138786Z ##[endgroup]
+2026-10-07T01:50:02.1450841Z ##[group]Run actions/checkout@v7
+2026-10-07T01:50:02.1451405Z with:
+2026-10-07T01:50:02.1451689Z   repository: ethan-mcgee/waterflex-scheduler-java
+2026-10-07T01:50:02.1454421Z   token: ***
+2026-10-07T01:50:02.1454635Z   ssh-strict: true
+2026-10-07T01:50:02.1454839Z   ssh-user: git
+2026-10-07T01:50:02.1455051Z   persist-credentials: true
+2026-10-07T01:50:02.1455298Z   clean: true
+2026-10-07T01:50:02.1455520Z   sparse-checkout-cone-mode: true
+2026-10-07T01:50:02.1455774Z   fetch-depth: 1
+2026-10-07T01:50:02.1455974Z   fetch-tags: false
+2026-10-07T01:50:02.1456182Z   show-progress: true
+2026-10-07T01:50:02.1456396Z   lfs: false
+2026-10-07T01:50:02.1456591Z   submodules: false
+2026-10-07T01:50:02.1456806Z   set-safe-directory: true
+2026-10-07T01:50:02.1457077Z   allow-unsafe-pr-checkout: false
+2026-10-07T01:50:02.1457538Z env:
+2026-10-07T01:50:02.1458404Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:02.1458909Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:02.1459285Z   DATABASE_USER: waterflex
+2026-10-07T01:50:02.1459520Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:02.1459772Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:02.1460057Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:02.1460343Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:02.1460590Z   SERVER_PORT: 18000
+2026-10-07T01:50:02.1460803Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:02.1461044Z ##[endgroup]
+2026-10-07T01:50:02.2590111Z Syncing repository: ethan-mcgee/waterflex-scheduler-java
+2026-10-07T01:50:02.2592360Z ##[group]Getting Git version info
+2026-10-07T01:50:02.2593333Z Working directory is '/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java'
+2026-10-07T01:50:02.2595021Z [command]/usr/bin/git version
+2026-10-07T01:50:02.2723343Z git version 2.55.0
+2026-10-07T01:50:02.2746141Z ##[endgroup]
+2026-10-07T01:50:02.2761509Z Temporarily overriding HOME='/home/runner/work/_temp/ba0d68cb-0bb0-427c-8796-1f4d50dba9cc' before making global git config changes
+2026-10-07T01:50:02.2763504Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-07T01:50:02.2770362Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java
+2026-10-07T01:50:02.2825780Z Deleting the contents of '/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java'
+2026-10-07T01:50:02.2829718Z ##[group]Determining repository object format
+2026-10-07T01:50:02.2831486Z ##[endgroup]
+2026-10-07T01:50:02.2832484Z ##[group]Initializing the repository
+2026-10-07T01:50:02.2837654Z [command]/usr/bin/git init /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java
+2026-10-07T01:50:02.2951150Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-07T01:50:02.3008973Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-07T01:50:02.3013323Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-07T01:50:02.3014419Z hint: call:
+2026-10-07T01:50:02.3014981Z hint:
+2026-10-07T01:50:02.3015687Z hint: 	git config --global init.defaultBranch <name>
+2026-10-07T01:50:02.3016482Z hint:
+2026-10-07T01:50:02.3016978Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-07T01:50:02.3017648Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-07T01:50:02.3018914Z hint:
+2026-10-07T01:50:02.3019306Z hint: 	git branch -m <name>
+2026-10-07T01:50:02.3019687Z hint:
+2026-10-07T01:50:02.3020226Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-07T01:50:02.3021291Z Initialized empty Git repository in /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/
+2026-10-07T01:50:02.3023247Z [command]/usr/bin/git remote add origin https://github.com/ethan-mcgee/waterflex-scheduler-java
+2026-10-07T01:50:02.3089055Z ##[endgroup]
+2026-10-07T01:50:02.3090516Z ##[group]Disabling automatic garbage collection
+2026-10-07T01:50:02.3091542Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-07T01:50:02.3109763Z ##[endgroup]
+2026-10-07T01:50:02.3110775Z ##[group]Setting up auth
+2026-10-07T01:50:02.3111545Z Removing SSH command configuration
+2026-10-07T01:50:02.3120284Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-07T01:50:02.3157301Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-07T01:50:02.3514748Z Removing HTTP extra header
+2026-10-07T01:50:02.3522196Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-07T01:50:02.3559061Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-07T01:50:02.3846748Z Removing includeIf entries pointing to credentials config files
+2026-10-07T01:50:02.3852721Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-07T01:50:02.3899460Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-07T01:50:02.4146618Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-07T01:50:02.4195838Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path /home/runner/work/_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:02.4230265Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:02.4263530Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:02.4308067Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:02.4339828Z ##[endgroup]
+2026-10-07T01:50:02.4340730Z ##[group]Fetching the repository
+2026-10-07T01:50:02.4349379Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +db1d872765e81e6cadfc9ad5055ef04891cf1ba7:refs/remotes/pull/60/merge
+2026-10-07T01:50:05.7390163Z From https://github.com/ethan-mcgee/waterflex-scheduler-java
+2026-10-07T01:50:05.7402174Z  * [new ref]         db1d872765e81e6cadfc9ad5055ef04891cf1ba7 -> pull/60/merge
+2026-10-07T01:50:05.7410956Z ##[endgroup]
+2026-10-07T01:50:05.7411926Z ##[group]Determining the checkout info
+2026-10-07T01:50:05.7412837Z ##[endgroup]
+2026-10-07T01:50:05.7413369Z [command]/usr/bin/git sparse-checkout disable
+2026-10-07T01:50:05.7462882Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-07T01:50:05.7496799Z ##[group]Checking out the ref
+2026-10-07T01:50:05.7502229Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/60/merge
+2026-10-07T01:50:06.1506656Z Note: switching to 'refs/remotes/pull/60/merge'.
+2026-10-07T01:50:06.1507124Z 
+2026-10-07T01:50:06.1507582Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-07T01:50:06.1508786Z changes and commit them, and you can discard any commits you make in this
+2026-10-07T01:50:06.1528875Z state without impacting any branches by switching back to a branch.
+2026-10-07T01:50:06.1538539Z 
+2026-10-07T01:50:06.1539127Z If you want to create a new branch to retain commits you create, you may
+2026-10-07T01:50:06.1540443Z do so (now or later) by using -c with the switch command. Example:
+2026-10-07T01:50:06.1541207Z 
+2026-10-07T01:50:06.1541586Z   git switch -c <new-branch-name>
+2026-10-07T01:50:06.1542007Z 
+2026-10-07T01:50:06.1542331Z Or undo this operation with:
+2026-10-07T01:50:06.1542725Z 
+2026-10-07T01:50:06.1543034Z   git switch -
+2026-10-07T01:50:06.1543372Z 
+2026-10-07T01:50:06.1543879Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-07T01:50:06.1544542Z 
+2026-10-07T01:50:06.1545319Z HEAD is now at db1d872 Merge 1099ae4f71fe81173df7f0de7c9c76f8799e2e80 into 584fd25365c505e01a26721325553e1cbd5eb6a4
+2026-10-07T01:50:06.1547785Z ##[endgroup]
+2026-10-07T01:50:06.1593550Z [command]/usr/bin/git log -1 --format=%H
+2026-10-07T01:50:06.1624011Z db1d872765e81e6cadfc9ad5055ef04891cf1ba7
+2026-10-07T01:50:06.1962334Z ##[group]Run actions/setup-java@v6
+2026-10-07T01:50:06.1962629Z with:
+2026-10-07T01:50:06.1962827Z   distribution: temurin
+2026-10-07T01:50:06.1963052Z   java-version: 25
+2026-10-07T01:50:06.1963258Z   cache: maven
+2026-10-07T01:50:06.1963460Z   java-package: jdk
+2026-10-07T01:50:06.1963672Z   check-latest: false
+2026-10-07T01:50:06.1963891Z   force-download: false
+2026-10-07T01:50:06.1964105Z   set-default: true
+2026-10-07T01:50:06.1964305Z   server-id: github
+2026-10-07T01:50:06.1964536Z   mvn-repositories-include-central: true
+2026-10-07T01:50:06.1964858Z   mvn-repositories-prioritize-central: true
+2026-10-07T01:50:06.1965155Z   overwrite-settings: true
+2026-10-07T01:50:06.1965387Z   cache-read-only: false
+2026-10-07T01:50:06.1965606Z   job-status: success
+2026-10-07T01:50:06.1968346Z   token: ***
+2026-10-07T01:50:06.1968575Z   show-download-progress: false
+2026-10-07T01:50:06.1968837Z   problem-matcher: true
+2026-10-07T01:50:06.1969247Z env:
+2026-10-07T01:50:06.1969700Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:06.1970102Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:06.1970474Z   DATABASE_USER: waterflex
+2026-10-07T01:50:06.1970716Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:06.1970970Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:06.1971264Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:06.1971553Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:06.1971811Z   SERVER_PORT: 18000
+2026-10-07T01:50:06.1972034Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:06.1972264Z ##[endgroup]
+2026-10-07T01:50:06.2802261Z ##[group]Installed distributions
+2026-10-07T01:50:06.3444673Z Resolved Java 25.0.4+1 from tool-cache
+2026-10-07T01:50:06.3445739Z Setting Java 25.0.4+1 as the default
+2026-10-07T01:50:06.3454524Z 
+2026-10-07T01:50:06.3455039Z Java configuration:
+2026-10-07T01:50:06.3456186Z   Distribution: temurin
+2026-10-07T01:50:06.3457145Z   Version: 25.0.4+1
+2026-10-07T01:50:06.3458806Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:06.3460905Z 
+2026-10-07T01:50:06.3734031Z ##[endgroup]
+2026-10-07T01:50:06.3852292Z Creating settings.xml with server-id: github
+2026-10-07T01:50:06.3854229Z Creating toolchains.xml for JDK version 25 from temurin
+2026-10-07T01:50:06.3858871Z Writing to /home/runner/.m2/settings.xml
+2026-10-07T01:50:06.3920207Z Writing to /home/runner/.m2/toolchains.xml
+2026-10-07T01:50:06.3921985Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+2026-10-07T01:50:07.1054192Z Cache hit for: setup-java-Linux-x64-maven-wrapper-d1233d4703c78d2f25ad824054d4d4e06cca122b095082197d585fc5502c2222
+2026-10-07T01:50:07.1077470Z Cache hit for: setup-java-Linux-x64-maven-2babb7b70633bcdcaba5f41f237bd1d9eb808573e7b59186a4d8f2424dfdfe0b
+2026-10-07T01:50:08.3906148Z Received 1652569 of 18429785 (9.0%), 1.6 MBs/sec
+2026-10-07T01:50:08.4093189Z Received 0 of 81178061 (0.0%), 0.0 MBs/sec
+2026-10-07T01:50:08.6153416Z Received 18429785 of 18429785 (100.0%), 14.3 MBs/sec
+2026-10-07T01:50:08.6154438Z Cache Size: ~18 MB (18429785 B)
+2026-10-07T01:50:08.6217767Z [command]/usr/bin/tar -xf /home/runner/work/_temp/cacc3f41-d1be-4142-b744-a501033d24f9/cache.tzst -P -C /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java --use-compress-program unzstd
+2026-10-07T01:50:08.7063557Z Cache restored successfully
+2026-10-07T01:50:08.7080256Z maven-wrapper cache restored from key: setup-java-Linux-x64-maven-wrapper-d1233d4703c78d2f25ad824054d4d4e06cca122b095082197d585fc5502c2222
+2026-10-07T01:50:09.3176593Z Received 81178061 of 81178061 (100.0%), 40.6 MBs/sec
+2026-10-07T01:50:09.3178168Z Cache Size: ~77 MB (81178061 B)
+2026-10-07T01:50:09.3360409Z [command]/usr/bin/tar -xf /home/runner/work/_temp/ae7d2656-99a3-40f5-86ab-7a525c198909/cache.tzst -P -C /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java --use-compress-program unzstd
+2026-10-07T01:50:09.5992764Z Cache restored successfully
+2026-10-07T01:50:09.6049667Z Cache restored from key: setup-java-Linux-x64-maven-2babb7b70633bcdcaba5f41f237bd1d9eb808573e7b59186a4d8f2424dfdfe0b
+2026-10-07T01:50:09.6227001Z ##[group]Run actions/setup-node@v7
+2026-10-07T01:50:09.6227311Z with:
+2026-10-07T01:50:09.6227522Z   node-version: 22
+2026-10-07T01:50:09.6227740Z   cache: npm
+2026-10-07T01:50:09.6228205Z   cache-dependency-path: web/package-lock.json
+2026-10-07T01:50:09.6228535Z   check-latest: false
+2026-10-07T01:50:09.6231064Z   token: ***
+2026-10-07T01:50:09.6231300Z   package-manager-cache: true
+2026-10-07T01:50:09.6231557Z env:
+2026-10-07T01:50:09.6231942Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:09.6232351Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:09.6232746Z   DATABASE_USER: waterflex
+2026-10-07T01:50:09.6232999Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:09.6233273Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:09.6233769Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:09.6234078Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:09.6234360Z   SERVER_PORT: 18000
+2026-10-07T01:50:09.6234630Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:09.6234995Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:09.6235507Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:09.6235903Z   MAVEN_ARGS: -ntp
+2026-10-07T01:50:09.6236120Z ##[endgroup]
+2026-10-07T01:50:09.7709559Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-07T01:50:09.7711335Z ##[group]Environment details
+2026-10-07T01:50:12.3026118Z node: v22.23.3
+2026-10-07T01:50:12.3026981Z npm: 10.9.9
+2026-10-07T01:50:12.3027741Z yarn: 1.22.22
+2026-10-07T01:50:12.3030460Z ##[endgroup]
+2026-10-07T01:50:12.3051777Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+2026-10-07T01:50:12.5869153Z /home/runner/.npm
+2026-10-07T01:50:12.8404162Z Cache hit for: node-cache-Linux-x64-npm-0bce0b2980feff38bd9c1f41b4b051b276b963d28c811a583d9416662dd491e4
+2026-10-07T01:50:14.1456535Z Received 0 of 164552281 (0.0%), 0.0 MBs/sec
+2026-10-07T01:50:15.1457045Z Received 113246208 of 164552281 (68.8%), 54.0 MBs/sec
+2026-10-07T01:50:15.6756823Z Received 164552281 of 164552281 (100.0%), 62.3 MBs/sec
+2026-10-07T01:50:15.6757696Z Cache Size: ~157 MB (164552281 B)
+2026-10-07T01:50:15.6823507Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a4e02250-61e7-4285-bd03-c9f410a076ee/cache.tzst -P -C /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java --use-compress-program unzstd
+2026-10-07T01:50:16.0736737Z Cache restored successfully
+2026-10-07T01:50:16.0816066Z Cache restored from key: node-cache-Linux-x64-npm-0bce0b2980feff38bd9c1f41b4b051b276b963d28c811a583d9416662dd491e4
+2026-10-07T01:50:16.1024620Z ##[group]Run npm ci && npm run prisma:generate
+2026-10-07T01:50:16.1025066Z [36;1mnpm ci && npm run prisma:generate[0m
+2026-10-07T01:50:16.1286816Z shell: /usr/bin/bash -e {0}
+2026-10-07T01:50:16.1287143Z env:
+2026-10-07T01:50:16.1287769Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:16.1288721Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:16.1289144Z   DATABASE_USER: waterflex
+2026-10-07T01:50:16.1289410Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:16.1289695Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:16.1290008Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:16.1290319Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:16.1290591Z   SERVER_PORT: 18000
+2026-10-07T01:50:16.1290832Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:16.1291196Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:16.1291769Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:16.1292166Z   MAVEN_ARGS: -ntp
+2026-10-07T01:50:16.1292394Z ##[endgroup]
+2026-10-07T01:50:21.1264925Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-07T01:50:21.2339111Z npm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead
+2026-10-07T01:50:21.2436699Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-07T01:50:21.3661259Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-07T01:50:21.5073672Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-07T01:50:22.8614193Z npm warn deprecated glob@10.3.10: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-07T01:50:27.4941491Z npm warn deprecated eslint@8.57.0: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-07T01:50:42.7049885Z 
+2026-10-07T01:50:42.7051108Z added 381 packages, and audited 382 packages in 27s
+2026-10-07T01:50:42.7051984Z 
+2026-10-07T01:50:42.7055363Z 146 packages are looking for funding
+2026-10-07T01:50:42.7068781Z   run `npm fund` for details
+2026-10-07T01:50:42.8789307Z 
+2026-10-07T01:50:42.8790340Z 8 vulnerabilities (6 high, 2 critical)
+2026-10-07T01:50:42.8790953Z 
+2026-10-07T01:50:42.8791529Z To address issues that do not require attention, run:
+2026-10-07T01:50:42.8792580Z   npm audit fix
+2026-10-07T01:50:42.8793105Z 
+2026-10-07T01:50:42.8799363Z To address all issues (including breaking changes), run:
+2026-10-07T01:50:42.8800232Z   npm audit fix --force
+2026-10-07T01:50:42.8800643Z 
+2026-10-07T01:50:42.8801022Z Run `npm audit` for details.
+2026-10-07T01:50:43.0851457Z 
+2026-10-07T01:50:43.0852691Z > waterflex-web@0.1.0 prisma:generate
+2026-10-07T01:50:43.0860122Z > prisma generate
+2026-10-07T01:50:43.0860816Z 
+2026-10-07T01:50:43.5303395Z Prisma schema loaded from prisma/schema.prisma
+2026-10-07T01:50:44.5330669Z 
+2026-10-07T01:50:44.5332354Z ✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 458ms
+2026-10-07T01:50:44.5333517Z 
+2026-10-07T01:50:44.5334423Z Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+2026-10-07T01:50:44.5335417Z 
+2026-10-07T01:50:44.5336621Z Tip: Curious about the SQL queries Prisma ORM generates? Optimize helps you enhance your visibility: https://pris.ly/tip-2-optimize
+2026-10-07T01:50:44.5337771Z 
+2026-10-07T01:50:44.7455275Z ##[group]Run npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+2026-10-07T01:50:44.7456353Z [36;1mnpx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract[0m
+2026-10-07T01:50:44.7520688Z shell: /usr/bin/bash -e {0}
+2026-10-07T01:50:44.7520972Z env:
+2026-10-07T01:50:44.7521776Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:44.7522235Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:44.7522653Z   DATABASE_USER: waterflex
+2026-10-07T01:50:44.7522922Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:44.7523204Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:44.7523508Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:44.7523821Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:44.7524087Z   SERVER_PORT: 18000
+2026-10-07T01:50:44.7524327Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:44.7524728Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:44.7525232Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:44.7525634Z   MAVEN_ARGS: -ntp
+2026-10-07T01:50:44.7525869Z ##[endgroup]
+2026-10-07T01:50:45.5763478Z Prisma schema loaded from prisma/schema.prisma
+2026-10-07T01:50:45.5984935Z Datasource "db": PostgreSQL database "waterflex_test", schema "public" at "127.0.0.1:5432"
+2026-10-07T01:50:45.6850442Z 
+2026-10-07T01:50:45.6850903Z 38 migrations found in prisma/migrations
+2026-10-07T01:50:45.6851308Z 
+2026-10-07T01:50:45.7351901Z Applying migration `20260904180051_init`
+2026-10-07T01:50:45.7758346Z Applying migration `20260904182402_slot_hold_job_fk`
+2026-10-07T01:50:45.7795642Z Applying migration `20260907190000_booking_retry_and_hold_location`
+2026-10-07T01:50:45.7829816Z Applying migration `20260907220000_omaha_service_area`
+2026-10-07T01:50:45.7881667Z Applying migration `20260908170000_optimizer_overtime`
+2026-10-07T01:50:45.7909616Z Applying migration `20260908171000_optimizer_weights`
+2026-10-07T01:50:45.7939353Z Applying migration `20260909120000_progressive_booking_optimization`
+2026-10-07T01:50:45.8074079Z Applying migration `20260916120000_java_scheduler_foundation`
+2026-10-07T01:50:45.8230913Z Applying migration `20260917120000_booking_reservations_time_off`
+2026-10-07T01:50:45.8384739Z Applying migration `20260918120000_road_cache_retention`
+2026-10-07T01:50:45.8418854Z Applying migration `20260918130000_optimization_route_snapshot`
+2026-10-07T01:50:45.8445780Z Applying migration `20260921190000_booking_test_runs`
+2026-10-07T01:50:45.8549518Z Applying migration `20260921213000_booking_test_purge`
+2026-10-07T01:50:45.8576918Z Applying migration `20260921214000_omaha_state_code`
+2026-10-07T01:50:45.8605822Z Applying migration `20260921220000_resumable_booking_test_generation`
+2026-10-07T01:50:45.8656358Z Applying migration `20260922120000_time_off_category`
+2026-10-07T01:50:45.8684902Z Applying migration `20260922230000_technician_profiles_availability`
+2026-10-07T01:50:45.8788912Z Applying migration `20260923010000_dealership_route_endpoints`
+2026-10-07T01:50:45.8910116Z Applying migration `20260923120000_multi_depot_dealerships`
+2026-10-07T01:50:45.9139271Z Applying migration `20260923130000_depot_pin_provenance`
+2026-10-07T01:50:45.9166028Z Applying migration `20260923190000_technician_home_pin_provenance`
+2026-10-07T01:50:45.9217422Z Applying migration `20260924010000_scheduling_policy`
+2026-10-07T01:50:45.9247724Z Applying migration `20260924020000_offer_overtime_authorization`
+2026-10-07T01:50:45.9277368Z Applying migration `20260924030000_repair_overtime_approval`
+2026-10-07T01:50:45.9306610Z Applying migration `20260924040000_reservation_arrangements`
+2026-10-07T01:50:45.9409582Z Applying migration `20260924050000_reservation_obligations`
+2026-10-07T01:50:45.9448889Z Applying migration `20260924060000_booking_search_diagnostics`
+2026-10-07T01:50:45.9475524Z Applying migration `20260924070000_current_route_timing`
+2026-10-07T01:50:45.9502069Z Applying migration `20260924080000_booking_search_cancellation`
+2026-10-07T01:50:45.9567697Z Applying migration `20260929180000_booking_location_confirmation`
+2026-10-07T01:50:45.9603720Z Applying migration `20260929220000_durable_booking_search`
+2026-10-07T01:50:45.9655430Z Applying migration `20260929223000_booking_search_incumbent`
+2026-10-07T01:50:45.9683620Z Applying migration `20260929230000_retire_incompatible_promises`
+2026-10-07T01:50:45.9713385Z Applying migration `20260929233000_retire_legacy_standalone_offers`
+2026-10-07T01:50:45.9739367Z Applying migration `20261006194000_exact_monetary_contract`
+2026-10-07T01:50:45.9928456Z Applying migration `20261006212000_daily_score_contract`
+2026-10-07T01:50:45.9955890Z Applying migration `20261006230000_durable_daily_attempts`
+2026-10-07T01:50:46.0026341Z Applying migration `20261007020000_overnight_attempt_receipts`
+2026-10-07T01:50:46.0124030Z 
+2026-10-07T01:50:46.0124684Z The following migration(s) have been applied:
+2026-10-07T01:50:46.0125154Z 
+2026-10-07T01:50:46.0125394Z migrations/
+2026-10-07T01:50:46.0126239Z   └─ 20260904180051_init/
+2026-10-07T01:50:46.0126831Z     └─ migration.sql
+2026-10-07T01:50:46.0127475Z   └─ 20260904182402_slot_hold_job_fk/
+2026-10-07T01:50:46.0129011Z     └─ migration.sql
+2026-10-07T01:50:46.0129759Z   └─ 20260907190000_booking_retry_and_hold_location/
+2026-10-07T01:50:46.0130483Z     └─ migration.sql
+2026-10-07T01:50:46.0131107Z   └─ 20260907220000_omaha_service_area/
+2026-10-07T01:50:46.0131754Z     └─ migration.sql
+2026-10-07T01:50:46.0132369Z   └─ 20260908170000_optimizer_overtime/
+2026-10-07T01:50:46.0133678Z     └─ migration.sql
+2026-10-07T01:50:46.0134315Z   └─ 20260908171000_optimizer_weights/
+2026-10-07T01:50:46.0134961Z     └─ migration.sql
+2026-10-07T01:50:46.0135660Z   └─ 20260909120000_progressive_booking_optimization/
+2026-10-07T01:50:46.0136403Z     └─ migration.sql
+2026-10-07T01:50:46.0137102Z   └─ 20260916120000_java_scheduler_foundation/
+2026-10-07T01:50:46.0137714Z     └─ migration.sql
+2026-10-07T01:50:46.0139093Z   └─ 20260917120000_booking_reservations_time_off/
+2026-10-07T01:50:46.0140182Z     └─ migration.sql
+2026-10-07T01:50:46.0140840Z   └─ 20260918120000_road_cache_retention/
+2026-10-07T01:50:46.0141663Z     └─ migration.sql
+2026-10-07T01:50:46.0142053Z   └─ 20260918130000_optimization_route_snapshot/
+2026-10-07T01:50:46.0142424Z     └─ migration.sql
+2026-10-07T01:50:46.0142766Z   └─ 20260921190000_booking_test_runs/
+2026-10-07T01:50:46.0143105Z     └─ migration.sql
+2026-10-07T01:50:46.0143421Z   └─ 20260921213000_booking_test_purge/
+2026-10-07T01:50:46.0143747Z     └─ migration.sql
+2026-10-07T01:50:46.0144056Z   └─ 20260921214000_omaha_state_code/
+2026-10-07T01:50:46.0144361Z     └─ migration.sql
+2026-10-07T01:50:46.0144733Z   └─ 20260921220000_resumable_booking_test_generation/
+2026-10-07T01:50:46.0145105Z     └─ migration.sql
+2026-10-07T01:50:46.0145417Z   └─ 20260922120000_time_off_category/
+2026-10-07T01:50:46.0145739Z     └─ migration.sql
+2026-10-07T01:50:46.0146112Z   └─ 20260922230000_technician_profiles_availability/
+2026-10-07T01:50:46.0146473Z     └─ migration.sql
+2026-10-07T01:50:46.0146806Z   └─ 20260923010000_dealership_route_endpoints/
+2026-10-07T01:50:46.0147168Z     └─ migration.sql
+2026-10-07T01:50:46.0147507Z   └─ 20260923120000_multi_depot_dealerships/
+2026-10-07T01:50:46.0148473Z     └─ migration.sql
+2026-10-07T01:50:46.0149108Z   └─ 20260923130000_depot_pin_provenance/
+2026-10-07T01:50:46.0149660Z     └─ migration.sql
+2026-10-07T01:50:46.0150229Z   └─ 20260923190000_technician_home_pin_provenance/
+2026-10-07T01:50:46.0150787Z     └─ migration.sql
+2026-10-07T01:50:46.0151275Z   └─ 20260924010000_scheduling_policy/
+2026-10-07T01:50:46.0151882Z     └─ migration.sql
+2026-10-07T01:50:46.0152460Z   └─ 20260924020000_offer_overtime_authorization/
+2026-10-07T01:50:46.0153049Z     └─ migration.sql
+2026-10-07T01:50:46.0153648Z   └─ 20260924030000_repair_overtime_approval/
+2026-10-07T01:50:46.0154274Z     └─ migration.sql
+2026-10-07T01:50:46.0154885Z   └─ 20260924040000_reservation_arrangements/
+2026-10-07T01:50:46.0155735Z     └─ migration.sql
+2026-10-07T01:50:46.0156341Z   └─ 20260924050000_reservation_obligations/
+2026-10-07T01:50:46.0157009Z     └─ migration.sql
+2026-10-07T01:50:46.0157604Z   └─ 20260924060000_booking_search_diagnostics/
+2026-10-07T01:50:46.0158535Z     └─ migration.sql
+2026-10-07T01:50:46.0159035Z   └─ 20260924070000_current_route_timing/
+2026-10-07T01:50:46.0159567Z     └─ migration.sql
+2026-10-07T01:50:46.0160136Z   └─ 20260924080000_booking_search_cancellation/
+2026-10-07T01:50:46.0160694Z     └─ migration.sql
+2026-10-07T01:50:46.0161270Z   └─ 20260929180000_booking_location_confirmation/
+2026-10-07T01:50:46.0161860Z     └─ migration.sql
+2026-10-07T01:50:46.0162469Z   └─ 20260929220000_durable_booking_search/
+2026-10-07T01:50:46.0163085Z     └─ migration.sql
+2026-10-07T01:50:46.0163676Z   └─ 20260929223000_booking_search_incumbent/
+2026-10-07T01:50:46.0164318Z     └─ migration.sql
+2026-10-07T01:50:46.0164999Z   └─ 20260929230000_retire_incompatible_promises/
+2026-10-07T01:50:46.0165779Z     └─ migration.sql
+2026-10-07T01:50:46.0166496Z   └─ 20260929233000_retire_legacy_standalone_offers/
+2026-10-07T01:50:46.0167195Z     └─ migration.sql
+2026-10-07T01:50:46.0168306Z   └─ 20261006194000_exact_monetary_contract/
+2026-10-07T01:50:46.0169019Z     └─ migration.sql
+2026-10-07T01:50:46.0169641Z   └─ 20261006212000_daily_score_contract/
+2026-10-07T01:50:46.0170232Z     └─ migration.sql
+2026-10-07T01:50:46.0170838Z   └─ 20261006230000_durable_daily_attempts/
+2026-10-07T01:50:46.0171434Z     └─ migration.sql
+2026-10-07T01:50:46.0172033Z   └─ 20261007020000_overnight_attempt_receipts/
+2026-10-07T01:50:46.0172658Z     └─ migration.sql
+2026-10-07T01:50:46.0173067Z       
+2026-10-07T01:50:46.0173613Z All migrations have been successfully applied.
+2026-10-07T01:50:46.0539835Z ┌─────────────────────────────────────────────────────────┐
+2026-10-07T01:50:46.0559178Z │  Update available 5.22.0 -> 8.0.0-rc.20                 │
+2026-10-07T01:50:46.0560196Z │                                                         │
+2026-10-07T01:50:46.0579765Z │  This is a major update - please follow the guide at    │
+2026-10-07T01:50:46.0599388Z │  https://pris.ly/d/major-version-upgrade                │
+2026-10-07T01:50:46.0611026Z │                                                         │
+2026-10-07T01:50:46.0640043Z │  Run the following to update                            │
+2026-10-07T01:50:46.0643734Z │    npm i --save-dev prisma@latest                       │
+2026-10-07T01:50:46.0646033Z │    npm i @prisma/client@latest                          │
+2026-10-07T01:50:46.0678924Z └─────────────────────────────────────────────────────────┘
+2026-10-07T01:50:46.8280142Z Running seed command `tsx prisma/seed.ts` ...
+2026-10-07T01:50:47.3738233Z Seed complete.
+2026-10-07T01:50:47.3973214Z 
+2026-10-07T01:50:47.3974387Z 🌱  The seed command has been executed.
+2026-10-07T01:50:47.6030471Z 
+2026-10-07T01:50:47.6031444Z > waterflex-web@0.1.0 test:schema-contract
+2026-10-07T01:50:47.6032687Z > tsx scripts/check-java-schema-contract.ts
+2026-10-07T01:50:47.6033413Z 
+2026-10-07T01:50:48.1041091Z AssertionError [ERR_ASSERTION]: overnight_optimization_attempt.serviceDate column type
+2026-10-07T01:50:48.1042167Z + actual - expected
+2026-10-07T01:50:48.1042593Z 
+2026-10-07T01:50:48.1042898Z + 'date'
+2026-10-07T01:50:48.1069027Z - 'timestamp without time zone'
+2026-10-07T01:50:48.1069413Z 
+2026-10-07T01:50:48.1072394Z     at main (/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/web/scripts/check-java-schema-contract.ts:49:14) {
+2026-10-07T01:50:48.1088846Z   generatedMessage: false,
+2026-10-07T01:50:48.1092023Z   code: 'ERR_ASSERTION',
+2026-10-07T01:50:48.1092735Z   actual: 'date',
+2026-10-07T01:50:48.1093485Z   expected: 'timestamp without time zone',
+2026-10-07T01:50:48.1094304Z   operator: 'strictEqual',
+2026-10-07T01:50:48.1095006Z   diff: 'simple'
+2026-10-07T01:50:48.1095594Z }
+2026-10-07T01:50:48.1289666Z ##[error]Process completed with exit code 1.
+2026-10-07T01:50:48.1456432Z ##[group]Run echo 'Fixture routing log:'
+2026-10-07T01:50:48.1456818Z [36;1mecho 'Fixture routing log:'[0m
+2026-10-07T01:50:48.1457200Z [36;1mcat "$RUNNER_TEMP/fixture-routing.log" 2>/dev/null || true[0m
+2026-10-07T01:50:48.1457618Z [36;1mecho 'Scheduler log:'[0m
+2026-10-07T01:50:48.1458328Z [36;1mcat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true[0m
+2026-10-07T01:50:48.1458809Z [36;1mcat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true[0m
+2026-10-07T01:50:48.1459274Z [36;1mcat "$RUNNER_TEMP/remote-solver.log" 2>/dev/null || true[0m
+2026-10-07T01:50:48.1459718Z [36;1mcat "$RUNNER_TEMP/remote-scheduler.log" 2>/dev/null || true[0m
+2026-10-07T01:50:48.1520531Z shell: /usr/bin/bash -e {0}
+2026-10-07T01:50:48.1520813Z env:
+2026-10-07T01:50:48.1521340Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:48.1521780Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:48.1522178Z   DATABASE_USER: waterflex
+2026-10-07T01:50:48.1522478Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:48.1522755Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:48.1523067Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:48.1523373Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:48.1523659Z   SERVER_PORT: 18000
+2026-10-07T01:50:48.1523897Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:48.1524278Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:48.1524804Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:48.1525210Z   MAVEN_ARGS: -ntp
+2026-10-07T01:50:48.1525443Z ##[endgroup]
+2026-10-07T01:50:48.1614930Z Fixture routing log:
+2026-10-07T01:50:48.1628481Z Scheduler log:
+2026-10-07T01:50:48.1708714Z ##[group]Run python3 infra/summarize-tests.py 'scheduler-service/target/surefire-reports/TEST-*.xml' --label 'Database integration'
+2026-10-07T01:50:48.1709785Z [36;1mpython3 infra/summarize-tests.py 'scheduler-service/target/surefire-reports/TEST-*.xml' --label 'Database integration'[0m
+2026-10-07T01:50:48.1771577Z shell: /usr/bin/bash -e {0}
+2026-10-07T01:50:48.1771861Z env:
+2026-10-07T01:50:48.1772388Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:48.1773033Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:48.1773447Z   DATABASE_USER: waterflex
+2026-10-07T01:50:48.1773708Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:48.1773992Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:48.1774298Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:48.1774611Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:48.1774878Z   SERVER_PORT: 18000
+2026-10-07T01:50:48.1775122Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:48.1775520Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:48.1776022Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:48.1776420Z   MAVEN_ARGS: -ntp
+2026-10-07T01:50:48.1776642Z ##[endgroup]
+2026-10-07T01:50:48.2180895Z ### Database integration
+2026-10-07T01:50:48.2181530Z 
+2026-10-07T01:50:48.2182424Z 0 tests, 0 failed, 0 skipped; summed test duration 0.00s (0 reports).
+2026-10-07T01:50:48.2183155Z 
+2026-10-07T01:50:48.2183936Z No reports were produced. Check preceding steps for setup or compilation failures.
+2026-10-07T01:50:48.2184703Z 
+2026-10-07T01:50:48.2184875Z 
+2026-10-07T01:50:48.2321027Z ##[group]Run actions/upload-artifact@v7
+2026-10-07T01:50:48.2321350Z with:
+2026-10-07T01:50:48.2321572Z   name: integration-diagnostics
+2026-10-07T01:50:48.2322176Z   path: scheduler-service/target/surefire-reports/
+/home/runner/work/_temp/*.log
+/home/runner/work/_temp/booking-offer-limits-*/
+
+2026-10-07T01:50:48.2322786Z   retention-days: 7
+2026-10-07T01:50:48.2323015Z   if-no-files-found: warn
+2026-10-07T01:50:48.2323271Z   compression-level: 6
+2026-10-07T01:50:48.2323503Z   overwrite: false
+2026-10-07T01:50:48.2323737Z   include-hidden-files: false
+2026-10-07T01:50:48.2323995Z   archive: true
+2026-10-07T01:50:48.2324201Z env:
+2026-10-07T01:50:48.2324727Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:48.2325159Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-07T01:50:48.2325571Z   DATABASE_USER: waterflex
+2026-10-07T01:50:48.2325829Z   DATABASE_PASSWORD: waterflex
+2026-10-07T01:50:48.2326129Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-07T01:50:48.2326435Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-07T01:50:48.2326742Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-07T01:50:48.2327011Z   SERVER_PORT: 18000
+2026-10-07T01:50:48.2327249Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-07T01:50:48.2327612Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:48.2328407Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-07T01:50:48.2328806Z   MAVEN_ARGS: -ntp
+2026-10-07T01:50:48.2329032Z ##[endgroup]
+2026-10-07T01:50:48.3890420Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-07T01:50:48.3893301Z The least common ancestor is /home/runner/work. This will be the root directory of the artifact
+2026-10-07T01:50:48.3912913Z ##[warning]No files were found with the provided path: scheduler-service/target/surefire-reports/
+/home/runner/work/_temp/*.log
+/home/runner/work/_temp/booking-offer-limits-*/. No artifacts will be uploaded.
+2026-10-07T01:50:48.4096499Z Post job cleanup.
+2026-10-07T01:50:48.5027503Z Post job cleanup.
+2026-10-07T01:50:48.6224065Z [command]/usr/bin/git version
+2026-10-07T01:50:48.6280466Z git version 2.55.0
+2026-10-07T01:50:48.6324683Z Temporarily overriding HOME='/home/runner/work/_temp/b0fb2010-6347-4078-8faf-a3d246c8411f' before making global git config changes
+2026-10-07T01:50:48.6326547Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-07T01:50:48.6330397Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java
+2026-10-07T01:50:48.6369947Z Removing SSH command configuration
+2026-10-07T01:50:48.6379207Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-07T01:50:48.6423226Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-07T01:50:48.6689846Z Removing HTTP extra header
+2026-10-07T01:50:48.6697017Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-07T01:50:48.6742436Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-07T01:50:48.6990744Z Removing includeIf entries pointing to credentials config files
+2026-10-07T01:50:48.6999781Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-07T01:50:48.7030948Z includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path
+2026-10-07T01:50:48.7034034Z includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path
+2026-10-07T01:50:48.7035714Z includeif.gitdir:/github/workspace/.git.path
+2026-10-07T01:50:48.7036892Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-07T01:50:48.7044120Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path
+2026-10-07T01:50:48.7069457Z /home/runner/work/_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:48.7084528Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-893dbc55\-7b17\-4e9e\-b187\-d5320097f119\.config
+2026-10-07T01:50:48.7130628Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path
+2026-10-07T01:50:48.7175082Z /home/runner/work/_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:48.7198528Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-893dbc55\-7b17\-4e9e\-b187\-d5320097f119\.config
+2026-10-07T01:50:48.7291964Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-07T01:50:48.7300260Z /github/runner_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:48.7330629Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-893dbc55\-7b17\-4e9e\-b187\-d5320097f119\.config
+2026-10-07T01:50:48.7398873Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-07T01:50:48.7429347Z /github/runner_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config
+2026-10-07T01:50:48.7444346Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-893dbc55\-7b17\-4e9e\-b187\-d5320097f119\.config
+2026-10-07T01:50:48.7497170Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-07T01:50:48.7851760Z Removing credentials config '/home/runner/work/_temp/git-credentials-893dbc55-7b17-4e9e-b187-d5320097f119.config'
+2026-10-07T01:50:48.8064502Z Print service container logs: 371f6df69a324e03bbb0e46871540122_postgres16_9eb548
+2026-10-07T01:50:48.8072442Z ##[command]/usr/bin/docker logs --details 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:50:48.8319177Z  initdb: warning: enabling "trust" authentication for local connections
+2026-10-07T01:50:48.8320225Z  The files belonging to this database system will be owned by user "postgres".
+2026-10-07T01:50:48.8322975Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-07T01:50:48.8324572Z  This user must also own the server process.
+2026-10-07T01:50:48.8326279Z  2026-10-07 01:49:49.227 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-07T01:50:48.8327409Z  
+2026-10-07T01:50:48.8329550Z  2026-10-07 01:49:49.227 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-07T01:50:48.8330452Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-10-07T01:50:48.8331653Z  2026-10-07 01:49:49.227 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-07T01:50:48.8332484Z  The default database encoding has accordingly been set to "UTF8".
+2026-10-07T01:50:48.8334487Z  2026-10-07 01:49:49.228 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-07T01:50:48.8335439Z  The default text search configuration will be set to "english".
+2026-10-07T01:50:48.8336557Z  2026-10-07 01:49:49.231 UTC [63] LOG:  database system was shut down at 2026-10-07 01:49:49 UTC
+2026-10-07T01:50:48.8337213Z  
+2026-10-07T01:50:48.8339377Z  2026-10-07 01:49:49.234 UTC [1] LOG:  database system is ready to accept connections
+2026-10-07T01:50:48.8340091Z  Data page checksums are disabled.
+2026-10-07T01:50:48.8340869Z  
+2026-10-07T01:50:48.8342084Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-10-07T01:50:48.8345677Z  creating subdirectories ... ok
+2026-10-07T01:50:48.8346293Z  selecting dynamic shared memory implementation ... posix
+2026-10-07T01:50:48.8346951Z  selecting default max_connections ... 100
+2026-10-07T01:50:48.8347506Z  selecting default shared_buffers ... 128MB
+2026-10-07T01:50:48.8348175Z  selecting default time zone ... Etc/UTC
+2026-10-07T01:50:48.8348796Z  creating configuration files ... ok
+2026-10-07T01:50:48.8349322Z  running bootstrap script ... ok
+2026-10-07T01:50:48.8349805Z  performing post-bootstrap initialization ... ok
+2026-10-07T01:50:48.8350368Z  syncing data to disk ... ok
+2026-10-07T01:50:48.8350773Z  
+2026-10-07T01:50:48.8351082Z  
+2026-10-07T01:50:48.8351490Z  Success. You can now start the database server using:
+2026-10-07T01:50:48.8352021Z  
+2026-10-07T01:50:48.8352460Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-10-07T01:50:48.8353016Z  
+2026-10-07T01:50:48.8354136Z  waiting for server to start....2026-10-07 01:49:48.919 UTC [47] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-07T01:50:48.8355695Z  2026-10-07 01:49:48.919 UTC [47] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-07T01:50:48.8356735Z  2026-10-07 01:49:48.922 UTC [50] LOG:  database system was shut down at 2026-10-07 01:49:48 UTC
+2026-10-07T01:50:48.8357739Z  2026-10-07 01:49:48.926 UTC [47] LOG:  database system is ready to accept connections
+2026-10-07T01:50:48.8358998Z   done
+2026-10-07T01:50:48.8359404Z  server started
+2026-10-07T01:50:48.8359801Z  CREATE DATABASE
+2026-10-07T01:50:48.8360181Z  
+2026-10-07T01:50:48.8360493Z  
+2026-10-07T01:50:48.8361360Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-07T01:50:48.8362245Z  
+2026-10-07T01:50:48.8362942Z  waiting for server to shut down...2026-10-07 01:49:49.107 UTC [47] LOG:  received fast shutdown request
+2026-10-07T01:50:48.8364370Z  .2026-10-07 01:49:49.107 UTC [47] LOG:  aborting any active transactions
+2026-10-07T01:50:48.8365522Z  2026-10-07 01:49:49.111 UTC [47] LOG:  background worker "logical replication launcher" (PID 53) exited with exit code 1
+2026-10-07T01:50:48.8366315Z  2026-10-07 01:49:49.111 UTC [48] LOG:  shutting down
+2026-10-07T01:50:48.8366923Z  2026-10-07 01:49:49.112 UTC [48] LOG:  checkpoint starting: shutdown immediate
+2026-10-07T01:50:48.8368437Z  2026-10-07 01:49:49.129 UTC [48] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.013 s, sync=0.004 s, total=0.018 s; sync files=301, longest=0.003 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0F0, redo lsn=0/191F0F0
+2026-10-07T01:50:48.8369930Z  2026-10-07 01:49:49.136 UTC [47] LOG:  database system is shut down
+2026-10-07T01:50:48.8370393Z   done
+2026-10-07T01:50:48.8370648Z  server stopped
+2026-10-07T01:50:48.8370860Z  
+2026-10-07T01:50:48.8371124Z  PostgreSQL init process complete; ready for start up.
+2026-10-07T01:50:48.8371519Z  
+2026-10-07T01:50:48.8379269Z Stop and remove container: 371f6df69a324e03bbb0e46871540122_postgres16_9eb548
+2026-10-07T01:50:48.8384178Z ##[command]/usr/bin/docker rm --force 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:50:49.9395817Z 672005376fda13539c1ecaafb6da0e8dad91fce03464edcafcd053dd0b285f1d
+2026-10-07T01:50:49.9438439Z Remove container network: github_network_3a1e1067798a4a1db5e7785111fbef7f
+2026-10-07T01:50:49.9443740Z ##[command]/usr/bin/docker network rm github_network_3a1e1067798a4a1db5e7785111fbef7f
+2026-10-07T01:50:50.0230219Z github_network_3a1e1067798a4a1db5e7785111fbef7f
+2026-10-07T01:50:50.0301944Z Cleaning up orphan processes

@@ -28,4 +28,6 @@ Deploy the additive Prisma migration before the caller binary. It adds only the 
 
 Regression coverage checks impossible versus eligible fairness starts, the rejected overtime example, malformed/null policy facts, benchmark cron isolation, actual failed preview persistence and unchanged appointments, typed overnight failure/cancellation receipts, skipped/succeeded outcomes and continuation to other dates. PostgreSQL tests run in the hosted integration job; local Docker Desktop remains unavailable. Local Java, nullability and portal results and intermediate failures are retained in the receipt. Hosted exact-head gates and owner review are required before this phase is delivered.
 
+The initial hosted migration applied, but the schema-contract gate lacked inventory entries for the new native date and timestamp-with-time-zone columns. The correction explicitly checks those types and adds every overnight receipt column to the Java contract inventory. Existing type and nullability assertions remain enforced. The failed hosted job and correction evidence are retained separately from the initial receipt.
+
 Steps 10-16 remain pending. No fixture evidence establishes production savings, fairness improvement frequency, runtime benefit, service capacity or remote promotion readiness.
