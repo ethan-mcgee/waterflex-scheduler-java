@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "step": 7,
+  "recordedAtUtc": "2026-10-06T23:45:14.682449+00:00",
+  "priorHead": "d3ed866f290a8941784dac18e3bad1a2d85126d1",
+  "issue": "Git automatic text filtering normalized committed raw log line endings. Original local logs and recorded receipts remained intact; their raw byte hashes did not match the earlier normalized Git blobs.",
+  "correction": "Mark phase 7 evidence -text -whitespace, restage original raw bytes and verify both working-tree and committed blob hashes against unchanged original receipts. No source or receipt hashes are refreshed.",
+  "checkedEvidenceFiles": 30,
+  "normalizedFiles": [
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/audit-helpers.log",
+      "recordedOriginalSha256": "b81c09294ca67a4ab2a574a94b8843270c1baf38fd7e407d267ba3c5df42bcab",
+      "priorNormalizedGitBlobSha256": "ef3b46813af86b2c55d39d0f34ab9e417239bce1b013a32539a162a0ee166ec5"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/baseline.log",
+      "recordedOriginalSha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d",
+      "priorNormalizedGitBlobSha256": "940a04268a7c3053ed31ea08bc079c7e6c334d040ff05655fde647b106f140bb"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/compile-1.log",
+      "recordedOriginalSha256": "ecd4ae9f232f04ea05ac708656434e5a90b007fe871a70ba9ec41d3760a483aa",
+      "priorNormalizedGitBlobSha256": "3ea863dacb97735008a3f3b78176564682567c6f6fec6c1de321f95ebae86d0b"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/compile-2.log",
+      "recordedOriginalSha256": "03c99be9510992cc65a35c1f67a1651dd36db288e92402d7687c117160b3b928",
+      "priorNormalizedGitBlobSha256": "50ef03dff56375a961520c1df55c5931ba36f38576493b6bc732c67cb8bee774"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/experiments.log",
+      "recordedOriginalSha256": "4ba17aaeec6216780720c39182b738ef61f731a88f5e6cf87a0e3f23a036a5de",
+      "priorNormalizedGitBlobSha256": "3703ae908b043a1ef567ec6582c95a6dfc3fe9c02d48b21c3eb50e5983462797"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/java-complete.log",
+      "recordedOriginalSha256": "bf9172c887288afb992641aad07f38b9d25f6648f81c83c77d76f67b86e6516e",
+      "priorNormalizedGitBlobSha256": "8667b00844bf358e420f7aaed19cc913e87b2fab031c2c1797de79bb0b0686b2"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/java-final.log",
+      "recordedOriginalSha256": "dfa90d9f2b7225863760d58bbfd3c4e5dade0e969f3ff0df431c560faa095720",
+      "priorNormalizedGitBlobSha256": "c180960e45a66563b0a91dee1ae5ac662634f668aa377569b6ad174eb771c8c4"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/local-database-unavailable.log",
+      "recordedOriginalSha256": "30a786b43f022606574044a5312e95be06044f5f054ef80370ec96ad9ca87557",
+      "priorNormalizedGitBlobSha256": "f483f86044ba93edf623caef1bf99eaf18aec85d7bf92c76f46915f4e1f0719f"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-1.log",
+      "recordedOriginalSha256": "6d9cbf6d5fa607a32c8b84d857716c7bc87b6de0f3c672834f564177f596d07f",
+      "priorNormalizedGitBlobSha256": "28a71b2a3380945f2b546cd7c78dff9c079302d42a359a453e434ec15a376e0a"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-2.log",
+      "recordedOriginalSha256": "40c1ddb067a94495e6da6e742ab0b8a489baef4d5457623005b7026110412f60",
+      "priorNormalizedGitBlobSha256": "815ca67a3b29f5b6c76a529f26bf6a68cc25c02a6ee833962416ce564f27fffe"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-3.log",
+      "recordedOriginalSha256": "b54d84268c843286d033387284067540f2ffcb30acd1aeda833edac9aad7c842",
+      "priorNormalizedGitBlobSha256": "be06ffb5dec144d8a917ce8c0b3e6fb28f5988a76695e5c0df2ae9ad26457943"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-4.log",
+      "recordedOriginalSha256": "50dbc7fb22c3f554a67a678f13c1753643340f33175d5ae813da9c5df3195b01",
+      "priorNormalizedGitBlobSha256": "97d9c38901acf190f09229fafe0a37ab7ae4a3ff7a0ad2c47f4872edcb5f7e60"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-accepted.log",
+      "recordedOriginalSha256": "17277143ad5b97917d7cc0cd0d967c8d8d245abf36cfba91e92142d952a9150e",
+      "priorNormalizedGitBlobSha256": "b7ddb66f9245ef8aaceea844640a0aeeb4b8b64813e0a14dd800e056041c455a"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-complete.log",
+      "recordedOriginalSha256": "02962dcfb5cc067a9203c90803a8bf94a6a2cd098a70f4b28b6628f60f5976cb",
+      "priorNormalizedGitBlobSha256": "6793cdd4aaa4398a4d4bd61cc1425e8d27d5782ce99705d018488de385fe4f73"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/nullability-final.log",
+      "recordedOriginalSha256": "ef04fb3caf93fd6b49152437ebe195e15c11b72e552ee9e8675068a015dabfd1",
+      "priorNormalizedGitBlobSha256": "df8f0e4d01be49a81c533d3d2eb8d1b536bdd995858b918dfe41db5d2dec1fcf"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/portal-build.log",
+      "recordedOriginalSha256": "067d2c0b3916a42cbd15bbd495c3646db5b30967112c2e2e5360f851506f645e",
+      "priorNormalizedGitBlobSha256": "8db058632a458f74191586178996dedad014f6220ddc63e63dd58840571eb5b2"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/portal-lint.log",
+      "recordedOriginalSha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2",
+      "priorNormalizedGitBlobSha256": "11a0d6f7907693c0d8bbdc784becf6dcc6b0a33b327d382cff722f9dadfe3e51"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/portal-nullability.log",
+      "recordedOriginalSha256": "49963693e087d1fcd6ab3cd73bae78b837df92e9bdd109b641cb74f9e8e9f3db",
+      "priorNormalizedGitBlobSha256": "6e12f4bf7e725252bb25537de6a1ab420fd7b856d7d9cb4a9297c68a983fce25"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/portal-typecheck.log",
+      "recordedOriginalSha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c",
+      "priorNormalizedGitBlobSha256": "b50c606130632c42d9a378de9a21e293c5b7ba64d88531da398c745ca883ca31"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/portal-unit.log",
+      "recordedOriginalSha256": "f0bb709af73468ff8fcc86210eff3d596880fa691448c70b9ae5320a8eff9ecf",
+      "priorNormalizedGitBlobSha256": "64dd6265e516ae01c7d19ba790759e88b645f9e48b0a04281e53ccd32d1f15f0"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/prisma-generate.log",
+      "recordedOriginalSha256": "e2b551736450d99655bd9a312de1dce1a972bc0cd84ed3ddde40253681143cbe",
+      "priorNormalizedGitBlobSha256": "cbab8c0058202325f32b0228e15b9c000f94095e21dacb69bb5076f9b99c9573"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/testcompile-1.log",
+      "recordedOriginalSha256": "f40b2a9db5d8cff9aeab0358b00de6e8b240190ffabb8bd56add3a13e73f38f0",
+      "priorNormalizedGitBlobSha256": "2ae1153f8b6573f260f1cb79f3eeb9245f7bccd8509bb8c7b75a322899656e29"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/testcompile-2.log",
+      "recordedOriginalSha256": "019b385ae6c337f0b86d199b8e89928d2ca08d19c989607d0afc9609fb46445c",
+      "priorNormalizedGitBlobSha256": "c7e0e337e2d7c33b90b9e325ae664c06aed9d32f4ad38e8edb6c04b79d078467"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/correction-java.log",
+      "recordedOriginalSha256": "fbca6f5e715888c2c6fd11baf4331eb5deed112d334bb84590a8f3f814d588f1",
+      "priorNormalizedGitBlobSha256": "67776b807947d8793c05c9aa740e4eef736caee490ecf49093e8114908099c54"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/correction-nullability.log",
+      "recordedOriginalSha256": "fe35ebe6f6e2a6a6520cac9a003e1b3ba3de1040514bdeacb20e2092ec2b20b0",
+      "priorNormalizedGitBlobSha256": "39442852ecd5860e25042f3a0a43504003c40d147da8b928f2e7f27ad4b7999c"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/ci-failure-37546168695.log",
+      "recordedOriginalSha256": "cbe9b852f782ccdf172931cff5a812f17a13c4c50c7eb269bfb8d82f3ae22c57",
+      "priorNormalizedGitBlobSha256": "34d07c90dfccc1fa4c2b442318dcf9afca983ff9cb5ff15b83501ee1f43f3cfb"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/ci-integration-37546168695.log",
+      "recordedOriginalSha256": "c10c1927fec818b35e62692d6b8243d859a1d91891b9db320e431a4ae7d721de",
+      "priorNormalizedGitBlobSha256": "46f84db864ccf61baabd711fcfa9d7ff5cf5670e0f3fcfc3634e300c1b48c31f"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/fixture-nullability.log",
+      "recordedOriginalSha256": "d64e52a5ddd8044649ad1d7a7e28a82bf8395aaf3999c7c8d8995eac1ca20417",
+      "priorNormalizedGitBlobSha256": "cb0bfab06d8f2cb995f195d5bf650559723f0899ea2ffd41f4cc6083bb6a6994"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/fixture-javac.log",
+      "recordedOriginalSha256": "547f893b5c579ba0b89b3af724b677cea037f274cc4645a5a98e4188c758aa27",
+      "priorNormalizedGitBlobSha256": "4a48167c604cf2f3c2b541c79d3451b4fd8892b0fdf4060fe402040c83638eeb"
+    },
+    {
+      "path": "docs/timefold-audit/remediation/phase7/evidence/ci-database-37546980462-raw.log",
+      "recordedOriginalSha256": "8d9203d7efb30c29149727e0ad49af22a5ae83116b4a398e465cc88dc630ba65",
+      "priorNormalizedGitBlobSha256": "33d8b383a1968678796d9ac4b3bae660e23f043a0b5ecc9fa7a09a9c4bcb6435"
+    }
+  ],
+  "priorRuntimeHeadAcceptance": {
+    "status": "passed",
+    "checks": 6,
+    "ciRunId": 37547403637,
+    "assertionRunId": 37547403577
+  },
+  "limitations": [
+    "Earlier commits retain their normalized Git blobs; this append-only receipt records that defect. The final tree contains the original raw bytes recorded by the receipts.",
+    "Final evidence-only head CI remains a required delivery gate. No production code or configuration changed."
+  ]
+}

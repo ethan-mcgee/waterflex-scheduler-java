@@ -1,0 +1,41 @@
+Booking and optimizer integration	Time-off repair smoke	﻿2026-10-06T23:26:29.1311697Z ##[group]Run for repetition in 1 2 3; do
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1312898Z ^[[36;1mfor repetition in 1 2 3; do^[[0m
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1313575Z ^[[36;1m  echo "Time-off smoke repetition $repetition"^[[0m
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1314484Z ^[[36;1m  node ../infra/run-check.mjs time-off-$repetition npm run test:time-off:integration^[[0m
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1315352Z ^[[36;1mdone^[[0m
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1385798Z shell: /usr/bin/bash -e {0}
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1386100Z env:
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1386581Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1387051Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1387485Z   DATABASE_USER: waterflex
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1387763Z   DATABASE_PASSWORD: waterflex
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1388060Z   ROUTING_URL: http://127.0.0.1:18001
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1388383Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1388703Z   ENGINE_URL: http://127.0.0.1:18000
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1388980Z   SERVER_PORT: 18000
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1389261Z   TIME_OFF_POLL_DELAY_MS: 1000
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1389660Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1390203Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1390629Z   MAVEN_ARGS: -ntp
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1390865Z ##[endgroup]
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.1488426Z Time-off smoke repetition 1
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.2745435Z 
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.2746528Z > waterflex-web@0.1.0 test:time-off:integration
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.2747691Z > tsx scripts/smoke-time-off.ts
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:29.2748318Z 
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1920487Z AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1944254Z + actual - expected
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1955476Z 
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1971394Z + 'PENDING'
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1974331Z - 'APPROVED'
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1974750Z 
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1975687Z     at main (/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/web/scripts/smoke-time-off.ts:64:12) {
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1976972Z   generatedMessage: true,
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1977631Z   code: 'ERR_ASSERTION',
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1978249Z   actual: 'PENDING',
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1978877Z   expected: 'APPROVED',
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1979638Z   operator: 'strictEqual',
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1980364Z   diff: 'simple'
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.1980930Z }
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.2203850Z time-off-1: failed in 1.0s
+Booking and optimizer integration	Time-off repair smoke	2026-10-06T23:26:30.2252990Z ##[error]Process completed with exit code 1.

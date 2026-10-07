@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "step": 7,
+  "recordedAtUtc": "2026-10-06T23:21:57.931209+00:00",
+  "startingRevision": "dc4a6ed601eeab140c833fbc27af546cd17626df",
+  "scope": "Caller-owned durable daily attempts, short repeatable-read capture, explicit routing identity, calculation outside transactions, fenced proposal persistence and guarded independent apply.",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/java-final.log",
+      "testsIncludingSkipped": 248,
+      "skipped": 1
+    },
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/nullability-accepted.log",
+      "testsIncludingSkipped": 248,
+      "skipped": 1
+    },
+    {
+      "command": "npm --prefix web run prisma:generate",
+      "status": "passed",
+      "log": "evidence/prisma-generate.log"
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "log": "evidence/portal-lint.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "log": "evidence/portal-typecheck.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "log": "evidence/portal-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "log": "evidence/portal-unit.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "log": "evidence/portal-build.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "log": "evidence/experiments.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "log": "evidence/audit-helpers.log"
+    },
+    {
+      "command": ".scratch/timefold-audit-python/Scripts/python.exe docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "log": "evidence/baseline.log"
+    }
+  ],
+  "priorAttempts": [
+    {
+      "log": "evidence/compile-1.log",
+      "status": "passed-superseded"
+    },
+    {
+      "log": "evidence/compile-2.log",
+      "status": "passed-superseded"
+    },
+    {
+      "log": "evidence/java-complete.log",
+      "status": "passed-superseded"
+    },
+    {
+      "log": "evidence/local-database-unavailable.log",
+      "status": "unavailable"
+    },
+    {
+      "log": "evidence/nullability-1.log",
+      "status": "failed"
+    },
+    {
+      "log": "evidence/nullability-2.log",
+      "status": "failed"
+    },
+    {
+      "log": "evidence/nullability-3.log",
+      "status": "passed-superseded"
+    },
+    {
+      "log": "evidence/nullability-4.log",
+      "status": "passed-superseded"
+    },
+    {
+      "log": "evidence/nullability-complete.log",
+      "status": "failed"
+    },
+    {
+      "log": "evidence/nullability-final.log",
+      "status": "passed-superseded"
+    },
+    {
+      "log": "evidence/testcompile-1.log",
+      "status": "failed"
+    },
+    {
+      "log": "evidence/testcompile-2.log",
+      "status": "passed-superseded"
+    }
+  ],
+  "pendingGates": [
+    "Hosted exact-head PostgreSQL/schema acceptance, affected HTTP/browser workflows and assertion jobs",
+    "Owner PR review"
+  ],
+  "limitations": [
+    "Docker Desktop crashed initializing its inference listener; local PostgreSQL tests did not execute. Hosted PostgreSQL acceptance is mandatory.",
+    "The conservative final table fence spans metros and its contention and revision/serialization cost are unmeasured. No performance promotion or workload experiment.",
+    "External routing identity is observed before persistence and revalidated during locked apply; this is not an atomic provider lock.",
+    "Expiry reconciliation is lazy on key inspection. Unknown cleanup failures leave the claimed record and expiry inspectable.",
+    "Calls without an explicit key create fresh attempts. Logical result references can survive explicit fixture/benchmark run cleanup.",
+    "Historical receipts were preserved. Local evidence does not certify deployed configuration or production savings."
+  ],
+  "sources": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyAttempts.java",
+      "sha256CanonicalLf": "77da5ee79948359fe5402991e0306bf9cdbe6d38f312843a21f735bc7a6a6923"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyOperation.java",
+      "sha256CanonicalLf": "58b51b66845dec065356a89e5416a544f1d1c1469f2693e240ccabb682819d6d"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "sha256CanonicalLf": "3f8fa53dd54d6f7fe56a01ae4fb15dfb3aad3e48b9098de34e8dc3cac1b50866"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyAttemptDatabaseIT.java",
+      "sha256CanonicalLf": "f6e43a6bf4cf87346f8e5ae489937879e35c348872c1a5b28ca2e106bfe72349"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyOperationTest.java",
+      "sha256CanonicalLf": "3b4fc8bfeb671318bc944c882a74f43d11726b6638d247cf128798bf755f85f7"
+    },
+    {
+      "path": "web/prisma/migrations/20261006230000_durable_daily_attempts/migration.sql",
+      "sha256CanonicalLf": "683701467870b4d366182e239b69a2ebe716e67b92e5020c020eca30373f3aad"
+    },
+    {
+      "path": "web/prisma/schema.prisma",
+      "sha256CanonicalLf": "da68d85a9b571aee350555295728984cc0625cf0f43a12e2d5c2fb26623c09f1"
+    },
+    {
+      "path": "web/scripts/check-java-schema-contract.ts",
+      "sha256CanonicalLf": "558188cb59e57f5cc0cdb455cbbd4a354d4a904c400e503af34106e07cc379be"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "evidence/audit-helpers.log",
+      "sha256": "b81c09294ca67a4ab2a574a94b8843270c1baf38fd7e407d267ba3c5df42bcab"
+    },
+    {
+      "path": "evidence/baseline.log",
+      "sha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d"
+    },
+    {
+      "path": "evidence/compile-1.log",
+      "sha256": "ecd4ae9f232f04ea05ac708656434e5a90b007fe871a70ba9ec41d3760a483aa"
+    },
+    {
+      "path": "evidence/compile-2.log",
+      "sha256": "03c99be9510992cc65a35c1f67a1651dd36db288e92402d7687c117160b3b928"
+    },
+    {
+      "path": "evidence/experiments.log",
+      "sha256": "4ba17aaeec6216780720c39182b738ef61f731a88f5e6cf87a0e3f23a036a5de"
+    },
+    {
+      "path": "evidence/java-complete.log",
+      "sha256": "bf9172c887288afb992641aad07f38b9d25f6648f81c83c77d76f67b86e6516e"
+    },
+    {
+      "path": "evidence/java-final.log",
+      "sha256": "dfa90d9f2b7225863760d58bbfd3c4e5dade0e969f3ff0df431c560faa095720"
+    },
+    {
+      "path": "evidence/local-database-unavailable.log",
+      "sha256": "30a786b43f022606574044a5312e95be06044f5f054ef80370ec96ad9ca87557"
+    },
+    {
+      "path": "evidence/nullability-1.log",
+      "sha256": "6d9cbf6d5fa607a32c8b84d857716c7bc87b6de0f3c672834f564177f596d07f"
+    },
+    {
+      "path": "evidence/nullability-2.log",
+      "sha256": "40c1ddb067a94495e6da6e742ab0b8a489baef4d5457623005b7026110412f60"
+    },
+    {
+      "path": "evidence/nullability-3.log",
+      "sha256": "b54d84268c843286d033387284067540f2ffcb30acd1aeda833edac9aad7c842"
+    },
+    {
+      "path": "evidence/nullability-4.log",
+      "sha256": "50dbc7fb22c3f554a67a678f13c1753643340f33175d5ae813da9c5df3195b01"
+    },
+    {
+      "path": "evidence/nullability-accepted.log",
+      "sha256": "17277143ad5b97917d7cc0cd0d967c8d8d245abf36cfba91e92142d952a9150e"
+    },
+    {
+      "path": "evidence/nullability-complete.log",
+      "sha256": "02962dcfb5cc067a9203c90803a8bf94a6a2cd098a70f4b28b6628f60f5976cb"
+    },
+    {
+      "path": "evidence/nullability-final.log",
+      "sha256": "ef04fb3caf93fd6b49152437ebe195e15c11b72e552ee9e8675068a015dabfd1"
+    },
+    {
+      "path": "evidence/portal-build.log",
+      "sha256": "067d2c0b3916a42cbd15bbd495c3646db5b30967112c2e2e5360f851506f645e"
+    },
+    {
+      "path": "evidence/portal-lint.log",
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/portal-nullability.log",
+      "sha256": "49963693e087d1fcd6ab3cd73bae78b837df92e9bdd109b641cb74f9e8e9f3db"
+    },
+    {
+      "path": "evidence/portal-typecheck.log",
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/portal-unit.log",
+      "sha256": "f0bb709af73468ff8fcc86210eff3d596880fa691448c70b9ae5320a8eff9ecf"
+    },
+    {
+      "path": "evidence/prisma-generate.log",
+      "sha256": "e2b551736450d99655bd9a312de1dce1a972bc0cd84ed3ddde40253681143cbe"
+    },
+    {
+      "path": "evidence/testcompile-1.log",
+      "sha256": "f40b2a9db5d8cff9aeab0358b00de6e8b240190ffabb8bd56add3a13e73f38f0"
+    },
+    {
+      "path": "evidence/testcompile-2.log",
+      "sha256": "019b385ae6c337f0b86d199b8e89928d2ca08d19c989607d0afc9609fb46445c"
+    }
+  ]
+}

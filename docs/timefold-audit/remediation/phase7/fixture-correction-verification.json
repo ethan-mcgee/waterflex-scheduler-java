@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "step": 7,
+  "recordedAtUtc": "2026-10-06T23:35:27.745008+00:00",
+  "originalReceipts": [
+    "verification.json",
+    "correction-verification.json"
+  ],
+  "failedHead": "3f38320c47e5c4dbb0ed9bb6c402bc573c250c54",
+  "failedRunId": 37546980462,
+  "reason": "The fresh repair fixture did not become stale. First cold engine initialization exhausted its explicit 100 ms test-only cap before search began, returning SKIPPED; nine other database tests passed.",
+  "correction": "Only the cold fresh-repair/apply fixture receives an explicit one-second cap. Production code, 20-second operation and 15-second search limits are unchanged. No automatic retry.",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd -Pnullability -pl scheduler-service clean test-compile --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/fixture-nullability.log",
+      "scope": "Clean compilation only; no database executed locally."
+    },
+    {
+      "command": ".\\mvnw.cmd -pl scheduler-service clean test-compile --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/fixture-javac.log",
+      "scope": "Clean compilation only; no database executed locally."
+    }
+  ],
+  "pendingGates": [
+    "Final exact-head hosted PostgreSQL ten-test acceptance and full workflow CI",
+    "Final exact-head assertion matrix",
+    "Owner review"
+  ],
+  "sources": [
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyAttemptDatabaseIT.java",
+      "sha256CanonicalLf": "642fd15198b7b563ab5f6265efc9c9c9bb95d36939e801c64291d990872106cc"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "evidence/fixture-nullability.log",
+      "sha256": "d64e52a5ddd8044649ad1d7a7e28a82bf8395aaf3999c7c8d8995eac1ca20417"
+    },
+    {
+      "path": "evidence/fixture-javac.log",
+      "sha256": "547f893b5c579ba0b89b3af724b677cea037f274cc4645a5a98e4188c758aa27"
+    },
+    {
+      "path": "evidence/ci-database-37546980462-raw.log",
+      "sha256": "8d9203d7efb30c29149727e0ad49af22a5ae83116b4a398e465cc88dc630ba65"
+    }
+  ]
+}

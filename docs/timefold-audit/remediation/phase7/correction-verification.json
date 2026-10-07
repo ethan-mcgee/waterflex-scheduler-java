@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "step": 7,
+  "recordedAtUtc": "2026-10-06T23:30:53.628716+00:00",
+  "originalReceipt": "verification.json",
+  "originalHead": "c421406d8b439d48507833a184635e5616d31af0",
+  "failure": {
+    "runId": 37546168695,
+    "job": "Time-off repair smoke",
+    "status": "failed",
+    "reason": "Repair preliminary snapshot preceded initialization of schedule-day rows in a separate snapshot; the comparison rejected its own initialization.",
+    "retainedLogs": [
+      "evidence/ci-failure-37546168695.log",
+      "evidence/ci-integration-37546168695.log"
+    ]
+  },
+  "correction": "Capture repair eligibility and database facts in one repeatable-read transaction. Compare the final revision including initialization with current inputs before solve and fenced persistence.",
+  "regression": "Fresh repair begins without schedule-day rows, produces REPAIR_PREVIEW, retains a successful keyed attempt, and applies only after independent locked validation.",
+  "checks": [
+    {
+      "command": ".\\mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/correction-java.log",
+      "testsIncludingSkipped": 248,
+      "skipped": 1
+    },
+    {
+      "command": ".\\mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/correction-nullability.log",
+      "testsIncludingSkipped": 248,
+      "skipped": 1
+    }
+  ],
+  "pendingGates": [
+    "Corrected exact-head hosted PostgreSQL ten-test acceptance and affected business workflows",
+    "Corrected exact-head full CI and assertion matrix",
+    "Owner review"
+  ],
+  "sources": [
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "sha256CanonicalLf": "6c02f99f846e6606ab55390825ac78f62bb818f501905bc18574dbb9dd8d066d"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyAttemptDatabaseIT.java",
+      "sha256CanonicalLf": "1d14817b4bee33e68a2ed1d399cdde22fa947e481b4ca014d89fe75d828d023f"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "evidence/correction-java.log",
+      "sha256": "fbca6f5e715888c2c6fd11baf4331eb5deed112d334bb84590a8f3f814d588f1"
+    },
+    {
+      "path": "evidence/correction-nullability.log",
+      "sha256": "fe35ebe6f6e2a6a6520cac9a003e1b3ba3de1040514bdeacb20e2092ec2b20b0"
+    },
+    {
+      "path": "evidence/ci-failure-37546168695.log",
+      "sha256": "cbe9b852f782ccdf172931cff5a812f17a13c4c50c7eb269bfb8d82f3ae22c57"
+    },
+    {
+      "path": "evidence/ci-integration-37546168695.log",
+      "sha256": "c10c1927fec818b35e62692d6b8243d859a1d91891b9db320e431a4ae7d721de"
+    }
+  ]
+}

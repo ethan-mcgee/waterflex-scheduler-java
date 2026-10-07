@@ -1,0 +1,1282 @@
+﻿2026-10-06T23:31:01.9456846Z Current runner version: '2.337.0'
+2026-10-06T23:31:01.9486108Z ##[group]Runner Image Provisioner
+2026-10-06T23:31:01.9487131Z Hosted Compute Agent
+2026-10-06T23:31:01.9487720Z Version: 20260901.588
+2026-10-06T23:31:01.9488321Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-06T23:31:01.9489141Z Build Date: 2026-09-01T19:56:44Z
+2026-10-06T23:31:01.9489818Z Worker ID: {0b4c65fd-f49d-46fd-a70f-37fd1a97712e}
+2026-10-06T23:31:01.9490563Z Azure Region: centralus
+2026-10-06T23:31:01.9491147Z ##[endgroup]
+2026-10-06T23:31:01.9492950Z ##[group]Operating System
+2026-10-06T23:31:01.9493690Z Ubuntu
+2026-10-06T23:31:01.9494268Z 24.04.5
+2026-10-06T23:31:01.9494799Z LTS
+2026-10-06T23:31:01.9495306Z ##[endgroup]
+2026-10-06T23:31:01.9495846Z ##[group]Runner Image
+2026-10-06T23:31:01.9496538Z Image: ubuntu-24.04
+2026-10-06T23:31:01.9497122Z Version: 20260927.320.1
+2026-10-06T23:31:01.9498492Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-06T23:31:01.9500101Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-06T23:31:01.9501145Z ##[endgroup]
+2026-10-06T23:31:01.9502525Z ##[group]GITHUB_TOKEN Permissions
+2026-10-06T23:31:01.9504777Z Contents: read
+2026-10-06T23:31:01.9505375Z Metadata: read
+2026-10-06T23:31:01.9505936Z ##[endgroup]
+2026-10-06T23:31:01.9508353Z Secret source: Actions
+2026-10-06T23:31:01.9509300Z Cache mode: write
+2026-10-06T23:31:01.9510101Z Prepare workflow directory
+2026-10-06T23:31:02.0207725Z Prepare all required actions
+2026-10-06T23:31:02.0280409Z Getting action download info
+2026-10-06T23:31:02.3537332Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-06T23:31:02.4955383Z Download action repository 'actions/setup-java@v6' (SHA:de7274f081f381c8f8158605e0321c36c376e2e6)
+2026-10-06T23:31:03.3687603Z Download action repository 'actions/setup-node@v7' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-10-06T23:31:03.5716318Z Download action repository 'actions/upload-artifact@v7' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+2026-10-06T23:31:03.8873793Z Complete job name: Booking and optimizer integration
+2026-10-06T23:31:03.9427400Z ##[group]Checking docker version
+2026-10-06T23:31:03.9437486Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-10-06T23:31:04.0408003Z '1.48'
+2026-10-06T23:31:04.0420792Z Docker daemon API version: '1.48'
+2026-10-06T23:31:04.0422414Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-10-06T23:31:04.0593707Z '1.48'
+2026-10-06T23:31:04.0603323Z Docker client API version: '1.48'
+2026-10-06T23:31:04.0610060Z ##[endgroup]
+2026-10-06T23:31:04.0612885Z ##[group]Clean up resources from previous jobs
+2026-10-06T23:31:04.0618277Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=285b09"
+2026-10-06T23:31:04.0770918Z ##[command]/usr/bin/docker network prune --force --filter "label=285b09"
+2026-10-06T23:31:04.0927820Z ##[endgroup]
+2026-10-06T23:31:04.0928739Z ##[group]Create local container network
+2026-10-06T23:31:04.0940241Z ##[command]/usr/bin/docker network create --label 285b09 github_network_0d179463e910406ca7e546ffd326ee56
+2026-10-06T23:31:04.2076296Z 69bfb152bdf9fd089b96e515162ce84d9886cbcaa7b9b7377cb711edb5f384bc
+2026-10-06T23:31:04.2085474Z ##[endgroup]
+2026-10-06T23:31:04.2114668Z ##[group]Starting postgres service container
+2026-10-06T23:31:04.2135269Z ##[command]/usr/bin/docker pull postgres:16
+2026-10-06T23:31:04.7641443Z 16: Pulling from library/postgres
+2026-10-06T23:31:04.9584160Z ecc510c1e359: Pulling fs layer
+2026-10-06T23:31:04.9584987Z 79faf13a8736: Pulling fs layer
+2026-10-06T23:31:04.9585408Z 6456bfbf35e7: Pulling fs layer
+2026-10-06T23:31:04.9585808Z b353db459ed1: Pulling fs layer
+2026-10-06T23:31:04.9586302Z 99f49de4fe2b: Pulling fs layer
+2026-10-06T23:31:04.9586719Z 83d1a2a3917c: Pulling fs layer
+2026-10-06T23:31:04.9587158Z 715ea0948cb1: Pulling fs layer
+2026-10-06T23:31:04.9587606Z 486e8305f56f: Pulling fs layer
+2026-10-06T23:31:04.9588481Z e7d675f11ded: Pulling fs layer
+2026-10-06T23:31:04.9588902Z c49864c27f35: Pulling fs layer
+2026-10-06T23:31:04.9589314Z 770ef8b308ea: Pulling fs layer
+2026-10-06T23:31:04.9589803Z 50c25daa0302: Pulling fs layer
+2026-10-06T23:31:04.9593339Z 8309db3ae5b6: Pulling fs layer
+2026-10-06T23:31:04.9593880Z 9731e27f2541: Pulling fs layer
+2026-10-06T23:31:04.9594497Z b353db459ed1: Waiting
+2026-10-06T23:31:04.9599674Z 99f49de4fe2b: Waiting
+2026-10-06T23:31:04.9600594Z 83d1a2a3917c: Waiting
+2026-10-06T23:31:04.9601218Z 715ea0948cb1: Waiting
+2026-10-06T23:31:04.9602334Z 486e8305f56f: Waiting
+2026-10-06T23:31:04.9602973Z e7d675f11ded: Waiting
+2026-10-06T23:31:04.9603820Z c49864c27f35: Waiting
+2026-10-06T23:31:04.9604381Z 770ef8b308ea: Waiting
+2026-10-06T23:31:04.9604980Z 50c25daa0302: Waiting
+2026-10-06T23:31:04.9605945Z 8309db3ae5b6: Waiting
+2026-10-06T23:31:04.9606543Z 9731e27f2541: Waiting
+2026-10-06T23:31:05.1292910Z 79faf13a8736: Download complete
+2026-10-06T23:31:05.2257072Z 6456bfbf35e7: Verifying Checksum
+2026-10-06T23:31:05.2257841Z 6456bfbf35e7: Download complete
+2026-10-06T23:31:05.2794964Z ecc510c1e359: Verifying Checksum
+2026-10-06T23:31:05.2796568Z ecc510c1e359: Download complete
+2026-10-06T23:31:05.3122801Z b353db459ed1: Verifying Checksum
+2026-10-06T23:31:05.3124870Z b353db459ed1: Download complete
+2026-10-06T23:31:05.4663437Z 715ea0948cb1: Verifying Checksum
+2026-10-06T23:31:05.4677734Z 715ea0948cb1: Download complete
+2026-10-06T23:31:05.4874690Z 99f49de4fe2b: Download complete
+2026-10-06T23:31:05.5038893Z 83d1a2a3917c: Verifying Checksum
+2026-10-06T23:31:05.5056648Z 83d1a2a3917c: Download complete
+2026-10-06T23:31:05.6074008Z 486e8305f56f: Verifying Checksum
+2026-10-06T23:31:05.6354643Z 486e8305f56f: Download complete
+2026-10-06T23:31:05.6494761Z c49864c27f35: Verifying Checksum
+2026-10-06T23:31:05.6503367Z c49864c27f35: Download complete
+2026-10-06T23:31:05.8594511Z 770ef8b308ea: Verifying Checksum
+2026-10-06T23:31:05.8676645Z 770ef8b308ea: Download complete
+2026-10-06T23:31:05.8679497Z 50c25daa0302: Verifying Checksum
+2026-10-06T23:31:05.8680227Z 50c25daa0302: Download complete
+2026-10-06T23:31:05.9270151Z 8309db3ae5b6: Verifying Checksum
+2026-10-06T23:31:05.9272765Z 8309db3ae5b6: Download complete
+2026-10-06T23:31:05.9300829Z 9731e27f2541: Verifying Checksum
+2026-10-06T23:31:05.9307384Z 9731e27f2541: Download complete
+2026-10-06T23:31:06.1255962Z e7d675f11ded: Verifying Checksum
+2026-10-06T23:31:06.1260204Z e7d675f11ded: Download complete
+2026-10-06T23:31:07.1245736Z ecc510c1e359: Pull complete
+2026-10-06T23:31:14.7715812Z 79faf13a8736: Pull complete
+2026-10-06T23:31:15.1222589Z 6456bfbf35e7: Pull complete
+2026-10-06T23:31:15.2109302Z b353db459ed1: Pull complete
+2026-10-06T23:31:15.7130819Z 99f49de4fe2b: Pull complete
+2026-10-06T23:31:15.8412438Z 83d1a2a3917c: Pull complete
+2026-10-06T23:31:15.8524355Z 715ea0948cb1: Pull complete
+2026-10-06T23:31:15.8722506Z 486e8305f56f: Pull complete
+2026-10-06T23:31:21.4216701Z e7d675f11ded: Pull complete
+2026-10-06T23:31:21.4425942Z c49864c27f35: Pull complete
+2026-10-06T23:31:21.4524812Z 770ef8b308ea: Pull complete
+2026-10-06T23:31:21.4703248Z 50c25daa0302: Pull complete
+2026-10-06T23:31:21.4789313Z 8309db3ae5b6: Pull complete
+2026-10-06T23:31:21.4870750Z 9731e27f2541: Pull complete
+2026-10-06T23:31:21.4913501Z Digest: sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+2026-10-06T23:31:21.4938025Z Status: Downloaded newer image for postgres:16
+2026-10-06T23:31:21.4953857Z docker.io/library/postgres:16
+2026-10-06T23:31:21.5010145Z ##[command]/usr/bin/docker create --name 2b00b4fcaaf248c2b169909672afef3a_postgres16_867243 --label 285b09 --network github_network_0d179463e910406ca7e546ffd326ee56 --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U waterflex -d waterflex_test" --health-interval 10s --health-timeout 5s --health-retries 5 -e "POSTGRES_USER=waterflex" -e "POSTGRES_PASSWORD=waterflex" -e "POSTGRES_DB=waterflex_test" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+2026-10-06T23:31:21.5252122Z ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:21.5263526Z ##[command]/usr/bin/docker start ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:21.7207382Z ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:21.7265758Z ##[command]/usr/bin/docker ps --all --filter id=ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-10-06T23:31:21.7518394Z ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690 Up Less than a second (health: starting)
+2026-10-06T23:31:21.7544132Z ##[command]/usr/bin/docker port ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:21.7725778Z 5432/tcp -> 0.0.0.0:5432
+2026-10-06T23:31:21.7739742Z 5432/tcp -> [::]:5432
+2026-10-06T23:31:21.7783514Z ##[endgroup]
+2026-10-06T23:31:21.7793297Z ##[group]Waiting for all services to be ready
+2026-10-06T23:31:21.7809858Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:21.7957207Z starting
+2026-10-06T23:31:21.7976210Z postgres service is starting, waiting 2 seconds before checking again.
+2026-10-06T23:31:23.7977896Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:23.8099556Z starting
+2026-10-06T23:31:23.8106595Z postgres service is starting, waiting 4 seconds before checking again.
+2026-10-06T23:31:27.9540816Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:27.9668189Z starting
+2026-10-06T23:31:27.9679145Z postgres service is starting, waiting 8 seconds before checking again.
+2026-10-06T23:31:36.2345454Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:31:36.2474656Z healthy
+2026-10-06T23:31:36.2486203Z postgres service is healthy.
+2026-10-06T23:31:36.2486988Z ##[endgroup]
+2026-10-06T23:31:36.2727344Z ##[group]Run actions/checkout@v7
+2026-10-06T23:31:36.2727788Z with:
+2026-10-06T23:31:36.2728029Z   repository: ethan-mcgee/waterflex-scheduler-java
+2026-10-06T23:31:36.2730241Z   token: ***
+2026-10-06T23:31:36.2730435Z   ssh-strict: true
+2026-10-06T23:31:36.2730610Z   ssh-user: git
+2026-10-06T23:31:36.2730793Z   persist-credentials: true
+2026-10-06T23:31:36.2731005Z   clean: true
+2026-10-06T23:31:36.2731622Z   sparse-checkout-cone-mode: true
+2026-10-06T23:31:36.2731872Z   fetch-depth: 1
+2026-10-06T23:31:36.2732066Z   fetch-tags: false
+2026-10-06T23:31:36.2732285Z   show-progress: true
+2026-10-06T23:31:36.2732478Z   lfs: false
+2026-10-06T23:31:36.2732638Z   submodules: false
+2026-10-06T23:31:36.2732825Z   set-safe-directory: true
+2026-10-06T23:31:36.2733053Z   allow-unsafe-pr-checkout: false
+2026-10-06T23:31:36.2733370Z env:
+2026-10-06T23:31:36.2733754Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:36.2734160Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:36.2734473Z   DATABASE_USER: waterflex
+2026-10-06T23:31:36.2734672Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:31:36.2734877Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:31:36.2735137Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:31:36.2735384Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:31:36.2735592Z   SERVER_PORT: 18000
+2026-10-06T23:31:36.2735795Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:31:36.2735983Z ##[endgroup]
+2026-10-06T23:31:36.3635967Z Syncing repository: ethan-mcgee/waterflex-scheduler-java
+2026-10-06T23:31:36.3637695Z ##[group]Getting Git version info
+2026-10-06T23:31:36.3638379Z Working directory is '/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java'
+2026-10-06T23:31:36.3639607Z [command]/usr/bin/git version
+2026-10-06T23:31:36.3744729Z git version 2.55.0
+2026-10-06T23:31:36.3760856Z ##[endgroup]
+2026-10-06T23:31:36.3769891Z Temporarily overriding HOME='/home/runner/work/_temp/9b44c78c-60e5-4356-8b11-55a9661029ee' before making global git config changes
+2026-10-06T23:31:36.3770886Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-06T23:31:36.3777518Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java
+2026-10-06T23:31:36.3823716Z Deleting the contents of '/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java'
+2026-10-06T23:31:36.3826395Z ##[group]Determining repository object format
+2026-10-06T23:31:36.3827798Z ##[endgroup]
+2026-10-06T23:31:36.3828451Z ##[group]Initializing the repository
+2026-10-06T23:31:36.3832605Z [command]/usr/bin/git init /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java
+2026-10-06T23:31:36.3925734Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-06T23:31:36.3926546Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-06T23:31:36.3927298Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-06T23:31:36.3927947Z hint: call:
+2026-10-06T23:31:36.3929412Z hint:
+2026-10-06T23:31:36.3930375Z hint: 	git config --global init.defaultBranch <name>
+2026-10-06T23:31:36.3930820Z hint:
+2026-10-06T23:31:36.3931273Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-06T23:31:36.3932181Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-06T23:31:36.3932720Z hint:
+2026-10-06T23:31:36.3933072Z hint: 	git branch -m <name>
+2026-10-06T23:31:36.3933423Z hint:
+2026-10-06T23:31:36.3933866Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-06T23:31:36.3934706Z Initialized empty Git repository in /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/
+2026-10-06T23:31:36.3937211Z [command]/usr/bin/git remote add origin https://github.com/ethan-mcgee/waterflex-scheduler-java
+2026-10-06T23:31:36.3983127Z ##[endgroup]
+2026-10-06T23:31:36.3984131Z ##[group]Disabling automatic garbage collection
+2026-10-06T23:31:36.3984698Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-06T23:31:36.4016013Z ##[endgroup]
+2026-10-06T23:31:36.4016541Z ##[group]Setting up auth
+2026-10-06T23:31:36.4016967Z Removing SSH command configuration
+2026-10-06T23:31:36.4017510Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-06T23:31:36.4042706Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-06T23:31:36.4332608Z Removing HTTP extra header
+2026-10-06T23:31:36.4333412Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-06T23:31:36.4356914Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-06T23:31:36.4510141Z Removing includeIf entries pointing to credentials config files
+2026-10-06T23:31:36.4515328Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-06T23:31:36.4540479Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-06T23:31:36.4708353Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-06T23:31:36.4733184Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path /home/runner/work/_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:31:36.4765683Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:31:36.4789039Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:31:36.4816741Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:31:36.4871804Z ##[endgroup]
+2026-10-06T23:31:36.4872397Z ##[group]Fetching the repository
+2026-10-06T23:31:36.4878564Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e52d38c35fa514865874c804e7857ed220d2bae0:refs/remotes/pull/57/merge
+2026-10-06T23:31:38.8983910Z From https://github.com/ethan-mcgee/waterflex-scheduler-java
+2026-10-06T23:31:38.8991690Z  * [new ref]         e52d38c35fa514865874c804e7857ed220d2bae0 -> pull/57/merge
+2026-10-06T23:31:38.8993577Z ##[endgroup]
+2026-10-06T23:31:38.8994081Z ##[group]Determining the checkout info
+2026-10-06T23:31:38.8994716Z ##[endgroup]
+2026-10-06T23:31:38.8995393Z [command]/usr/bin/git sparse-checkout disable
+2026-10-06T23:31:38.9038586Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-06T23:31:38.9065985Z ##[group]Checking out the ref
+2026-10-06T23:31:38.9069722Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/57/merge
+2026-10-06T23:31:39.2848188Z Note: switching to 'refs/remotes/pull/57/merge'.
+2026-10-06T23:31:39.2848990Z 
+2026-10-06T23:31:39.2854992Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-06T23:31:39.2858034Z changes and commit them, and you can discard any commits you make in this
+2026-10-06T23:31:39.2859118Z state without impacting any branches by switching back to a branch.
+2026-10-06T23:31:39.2859577Z 
+2026-10-06T23:31:39.2889937Z If you want to create a new branch to retain commits you create, you may
+2026-10-06T23:31:39.2904520Z do so (now or later) by using -c with the switch command. Example:
+2026-10-06T23:31:39.2905542Z 
+2026-10-06T23:31:39.2905903Z   git switch -c <new-branch-name>
+2026-10-06T23:31:39.2916325Z 
+2026-10-06T23:31:39.2916827Z Or undo this operation with:
+2026-10-06T23:31:39.2917396Z 
+2026-10-06T23:31:39.2917677Z   git switch -
+2026-10-06T23:31:39.2918184Z 
+2026-10-06T23:31:39.2918638Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-06T23:31:39.2931152Z 
+2026-10-06T23:31:39.2931865Z HEAD is now at e52d38c Merge 3f38320c47e5c4dbb0ed9bb6c402bc573c250c54 into dc4a6ed601eeab140c833fbc27af546cd17626df
+2026-10-06T23:31:39.2933222Z ##[endgroup]
+2026-10-06T23:31:39.2933973Z [command]/usr/bin/git log -1 --format=%H
+2026-10-06T23:31:39.2934318Z e52d38c35fa514865874c804e7857ed220d2bae0
+2026-10-06T23:31:39.3193907Z ##[group]Run actions/setup-java@v6
+2026-10-06T23:31:39.3194149Z with:
+2026-10-06T23:31:39.3194328Z   distribution: temurin
+2026-10-06T23:31:39.3194522Z   java-version: 25
+2026-10-06T23:31:39.3194702Z   cache: maven
+2026-10-06T23:31:39.3194907Z   java-package: jdk
+2026-10-06T23:31:39.3195081Z   check-latest: false
+2026-10-06T23:31:39.3195267Z   force-download: false
+2026-10-06T23:31:39.3195457Z   set-default: true
+2026-10-06T23:31:39.3195633Z   server-id: github
+2026-10-06T23:31:39.3195833Z   mvn-repositories-include-central: true
+2026-10-06T23:31:39.3196094Z   mvn-repositories-prioritize-central: true
+2026-10-06T23:31:39.3196341Z   overwrite-settings: true
+2026-10-06T23:31:39.3196541Z   cache-read-only: false
+2026-10-06T23:31:39.3196743Z   job-status: success
+2026-10-06T23:31:39.3198631Z   token: ***
+2026-10-06T23:31:39.3198824Z   show-download-progress: false
+2026-10-06T23:31:39.3199043Z   problem-matcher: true
+2026-10-06T23:31:39.3199342Z env:
+2026-10-06T23:31:39.3199716Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:39.3200028Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:39.3200322Z   DATABASE_USER: waterflex
+2026-10-06T23:31:39.3200529Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:31:39.3200743Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:31:39.3200976Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:31:39.3201212Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:31:39.3201578Z   SERVER_PORT: 18000
+2026-10-06T23:31:39.3201797Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:31:39.3201997Z ##[endgroup]
+2026-10-06T23:31:39.3856923Z ##[group]Installed distributions
+2026-10-06T23:31:39.4402363Z Resolved Java 25.0.4+1 from tool-cache
+2026-10-06T23:31:39.4402832Z Setting Java 25.0.4+1 as the default
+2026-10-06T23:31:39.4403104Z 
+2026-10-06T23:31:39.4403254Z Java configuration:
+2026-10-06T23:31:39.4403619Z   Distribution: temurin
+2026-10-06T23:31:39.4404097Z   Version: 25.0.4+1
+2026-10-06T23:31:39.4404593Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:31:39.4404918Z 
+2026-10-06T23:31:39.4430642Z ##[endgroup]
+2026-10-06T23:31:39.4535131Z Creating settings.xml with server-id: github
+2026-10-06T23:31:39.4536670Z Creating toolchains.xml for JDK version 25 from temurin
+2026-10-06T23:31:39.4537424Z Writing to /home/runner/.m2/settings.xml
+2026-10-06T23:31:39.4540361Z Writing to /home/runner/.m2/toolchains.xml
+2026-10-06T23:31:39.4541195Z Configured MAVEN_ARGS to include -ntp to suppress Maven transfer progress logs. Set 'show-download-progress: true' to keep the download progress output.
+2026-10-06T23:31:39.8055378Z Cache hit for: setup-java-Linux-x64-maven-wrapper-d1233d4703c78d2f25ad824054d4d4e06cca122b095082197d585fc5502c2222
+2026-10-06T23:31:39.8314707Z Cache hit for: setup-java-Linux-x64-maven-d1d8df9bf3e01e8bfdee39621054f66723940ee27010a4c02e405b17e9aeacd5
+2026-10-06T23:31:40.5266088Z Received 18429785 of 18429785 (100.0%), 30.6 MBs/sec
+2026-10-06T23:31:40.5267293Z Cache Size: ~18 MB (18429785 B)
+2026-10-06T23:31:40.5318094Z [command]/usr/bin/tar -xf /home/runner/work/_temp/7d894778-e687-443a-a23d-14c5b487bc0a/cache.tzst -P -C /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java --use-compress-program unzstd
+2026-10-06T23:31:40.5981904Z Cache restored successfully
+2026-10-06T23:31:40.6005925Z maven-wrapper cache restored from key: setup-java-Linux-x64-maven-wrapper-d1233d4703c78d2f25ad824054d4d4e06cca122b095082197d585fc5502c2222
+2026-10-06T23:31:40.8533979Z Received 80743416 of 80743416 (100.0%), 87.0 MBs/sec
+2026-10-06T23:31:40.8534728Z Cache Size: ~77 MB (80743416 B)
+2026-10-06T23:31:40.8601144Z [command]/usr/bin/tar -xf /home/runner/work/_temp/2ea1265e-ba08-4e9a-98c2-1057f33479e3/cache.tzst -P -C /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java --use-compress-program unzstd
+2026-10-06T23:31:40.9915781Z Cache restored successfully
+2026-10-06T23:31:40.9951225Z Cache restored from key: setup-java-Linux-x64-maven-d1d8df9bf3e01e8bfdee39621054f66723940ee27010a4c02e405b17e9aeacd5
+2026-10-06T23:31:41.0110501Z ##[group]Run actions/setup-node@v7
+2026-10-06T23:31:41.0110739Z with:
+2026-10-06T23:31:41.0110923Z   node-version: 22
+2026-10-06T23:31:41.0111105Z   cache: npm
+2026-10-06T23:31:41.0111455Z   cache-dependency-path: web/package-lock.json
+2026-10-06T23:31:41.0111723Z   check-latest: false
+2026-10-06T23:31:41.0113575Z   token: ***
+2026-10-06T23:31:41.0113789Z   package-manager-cache: true
+2026-10-06T23:31:41.0114008Z env:
+2026-10-06T23:31:41.0114300Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:41.0114629Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:41.0114926Z   DATABASE_USER: waterflex
+2026-10-06T23:31:41.0115151Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:31:41.0115373Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:31:41.0115611Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:31:41.0115861Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:31:41.0116208Z   SERVER_PORT: 18000
+2026-10-06T23:31:41.0116458Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:31:41.0116743Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:31:41.0117123Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:31:41.0117438Z   MAVEN_ARGS: -ntp
+2026-10-06T23:31:41.0117630Z ##[endgroup]
+2026-10-06T23:31:41.1303604Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-06T23:31:41.1304458Z ##[group]Environment details
+2026-10-06T23:31:44.5727929Z node: v22.23.3
+2026-10-06T23:31:44.5728654Z npm: 10.9.9
+2026-10-06T23:31:44.5729262Z yarn: 1.22.22
+2026-10-06T23:31:44.5730799Z ##[endgroup]
+2026-10-06T23:31:44.5744211Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+2026-10-06T23:31:44.8868624Z /home/runner/.npm
+2026-10-06T23:31:45.4050268Z Cache hit for: node-cache-Linux-x64-npm-0bce0b2980feff38bd9c1f41b4b051b276b963d28c811a583d9416662dd491e4
+2026-10-06T23:31:46.5825969Z Received 100663296 of 164552281 (61.2%), 95.9 MBs/sec
+2026-10-06T23:31:47.1433145Z Received 164552281 of 164552281 (100.0%), 100.9 MBs/sec
+2026-10-06T23:31:47.1452526Z Cache Size: ~157 MB (164552281 B)
+2026-10-06T23:31:47.1540646Z [command]/usr/bin/tar -xf /home/runner/work/_temp/5c264781-bcb7-4ce2-88c0-cd532fa99a86/cache.tzst -P -C /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java --use-compress-program unzstd
+2026-10-06T23:31:47.3521250Z Cache restored successfully
+2026-10-06T23:31:47.3593848Z Cache restored from key: node-cache-Linux-x64-npm-0bce0b2980feff38bd9c1f41b4b051b276b963d28c811a583d9416662dd491e4
+2026-10-06T23:31:47.3730811Z ##[group]Run npm ci && npm run prisma:generate
+2026-10-06T23:31:47.3731523Z [36;1mnpm ci && npm run prisma:generate[0m
+2026-10-06T23:31:47.3940323Z shell: /usr/bin/bash -e {0}
+2026-10-06T23:31:47.3940698Z env:
+2026-10-06T23:31:47.3941722Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:47.3942680Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:31:47.3943194Z   DATABASE_USER: waterflex
+2026-10-06T23:31:47.3943525Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:31:47.3943882Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:31:47.3944320Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:31:47.3944738Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:31:47.3945087Z   SERVER_PORT: 18000
+2026-10-06T23:31:47.3945377Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:31:47.3945804Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:31:47.3946376Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:31:47.3946770Z   MAVEN_ARGS: -ntp
+2026-10-06T23:31:47.3947038Z ##[endgroup]
+2026-10-06T23:31:51.7678285Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-10-06T23:31:51.8443502Z npm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead
+2026-10-06T23:31:51.8472642Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-10-06T23:31:51.9457677Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-06T23:31:52.0981537Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-10-06T23:31:52.9351979Z npm warn deprecated glob@10.3.10: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-10-06T23:31:54.6707120Z npm warn deprecated eslint@8.57.0: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-10-06T23:32:06.5752546Z 
+2026-10-06T23:32:06.5754021Z added 381 packages, and audited 382 packages in 19s
+2026-10-06T23:32:06.5754699Z 
+2026-10-06T23:32:06.5755430Z 146 packages are looking for funding
+2026-10-06T23:32:06.5756025Z   run `npm fund` for details
+2026-10-06T23:32:06.7004262Z 
+2026-10-06T23:32:06.7005842Z 8 vulnerabilities (6 high, 2 critical)
+2026-10-06T23:32:06.7006543Z 
+2026-10-06T23:32:06.7006950Z To address issues that do not require attention, run:
+2026-10-06T23:32:06.7008105Z   npm audit fix
+2026-10-06T23:32:06.7008455Z 
+2026-10-06T23:32:06.7008850Z To address all issues (including breaking changes), run:
+2026-10-06T23:32:06.7009862Z   npm audit fix --force
+2026-10-06T23:32:06.7010293Z 
+2026-10-06T23:32:06.7019694Z Run `npm audit` for details.
+2026-10-06T23:32:06.8282445Z 
+2026-10-06T23:32:06.8293460Z > waterflex-web@0.1.0 prisma:generate
+2026-10-06T23:32:06.8294175Z > prisma generate
+2026-10-06T23:32:06.8294563Z 
+2026-10-06T23:32:07.1543101Z Prisma schema loaded from prisma/schema.prisma
+2026-10-06T23:32:08.0423132Z 
+2026-10-06T23:32:08.0425039Z ✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 483ms
+2026-10-06T23:32:08.0425836Z 
+2026-10-06T23:32:08.0426297Z Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+2026-10-06T23:32:08.0426817Z 
+2026-10-06T23:32:08.0427353Z Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+2026-10-06T23:32:08.0427773Z 
+2026-10-06T23:32:08.2518790Z ##[group]Run npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+2026-10-06T23:32:08.2519387Z [36;1mnpx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract[0m
+2026-10-06T23:32:08.2558019Z shell: /usr/bin/bash -e {0}
+2026-10-06T23:32:08.2558460Z env:
+2026-10-06T23:32:08.2559367Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:08.2559788Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:08.2560232Z   DATABASE_USER: waterflex
+2026-10-06T23:32:08.2560545Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:32:08.2560857Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:32:08.2561205Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:32:08.2561776Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:32:08.2562112Z   SERVER_PORT: 18000
+2026-10-06T23:32:08.2562390Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:32:08.2562862Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:08.2563368Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:08.2563798Z   MAVEN_ARGS: -ntp
+2026-10-06T23:32:08.2564061Z ##[endgroup]
+2026-10-06T23:32:08.8450343Z Prisma schema loaded from prisma/schema.prisma
+2026-10-06T23:32:08.8518212Z Datasource "db": PostgreSQL database "waterflex_test", schema "public" at "127.0.0.1:5432"
+2026-10-06T23:32:08.9204653Z 
+2026-10-06T23:32:08.9205763Z 37 migrations found in prisma/migrations
+2026-10-06T23:32:08.9252854Z 
+2026-10-06T23:32:09.0054385Z Applying migration `20260904180051_init`
+2026-10-06T23:32:09.0414439Z Applying migration `20260904182402_slot_hold_job_fk`
+2026-10-06T23:32:09.0450963Z Applying migration `20260907190000_booking_retry_and_hold_location`
+2026-10-06T23:32:09.0481966Z Applying migration `20260907220000_omaha_service_area`
+2026-10-06T23:32:09.0512245Z Applying migration `20260908170000_optimizer_overtime`
+2026-10-06T23:32:09.0532380Z Applying migration `20260908171000_optimizer_weights`
+2026-10-06T23:32:09.0560999Z Applying migration `20260909120000_progressive_booking_optimization`
+2026-10-06T23:32:09.0672930Z Applying migration `20260916120000_java_scheduler_foundation`
+2026-10-06T23:32:09.0799554Z Applying migration `20260917120000_booking_reservations_time_off`
+2026-10-06T23:32:09.0942366Z Applying migration `20260918120000_road_cache_retention`
+2026-10-06T23:32:09.0972087Z Applying migration `20260918130000_optimization_route_snapshot`
+2026-10-06T23:32:09.0997959Z Applying migration `20260921190000_booking_test_runs`
+2026-10-06T23:32:09.1086635Z Applying migration `20260921213000_booking_test_purge`
+2026-10-06T23:32:09.1110578Z Applying migration `20260921214000_omaha_state_code`
+2026-10-06T23:32:09.1131145Z Applying migration `20260921220000_resumable_booking_test_generation`
+2026-10-06T23:32:09.1171994Z Applying migration `20260922120000_time_off_category`
+2026-10-06T23:32:09.1209724Z Applying migration `20260922230000_technician_profiles_availability`
+2026-10-06T23:32:09.1272675Z Applying migration `20260923010000_dealership_route_endpoints`
+2026-10-06T23:32:09.1344693Z Applying migration `20260923120000_multi_depot_dealerships`
+2026-10-06T23:32:09.1467955Z Applying migration `20260923130000_depot_pin_provenance`
+2026-10-06T23:32:09.1492456Z Applying migration `20260923190000_technician_home_pin_provenance`
+2026-10-06T23:32:09.1513542Z Applying migration `20260924010000_scheduling_policy`
+2026-10-06T23:32:09.1542193Z Applying migration `20260924020000_offer_overtime_authorization`
+2026-10-06T23:32:09.1565336Z Applying migration `20260924030000_repair_overtime_approval`
+2026-10-06T23:32:09.1593971Z Applying migration `20260924040000_reservation_arrangements`
+2026-10-06T23:32:09.1677119Z Applying migration `20260924050000_reservation_obligations`
+2026-10-06T23:32:09.1706842Z Applying migration `20260924060000_booking_search_diagnostics`
+2026-10-06T23:32:09.1730232Z Applying migration `20260924070000_current_route_timing`
+2026-10-06T23:32:09.1752703Z Applying migration `20260924080000_booking_search_cancellation`
+2026-10-06T23:32:09.1809639Z Applying migration `20260929180000_booking_location_confirmation`
+2026-10-06T23:32:09.1833645Z Applying migration `20260929220000_durable_booking_search`
+2026-10-06T23:32:09.1874968Z Applying migration `20260929223000_booking_search_incumbent`
+2026-10-06T23:32:09.1897288Z Applying migration `20260929230000_retire_incompatible_promises`
+2026-10-06T23:32:09.1922698Z Applying migration `20260929233000_retire_legacy_standalone_offers`
+2026-10-06T23:32:09.1943894Z Applying migration `20261006194000_exact_monetary_contract`
+2026-10-06T23:32:09.2121138Z Applying migration `20261006212000_daily_score_contract`
+2026-10-06T23:32:09.2147434Z Applying migration `20261006230000_durable_daily_attempts`
+2026-10-06T23:32:09.2222226Z 
+2026-10-06T23:32:09.2233121Z The following migration(s) have been applied:
+2026-10-06T23:32:09.2241116Z 
+2026-10-06T23:32:09.2244492Z migrations/
+2026-10-06T23:32:09.2245535Z   └─ 20260904180051_init/
+2026-10-06T23:32:09.2253728Z     └─ migration.sql
+2026-10-06T23:32:09.2254725Z   └─ 20260904182402_slot_hold_job_fk/
+2026-10-06T23:32:09.2255325Z     └─ migration.sql
+2026-10-06T23:32:09.2256006Z   └─ 20260907190000_booking_retry_and_hold_location/
+2026-10-06T23:32:09.2256663Z     └─ migration.sql
+2026-10-06T23:32:09.2257273Z   └─ 20260907220000_omaha_service_area/
+2026-10-06T23:32:09.2257847Z     └─ migration.sql
+2026-10-06T23:32:09.2258436Z   └─ 20260908170000_optimizer_overtime/
+2026-10-06T23:32:09.2258984Z     └─ migration.sql
+2026-10-06T23:32:09.2259559Z   └─ 20260908171000_optimizer_weights/
+2026-10-06T23:32:09.2260105Z     └─ migration.sql
+2026-10-06T23:32:09.2260730Z   └─ 20260909120000_progressive_booking_optimization/
+2026-10-06T23:32:09.2261476Z     └─ migration.sql
+2026-10-06T23:32:09.2262103Z   └─ 20260916120000_java_scheduler_foundation/
+2026-10-06T23:32:09.2262658Z     └─ migration.sql
+2026-10-06T23:32:09.2263227Z   └─ 20260917120000_booking_reservations_time_off/
+2026-10-06T23:32:09.2263860Z     └─ migration.sql
+2026-10-06T23:32:09.2264330Z   └─ 20260918120000_road_cache_retention/
+2026-10-06T23:32:09.2264941Z     └─ migration.sql
+2026-10-06T23:32:09.2265518Z   └─ 20260918130000_optimization_route_snapshot/
+2026-10-06T23:32:09.2266119Z     └─ migration.sql
+2026-10-06T23:32:09.2266689Z   └─ 20260921190000_booking_test_runs/
+2026-10-06T23:32:09.2267317Z     └─ migration.sql
+2026-10-06T23:32:09.2267894Z   └─ 20260921213000_booking_test_purge/
+2026-10-06T23:32:09.2268998Z     └─ migration.sql
+2026-10-06T23:32:09.2269565Z   └─ 20260921214000_omaha_state_code/
+2026-10-06T23:32:09.2270077Z     └─ migration.sql
+2026-10-06T23:32:09.2270619Z   └─ 20260921220000_resumable_booking_test_generation/
+2026-10-06T23:32:09.2271229Z     └─ migration.sql
+2026-10-06T23:32:09.2272023Z   └─ 20260922120000_time_off_category/
+2026-10-06T23:32:09.2272595Z     └─ migration.sql
+2026-10-06T23:32:09.2273239Z   └─ 20260922230000_technician_profiles_availability/
+2026-10-06T23:32:09.2273799Z     └─ migration.sql
+2026-10-06T23:32:09.2274419Z   └─ 20260923010000_dealership_route_endpoints/
+2026-10-06T23:32:09.2274992Z     └─ migration.sql
+2026-10-06T23:32:09.2275546Z   └─ 20260923120000_multi_depot_dealerships/
+2026-10-06T23:32:09.2276073Z     └─ migration.sql
+2026-10-06T23:32:09.2276664Z   └─ 20260923130000_depot_pin_provenance/
+2026-10-06T23:32:09.2277189Z     └─ migration.sql
+2026-10-06T23:32:09.2277756Z   └─ 20260923190000_technician_home_pin_provenance/
+2026-10-06T23:32:09.2278289Z     └─ migration.sql
+2026-10-06T23:32:09.2278755Z   └─ 20260924010000_scheduling_policy/
+2026-10-06T23:32:09.2279300Z     └─ migration.sql
+2026-10-06T23:32:09.2279783Z   └─ 20260924020000_offer_overtime_authorization/
+2026-10-06T23:32:09.2280324Z     └─ migration.sql
+2026-10-06T23:32:09.2280873Z   └─ 20260924030000_repair_overtime_approval/
+2026-10-06T23:32:09.2281809Z     └─ migration.sql
+2026-10-06T23:32:09.2282373Z   └─ 20260924040000_reservation_arrangements/
+2026-10-06T23:32:09.2282975Z     └─ migration.sql
+2026-10-06T23:32:09.2283770Z   └─ 20260924050000_reservation_obligations/
+2026-10-06T23:32:09.2284333Z     └─ migration.sql
+2026-10-06T23:32:09.2284976Z   └─ 20260924060000_booking_search_diagnostics/
+2026-10-06T23:32:09.2285525Z     └─ migration.sql
+2026-10-06T23:32:09.2286131Z   └─ 20260924070000_current_route_timing/
+2026-10-06T23:32:09.2286694Z     └─ migration.sql
+2026-10-06T23:32:09.2287321Z   └─ 20260924080000_booking_search_cancellation/
+2026-10-06T23:32:09.2287911Z     └─ migration.sql
+2026-10-06T23:32:09.2288524Z   └─ 20260929180000_booking_location_confirmation/
+2026-10-06T23:32:09.2289054Z     └─ migration.sql
+2026-10-06T23:32:09.2289667Z   └─ 20260929220000_durable_booking_search/
+2026-10-06T23:32:09.2290240Z     └─ migration.sql
+2026-10-06T23:32:09.2290785Z   └─ 20260929223000_booking_search_incumbent/
+2026-10-06T23:32:09.2291602Z     └─ migration.sql
+2026-10-06T23:32:09.2292241Z   └─ 20260929230000_retire_incompatible_promises/
+2026-10-06T23:32:09.2292769Z     └─ migration.sql
+2026-10-06T23:32:09.2293370Z   └─ 20260929233000_retire_legacy_standalone_offers/
+2026-10-06T23:32:09.2293961Z     └─ migration.sql
+2026-10-06T23:32:09.2294467Z   └─ 20261006194000_exact_monetary_contract/
+2026-10-06T23:32:09.2295082Z     └─ migration.sql
+2026-10-06T23:32:09.2295651Z   └─ 20261006212000_daily_score_contract/
+2026-10-06T23:32:09.2296233Z     └─ migration.sql
+2026-10-06T23:32:09.2296787Z   └─ 20261006230000_durable_daily_attempts/
+2026-10-06T23:32:09.2297397Z     └─ migration.sql
+2026-10-06T23:32:09.2297851Z       
+2026-10-06T23:32:09.2298438Z All migrations have been successfully applied.
+2026-10-06T23:32:09.2684099Z ┌─────────────────────────────────────────────────────────┐
+2026-10-06T23:32:09.2702928Z │  Update available 5.22.0 -> 8.0.0-rc.20                 │
+2026-10-06T23:32:09.2722718Z │                                                         │
+2026-10-06T23:32:09.2734679Z │  This is a major update - please follow the guide at    │
+2026-10-06T23:32:09.2735718Z │  https://pris.ly/d/major-version-upgrade                │
+2026-10-06T23:32:09.2736704Z │                                                         │
+2026-10-06T23:32:09.2737516Z │  Run the following to update                            │
+2026-10-06T23:32:09.2738354Z │    npm i --save-dev prisma@latest                       │
+2026-10-06T23:32:09.2739154Z │    npm i @prisma/client@latest                          │
+2026-10-06T23:32:09.2739967Z └─────────────────────────────────────────────────────────┘
+2026-10-06T23:32:09.8551063Z Running seed command `tsx prisma/seed.ts` ...
+2026-10-06T23:32:10.2801494Z Seed complete.
+2026-10-06T23:32:10.2991435Z 
+2026-10-06T23:32:10.2993248Z 🌱  The seed command has been executed.
+2026-10-06T23:32:10.4516980Z 
+2026-10-06T23:32:10.4518509Z > waterflex-web@0.1.0 test:schema-contract
+2026-10-06T23:32:10.4519394Z > tsx scripts/check-java-schema-contract.ts
+2026-10-06T23:32:10.4519809Z 
+2026-10-06T23:32:10.8111719Z Java and Prisma schema contract passed for 25 tables
+2026-10-06T23:32:10.8373547Z ##[group]Run npx prisma migrate deploy && npx tsx scripts/check-benchmark-cleanup.ts
+2026-10-06T23:32:10.8374141Z [36;1mnpx prisma migrate deploy && npx tsx scripts/check-benchmark-cleanup.ts[0m
+2026-10-06T23:32:10.8410623Z shell: /usr/bin/bash -e {0}
+2026-10-06T23:32:10.8410983Z env:
+2026-10-06T23:32:10.8411942Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test?schema=benchmark_cleanup_it
+2026-10-06T23:32:10.8412411Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:10.8412829Z   DATABASE_USER: waterflex
+2026-10-06T23:32:10.8413117Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:32:10.8413482Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:32:10.8413797Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:32:10.8414153Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:32:10.8414442Z   SERVER_PORT: 18000
+2026-10-06T23:32:10.8414749Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:32:10.8415231Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:10.8415708Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:10.8416078Z   MAVEN_ARGS: -ntp
+2026-10-06T23:32:10.8416435Z ##[endgroup]
+2026-10-06T23:32:11.4109519Z Prisma schema loaded from prisma/schema.prisma
+2026-10-06T23:32:11.4160272Z Datasource "db": PostgreSQL database "waterflex_test", schema "benchmark_cleanup_it" at "127.0.0.1:5432"
+2026-10-06T23:32:11.4812295Z 
+2026-10-06T23:32:11.4814497Z 37 migrations found in prisma/migrations
+2026-10-06T23:32:11.4815215Z 
+2026-10-06T23:32:11.5130330Z Applying migration `20260904180051_init`
+2026-10-06T23:32:11.5483567Z Applying migration `20260904182402_slot_hold_job_fk`
+2026-10-06T23:32:11.5516540Z Applying migration `20260907190000_booking_retry_and_hold_location`
+2026-10-06T23:32:11.5548595Z Applying migration `20260907220000_omaha_service_area`
+2026-10-06T23:32:11.5573332Z Applying migration `20260908170000_optimizer_overtime`
+2026-10-06T23:32:11.5594606Z Applying migration `20260908171000_optimizer_weights`
+2026-10-06T23:32:11.5620315Z Applying migration `20260909120000_progressive_booking_optimization`
+2026-10-06T23:32:11.5728209Z Applying migration `20260916120000_java_scheduler_foundation`
+2026-10-06T23:32:11.5854142Z Applying migration `20260917120000_booking_reservations_time_off`
+2026-10-06T23:32:11.5982762Z Applying migration `20260918120000_road_cache_retention`
+2026-10-06T23:32:11.6009707Z Applying migration `20260918130000_optimization_route_snapshot`
+2026-10-06T23:32:11.6030386Z Applying migration `20260921190000_booking_test_runs`
+2026-10-06T23:32:11.6126913Z Applying migration `20260921213000_booking_test_purge`
+2026-10-06T23:32:11.6148982Z Applying migration `20260921214000_omaha_state_code`
+2026-10-06T23:32:11.6168532Z Applying migration `20260921220000_resumable_booking_test_generation`
+2026-10-06T23:32:11.6210773Z Applying migration `20260922120000_time_off_category`
+2026-10-06T23:32:11.6231724Z Applying migration `20260922230000_technician_profiles_availability`
+2026-10-06T23:32:11.6307850Z Applying migration `20260923010000_dealership_route_endpoints`
+2026-10-06T23:32:11.6393863Z Applying migration `20260923120000_multi_depot_dealerships`
+2026-10-06T23:32:11.6513968Z Applying migration `20260923130000_depot_pin_provenance`
+2026-10-06T23:32:11.6538248Z Applying migration `20260923190000_technician_home_pin_provenance`
+2026-10-06T23:32:11.6557827Z Applying migration `20260924010000_scheduling_policy`
+2026-10-06T23:32:11.6590864Z Applying migration `20260924020000_offer_overtime_authorization`
+2026-10-06T23:32:11.6610179Z Applying migration `20260924030000_repair_overtime_approval`
+2026-10-06T23:32:11.6631786Z Applying migration `20260924040000_reservation_arrangements`
+2026-10-06T23:32:11.6713230Z Applying migration `20260924050000_reservation_obligations`
+2026-10-06T23:32:11.6741801Z Applying migration `20260924060000_booking_search_diagnostics`
+2026-10-06T23:32:11.6763952Z Applying migration `20260924070000_current_route_timing`
+2026-10-06T23:32:11.6784432Z Applying migration `20260924080000_booking_search_cancellation`
+2026-10-06T23:32:11.6836874Z Applying migration `20260929180000_booking_location_confirmation`
+2026-10-06T23:32:11.6858530Z Applying migration `20260929220000_durable_booking_search`
+2026-10-06T23:32:11.6898948Z Applying migration `20260929223000_booking_search_incumbent`
+2026-10-06T23:32:11.6916830Z Applying migration `20260929230000_retire_incompatible_promises`
+2026-10-06T23:32:11.6941023Z Applying migration `20260929233000_retire_legacy_standalone_offers`
+2026-10-06T23:32:11.6959246Z Applying migration `20261006194000_exact_monetary_contract`
+2026-10-06T23:32:11.7132396Z Applying migration `20261006212000_daily_score_contract`
+2026-10-06T23:32:11.7154914Z Applying migration `20261006230000_durable_daily_attempts`
+2026-10-06T23:32:11.7219723Z 
+2026-10-06T23:32:11.7231978Z The following migration(s) have been applied:
+2026-10-06T23:32:11.7251992Z 
+2026-10-06T23:32:11.7254655Z migrations/
+2026-10-06T23:32:11.7255558Z   └─ 20260904180051_init/
+2026-10-06T23:32:11.7256151Z     └─ migration.sql
+2026-10-06T23:32:11.7256877Z   └─ 20260904182402_slot_hold_job_fk/
+2026-10-06T23:32:11.7257480Z     └─ migration.sql
+2026-10-06T23:32:11.7258086Z   └─ 20260907190000_booking_retry_and_hold_location/
+2026-10-06T23:32:11.7258706Z     └─ migration.sql
+2026-10-06T23:32:11.7259315Z   └─ 20260907220000_omaha_service_area/
+2026-10-06T23:32:11.7259881Z     └─ migration.sql
+2026-10-06T23:32:11.7260445Z   └─ 20260908170000_optimizer_overtime/
+2026-10-06T23:32:11.7260906Z     └─ migration.sql
+2026-10-06T23:32:11.7261805Z   └─ 20260908171000_optimizer_weights/
+2026-10-06T23:32:11.7262415Z     └─ migration.sql
+2026-10-06T23:32:11.7263062Z   └─ 20260909120000_progressive_booking_optimization/
+2026-10-06T23:32:11.7263615Z     └─ migration.sql
+2026-10-06T23:32:11.7264211Z   └─ 20260916120000_java_scheduler_foundation/
+2026-10-06T23:32:11.7264746Z     └─ migration.sql
+2026-10-06T23:32:11.7265319Z   └─ 20260917120000_booking_reservations_time_off/
+2026-10-06T23:32:11.7265970Z     └─ migration.sql
+2026-10-06T23:32:11.7266569Z   └─ 20260918120000_road_cache_retention/
+2026-10-06T23:32:11.7267155Z     └─ migration.sql
+2026-10-06T23:32:11.7267715Z   └─ 20260918130000_optimization_route_snapshot/
+2026-10-06T23:32:11.7268337Z     └─ migration.sql
+2026-10-06T23:32:11.7268845Z   └─ 20260921190000_booking_test_runs/
+2026-10-06T23:32:11.7269429Z     └─ migration.sql
+2026-10-06T23:32:11.7269940Z   └─ 20260921213000_booking_test_purge/
+2026-10-06T23:32:11.7270529Z     └─ migration.sql
+2026-10-06T23:32:11.7271088Z   └─ 20260921214000_omaha_state_code/
+2026-10-06T23:32:11.7271901Z     └─ migration.sql
+2026-10-06T23:32:11.7272549Z   └─ 20260921220000_resumable_booking_test_generation/
+2026-10-06T23:32:11.7273097Z     └─ migration.sql
+2026-10-06T23:32:11.7273641Z   └─ 20260922120000_time_off_category/
+2026-10-06T23:32:11.7274143Z     └─ migration.sql
+2026-10-06T23:32:11.7274764Z   └─ 20260922230000_technician_profiles_availability/
+2026-10-06T23:32:11.7275330Z     └─ migration.sql
+2026-10-06T23:32:11.7276630Z   └─ 20260923010000_dealership_route_endpoints/
+2026-10-06T23:32:11.7277220Z     └─ migration.sql
+2026-10-06T23:32:11.7277809Z   └─ 20260923120000_multi_depot_dealerships/
+2026-10-06T23:32:11.7278400Z     └─ migration.sql
+2026-10-06T23:32:11.7278982Z   └─ 20260923130000_depot_pin_provenance/
+2026-10-06T23:32:11.7279527Z     └─ migration.sql
+2026-10-06T23:32:11.7280172Z   └─ 20260923190000_technician_home_pin_provenance/
+2026-10-06T23:32:11.7280789Z     └─ migration.sql
+2026-10-06T23:32:11.7281865Z   └─ 20260924010000_scheduling_policy/
+2026-10-06T23:32:11.7282978Z     └─ migration.sql
+2026-10-06T23:32:11.7283610Z   └─ 20260924020000_offer_overtime_authorization/
+2026-10-06T23:32:11.7284220Z     └─ migration.sql
+2026-10-06T23:32:11.7284816Z   └─ 20260924030000_repair_overtime_approval/
+2026-10-06T23:32:11.7285427Z     └─ migration.sql
+2026-10-06T23:32:11.7285997Z   └─ 20260924040000_reservation_arrangements/
+2026-10-06T23:32:11.7286622Z     └─ migration.sql
+2026-10-06T23:32:11.7287313Z   └─ 20260924050000_reservation_obligations/
+2026-10-06T23:32:11.7287920Z     └─ migration.sql
+2026-10-06T23:32:11.7288638Z   └─ 20260924060000_booking_search_diagnostics/
+2026-10-06T23:32:11.7289212Z     └─ migration.sql
+2026-10-06T23:32:11.7289829Z   └─ 20260924070000_current_route_timing/
+2026-10-06T23:32:11.7290381Z     └─ migration.sql
+2026-10-06T23:32:11.7290999Z   └─ 20260924080000_booking_search_cancellation/
+2026-10-06T23:32:11.7291817Z     └─ migration.sql
+2026-10-06T23:32:11.7292469Z   └─ 20260929180000_booking_location_confirmation/
+2026-10-06T23:32:11.7293037Z     └─ migration.sql
+2026-10-06T23:32:11.7293636Z   └─ 20260929220000_durable_booking_search/
+2026-10-06T23:32:11.7294229Z     └─ migration.sql
+2026-10-06T23:32:11.7294789Z   └─ 20260929223000_booking_search_incumbent/
+2026-10-06T23:32:11.7295336Z     └─ migration.sql
+2026-10-06T23:32:11.7295941Z   └─ 20260929230000_retire_incompatible_promises/
+2026-10-06T23:32:11.7296532Z     └─ migration.sql
+2026-10-06T23:32:11.7437357Z   └─ 20260929233000_retire_legacy_standalone_offers/
+2026-10-06T23:32:11.7457691Z     └─ migration.sql
+2026-10-06T23:32:11.7464012Z   └─ 20261006194000_exact_monetary_contract/
+2026-10-06T23:32:11.7464557Z     └─ migration.sql
+2026-10-06T23:32:11.7464977Z   └─ 20261006212000_daily_score_contract/
+2026-10-06T23:32:11.7465379Z     └─ migration.sql
+2026-10-06T23:32:11.7465826Z   └─ 20261006230000_durable_daily_attempts/
+2026-10-06T23:32:11.7466267Z     └─ migration.sql
+2026-10-06T23:32:11.7466599Z       
+2026-10-06T23:32:11.7467019Z All migrations have been successfully applied.
+2026-10-06T23:32:12.3635320Z PostgreSQL cleanup: cascade, unrelated metro preservation, and transaction rollback passed
+2026-10-06T23:32:12.3962642Z ##[group]Run ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT,!BookingSnapshotDatabaseIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
+2026-10-06T23:32:12.3964061Z [36;1m./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT,!BookingSnapshotDatabaseIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress[0m
+2026-10-06T23:32:12.4002584Z shell: /usr/bin/bash -e {0}
+2026-10-06T23:32:12.4002816Z env:
+2026-10-06T23:32:12.4003312Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:12.4003612Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:12.4003897Z   DATABASE_USER: waterflex
+2026-10-06T23:32:12.4004089Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:32:12.4004302Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:32:12.4004542Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:32:12.4004809Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:32:12.4005008Z   SERVER_PORT: 18000
+2026-10-06T23:32:12.4005191Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:32:12.4005462Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:12.4005816Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:12.4006093Z   MAVEN_ARGS: -ntp
+2026-10-06T23:32:12.4006290Z ##[endgroup]
+2026-10-06T23:32:14.3422423Z WARNING: A restricted method in java.lang.System has been called
+2026-10-06T23:32:14.3424089Z WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/home/runner/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+2026-10-06T23:32:14.3425189Z WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+2026-10-06T23:32:14.3426176Z WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+2026-10-06T23:32:14.3426582Z 
+2026-10-06T23:32:16.0595200Z [INFO] Scanning for projects...
+2026-10-06T23:32:16.4523173Z [INFO] 
+2026-10-06T23:32:16.4540939Z [INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+2026-10-06T23:32:16.4572713Z [INFO] Building scheduler-service 0.1.0-SNAPSHOT
+2026-10-06T23:32:16.4573221Z [INFO]   from pom.xml
+2026-10-06T23:32:16.4573717Z [INFO] --------------------------------[ jar ]---------------------------------
+2026-10-06T23:32:17.0202786Z [INFO] 
+2026-10-06T23:32:17.0222718Z [INFO] --- clean:3.5.0:clean (default-clean) @ scheduler-service ---
+2026-10-06T23:32:17.1366412Z [INFO] 
+2026-10-06T23:32:17.1402989Z [INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+2026-10-06T23:32:17.2033170Z [INFO] Copying 2 resources from src/main/resources to target/classes
+2026-10-06T23:32:17.2153208Z [INFO] Copying 1 resource from src/main/resources to target/classes
+2026-10-06T23:32:17.2292524Z [INFO] 
+2026-10-06T23:32:17.2318702Z [INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+2026-10-06T23:32:17.8444660Z [INFO] Recompiling the module because of changed source code.
+2026-10-06T23:32:17.8543277Z [INFO] Compiling with eclipse [debug parameters release 25] to target/classes
+2026-10-06T23:32:22.6315852Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[188,26] Unsafe null type conversion (type annotations): The value of type 'java.util.AbstractMap.@NonNull SimpleImmutableEntry<java.lang.@NonNull String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.Map.Entry<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>', corresponding supertype is 'java.util.Map.Entry<java.lang.@NonNull String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>'
+2026-10-06T23:32:22.6364618Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java:[473,34] Unsafe null type conversion (type annotations): The value of type 'java.util.Optional<dev.waterflex.scheduler.BoundedBookingSearch.@NonNull Ranked>' is made accessible using the less-annotated type 'java.util.Optional<dev.waterflex.scheduler.BoundedBookingSearch.Ranked>'
+2026-10-06T23:32:22.6397179Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyOutcome.java:[13,33] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<java.lang.@NonNull String>' is made accessible using the less-annotated type 'java.util.List<java.lang.String>'
+2026-10-06T23:32:22.6432350Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayPlan.java:[64,16] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<java.lang.@NonNull String>' is made accessible using the less-annotated type 'java.util.@NonNull List<java.lang.String>'
+2026-10-06T23:32:22.6435795Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/TechRoute.java:[53,17] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<java.lang.@NonNull String>' is made accessible using the less-annotated type 'java.util.@NonNull List<java.lang.String>'
+2026-10-06T23:32:22.6462070Z [INFO] 
+2026-10-06T23:32:22.6482416Z [INFO] --- resources:3.5.0:testResources (default-testResources) @ scheduler-service ---
+2026-10-06T23:32:22.6542175Z [INFO] Copying 1 resource from src/test/resources to target/test-classes
+2026-10-06T23:32:22.6561926Z [INFO] 
+2026-10-06T23:32:22.6582290Z [INFO] --- compiler:3.15.0:testCompile (default-testCompile) @ scheduler-service ---
+2026-10-06T23:32:22.6622121Z [INFO] Recompiling the module because of changed dependency.
+2026-10-06T23:32:22.6642184Z [INFO] Compiling with eclipse [debug parameters release 25] to target/test-classes
+2026-10-06T23:32:24.2773067Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSnapshotDatabaseIT.java:[200,36] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.BookingSnapshot.@NonNull Arrangement>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.BookingSnapshot.Arrangement>'
+2026-10-06T23:32:24.2799422Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[64,60] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,java.lang.@NonNull Object>' is made accessible using the less-annotated type 'java.util.Map<java.lang.String,java.lang.Object>'
+2026-10-06T23:32:24.2822947Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[93,55] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.2844578Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[103,55] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.2850491Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[112,17] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,@NonNull java.lang.Object & java.io.Serializable & java.lang.Comparable<?> & java.lang.constant.Constable & java.lang.constant.ConstantDesc>' is made accessible using the less-annotated type 'java.util.Map<java.lang.String,java.lang.Object & java.io.Serializable & java.lang.Comparable<?> & java.lang.constant.Constable & java.lang.constant.ConstantDesc>'
+2026-10-06T23:32:24.2873873Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[128,67] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.2899307Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[138,70] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.2925274Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[155,53] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.2934083Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java:[215,42] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.optimizer.TechRoute.@NonNull Unavailable>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.optimizer.TechRoute.Unavailable>'
+2026-10-06T23:32:24.2975281Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservationDeletionTest.java:[25,50] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.@NonNull RoadLeg>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.RoadLeg>'
+2026-10-06T23:32:24.3020192Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservationDeletionTest.java:[28,46] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Technician>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Technician>'
+2026-10-06T23:32:24.3025886Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservationDeletionTest.java:[28,90] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.3075138Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservationDeletionTest.java:[38,43] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.time.@NonNull LocalDate,dev.waterflex.scheduler.BookingSnapshot.@NonNull Day>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.time.LocalDate,dev.waterflex.scheduler.BookingSnapshot.Day>'
+2026-10-06T23:32:24.3094902Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservationDeletionTest.java:[38,78] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.time.@NonNull LocalDate,java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.time.LocalDate,java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>>'
+2026-10-06T23:32:24.3115644Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[40,42] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Technician>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Technician>'
+2026-10-06T23:32:24.3159346Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[40,82] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.3172882Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[45,44] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@NonNull Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.3207790Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[54,69] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.BoundedBookingSearch.@NonNull Candidate>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.BoundedBookingSearch.Candidate>'
+2026-10-06T23:32:24.3256889Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[56,32] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.time.@NonNull LocalDate,java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.time.LocalDate,java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>>'
+2026-10-06T23:32:24.3274188Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[69,50] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.@NonNull RoadLeg>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.RoadLeg>'
+2026-10-06T23:32:24.3309904Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[72,46] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Technician>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Technician>'
+2026-10-06T23:32:24.3333597Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[72,90] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.@NonNull Visit>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.BookingSnapshot.Visit>'
+2026-10-06T23:32:24.3384514Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[78,64] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.time.@NonNull LocalDate,dev.waterflex.scheduler.BookingSnapshot.@NonNull Day>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.time.LocalDate,dev.waterflex.scheduler.BookingSnapshot.Day>'
+2026-10-06T23:32:24.3394323Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[78,99] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.time.@NonNull LocalDate,java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.time.LocalDate,java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>>'
+2026-10-06T23:32:24.3415655Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java:[78,112] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.@NonNull Hold>' is made accessible using the less-annotated type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.ReservationState.Hold>'
+2026-10-06T23:32:24.3435467Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/RoadPrewarmingTest.java:[36,27] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.@NonNull Pair>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.Pair>'
+2026-10-06T23:32:24.3454011Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/RoadPrewarmingTest.java:[37,48] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.@NonNull Pair>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.Pair>'
+2026-10-06T23:32:24.3474230Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/RoadPrewarmingTest.java:[38,27] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.@NonNull Pair>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.Pair>'
+2026-10-06T23:32:24.3494426Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/RoadPrewarmingTest.java:[41,48] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.@NonNull Pair>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.Pair>'
+2026-10-06T23:32:24.3514137Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/RoadPrewarmingTest.java:[43,47] Unsafe null type conversion (type annotations): The value of type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.@NonNull Pair>' is made accessible using the less-annotated type 'java.util.@NonNull List<dev.waterflex.scheduler.RoadClient.Pair>'
+2026-10-06T23:32:24.3534185Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyConstructionTest.java:[64,36] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.@NonNull RoadLeg>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.RoadLeg>'
+2026-10-06T23:32:24.3544069Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyConstructionTest.java:[104,68] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.optimizer.TechRoute.@NonNull Unavailable>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.optimizer.TechRoute.Unavailable>'
+2026-10-06T23:32:24.3574248Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyConstructionTest.java:[107,40] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.@NonNull RoadLeg>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.RoadLeg>'
+2026-10-06T23:32:24.3579386Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyConstructionTest.java:[144,32] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.optimizer.@NonNull PlanVisit>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.optimizer.PlanVisit>'
+2026-10-06T23:32:24.3604200Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java:[49,50] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.optimizer.@NonNull TechRoute>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.optimizer.TechRoute>'
+2026-10-06T23:32:24.3614310Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java:[49,84] Unsafe null type conversion (type annotations): The value of type 'java.util.List<dev.waterflex.scheduler.optimizer.@NonNull PlanVisit>' is made accessible using the less-annotated type 'java.util.@Nullable List<dev.waterflex.scheduler.optimizer.PlanVisit>'
+2026-10-06T23:32:24.3633600Z [INFO] /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/TimefoldAuditEvidenceTest.java:[71,36] Unsafe null type conversion (type annotations): The value of type 'java.util.Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.@NonNull RoadLeg>' is made accessible using the less-annotated type 'java.util.@Nullable Map<java.lang.String,dev.waterflex.scheduler.optimizer.DayPlan.RoadLeg>'
+2026-10-06T23:32:24.3651932Z [INFO] 
+2026-10-06T23:32:24.3662673Z [INFO] --- surefire:3.5.6:test (default-test) @ scheduler-service ---
+2026-10-06T23:32:24.4673376Z [INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+2026-10-06T23:32:24.5042813Z [INFO] 
+2026-10-06T23:32:24.5082648Z [INFO] -------------------------------------------------------
+2026-10-06T23:32:24.5102177Z [INFO]  T E S T S
+2026-10-06T23:32:24.5122267Z [INFO] -------------------------------------------------------
+2026-10-06T23:32:25.5118463Z [INFO] Running dev.waterflex.scheduler.TimeOffStateDatabaseIT
+2026-10-06T23:32:25.6679911Z Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+2026-10-06T23:32:25.9633510Z OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+2026-10-06T23:32:25.9673235Z WARNING: A Java agent has been loaded dynamically (/home/runner/.m2/repository/net/bytebuddy/byte-buddy-agent/1.18.11/byte-buddy-agent-1.18.11.jar)
+2026-10-06T23:32:25.9714636Z WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+2026-10-06T23:32:25.9732517Z WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+2026-10-06T23:32:25.9752530Z WARNING: Dynamic loading of agents will be disallowed by default in a future release
+2026-10-06T23:32:27.4095041Z [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.868 s -- in dev.waterflex.scheduler.TimeOffStateDatabaseIT
+2026-10-06T23:32:27.4112718Z [INFO] Running dev.waterflex.scheduler.optimizer.DailyAttemptDatabaseIT
+2026-10-06T23:32:29.7585025Z 23:32:29.676 [daily-14900126-cd16-4a4a-b7f1-474258003155] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=14900126-cd16-4a4a-b7f1-474258003155, outcome=FAILED, elapsedMs=220, queueMs=0, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:29.7589789Z 23:32:29.723 [daily-86042e42-a912-47c9-8c3e-26131c8e0321] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=86042e42-a912-47c9-8c3e-26131c8e0321, outcome=FAILED, elapsedMs=14, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:30.2687896Z 23:32:30.208 [daily-3e5371e3-f038-4121-9e52-503fec8d4bc3] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=3e5371e3-f038-4121-9e52-503fec8d4bc3, outcome=FAILED, elapsedMs=17, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:30.2690226Z 23:32:30.219 [daily-d79a4760-d8bb-428b-b9f8-cd24d734be8d] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=d79a4760-d8bb-428b-b9f8-cd24d734be8d, outcome=FAILED, elapsedMs=165, queueMs=0, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:30.2697100Z 23:32:30.247 [daily-a5092071-3060-4472-9d14-124e099ca1e4] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=a5092071-3060-4472-9d14-124e099ca1e4, outcome=FAILED, elapsedMs=11, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:30.8042437Z 23:32:30.700 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:30.8060171Z 23:32:30.765 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:30.8063169Z 23:32:30.771 [daily-e70555f8-a814-47ae-ab4b-43eb8302894b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (9), best score ([0/-3840/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:30.8066583Z 23:32:30.773 [daily-e70555f8-a814-47ae-ab4b-43eb8302894b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:30.8069214Z 23:32:30.774 [daily-e70555f8-a814-47ae-ab4b-43eb8302894b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (12), best score ([0/-3840/0/0/0]hard/[0/-4033]soft), move evaluation speed (0/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:30.9561813Z 23:32:30.916 [daily-e70555f8-a814-47ae-ab4b-43eb8302894b] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=e70555f8-a814-47ae-ab4b-43eb8302894b, outcome=COMPLETED, elapsedMs=431, queueMs=0, searchMs=187, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=87, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:31.4033865Z 23:32:31.356 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (4), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:31.4075695Z 23:32:31.357 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:31.5033397Z 23:32:31.451 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:31.5063778Z 23:32:31.456 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (103), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (2500/sec), step total (1).
+2026-10-06T23:32:31.5066753Z 23:32:31.456 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (104), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (2355/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:31.5093605Z 23:32:31.466 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:31.5112935Z 23:32:31.466 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:31.6038631Z 23:32:31.566 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (102), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (4430/sec), step total (1).
+2026-10-06T23:32:31.6044053Z 23:32:31.566 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (102), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (4343/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:31.8053620Z 23:32:31.773 [daily-488a2227-b3d2-42ac-9f3d-163b66df2c7b] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=488a2227-b3d2-42ac-9f3d-163b66df2c7b, outcome=COMPLETED, elapsedMs=530, queueMs=0, searchMs=217, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=17, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:32.2074010Z 23:32:32.138 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:32.2122548Z 23:32:32.139 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:32.3143615Z 23:32:32.236 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:32.3193559Z 23:32:32.236 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (20185/sec), step total (2).
+2026-10-06T23:32:32.3203941Z 23:32:32.236 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (19580/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:32.3222862Z 23:32:32.243 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:32.3225699Z 23:32:32.244 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:32.4107051Z 23:32:32.348 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:32.4110993Z 23:32:32.350 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (108), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (15367/sec), step total (2).
+2026-10-06T23:32:32.4113379Z 23:32:32.351 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (109), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (14944/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:32.4467499Z 23:32:32.414 [daily-e249f26e-2cd9-4f80-b294-806bc7d0a404] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=e249f26e-2cd9-4f80-b294-806bc7d0a404, outcome=FAILED, elapsedMs=362, queueMs=0, searchMs=226, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=26, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:32.8121768Z 23:32:32.760 [daily-b248a718-b0a6-4119-bc38-a9cbd76e4c83] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=b248a718-b0a6-4119-bc38-a9cbd76e4c83, outcome=COMPLETED, elapsedMs=99, queueMs=0, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:32.8149756Z 23:32:32.787 [daily-1194fd71-4ae9-438a-8adb-9e7b6021478e] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=1194fd71-4ae9-438a-8adb-9e7b6021478e, outcome=COMPLETED, elapsedMs=17, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:32.8157782Z 23:32:32.796 [daily-a1e033c7-c5aa-4005-8522-c24b08a30b8f] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=a1e033c7-c5aa-4005-8522-c24b08a30b8f, outcome=FAILED, elapsedMs=9, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:33.2194180Z 23:32:33.208 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (4), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:33.2213495Z 23:32:33.208 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:33.3244206Z 23:32:33.304 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (50604/sec), step total (2).
+2026-10-06T23:32:33.3273704Z 23:32:33.304 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (48580/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:33.3293552Z 23:32:33.313 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:33.3333115Z 23:32:33.314 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:33.4294255Z 23:32:33.411 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (44835/sec), step total (2).
+2026-10-06T23:32:33.4333036Z 23:32:33.411 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:33.4363756Z 23:32:33.411 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (43490/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:33.5233197Z 23:32:33.474 [daily-17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=17f4ccbb-1cf5-433a-96bd-09f3f6b12d2e, outcome=FAILED, elapsedMs=357, queueMs=0, searchMs=212, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=12, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:33.8263841Z 23:32:33.760 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:33.8283800Z 23:32:33.761 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:33.9263638Z 23:32:33.859 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (78224/sec), step total (2).
+2026-10-06T23:32:33.9266236Z 23:32:33.859 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (76660/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:33.9283708Z 23:32:33.865 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:33.9303193Z 23:32:33.865 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:34.0265100Z 23:32:33.962 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:34.0268518Z 23:32:33.962 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (98), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (59587/sec), step total (2).
+2026-10-06T23:32:34.0286718Z 23:32:33.963 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (99), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (58383/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:34.1277740Z 23:32:34.031 [daily-e95c4e13-7868-46b1-8005-48b3f465d9e1] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=e95c4e13-7868-46b1-8005-48b3f465d9e1, outcome=FAILED, elapsedMs=355, queueMs=0, searchMs=206, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=6, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:34.4302823Z 23:32:34.418 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:34.4334791Z 23:32:34.419 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:34.5321217Z 23:32:34.515 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:34.5343456Z 23:32:34.516 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (99), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (107195/sec), step total (2).
+2026-10-06T23:32:34.5363374Z 23:32:34.517 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (99), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (105030/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:34.5375566Z 23:32:34.526 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:34.5402963Z 23:32:34.529 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:34.7354533Z 23:32:34.632 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:34.7366275Z 23:32:34.633 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (108), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (75855/sec), step total (2).
+2026-10-06T23:32:34.7390482Z 23:32:34.633 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (108), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (73046/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:34.7393751Z 23:32:34.689 [daily-68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=68c984fa-bc1a-421b-bcde-3a7b8fc4cf4a, outcome=FAILED, elapsedMs=379, queueMs=0, searchMs=219, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=19, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:35.1444508Z 23:32:35.071 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:35.1463078Z 23:32:35.072 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:35.2410955Z 23:32:35.169 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (151783/sec), step total (3).
+2026-10-06T23:32:35.2432720Z 23:32:35.169 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:35.2437835Z 23:32:35.169 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (147230/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:35.2463376Z 23:32:35.174 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:35.2483109Z 23:32:35.175 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:35.3426536Z 23:32:35.273 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (118428/sec), step total (3).
+2026-10-06T23:32:35.3459617Z 23:32:35.273 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (116060/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:35.3462250Z 23:32:35.273 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:35.3464821Z 23:32:35.327 [daily-ddc01c7f-e192-43bd-96f7-5292d0ef54db] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=ddc01c7f-e192-43bd-96f7-5292d0ef54db, outcome=FAILED, elapsedMs=366, queueMs=0, searchMs=209, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=9, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:35.7473614Z 23:32:35.685 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (2), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:35.7493317Z 23:32:35.685 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:35.8493923Z 23:32:35.783 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (210510/sec), step total (3).
+2026-10-06T23:32:35.8496393Z 23:32:35.783 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (100), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (206300/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:35.8499445Z 23:32:35.791 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:35.8501896Z 23:32:35.791 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:35.9473981Z 23:32:35.887 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:35.9582654Z 23:32:35.888 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (98), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (138206/sec), step total (3).
+2026-10-06T23:32:35.9585381Z 23:32:35.888 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (98), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (136795/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:35.9625118Z 23:32:35.924 [daily-d32f1d56-7eed-4fd6-b873-e4bd990e3f6f] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=d32f1d56-7eed-4fd6-b873-e4bd990e3f6f, outcome=FAILED, elapsedMs=338, queueMs=0, searchMs=208, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=8, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:36.3514327Z 23:32:36.277 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (4), best score ([0/0/0/0/0]hard/[0/-4033]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:36.3533216Z 23:32:36.277 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:36.5543099Z 23:32:36.371 [daily-cancellation] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Terminating solver early.
+2026-10-06T23:32:36.5550406Z 23:32:36.371 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (98), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (285085/sec), step total (4).
+2026-10-06T23:32:36.5586089Z 23:32:36.371 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (98), best score ([0/0/0/0/0]hard/[0/-2208]soft), move evaluation speed (273448/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:36.5603308Z 23:32:36.376 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving started: time spent (1), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T23:32:36.5622853Z 23:32:36.377 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-06T23:32:36.5643105Z 23:32:36.476 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.localsearch.DefaultLocalSearchPhase -- Local Search phase (0) ended: time spent (101), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (180777/sec), step total (3).
+2026-10-06T23:32:36.5651101Z 23:32:36.476 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO ai.timefold.solver.core.impl.solver.DefaultSolver -- Solving ended: time spent (101), best score ([0/0/0/0/0]hard/[-0.001659807956104252400548696844993141/-2208]soft), move evaluation speed (177198/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T23:32:36.5683226Z 23:32:36.539 [daily-d817d402-e00b-489a-a14a-bdb1457ee417] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=d817d402-e00b-489a-a14a-bdb1457ee417, outcome=COMPLETED, elapsedMs=353, queueMs=0, searchMs=205, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=5, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:36.8522648Z 23:32:36.787 [daily-446212e0-875f-455a-8fb2-fc6b7d57004c] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=446212e0-875f-455a-8fb2-fc6b7d57004c, outcome=COMPLETED, elapsedMs=117, queueMs=0, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:36.8528475Z 23:32:36.811 [daily-0a280cd7-2968-4cf5-9a40-70a548204781] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=0a280cd7-2968-4cf5-9a40-70a548204781, outcome=COMPLETED, elapsedMs=16, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:36.8567825Z 23:32:36.826 [daily-808c9936-e722-4db8-83f3-dab1d86d90b2] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=808c9936-e722-4db8-83f3-dab1d86d90b2, outcome=FAILED, elapsedMs=12, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:36.8744624Z 23:32:36.854 [daily-a02eacbc-913a-459d-ad56-765dd2ee72cb] INFO dev.waterflex.scheduler.optimizer.DailyOperation -- Daily operation Receipt[requestId=a02eacbc-913a-459d-ad56-765dd2ee72cb, outcome=FAILED, elapsedMs=10, queueMs=null, searchMs=0, cancellationElapsedMs=null, cleanupOvershootMs=null, phaseCleanupOvershootMs=0, searchOvershootMs=0, lateResult=false]
+2026-10-06T23:32:36.8853115Z [ERROR] Tests run: 10, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 9.494 s <<< FAILURE! -- in dev.waterflex.scheduler.optimizer.DailyAttemptDatabaseIT
+2026-10-06T23:32:36.8892777Z [ERROR] dev.waterflex.scheduler.optimizer.DailyAttemptDatabaseIT.freshRepairCapturesItsOwnVersionInitializationAndCanApplyIndependently -- Time elapsed: 0.683 s <<< FAILURE!
+2026-10-06T23:32:36.8893902Z org.opentest4j.AssertionFailedError: expected: <REPAIR_PREVIEW> but was: <SKIPPED>
+2026-10-06T23:32:36.8900270Z 	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:158)
+2026-10-06T23:32:36.8901258Z 	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:139)
+2026-10-06T23:32:36.8922502Z 	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:201)
+2026-10-06T23:32:36.8923335Z 	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:184)
+2026-10-06T23:32:36.8924107Z 	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:179)
+2026-10-06T23:32:36.8924790Z 	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1188)
+2026-10-06T23:32:36.8925921Z 	at dev.waterflex.scheduler.optimizer.DailyAttemptDatabaseIT.freshRepairCapturesItsOwnVersionInitializationAndCanApplyIndependently(DailyAttemptDatabaseIT.java:93)
+2026-10-06T23:32:36.8926784Z 
+2026-10-06T23:32:36.8927257Z [INFO] Running dev.waterflex.scheduler.SearchDatabaseAdmissionIT
+2026-10-06T23:32:36.9520363Z 23:32:36.895 [main] INFO com.zaxxer.hikari.HikariDataSource -- HikariPool-1 - Starting...
+2026-10-06T23:32:36.9521521Z 23:32:36.911 [main] INFO com.zaxxer.hikari.pool.HikariPool -- HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@6f3b13d0
+2026-10-06T23:32:36.9522635Z 23:32:36.912 [main] INFO com.zaxxer.hikari.HikariDataSource -- HikariPool-1 - Start completed.
+2026-10-06T23:32:37.1885694Z 23:32:37.179 [main] INFO com.zaxxer.hikari.HikariDataSource -- HikariPool-1 - Shutdown initiated...
+2026-10-06T23:32:37.1892827Z 23:32:37.184 [main] INFO com.zaxxer.hikari.HikariDataSource -- HikariPool-1 - Shutdown completed.
+2026-10-06T23:32:37.2056915Z [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.316 s -- in dev.waterflex.scheduler.SearchDatabaseAdmissionIT
+2026-10-06T23:32:37.2112884Z [INFO] Running dev.waterflex.scheduler.MonetaryMigrationDatabaseIT
+2026-10-06T23:32:37.7252880Z [INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.522 s -- in dev.waterflex.scheduler.MonetaryMigrationDatabaseIT
+2026-10-06T23:32:38.0413097Z [INFO] 
+2026-10-06T23:32:38.0422548Z [INFO] Results:
+2026-10-06T23:32:38.0425529Z [INFO] 
+2026-10-06T23:32:38.0426294Z [ERROR] Failures: 
+2026-10-06T23:32:38.0427184Z [ERROR]   DailyAttemptDatabaseIT.freshRepairCapturesItsOwnVersionInitializationAndCanApplyIndependently:93 expected: <REPAIR_PREVIEW> but was: <SKIPPED>
+2026-10-06T23:32:38.0427764Z [INFO] 
+2026-10-06T23:32:38.0428041Z [ERROR] Tests run: 15, Failures: 1, Errors: 0, Skipped: 0
+2026-10-06T23:32:38.0428319Z [INFO] 
+2026-10-06T23:32:38.0542890Z [INFO] ------------------------------------------------------------------------
+2026-10-06T23:32:38.0572160Z [INFO] BUILD FAILURE
+2026-10-06T23:32:38.0596837Z [INFO] ------------------------------------------------------------------------
+2026-10-06T23:32:38.0615526Z [INFO] Total time:  22.033 s
+2026-10-06T23:32:38.0616033Z [INFO] Finished at: 2026-10-06T23:32:38Z
+2026-10-06T23:32:38.0616516Z [INFO] ------------------------------------------------------------------------
+2026-10-06T23:32:38.0617496Z [ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.6:test (default-test) on project scheduler-service: There are test failures.
+2026-10-06T23:32:38.0618147Z [ERROR] 
+2026-10-06T23:32:38.0619139Z [ERROR] See /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/scheduler-service/target/surefire-reports for the individual test results.
+2026-10-06T23:32:38.0620111Z [ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+2026-10-06T23:32:38.0620555Z [ERROR] -> [Help 1]
+2026-10-06T23:32:38.0620786Z [ERROR] 
+2026-10-06T23:32:38.0621206Z [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+2026-10-06T23:32:38.0621934Z [ERROR] Re-run Maven using the -X switch to enable full debug logging.
+2026-10-06T23:32:38.0622316Z [ERROR] 
+2026-10-06T23:32:38.0622879Z [ERROR] For more information about the errors and possible solutions, please read the following articles:
+2026-10-06T23:32:38.0623650Z [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+2026-10-06T23:32:38.0739950Z ##[error]Process completed with exit code 1.
+2026-10-06T23:32:38.0826806Z ##[group]Run echo 'Fixture routing log:'
+2026-10-06T23:32:38.0827070Z [36;1mecho 'Fixture routing log:'[0m
+2026-10-06T23:32:38.0827374Z [36;1mcat "$RUNNER_TEMP/fixture-routing.log" 2>/dev/null || true[0m
+2026-10-06T23:32:38.0827638Z [36;1mecho 'Scheduler log:'[0m
+2026-10-06T23:32:38.0827876Z [36;1mcat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true[0m
+2026-10-06T23:32:38.0828194Z [36;1mcat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true[0m
+2026-10-06T23:32:38.0862968Z shell: /usr/bin/bash -e {0}
+2026-10-06T23:32:38.0863191Z env:
+2026-10-06T23:32:38.0863790Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:38.0864103Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:38.0864386Z   DATABASE_USER: waterflex
+2026-10-06T23:32:38.0864582Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:32:38.0864783Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:32:38.0865012Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:32:38.0865427Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:32:38.0865632Z   SERVER_PORT: 18000
+2026-10-06T23:32:38.0865861Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:32:38.0866126Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:38.0866484Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:38.0866758Z   MAVEN_ARGS: -ntp
+2026-10-06T23:32:38.0866933Z ##[endgroup]
+2026-10-06T23:32:38.0919675Z Fixture routing log:
+2026-10-06T23:32:38.0929369Z Scheduler log:
+2026-10-06T23:32:38.0973446Z ##[group]Run python3 infra/summarize-tests.py 'scheduler-service/target/surefire-reports/TEST-*.xml' --label 'Database integration'
+2026-10-06T23:32:38.0974121Z [36;1mpython3 infra/summarize-tests.py 'scheduler-service/target/surefire-reports/TEST-*.xml' --label 'Database integration'[0m
+2026-10-06T23:32:38.1005123Z shell: /usr/bin/bash -e {0}
+2026-10-06T23:32:38.1005363Z env:
+2026-10-06T23:32:38.1005901Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:38.1006243Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:38.1006825Z   DATABASE_USER: waterflex
+2026-10-06T23:32:38.1007043Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:32:38.1007290Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:32:38.1007518Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:32:38.1007740Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:32:38.1007944Z   SERVER_PORT: 18000
+2026-10-06T23:32:38.1008119Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:32:38.1008418Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:38.1008766Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:38.1009076Z   MAVEN_ARGS: -ntp
+2026-10-06T23:32:38.1009254Z ##[endgroup]
+2026-10-06T23:32:38.1295090Z ### Database integration
+2026-10-06T23:32:38.1295689Z 
+2026-10-06T23:32:38.1296362Z 15 tests, 1 failed, 0 skipped; summed test duration 12.12s (4 reports).
+2026-10-06T23:32:38.1296836Z 
+2026-10-06T23:32:38.1296950Z 
+2026-10-06T23:32:38.1407068Z ##[group]Run actions/upload-artifact@v7
+2026-10-06T23:32:38.1407314Z with:
+2026-10-06T23:32:38.1407500Z   name: integration-diagnostics
+2026-10-06T23:32:38.1407930Z   path: scheduler-service/target/surefire-reports/
+/home/runner/work/_temp/*.log
+/home/runner/work/_temp/booking-offer-limits-*/
+
+2026-10-06T23:32:38.1408371Z   retention-days: 7
+2026-10-06T23:32:38.1408555Z   if-no-files-found: warn
+2026-10-06T23:32:38.1408757Z   compression-level: 6
+2026-10-06T23:32:38.1408946Z   overwrite: false
+2026-10-06T23:32:38.1409125Z   include-hidden-files: false
+2026-10-06T23:32:38.1409332Z   archive: true
+2026-10-06T23:32:38.1409492Z env:
+2026-10-06T23:32:38.1409908Z   DATABASE_URL: ***127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:38.1410196Z   JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+2026-10-06T23:32:38.1410459Z   DATABASE_USER: waterflex
+2026-10-06T23:32:38.1410661Z   DATABASE_PASSWORD: waterflex
+2026-10-06T23:32:38.1410888Z   ROUTING_URL: http://127.0.0.1:18001
+2026-10-06T23:32:38.1411101Z   SCHEDULER_TEST_URL: http://127.0.0.1:18000
+2026-10-06T23:32:38.1411467Z   ENGINE_URL: http://127.0.0.1:18000
+2026-10-06T23:32:38.1411671Z   SERVER_PORT: 18000
+2026-10-06T23:32:38.1411849Z   TIME_OFF_POLL_DELAY_MS: 1000
+2026-10-06T23:32:38.1412106Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:38.1412443Z   JAVA_HOME_25_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/25.0.4-1/x64
+2026-10-06T23:32:38.1412712Z   MAVEN_ARGS: -ntp
+2026-10-06T23:32:38.1412878Z ##[endgroup]
+2026-10-06T23:32:38.2570371Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-06T23:32:38.2572093Z The least common ancestor is /home/runner/work. This will be the root directory of the artifact
+2026-10-06T23:32:38.2572858Z With the provided path, there will be 8 files uploaded
+2026-10-06T23:32:38.2575531Z Artifact name is valid!
+2026-10-06T23:32:38.2576026Z Root directory input is valid!
+2026-10-06T23:32:38.5382484Z Uploading artifact: integration-diagnostics.zip
+2026-10-06T23:32:38.5383202Z Beginning upload of artifact content to blob storage
+2026-10-06T23:32:38.7872923Z Uploaded bytes 19611
+2026-10-06T23:32:38.8266911Z Finished uploading artifact content to blob storage!
+2026-10-06T23:32:38.8268023Z SHA256 digest of uploaded artifact is 552a670ee4194ded8146538411c5c09d1920af551a76943990775946ca51c2a3
+2026-10-06T23:32:38.8268878Z Finalizing artifact upload
+2026-10-06T23:32:39.1603809Z Artifact integration-diagnostics successfully finalized. Artifact ID 11451255711
+2026-10-06T23:32:39.1604635Z Artifact integration-diagnostics has been successfully uploaded! Final size is 19611 bytes. Artifact ID is 11451255711
+2026-10-06T23:32:39.1605375Z Artifact download URL: https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37546980462/artifacts/11451255711
+2026-10-06T23:32:39.1874214Z Post job cleanup.
+2026-10-06T23:32:39.3231754Z Post job cleanup.
+2026-10-06T23:32:39.4021572Z [command]/usr/bin/git version
+2026-10-06T23:32:39.4082480Z git version 2.55.0
+2026-10-06T23:32:39.4133611Z Temporarily overriding HOME='/home/runner/work/_temp/88392f18-92b8-45e6-a829-c7462ba3d3ee' before making global git config changes
+2026-10-06T23:32:39.4134453Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-06T23:32:39.4135327Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java
+2026-10-06T23:32:39.4202228Z Removing SSH command configuration
+2026-10-06T23:32:39.4204505Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-06T23:32:39.4230448Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-06T23:32:39.4469322Z Removing HTTP extra header
+2026-10-06T23:32:39.4470383Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-06T23:32:39.4543538Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-06T23:32:39.4771806Z Removing includeIf entries pointing to credentials config files
+2026-10-06T23:32:39.4788838Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-06T23:32:39.4806227Z includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path
+2026-10-06T23:32:39.4812511Z includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path
+2026-10-06T23:32:39.4817472Z includeif.gitdir:/github/workspace/.git.path
+2026-10-06T23:32:39.4839920Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-06T23:32:39.4877809Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path
+2026-10-06T23:32:39.4880144Z /home/runner/work/_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:32:39.4922949Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-acfdfe0c\-6a72\-48a4\-a0d1\-8a874c6ae382\.config
+2026-10-06T23:32:39.4960779Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path
+2026-10-06T23:32:39.4961884Z /home/runner/work/_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:32:39.5012856Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-acfdfe0c\-6a72\-48a4\-a0d1\-8a874c6ae382\.config
+2026-10-06T23:32:39.5058488Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-06T23:32:39.5062844Z /github/runner_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:32:39.5085655Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-acfdfe0c\-6a72\-48a4\-a0d1\-8a874c6ae382\.config
+2026-10-06T23:32:39.5114794Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-06T23:32:39.5115682Z /github/runner_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config
+2026-10-06T23:32:39.5117326Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-acfdfe0c\-6a72\-48a4\-a0d1\-8a874c6ae382\.config
+2026-10-06T23:32:39.5119246Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-06T23:32:39.5315382Z Removing credentials config '/home/runner/work/_temp/git-credentials-acfdfe0c-6a72-48a4-a0d1-8a874c6ae382.config'
+2026-10-06T23:32:39.5453827Z Print service container logs: 2b00b4fcaaf248c2b169909672afef3a_postgres16_867243
+2026-10-06T23:32:39.5457441Z ##[command]/usr/bin/docker logs --details ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:32:39.5582687Z  initdb: warning: enabling "trust" authentication for local connections
+2026-10-06T23:32:39.5583432Z  The files belonging to this database system will be owned by user "postgres".
+2026-10-06T23:32:39.5584996Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-06T23:32:39.5586384Z  2026-10-06 23:31:23.098 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-06T23:32:39.5586896Z  This user must also own the server process.
+2026-10-06T23:32:39.5592477Z  2026-10-06 23:31:23.099 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-06T23:32:39.5592991Z  
+2026-10-06T23:32:39.5594902Z  2026-10-06 23:31:23.099 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-06T23:32:39.5595301Z  2026-10-06 23:31:23.100 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-06T23:32:39.5595693Z  2026-10-06 23:31:23.102 UTC [64] LOG:  database system was shut down at 2026-10-06 23:31:23 UTC
+2026-10-06T23:32:39.5596070Z  2026-10-06 23:31:23.105 UTC [1] LOG:  database system is ready to accept connections
+2026-10-06T23:32:39.5596550Z  2026-10-06 23:32:12.323 UTC [117] ERROR:  update or delete on table "metro" violates foreign key constraint "depot_metroId_fkey" on table "depot"
+2026-10-06T23:32:39.5597157Z  2026-10-06 23:32:12.323 UTC [117] DETAIL:  Key (id)=(cleanup-a65d4a2f-808e-4f05-bf40-86c0667551ee) is still referenced from table "depot".
+2026-10-06T23:32:39.5597729Z  2026-10-06 23:32:12.323 UTC [117] STATEMENT:  DELETE FROM "benchmark_cleanup_it"."metro" WHERE "benchmark_cleanup_it"."metro"."id" = $1
+2026-10-06T23:32:39.5598321Z  2026-10-06 23:32:32.578 UTC [350] ERROR:  new row for relation "daily_calculation_attempt" violates check constraint "daily_calculation_attempt_check"
+2026-10-06T23:32:39.5599523Z  2026-10-06 23:32:32.578 UTC [350] DETAIL:  Failing row contains (7a0e00ec-32a5-4d9f-a25c-18504749dcf7, daily-attempt-it-ee0833bf-3214-47aa-882e-1aba049a11f4-failure, 2fe784b0d2911744e76efa456fb28b13ee979cbf0e84cb44272c3cbcc1e8a823, 3ab81f97-2040-4456-b057-67a9e23546e6, SUCCEEDED, 2026-10-06 23:32:52.537108+00, null, null, null, null, null, 2026-10-06 23:32:32.546109+00, 2026-10-06 23:32:32.554235+00).
+2026-10-06T23:32:39.5600669Z  2026-10-06 23:32:32.578 UTC [350] STATEMENT:  UPDATE daily_calculation_attempt SET state='SUCCEEDED',"failureReason"=NULL WHERE id=$1
+2026-10-06T23:32:39.5601613Z  2026-10-06 23:32:37.294 UTC [621] ERROR:  new row for relation "omaha_setting" violates check constraint "omaha_setting_nonnegative_money"
+2026-10-06T23:32:39.5602363Z  2026-10-06 23:32:37.294 UTC [621] DETAIL:  Failing row contains (regular_hourly_dollars, -1.000000000000000000000000000000).
+2026-10-06T23:32:39.5602980Z  2026-10-06 23:32:37.294 UTC [621] STATEMENT:  UPDATE omaha_setting SET value=-1 WHERE key='regular_hourly_dollars'
+2026-10-06T23:32:39.5603599Z  2026-10-06 23:32:37.295 UTC [621] ERROR:  new row for relation "omaha_setting" violates check constraint "omaha_setting_finite_decimal"
+2026-10-06T23:32:39.5604076Z  2026-10-06 23:32:37.295 UTC [621] DETAIL:  Failing row contains (regular_hourly_dollars, NaN).
+2026-10-06T23:32:39.5604528Z  2026-10-06 23:32:37.295 UTC [621] STATEMENT:  UPDATE omaha_setting SET value='NaN'::numeric WHERE key='regular_hourly_dollars'
+2026-10-06T23:32:39.5604963Z  2026-10-06 23:32:37.296 UTC [621] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5605290Z  2026-10-06 23:32:37.337 UTC [622] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5605657Z  2026-10-06 23:32:37.407 UTC [623] ERROR:  Invalid legacy money omaha_setting.regular_hourly_dollars
+2026-10-06T23:32:39.5606222Z  2026-10-06 23:32:37.407 UTC [623] CONTEXT:  PL/pgSQL function inline_code_block line 10 at RAISE
+2026-10-06T23:32:39.5606563Z  2026-10-06 23:32:37.407 UTC [623] STATEMENT:  
+2026-10-06T23:32:39.5606777Z  	DO $money$
+2026-10-06T23:32:39.5606996Z  	DECLARE item RECORD; rendered TEXT; exact_value NUMERIC;
+2026-10-06T23:32:39.5607241Z  	BEGIN
+2026-10-06T23:32:39.5607389Z  	  FOR item IN
+2026-10-06T23:32:39.5607719Z  	    SELECT 'omaha_setting' AS source_table, key AS identity, 'value' AS source_column, value AS amount FROM omaha_setting
+2026-10-06T23:32:39.5608082Z  	    UNION ALL
+2026-10-06T23:32:39.5608471Z  	    SELECT 'booking_offer', id, 'incrementalCostDollars', "incrementalCostDollars" FROM booking_offer WHERE "incrementalCostDollars" IS NOT NULL
+2026-10-06T23:32:39.5608884Z  	  LOOP
+2026-10-06T23:32:39.5609044Z  	    rendered := item.amount::text;
+2026-10-06T23:32:39.5609452Z  	    IF rendered IN ('NaN','Infinity','-Infinity') THEN RAISE EXCEPTION 'Invalid legacy money %.%', item.source_table, item.identity; END IF;
+2026-10-06T23:32:39.5609854Z  	    exact_value := rendered::numeric;
+2026-10-06T23:32:39.5610301Z  	    IF (item.source_table='omaha_setting' AND item.identity IN ('regular_hourly_dollars','overtime_hourly_dollars','mileage_dollars_per_mile') AND exact_value<0)
+2026-10-06T23:32:39.5610820Z  	      OR exact_value<>exact_value::numeric(65,30) THEN
+2026-10-06T23:32:39.5611157Z  	      RAISE EXCEPTION 'Unrepresentable legacy money %.%', item.source_table, item.identity;
+2026-10-06T23:32:39.5611700Z  	    END IF;
+2026-10-06T23:32:39.5612020Z  	    INSERT INTO monetary_migration_receipt VALUES (item.source_table,item.identity,item.source_column,
+2026-10-06T23:32:39.5612518Z  	      rendered,encode(float8send(item.amount),'hex'),exact_value,'exact-fleet-half-up-v2',CURRENT_TIMESTAMP);
+2026-10-06T23:32:39.5612875Z  	  END LOOP;
+2026-10-06T23:32:39.5613025Z  	END $money$
+2026-10-06T23:32:39.5613257Z  2026-10-06 23:32:37.413 UTC [623] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5613621Z  2026-10-06 23:32:37.471 UTC [624] ERROR:  Invalid legacy money omaha_setting.regular_hourly_dollars
+2026-10-06T23:32:39.5614021Z  2026-10-06 23:32:37.471 UTC [624] CONTEXT:  PL/pgSQL function inline_code_block line 10 at RAISE
+2026-10-06T23:32:39.5614318Z  2026-10-06 23:32:37.471 UTC [624] STATEMENT:  
+2026-10-06T23:32:39.5614530Z  	DO $money$
+2026-10-06T23:32:39.5614735Z  	DECLARE item RECORD; rendered TEXT; exact_value NUMERIC;
+2026-10-06T23:32:39.5614969Z  	BEGIN
+2026-10-06T23:32:39.5615108Z  	  FOR item IN
+2026-10-06T23:32:39.5615426Z  	    SELECT 'omaha_setting' AS source_table, key AS identity, 'value' AS source_column, value AS amount FROM omaha_setting
+2026-10-06T23:32:39.5615777Z  	    UNION ALL
+2026-10-06T23:32:39.5616242Z  	    SELECT 'booking_offer', id, 'incrementalCostDollars', "incrementalCostDollars" FROM booking_offer WHERE "incrementalCostDollars" IS NOT NULL
+2026-10-06T23:32:39.5616672Z  	  LOOP
+2026-10-06T23:32:39.5616835Z  	    rendered := item.amount::text;
+2026-10-06T23:32:39.5617250Z  	    IF rendered IN ('NaN','Infinity','-Infinity') THEN RAISE EXCEPTION 'Invalid legacy money %.%', item.source_table, item.identity; END IF;
+2026-10-06T23:32:39.5617646Z  	    exact_value := rendered::numeric;
+2026-10-06T23:32:39.5618101Z  	    IF (item.source_table='omaha_setting' AND item.identity IN ('regular_hourly_dollars','overtime_hourly_dollars','mileage_dollars_per_mile') AND exact_value<0)
+2026-10-06T23:32:39.5618584Z  	      OR exact_value<>exact_value::numeric(65,30) THEN
+2026-10-06T23:32:39.5618917Z  	      RAISE EXCEPTION 'Unrepresentable legacy money %.%', item.source_table, item.identity;
+2026-10-06T23:32:39.5619219Z  	    END IF;
+2026-10-06T23:32:39.5619518Z  	    INSERT INTO monetary_migration_receipt VALUES (item.source_table,item.identity,item.source_column,
+2026-10-06T23:32:39.5620003Z  	      rendered,encode(float8send(item.amount),'hex'),exact_value,'exact-fleet-half-up-v2',CURRENT_TIMESTAMP);
+2026-10-06T23:32:39.5620350Z  	  END LOOP;
+2026-10-06T23:32:39.5620579Z  	END $money$
+2026-10-06T23:32:39.5620813Z  2026-10-06 23:32:37.477 UTC [624] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5621184Z  2026-10-06 23:32:37.512 UTC [625] ERROR:  Invalid legacy money omaha_setting.regular_hourly_dollars
+2026-10-06T23:32:39.5621911Z  2026-10-06 23:32:37.512 UTC [625] CONTEXT:  PL/pgSQL function inline_code_block line 10 at RAISE
+2026-10-06T23:32:39.5622226Z  2026-10-06 23:32:37.512 UTC [625] STATEMENT:  
+2026-10-06T23:32:39.5622446Z  	DO $money$
+2026-10-06T23:32:39.5622666Z  	DECLARE item RECORD; rendered TEXT; exact_value NUMERIC;
+2026-10-06T23:32:39.5622909Z  	BEGIN
+2026-10-06T23:32:39.5623054Z  	  FOR item IN
+2026-10-06T23:32:39.5623377Z  	    SELECT 'omaha_setting' AS source_table, key AS identity, 'value' AS source_column, value AS amount FROM omaha_setting
+2026-10-06T23:32:39.5623727Z  	    UNION ALL
+2026-10-06T23:32:39.5624107Z  	    SELECT 'booking_offer', id, 'incrementalCostDollars', "incrementalCostDollars" FROM booking_offer WHERE "incrementalCostDollars" IS NOT NULL
+2026-10-06T23:32:39.5624531Z  	  LOOP
+2026-10-06T23:32:39.5624698Z  	    rendered := item.amount::text;
+2026-10-06T23:32:39.5625096Z  	    IF rendered IN ('NaN','Infinity','-Infinity') THEN RAISE EXCEPTION 'Invalid legacy money %.%', item.source_table, item.identity; END IF;
+2026-10-06T23:32:39.5625495Z  	    exact_value := rendered::numeric;
+2026-10-06T23:32:39.5625940Z  	    IF (item.source_table='omaha_setting' AND item.identity IN ('regular_hourly_dollars','overtime_hourly_dollars','mileage_dollars_per_mile') AND exact_value<0)
+2026-10-06T23:32:39.5626408Z  	      OR exact_value<>exact_value::numeric(65,30) THEN
+2026-10-06T23:32:39.5626739Z  	      RAISE EXCEPTION 'Unrepresentable legacy money %.%', item.source_table, item.identity;
+2026-10-06T23:32:39.5627035Z  	    END IF;
+2026-10-06T23:32:39.5627320Z  	    INSERT INTO monetary_migration_receipt VALUES (item.source_table,item.identity,item.source_column,
+2026-10-06T23:32:39.5627806Z  	      rendered,encode(float8send(item.amount),'hex'),exact_value,'exact-fleet-half-up-v2',CURRENT_TIMESTAMP);
+2026-10-06T23:32:39.5628146Z  	  END LOOP;
+2026-10-06T23:32:39.5628292Z  	END $money$
+2026-10-06T23:32:39.5628521Z  2026-10-06 23:32:37.517 UTC [625] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5628914Z  2026-10-06 23:32:37.550 UTC [626] ERROR:  Unrepresentable legacy money omaha_setting.regular_hourly_dollars
+2026-10-06T23:32:39.5629355Z  2026-10-06 23:32:37.550 UTC [626] CONTEXT:  PL/pgSQL function inline_code_block line 14 at RAISE
+2026-10-06T23:32:39.5629665Z  2026-10-06 23:32:37.550 UTC [626] STATEMENT:  
+2026-10-06T23:32:39.5629873Z  	DO $money$
+2026-10-06T23:32:39.5630075Z  	DECLARE item RECORD; rendered TEXT; exact_value NUMERIC;
+2026-10-06T23:32:39.5630315Z  	BEGIN
+2026-10-06T23:32:39.5630546Z  	  FOR item IN
+2026-10-06T23:32:39.5630871Z  	    SELECT 'omaha_setting' AS source_table, key AS identity, 'value' AS source_column, value AS amount FROM omaha_setting
+2026-10-06T23:32:39.5631225Z  	    UNION ALL
+2026-10-06T23:32:39.5631831Z  	    SELECT 'booking_offer', id, 'incrementalCostDollars', "incrementalCostDollars" FROM booking_offer WHERE "incrementalCostDollars" IS NOT NULL
+2026-10-06T23:32:39.5632270Z  	  LOOP
+2026-10-06T23:32:39.5632444Z  	    rendered := item.amount::text;
+2026-10-06T23:32:39.5632832Z  	    IF rendered IN ('NaN','Infinity','-Infinity') THEN RAISE EXCEPTION 'Invalid legacy money %.%', item.source_table, item.identity; END IF;
+2026-10-06T23:32:39.5633247Z  	    exact_value := rendered::numeric;
+2026-10-06T23:32:39.5633700Z  	    IF (item.source_table='omaha_setting' AND item.identity IN ('regular_hourly_dollars','overtime_hourly_dollars','mileage_dollars_per_mile') AND exact_value<0)
+2026-10-06T23:32:39.5634173Z  	      OR exact_value<>exact_value::numeric(65,30) THEN
+2026-10-06T23:32:39.5634508Z  	      RAISE EXCEPTION 'Unrepresentable legacy money %.%', item.source_table, item.identity;
+2026-10-06T23:32:39.5634817Z  	    END IF;
+2026-10-06T23:32:39.5635183Z  	    INSERT INTO monetary_migration_receipt VALUES (item.source_table,item.identity,item.source_column,
+2026-10-06T23:32:39.5635670Z  	      rendered,encode(float8send(item.amount),'hex'),exact_value,'exact-fleet-half-up-v2',CURRENT_TIMESTAMP);
+2026-10-06T23:32:39.5635998Z  	  END LOOP;
+2026-10-06T23:32:39.5636157Z  	END $money$
+2026-10-06T23:32:39.5636387Z  2026-10-06 23:32:37.555 UTC [626] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5636778Z  2026-10-06 23:32:37.618 UTC [627] ERROR:  Unrepresentable legacy money omaha_setting.regular_hourly_dollars
+2026-10-06T23:32:39.5637186Z  2026-10-06 23:32:37.618 UTC [627] CONTEXT:  PL/pgSQL function inline_code_block line 14 at RAISE
+2026-10-06T23:32:39.5637495Z  2026-10-06 23:32:37.618 UTC [627] STATEMENT:  
+2026-10-06T23:32:39.5637706Z  	DO $money$
+2026-10-06T23:32:39.5637904Z  	DECLARE item RECORD; rendered TEXT; exact_value NUMERIC;
+2026-10-06T23:32:39.5638141Z  	BEGIN
+2026-10-06T23:32:39.5638295Z  	  FOR item IN
+2026-10-06T23:32:39.5638623Z  	    SELECT 'omaha_setting' AS source_table, key AS identity, 'value' AS source_column, value AS amount FROM omaha_setting
+2026-10-06T23:32:39.5638966Z  	    UNION ALL
+2026-10-06T23:32:39.5639349Z  	    SELECT 'booking_offer', id, 'incrementalCostDollars', "incrementalCostDollars" FROM booking_offer WHERE "incrementalCostDollars" IS NOT NULL
+2026-10-06T23:32:39.5639770Z  	  LOOP
+2026-10-06T23:32:39.5639938Z  	    rendered := item.amount::text;
+2026-10-06T23:32:39.5640331Z  	    IF rendered IN ('NaN','Infinity','-Infinity') THEN RAISE EXCEPTION 'Invalid legacy money %.%', item.source_table, item.identity; END IF;
+2026-10-06T23:32:39.5640751Z  	    exact_value := rendered::numeric;
+2026-10-06T23:32:39.5641201Z  	    IF (item.source_table='omaha_setting' AND item.identity IN ('regular_hourly_dollars','overtime_hourly_dollars','mileage_dollars_per_mile') AND exact_value<0)
+2026-10-06T23:32:39.5641889Z  	      OR exact_value<>exact_value::numeric(65,30) THEN
+2026-10-06T23:32:39.5642223Z  	      RAISE EXCEPTION 'Unrepresentable legacy money %.%', item.source_table, item.identity;
+2026-10-06T23:32:39.5642531Z  	    END IF;
+2026-10-06T23:32:39.5642830Z  	    INSERT INTO monetary_migration_receipt VALUES (item.source_table,item.identity,item.source_column,
+2026-10-06T23:32:39.5643315Z  	      rendered,encode(float8send(item.amount),'hex'),exact_value,'exact-fleet-half-up-v2',CURRENT_TIMESTAMP);
+2026-10-06T23:32:39.5643649Z  	  END LOOP;
+2026-10-06T23:32:39.5643812Z  	END $money$
+2026-10-06T23:32:39.5644043Z  2026-10-06 23:32:37.624 UTC [627] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5644365Z  2026-10-06 23:32:37.665 UTC [628] ERROR:  numeric field overflow
+2026-10-06T23:32:39.5644753Z  2026-10-06 23:32:37.665 UTC [628] DETAIL:  A field with precision 65, scale 30 must round to an absolute value less than 10^35.
+2026-10-06T23:32:39.5645281Z  2026-10-06 23:32:37.665 UTC [628] CONTEXT:  PL/pgSQL function inline_code_block line 12 at IF
+2026-10-06T23:32:39.5645601Z  2026-10-06 23:32:37.665 UTC [628] STATEMENT:  
+2026-10-06T23:32:39.5645826Z  	DO $money$
+2026-10-06T23:32:39.5646029Z  	DECLARE item RECORD; rendered TEXT; exact_value NUMERIC;
+2026-10-06T23:32:39.5646269Z  	BEGIN
+2026-10-06T23:32:39.5646422Z  	  FOR item IN
+2026-10-06T23:32:39.5647048Z  	    SELECT 'omaha_setting' AS source_table, key AS identity, 'value' AS source_column, value AS amount FROM omaha_setting
+2026-10-06T23:32:39.5647490Z  	    UNION ALL
+2026-10-06T23:32:39.5648018Z  	    SELECT 'booking_offer', id, 'incrementalCostDollars', "incrementalCostDollars" FROM booking_offer WHERE "incrementalCostDollars" IS NOT NULL
+2026-10-06T23:32:39.5648452Z  	  LOOP
+2026-10-06T23:32:39.5648626Z  	    rendered := item.amount::text;
+2026-10-06T23:32:39.5649038Z  	    IF rendered IN ('NaN','Infinity','-Infinity') THEN RAISE EXCEPTION 'Invalid legacy money %.%', item.source_table, item.identity; END IF;
+2026-10-06T23:32:39.5649448Z  	    exact_value := rendered::numeric;
+2026-10-06T23:32:39.5649975Z  	    IF (item.source_table='omaha_setting' AND item.identity IN ('regular_hourly_dollars','overtime_hourly_dollars','mileage_dollars_per_mile') AND exact_value<0)
+2026-10-06T23:32:39.5650443Z  	      OR exact_value<>exact_value::numeric(65,30) THEN
+2026-10-06T23:32:39.5650777Z  	      RAISE EXCEPTION 'Unrepresentable legacy money %.%', item.source_table, item.identity;
+2026-10-06T23:32:39.5651084Z  	    END IF;
+2026-10-06T23:32:39.5651559Z  	    INSERT INTO monetary_migration_receipt VALUES (item.source_table,item.identity,item.source_column,
+2026-10-06T23:32:39.5652034Z  	      rendered,encode(float8send(item.amount),'hex'),exact_value,'exact-fleet-half-up-v2',CURRENT_TIMESTAMP);
+2026-10-06T23:32:39.5652372Z  	  END LOOP;
+2026-10-06T23:32:39.5652532Z  	END $money$
+2026-10-06T23:32:39.5652767Z  2026-10-06 23:32:37.673 UTC [628] WARNING:  there is no transaction in progress
+2026-10-06T23:32:39.5653097Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-10-06T23:32:39.5653472Z  The default database encoding has accordingly been set to "UTF8".
+2026-10-06T23:32:39.5653787Z  The default text search configuration will be set to "english".
+2026-10-06T23:32:39.5654038Z  
+2026-10-06T23:32:39.5654250Z  Data page checksums are disabled.
+2026-10-06T23:32:39.5654460Z  
+2026-10-06T23:32:39.5654699Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-10-06T23:32:39.5654985Z  creating subdirectories ... ok
+2026-10-06T23:32:39.5655224Z  selecting dynamic shared memory implementation ... posix
+2026-10-06T23:32:39.5655480Z  selecting default max_connections ... 100
+2026-10-06T23:32:39.5655708Z  selecting default shared_buffers ... 128MB
+2026-10-06T23:32:39.5655927Z  selecting default time zone ... Etc/UTC
+2026-10-06T23:32:39.5656161Z  creating configuration files ... ok
+2026-10-06T23:32:39.5656381Z  running bootstrap script ... ok
+2026-10-06T23:32:39.5656619Z  performing post-bootstrap initialization ... ok
+2026-10-06T23:32:39.5656849Z  syncing data to disk ... ok
+2026-10-06T23:32:39.5657037Z  
+2026-10-06T23:32:39.5657183Z  
+2026-10-06T23:32:39.5657364Z  Success. You can now start the database server using:
+2026-10-06T23:32:39.5657589Z  
+2026-10-06T23:32:39.5657785Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-10-06T23:32:39.5658008Z  
+2026-10-06T23:32:39.5658432Z  waiting for server to start....2026-10-06 23:31:22.704 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-06T23:32:39.5659007Z  2026-10-06 23:31:22.704 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-06T23:32:39.5659393Z  2026-10-06 23:31:22.707 UTC [51] LOG:  database system was shut down at 2026-10-06 23:31:22 UTC
+2026-10-06T23:32:39.5659749Z  2026-10-06 23:31:22.710 UTC [48] LOG:  database system is ready to accept connections
+2026-10-06T23:32:39.5660088Z   done
+2026-10-06T23:32:39.5660239Z  server started
+2026-10-06T23:32:39.5660409Z  CREATE DATABASE
+2026-10-06T23:32:39.5660571Z  
+2026-10-06T23:32:39.5660705Z  
+2026-10-06T23:32:39.5660950Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-06T23:32:39.5661227Z  
+2026-10-06T23:32:39.5661838Z  waiting for server to shut down...2026-10-06 23:31:22.884 UTC [48] LOG:  received fast shutdown request
+2026-10-06T23:32:39.5662220Z  .2026-10-06 23:31:22.884 UTC [48] LOG:  aborting any active transactions
+2026-10-06T23:32:39.5662631Z  2026-10-06 23:31:22.887 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-10-06T23:32:39.5663021Z  2026-10-06 23:31:22.887 UTC [49] LOG:  shutting down
+2026-10-06T23:32:39.5663306Z  2026-10-06 23:31:22.887 UTC [49] LOG:  checkpoint starting: shutdown immediate
+2026-10-06T23:32:39.5664038Z  2026-10-06 23:31:23.013 UTC [49] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.104 s, sync=0.021 s, total=0.126 s; sync files=301, longest=0.019 s, average=0.001 s; distance=4273 kB, estimate=4273 kB; lsn=0/191F0F0, redo lsn=0/191F0F0
+2026-10-06T23:32:39.5664855Z  2026-10-06 23:31:23.017 UTC [48] LOG:  database system is shut down
+2026-10-06T23:32:39.5665103Z   done
+2026-10-06T23:32:39.5665265Z  server stopped
+2026-10-06T23:32:39.5665422Z  
+2026-10-06T23:32:39.5665611Z  PostgreSQL init process complete; ready for start up.
+2026-10-06T23:32:39.5665888Z  
+2026-10-06T23:32:39.5670884Z Stop and remove container: 2b00b4fcaaf248c2b169909672afef3a_postgres16_867243
+2026-10-06T23:32:39.5674945Z ##[command]/usr/bin/docker rm --force ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:32:40.4545797Z ca34657cc61067031b89b0dc6ef0b80560a947f6298f3349ecc51b1b7081f690
+2026-10-06T23:32:40.4570938Z Remove container network: github_network_0d179463e910406ca7e546ffd326ee56
+2026-10-06T23:32:40.4575202Z ##[command]/usr/bin/docker network rm github_network_0d179463e910406ca7e546ffd326ee56
+2026-10-06T23:32:40.5193224Z github_network_0d179463e910406ca7e546ffd326ee56
+2026-10-06T23:32:40.5272830Z Cleaning up orphan processes
