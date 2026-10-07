@@ -784,6 +784,8 @@ class ContentionTests(unittest.TestCase):
 
 # Existing CI entry point covers both versions without changing v1 test semantics.
 from test_campaigns import CampaignConfigurationTests, CampaignLifecycleTests, AdapterContractTests
+from test_campaign_analysis import CampaignAnalysisTests
+from test_campaign_study import CampaignStudyTests
 
 if __name__ == '__main__':
     unittest.main()
