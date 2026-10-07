@@ -28,10 +28,10 @@ public record TravelBreakdown(long road_seconds, BigDecimal configured_buffer_se
         return new TravelBreakdown(road, Required.value(buffer), Required.value(rounding), modeled, count);
     }
     private static BigDecimal allowance(DayPlan plan, DayPlan.RoadLeg leg) {
-        return Required.value(BigDecimal.valueOf(leg.seconds()).multiply(BigDecimal.valueOf(plan.getTravelBufferPct()))
+        return Required.value(BigDecimal.valueOf(leg.seconds()).multiply(plan.getTravelBufferPct())
                 .add(BigDecimal.valueOf(Math.multiplyExact(plan.getTravelBufferMinutes(), 60))));
     }
     private static long minutes(DayPlan plan, DayPlan.RoadLeg leg) {
-        return (long) Math.ceil(leg.seconds() * (1 + plan.getTravelBufferPct()) / 60.0) + plan.getTravelBufferMinutes();
+        return dev.waterflex.scheduler.Monetary.bufferedMinutes(leg.seconds(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes());
     }
 }

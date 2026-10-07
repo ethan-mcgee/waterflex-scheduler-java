@@ -57,7 +57,38 @@ class MonetaryMigrationDatabaseIT {
                 assertThrows(SQLException.class, () -> sql.execute("UPDATE omaha_setting SET value='NaN'::numeric WHERE key='regular_hourly_dollars'"));
                 sql.execute("INSERT INTO booking_offer (id,\"jobId\",\"expiresAt\",\"incrementalCostDollars\") VALUES ('new','pending',CURRENT_TIMESTAMP,85.09)");
                 try (ResultSet rows = sql.executeQuery("SELECT \"incrementalCostDollars\",\"costModelVersion\" FROM booking_offer WHERE id='new'")) {
-                    assertTrue(rows.next()); assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.decimal(rows, 1).compareTo(new BigDecimal("85.09"))); assertEquals(Monetary.COST_MODEL, rows.getString(2));
+                    assertTrue(rows.next()); assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.decimal(rows, 1).compareTo(new BigDecimal("85.09"))); assertEquals("exact-fleet-half-up-v2", rows.getString(2));
+                }
+            }
+        });
+    }
+    @Test void travelBufferMigrationAdvancesCostModelAndRefreshesOnlyUnconfirmedProposals() throws Exception {
+        fixture(20.02, connection -> {
+            migration(connection);
+            try (Statement sql = connection.createStatement()) {
+                sql.execute("UPDATE optimization_run SET status='PREVIEW',reason=NULL WHERE id='preview'");
+                sql.execute("UPDATE booking_offer_set SET \"supersededAt\"=NULL WHERE id='pending'");
+                sql.execute("UPDATE slot_hold SET \"releasedAt\"=NULL WHERE id='pending'");
+                sql.execute(migrationSql("20261007180000_exact_travel_buffer"));
+                try (ResultSet rows = sql.executeQuery("SELECT status,reason FROM optimization_run WHERE id='preview'")) {
+                    assertTrue(rows.next()); assertEquals("STALE", rows.getString(1)); assertEquals("COST_MODEL_CHANGED", rows.getString(2));
+                }
+                try (ResultSet rows = sql.executeQuery("SELECT status FROM optimization_run WHERE status='APPLIED'")) { assertTrue(rows.next()); }
+                try (ResultSet rows = sql.executeQuery("SELECT id,\"supersededAt\" IS NULL FROM booking_offer_set ORDER BY id")) {
+                    assertTrue(rows.next()); assertEquals("confirmed", rows.getString(1)); assertTrue(rows.getBoolean(2));
+                    assertTrue(rows.next()); assertEquals("pending", rows.getString(1)); assertFalse(rows.getBoolean(2));
+                }
+                try (ResultSet rows = sql.executeQuery("SELECT id,\"releasedAt\" IS NULL FROM slot_hold ORDER BY id")) {
+                    assertTrue(rows.next()); assertEquals("confirmed", rows.getString(1)); assertTrue(rows.getBoolean(2));
+                    assertTrue(rows.next()); assertEquals("pending", rows.getString(1)); assertFalse(rows.getBoolean(2));
+                }
+                sql.execute("INSERT INTO booking_offer (id,\"jobId\",\"expiresAt\",\"incrementalCostDollars\") VALUES ('buffer','pending',CURRENT_TIMESTAMP,1)");
+                try (ResultSet rows = sql.executeQuery("SELECT \"costModelVersion\" FROM booking_offer WHERE id='buffer'")) {
+                    assertTrue(rows.next()); assertEquals(Monetary.COST_MODEL, rows.getString(1));
+                }
+                sql.execute("INSERT INTO booking_offer_set (id,\"jobId\") VALUES ('buffer','pending')");
+                try (ResultSet rows = sql.executeQuery("SELECT \"costModelVersion\" FROM booking_offer_set WHERE id='buffer'")) {
+                    assertTrue(rows.next()); assertEquals(Monetary.COST_MODEL, rows.getString(1));
                 }
             }
         });
