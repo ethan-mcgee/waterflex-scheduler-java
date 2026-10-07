@@ -1,15 +1,22 @@
 """Register separate algorithm, neighborhood, and termination treatments from pinned JSON."""
 import copy
+import uuid
 from pathlib import Path
 
 import campaign_config as cc
 import campaign_runtime as cr
 from experiment_config import read_json
-from experiment_runtime import measurement_lock, sha, write_new
+from experiment_runtime import measurement_lock, sha, stamp, write_new
 
 
 def factor(control, candidate, kind):
     cc.choice(kind, 'algorithm', 'one-move-family', 'termination')
+    names = ['id', 'acceptor', 'acceptorSize', 'acceptedCountLimit', 'selectedCountLimit', 'moves',
+             'environmentMode', 'moveThreads', 'nativeParallelBenchmarkCount', 'termination']
+    for value in (control, candidate):
+        cc.fields(value, names)
+        cc.fields(value['termination'], ['kind', 'scope', 'spentCap', 'stepCap', 'windowMs', 'minimumImprovementRatio', 'unimprovedMs'])
+        cc.check(type(value['moves']) is list and bool(value['moves']), 'Explicit moves required')
     first, second = copy.deepcopy(control), copy.deepcopy(candidate)
     first.pop('id'); second.pop('id')
     if kind == 'algorithm':
@@ -33,11 +40,13 @@ def register(path):
     cc.fields(spec, ['version', 'name', 'purpose', 'baseCampaign', 'studies', 'outputLocation'])
     cc.check(type(spec['version']) is int and spec['version'] == 1, 'Unsupported matrix version')
     cc.slug(spec['name']); cc.text(spec['purpose']); cc.artifact(spec['baseCampaign'])
+    cc.text(spec['outputLocation'])
     base_path = Path(spec['baseCampaign']['path'])
     if not base_path.is_absolute(): base_path = path.parent / base_path
     cc.check(base_path.is_file() and sha(base_path) == spec['baseCampaign']['sha256'], 'Changed base campaign')
     base = cc.resolve(read_json(base_path), base_path.parent)
     cc.check(type(spec['studies']) is list and bool(spec['studies']), 'Explicit studies required')
+    for study in spec['studies']: cc.fields(study, ['id', 'factor', 'control', 'candidates'])
     cc.unique([study['id'] for study in spec['studies']])
     expanded = []
     for study in spec['studies']:
@@ -106,3 +115,40 @@ def execute(directory):
     write_new(directory / 'analysis.json', {'version': 1, 'campaigns': results,
                                          'promotionAuthorized': False})
     return {'directory': str(directory), 'state': state, 'campaignCount': len(results)}
+
+
+def analyze(directory):
+    """Revalidate sealed cases, including failures, without dispatch or rewriting old analyses."""
+    directory = directory.resolve()
+    registration = read_json(directory / 'registration.json')
+    cc.fields(registration, ['version', 'name', 'purpose', 'originalSpecificationHash', 'baseCampaign', 'toolkit', 'campaigns'])
+    cc.check(type(registration['version']) is int and registration['version'] == 1, 'Unsupported registration')
+    dispatch = read_json(directory / 'dispatch.json')
+    cc.fields(dispatch, ['registrationHash', 'toolkit'])
+    cc.check(sha(directory / 'registration.json') == dispatch['registrationHash'], 'Changed dispatched registration')
+    cc.check(dispatch['toolkit'] == registration['toolkit'], 'Dispatch toolkit differs from registration')
+    cc.check(sha(directory / 'original-specification.json') == registration['originalSpecificationHash'], 'Changed original specification')
+    cc.check(type(registration['campaigns']) is list and bool(registration['campaigns']), 'Registered campaigns required')
+    rows = []
+    for entry in registration['campaigns']:
+        cc.fields(entry, ['id', 'factor', 'configuration']); cc.slug(entry['id']); cc.artifact(entry['configuration'])
+        name = entry['configuration']['path']; cc.check(Path(name).name == name, 'Invalid configuration pointer')
+        config_path = directory / name
+        cc.check(sha(config_path) == entry['configuration']['sha256'], 'Changed registered configuration')
+        config = cc.validate(read_json(config_path))
+        pointer_path = directory / (entry['id'] + '-archive.json')
+        if not pointer_path.exists():
+            rows.append({'id': entry['id'], 'analysis': None, 'reason': 'Not dispatched after retained registration stop',
+                         'requestedCases': sum(len(block['cases']) for block in cc.expand(config))})
+            continue
+        pointer = read_json(pointer_path); cc.fields(pointer, ['run', 'manifestHash']); cc.text(pointer['run'])
+        run = Path(pointer['run'])
+        cc.check(sha(run / 'manifest.json') == pointer['manifestHash'], 'Changed matrix archive manifest')
+        cc.check(sha(run / 'original-config.json') == entry['configuration']['sha256'], 'Archive differs from registered configuration')
+        cc.check(read_json(run / 'manifest.json')['toolkit'] == registration['toolkit'], 'Archived toolkit differs from matrix registration')
+        rows.append({'id': entry['id'], 'analysis': cr.analyze(run), 'reason': None})
+    cc.unique([row['id'] for row in rows])
+    report = {'version': 1, 'registrationHash': sha(directory / 'registration.json'), 'analyzerToolkit': cr.toolkit_hashes(),
+              'campaigns': rows, 'promotionAuthorized': False}
+    write_new(directory / 'analyses' / (stamp() + '-' + uuid.uuid4().hex[:8] + '.json'), report)
+    return report

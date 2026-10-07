@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from campaign_promotion import evaluate, review
+from campaign_promotion import evaluate, review, latency_gate
 from experiment_runtime import sha
 
 
@@ -24,6 +24,14 @@ def receipt():
 
 
 class CampaignPromotionTests(unittest.TestCase):
+    def test_long_decimal_control_does_not_round_into_acceptance(self):
+        self.assertFalse(latency_gate('100.00000000000000000000000001', '105.000000000000000000000000011'))
+        self.assertTrue(latency_gate('100.00000000000000000000000001', '105.0000000000000000000000000105'))
+
+    def test_impossible_outcome_counts_fail_instead_of_selecting_a_winner(self):
+        value = receipt(); value['candidate']['timeouts'] = 101
+        with self.assertRaises(ValueError): evaluate(value)
+
     def test_exact_p95_boundary_and_no_deployment_authority(self):
         value = receipt(); value['candidate']['p95Ms'] = '105'
         self.assertTrue(evaluate(value)['eligibleForOwnerReview'])
