@@ -786,8 +786,6 @@ class ContentionTests(unittest.TestCase):
 from test_campaigns import CampaignConfigurationTests, CampaignLifecycleTests, AdapterContractTests
 from test_campaign_analysis import CampaignAnalysisTests
 from test_campaign_study import CampaignStudyTests
-from test_campaign_promotion import CampaignPromotionTests
-from test_campaign_matrix import CampaignMatrixTests
 
 if __name__ == '__main__':
     unittest.main()

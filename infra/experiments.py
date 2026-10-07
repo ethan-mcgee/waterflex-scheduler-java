@@ -26,24 +26,10 @@ def main():
     imp.add_argument('archive', type=Path)
     commands.add_parser('study-run').add_argument('config', type=Path)
     commands.add_parser('study-analyze').add_argument('run', type=Path)
-    commands.add_parser('promotion-review').add_argument('config', type=Path)
-    commands.add_parser('matrix-register').add_argument('config', type=Path)
-    commands.add_parser('matrix-run').add_argument('run', type=Path)
-    commands.add_parser('matrix-analyze').add_argument('run', type=Path)
     profile = commands.add_parser('profile-study')
     profile.add_argument('run', type=Path)
     profile.add_argument('output', type=Path)
     args = parser.parse_args()
-    if args.command in ('matrix-register', 'matrix-run', 'matrix-analyze'):
-        import campaign_matrix
-        result = campaign_matrix.register(args.config) if args.command == 'matrix-register' else (
-            campaign_matrix.execute(args.run) if args.command == 'matrix-run' else campaign_matrix.analyze(args.run))
-        print(json.dumps(result, indent=2))
-        return
-    if args.command == 'promotion-review':
-        import campaign_promotion
-        print(json.dumps(campaign_promotion.review(args.config), indent=2))
-        return
     if args.command == 'profile-study':
         import campaign_profile
         print(json.dumps(campaign_profile.extract(args.run.resolve(), args.output.resolve()), indent=2))
