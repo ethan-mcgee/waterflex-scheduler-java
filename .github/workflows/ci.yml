@@ -3,8 +3,21 @@ name: CI
 on:
   pull_request:
     branches: [main]
+    # Skip CI for Markdown-only changes, except Markdown that CI generates or reads.
+    paths:
+      - '**'
+      - '!**/*.md'
+      - 'docs/scheduler-field-validation.md'
+      - 'docs/scheduler-algorithm-comparison-*.md'
+      - 'docs/timefold-audit/**'
   push:
     branches: [main]
+    paths:
+      - '**'
+      - '!**/*.md'
+      - 'docs/scheduler-field-validation.md'
+      - 'docs/scheduler-algorithm-comparison-*.md'
+      - 'docs/timefold-audit/**'
 
 permissions:
   contents: read
@@ -235,7 +248,8 @@ jobs:
       - name: Time-off repair smoke
         working-directory: web
         run: |
-          for repetition in 1 2 3; do
+          # One run per pull request; main keeps three repetitions to catch intermittent failures.
+          for repetition in ${{ github.event_name == 'pull_request' && '1' || '1 2 3' }}; do
             echo "Time-off smoke repetition $repetition"
             node ../infra/run-check.mjs time-off-$repetition npm run test:time-off:integration
           done
