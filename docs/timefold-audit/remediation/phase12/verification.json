@@ -1,0 +1,2306 @@
+{
+  "version": 1,
+  "recordedAtUtc": "2026-10-07T05:13:41.544999+00:00",
+  "source": {
+    "infra/campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+    "infra/campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+    "infra/campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+    "infra/campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+    "infra/experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+    "infra/test_campaign_analysis.py": "e6dea9efb8fa5e02bb04fac5285caadd7501aa63fb95537d0845f4ac420e290a",
+    "infra/test_campaign_study.py": "97470aa0c7b90ec21dbd69bfd67efa736738ca6aabe017beff7fe2f98f883a81",
+    "infra/test_campaigns.py": "1972c60ef52fa872457e373a1a88e0c89b37c27be1885f3d7099a5ee429887c1",
+    "infra/test_experiments.py": "cb53e9f676476eb9b34c5cc8565c8404b9fbd5738c8137ba188e4c983dd5077d",
+    "campaign-benchmark/src/main/java/dev/waterflex/benchmark/CampaignMain.java": "c0cfd1d99f0aad2d36af445cfe702e0be5c16897fbb5c54c500914a0f4ed3678"
+  },
+  "originalMergedPhase11": "d3b2a042068cdb1be44f0b7f09b115e5578d4212",
+  "baseline": [
+    {
+      "root": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1",
+      "analysisHash": "c3d5ad94ea8a4f6ecde2bc39522caa84bda7964ae041fac0fdc2262539778180",
+      "requestedCases": 16,
+      "outcomes": {
+        "SUCCEEDED": 16,
+        "FAILED": 0,
+        "INTERRUPTED": 0,
+        "ABANDONED": 0
+      },
+      "independentlyValidCases": 16,
+      "inference": {
+        "method": "paired-dataset-bootstrap",
+        "unit": "dataset",
+        "difference": "candidate-minus-control",
+        "rules": {
+          "method": "paired-dataset-bootstrap",
+          "pairKeys": [
+            "datasetHash",
+            "targetHash",
+            "budgetHash",
+            "solverSeed",
+            "fork",
+            "scoreVersion",
+            "modelVersion",
+            "routingIdentity",
+            "runtimeHash"
+          ],
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "selection": "tuning-only",
+          "latencyNoninferiorityPercent": 5,
+          "failureTolerance": 0,
+          "costDifferenceUpperBoundCents": 0
+        },
+        "counts": {
+          "tabu": {
+            "requested": 8,
+            "dispatched": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "interrupted": 0,
+            "abandoned": 0,
+            "missing": 0,
+            "valid": 8,
+            "paired": 8,
+            "reliabilityDenominator": 8
+          },
+          "tabu-eight": {
+            "requested": 8,
+            "dispatched": 8,
+            "completed": 8,
+            "successful": 8,
+            "failed": 0,
+            "interrupted": 0,
+            "abandoned": 0,
+            "missing": 0,
+            "valid": 8,
+            "paired": 8,
+            "reliabilityDenominator": 8
+          }
+        },
+        "baselines": [
+          {
+            "cohort": [
+              "tabu",
+              "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+              "assigned",
+              "bendable-decimal-repair-v2",
+              "exact-fleet-half-up-v2",
+              "synthetic-euclidean-directed-v1"
+            ],
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "datasets": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32556.5,
+                  "fairnessVariance": "0.02567714361496913580246913580",
+                  "latencyMs": 3471.5,
+                  "moveEvaluationsPerSecond": 8064.989012571122
+                }
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32439,
+                  "fairnessVariance": "0.04742886766975308641975308642",
+                  "latencyMs": 3459.25,
+                  "moveEvaluationsPerSecond": 7769.118218212375
+                }
+              }
+            ],
+            "equalDatasetMeans": {
+              "costCents": 32497.75,
+              "fairnessVariance": "0.03655300564236111111111111111",
+              "latencyMs": 3465.375,
+              "moveEvaluationsPerSecond": 7917.053615391748
+            }
+          },
+          {
+            "cohort": [
+              "tabu-eight",
+              "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+              "assigned",
+              "bendable-decimal-repair-v2",
+              "exact-fleet-half-up-v2",
+              "synthetic-euclidean-directed-v1"
+            ],
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "datasets": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32445.25,
+                  "fairnessVariance": "0.02605040750385802469135802469",
+                  "latencyMs": 3494.25,
+                  "moveEvaluationsPerSecond": 8774.357471725732
+                }
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "validRepetitions": 4,
+                "means": {
+                  "costCents": 32428.75,
+                  "fairnessVariance": "0.04733148268711419753086419753",
+                  "latencyMs": 3539.25,
+                  "moveEvaluationsPerSecond": 8637.23258305933
+                }
+              }
+            ],
+            "equalDatasetMeans": {
+              "costCents": 32437.0,
+              "fairnessVariance": "0.03669094509548611111111111111",
+              "latencyMs": 3516.75,
+              "moveEvaluationsPerSecond": 8705.79502739253
+            }
+          }
+        ],
+        "comparisons": [
+          {
+            "candidate": "tabu-eight",
+            "control": "tabu",
+            "cohort": [
+              "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+              "assigned",
+              "bendable-decimal-repair-v2",
+              "exact-fleet-half-up-v2",
+              "synthetic-euclidean-directed-v1"
+            ],
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "pairedCount": 8,
+            "datasetCount": 2,
+            "perDataset": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pairedRepetitions": 4,
+                "effects": {
+                  "costCents": -111.25,
+                  "fairnessVariance": "0.000373263888888888888888888889",
+                  "latencyMs": 22.75,
+                  "moveEvaluationsPerSecond": 709.3684591546114
+                }
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pairedRepetitions": 4,
+                "effects": {
+                  "costCents": -10.25,
+                  "fairnessVariance": "-0.0000973849826388888888888888889",
+                  "latencyMs": 80,
+                  "moveEvaluationsPerSecond": 868.1143648469558
+                }
+              }
+            ],
+            "metrics": {
+              "costCents": {
+                "estimate": -60.75,
+                "interval": [
+                  -111.25,
+                  -10.25
+                ],
+                "unavailableReason": null
+              },
+              "fairnessVariance": {
+                "estimate": "0.0001379394531250000000000000000",
+                "interval": [
+                  "-0.0000973849826388888888888888889",
+                  "0.000373263888888888888888888889"
+                ],
+                "unavailableReason": null
+              },
+              "latencyMs": {
+                "estimate": 51.375,
+                "interval": [
+                  22.75,
+                  80
+                ],
+                "unavailableReason": null
+              },
+              "moveEvaluationsPerSecond": {
+                "estimate": 788.7414120007836,
+                "interval": [
+                  709.3684591546114,
+                  868.1143648469558
+                ],
+                "unavailableReason": null
+              }
+            },
+            "families": {
+              "clustered": {
+                "costCents": -60.75,
+                "fairnessVariance": "0.0001379394531250000000000000000",
+                "latencyMs": 51.375,
+                "moveEvaluationsPerSecond": 788.7414120007836
+              }
+            },
+            "pairs": [
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": -50,
+                  "moveEvaluationsPerSecond": -83.59488443852933
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": 257,
+                  "moveEvaluationsPerSecond": 928.4737002128313
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 440,
+                  "fairnessVariance": "-0.008605324074074074074074074074",
+                  "latencyMs": 177,
+                  "moveEvaluationsPerSecond": -3619.6505158934397
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": 68,
+                  "moveEvaluationsPerSecond": 8.062937062936726
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": -445,
+                  "fairnessVariance": "0.001493055555555555555555555556",
+                  "latencyMs": -32,
+                  "moveEvaluationsPerSecond": 4698.49888064098
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 17,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": -440,
+                  "fairnessVariance": "0.008605324074074074074074074074",
+                  "latencyMs": -98,
+                  "moveEvaluationsPerSecond": 4608.531760561661
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 1,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": -41,
+                  "fairnessVariance": "-0.0003895399305555555555555555556",
+                  "latencyMs": -16,
+                  "moveEvaluationsPerSecond": 1555.1025145067706
+                },
+                "unavailable": {}
+              },
+              {
+                "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                "family": "clustered",
+                "pair": {
+                  "datasetHash": "4f22ab3e7d6a5e0951448ee8303cccca122a2ac599037287da50049100699b65",
+                  "targetHash": null,
+                  "budgetHash": "33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1",
+                  "solverSeed": 23,
+                  "fork": 0,
+                  "scoreVersion": "bendable-decimal-repair-v2",
+                  "modelVersion": "exact-fleet-half-up-v2",
+                  "routingIdentity": "synthetic-euclidean-directed-v1",
+                  "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c"
+                },
+                "deltas": {
+                  "costCents": 0,
+                  "fairnessVariance": "0.00000000000000000000000000000000000",
+                  "latencyMs": 105,
+                  "moveEvaluationsPerSecond": -1785.493096646942
+                },
+                "unavailable": {}
+              }
+            ],
+            "costGateSatisfied": false,
+            "disposition": "inconclusive-or-gate-not-met",
+            "latencyGateUnavailableReason": "Request p95 and held-out service promotion are separate phase 15 gates"
+          }
+        ],
+        "unmatched": [],
+        "automaticPromotion": false
+      }
+    }
+  ],
+  "studies": [
+    {
+      "root": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa",
+      "specificationHash": "04b3298b626ba5d2135b6263c21227076a3960a56c5384433f49c0769724a1f0",
+      "terminal": {
+        "state": "FAILED",
+        "at": "20261007T044750Z",
+        "failure": {
+          "type": "RuntimeError",
+          "message": "Campaign attempt failed; evidence retained at C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\runs\\20261007T044748Z-phase12-warmup-reference-200-001-42ae71ec\\attempts\\20261007T044749Z-0869aaa4. Explicit resume runs only never-dispatched cases."
+        }
+      },
+      "report": null
+    },
+    {
+      "root": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-002-aff263f4",
+      "specificationHash": "3f6b1724bd576115acb11ec131066505533673f6bd74fdb6e82ebfec3c8c3df7",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T045533Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "warmup",
+        "rules": {
+          "referenceLabel": "probe-60000",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-200": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206",
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-30000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d",
+            "runtimeHash": "d285fc9e15ee93d3fe9b6674a920c0bdd778bc94d4547afaa749a175c647648a",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 30000,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-60000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d",
+            "runtimeHash": "73226737c579625feaa1cf3d22c20677bafc80667c67429f9b600611adc7defb",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 60000,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-200",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.02958003055101432,
+                  0.05477897904456821,
+                  0.03429762502914793
+                ],
+                "meanRatio": 0.03955221154157682,
+                "interval": [
+                  0.02958003055101432,
+                  0.05477897904456821
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          },
+          {
+            "label": "probe-30000",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.6981417978081259,
+                  0.7576663686743407,
+                  0.8744709751215327
+                ],
+                "meanRatio": 0.7767597138679998,
+                "interval": [
+                  0.6981417978081259,
+                  0.8744709751215327
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-002-bb8f7935",
+      "specificationHash": "ca603efdc43f0b2e216bd4e34a9341b3f6895562da7c30ba77134a1c0ad33409",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050116Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "warmup",
+        "rules": {
+          "referenceLabel": "probe-60000",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-200": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37",
+            "runtimeHash": "fd355a2476a7d4ed66b31fcc1c1dc5ffddd561fc6a379ae2359589183539c48b",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "fairness"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-30000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a",
+            "runtimeHash": "b7be92d0418d7e4bf8df20a0724d1127f9c0dbab8e2bad2fbd17f3cc0e67d1c2",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 30000,
+              "paths": [
+                "fairness"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-60000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24",
+            "runtimeHash": "323def76d7f8f38bb3dbac1e245bcf0c86ef2ffe1357137922fdd2416c152e72",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 60000,
+              "paths": [
+                "fairness"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-200",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"68af4112fcc33c50a2216435cf8a36f251b496561f75f31fd2074efb769e7949\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.014493708284165813,
+                  0.01503594851099021,
+                  0.013871287275354225
+                ],
+                "meanRatio": 0.01446698135683675,
+                "interval": [
+                  0.013871287275354225,
+                  0.01503594851099021
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          },
+          {
+            "label": "probe-30000",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"68af4112fcc33c50a2216435cf8a36f251b496561f75f31fd2074efb769e7949\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  0.974063513912103,
+                  1.0455332359739644,
+                  0.8609010522946425
+                ],
+                "meanRatio": 0.9601659340602366,
+                "interval": [
+                  0.8609010522946425,
+                  1.0455332359739644
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-002-3517e4bf",
+      "specificationHash": "8a9c579446403dd19b6fcec5ad6b0825ae7a8a74ff4b7e98d5592e58cb5dbf79",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050635Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "warmup",
+        "rules": {
+          "referenceLabel": "probe-60000",
+          "metric": "latencyMs",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-200": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651",
+            "runtimeHash": "dc314e9a567d5800a74cfb37884b4811da4197c6a48d4c6984bf6546873f7fd4",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "daily-policy"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-30000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20",
+            "runtimeHash": "b0a5417ee5ce78c613f8a86138e9aa2967d20cf4de810872a0ccba8b29bc89e6",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 30000,
+              "paths": [
+                "daily-policy"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-60000": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4",
+            "runtimeHash": "e4a732179d6e331adcc68c35203e72a18f5135330e55fa0b02785ceb54da9281",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 60000,
+              "paths": [
+                "daily-policy"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-200",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"d2d4edc10e65db5ddfc83e8ac5bd9d6097241f567810a66562623f17120d92d4\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.0863095238095237,
+                  1.0338983050847457,
+                  1.0517412935323383
+                ],
+                "meanRatio": 1.0573163741422025,
+                "interval": [
+                  1.0338983050847457,
+                  1.0863095238095237
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          },
+          {
+            "label": "probe-30000",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"d2d4edc10e65db5ddfc83e8ac5bd9d6097241f567810a66562623f17120d92d4\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.2261904761904763,
+                  1.2542372881355932,
+                  1.2069651741293532
+                ],
+                "meanRatio": 1.2291309794851408,
+                "interval": [
+                  1.2069651741293532,
+                  1.2542372881355932
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-002-d4e0e9c6",
+      "specificationHash": "a7488ebdb83426ea6f3886e89f7e3699137420b457e5f7ea98b9b9dd1c0777a7",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050801Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "concurrency",
+        "rules": {
+          "referenceLabel": "probe-1",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-1": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84",
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-2": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30",
+            "runtimeHash": "f5d5700e6d80a0c136e07e4e4b952dea017bf9e256eaafe24ef554b74b00d708",
+            "resources": {
+              "parallelCases": 2,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-2",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.0240752189592994,
+                  0.5146601346738658,
+                  0.6299161010857881
+                ],
+                "meanRatio": 0.7228838182396511,
+                "interval": [
+                  0.5146601346738658,
+                  1.0240752189592994
+                ],
+                "stable": false
+              },
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"239a0f5c773192ab824257d3dbaa2c6628d625f0f490b6b089384613374d5b12\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.9127581611604716,
+                  0.9523202860011063,
+                  1.0198216055500495
+                ],
+                "meanRatio": 1.2949666842372092,
+                "interval": [
+                  0.9523202860011063,
+                  1.9127581611604716
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "ambiguous-register-new-attempt"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    },
+    {
+      "root": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-002-2df5d41c",
+      "specificationHash": "83eb5a35517693259fc7711ba14d9c3cc78b65a42128d4a17892923cc3f57ff7",
+      "terminal": {
+        "state": "COMPLETE",
+        "at": "20261007T050915Z",
+        "failure": null
+      },
+      "report": {
+        "version": 1,
+        "kind": "profile",
+        "rules": {
+          "referenceLabel": "probe-1",
+          "metric": "moveEvaluationsPerSecond",
+          "tolerancePercent": 5,
+          "draws": 10000,
+          "seed": 20261006,
+          "confidenceLevel": 0.95,
+          "minimumRepetitions": 3
+        },
+        "probes": {
+          "probe-1": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d",
+            "runtimeHash": "39b5b4d82d0e6e39bd53e2a2d8a9cd8116b84f16424fa6652fb5e69b2de07a2c",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "quality-basic",
+              "statistics": [],
+              "jfr": "disabled",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          },
+          "probe-2": {
+            "run": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19",
+            "runtimeHash": "795c8fa270464d158b56f9962691b3fef2cea246cf2ef68f10b5327dbf1a2e35",
+            "resources": {
+              "parallelCases": 1,
+              "totalCpuAllocation": 2,
+              "cpuPerCase": 1,
+              "affinityPolicy": "disjoint-physical-cores",
+              "concurrencyCalibration": [
+                1,
+                2
+              ],
+              "memoryLimitMiB": 1024
+            },
+            "warmup": {
+              "millisecondsPerFreshJvm": 200,
+              "paths": [
+                "reference"
+              ],
+              "disposableInputs": true,
+              "calibrationMs": [
+                200,
+                30000,
+                60000
+              ],
+              "calibrationRepetitions": 3,
+              "stabilityTolerancePercent": 5
+            },
+            "instrumentation": {
+              "cohort": "diagnostic",
+              "statistics": [],
+              "jfr": "profile",
+              "sampleIntervalMs": 1000,
+              "internalDiagnostics": false,
+              "constraintProfiling": false
+            }
+          }
+        },
+        "comparisons": [
+          {
+            "label": "probe-2",
+            "groups": [
+              {
+                "group": "{\"budgetHash\":\"33e6226af6dc12df7eb6c98399b9f7cabb247dffebc90c8ee04efbfb3df2f0f1\",\"configurationHash\":\"097c7584e01f5de0d33f7bef96d679d4df796376d42d5e6a247d4f297b2c0edc\",\"datasetHash\":\"7df336566ec390d0fcae38955954c4c9d3c56b55a6a35434e3d6ec2cfcd7b247\"}",
+                "ratios": [
+                  1.316523549599124,
+                  0.5871528254061854,
+                  2.233725202407445
+                ],
+                "meanRatio": 1.379133859137585,
+                "interval": [
+                  0.5871528254061854,
+                  2.233725202407445
+                ],
+                "stable": false
+              }
+            ],
+            "disposition": "diagnostic-only"
+          }
+        ],
+        "analyzerToolkit": {
+          "campaign_config.py": "651a8519a0dd39ffdd8dee2174656bf92671d73bc774149f82e6615db1714c36",
+          "campaign_runtime.py": "64213f4b6bd0e1475cdc6d557f28999da5cacfd62bce33696a1fcbbdc0916612",
+          "campaign_analysis.py": "e84dc7885b6f3e4b0752a760603df3843b1af0de2019e2195e94ba0c1a9fc946",
+          "campaign_study.py": "8886038b300d77ad207fa271f7207ed30ea2b125759fc6e2be10cd26af72e289",
+          "campaign_profile.py": "22880776f7bf4775e6b213413d4e4b86bf712ecf9caafdc5c09a6ce2ad615efd",
+          "experiments.py": "55ec41ee77544f3ebb7956e93af12265876ef4d8020304ac02375a87cf726b67",
+          "experiment_config.py": "f1a5692f55841a345ad65ec344d8734f9dd134053e79f1d70c37ca31c16a277c",
+          "experiment_runtime.py": "9108a310847f27b27603e374e876ae35186b0a59c2a4c81a2d5848ccb2f89ab4"
+        },
+        "recommendation": null,
+        "reason": "No automatic defaults or production promotion; ambiguous studies require a new explicit registration",
+        "scope": "Fixed-work synthetic offline calibration; caller/cache and production allowances remain separate"
+      }
+    }
+  ],
+  "profiles": [
+    {
+      "path": "experiments\\runs\\phase12-profile-export-001\\summary.json",
+      "sha256": "8091cdfe16f34c3d7e11bac5def3bbc98980f8f1c15871fe6335cc218c6b6749",
+      "report": {
+        "version": 1,
+        "study": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050802Z-phase12-profile-reference-002-2df5d41c",
+        "records": [
+          {
+            "caseId": "2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f",
+            "recording": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\recording.jfr",
+            "recordingHash": "d054af429bd9019c0b881836fc316826e089182253b9ef6b81ce5099425aedea",
+            "jdkJfrToolHash": "ec838368727d52a1aa662f4f1b2543ef6291e0e710688fd07be2b5e96cd780cb",
+            "exportHash": "e4a3e3859aba3dac78f53c658ce3b080d0bcfd62e4c89250b50ed3349e4c0c1f",
+            "summary": {
+              "eventCounts": {
+                "jdk.ObjectAllocationSample": 887,
+                "jdk.GarbageCollection": 12,
+                "jdk.ExecutionSample": 92
+              },
+              "allocationSampleWeightBytes": 411578632,
+              "allocationUnavailableReason": null,
+              "gcDurationSeconds": 0.109194,
+              "gcUnavailableReason": null,
+              "executionSampleLeafFrames": {
+                "freemarker/core/FMParserTokenManager.jjMoveNfa_0": 8,
+                "java/util/HashMap.putVal": 3,
+                "jdk/internal/icu/impl/NormalizerImpl.getDecompose": 3,
+                "sun/net/www/ParseUtil.firstEncodeIndex": 2,
+                "java/net/URL.<init>": 2,
+                "java/util/ImmutableCollections$MapN.probe": 2,
+                "jdk/jfr/internal/Bits.putInt_": 1,
+                "com/fasterxml/jackson/core/json/ReaderBasedJsonParser.nextToken": 1,
+                "java/lang/ThreadLocal$ThreadLocalMap.set": 1,
+                "java/util/AbstractMap.<init>": 1,
+                "java/net/URLStreamHandler.setURL": 1,
+                "java/util/HashMap$TreeNode.treeify": 1,
+                "java/lang/invoke/DirectMethodHandle$Holder.invokeSpecial": 1,
+                "java/util/logging/Logger.doSetParent": 1,
+                "org/springframework/boot/loader/net/protocol/jar/JarUrlConnection.getJarFile": 1,
+                "jdk/internal/misc/Blocker.begin": 1,
+                "java/lang/ClassLoader.loadClass": 1,
+                "jdk/internal/classfile/impl/DirectClassBuilder.with": 1,
+                "jdk/internal/classfile/impl/DirectCodeBuilder$4.writeBody": 1,
+                "java/util/LinkedHashMap$LinkedHashIterator.nextNode": 1,
+                "com/sun/org/apache/xerces/internal/impl/XMLDocumentFragmentScannerImpl$ElementStack2.<init>": 1,
+                "java/util/HashMap.getNode": 1,
+                "io/smallrye/classfile/impl/AbstractAttributeMapper$MethodParametersMapper.writeBody": 1,
+                "io/quarkus/gizmo2/impl/FieldCreatorImpl.<init>": 1,
+                "io/smallrye/classfile/impl/DirectCodeBuilder.with": 1
+              },
+              "scope": "Whole fresh JVM includes warmup, solving, validation and native report generation; sampled weights are estimates, not exact allocation totals"
+            }
+          },
+          {
+            "caseId": "a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b",
+            "recording": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\recording.jfr",
+            "recordingHash": "e6a705ef6b483d5675cfd97041bf96f6e1383c7a0e3ad5a5d74535ad289a85fe",
+            "jdkJfrToolHash": "ec838368727d52a1aa662f4f1b2543ef6291e0e710688fd07be2b5e96cd780cb",
+            "exportHash": "486468f8d4c42227700d6d1ce7afd2882ebf9447be328eba5b0b12875cf04651",
+            "summary": {
+              "eventCounts": {
+                "jdk.ObjectAllocationSample": 904,
+                "jdk.GarbageCollection": 12,
+                "jdk.ExecutionSample": 101
+              },
+              "allocationSampleWeightBytes": 413220792,
+              "allocationUnavailableReason": null,
+              "gcDurationSeconds": 0.1167076,
+              "gcUnavailableReason": null,
+              "executionSampleLeafFrames": {
+                "freemarker/core/FMParserTokenManager.jjMoveNfa_0": 15,
+                "java/net/URL.<init>": 2,
+                "java/lang/StringLatin1.hashCode": 2,
+                "jdk/internal/util/ArraysSupport.hashCodeOfUnsigned": 2,
+                "freemarker/core/FMParser.jj_ntk_f": 2,
+                "freemarker/core/FMParserTokenManager.jjCheckNAdd": 2,
+                "java/math/BigInteger.implMulAdd": 1,
+                "java/lang/String.equals": 1,
+                "com/fasterxml/jackson/databind/util/internal/PrivateMaxEntriesMap.applyRead": 1,
+                "org/springframework/boot/loader/zip/ZipString.hash": 1,
+                "java/lang/invoke/DirectMethodHandle$Holder.invokeStatic": 1,
+                "java/lang/Class.getConstructor0": 1,
+                "jdk/internal/loader/Resource.cachedInputStream": 1,
+                "jdk/internal/constant/ConstantUtils.referenceClassDesc": 1,
+                "java/lang/Class.createAnnotationData": 1,
+                "java/lang/reflect/Method.getDefaultValue": 1,
+                "org/springframework/boot/loader/zip/ZipContent.getFirstLookupIndex": 1,
+                "java/lang/Class.descriptorString": 1,
+                "com/sun/org/apache/xerces/internal/impl/XMLEntityScanner.scanLiteral": 1,
+                "io/quarkus/gizmo2/desc/InterfaceMethodDesc.of": 1,
+                "ai/timefold/solver/core/impl/domain/common/accessor/MemberAccessorFactory.buildAndCacheMemberAccessor": 1,
+                "io/quarkus/gizmo2/impl/BlockCreatorImpl.set": 1,
+                "java/util/Objects.requireNonNull": 1,
+                "io/smallrye/classfile/impl/AbstractPoolEntry$AbstractMemberRefEntry.nameAndType": 1,
+                "java/nio/ByteBuffer.position": 1
+              },
+              "scope": "Whole fresh JVM includes warmup, solving, validation and native report generation; sampled weights are estimates, not exact allocation totals"
+            }
+          },
+          {
+            "caseId": "f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca",
+            "recording": "C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\recording.jfr",
+            "recordingHash": "fef71ba510c6a11224cb3697ed932131b51c915f0f39e4f3a34ed6b491b625ca",
+            "jdkJfrToolHash": "ec838368727d52a1aa662f4f1b2543ef6291e0e710688fd07be2b5e96cd780cb",
+            "exportHash": "5ccb0f5659a92062532b2f625b8f941086f13ddfc2d6573e8eb9b3d2a1b22249",
+            "summary": {
+              "eventCounts": {
+                "jdk.ObjectAllocationSample": 857,
+                "jdk.GarbageCollection": 12,
+                "jdk.ExecutionSample": 130
+              },
+              "allocationSampleWeightBytes": 408440736,
+              "allocationUnavailableReason": null,
+              "gcDurationSeconds": 0.1203597,
+              "gcUnavailableReason": null,
+              "executionSampleLeafFrames": {
+                "freemarker/core/FMParserTokenManager.jjMoveNfa_0": 9,
+                "sun/net/www/ParseUtil.firstEncodeIndex": 3,
+                "java/util/concurrent/ConcurrentHashMap.get": 3,
+                "java/net/URLConnection.getDefaultUseCaches": 3,
+                "java/util/HashMap.hash": 2,
+                "java/lang/StringBuilder.append": 2,
+                "org/springframework/boot/loader/net/protocol/jar/Handler.indexOfSeparator": 2,
+                "java/util/ImmutableCollections$MapN.probe": 2,
+                "java/net/URL.<init>": 2,
+                "jdk/internal/event/ExceptionThrownEvent.commit": 1,
+                "sun/invoke/util/VerifyAccess.ensureTypeVisible": 1,
+                "com/fasterxml/jackson/databind/deser/std/BaseNodeDeserializer$ContainerStack.popOrNull": 1,
+                "org/springframework/boot/loader/zip/ZipString.readInBuffer": 1,
+                "org/springframework/boot/loader/jar/NestedJarFile.getVersionedContentEntry": 1,
+                "sun/reflect/generics/factory/CoreReflectionFactory.getDeclsLoader": 1,
+                "com/fasterxml/jackson/databind/cfg/ConstructorDetector.shouldIntrospectorImplicitConstructors": 1,
+                "java/util/Locale.getDefault": 1,
+                "java/time/format/DateTimeFormatterBuilder$InstantPrinterParser.parse": 1,
+                "java/util/HashMap.treeifyBin": 1,
+                "dev/waterflex/scheduler/optimizer/DailyDataset.transfer": 1,
+                "sun/nio/ch/NativeThreadSet.add": 1,
+                "java/lang/reflect/Proxy$ProxyBuilder.proxyClassContext": 1,
+                "java/lang/invoke/MethodTypeForm.cachedLambdaForm": 1,
+                "java/lang/classfile/CodeBuilder.exceptionCatch": 1,
+                "jdk/internal/classfile/impl/StackMapDecoder$1.compare": 1
+              },
+              "scope": "Whole fresh JVM includes warmup, solving, validation and native report generation; sampled weights are estimates, not exact allocation totals"
+            }
+          }
+        ],
+        "performanceComparison": false
+      }
+    }
+  ],
+  "localRawLogHashes": {
+    "phase12-analysis-decimal.log": "599aed51421881aa2b44fde399b8bee97de0deab2950ffd2c6195cb10349e584",
+    "phase12-analysis-final.log": "c2909585758536e540a27391a67754dbcdace53df2691f9415743e478fbb0b96",
+    "phase12-analysis-tests.log": "cf7a80893aaf0d1a0bf573fa96957e6c9d9d7463975d0299a1de5155b5d23a60",
+    "phase12-baseline-001.log": "590e3cd69d23c5b60de8366a3fc9b0f4fd0289856e10af4f3391e4538913b426",
+    "phase12-baseline-003.log": "db30115bfee6fdb42fba7b4f387af82ec2bb2e391188092fe28edba4f0f09720",
+    "phase12-baseline-delivery-analysis.log": "85bf20ea6d6c72d878f537d7d61af341ba33efaacdcd626d24d7a89e455e6647",
+    "phase12-baseline-exact-analysis.log": "2e132a62e516c0d5faf2bfca7140a4580870eaac70bd02f0fd637fe1b5c62ced",
+    "phase12-baseline-preservation.log": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d",
+    "phase12-concurrency-reference-study-004.log": "e0077315dec062c38918b9326db875d8666a5765ad3d88ba1b1437765f18c613",
+    "phase12-experiments-delivery.log": "7ed5cee229010d85056968bbadadb3f583f37948af448aec7be4c5dccbba7d44",
+    "phase12-experiments-exact.log": "8fa6044d2943175add033ae2baf8c9c7a9cb38ef4d22b916f676c6c99bca78a9",
+    "phase12-experiments-final-2.log": "2f8eb871eba287d5feea6e04bbb9d05528c4286c5f4b482343e0399bd57695a6",
+    "phase12-experiments-final.log": "32c1b25a2636335b6115cd59f20e34eae7c5f2c6f590b2c367790c4a1d87e968",
+    "phase12-experiments-first.log": "9570a92cfce40c7aa8eac6db3bb10b0fa67cbb1b5ec090750ecf3cd0711e4c09",
+    "phase12-experiments-path-final.log": "68ddd6813e638371dfcbe3e018a824b04b62a4e1ad633d7c9f4178716487127f",
+    "phase12-java-nullability.log": "0e2e503ff4f23f848921d0f5c919a93d71d502ef8d8ed1b4f03c8bad5df70ba0",
+    "phase12-java-ordinary.log": "d246df4195fb1be215185e8cf31d7a7ed6170161369e62c894c2736da3ed1141",
+    "phase12-profile-export-001.log": "f6548bfdd410c846710f7dd8c22a74337e62114fb5766901bcefb3d4a101332e",
+    "phase12-profile-reference-study-004.log": "9e7a637bee39235f8b516dbbda80082310a2ece8e5a4c7720cf8a839c2a8432d",
+    "phase12-reanalysis-20261007T044946Z-phase12-warmup-reference-002-aff263f4.log": "a723deb42d275675ed350702521d72473d81bb1a0c8ffeb268a51c6a0e0f35fb",
+    "phase12-reanalysis-20261007T045534Z-phase12-warmup-fairness-002-bb8f7935.log": "02ebfe4ae56650c6b9164eb3b35f5183b1f601e75914f009577e7b11be088547",
+    "phase12-reanalysis-20261007T050116Z-phase12-warmup-daily-policy-002-3517e4bf.log": "3d8df3b982c2054973f0930b815fb53a5e204852aac109fc9eb11a26ffcc9a14",
+    "phase12-reanalysis-20261007T050635Z-phase12-concurrency-reference-002-d4e0e9c6.log": "73acaaf7b95df327e1881cd0fd27b225f87d866576cfd89e242cfe8ded40159a",
+    "phase12-reanalysis-20261007T050802Z-phase12-profile-reference-002-2df5d41c.log": "6fc2ba60097ea50faebfb828e43bcd57fe2422518fa203bdf18d6374c7fd1a44",
+    "phase12-registration-002.log": "852ac0c2271cdc2289760c5f484f548ddc9b60c8807244d67fabad6c351f2d61",
+    "phase12-registration-003.log": "a723d4932d7055ad28790ef98daff463424d97b45c570bbbc1a27a2978213aa5",
+    "phase12-study-final.log": "3cc567a7be70411636fd7c0fcc3615ac5b5644bbb5bc6b9b5e15866b5a4742d9",
+    "phase12-study-path-regression.log": "8d894586444747fac2420790a8ef130830c2d65fbacee65bd55f04c926452717",
+    "phase12-study-registration-final.log": "b6ea5b19d0452b54b5b6b1b726561758e9e3c19aa4e0aa6236f7619eef66279d",
+    "phase12-study-tests.log": "ff7d16dd1b8f28e553eda56f6a967ee4b211e23e550c78a711131308e92415ac",
+    "phase12-timeout-diagnostic-001.log": "b1aa6b8d984723819b1851fdb99ae88b658f84e7104eafe60397983b872023a4",
+    "phase12-timeout-thread-001.log": "52544eac4bc40c415d9357c8dca7c9ab4877ca67f1c0333cb6ab2c79bd5c49da",
+    "phase12-timeout-thread-002.log": "b32fe06db0b6361c00a150888341ee7257d7cee66f2f065110d816574d5b6de7",
+    "phase12-warmup-daily-policy-study-004.log": "20cede9f9ab5b3571ce71ab3ac416f3a442c17815170c704cc1f320fa2f3e34b",
+    "phase12-warmup-fairness-study-004.log": "3f11a91992d3aa14dbb00b7c4f56d1cd1e4c5131b39ceb9ca55cebbbcb098720",
+    "phase12-warmup-reference-study-003.log": "0c51fc0fc4512f991fd618a496fc82ebafc5bf5b1d4ef7c9c83df9dc8113fe5d",
+    "phase12-warmup-reference-study-004.log": "fcbe2fcc73c06c99f5f67011c89b63c1348781f9aecfcc0051e7f6d517be661e",
+    "phase12-web-lint.log": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2",
+    "phase12-web-typecheck.log": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+  },
+  "artifactInventory": {
+    "path": "experiments\\runs\\phase12-preservation-001\\artifact-inventory.json",
+    "sha256": "d408486822e804a4e8cfdad18b74a09480dafeb55b83cbff2a1234c28c76225d"
+  },
+  "archives": [
+    {
+      "root": "experiments\\runs\\20261007T043937Z-phase12-baseline-reference-001-9ed6988c",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T043937Z-phase12-baseline-reference-001-9ed6988c\\manifest.json",
+          "sha256": "47faf481ee8c7f878030a9194eccce6aa775a00b8983f907cd5e9c91b2c34fa0"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T043937Z-phase12-baseline-reference-001-9ed6988c\\attempts\\20261007T043938Z-1668d1e8\\terminal.json",
+          "sha256": "7b1f5ec28d8312955dacd154b84ae6291bf87cf1de58282c4442d6e16cf012f0",
+          "state": "FAILED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T043937Z-phase12-baseline-reference-001-9ed6988c\\attempts\\20261007T043938Z-1668d1e8\\cases\\0039315ec05a5a7ac474829385ef241a04682c1c138973c6ea276b936176be8a\\terminal.json",
+          "sha256": "5414d9207cd2b1235e705586628c03df6a0fe9943bac1815b1b4ef7fdaf17b62",
+          "state": "FAILED",
+          "failure": {
+            "type": "RuntimeError",
+            "message": "Process timed out; inspect C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T043937Z-phase12-baseline-reference-001-9ed6988c\\attempts\\20261007T043938Z-1668d1e8\\cases\\0039315ec05a5a7ac474829385ef241a04682c1c138973c6ea276b936176be8a\\process.log"
+          }
+        }
+      ],
+      "fileCount": 27
+    },
+    {
+      "root": "experiments\\runs\\20261007T044131Z-phase12-timeout-diagnostic-001-8201943d",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T044131Z-phase12-timeout-diagnostic-001-8201943d\\manifest.json",
+          "sha256": "eb84ec29231596539ee3864f860eaae8d0e040ec8a0cf35015db798edd33c188"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T044131Z-phase12-timeout-diagnostic-001-8201943d\\attempts\\20261007T044132Z-0e6933a2\\terminal.json",
+          "sha256": "6cdda3c6d5418bae50590d571a754eba27c324bf9c9b9c4aabb8b050e78ad161",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044131Z-phase12-timeout-diagnostic-001-8201943d\\attempts\\20261007T044132Z-0e6933a2\\cases\\1edcccba138431d49518f89587b59bc3111b8f5fdf4daca44f86babc26aa5b79\\terminal.json",
+          "sha256": "b6936db330aa6c9745014f52b0e914f3abb4bfa43346240f7b413046e40ccaac",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 90
+    },
+    {
+      "root": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\manifest.json",
+          "sha256": "882ff90501eb512e44c91ba52c891a40fc28f0dcd127937e3f4af827d9bcfac6"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\terminal.json",
+          "sha256": "8418e2c7126d3515ac1577dff7508e47d4cddd827c73a33f7dc88884f21bcbb6",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\0039315ec05a5a7ac474829385ef241a04682c1c138973c6ea276b936176be8a\\terminal.json",
+          "sha256": "96a02983d12b8ac7b00945805d76199c31dd42aacb5a2b644baa2cb74be09e2f",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\1077afac768dd9f1322903c5208d44bf0e888ae3baacbb299b7c6cf84db05854\\terminal.json",
+          "sha256": "0954593d0065a070f24b48bf28bfc6213d7d7166e0b678dddb0f94fcea8ecad9",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\1edcccba138431d49518f89587b59bc3111b8f5fdf4daca44f86babc26aa5b79\\terminal.json",
+          "sha256": "ca9c9c2f74a65199a83b5d65dabc4269ef612d1d79a9fb386a4915d2073f8e01",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "8e189064b8c2c27c9b20d63107bd9f01f058276d93a9a0a633b1f5be2608acec",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\43102ec1ca8084884eacf5aa015d67b7c2e249e2dc42449cbc7d2d340021e0ab\\terminal.json",
+          "sha256": "c8e604563600b60c445f65af7323301f7ecb960c90e1f09a344c81978626cff0",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\5ba6917f1b8fb45890b4d2db77e4a25a5a5c492c706f4e97b90015f0254656f2\\terminal.json",
+          "sha256": "d1e04c85358c73ee10a03c449f31724ff7482f274923fd3cd493f3c91f455b75",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\5f24b1db93d629d410dd0320d01be5e2cb1bade1f6e462a3625bd80b41497989\\terminal.json",
+          "sha256": "013ec932a2302fcf9a75cf42705aa39418e5bdd5d2f5e04292653893efc206ee",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\705f04321596ad6c60f13485bc60c52e95a191949f74c769e198672f3b36d144\\terminal.json",
+          "sha256": "8f466f9eaca184ee67fe201fa05f71aa73fbb522b1df781a8e8a87d0e6172b84",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\84812222d5e664af4f22397b1aff5b79879e24594dadc5e5c1ac7c5ee1410ac6\\terminal.json",
+          "sha256": "f6acf7db37fc1aa99b30a2508187c5be2bdc674ef8cc776bb0d9f8869ac5db37",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\9a8f52124af9e5b64f4e276841a9b2ce1e4815863edcbd0d6d83548ac2ea5d68\\terminal.json",
+          "sha256": "ae9f2192d29814665e9a7a95f47ce0ca98c46753cb76db6a3682ea545be5a8c1",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\a1721099f4bf710af10e5fc642b1d5907616dfd6735140768018568ae1464397\\terminal.json",
+          "sha256": "3ee00fe0fd8f9b8348eb29ea057c1e4a29f9c2d1d896ad7354cbf4141ff098bc",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\a4cd891bd6a50b5d4b89881b6239c9edd8cece6d12f990e87edace46d2ce20e1\\terminal.json",
+          "sha256": "8ea743003fae3dfe17fd985707cefe0a3fe0de932d5e2dc8d3961365a4f5bc7f",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\c21054bdbe6800bee7ae11d67961f77f59e77e6f44fbbd8749826b66cad576c1\\terminal.json",
+          "sha256": "df892cf7df8a8d0a4f6188f5235ddabfa4b0f5ccbc70f70221da13211137c8ee",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\f37772f7ab33200205927cda36fc015f9dd1f63e671c0631843eb59cb21fe9e1\\terminal.json",
+          "sha256": "6b91c7ca1dd7ff0977358f43e6673f9e62eae7f8af348f8c974ea5e73a2240a0",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "c9e31746dbb96ab866150fd72741ddc5c49d21935ec9446ec55b75cdaf0e2626",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044331Z-phase12-baseline-reference-001-af4867c1\\attempts\\20261007T044333Z-45975c70\\cases\\fb20fb878d65ce328be4549a3907a64ea964bea489ac27e54e2349c6ea4327bd\\terminal.json",
+          "sha256": "ccb001fb54fd2ab388858819acaa2f4e606a826e501472c0ba5f4ca90b0a22dd",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 1119
+    },
+    {
+      "root": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\runs\\20261007T044748Z-phase12-warmup-reference-200-001-42ae71ec\\manifest.json",
+          "sha256": "b5500d675b700290aaf9faf4036f0e6061b5cc1db058805501ae88cd119e527d"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\terminal.json",
+          "sha256": "302feabe66f32492c98a33f83ced8e67a3feaf78464696e51d2dbac1f540e42d",
+          "state": "FAILED",
+          "failure": {
+            "type": "RuntimeError",
+            "message": "Campaign attempt failed; evidence retained at C:\\Users\\mcgee\\OneDrive\\Desktop\\waterflex\\waterflex-scheduler-java\\experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\runs\\20261007T044748Z-phase12-warmup-reference-200-001-42ae71ec\\attempts\\20261007T044749Z-0869aaa4. Explicit resume runs only never-dispatched cases."
+          }
+        },
+        {
+          "path": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\runs\\20261007T044748Z-phase12-warmup-reference-200-001-42ae71ec\\attempts\\20261007T044749Z-0869aaa4\\terminal.json",
+          "sha256": "02d76d44c20655c08db8964e280ab6d8b4ab9dcf852b9b7d5ede6071fbad65a5",
+          "state": "FAILED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044748Z-phase12-warmup-reference-001-ec6bd6aa\\runs\\20261007T044748Z-phase12-warmup-reference-200-001-42ae71ec\\attempts\\20261007T044749Z-0869aaa4\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "8c92f757522a61997e2c0309d599d38c7d9efc3470a62cf7ca5277b86156d3ff",
+          "state": "FAILED",
+          "failure": {
+            "type": "NotADirectoryError",
+            "message": "[WinError 267] The directory name is invalid"
+          }
+        }
+      ],
+      "fileCount": 28
+    },
+    {
+      "root": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-002-aff263f4",
+      "manifests": [],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-002-aff263f4\\terminal.json",
+          "sha256": "e5acee8ad9f6100a531c46a228dde00c7c932a07bef5baf1f44ac7c5efb0d566",
+          "state": "COMPLETE",
+          "failure": null
+        }
+      ],
+      "fileCount": 7
+    },
+    {
+      "root": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206\\manifest.json",
+          "sha256": "760fa1884d2b8d41d220000aad39ce7ad5c28cfe947b603aa8569f0be655ef9c"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206\\attempts\\20261007T044947Z-2589374a\\terminal.json",
+          "sha256": "651a4ba5ae13f5f94e52b7043ff36d6c5223142af625fa74405277b464c48256",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206\\attempts\\20261007T044947Z-2589374a\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "92d64ad39b6c983ecdd2a102ae1af969eb39dc2d1ec8993405203117c895ca9c",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206\\attempts\\20261007T044947Z-2589374a\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "832dc3aefa099026420ce48d6b45abf93d8593eb614c4dbc2c948adbca2036a6",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T044946Z-phase12-warmup-reference-200-001-1b7b3206\\attempts\\20261007T044947Z-2589374a\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "e310583e290bd75a08d9de13a66f7ad97019ac1ba9f4928ecc48d6a1ba15d536",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 227
+    },
+    {
+      "root": "experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d\\manifest.json",
+          "sha256": "905f0c1b8615ffeba0eea84f75e6f1cfb87a2c12f254d5c9ff6f56a4b99b1489"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d\\attempts\\20261007T045018Z-646930c8\\terminal.json",
+          "sha256": "06de153752b95cff0d4c9c9ed1c461104abd0bb11db92272da7a3a1c5e3fc8c9",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d\\attempts\\20261007T045018Z-646930c8\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "d186abb7eaa99a2a8ccc01d234961d6587f7a72fae671d4b23ffa284b6eb37ed",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d\\attempts\\20261007T045018Z-646930c8\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "8e3674cd15f64a5ea77b423a7f85234f6cf424da62f1cad272e156f52d5a4a82",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045016Z-phase12-warmup-reference-30000-001-3bbf709d\\attempts\\20261007T045018Z-646930c8\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "be02d0323608a4f255833466dbc31e32d9a4edd691792dfa9ca42f634d8e1ed0",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 227
+    },
+    {
+      "root": "experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d\\manifest.json",
+          "sha256": "aaebca2018796967c56914c019af5fb4bcd215253d806a4283a633b5dbdf559c"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d\\attempts\\20261007T045211Z-b4713f27\\terminal.json",
+          "sha256": "2a08154b4c928139b232b0159a2d265e33360a563813519e80cbea6b103d8c37",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d\\attempts\\20261007T045211Z-b4713f27\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "d040e991b10d0771743870b5baf5274c9844659e901c46a45d9f27610f2e002c",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d\\attempts\\20261007T045211Z-b4713f27\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "1cb910900e4573e9c313b47646bcec06e77baace9c10f4a3e7059101a7e3ec16",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045210Z-phase12-warmup-reference-60000-001-eb911c3d\\attempts\\20261007T045211Z-b4713f27\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "616b423ff11326cb0fc0f087eb8c57771280420a72c2fb4a75be7f9281109c7f",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 227
+    },
+    {
+      "root": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-002-bb8f7935",
+      "manifests": [],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-002-bb8f7935\\terminal.json",
+          "sha256": "80f48c77046f3518aedf749967a0c36074c20c3f24de1a379bd403f13b1387ca",
+          "state": "COMPLETE",
+          "failure": null
+        }
+      ],
+      "fileCount": 7
+    },
+    {
+      "root": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37\\manifest.json",
+          "sha256": "c496d6541046dd038db33f6d2361ef68be5823f40a38dac12827519938926e6d"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37\\attempts\\20261007T045535Z-70074a26\\terminal.json",
+          "sha256": "a4f1920d4665ebab962fb4ebeaa402fa3575bd4b09ea4fb8ec2d6a108ffa0474",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37\\attempts\\20261007T045535Z-70074a26\\cases\\51301912d262431320639445d9befeeea5358fc8af7654248a8441be404aaf6a\\terminal.json",
+          "sha256": "bf970560a8e57ac81e856ac1eab6b41756322eb44472bc8c189b09ca8546160c",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37\\attempts\\20261007T045535Z-70074a26\\cases\\694725a9bc30a1b7966b7590cd0ec467e1623628b1421daa7b82bac103240bc2\\terminal.json",
+          "sha256": "3991746ebcc8aa22fd5fda2024cff63350c7cc40e38e059d697a89d358c38e8f",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045534Z-phase12-warmup-fairness-200-001-bcf70a37\\attempts\\20261007T045535Z-70074a26\\cases\\79022ab689aa9d7ac93ff576cb359ca042305e3df11d040bf0153229e2339139\\terminal.json",
+          "sha256": "8d4ab26f2b5a52f861aceb305bbc6c70e9e10abcac02302fce15ba681b5f05bb",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 228
+    },
+    {
+      "root": "experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a\\manifest.json",
+          "sha256": "4fc58842c7929f14eaa2e081cf87215535cd4eff22c3a67b3c2f27ec02597e12"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a\\attempts\\20261007T045605Z-a5942fc3\\terminal.json",
+          "sha256": "f4c821e73bb8f276382ded4483d2467905c45229c9f68ac666d34ec3cfccb020",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a\\attempts\\20261007T045605Z-a5942fc3\\cases\\51301912d262431320639445d9befeeea5358fc8af7654248a8441be404aaf6a\\terminal.json",
+          "sha256": "587fa7c0682ed9d8b25c3349ae199b082d29fdce24074ddff8b446bfcc5c5ed0",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a\\attempts\\20261007T045605Z-a5942fc3\\cases\\694725a9bc30a1b7966b7590cd0ec467e1623628b1421daa7b82bac103240bc2\\terminal.json",
+          "sha256": "e198a31a1063ec20531bc49a3bde12ef7c0677dbe1d4059024abd6e99ca51b3a",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045603Z-phase12-warmup-fairness-30000-001-9b47c77a\\attempts\\20261007T045605Z-a5942fc3\\cases\\79022ab689aa9d7ac93ff576cb359ca042305e3df11d040bf0153229e2339139\\terminal.json",
+          "sha256": "ea1ba376e0dc015e6a52e93522680efc332f5a8046b0bba185fcf1be966f77be",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 228
+    },
+    {
+      "root": "experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24\\manifest.json",
+          "sha256": "d6f1fe6077593a321f5e97cdebfefd7864df6fcbd316eabd24829412f100b53e"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24\\attempts\\20261007T045756Z-b98bffd5\\terminal.json",
+          "sha256": "b57395c5ffec8c406da184021b170ada3a0aa9abb5e20a043c5d509bb8d64be8",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24\\attempts\\20261007T045756Z-b98bffd5\\cases\\51301912d262431320639445d9befeeea5358fc8af7654248a8441be404aaf6a\\terminal.json",
+          "sha256": "878350e15f8ac334ce4643dcb8e5cb601d458931d4ed59fed708173531722118",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24\\attempts\\20261007T045756Z-b98bffd5\\cases\\694725a9bc30a1b7966b7590cd0ec467e1623628b1421daa7b82bac103240bc2\\terminal.json",
+          "sha256": "367b7588caf8a8d922b12d2862917a63eb1fa9ab4a4681b903e1de20a7482e66",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T045754Z-phase12-warmup-fairness-60000-001-a8ecac24\\attempts\\20261007T045756Z-b98bffd5\\cases\\79022ab689aa9d7ac93ff576cb359ca042305e3df11d040bf0153229e2339139\\terminal.json",
+          "sha256": "e895c0e5cba72ce0e56f86f1c610854aaaa2099b996efd74e879b4f2c3946ec8",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 228
+    },
+    {
+      "root": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-002-3517e4bf",
+      "manifests": [],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-002-3517e4bf\\terminal.json",
+          "sha256": "911146879dd1cc671d07a41cdb8d266167b8120d35c2b53c615879535b3413b6",
+          "state": "COMPLETE",
+          "failure": null
+        }
+      ],
+      "fileCount": 7
+    },
+    {
+      "root": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651\\manifest.json",
+          "sha256": "6c7ef380d1ec49c926e0cd8cc3b535101d99fed3e72aa272f87ff1e32aa3ede0"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651\\attempts\\20261007T050118Z-0ca02dd1\\terminal.json",
+          "sha256": "170cd1487f87482c5ec78ab60c2590c4a53f132ef9f58e1a4799a3e89dbd12fa",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651\\attempts\\20261007T050118Z-0ca02dd1\\cases\\26040fd98e4cac2980b7433cb61416b060ef8cb442fa71753477d39851b05143\\terminal.json",
+          "sha256": "7a96244feba2391f1081a8fdb307d3055d4628e362a6f76f866b588292585cf8",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651\\attempts\\20261007T050118Z-0ca02dd1\\cases\\65a78a38139a9b115247c5c637e130c94f1ca8325dfa513a5b7b35a1c1f372ef\\terminal.json",
+          "sha256": "aaa70e2740f936dbb057184f6bb20525c25715529b3afbc4a6297cb7661430e4",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050116Z-phase12-warmup-daily-policy-200-001-c238f651\\attempts\\20261007T050118Z-0ca02dd1\\cases\\f8eb418ce2440c420ad5bfaa0f2e618be1721c5a44e350db0ad66cd9bddef133\\terminal.json",
+          "sha256": "d274edf0b3fbea6ac26bb91504d2348175aab725790525b6eb4d4ffa2deb08c6",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 38
+    },
+    {
+      "root": "experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20\\manifest.json",
+          "sha256": "2df53d5db03b6849d85f90d88641d20579881e4f6a08f096a5aa9f91009f452f"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20\\attempts\\20261007T050139Z-9b27f7df\\terminal.json",
+          "sha256": "254ad5c3706f380f295d22f97ba9254143ae9e3e8bf69608a05832df73455f2f",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20\\attempts\\20261007T050139Z-9b27f7df\\cases\\26040fd98e4cac2980b7433cb61416b060ef8cb442fa71753477d39851b05143\\terminal.json",
+          "sha256": "0dadf11b2fdfab434e6b7e7c4b2008c7a80a1a364162c530f207e36f0110e197",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20\\attempts\\20261007T050139Z-9b27f7df\\cases\\65a78a38139a9b115247c5c637e130c94f1ca8325dfa513a5b7b35a1c1f372ef\\terminal.json",
+          "sha256": "9b2a7d052d7fe8c2661456bd9d85d1aad4d52a1a69dfff3bbd7c3811e17fb53f",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050137Z-phase12-warmup-daily-policy-30000-001-cb678b20\\attempts\\20261007T050139Z-9b27f7df\\cases\\f8eb418ce2440c420ad5bfaa0f2e618be1721c5a44e350db0ad66cd9bddef133\\terminal.json",
+          "sha256": "bd2a613d8d46cc323d21dbceb519dd299c25f2f051e83e1355c24cc36c0d12dc",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 38
+    },
+    {
+      "root": "experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4\\manifest.json",
+          "sha256": "a2d9f89830671bc464332987bf7080196561ba8a79255a723720914f5e0e24f8"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4\\attempts\\20261007T050322Z-24268129\\terminal.json",
+          "sha256": "4fcbdc76b701524b4448270050cf7a32d851077f123ca1b736b6f0ce927a5ddc",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4\\attempts\\20261007T050322Z-24268129\\cases\\26040fd98e4cac2980b7433cb61416b060ef8cb442fa71753477d39851b05143\\terminal.json",
+          "sha256": "fe3b9394076d5b8e84c5a3292fae23e6b5b21bda08144c3b590530975f01b377",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4\\attempts\\20261007T050322Z-24268129\\cases\\65a78a38139a9b115247c5c637e130c94f1ca8325dfa513a5b7b35a1c1f372ef\\terminal.json",
+          "sha256": "b028b9288ca03e4be3e628799dcea979e83c2b36ab0945269d6613fd2493e361",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050321Z-phase12-warmup-daily-policy-60000-001-d9e173c4\\attempts\\20261007T050322Z-24268129\\cases\\f8eb418ce2440c420ad5bfaa0f2e618be1721c5a44e350db0ad66cd9bddef133\\terminal.json",
+          "sha256": "87e3ab97dabf9e962f9204e6aca0715cb067418e871d16ccbe08f65dc17b593e",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 38
+    },
+    {
+      "root": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-002-d4e0e9c6",
+      "manifests": [],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-002-d4e0e9c6\\terminal.json",
+          "sha256": "c0323b904d93609eeaca899a9e3074b97407231e97bf5248c094003d71ed137a",
+          "state": "COMPLETE",
+          "failure": null
+        }
+      ],
+      "fileCount": 6
+    },
+    {
+      "root": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\manifest.json",
+          "sha256": "b4d5e71dbb641da2a56a8415d9568ea9ea1e8489aad27653c40205d017cfce35"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\terminal.json",
+          "sha256": "c9e6481462e9b17bfe2ddfa07a8c42e562c05cd9adc963a4fad911629c17c52e",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "91a0f622262b5f1d3118b45de8db0b60c40880f70151351dad5331f758238b21",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\cases\\6543440459be9201749184f720066f3aed0830733fdc62588985ad2e25565bb1\\terminal.json",
+          "sha256": "763c63927f6cab7caf6ff3b3ad7e0adc224722f62ab8abb45370a916b478a986",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\cases\\9a8f52124af9e5b64f4e276841a9b2ce1e4815863edcbd0d6d83548ac2ea5d68\\terminal.json",
+          "sha256": "63c65e620be8b027f74964b28d3538f8b3cd1465655ebc7bb535ec95411cea0c",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "e91fe30a0c551c68d3907dedd8a9aa9e20d573d6aa899a0317842bd45569e407",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\cases\\c21054bdbe6800bee7ae11d67961f77f59e77e6f44fbbd8749826b66cad576c1\\terminal.json",
+          "sha256": "73cdca3970ddce9e1e0c00109eaeddb315d6a07c99077a7f8d1a6fe7044157d6",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050635Z-phase12-concurrency-reference-1-001-bc59eb84\\attempts\\20261007T050636Z-7f62341c\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "30d8633727d9c3c3de03c9f052a3df22e9b1471629b2490282d65dd61b56568e",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 431
+    },
+    {
+      "root": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\manifest.json",
+          "sha256": "10c1d96ce0f99bfb3a026f970e042bf8e235905a9a3d9fea0ca2b57de9c40176"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\terminal.json",
+          "sha256": "7ee3cba88b8a96572c5776915cccb3232cb6793b96f05202e1de1f8f6f58544a",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "c33a82aeabddd388d10325c1a824935193b2948626208f435534e1e2c7f6029b",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\cases\\6543440459be9201749184f720066f3aed0830733fdc62588985ad2e25565bb1\\terminal.json",
+          "sha256": "07567785a7de07c2e2c7889a98bb0efd62e293631c16f9ac4edb0f07fee84895",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\cases\\9a8f52124af9e5b64f4e276841a9b2ce1e4815863edcbd0d6d83548ac2ea5d68\\terminal.json",
+          "sha256": "9e3f8c5747908e2e952c832c8422123f24feeead4f22840b5cb070e62d068db8",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "ec9e6977aea28bbac23448d8c03d6349e604590d4fd346b29efb5122dc0b6c63",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\cases\\c21054bdbe6800bee7ae11d67961f77f59e77e6f44fbbd8749826b66cad576c1\\terminal.json",
+          "sha256": "d8410dcfd742ab56dd10f333b695f1e86fc798ff07bfa1067df7d6395274c8e0",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050730Z-phase12-concurrency-reference-2-001-53098d30\\attempts\\20261007T050731Z-cbc564d3\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "85edc646467c63d58c293ed486228c6197ec84d14c14b82ebb252c2c83001080",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 431
+    },
+    {
+      "root": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-002-2df5d41c",
+      "manifests": [],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-002-2df5d41c\\terminal.json",
+          "sha256": "2522db4a8e70153195e30b859a6baf4a969bc3dd99efe985f6db2c4b27449bc6",
+          "state": "COMPLETE",
+          "failure": null
+        }
+      ],
+      "fileCount": 6
+    },
+    {
+      "root": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d\\manifest.json",
+          "sha256": "d0fda704ac3f5e89cef6aa40d5cf9a6e8bd735760d5fd3ac10fef6baf6b97017"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d\\attempts\\20261007T050803Z-5ed8472c\\terminal.json",
+          "sha256": "09b13c8e663451d2db9f80ec7d226df5e462f9cbd3b278cf74e275c471a5a692",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d\\attempts\\20261007T050803Z-5ed8472c\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "9866af43b3c025203754c823574f02282d4ab0bbfab249490d5b8d2f1ff6ca29",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d\\attempts\\20261007T050803Z-5ed8472c\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "6ff77d12a932b053a2ed4bc0aa7318961f4be0e246523349e1e13a6ca63d76c9",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050802Z-phase12-profile-reference-1-001-a30d6c2d\\attempts\\20261007T050803Z-5ed8472c\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "634ed524984c129c0a6d6c6f1cf7c873603005259eaeff3200f97df91478cde5",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 227
+    },
+    {
+      "root": "experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19",
+      "manifests": [
+        {
+          "path": "experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\manifest.json",
+          "sha256": "c8d767aeef9e6f200f481f3bb910ef65f40478a130f0c40bb5dab4f39ee28ec8"
+        }
+      ],
+      "terminals": [
+        {
+          "path": "experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\terminal.json",
+          "sha256": "1327deffeffa40dfa2bbd0c88ff53673adbc2a964410628efe1050b0fce28b9c",
+          "state": "COMPLETE",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\2c49b2145b7bb4108e1aa40e55684ab85a21ba1a6dffecc7cf8bd3cda6db189f\\terminal.json",
+          "sha256": "ed2fc77e68d8577121576541308e072af4318ad45996dcc73aabbebf637e673f",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\a4d339ed6fa605854147e091b60cc060073c934c0b30f3f6f6e17315b5b7b36b\\terminal.json",
+          "sha256": "aa5412475063575b3648b22db7601e37956726bb60843e854307c7423839ef83",
+          "state": "SUCCEEDED",
+          "failure": null
+        },
+        {
+          "path": "experiments\\runs\\20261007T050837Z-phase12-profile-reference-2-001-904a2a19\\attempts\\20261007T050838Z-ef9dcb91\\cases\\f9bf984123abdc338806c29817d76b9a7e74b2ca2adea84750badad17fca1bca\\terminal.json",
+          "sha256": "45616eeb5ac178a3acbdf72aa45093adb4a5591b66d9561a36a29e81037656b3",
+          "state": "SUCCEEDED",
+          "failure": null
+        }
+      ],
+      "fileCount": 230
+    },
+    {
+      "root": "experiments\\runs\\phase12-profile-export-001",
+      "manifests": [],
+      "terminals": [],
+      "fileCount": 7
+    },
+    {
+      "root": "experiments\\runs\\phase12-registered-001",
+      "manifests": [],
+      "terminals": [],
+      "fileCount": 0
+    },
+    {
+      "root": "experiments\\runs\\phase12-registered-002",
+      "manifests": [],
+      "terminals": [],
+      "fileCount": 22
+    },
+    {
+      "root": "experiments\\runs\\phase12-registered-003",
+      "manifests": [],
+      "terminals": [],
+      "fileCount": 26
+    }
+  ],
+  "delivery": {
+    "javaNullability": "passed: 275 tests, one existing skip",
+    "javaOrdinary": "see final ordinary log",
+    "pythonToolkit": "110 tests, one existing skip; see final log",
+    "baselinePreservation": "225 baseline files, 203 preserved historical files, 101 dependency artifacts pass",
+    "hostedCi": "required on final pushed head",
+    "ownerReview": "required"
+  },
+  "limitations": [
+    "Synthetic clustered inputs only; no historical or production savings claim",
+    "All failed attempts retained; no automatic retry",
+    "Short offline budgets do not certify production allowances",
+    "Ambiguous calibration retains existing defaults",
+    "Whole-JVM profiles include startup, warmup, reporting and validation"
+  ]
+}
