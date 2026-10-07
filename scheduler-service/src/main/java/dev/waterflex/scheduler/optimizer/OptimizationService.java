@@ -7,6 +7,7 @@ import dev.waterflex.scheduler.SavedJson;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.waterflex.scheduler.RoadClient;
+import dev.waterflex.scheduler.RoadPoint;
 import dev.waterflex.scheduler.RouteEndpoints;
 import dev.waterflex.scheduler.ScheduleCutoff;
 import dev.waterflex.scheduler.WeeklyAvailability;
@@ -31,6 +32,9 @@ public class OptimizationService {
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
     private final DailySolver solver;
+    private dev.waterflex.scheduler.CalculationTransport transport = new dev.waterflex.scheduler.CalculationTransport("EMBEDDED", "http://127.0.0.1:8002", "");
+    @org.springframework.beans.factory.annotation.Autowired
+    void transport(dev.waterflex.scheduler.CalculationTransport value) { transport = value; }
     private final SearchAdmission admission;
     private final Clock clock;
     private final org.springframework.transaction.support.TransactionTemplate previewTransactions;
@@ -80,7 +84,7 @@ public class OptimizationService {
     private record RunResponse(String metroId, Instant day, String status, @Nullable String reason, String solverStatus, int solveMs, long improvement, String before, String after, Instant created, @Nullable Instant applied, String weights) { }
     private record TechData(String id, RouteEndpoints endpoints, TechRoute route) { }
     private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
-    private record VisitData(PlanVisit visit, RoadClient.Point point, String technicianId, int sequence,
+    private record VisitData(PlanVisit visit, RoadPoint point, String technicianId, int sequence,
                              Instant windowStart, Instant windowEnd) { }
     private record Problem(DayPlan plan, Map<String, Integer> versions, List<VisitData> visits,
                            String configurationVersion, String routingIdentity, Map<String, RouteEndpoints> endpoints, SchedulingPolicy.Rules policy, String revision, boolean held) {
@@ -137,7 +141,7 @@ public class OptimizationService {
     }
     private <T> T inPreviewTransaction(java.util.function.Supplier<T> work, Runnable commitGuard) {
         return Required.value(previewTransactions.execute(_ -> {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
                     new org.springframework.transaction.support.TransactionSynchronization() {
                         @Override public void beforeCommit(boolean readOnly) { SearchDeadline.beforeCommit(); commitGuard.run(); SearchDeadline.beforeCommit(); }
@@ -182,7 +186,7 @@ public class OptimizationService {
                     return encoded;
                 }, () -> {
                     if (ScheduleCutoff.frozen(day, Required.value(clock.instant()))) throw new Stale();
-                    SearchDeadline.database(jdbc); attempts.verifyCommit(claim);
+                    dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc); attempts.verifyCommit(claim);
                 });
             }, true, failure -> cleanup(claim, Required.value(failure)));
         });
@@ -204,7 +208,7 @@ public class OptimizationService {
 
     private @Nullable Map<String, Object> legacyPreview(Request request, String key) {
         var existing = jdbc.query("SELECT id, \"metroId\", \"serviceDate\" FROM optimization_run WHERE \"requestKey\"=?",
-                (rs, _) -> new ExistingPreview(Required.string(rs, 1), Required.string(rs, 2), Required.value(Required.timestamp(rs, 3).toLocalDateTime().toLocalDate())), key);
+                (rs, _) -> new ExistingPreview(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toLocalDateTime().toLocalDate())), key);
         if (existing.isEmpty()) return null;
         var row = existing.getFirst();
         if (!request.metro_id().equals(row.metroId()) || !parseDay(request.date()).equals(row.day()))
@@ -213,18 +217,18 @@ public class OptimizationService {
     }
 
     private void fence() {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         jdbc.execute("LOCK TABLE " + String.join(",", INPUT_TABLES) + " IN SHARE MODE");
     }
     private void validateRevision(LocalDate day, String expected) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         if (ScheduleCutoff.frozen(day, Required.value(clock.instant())) || !expected.equals(inputRevision(day))) throw new Stale();
     }
     private String inputRevision(LocalDate day) {
         // Structured JSON retains nulls and avoids delimiter ambiguity. Day-scoped mutable rows plus global configuration.
         Map<String, String> values = new LinkedHashMap<>();
         for (String table : INPUT_TABLES) {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             String filter = switch (table) {
                 case "appointment", "schedule_day", "reservation_arrangement", "reservation_dependency", "reservation_obligation", "slot_hold", "time_off_interval", "technician_shift_override" -> " WHERE x.\"serviceDate\"=?";
                 case "job" -> " WHERE x.id IN (SELECT \"jobId\" FROM appointment WHERE \"serviceDate\"=?)";
@@ -232,16 +236,16 @@ public class OptimizationService {
                 default -> "";
             };
             String sql = "SELECT COALESCE(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]'::jsonb)::text FROM " + table + " x" + filter;
-            values.put(table, filter.isEmpty() ? Required.query(jdbc, sql, String.class) : Required.query(jdbc, sql, String.class, dayStamp(day)));
+            values.put(table, filter.isEmpty() ? dev.waterflex.scheduler.DatabaseFacts.query(jdbc, sql, String.class) : dev.waterflex.scheduler.DatabaseFacts.query(jdbc, sql, String.class, dayStamp(day)));
         }
         // The read-only UNION view includes services belonging to pending held jobs, not just booked jobs.
-        values.put("reservation_obligation", Required.query(jdbc, "SELECT COALESCE(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]'::jsonb)::text FROM reservation_obligation x WHERE x.\"serviceDate\"=?", String.class, dayStamp(day)));
+        values.put("reservation_obligation", dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT COALESCE(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]'::jsonb)::text FROM reservation_obligation x WHERE x.\"serviceDate\"=?", String.class, dayStamp(day)));
         return canonical(values);
     }
 
     private <T> T snapshot(java.util.function.Supplier<T> capture) {
         return Required.value(snapshotTransactions.execute(_ -> {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             T result = capture.get(); SearchDeadline.beforeCommit(); return result;
         }), "daily snapshot");
     }
@@ -262,59 +266,22 @@ public class OptimizationService {
         if (before.hardPenalty() != 0 || !validatedBefore.feasible() || before.costCents() != validatedBefore.costCents()
                 || !before.arrivals().equals(validatedBefore.arrivals()))
             return skipped(request.metro_id(), day, baseline, "Baseline infeasible or scoring mismatch");
-        long started = System.nanoTime();
-        var referenceSearch = solver.solve(baseline.plan(), Required.value(Duration.ofSeconds(10)));
+        var calculation = calculate(baseline, claim.id());
         SearchDeadline.checkpoint();
-        List<DailySolver.Phase> phases = new ArrayList<>(); phases.add(new DailySolver.Phase("REFERENCE", referenceSearch.statistics()));
-        DayPlan solved = referenceSearch.plan();
-        int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
-        var after = DayScoreCalculator.evaluate(Required.value(solved));
-        var validatedAfter = RouteEvaluator.evaluate(Required.value(solved));
-        var baselinePolicy = SchedulingPolicy.measure(baseline.plan());
-        boolean candidateValid = after.hardPenalty() == 0 && validatedAfter.feasible()
-                && after.costCents() == validatedAfter.costCents() && after.arrivals().equals(validatedAfter.arrivals());
-        var candidatePolicy = candidateValid ? SchedulingPolicy.measure(Required.value(solved)) : baselinePolicy;
-        var reference = candidatePolicy.overtimeMinutes() < baselinePolicy.overtimeMinutes()
-                || (candidatePolicy.overtimeMinutes() == baselinePolicy.overtimeMinutes()
-                && candidatePolicy.costCents() < baselinePolicy.costCents()) ? candidatePolicy : baselinePolicy;
-        DayPlan referencePlan = reference == candidatePolicy ? Required.value(solved) : baseline.plan();
-        if (candidateValid) {
-            DayPlan fairnessSeed = PlanCopies.copy(referencePlan);
-            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(referencePlan, baseline.policy().costCeiling(reference.costCents())));
-            if (Required.value(DailyOperation.current(), "daily operation").canSearch()) {
-                var fairnessSearch = solver.solve(fairnessSeed, Required.value(Duration.ofSeconds(15)));
-                SearchDeadline.checkpoint();
-                phases.add(new DailySolver.Phase("FAIRNESS", fairnessSearch.statistics()));
-                DayPlan fair = fairnessSearch.plan();
-                var validation = RouteEvaluator.evaluate(fair);
-                var fairScore = DayScoreCalculator.evaluate(fair);
-                if (validation.feasible() && fairScore.hardPenalty() == 0 && fairScore.costCents() == validation.costCents()
-                        && fairScore.arrivals().equals(validation.arrivals())) {
-                    var fairMetrics = SchedulingPolicy.measure(fair);
-                    if (fairMetrics.overtimeMinutes() == reference.overtimeMinutes()
-                            && fairMetrics.costCents() <= baseline.policy().costCeiling(reference.costCents())
-                            && (fairMetrics.fairness().variance().compareTo(reference.fairness().variance()) < 0
-                            || (fairMetrics.fairness().variance().compareTo(reference.fairness().variance()) == 0
-                            && (fairMetrics.costCents() < reference.costCents()
-                            || fairMetrics.costCents() == reference.costCents() && SchedulingPolicy.compareArrangements(fair, referencePlan) < 0)))) {
-                        solved = fair;
-                        candidatePolicy = fairMetrics;
-                        after = DayScoreCalculator.evaluate(fair);
-                    } else {
-                        solved = referencePlan;
-                        candidatePolicy = reference;
-                        after = DayScoreCalculator.evaluate(referencePlan);
-                    }
-                }
-            }
-        }
-        solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
-        var decision = SchedulingPolicy.compare(baselinePolicy, candidatePolicy, reference, baseline.policy());
-        boolean acceptable = candidateValid && decision.accepted();
-        String status = acceptable ? "PREVIEW" : "SKIPPED";
-        return persist(request.metro_id(), day, baseline, acceptable ? Required.value(solved) : baseline.plan(),
-                before, acceptable ? after : before, solveMs, status,
-                acceptable ? decision.reason() : "No independently validated policy improvement", referencePlan, solver.diagnostics(phases));
+        DayPlan solved = calculation.plan();
+        var after = DayScoreCalculator.evaluate(solved);
+        boolean acceptable = calculation.accepted();
+        return persist(request.metro_id(), day, baseline, acceptable ? solved : baseline.plan(),
+                before, acceptable ? after : before, calculation.solveMs(), acceptable ? "PREVIEW" : "SKIPPED",
+                calculation.reason(), calculation.reference(), calculation.diagnostics());
+    }
+
+    private DailyCalculation.Result calculate(Problem baseline, String snapshotId) {
+        Map<String, dev.waterflex.scheduler.RoadPoint> points = new TreeMap<>();
+        baseline.endpoints().forEach((id, endpoint) -> { points.put(id,endpoint.departure()); points.put(id+":return",endpoint.returnTo()); });
+        baseline.visits().forEach(visit -> points.put(visit.visit().getId(),visit.point()));
+        return transport.daily(baseline.plan(),baseline.policy(),solver,points,snapshotId,baseline.revision(),
+                baseline.routingIdentity(),baseline.configurationVersion(),baseline.versions());
     }
 
     public Map<String, Object> previewRepair(String metroId, LocalDate day, String absentTechnicianId, int startMin, int endMin) {
@@ -340,7 +307,7 @@ public class OptimizationService {
         RepairPrelude prelude = snapshot(() -> {
             boolean held = hasHolds(Required.value(Set.<String>of(absentTechnicianId)), day);
             boolean shift = WeeklyAvailability.resolve(jdbc, absentTechnicianId, day) != null;
-            int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, absentTechnicianId, dayStamp(day));
+            int appointments = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL", Integer.class, absentTechnicianId, dayStamp(day));
             // One snapshot includes initialization of missing version rows. It cannot invalidate itself.
             RawProblem raw = held || !shift ? null : capture(metroId, day);
             return new RepairPrelude(held, shift, appointments, raw == null ? inputRevision(day) : raw.revision(), raw);
@@ -355,11 +322,10 @@ public class OptimizationService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Technician not in metro");
         baseline = baseline.withPlan(PlanCopies.withAbsence(baseline.plan(), absentTechnicianId,
                 new TechRoute.Unavailable(localInstant(day, startMin, false), localInstant(day, endMin, true))));
-        long started = System.nanoTime();
-        var repairSearch = solver.solve(baseline.plan(), Required.value(Duration.ofSeconds(15)));
+        var repairSearch = calculate(baseline,claim.id());
         SearchDeadline.checkpoint();
         DayPlan solved = repairSearch.plan();
-        int solveMs = (int) Duration.ofNanos(System.nanoTime() - started).toMillis();
+        int solveMs = repairSearch.solveMs();
         var after = DayScoreCalculator.evaluate(Required.value(solved));
         var repairValidation = RouteEvaluator.evaluate(Required.value(solved));
         String status = after.hardPenalty() == 0 && repairValidation.feasible() && repairValidation.overtimeMinutes() == 0 ? "REPAIR_PREVIEW" : "SKIPPED";
@@ -368,14 +334,14 @@ public class OptimizationService {
             reason = after.hardPenalty() == 0 ? "VALIDATED_CONSTRAINT_CONFLICT"
                     : individuallyImpossible(baseline.plan()) ? "VALIDATED_CONSTRAINT_CONFLICT" : "SEARCH_BUDGET_EXHAUSTED";
         if (!status.equals("REPAIR_PREVIEW")) {
-            DailyOutcome outcome = repairSearch.outcome();
+            DailyOutcome outcome = DailyOutcome.assess(solved);
             String diagnosticReason = outcome.complete() ? Required.value(reason) : "UNRESOLVED_DEMAND";
             return immediate(baseline.revision(), Required.value(Map.<String, Object>of("serviceDate", day.toString(), "status", "SKIPPED", "reason", diagnosticReason,
                     "score_model_version", DailyDataset.SCORE_MODEL, "calculation_outcome", outcome,
-                    "solver_analysis", solver.diagnostics(Required.value(List.<DailySolver.Phase>of(new DailySolver.Phase("REPAIR", repairSearch.statistics())))))), claim);
+                    "solver_analysis", repairSearch.diagnostics())), claim);
         }
         return persist(metroId, day, baseline, Required.value(solved), before, after, solveMs, status, null, null,
-                solver.diagnostics(Required.value(List.<DailySolver.Phase>of(new DailySolver.Phase("REPAIR", repairSearch.statistics())))));
+                repairSearch.diagnostics());
     }
 
     private boolean individuallyImpossible(DayPlan plan) {
@@ -486,7 +452,7 @@ public class OptimizationService {
         } catch (SearchDeadline.Expired expired) { throw expired; }
         catch (Exception e) { throw new IllegalStateException("Could not save optimization preview", e); }
         return new PreparedResult(baseline.revision(), baseline.routingIdentity(), () -> {
-            for (Write write : writes) { SearchDeadline.database(jdbc); jdbc.update(write.sql(), write.args()); }
+            for (Write write : writes) { dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc); jdbc.update(write.sql(), write.args()); }
             return response(Required.value(id));
         });
     }
@@ -507,7 +473,7 @@ public class OptimizationService {
 
     private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId, @Nullable LocalDate repairDay, int startMin, int endMin, boolean allowAdditionalOvertime) {
         var runRows = jdbc.query("SELECT \"metroId\", \"serviceDate\", \"scheduleVersions\"::text, \"proposedAssignments\"::text, weights::text, status FROM optimization_run WHERE id=? FOR UPDATE",
-                (rs, _) -> new SavedRun(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.string(rs, 3), Required.string(rs, 4), Required.string(rs, 5), Required.string(rs, 6)), runId);
+                (rs, _) -> new SavedRun(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant()), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), dev.waterflex.scheduler.DatabaseFacts.string(rs, 4), dev.waterflex.scheduler.DatabaseFacts.string(rs, 5), dev.waterflex.scheduler.DatabaseFacts.string(rs, 6)), runId);
         if (runRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
         SavedRun run = runRows.getFirst();
         if (!run.status().equals(absentTechnicianId == null ? "PREVIEW" : "REPAIR_PREVIEW")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Preview cannot be applied");
@@ -522,7 +488,7 @@ public class OptimizationService {
             Collections.sort(techIds);
             for (String techId : techIds) {
                 lockDay(Required.value(techId), Required.value(day));
-                int current = Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, techId, dayStamp(Required.value(day)));
+                int current = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, techId, dayStamp(Required.value(day)));
                 if (current != versionNode.path(techId).asInt()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Schedule changed");
             }
             if (ScheduleCutoff.frozen(Required.value(day), Required.value(clock.instant()))) throw new ResponseStatusException(HttpStatus.CONFLICT, "Route is frozen after 6 a.m. local time");
@@ -568,7 +534,7 @@ public class OptimizationService {
                 if (!baselineMetrics.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Baseline infeasible");
                 var beforePolicy = SchedulingPolicy.measure(baseline.plan());
                 var afterPolicy = SchedulingPolicy.measure(current.plan());
-                JsonNode savedPolicy = SavedJson.policyAnalysis(Required.value(mapper.readTree(Required.query(jdbc,
+                JsonNode savedPolicy = SavedJson.policyAnalysis(Required.value(mapper.readTree(dev.waterflex.scheduler.DatabaseFacts.query(jdbc,
                         "SELECT \"policyAnalysis\"::text FROM optimization_run WHERE id=?", String.class, runId))));
                 DayPlan referencePlan = restoreReference(baseline.plan(), Required.value(savedPolicy.path("referenceRoutes")));
                 var reference = SchedulingPolicy.measure(referencePlan);
@@ -634,7 +600,7 @@ public class OptimizationService {
 
     public Map<String, Object> response(String id) {
         var rows = jdbc.query("SELECT \"metroId\", \"serviceDate\", status, reason, \"solverStatus\", \"solveMs\", \"objectiveImprovement\", \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text, \"createdAt\", \"appliedAt\", weights::text FROM optimization_run WHERE id=?",
-                (rs, _) -> new RunResponse(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.string(rs, 3), rs.getString(4), Required.string(rs, 5), Required.integer(rs, 6), Required.longValue(rs, 7), Required.string(rs, 8), Required.string(rs, 9), Required.value(Required.timestamp(rs, 10).toInstant()), rs.getTimestamp(11) == null ? null : Required.timestamp(rs, 11).toInstant(), Required.string(rs, 12)), id);
+                (rs, _) -> new RunResponse(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant()), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), rs.getString(4), dev.waterflex.scheduler.DatabaseFacts.string(rs, 5), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 6), dev.waterflex.scheduler.DatabaseFacts.longValue(rs, 7), dev.waterflex.scheduler.DatabaseFacts.string(rs, 8), dev.waterflex.scheduler.DatabaseFacts.string(rs, 9), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 10).toInstant()), rs.getTimestamp(11) == null ? null : dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 11).toInstant(), dev.waterflex.scheduler.DatabaseFacts.string(rs, 12)), id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
         RunResponse row = rows.getFirst();
         try {
@@ -643,9 +609,9 @@ public class OptimizationService {
             value.put("status", row.status()); value.put("reason", row.reason()); value.put("solver_status", row.solverStatus()); value.put("solve_ms", row.solveMs());
             value.put("objective_improvement", row.improvement()); value.put("churn_penalty_minutes", 0);
             var changes = jdbc.query("SELECT \"appointmentId\", \"fromTechnicianId\", \"toTechnicianId\", \"fromSequence\", \"toSequence\", \"fromPlannedArrivalMin\", \"toPlannedArrivalMin\" FROM optimization_change WHERE \"runId\"=?",
-                    (rs, _) -> Map.of("appointment_id", (Object) Required.string(rs, 1), "from_technician_id", Required.string(rs, 2),
-                            "to_technician_id", Required.string(rs, 3), "from_sequence", Required.integer(rs, 4), "to_sequence", Required.integer(rs, 5),
-                            "from_planned_arrival_min", Required.integer(rs, 6), "to_planned_arrival_min", Required.integer(rs, 7)), id);
+                    (rs, _) -> Map.of("appointment_id", (Object) dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), "from_technician_id", dev.waterflex.scheduler.DatabaseFacts.string(rs, 2),
+                            "to_technician_id", dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), "from_sequence", dev.waterflex.scheduler.DatabaseFacts.integer(rs, 4), "to_sequence", dev.waterflex.scheduler.DatabaseFacts.integer(rs, 5),
+                            "from_planned_arrival_min", dev.waterflex.scheduler.DatabaseFacts.integer(rs, 6), "to_planned_arrival_min", dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7)), id);
             value.put("optimized", row.status().equals("APPLIED")); value.put("appointments_moved", changes.size());
             value.put("route_summary_before", mapper.treeToValue(SavedJson.summary(Required.value(mapper.readTree(row.before()))), RouteSummary[].class)); value.put("route_summary_after", mapper.treeToValue(SavedJson.summary(Required.value(mapper.readTree(row.after()))), RouteSummary[].class));
             value.put("changes", changes); value.put("warnings", List.of());
@@ -674,13 +640,13 @@ public class OptimizationService {
     public Map<String, Object> history(String metroId, String date) {
         LocalDate day = parseDay(date);
         List<Map<String, Object>> runs = jdbc.query("SELECT id FROM optimization_run WHERE \"metroId\"=? AND \"serviceDate\"=? ORDER BY \"createdAt\" DESC LIMIT 20",
-                (rs, _) -> response(Required.string(rs, 1)), metroId, dayStamp(day));
+                (rs, _) -> response(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)), metroId, dayStamp(day));
         return Required.value(Map.of("runs", runs));
     }
 
     @Scheduled(cron = "${scheduler.optimizer.cron:0 0 2 * * *}", zone = "America/Chicago")
     public void overnight() {
-        var metros = jdbc.query("SELECT id FROM metro", (rs, _) -> Required.string(rs, 1));
+        var metros = jdbc.query("SELECT id FROM metro", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1));
         for (String metro : metros) for (LocalDate day : overnightDates(Required.value(clock.instant()))) {
             try { preview(new Request(Required.value(metro), Required.value(day.toString()))); }
             catch (Exception ignored) { /* A failed day remains unchanged and can be retried by dispatch. */ }
@@ -701,7 +667,7 @@ public class OptimizationService {
         return days;
     }
 
-    private record RawProblem(List<TechData> techs, List<VisitData> visits, Map<String, RoadClient.Point> points,
+    private record RawProblem(List<TechData> techs, List<VisitData> visits, Map<String, RoadPoint> points,
             dev.waterflex.scheduler.BookingSnapshot.Rates rates, Map<String, Integer> versions, Map<String, RouteEndpoints> endpoints,
             SchedulingPolicy.Rules policy, String configuration, String revision, boolean held) { }
     private Problem build(String metroId, LocalDate day) {
@@ -735,15 +701,15 @@ public class OptimizationService {
     }
 
     private RawProblem capture(String metroId, LocalDate day) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         List<TechBase> base = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? AND t.active=true ORDER BY t.id",
-                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), metroId);
+                (rs, _) -> new TechBase(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 9)), dayStamp(day), dayStamp(day), metroId);
         List<TechData> techs = new ArrayList<>();
         for (TechBase technician : base) {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician.id(), day);
             if (shift == null) continue;
-            Set<String> qualifications = new HashSet<String>(Required.value(jdbc.query("SELECT \"serviceId\" FROM technician_qualification WHERE \"technicianId\"=?", (r, _) -> Required.string(r, 1), technician.id())));
+            Set<String> qualifications = new HashSet<String>(Required.value(jdbc.query("SELECT \"serviceId\" FROM technician_qualification WHERE \"technicianId\"=?", (r, _) -> dev.waterflex.scheduler.DatabaseFacts.string(r, 1), technician.id())));
             Instant start = ScheduleCutoff.localMinute(day, shift.start(), false);
             Instant end = ScheduleCutoff.localMinute(day, shift.end(), true);
             techs.add(new TechData(technician.id(), technician.endpoints(),
@@ -753,36 +719,36 @@ public class OptimizationService {
         for (TechData tech : techs) byId.put(tech.id(), tech);
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id WHERE r.status='APPROVED' AND i.\"serviceDate\"=?",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                    TechData tech = byId.get(Required.string(rs, 1));
-                    if (tech != null) tech.route().getUnavailable().add(new TechRoute.Unavailable(localInstant(day, Required.integer(rs, 2), false), localInstant(day, Required.integer(rs, 3), true)));
+                    TechData tech = byId.get(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1));
+                    if (tech != null) tech.route().getUnavailable().add(new TechRoute.Unavailable(localInstant(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 2), false), localInstant(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), true)));
                 }, dayStamp(day));
         List<VisitData> visits = jdbc.query("SELECT a.id, a.\"technicianId\",a.sequence,a.\"windowStart\",a.\"windowEnd\",a.\"plannedStart\",j.\"serviceId\",j.\"durationMin\",ad.lat,ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\",a.sequence",
                 (rs, _) -> {
-                    String id = Required.string(rs, 1), techId = Required.string(rs, 2);
-                    Instant start = Required.timestamp(rs, 4).toInstant(), end = Required.timestamp(rs, 5).toInstant();
-                    return new VisitData(new PlanVisit(id, Required.string(rs, 7), Required.value(start), Required.value(end), Required.integer(rs, 8), techId, Required.value(Required.timestamp(rs, 6).toInstant())),
-                            Required.location(rs, 9, 10, HttpStatus.CONFLICT), techId, Required.integer(rs, 3), Required.value(start), Required.value(end));
+                    String id = dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), techId = dev.waterflex.scheduler.DatabaseFacts.string(rs, 2);
+                    Instant start = dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant(), end = dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant();
+                    return new VisitData(new PlanVisit(id, dev.waterflex.scheduler.DatabaseFacts.string(rs, 7), Required.value(start), Required.value(end), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8), techId, Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 6).toInstant())),
+                            dev.waterflex.scheduler.DatabaseFacts.location(rs, 9, 10, HttpStatus.CONFLICT), techId, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), Required.value(start), Required.value(end));
                 }, metroId, dayStamp(day));
         for (VisitData visit : visits) {
             TechData tech = byId.get(visit.technicianId());
             if (tech == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "An assigned technician is unavailable");
             tech.route().getVisits().add(visit.visit());
         }
-        Map<String, RoadClient.Point> points = new LinkedHashMap<>();
+        Map<String, RoadPoint> points = new LinkedHashMap<>();
         techs.forEach(tech -> {
             points.put(tech.id(), tech.endpoints().departure());
             points.put(tech.id() + ":return", tech.endpoints().returnTo());
         });
         visits.forEach(visit -> points.put(visit.visit().getId(), visit.point()));
         Map<String, java.math.BigDecimal> settings = new HashMap<>();
-        jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(Required.string(rs, 1), Required.decimal(rs, 2)));
+        jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.decimal(rs, 2)));
         var rates = dev.waterflex.scheduler.BookingSnapshot.Rates.read(settings);
         Map<String, Integer> versions = new LinkedHashMap<>();
         for (TechData tech : techs) {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING",
                     UUID.randomUUID().toString(), tech.id(), dayStamp(day));
-            versions.put(tech.id(), Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, tech.id(), dayStamp(day)));
+            versions.put(tech.id(), dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Integer.class, tech.id(), dayStamp(day)));
         }
         Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
         techs.forEach(tech -> endpoints.put(tech.id(), tech.endpoints()));
@@ -817,35 +783,35 @@ public class OptimizationService {
         String placeholders = String.join(",", Collections.nCopies(techIds.size(), "?"));
         List<Object> args = new ArrayList<>();
         args.add(dayStamp(day)); args.addAll(techIds);
-        return Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"serviceDate\"=? AND \"technicianId\" IN (" + placeholders + ") AND \"releasedAt\" IS NULL AND \"expiresAt\">clock_timestamp()",
+        return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"serviceDate\"=? AND \"technicianId\" IN (" + placeholders + ") AND \"releasedAt\" IS NULL AND \"expiresAt\">clock_timestamp()",
                 Integer.class, Required.value(args.toArray(new @Nullable Object[0]))) > 0;
     }
     private String configurationVersion(String metroId, LocalDate day) {
         StringBuilder raw = new StringBuilder(dev.waterflex.scheduler.Monetary.COST_MODEL).append(';').append(DailyDataset.SCORE_MODEL).append(';');
         jdbc.query("SELECT key, value, \"updatedAt\" FROM omaha_setting ORDER BY key",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(Required.string(rs, 3)).append(';'));
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)).append(':').append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)).append(':').append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 3)).append(';'));
         jdbc.query("SELECT t.id, t.active, t.\"homeLat\", t.\"homeLng\", t.\"shiftStartMin\", t.\"shiftEndMin\", t.\"maxDailyMinutes\", t.\"maxOvertimeMinutes\", p.\"dealershipId\", ep.departure, ep.\"returnTo\", p.id, p.lat, p.lng FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
                     for (int i = 1; i <= 14; i++) raw.append(rs.getString(i)).append(':');
                     raw.append(';');
                 }, dayStamp(day), dayStamp(day), metroId);
         jdbc.query("SELECT q.\"technicianId\", q.\"serviceId\" FROM technician_qualification q JOIN technician t ON t.id=q.\"technicianId\" JOIN technician_depot_assignment a ON a.\"technicianId\"=t.id AND a.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=?) JOIN depot p ON p.id=a.\"depotId\" WHERE p.\"metroId\"=? ORDER BY q.\"technicianId\", q.\"serviceId\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(';'), dayStamp(day), metroId);
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)).append(':').append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)).append(';'), dayStamp(day), metroId);
         jdbc.query("SELECT o.\"technicianId\", o.available, o.\"shiftStartMin\", o.\"shiftEndMin\" FROM technician_shift_override o JOIN technician t ON t.id=o.\"technicianId\" JOIN technician_depot_assignment a ON a.\"technicianId\"=t.id AND a.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=o.\"serviceDate\") JOIN depot p ON p.id=a.\"depotId\" WHERE p.\"metroId\"=? AND o.\"serviceDate\"=? ORDER BY o.\"technicianId\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(rs.getString(3)).append(':').append(rs.getString(4)).append(';'), metroId, dayStamp(day));
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)).append(':').append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)).append(':').append(rs.getString(3)).append(':').append(rs.getString(4)).append(';'), metroId, dayStamp(day));
         jdbc.query("SELECT t.id, v.\"effectiveDate\", d.\"dayOfWeek\", d.available, d.\"shiftStartMin\", d.\"shiftEndMin\" FROM technician t JOIN technician_depot_assignment a ON a.\"technicianId\"=t.id AND a.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=?) JOIN depot p ON p.id=a.\"depotId\" LEFT JOIN LATERAL (SELECT id, \"effectiveDate\" FROM technician_availability_version WHERE \"technicianId\"=t.id AND \"effectiveDate\"<=? ORDER BY \"effectiveDate\" DESC LIMIT 1) v ON true LEFT JOIN technician_availability_day d ON d.\"versionId\"=v.id AND d.\"dayOfWeek\"=? WHERE p.\"metroId\"=? ORDER BY t.id",
                 (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                    raw.append(Required.string(rs, 1));
+                    raw.append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1));
                     for (int i = 2; i <= 6; i++) raw.append(':').append(rs.getString(i));
                     raw.append(';');
                 }, dayStamp(day), dayStamp(day), day.getDayOfWeek().getValue() % 7, metroId);
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id JOIN technician t ON t.id=r.\"technicianId\" JOIN technician_depot_assignment a ON a.\"technicianId\"=t.id AND a.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=i.\"serviceDate\") JOIN depot p ON p.id=a.\"depotId\" WHERE p.\"metroId\"=? AND r.status='APPROVED' AND i.\"serviceDate\"=? ORDER BY r.\"technicianId\", i.\"startMin\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(Required.string(rs, 1)).append(':').append(Required.string(rs, 2)).append(':').append(Required.string(rs, 3)).append(';'), metroId, dayStamp(day));
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> raw.append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)).append(':').append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)).append(':').append(dev.waterflex.scheduler.DatabaseFacts.string(rs, 3)).append(';'), metroId, dayStamp(day));
         try { return Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(raw.toString().getBytes(StandardCharsets.UTF_8)))); }
         catch (Exception e) { throw new IllegalStateException(e); }
     }
     private void lockDay(String techId, LocalDate day) {
-        Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
+        dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
     }
     private static LocalDate parseDay(String text) {
         try { return Required.value(LocalDate.parse(text)); }

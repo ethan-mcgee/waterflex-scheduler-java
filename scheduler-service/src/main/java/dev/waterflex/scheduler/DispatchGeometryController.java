@@ -28,7 +28,7 @@ public class DispatchGeometryController {
     public record RoadProperties(String technicianId, String interval, int legIndex, long seconds, long meters) { }
     public record RoadFeature(String type, LineString geometry, RoadProperties properties) { }
     private record SavedGeometry(String before, String after, String weights, @Nullable String endpoints, String beforeSummary, String afterSummary) { }
-    private record Stop(String id, String technicianId, int sequence, Instant plannedStart, @Nullable Instant plannedEnd, RoadClient.Point point) { }
+    private record Stop(String id, String technicianId, int sequence, Instant plannedStart, @Nullable Instant plannedEnd, RoadPoint point) { }
     private record Absence(Instant start, Instant end) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
@@ -84,18 +84,18 @@ public class DispatchGeometryController {
         Map<String, List<WorkingSegment>> savedTiming = new TreeMap<>();
         Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
         if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(Required.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, serviceDate, metroId);
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, serviceDate, metroId);
         List<Stop> stops;
         if (phase.equals("current")) {
             stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng, a.\"plannedEnd\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
-                    (rs, _) -> new Stop(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 7).toInstant()),
-                            Required.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
+                    (rs, _) -> new Stop(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 7).toInstant()),
+                            dev.waterflex.scheduler.DatabaseFacts.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
             jdbc.query("SELECT \"technicianId\",version,\"routeTiming\"::text FROM schedule_day WHERE \"serviceDate\"=?",
                     (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                        String technician = Required.string(rs, 1), raw = rs.getString(3);
+                        String technician = dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), raw = rs.getString(3);
                         if (!endpoints.containsKey(technician) || raw == null) return;
                         var timing = ScheduleSegments.decode(raw);
-                        if (timing.version() != Required.integer(rs, 2)) return;
+                        if (timing.version() != dev.waterflex.scheduler.DatabaseFacts.integer(rs, 2)) return;
                         if (!timing.segments().isEmpty() && !identity.equals(timing.routingIdentity()))
                             throw new ResponseStatusException(HttpStatus.CONFLICT, "Routing graph changed; replan current routes");
                         savedTiming.put(technician, timing.segments());
@@ -104,7 +104,7 @@ public class DispatchGeometryController {
             if (runId == null || runId.isBlank())
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
             var runs = jdbc.query("SELECT \"baselineAssignments\"::text, \"proposedAssignments\"::text, weights::text, \"endpointSnapshots\"::text, \"routeSummaryBefore\"::text, \"routeSummaryAfter\"::text FROM optimization_run WHERE id=? AND \"metroId\"=? AND \"serviceDate\"=?",
-                    (rs, _) -> new SavedGeometry(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3), rs.getString(4), Required.string(rs, 5), Required.string(rs, 6)), runId, metroId, serviceDate);
+                    (rs, _) -> new SavedGeometry(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), rs.getString(4), dev.waterflex.scheduler.DatabaseFacts.string(rs, 5), dev.waterflex.scheduler.DatabaseFacts.string(rs, 6)), runId, metroId, serviceDate);
             if (runs.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Optimization run not found");
             try {
                 String snapshot = runs.getFirst().endpoints();
@@ -148,9 +148,9 @@ public class DispatchGeometryController {
         }
         Map<String, List<Absence>> absences = new HashMap<>();
         jdbc.query("SELECT r.\"technicianId\", i.\"startMin\", i.\"endMin\" FROM time_off_request r JOIN time_off_interval i ON i.\"requestId\"=r.id WHERE r.status='APPROVED' AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> absences.computeIfAbsent(Required.string(rs, 1), _ -> new ArrayList<>())
-                        .add(new Absence(ScheduleCutoff.localMinute(day, Required.integer(rs, 2), false),
-                                ScheduleCutoff.localMinute(day, Required.integer(rs, 3), true))), serviceDate);
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> absences.computeIfAbsent(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), _ -> new ArrayList<>())
+                        .add(new Absence(ScheduleCutoff.localMinute(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 2), false),
+                                ScheduleCutoff.localMinute(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), true))), serviceDate);
         Map<String, List<Stop>> groups = new LinkedHashMap<>();
         Map<String, Stop> byId = new HashMap<>(); stops.forEach(stop -> byId.put(stop.id(), stop));
         for (var timing : savedTiming.entrySet()) {
@@ -190,7 +190,7 @@ public class DispatchGeometryController {
             String techId = route.getFirst().technicianId();
             RouteEndpoints anchor = endpoints.get(techId);
             if (anchor == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable");
-            List<RoadClient.Point> points = new ArrayList<>();
+            List<RoadPoint> points = new ArrayList<>();
             points.add(anchor.departure());
             route.forEach(stop -> points.add(stop.point()));
             points.add(anchor.returnTo());
@@ -216,21 +216,21 @@ public class DispatchGeometryController {
                 "segments", savedTiming));
     }
 
-    private static RoadClient.Point savedPoint(JsonNode node) {
+    private static RoadPoint savedPoint(JsonNode node) {
         if (!node.isObject() || !node.path("lat").isNumber() || !node.path("lng").isNumber())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid endpoint snapshots");
         double lat = node.path("lat").asDouble(), lng = node.path("lng").asDouble();
         if (!Double.isFinite(lat) || !Double.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid endpoint snapshots");
-        return new RoadClient.Point(lat, lng);
+        return new RoadPoint(lat, lng);
     }
 
-    private static RoadClient.Point savedAssignmentPoint(JsonNode assignment) {
+    private static RoadPoint savedAssignmentPoint(JsonNode assignment) {
         if (!assignment.path("locationLat").isNumber() || !assignment.path("locationLng").isNumber())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignment coordinates");
         double lat = assignment.path("locationLat").asDouble(), lng = assignment.path("locationLng").asDouble();
         if (!Double.isFinite(lat) || !Double.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Invalid optimization assignment coordinates");
-        return new RoadClient.Point(lat, lng);
+        return new RoadPoint(lat, lng);
     }
 }

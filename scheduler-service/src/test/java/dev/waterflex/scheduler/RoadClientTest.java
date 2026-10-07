@@ -35,8 +35,8 @@ class RoadClientTest {
         server.start();
         RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10, mock(org.springframework.transaction.PlatformTransactionManager.class));
         try (var callers = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
-            var origin = new RoadClient.Point(0, 0); var destination = new RoadClient.Point(1, 1);
-            var matrix = callers.<Map<String, RoadClient.Leg>>submit(() -> roads.matrix(Required.value(Map.<String, RoadClient.Point>of("a", origin, "b", destination)), "test"));
+            var origin = new RoadPoint(0, 0); var destination = new RoadPoint(1, 1);
+            var matrix = callers.<Map<String, RoadClient.Leg>>submit(() -> roads.matrix(Required.value(Map.<String, RoadPoint>of("a", origin, "b", destination)), "test"));
             try {
                 assertTrue(entered.await(2, java.util.concurrent.TimeUnit.SECONDS));
                 var pairs = Required.value(List.<RoadClient.Pair>of(new RoadClient.Pair("selected", origin, destination)));
@@ -85,8 +85,8 @@ class RoadClientTest {
         server.start();
         try {
             RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10, mock(org.springframework.transaction.PlatformTransactionManager.class));
-            List<RoadClient.Pair> pairs = Required.value(List.<RoadClient.Pair>of(new RoadClient.Pair("out", new RoadClient.Point(0, 0), new RoadClient.Point(1, 1)),
-                    new RoadClient.Pair("back", new RoadClient.Point(1, 1), new RoadClient.Point(0, 0))));
+            List<RoadClient.Pair> pairs = Required.value(List.<RoadClient.Pair>of(new RoadClient.Pair("out", new RoadPoint(0, 0), new RoadPoint(1, 1)),
+                    new RoadClient.Pair("back", new RoadPoint(1, 1), new RoadPoint(0, 0))));
             assertThrows(RoadClient.RoadUnavailable.class, () -> roads.sparse(pairs, "test"));
             assertEquals(Map.of("out", new RoadClient.Leg(60, 42)), roads.sparse(pairs, "test"));
             assertEquals(Map.of("out", new RoadClient.Leg(60, 42)), roads.sparse(pairs, "test"));
@@ -111,7 +111,7 @@ class RoadClientTest {
         server.start();
         try {
             RoadClient roads = new RoadClient(mock(JdbcTemplate.class), "http://127.0.0.1:" + server.getAddress().getPort(), 10, 10, mock(org.springframework.transaction.PlatformTransactionManager.class));
-            Map<String, RoadClient.Point> points = Required.value(Map.<String, RoadClient.Point>of("p", new RoadClient.Point(0, 0)));
+            Map<String, RoadPoint> points = Required.value(Map.<String, RoadPoint>of("p", new RoadPoint(0, 0)));
             assertThrows(RoadClient.RoadUnavailable.class, () -> roads.matrix(points));
             assertTrue(roads.matrix(points).isEmpty());
             assertTrue(roads.matrix(points).isEmpty());

@@ -1,0 +1,551 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/C:/Users/mcgee/.m2/wrapper/dists/apache-maven-3.9.16-bin/4200fbc6/apache-maven-3.9.16/lib/jansi-2.4.3.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] calculation-engine                                                 [jar]
+[INFO] scheduler-service                                                  [jar]
+[INFO] 
+[INFO] ------------------< dev.waterflex:calculation-engine >------------------
+[INFO] Building calculation-engine 0.1.0-SNAPSHOT                         [1/2]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ calculation-engine ---
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\main\resources
+[INFO] skip non existing resourceDirectory C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\calculation-engine\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ calculation-engine ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] 
+[INFO] ------------------< dev.waterflex:scheduler-service >-------------------
+[INFO] Building scheduler-service 0.1.0-SNAPSHOT                          [2/2]
+[INFO]   from C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.5.0:resources (default-resources) @ scheduler-service ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.15.0:compile (default-compile) @ scheduler-service ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 82 source files with javac [debug parameters release 25] to target\classes
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\scheduler-service\src\main\java\dev\waterflex\scheduler\BookingService.java uses or overrides a deprecated API.
+[INFO] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java: Recompile with -Xlint:deprecation for details.
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[75,34] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingSnapshot.Visit
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[56,13] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingSnapshot.Technician
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[56,34] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingSnapshot.Technician
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationLifecycleService.java:[20,60] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.ReservationLifecycleService.Offer
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java:[24,80] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BoundedBookingSearch.Request
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[74,77] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[92,32] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[104,25] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[47,37] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService.Visit
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[43,67] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService.Job
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[8,30] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[8,51] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[450,81] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[546,29] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java:[44,27] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingLocationController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java:[22,19] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingLocationController.Circle
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DatabaseFacts.java:[29,19] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DatabaseFacts
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[219,20] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[228,20] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[31,123] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DispatchGeometryController.Stop
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[22,69] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.RoadPrewarming.Snapshot
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[99,71] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.RoadPrewarming
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java:[81,51] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SchedulingBenchmarkController.CacheRequest
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[10,31] cannot find symbol
+  symbol:   class RoadPoint
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[84,47] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.optimizer.OptimizationService.VisitData
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[705,89] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.optimizer.OptimizationService.RawProblem
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[74,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[82,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[100,50] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[110,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[115,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[177,50] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[220,50] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[308,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[312,44] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[427,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[431,21] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[563,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[581,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[597,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[610,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchControl.java:[43,40] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchControl.java:[59,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadClient.java:[275,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java:[113,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java:[132,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java:[53,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java:[64,40] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java:[72,40] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationStore.java:[30,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationStore.java:[69,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[22,25] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[50,25] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[66,21] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[93,21] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[13,9] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[19,9] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java:[29,25] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.BookingLocationController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DatabaseFacts.java:[35,20] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DatabaseFacts
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[193,18] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[209,126] incompatible types: java.util.List<java.lang.Object> cannot be converted to java.util.List<java.util.Map<java.lang.String,java.lang.Object>>
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[213,72] incompatible types: java.util.List<java.lang.Object> cannot be converted to java.util.List<java.util.Map<java.lang.String,java.lang.Object>>
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[225,20] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[234,20] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[56,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[64,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[80,79] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java:[84,18] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SchedulingBenchmarkController.CacheRequest
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java:[98,25] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.SchedulingBenchmarkController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/TestAddressRoutabilityService.java:[24,21] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.TestAddressRoutabilityService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/TestAddressRoutabilityService.java:[26,87] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.TestAddressRoutabilityService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[141,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[186,44] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[217,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[221,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[228,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[245,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[440,96] incompatible types: java.util.List<java.lang.Object> cannot be converted to java.util.List<java.util.Map<java.lang.String,java.lang.Object>>
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[490,65] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[739,32] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[744,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[772,21] cannot find symbol
+  symbol:   class RoadPoint
+  location: class dev.waterflex.scheduler.optimizer.OptimizationService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[783,36] cannot find symbol
+  symbol:   class DatabaseDeadline
+  location: package dev.waterflex.scheduler
+[INFO] 83 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for calculation-engine 0.1.0-SNAPSHOT:
+[INFO] 
+[INFO] calculation-engine ................................. SUCCESS [  0.948 s]
+[INFO] scheduler-service .................................. FAILURE [  2.345 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.544 s
+[INFO] Finished at: 2026-10-06T19:20:23-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project scheduler-service: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[75,34] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingSnapshot.Visit
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[56,13] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingSnapshot.Technician
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java:[56,34] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingSnapshot.Technician
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationLifecycleService.java:[20,60] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.ReservationLifecycleService.Offer
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java:[24,80] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BoundedBookingSearch.Request
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[74,77] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[92,32] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[104,25] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[47,37] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService.Visit
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[43,67] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService.Job
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[8,30] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[8,51] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[450,81] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[546,29] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java:[44,27] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingLocationController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java:[22,19] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingLocationController.Circle
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DatabaseFacts.java:[29,19] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DatabaseFacts
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[219,20] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[228,20] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[31,123] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DispatchGeometryController.Stop
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[22,69] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.RoadPrewarming.Snapshot
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[99,71] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.RoadPrewarming
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java:[81,51] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SchedulingBenchmarkController.CacheRequest
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[10,31] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[84,47] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.optimizer.OptimizationService.VisitData
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[705,89] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.optimizer.OptimizationService.RawProblem
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[74,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[82,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[100,50] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[110,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[115,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[177,50] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[220,50] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[308,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[312,44] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[427,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[431,21] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[563,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[581,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[597,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java:[610,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchControl.java:[43,40] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchControl.java:[59,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadClient.java:[275,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java:[113,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java:[132,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java:[53,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java:[64,40] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java:[72,40] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationStore.java:[30,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationStore.java:[69,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[22,25] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[50,25] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[66,21] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java:[93,21] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SnapshotRouting
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[13,9] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java:[19,9] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.RouteEndpoints
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java:[29,25] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.BookingLocationController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DatabaseFacts.java:[35,20] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DatabaseFacts
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[193,18] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[209,126] incompatible types: java.util.List<java.lang.Object> cannot be converted to java.util.List<java.util.Map<java.lang.String,java.lang.Object>>
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[213,72] incompatible types: java.util.List<java.lang.Object> cannot be converted to java.util.List<java.util.Map<java.lang.String,java.lang.Object>>
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[225,20] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java:[234,20] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.DispatchGeometryController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[56,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[64,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java:[80,79] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java:[84,18] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SchedulingBenchmarkController.CacheRequest
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java:[98,25] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.SchedulingBenchmarkController
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/TestAddressRoutabilityService.java:[24,21] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.TestAddressRoutabilityService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/TestAddressRoutabilityService.java:[26,87] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.TestAddressRoutabilityService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[141,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[186,44] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[217,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[221,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[228,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[245,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[440,96] incompatible types: java.util.List<java.lang.Object> cannot be converted to java.util.List<java.util.Map<java.lang.String,java.lang.Object>>
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[490,65] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[739,32] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[744,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[772,21] cannot find symbol
+[ERROR]   symbol:   class RoadPoint
+[ERROR]   location: class dev.waterflex.scheduler.optimizer.OptimizationService
+[ERROR] /C:/Users/mcgee/OneDrive/Desktop/waterflex/waterflex-scheduler-java/scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java:[783,36] cannot find symbol
+[ERROR]   symbol:   class DatabaseDeadline
+[ERROR]   location: package dev.waterflex.scheduler
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :scheduler-service

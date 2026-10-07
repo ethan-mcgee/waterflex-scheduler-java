@@ -16,8 +16,8 @@ class FieldScenarioTest {
     static final Instant CAPTURED = Required.value(Instant.parse("2026-10-25T17:00:00Z"));
     static final LocalDate DATE = Required.value(LocalDate.parse("2026-10-26"));
     static final Instant START = ScheduleCutoff.localMinute(DATE, 480, false);
-    static final RoadClient.Point OMAHA = new RoadClient.Point(41.2565, -95.9345);
-    static final RoadClient.Point TOWN = new RoadClient.Point(41.4417, -96.4981);
+    static final RoadPoint OMAHA = new RoadPoint(41.2565, -95.9345);
+    static final RoadPoint TOWN = new RoadPoint(41.4417, -96.4981);
     static final Rates RATES = new Rates(30, 45, .67, 0, 0);
 
     @Test void allBookingOrdersAndPromiseWidthsAreIndependentlyChecked() throws Exception {

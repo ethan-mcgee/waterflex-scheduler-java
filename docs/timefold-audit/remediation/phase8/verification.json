@@ -1,0 +1,962 @@
+{
+  "schemaVersion": 1,
+  "step": 8,
+  "recordedAtUtc": "2026-10-07T00:58:35.668066+00:00",
+  "startingRevision": "5552fabb1308c0e0ead8d1faeb6cdec86657f1c2",
+  "scope": "Shared database-free calculation engine, bounded private HTTP service, replayable indexed booking stages and independently validated embedded/remote callers.",
+  "checks": [
+    {
+      "command": "./mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase8-ecj-cold-correction.log",
+      "tests": 260,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "./mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase8-javac-cold-correction.log",
+      "tests": 260,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "npm --prefix web run prisma:generate",
+      "status": "passed",
+      "log": "evidence/phase8-prisma.log"
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "log": "evidence/phase8-portal-lint.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "log": "evidence/phase8-portal-typecheck.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "log": "evidence/phase8-portal-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "log": "evidence/phase8-portal-unit.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "log": "evidence/phase8-portal-build.log"
+    },
+    {
+      "command": "./mvnw.cmd -pl scheduler-service -Psolver-assertions test -Dassertions.mode=FULL_ASSERT -Dassertions.budgetMs=250 -Dassertions.revision=5552fabb1308c0e0ead8d1faeb6cdec86657f1c2-phase8-working-tree -Dassertions.output=.scratch/phase8-assert-FULL_ASSERT.jsonl",
+      "status": "passed",
+      "log": "evidence/phase8-assert-FULL_ASSERT-verified.log",
+      "limitation": "Local campaign preceded the final cold orchestration correction; hosted exact-head matrix remains required."
+    },
+    {
+      "command": "./mvnw.cmd -pl scheduler-service -Psolver-assertions test -Dassertions.mode=NON_INTRUSIVE_FULL_ASSERT -Dassertions.budgetMs=250 -Dassertions.revision=5552fabb1308c0e0ead8d1faeb6cdec86657f1c2-phase8-working-tree -Dassertions.output=.scratch/phase8-assert-NON_INTRUSIVE_FULL_ASSERT.jsonl",
+      "status": "passed",
+      "log": "evidence/phase8-assert-NON_INTRUSIVE_FULL_ASSERT-verified.log",
+      "limitation": "Local campaign preceded the final cold orchestration correction; hosted exact-head matrix remains required."
+    },
+    {
+      "command": "./mvnw.cmd -pl scheduler-service -Psolver-assertions test -Dassertions.mode=PHASE_ASSERT -Dassertions.budgetMs=250 -Dassertions.revision=5552fabb1308c0e0ead8d1faeb6cdec86657f1c2-phase8-working-tree -Dassertions.output=.scratch/phase8-assert-PHASE_ASSERT.jsonl",
+      "status": "passed",
+      "log": "evidence/phase8-assert-PHASE_ASSERT-verified.log",
+      "limitation": "Local campaign preceded the final cold orchestration correction; hosted exact-head matrix remains required."
+    },
+    {
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "log": "evidence/phase8-experiment-helpers.log",
+      "tests": 63,
+      "skipped": 1
+    },
+    {
+      "command": "python -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "log": "evidence/phase8-audit-helpers3.log",
+      "tests": 10
+    },
+    {
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "log": "evidence/phase8-baseline-dependencies.log"
+    },
+    {
+      "command": "docker compose --profile remote-solver config --quiet",
+      "status": "passed",
+      "log": "evidence/phase8-compose-delivery.log"
+    },
+    {
+      "command": "node infra/test-booking-offer-limit-compose.mjs",
+      "status": "passed",
+      "log": "evidence/phase8-compose-offer-limits.log"
+    },
+    {
+      "command": ".scratch/phase5/actionlint/actionlint.exe",
+      "status": "passed",
+      "log": "evidence/phase8-actionlint-delivery.log"
+    },
+    {
+      "command": "java -cp probe-classes;<test-classpath> dev.waterflex.solver.Phase8PackagedProbe against the final packaged service on 18188; no database or routing service configured",
+      "status": "passed",
+      "log": "evidence/phase8-packaged-replay-final.log"
+    }
+  ],
+  "sourceIdentities": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "gitBlobSha256": "455431f74e6ddc194aca331e67e723a8ddaf94ed98f84ee98638d4769b6ec034"
+    },
+    {
+      "path": ".github/workflows/solver-assertions.yml",
+      "gitBlobSha256": "83e22e6bcd1a945739e6368566f22388b11ff3e74392e68a820d0ee7248f393c"
+    },
+    {
+      "path": "calculation-engine/pom.xml",
+      "gitBlobSha256": "5557301222c8016caeaa769eeb87fe621c64968842d9c52aa92b7f88174d682d"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingArrangements.java",
+      "gitBlobSha256": "d6b984ef8e3de3ecf74e463189c1e845fc112972808cdd2a3c785b52f6a5e09c"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingCalculation.java",
+      "gitBlobSha256": "d987e957efa36027cc1bce6e67faaae2cfc2dbe5e2273828e7e5a5b12310cc27"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingCalendar.java",
+      "gitBlobSha256": "a94bcfab7af3ce9c39495efe68d1ba373121d991503378297846fc74aaa3caaa"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingDataset.java",
+      "gitBlobSha256": "54cdbc0a564f5a53630a9492dfef519fb0c0d1c5565af214f099b5b98c7ccb82"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingEvaluation.java",
+      "gitBlobSha256": "7630838af0451f95c076d7b00d0e28c383d28f3eedfb6f3b74f48a348c0ac6a6"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingRouteBounds.java",
+      "gitBlobSha256": "45c50d716de8cbaed8a32207d8d7948fa593ad277b2d8fa1932c694bcc994d05"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java",
+      "gitBlobSha256": "9f6c620f1300898e2c1e6009ab312dce598730d3eae31bf78044e6cc85bc5956"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java",
+      "gitBlobSha256": "05ac50d602edf0ddaafa2d4427e8ef280fa0c5bc96b533891108bd8b716dd1a1"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationAdapter.java",
+      "gitBlobSha256": "1fe714abb2f23d17f6b176df3697c921390142fcdc97f564a873b3f13dd0ed2f"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationJson.java",
+      "gitBlobSha256": "9760c323a58f20adfa7fc1540979fd1cdacf5c1f9a3d72aa2073ce0361f68179"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationProtocol.java",
+      "gitBlobSha256": "07096c5acd8a5ad1dae733247d4d9d69e64a4fb64548035ff1da2ed25638e7f3"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/DecimalStringSerializer.java",
+      "gitBlobSha256": "5a04b111799d52ede0e72027652caafaa913df50fb2561da79bb9a3515567572"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/EmbeddedCalculation.java",
+      "gitBlobSha256": "290ecf4d95df3e6e7fbd6488723b0f0ed48f416bce148b5aa11080d08ebae905"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/HttpCalculation.java",
+      "gitBlobSha256": "5ab19956b4bef9ee66dfddfd4da0d181d1924d02f337adeb8cbd1617dfa30f5d"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/Monetary.java",
+      "gitBlobSha256": "dc538153becdf0dd02112cfccfee7eadd3f34ce16816936c1c317ab54a0ce00f"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/Required.java",
+      "gitBlobSha256": "06bbd3d7084df7f70750095183d945d378a67d89faf405dc56c3d737d34987df"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/RoadPoint.java",
+      "gitBlobSha256": "9547750a6269755dae66bd706136f0fc92c18e5e51f17430dfeade50e54f7c6f"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/ScheduleCutoff.java",
+      "gitBlobSha256": "20c0377751f9ca4cf390ad915b7c4160739e2d34401ae372fa23529a67707f1e"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/SearchAdmission.java",
+      "gitBlobSha256": "966535e09e9aa47c53df20cd8ccb1f899527a04a0277f800e3df90eed4ea1d42"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/SearchDeadline.java",
+      "gitBlobSha256": "6e018676cb6dabe3709fdbf37ea45013a003ff84c36b63b2adab45b57e7d4850"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/SearchTelemetry.java",
+      "gitBlobSha256": "3390aea1c18d8085e7d5b67a6d4c810c26acf13b0eb5ced7593858e103279915"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyCalculation.java",
+      "gitBlobSha256": "dc79264a4e10b581c498ceeb325a11c62c794fc0e9fea5dc998bfe50f91b286c"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyDataset.java",
+      "gitBlobSha256": "d460b0268fdf913407d25daf6cd080fa17a03ecd6eeaefa1ea0600cfbfd4d1e7"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyOperation.java",
+      "gitBlobSha256": "4862d09f26156e072a3aaa4687c73d85e1c76c8b37a53cf7c391f52b4df43a6c"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyOutcome.java",
+      "gitBlobSha256": "0217d4a3da1d5b4cd94771edaac25b25d9ff55a28a6906b7665dfaefbfc57138"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "gitBlobSha256": "2e6e705fa4cc707b5bd026d6cd14c9f0d0cb14d37d3ccaa75f16d68efc15c358"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DayConstraintProvider.java",
+      "gitBlobSha256": "f13baaee71c3a1197b3da49159f4f9cf7e1549342390bbb9b5aaf4b0f91bf198"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DayPlan.java",
+      "gitBlobSha256": "4dfc8237eb3f0453df312c943d8302df6a7a47db88b3952542ec5994d3f4e0b4"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DayScoreCalculator.java",
+      "gitBlobSha256": "ba8b317d413f3bcab56eb758527f1d334996a5e1539d7ff44ad434c86c7e29cb"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DayScores.java",
+      "gitBlobSha256": "bab97d7a22d37cc9245628d614e65c0509f535247c9b9b910a463b017834bc59"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/EngineProvenance.java",
+      "gitBlobSha256": "18fb7cedb71d75e738731df8ad42bd4b3634d97bdcd54347281247093ff01daa"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/PlanCopies.java",
+      "gitBlobSha256": "20eb24807ed6202e1dc699bc638dece30007ed2749b18111208160374ee142f2"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/PlanFacts.java",
+      "gitBlobSha256": "b750d58b2b5c8a6f67d8c19e058df3cd6aef4f23d3180892506886338c98e9ea"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/PlanVisit.java",
+      "gitBlobSha256": "6d5f6e3a31f87817d2e3220354cd663110be59fc976919daef061a6b3710069d"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/PolicySettings.java",
+      "gitBlobSha256": "ec52901f08de4855e0d86f986611d4f700150114d751cd7ae1515f86d8566ffb"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/RouteEvaluator.java",
+      "gitBlobSha256": "3a53fb44e50519d5a478fe03962b48ce8af3d795242f8dd09677613020e744bb"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/RouteScoringFacts.java",
+      "gitBlobSha256": "a3407fa3e6f3afb7d4c3af9dc0235e2d47fe6f3cc2e378ac9649c66036003986"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimeline.java",
+      "gitBlobSha256": "b3c3cccc58a001848d80fb86487042e65fa62c05388c56d1e6bca718b33baaec"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimingSearch.java",
+      "gitBlobSha256": "4bb06a8c615defb523640e4855c177ca62fa777639f8c2c3a17b9a543555c3fd"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/SchedulingPolicy.java",
+      "gitBlobSha256": "601a24530b03e27dd1b59e73ecb6e5f4716e08ce986dd462fd3722fced062286"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/SolverEngine.java",
+      "gitBlobSha256": "c8340297003a10ef239567efba3bd279fbf7804a9a222d45aca92496c0325676"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/TechRoute.java",
+      "gitBlobSha256": "2ad21214a64c9e8921be333cfd92b4706ab5adc0215a6e909439450daa63b0ca"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/TravelBreakdown.java",
+      "gitBlobSha256": "89c61530b43d923c84caddb8a715993effd96f099873fb52f2fe73639ff60852"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/package-info.java",
+      "gitBlobSha256": "f590da4402879ab2f742f57eba9bd48b5fd902af1980f605638e342a61d5fafd"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/package-info.java",
+      "gitBlobSha256": "5355a86a9b233d0873a2a2016f072678074b2905846b17afe158520e4a1ef342"
+    },
+    {
+      "path": "calculation-engine/src/main/resources/solverConfig.xml",
+      "gitBlobSha256": "2c6e5a54b3c83fd9ab572ee6d062547679d341008fedf7a8dbff5df290827e2f"
+    },
+    {
+      "path": "docker-compose.yml",
+      "gitBlobSha256": "d6f04e9714bb20f88fe9bfe7666a70ebc7f84c9110f1eef42f59028bcb5d6db3"
+    },
+    {
+      "path": "pom.xml",
+      "gitBlobSha256": "c5f401d492a3bcf17aa02a43410378ae86479f464649ece350bc7564ff3aee89"
+    },
+    {
+      "path": "routing-service/Dockerfile",
+      "gitBlobSha256": "4808a1f693e1e8fd1f4274db0374c9d8d7c224d739334a6866999ebf2946d98b"
+    },
+    {
+      "path": "scheduler-service/Dockerfile",
+      "gitBlobSha256": "f70752533b59b5ad5831d48273d6d4f9cb1205e0e72ae3bc7a1672a937703098"
+    },
+    {
+      "path": "scheduler-service/pom.xml",
+      "gitBlobSha256": "5e90b325731dbda5bc004ec9416d9fc28f420ed665257cd2497f59d2e1d77bb2"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingCoordinator.java",
+      "gitBlobSha256": "30b1b20372b923399cd9b42ecf6f09348099390957af158464af72de6d445434"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingLocationController.java",
+      "gitBlobSha256": "caec8c46bc8ed7e32ff71bf1830a85c3ec7b3fb04665651600bdbff6d0303638"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchControl.java",
+      "gitBlobSha256": "9736bea3eca24b81f32d214a61d9a745a1c55c07588785c0544ca0c332c962fe"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSearchPipeline.java",
+      "gitBlobSha256": "32634956ad07f54de609825c7f31fa45a66df256da51b59058b76b0567ddcb76"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingService.java",
+      "gitBlobSha256": "abeecb101cd8e855133fa438217d38e5d48ef7b64217d05a0a56967ecf12e8d2"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshotLoader.java",
+      "gitBlobSha256": "354e4da3faab6917b67fe80b503992c3ef3b2d456c5967282c10d79a71e7b390"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/CalculationTransport.java",
+      "gitBlobSha256": "a23f49a93a7f2c47846029d84affc817699d7036303519594fc640b9338be450"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DatabaseDeadline.java",
+      "gitBlobSha256": "e7fd927c47f1bc6c11b0b754fbe500e22976d3834553354b5031768741b013d2"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DatabaseFacts.java",
+      "gitBlobSha256": "816dd14d5710d73a1ad82a99a0b9f18ee6b23b2d9c012246930e51046312f81c"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DealershipPolicyController.java",
+      "gitBlobSha256": "d5e28089c1800fc56219a5e8e51a41742eb6ea05d2ca03cfd9534ba75fb16ad9"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DepotDetailsController.java",
+      "gitBlobSha256": "7b241edb778fae5da9aefae1def16b0e8a8c80a0d3ccf1eaed6bacbd778c0f6b"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DispatchGeometryController.java",
+      "gitBlobSha256": "7e4ab40680b6b061906e5f4616782e7f24480ec3c9de8c8f20e52e17fad30c38"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/DurableBookingSearch.java",
+      "gitBlobSha256": "c344f7f783ae06b0b7856bb6deba7c43d8ebec54b854bb622d088908336ae3fc"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/PurgeRoutesController.java",
+      "gitBlobSha256": "260af3803d70742431f7e53609d414cea7cae100f55bf7bdc12641f00c38ec68"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationCommit.java",
+      "gitBlobSha256": "e3537037902779d67c768eb15f84e7c9ae458abe2fff4415b5c0764d47064c77"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationExpiry.java",
+      "gitBlobSha256": "74c815dbf5042a5de0d34280eb567765678828fa10a358ce914776b54cbaf965"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationLifecycleService.java",
+      "gitBlobSha256": "9f49cc3b29d9db8a4c26111b04006dd6339bda8a1a606968ab9756c0c341d598"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ReservationStore.java",
+      "gitBlobSha256": "38017ba6c30796f8b1b6eb8993e2f1cdeec7600a652d102edb619ee755f53b16"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/RoadClient.java",
+      "gitBlobSha256": "580f64082442f883e7e5d353fecffe1ad4f02b1f83b24656191d2c11b8aa6902"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/RoadPrewarming.java",
+      "gitBlobSha256": "18244001caf15601fef57ea27632c3fc7d3e95659c3a5d2876d8e9419181e31c"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/RouteEndpoints.java",
+      "gitBlobSha256": "2a7913fee569aa658722941fc80892d12fffb5ff2828019f8770d63d8732d9b7"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ScheduleGuardService.java",
+      "gitBlobSha256": "f623177903826322b6e8e384b5c8560ea12d17edd359bea3256e1352bf008f58"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SchedulingBenchmarkController.java",
+      "gitBlobSha256": "807cefd913309d1119e9c2939abad3bb329751174ef5b2dbb975a065d9a251aa"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/ServiceCalendar.java",
+      "gitBlobSha256": "d258be51e4dcb193d8a55d9b14b16722adee11d2cdaf520e396c8d3854931d15"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SnapshotRouting.java",
+      "gitBlobSha256": "a830ce34a593b5290d454db024ddb5d91605ea3c1f4ad1a0d588965f071ab469"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/TechnicianDepotController.java",
+      "gitBlobSha256": "9a181332a51f8f324a66b85a632e89ae4acd2bca4a9ee8bc4ea24e2a1ddda434"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/TestAddressRoutabilityService.java",
+      "gitBlobSha256": "59e6cb9d677b5b21b931980bfc35b6f64ee7a51b72d91275820a09f60bffac51"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/TimeOffService.java",
+      "gitBlobSha256": "2dabbdacbb397960c5af3647a71e004941325b9f188d55ea9f78a8ac75f441b8"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/WeeklyAvailability.java",
+      "gitBlobSha256": "81d0086bc3e9c22e86ae40914be70abb935e918a0beffe6dd3f3bd6c8f2725c1"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyAttempts.java",
+      "gitBlobSha256": "8af2854570eb956d57f06116a6512f9aee74190a9416187937bb6464b693be96"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "gitBlobSha256": "f53942a7d44d7fd46a08c3fc6af9f65ca7c344173baa6d132db1fd9c7476666d"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingLocationTest.java",
+      "gitBlobSha256": "717c1ffd90d3672f95083f514044fc2fb73623a55d1d4decbcb37a9b29b5f040"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingMoneyTest.java",
+      "gitBlobSha256": "d7b34813d19b30b52b8760e62f39653c3df19eced5d49299772c59c649421ce8"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingRefinementTransportTest.java",
+      "gitBlobSha256": "c70627a1e18ace980112e4c30cf7915c7c34feb026e2cdbcdd02955b56475d33"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingRouteBoundsTest.java",
+      "gitBlobSha256": "dc70862961ff7720e9fdc0e55186869737c785cc6265c3c126ae75bd85a3b089"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BookingSnapshotDatabaseIT.java",
+      "gitBlobSha256": "0656736a104baf36b245b625c9b8be0cdf6df636c86831392a03676a5d7c7225"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BoundedBookingSearchTest.java",
+      "gitBlobSha256": "79ae4bd60f01e3165dd2a285c23f7321b9b275c49349ad07bd48831a50538c05"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/CalculationFixture.java",
+      "gitBlobSha256": "5b4c7bc0ee34211659242d022db1ad4a49aae2aabb21c47ac220e8f1111ede5d"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/DirectedLegFlightsTest.java",
+      "gitBlobSha256": "11bac0594e75e906b9575fa62a7fd4f554dfa13aba78ab5d644490fe7773e722"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/DispatchGeometryControllerTest.java",
+      "gitBlobSha256": "d2d2478731198f259835ca67abb7fe9916a5ba3c2a86b05707376731f1e23e1f"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/FieldScenarioTest.java",
+      "gitBlobSha256": "9ad57fc09005e984b4e4e49fad741af60bca33cf6837fe9b37fcb77410b8800f"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/MonetaryMigrationDatabaseIT.java",
+      "gitBlobSha256": "0105ddaab4e3ddf4e545dac6d3b84741e1413c13d18c7fc0f258175628349d31"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/NullabilityTest.java",
+      "gitBlobSha256": "654c5043653f6f38a162fc648a87f78c89b1271896c9630f60b455bd43fc33f9"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/ReservationDeletionTest.java",
+      "gitBlobSha256": "e52880675cd16e56c40dfacf9d0b6396478475fe034e18dc088fe266a7364075"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/ReservedOvertimeTest.java",
+      "gitBlobSha256": "4f07ee616274435102052172747ba66e73d72cd8e054ceb1407ca8e34ec0cf55"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/RoadClientTest.java",
+      "gitBlobSha256": "2a088bdfd59a41f671fa17481c529d34e99547ae00368b76e62ca31b032b2031"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/RoadPrewarmingTest.java",
+      "gitBlobSha256": "11725d5af316c0b3bfe8571dce02dd41c83601f6d205e3d23f97f5f3c70d6723"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/SnapshotRoutingTest.java",
+      "gitBlobSha256": "790012a32cfa87a44a066f3ba6b965933fafa82bea7e57f3fdeaf2b6e6b6115c"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/TestAddressRoutabilityServiceTest.java",
+      "gitBlobSha256": "42bc71c76742e8eb6d93571050fa6d6db5c75c42e38c2e5144ce2c6036356189"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/TimeOffStateDatabaseIT.java",
+      "gitBlobSha256": "1a20b214ec083e5546763175b2e0d42ecd89a44eebcf20e04ad3d96281862b41"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyAttemptDatabaseIT.java",
+      "gitBlobSha256": "6a2f403615bd082c19f455f1959c953befaae454e889b6cfbdf310b06b328bbe"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyProposalBoundaryTest.java",
+      "gitBlobSha256": "96902f4ae59a65680dee9fff0676eaf31f4d92bd1ad6357bf7ecdab3a1424ebf"
+    },
+    {
+      "path": "solver-service/Dockerfile",
+      "gitBlobSha256": "b2a8cd3594e2fc09beeb339cbd05128945bd76d49919b87767f2af1ef1b5498d"
+    },
+    {
+      "path": "solver-service/pom.xml",
+      "gitBlobSha256": "dd06bd0028e2d829b6e7166846e5b9d3c997f7aff4a3309ae8004d5dc2c7d402"
+    },
+    {
+      "path": "solver-service/src/main/java/dev/waterflex/solver/SolveController.java",
+      "gitBlobSha256": "3b1a4c40f1b73fad3b50da8da2520810e9c0d72d5662de8cd1558058453d3e9a"
+    },
+    {
+      "path": "solver-service/src/main/java/dev/waterflex/solver/SolverApplication.java",
+      "gitBlobSha256": "8bd3af830e2d0de6650d5d93fa3dcfa96b55663657893227143c02b382c2d3cc"
+    },
+    {
+      "path": "solver-service/src/main/java/dev/waterflex/solver/package-info.java",
+      "gitBlobSha256": "618be568fde3dd01027ffca1f56a3b94d3112f93c749644de787615cbdf03b3d"
+    },
+    {
+      "path": "solver-service/src/main/resources/application.properties",
+      "gitBlobSha256": "3c61bf58a4af9247c1318a58eb41d6765050836193ce0a61e57a341e0fe08aec"
+    },
+    {
+      "path": "solver-service/src/test/java/dev/waterflex/solver/HttpCalculationCancellationTest.java",
+      "gitBlobSha256": "9ca03601178a2e98ad73f18a829321e41912e36a5b59bb9d66bc08b45fed8084"
+    },
+    {
+      "path": "solver-service/src/test/java/dev/waterflex/solver/ReplayFixture.java",
+      "gitBlobSha256": "ef072f9606816a54ba073f6e1d98a527862e49da967a224c1810a6bad2301a99"
+    },
+    {
+      "path": "solver-service/src/test/java/dev/waterflex/solver/SolverCancellationTest.java",
+      "gitBlobSha256": "2bb80731a2cf226cf3b6543fc629c016215035a0ad1c6148703d431181808523"
+    },
+    {
+      "path": "solver-service/src/test/java/dev/waterflex/solver/SolverReplayTest.java",
+      "gitBlobSha256": "dd514275b6c9eb192fa20dc5ba83cb91f91515dfd0b565ac5c290573f017ec65"
+    },
+    {
+      "path": "solver-service/src/test/resources/daily-dataset-v1.json",
+      "gitBlobSha256": "47e7a6660e57840f41f5940d4a5af425e8d610c173fef37c8f6fe96f717b26d9"
+    }
+  ],
+  "removedSourcePaths": [
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingEvaluation.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingRouteBounds.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/BookingSnapshot.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/BoundedBookingSearch.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/DecimalStringSerializer.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/Monetary.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/Required.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/ScheduleCutoff.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/SearchAdmission.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/SearchDeadline.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/SearchTelemetry.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyDataset.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyOperation.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailyOutcome.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayConstraintProvider.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayPlan.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayScoreCalculator.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/DayScores.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/EngineProvenance.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanCopies.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanFacts.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PlanVisit.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/PolicySettings.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteEvaluator.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteScoringFacts.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimeline.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/RouteTimingSearch.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SchedulingPolicy.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/SolverEngine.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/TechRoute.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/TravelBreakdown.java",
+    "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/package-info.java",
+    "scheduler-service/src/main/resources/solverConfig.xml"
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase8-actionlint-delivery.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-actionlint-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-actionlint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-adapter-compile.log",
+      "bytes": 6915,
+      "sha256": "367dfeb56198d2ae879f163e9231b6bd0a44963eeb18bd45a854e9ef1e396d22"
+    },
+    {
+      "path": "evidence/phase8-assert-FULL_ASSERT-verified.log",
+      "bytes": 99280,
+      "sha256": "5c961a8ce74eaf8b7d91a645d7ce1fe5450e053025b99a263ca8f8dff515c03b"
+    },
+    {
+      "path": "evidence/phase8-assert-FULL_ASSERT.jsonl",
+      "bytes": 333782,
+      "sha256": "6566936da2c8e3fce6e561c1158a36646a06f880e1355619716a5b7a72d748b0"
+    },
+    {
+      "path": "evidence/phase8-assert-FULL_ASSERT.log",
+      "bytes": 2183,
+      "sha256": "6ea31496292035bbb0438eed637a361d8339dee81be6171611fcd6b6605ad76f"
+    },
+    {
+      "path": "evidence/phase8-assert-NON_INTRUSIVE_FULL_ASSERT-verified.log",
+      "bytes": 101836,
+      "sha256": "3d8d2280811e9d8931cd924526925ca4c0c2d9e2f9dd1ba32b2571c62a0ace6d"
+    },
+    {
+      "path": "evidence/phase8-assert-NON_INTRUSIVE_FULL_ASSERT.jsonl",
+      "bytes": 337772,
+      "sha256": "b3db0f1d9fd63e452f6f658e7b27a496746e73fd81676e511d59095e1c0469f2"
+    },
+    {
+      "path": "evidence/phase8-assert-PHASE_ASSERT-verified.log",
+      "bytes": 99927,
+      "sha256": "a291cf8924b38bc5ba4b23a6f0a045d839667a8afe7118024b312b17e3e503c2"
+    },
+    {
+      "path": "evidence/phase8-assert-PHASE_ASSERT.jsonl",
+      "bytes": 334291,
+      "sha256": "613258039b840082e194cc5ccae01bfe14423abe04efec82a57c4ef9ad42d3ad"
+    },
+    {
+      "path": "evidence/phase8-audit-helpers.log",
+      "bytes": 113,
+      "sha256": "b0281afc5a8f851fedc2bba09c88d720f4dcc47a2a487e40928c779cb967ff8c"
+    },
+    {
+      "path": "evidence/phase8-audit-helpers2.log",
+      "bytes": 113,
+      "sha256": "b0281afc5a8f851fedc2bba09c88d720f4dcc47a2a487e40928c779cb967ff8c"
+    },
+    {
+      "path": "evidence/phase8-audit-helpers3.log",
+      "bytes": 1506,
+      "sha256": "0103c45dcab7e50e835648013c3b267be385a1feaf03a4b2bf6728cb119e82ec"
+    },
+    {
+      "path": "evidence/phase8-baseline-dependencies.log",
+      "bytes": 171,
+      "sha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d"
+    },
+    {
+      "path": "evidence/phase8-baseline.log",
+      "bytes": 205,
+      "sha256": "dbbad486698a8e5a48e48f1d4ffa531bef43c07b99d9c65cfd264d0b26f821bd"
+    },
+    {
+      "path": "evidence/phase8-cancellation-tests.log",
+      "bytes": 10054,
+      "sha256": "b53293e32a1d3f8fa29cda7807602029118e632a6011925a942adacfcf44d3ab"
+    },
+    {
+      "path": "evidence/phase8-cancellation-tests2.log",
+      "bytes": 7645,
+      "sha256": "d83325086046681dd4f914f09ed7a694e0c7b938b858b3e90d28e91b930b6ee0"
+    },
+    {
+      "path": "evidence/phase8-cancellation-tests3.log",
+      "bytes": 14453,
+      "sha256": "28c9684ed55ac98c014bd216cfb91f37e658c43d15e0d414b7d34834beadfa85"
+    },
+    {
+      "path": "evidence/phase8-compose-delivery.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-compose-offer-limits.log",
+      "bytes": 85,
+      "sha256": "6d2fc33c00e161cc9356b3bb9f8f0c041ec421879bb5b826aad73ccb20a5f34f"
+    },
+    {
+      "path": "evidence/phase8-compose.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-ecj-cold-correction.log",
+      "bytes": 174482,
+      "sha256": "81d7fb277e8ceca031cdb6431b74b285d11fad6e329d1e936a2442dd749252c2"
+    },
+    {
+      "path": "evidence/phase8-ecj-delivery.log",
+      "bytes": 21781,
+      "sha256": "1a2c6f2752bbf7a0d75e3b896c4332d559a8b74eef64d93ff6ee8edc0874bad3"
+    },
+    {
+      "path": "evidence/phase8-ecj-final.log",
+      "bytes": 171672,
+      "sha256": "d1dc76ad4f2f03a44d7708f1e145ef765b3e76bd3f9384426225c9d8c0b0e851"
+    },
+    {
+      "path": "evidence/phase8-ecj-verify.log",
+      "bytes": 50285,
+      "sha256": "269ab72e59da03e127989d3c2b417c0c9be91e87fbb4a314675eb2ae76dcea49"
+    },
+    {
+      "path": "evidence/phase8-ecj-verify2.log",
+      "bytes": 41445,
+      "sha256": "5f37c6701f099641bc5c0863d5c9c7f9d3c991b26a005f9f58fa7ebf09410223"
+    },
+    {
+      "path": "evidence/phase8-ecj-verify3.log",
+      "bytes": 171700,
+      "sha256": "974d39bd2bee8781572ff2b0d3f206d8f59671470a1fdd04cce8c24eb2d68a5d"
+    },
+    {
+      "path": "evidence/phase8-engine-compile.log",
+      "bytes": 4979,
+      "sha256": "e2a3aa5bdaa7ea7dec3327e76462116da0d833aeab40eaa74ad74b8c9ad4a6e7"
+    },
+    {
+      "path": "evidence/phase8-engine-compile2.log",
+      "bytes": 2280,
+      "sha256": "48b8bbddc499c3952945bb6afff00799ea97c93f692625429118f32902973d8b"
+    },
+    {
+      "path": "evidence/phase8-engine-install.log",
+      "bytes": 2627,
+      "sha256": "460339ec91bf1fd2bc960c5159cc34dbb6c42f2ab3b926725f38115697c858a8"
+    },
+    {
+      "path": "evidence/phase8-experiment-helpers.log",
+      "bytes": 17781,
+      "sha256": "c99e9b3ef3383db8719ab90e782a992e32603ad2643fa583a6e7c3bbe2079d57"
+    },
+    {
+      "path": "evidence/phase8-extraction-compile.log",
+      "bytes": 51790,
+      "sha256": "ee3d822534a253be4548498bb7c97ad897aa001919cef60304197a8aeafcb425"
+    },
+    {
+      "path": "evidence/phase8-extraction-compile3.log",
+      "bytes": 3732,
+      "sha256": "ef105a20ae420b6e5680cfeb76070d42193633248611abd1c50ae9e6164f9715"
+    },
+    {
+      "path": "evidence/phase8-indexed-booking.log",
+      "bytes": 9911,
+      "sha256": "9049c51200d0f717b164a3c0ef7ab651e780f087b4e6ee4da5aded098e322f00"
+    },
+    {
+      "path": "evidence/phase8-indexed-booking2.log",
+      "bytes": 22137,
+      "sha256": "595d232de09acacfdc3ee87c6f2daf6146fb7afa438d0f473baa6ed13c5b3c13"
+    },
+    {
+      "path": "evidence/phase8-indexed-booking3.log",
+      "bytes": 17261,
+      "sha256": "dc69f3270ebcdf69d3bb8d87c67783d32190372b7828f3ccf98f56dd018e2e2f"
+    },
+    {
+      "path": "evidence/phase8-javac-cold-correction.log",
+      "bytes": 155126,
+      "sha256": "84150af85c0794cbc4c54ad90d5595b1e90f50706c0bbb9779e819063d5eb7ea"
+    },
+    {
+      "path": "evidence/phase8-javac-final.log",
+      "bytes": 152297,
+      "sha256": "a888bf58dd7ad7d6dd178b40e76e82e9ec164d091781f56a7324fc32a2ae2cd4"
+    },
+    {
+      "path": "evidence/phase8-javac-verify.log",
+      "bytes": 151686,
+      "sha256": "d3bdda07b736b7ac917e4fe0e4db13e9b5930e97e7799aca13e67ad06fb772a6"
+    },
+    {
+      "path": "evidence/phase8-nullability-fifth.log",
+      "bytes": 11111,
+      "sha256": "da76a2e9fb805dbe3bcd7bd0da4ea63a823441272d68f28ec8ea668cb9bf1b2e"
+    },
+    {
+      "path": "evidence/phase8-nullability-first.log",
+      "bytes": 15099,
+      "sha256": "a27fc55693310fee4756d5a539aebacbf254238f4b38d86696ce556a6be7dece"
+    },
+    {
+      "path": "evidence/phase8-nullability-fourth.log",
+      "bytes": 12743,
+      "sha256": "64b05512848b1c9eb6e2c8408c977018f4f8ef251d89fff20ecd3979f9f8cabf"
+    },
+    {
+      "path": "evidence/phase8-nullability-replay.log",
+      "bytes": 167675,
+      "sha256": "565250d7c12a15b516591e8cde923f04c883660dc08273b83a8d50f385e61a5e"
+    },
+    {
+      "path": "evidence/phase8-nullability-second.log",
+      "bytes": 6920,
+      "sha256": "2a6e671c6a60e2c1cfe53bcc1e3f6ed064a722def3025aac99ee119e9c96d19c"
+    },
+    {
+      "path": "evidence/phase8-nullability-sixth.log",
+      "bytes": 28836,
+      "sha256": "cef0abdca4180ebf52255faa6a98d58b7210d617a290a6087d9be9b9f99e5ea4"
+    },
+    {
+      "path": "evidence/phase8-nullability-tests.log",
+      "bytes": 13262,
+      "sha256": "2bc46d55bdd2e0547094518a0ef79446802f89487fb2dbf32b04c0b9b26585d1"
+    },
+    {
+      "path": "evidence/phase8-nullability-third.log",
+      "bytes": 11465,
+      "sha256": "d6011266cba790f72f3e9ef74cf04e419ebeb697ff8206b1edd356864a0fad04"
+    },
+    {
+      "path": "evidence/phase8-packaged-dependencies.log",
+      "bytes": 52,
+      "sha256": "6b9f508124e562e59c523acf9186e7edd6c5cdc94e3379ed6ae6f5c2a405a818"
+    },
+    {
+      "path": "evidence/phase8-packaged-probe-compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-packaged-probe-compile2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-packaged-replay-final.log",
+      "bytes": 506,
+      "sha256": "5a8110fa4c76ab41e7dfc7aedb6815bf2acd2ed39cdf14275877cb4a7008e4d5"
+    },
+    {
+      "path": "evidence/phase8-packaged-replay.log",
+      "bytes": 123,
+      "sha256": "5906261c06a1e65125663c6df5150c320713fef64afd95f2d03542cc0786c145"
+    },
+    {
+      "path": "evidence/phase8-packaged-replay2.log",
+      "bytes": 451,
+      "sha256": "371ec91a2d7effd08009d9b102397fcecc1b2898163dca1958a889bee276dc4c"
+    },
+    {
+      "path": "evidence/phase8-packaged-replay3.log",
+      "bytes": 226,
+      "sha256": "ec8dfa4b995d699b75b39b8234d57a7cf780bca046d6dc931871a1501d0e6de4"
+    },
+    {
+      "path": "evidence/phase8-packaged-stderr-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-packaged-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-packaged-stderr2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase8-packaged-stdout-final.log",
+      "bytes": 4495,
+      "sha256": "7cf91248110fffbfd40538ddedccb0afc6d238933aa78e200c8cc498f24354a6"
+    },
+    {
+      "path": "evidence/phase8-packaged-stdout.log",
+      "bytes": 1828,
+      "sha256": "106dd56f9aa6ed4165c6f90d52f91d4c22ed4cccfae6bf79103411dda3f968d4"
+    },
+    {
+      "path": "evidence/phase8-packaged-stdout2.log",
+      "bytes": 2283,
+      "sha256": "ed0b79ff974984eaaba4a7dc3323f0be596ac1762c91bb60e4b69d7e52e03ba7"
+    },
+    {
+      "path": "evidence/phase8-portal-build.log",
+      "bytes": 4155,
+      "sha256": "3953137050f75c7a285c2f14e2b3b212a986d7c441f70a0bb105190f91333be1"
+    },
+    {
+      "path": "evidence/phase8-portal-lint.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase8-portal-nullability.log",
+      "bytes": 4422,
+      "sha256": "3de168b2ee66066a6049c5931210d9ab5598c5ba3fb3e572314bf1a0279cca69"
+    },
+    {
+      "path": "evidence/phase8-portal-typecheck.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase8-portal-unit.log",
+      "bytes": 10062,
+      "sha256": "d022fa975b338666f1b49421c50bba12e5a3c5657124d1aeeff8ee9cbcba2b4b"
+    },
+    {
+      "path": "evidence/phase8-prisma.log",
+      "bytes": 403,
+      "sha256": "3a54e5bcc444d786f3efce64b6d15af1d1513d0ad967bfc594058d09b5156eec"
+    }
+  ],
+  "failureHistory": "All phase8 raw logs are retained, including interrupted extraction/compilation, nullability fixes, malformed booking/index checks, command quoting, wrong zero-test discovery, packaged probe launcher fixes and the cold-demand regression. Only named final accepted gates above establish completion.",
+  "limits": [
+    "Hosted PostgreSQL, browser and exact-head assertion workflows pending at recording time. Local Docker Desktop unavailable; no Docker image execution claimed.",
+    "Embedded remains the default. No automatic retry or fallback. Caller retains capture, routing, persistence, reservation and atomic application authority.",
+    "Replay fixtures are contract evidence only. No production savings, capacity or p95 transport tolerance claim. Steps 9-16 and remote promotion remain pending owner review."
+  ]
+}

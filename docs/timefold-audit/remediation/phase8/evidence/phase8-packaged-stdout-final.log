@@ -1,0 +1,29 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-06T19:55:00.472-05:00  INFO 51172 --- [           main] dev.waterflex.solver.SolverApplication   : Starting SolverApplication v0.1.0-SNAPSHOT using Java 25.0.1 with PID 51172 (C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar started by mcgee in C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java)
+2026-10-06T19:55:00.475-05:00  INFO 51172 --- [           main] dev.waterflex.solver.SolverApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-10-06T19:55:01.019-05:00  INFO 51172 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 18188 (http)
+2026-10-06T19:55:01.029-05:00  INFO 51172 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-06T19:55:01.029-05:00  INFO 51172 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-06T19:55:01.053-05:00  INFO 51172 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 543 ms
+2026-10-06T19:55:01.657-05:00  INFO 51172 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 18188 (http) with context path '/'
+2026-10-06T19:55:01.666-05:00  INFO 51172 --- [           main] dev.waterflex.solver.SolverApplication   : Started SolverApplication in 1.467 seconds (process running for 1.762)
+2026-10-06T19:57:42.685-05:00  INFO 51172 --- [.1-18188-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-06T19:57:42.685-05:00  INFO 51172 --- [.1-18188-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-06T19:57:42.686-05:00  INFO 51172 --- [.1-18188-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-10-06T19:57:43.133-05:00  INFO 51172 --- [88-616d92718827] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (4), best score ([0/0/0/0/0]hard/[0/-4680]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T19:57:43.134-05:00  INFO 51172 --- [88-616d92718827] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T19:57:43.611-05:00  INFO 51172 --- [88-616d92718827] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (482), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (210084/sec), step total (1000).
+2026-10-06T19:57:43.613-05:00  INFO 51172 --- [88-616d92718827] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (483), best score ([0/0/0/0/0]hard/[0/-4604]soft), move evaluation speed (207039/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-06T19:57:43.622-05:00  INFO 51172 --- [88-616d92718827] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (2), best score ([0/0/0/0/0]hard/[-0.03567901234567901234567901234567903/-4604]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-06T19:57:43.623-05:00  INFO 51172 --- [88-616d92718827] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (2), approximate problem scale (12).
+2026-10-06T19:57:44.086-05:00  INFO 51172 --- [88-616d92718827] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (466), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (215982/sec), step total (1000).
+2026-10-06T19:57:44.087-05:00  INFO 51172 --- [88-616d92718827] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (467), best score ([0/0/0/0/0]hard/[-0.000007716049382716049382716049382715894/-4680]soft), move evaluation speed (214132/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).

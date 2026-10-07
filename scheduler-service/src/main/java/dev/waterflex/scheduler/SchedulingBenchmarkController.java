@@ -78,10 +78,10 @@ public final class SchedulingBenchmarkController {
         return Required.value(Map.copyOf(values));
     }
 
-    public record CacheRequest(boolean warm, List<RoadClient.Point> points) {
+    public record CacheRequest(boolean warm, List<RoadPoint> points) {
         public CacheRequest {
             if (points == null || points.isEmpty() || points.size() > 64) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Benchmark points required");
-            for (RoadClient.Point point : points) if (point == null || !Double.isFinite(point.lat()) || !Double.isFinite(point.lng())
+            for (RoadPoint point : points) if (point == null || !Double.isFinite(point.lat()) || !Double.isFinite(point.lng())
                     || Math.abs(point.lat()) > 90 || Math.abs(point.lng()) > 180) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid benchmark point");
             points = Required.value(List.copyOf(points));
         }
@@ -89,13 +89,13 @@ public final class SchedulingBenchmarkController {
     @PostMapping("/internal/benchmark/cache")
     public Map<String, Object> cache(@RequestBody CacheRequest request) {
         isolated();
-        String schema = Required.query(jdbc, "SELECT current_schema()", String.class);
+        String schema = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT current_schema()", String.class);
         if (!schema.startsWith("benchmark_")) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cache experiments require a benchmark_ schema");
         String identity = roads.activeIdentity();
         jdbc.update("DELETE FROM road_route_cache WHERE \"mapVersion\"=?", identity);
         roads.clearMemoryForIsolatedBenchmark();
         if (request.warm()) {
-            Map<String, RoadClient.Point> points = new LinkedHashMap<>();
+            Map<String, RoadPoint> points = new LinkedHashMap<>();
             for (int i = 0; i < request.points().size(); i++) points.put("point-" + i, Required.value(request.points().get(i)));
             roads.matrix(points);
         }
@@ -103,7 +103,7 @@ public final class SchedulingBenchmarkController {
     }
 
     private void isolated() {
-        if (!"waterflex_test".equals(Required.query(jdbc, "SELECT current_database()", String.class)))
+        if (!"waterflex_test".equals(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT current_database()", String.class)))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Benchmark requires isolated waterflex_test");
     }
 

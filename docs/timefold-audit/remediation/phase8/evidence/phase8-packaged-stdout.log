@@ -1,0 +1,18 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-06T19:47:12.124-05:00  INFO 51904 --- [           main] dev.waterflex.solver.SolverApplication   : Starting SolverApplication v0.1.0-SNAPSHOT using Java 25.0.1 with PID 51904 (C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java\solver-service\target\solver-service-0.1.0-SNAPSHOT.jar started by mcgee in C:\Users\mcgee\OneDrive\Desktop\waterflex\waterflex-scheduler-java)
+2026-10-06T19:47:12.128-05:00  INFO 51904 --- [           main] dev.waterflex.solver.SolverApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-10-06T19:47:13.001-05:00  INFO 51904 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 18188 (http)
+2026-10-06T19:47:13.017-05:00  INFO 51904 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-06T19:47:13.018-05:00  INFO 51904 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-06T19:47:13.047-05:00  INFO 51904 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 882 ms
+2026-10-06T19:47:13.968-05:00  INFO 51904 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 18188 (http) with context path '/'
+2026-10-06T19:47:13.981-05:00  INFO 51904 --- [           main] dev.waterflex.solver.SolverApplication   : Started SolverApplication in 2.221 seconds (process running for 2.657)

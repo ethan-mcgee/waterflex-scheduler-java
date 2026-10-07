@@ -47,14 +47,14 @@ public final class PurgeRoutesController {
         for (RequestedDay requested : request.days()) {
             String technician = requested.technicianId(); LocalDate date = Required.value(LocalDate.parse(requested.serviceDate()));
             Timestamp stamp = Required.value(Timestamp.from(date.atStartOfDay(ZoneOffset.UTC).toInstant()));
-            long version = Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, technician, stamp);
+            long version = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, technician, stamp);
             List<String> remaining = jdbc.query("SELECT \"jobId\" FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL",
-                    (rs, _) -> Required.string(rs, 1), technician, stamp).stream().filter(id -> !removed.contains(id)).toList();
+                    (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), technician, stamp).stream().filter(id -> !removed.contains(id)).toList();
             if (remaining.isEmpty()) {
                 result.add(new Prepared(technician, date, version, null, Required.value(List.of()), Required.value(List.of()))); continue;
             }
             if (ScheduleCutoff.frozen(date, Required.value(Instant.now()))) throw conflict("Cannot retime surviving appointments after the service cutoff");
-            String metro = Required.query(jdbc, "SELECT p.\"metroId\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?", String.class, stamp, stamp, technician);
+            String metro = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT p.\"metroId\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?", String.class, stamp, stamp, technician);
             var facts = loader.loadDates(metro, Required.value(List.of(date)), Required.value(Instant.now()), identity);
             Day original = Required.value(facts.days().get(date), "purge service date");
             Technician tech = Required.value(original.technicians().get(technician), "purge technician");

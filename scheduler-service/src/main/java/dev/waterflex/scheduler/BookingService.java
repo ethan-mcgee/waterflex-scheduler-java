@@ -18,7 +18,6 @@ import java.util.*;
 
 @Service
 public class BookingService {
-    private static final ZoneId CHICAGO = Required.value(ZoneId.of("America/Chicago"));
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
     private final BookingOfferLimit offerLimit;
@@ -40,11 +39,11 @@ public class BookingService {
     private record OfferWindow(Instant day, Instant start, Instant end, String setId) { }
     private record Hold(String jobId, String techId, Instant day, Instant start, Instant end, Instant expiresAt, @Nullable Timestamp releasedAt, String offerToken, @Nullable String selectedOfferId, @Nullable Timestamp supersededAt, @Nullable String offerSetId) { }
     private record Cancellation(String jobId, String techId, Instant day, @Nullable Timestamp cancelledAt) { }
-    private record Job(String id, String serviceId, int duration, RoadClient.Point point, String status, String metroId) { }
+    private record Job(String id, String serviceId, int duration, RoadPoint point, String status, String metroId) { }
     private record ServiceDepot(String metroId, double lat, double lng, double radiusMi) { }
     private record Tech(String id, RouteEndpoints endpoints, int shiftStart, int shiftEnd, int maxDaily, int maxOvertime) { }
     private record TechBase(String id, RouteEndpoints endpoints, int maxDaily, int maxOvertime) { }
-    private record Visit(String id, RoadClient.Point point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
+    private record Visit(String id, RoadPoint point, Instant start, Instant end, Instant planned, int duration, boolean newJob) { }
     private record EvaluationContext(List<TechRoute.Unavailable> absences, Map<String, DayPlan.RoadLeg> matrix,
                                      Map<String, java.math.BigDecimal> settings) { }
     private record Metrics(boolean feasible, @Nullable Instant newArrival, long paidMinutes, long overtimeMinutes,
@@ -71,7 +70,7 @@ public class BookingService {
 
     @Transactional(readOnly = true, timeout = 4)
     public SearchContext searchContext(String jobId) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         Job job = job(jobId);
         if (!job.status().equals("PENDING")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job already booked");
         return new SearchContext(job.metroId(), new BoundedBookingSearch.Request(job.id(), job.serviceId(), job.duration(), job.point()));
@@ -79,7 +78,7 @@ public class BookingService {
 
     @Transactional(timeout = 5)
     public Offers offers(String jobId, boolean refresh) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
                 new org.springframework.transaction.support.TransactionSynchronization() {
                     @Override public void beforeCommit(boolean readOnly) { SearchDeadline.beforeCommit(); }
@@ -88,16 +87,16 @@ public class BookingService {
         Job job = job(jobId);
         if (!job.status().equals("PENDING")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job already booked");
         var active = jdbc.query("SELECT id FROM booking_offer_set WHERE \"jobId\"=? AND \"expiresAt\">CURRENT_TIMESTAMP AND \"supersededAt\" IS NULL ORDER BY \"createdAt\" DESC LIMIT 1",
-                (rs, _) -> Required.string(rs, 1), jobId);
+                (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), jobId);
         if (!active.isEmpty() && !refresh) return savedOffers(jobId, Required.value(active.getFirst()));
         if (!active.isEmpty()) {
             lockOfferSetDays(Required.value(active.getFirst()));
-            if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"offerSetId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, active.getFirst()))
+            if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"offerSetId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, active.getFirst()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; refresh again");
             jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", active.getFirst());
             jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL", active.getFirst());
         }
-        roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
+        roads.matrix(Required.value(Map.<String, RoadPoint>of("job", job.point())));
         List<Candidate> candidates = candidates(job, null, null);
         SearchDeadline.beginCommit();
         LinkedHashMap<String, Candidate> windows = new LinkedHashMap<>();
@@ -107,14 +106,14 @@ public class BookingService {
         List<Offer> result = new ArrayList<>();
         Instant expiry = Instant.now().plus(Duration.ofMinutes(10));
         String setId = UUID.randomUUID().toString();
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         jdbc.update("INSERT INTO booking_offer_set (id, \"jobId\", \"expiresAt\") VALUES (?, ?, ?)", setId, jobId, stamp(Required.value(expiry)));
         SearchDeadline.reservedSet(Required.value(setId));
         for (Candidate c : windows.values()) {
             if (result.size() == offerLimit.value()) break;
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             lockDay(c.techId(), c.day());
-            if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_arrangement r JOIN reservation_dependency d ON d.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=d.\"holdId\" WHERE r.\"metroId\"=? AND r.\"serviceDate\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
+            if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_arrangement r JOIN reservation_dependency d ON d.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=d.\"holdId\" WHERE r.\"metroId\"=? AND r.\"serviceDate\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
                     Boolean.class, job.metroId(), dayStamp(c.day())))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; search again");
             Tech tech = technicians(job.serviceId(), c.day(), job.metroId()).stream().filter(t -> t.id().equals(c.techId())).findFirst().orElse(null);
@@ -135,22 +134,22 @@ public class BookingService {
 
     private Offers savedOffers(String jobId, String setId) {
         return new Offers(jobId, jdbc.query("SELECT id, \"serviceDate\", \"windowStart\", \"windowEnd\", \"expiresAt\" FROM booking_offer WHERE \"offerSetId\"=? ORDER BY \"createdAt\", id",
-                (rs, _) -> new Offer(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate().toString()),
-                        Required.value(Required.timestamp(rs, 3).toInstant()), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant())), setId));
+                (rs, _) -> new Offer(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate().toString()),
+                        Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant())), setId));
     }
 
     @Transactional
     public Map<String, Boolean> release(String jobId, String offerId) {
         lockJob(jobId);
-        String status = Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, jobId);
+        String status = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, jobId);
         if (!status.equals("PENDING")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Job already booked");
         var sets = jdbc.query("SELECT s.id, s.\"supersededAt\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"jobId\"=? AND s.\"jobId\"=?",
-                (rs, _) -> new ReleasableSet(Required.string(rs, 1), rs.getTimestamp(2)), offerId, jobId, jobId);
+                (rs, _) -> new ReleasableSet(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), rs.getTimestamp(2)), offerId, jobId, jobId);
         if (sets.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer does not belong to job");
         ReleasableSet set = sets.getFirst();
         if (set.supersededAt() == null) {
             lockOfferSetDays(set.id());
-            if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"offerSetId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, set.id()))
+            if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"offerSetId\"=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, set.id()))
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; release again");
             jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE id=?", set.id());
             jdbc.update("UPDATE slot_hold SET \"releasedAt\"=CURRENT_TIMESTAMP WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL", set.id());
@@ -163,7 +162,7 @@ public class BookingService {
         lockJob(jobId);
         Job job = job(jobId, HttpStatus.CONFLICT);
         var selected = jdbc.query("SELECT s.\"selectedOfferId\", h.id, h.\"expiresAt\", h.\"releasedAt\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" JOIN slot_hold h ON h.\"offerToken\"=o.id WHERE o.id=? AND o.\"jobId\"=? AND s.\"supersededAt\" IS NULL",
-                (rs, _) -> new SelectedOffer(rs.getString(1), Required.string(rs, 2), Required.value(Required.timestamp(rs, 3).toInstant()), rs.getTimestamp(4)), offerId, jobId);
+                (rs, _) -> new SelectedOffer(rs.getString(1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant()), rs.getTimestamp(4)), offerId, jobId);
         if (selected.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer expired");
         SelectedOffer selectedRow = selected.getFirst();
         if (job.status().equals("SCHEDULED")) {
@@ -174,9 +173,9 @@ public class BookingService {
         if (!job.status().equals("PENDING") || selectedRow.releasedAt() != null || !(selectedRow.expiresAt()).isAfter(Instant.now()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer expired");
         requireCurrentOfferCost(offerId);
-        roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
+        roads.matrix(Required.value(Map.<String, RoadPoint>of("job", job.point())));
         var rows = jdbc.query("SELECT o.\"serviceDate\", o.\"windowStart\", o.\"windowEnd\", o.\"offerSetId\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"jobId\"=? AND s.\"supersededAt\" IS NULL AND s.\"expiresAt\">CURRENT_TIMESTAMP",
-                (rs, _) -> new OfferWindow(Required.value(Required.timestamp(rs, 1).toInstant()), Required.value(Required.timestamp(rs, 2).toInstant()), Required.value(Required.timestamp(rs, 3).toInstant()), Required.string(rs, 4)), offerId, jobId);
+                (rs, _) -> new OfferWindow(Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 1).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant()), dev.waterflex.scheduler.DatabaseFacts.string(rs, 4)), offerId, jobId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Offer expired");
         LocalDate day = rows.getFirst().day().atZone(ZoneOffset.UTC).toLocalDate();
         Instant start = rows.getFirst().start(), end = rows.getFirst().end();
@@ -199,7 +198,7 @@ public class BookingService {
     @Transactional
     public Confirmation confirm(String holdId) {
         var holds = jdbc.query("SELECT h.\"jobId\", h.\"technicianId\", h.\"serviceDate\", h.\"windowStart\", h.\"windowEnd\", h.\"expiresAt\", h.\"releasedAt\", h.\"offerToken\", s.\"selectedOfferId\", s.\"supersededAt\", h.\"offerSetId\" FROM slot_hold h LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.id=?",
-                (rs, _) -> new Hold(Required.string(rs, 1), Required.string(rs, 2), Required.value(Required.timestamp(rs, 3).toInstant()), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), rs.getTimestamp(7), Required.string(rs, 8), rs.getString(9), rs.getTimestamp(10), rs.getString(11)), holdId);
+                (rs, _) -> new Hold(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 6).toInstant()), rs.getTimestamp(7), dev.waterflex.scheduler.DatabaseFacts.string(rs, 8), rs.getString(9), rs.getTimestamp(10), rs.getString(11)), holdId);
         if (holds.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Hold not found");
         Hold h = holds.getFirst();
         String jobId = h.jobId(), techId = h.techId();
@@ -207,17 +206,17 @@ public class BookingService {
         Instant start = h.start(), end = h.end();
         lockJob(jobId);
         lockDay(techId, Required.value(day));
-        if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, holdId))
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, holdId))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Reservation arrangement changed; select again");
         if (h.offerSetId() != null && (!Objects.equals(h.selectedOfferId(), h.offerToken()) || h.supersededAt() != null))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A different offer was selected");
-        var existing = jdbc.query("SELECT id FROM appointment WHERE \"jobId\"=? AND \"cancelledAt\" IS NULL", (rs, _) -> Required.string(rs, 1), jobId);
+        var existing = jdbc.query("SELECT id FROM appointment WHERE \"jobId\"=? AND \"cancelledAt\" IS NULL", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), jobId);
         if (!existing.isEmpty()) return appointment(jobId);
         requireCurrentOfferCost(h.offerToken());
         if (h.releasedAt() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold released");
         if (!(h.expiresAt()).isAfter(Instant.now())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Hold expired");
         Job job = job(jobId, HttpStatus.CONFLICT);
-        roads.matrix(Required.value(Map.<String, RoadClient.Point>of("job", job.point())));
+        roads.matrix(Required.value(Map.<String, RoadPoint>of("job", job.point())));
         Tech tech = technicians(job.serviceId(), Required.value(day), job.metroId()).stream().filter(t -> t.id().equals(techId)).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Technician unavailable"));
         Candidate candidate = evaluateCandidate(job, Required.value(tech), Required.value(day), start, end);
@@ -244,7 +243,7 @@ public class BookingService {
 
     private Confirmation appointment(String jobId) {
         return Required.value(jdbc.query("SELECT id, \"windowStart\", \"windowEnd\" FROM appointment WHERE \"jobId\"=? AND \"cancelledAt\" IS NULL",
-                (rs, _) -> new Confirmation(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.value(Required.timestamp(rs, 3).toInstant())), jobId).getFirst());
+                (rs, _) -> new Confirmation(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant())), jobId).getFirst());
     }
 
     @Transactional
@@ -252,16 +251,16 @@ public class BookingService {
         if (reason == null || reason.isBlank() || reason.length() > 500)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cancellation reason required");
         var rows = jdbc.query("SELECT \"jobId\", \"technicianId\", \"serviceDate\", \"cancelledAt\" FROM appointment WHERE id=?",
-                (rs, _) -> new Cancellation(Required.string(rs, 1), Required.string(rs, 2), Required.value(Required.timestamp(rs, 3).toInstant()), rs.getTimestamp(4)), appointmentId);
+                (rs, _) -> new Cancellation(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant()), rs.getTimestamp(4)), appointmentId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found");
         Cancellation row = rows.getFirst();
         String jobId = row.jobId(), techId = row.techId();
         LocalDate day = (row.day()).atZone(ZoneOffset.UTC).toLocalDate();
         lockJob(Required.value(jobId));
         lockDay(Required.value(techId), Required.value(day));
-        if (Required.query(jdbc, "SELECT \"cancelledAt\" IS NOT NULL FROM appointment WHERE id=?", Boolean.class, appointmentId))
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"cancelledAt\" IS NOT NULL FROM appointment WHERE id=?", Boolean.class, appointmentId))
             return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", true));
-        if (Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM appointment a JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" JOIN reservation_arrangement r ON r.\"metroId\"=p.\"metroId\" AND r.\"serviceDate\"=a.\"serviceDate\" JOIN reservation_dependency dependency ON dependency.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=dependency.\"holdId\" WHERE a.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM appointment a JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" JOIN reservation_arrangement r ON r.\"metroId\"=p.\"metroId\" AND r.\"serviceDate\"=a.\"serviceDate\" JOIN reservation_dependency dependency ON dependency.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=dependency.\"holdId\" WHERE a.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())",
                 Boolean.class, appointmentId))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancellation requires updating the reserved common arrangement");
         jdbc.update("UPDATE appointment SET \"cancelledAt\"=CURRENT_TIMESTAMP, \"cancellationReason\"=?, \"updatedAt\"=CURRENT_TIMESTAMP WHERE id=?", reason.trim(), appointmentId);
@@ -270,7 +269,7 @@ public class BookingService {
             List<Visit> remaining = visits(Required.value(techId), Required.value(day), Required.value(jobId));
             WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, Required.value(day));
             var techs = shift == null ? List.<Tech>of() : jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
-                    (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(Required.value(day)), dayStamp(Required.value(day)), techId);
+                    (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8)), dayStamp(Required.value(day)), dayStamp(Required.value(day)), techId);
             if (!remaining.isEmpty()) {
                 if (techs.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Remaining appointments or reservations have no working technician");
                 Metrics recalculated = evaluate(Required.value(techs.getFirst()), Required.value(day), remaining);
@@ -305,11 +304,11 @@ public class BookingService {
         String routingIdentity = roads.activeIdentity();
         List<LocalDate> days = onlyDay == null ? bookingDates(calendar.now()) : Required.value(List.of(Required.value(onlyDay)));
         for (LocalDate day : days) {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             LocalDate serviceDay = Required.value(day);
             FleetTotals fleet = fleet(job, serviceDay, sharedSettings, routingIdentity);
             for (Tech tech : technicians(job.serviceId(), serviceDay, job.metroId())) {
-                    SearchDeadline.database(jdbc);
+                    dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
                     List<Visit> visits = visits(tech.id(), serviceDay, job.id());
                     List<Visit> locations = new ArrayList<>(visits);
                     Instant startOfShift = ScheduleCutoff.localMinute(serviceDay, tech.shiftStart(), false);
@@ -333,28 +332,8 @@ public class BookingService {
         return result;
     }
 
-    static List<LocalDate> bookingDates(Instant now) {
-        List<LocalDate> days = new ArrayList<>();
-        LocalDate day = now.atZone(CHICAGO).toLocalDate().plusDays(1);
-        int weekdays = 0;
-        while (weekdays < 10) {
-            days.add(day);
-            if (day.getDayOfWeek().getValue() <= 5) weekdays++;
-            day = day.plusDays(1);
-        }
-        return days;
-    }
-
-    /** Only weekdays are overflow candidates; weekends in the normal span remain available. */
-    static List<LocalDate> overflowDates(Instant now) {
-        List<LocalDate> dates = new ArrayList<>();
-        LocalDate date = Required.value(bookingDates(now).getLast().plusDays(1));
-        while (dates.size() < 5) {
-            if (date.getDayOfWeek().getValue() <= 5) dates.add(date);
-            date = Required.value(date.plusDays(1));
-        }
-        return Required.value(List.copyOf(dates));
-    }
+    static List<LocalDate> bookingDates(Instant now) { return BookingCalendar.bookingDates(now); }
+    static List<LocalDate> overflowDates(Instant now) { return BookingCalendar.overflowDates(now); }
 
     static List<Integer> windowStartMinutes(int shiftStart, int shiftEnd) {
         if (shiftStart < 0 || shiftEnd > 1440 || shiftStart >= shiftEnd)
@@ -398,7 +377,7 @@ public class BookingService {
     /** Unchanged routes still contribute fractional cents to the fleet rounding boundary. */
     private FleetTotals fleet(Job job, LocalDate day, Map<String, java.math.BigDecimal> values, String identity) {
         List<TechBase> bases = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
-                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), job.metroId());
+                (rs, _) -> new TechBase(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 9)), dayStamp(day), dayStamp(day), job.metroId());
         long paid = 0, overtime = 0, meters = 0;
         for (TechBase base : bases) {
             SearchDeadline.checkpoint(); List<Visit> existing = visits(base.id(), day, job.id());
@@ -414,7 +393,7 @@ public class BookingService {
     }
 
     private void requireCurrentOfferCost(String offerId) {
-        if (Required.query(jdbc, "SELECT count(*) FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"costModelVersion\"=? AND s.\"costModelVersion\"=?", Integer.class, offerId, Monetary.COST_MODEL, Monetary.COST_MODEL) != 1)
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE o.id=? AND o.\"costModelVersion\"=? AND s.\"costModelVersion\"=?", Integer.class, offerId, Monetary.COST_MODEL, Monetary.COST_MODEL) != 1)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A fresh offer with the current cost model is required");
     }
 
@@ -424,11 +403,11 @@ public class BookingService {
     }
 
     private EvaluationContext prepare(Tech tech, LocalDate day, List<Visit> visits, Map<String, java.math.BigDecimal> settings, String routingIdentity) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         List<TechRoute.Unavailable> absences = jdbc.query("SELECT i.\"startMin\", i.\"endMin\" FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.status='APPROVED' AND r.\"technicianId\"=? AND i.\"serviceDate\"=? ORDER BY i.\"startMin\"",
-                (rs, _) -> new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, Required.integer(rs, 1), false),
-                        ScheduleCutoff.localMinute(day, Required.integer(rs, 2), true)), tech.id(), dayStamp(day));
-        Map<String, RoadClient.Point> points = new LinkedHashMap<>();
+                (rs, _) -> new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 1), false),
+                        ScheduleCutoff.localMinute(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 2), true)), tech.id(), dayStamp(day));
+        Map<String, RoadPoint> points = new LinkedHashMap<>();
         points.put(tech.id(), tech.endpoints().departure());
         points.put(tech.id() + ":return", tech.endpoints().returnTo());
         visits.forEach(visit -> points.put(visit.id(), visit.point()));
@@ -447,7 +426,7 @@ public class BookingService {
         return new EvaluationContext(Required.value(List.copyOf(absences)), Required.value(Map.copyOf(matrix)), Required.value(Map.copyOf(settings)));
     }
 
-    private static void addPair(Map<String, RoadClient.Pair> pairs, Map<String, RoadClient.Point> points, String from, String to) {
+    private static void addPair(Map<String, RoadClient.Pair> pairs, Map<String, RoadPoint> points, String from, String to) {
         pairs.putIfAbsent(from + ">" + to, new RoadClient.Pair(from + ">" + to,
                 Required.value(points.get(from), "road origin"), Required.value(points.get(to), "road destination")));
     }
@@ -472,10 +451,10 @@ public class BookingService {
         WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, day);
         if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Booked technician has no shift");
         var rows = jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
-                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), dayStamp(day), techId);
+                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8)), dayStamp(day), dayStamp(day), techId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Booked technician is missing");
         List<Visit> visits = jdbc.query("SELECT a.id, ad.lat, ad.lng, a.\"windowStart\", a.\"windowEnd\", a.\"plannedStart\", j.\"durationMin\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"technicianId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.sequence, a.\"plannedStart\"",
-                (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day));
+                (rs, _) -> new Visit(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 6).toInstant()), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), false), techId, dayStamp(day));
         Metrics result = evaluate(Required.value(rows.getFirst()), day, visits);
         if (!result.feasible() || result.arrivals().size() != visits.size())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Dealership route would make a booked day infeasible");
@@ -493,7 +472,7 @@ public class BookingService {
         WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, techId, day);
         if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Assigned technician has no shift");
         var rows = jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
-                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), dayStamp(day), techId);
+                (rs, _) -> new Tech(techId, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8)), dayStamp(day), dayStamp(day), techId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Assigned technician is missing");
         List<Visit> route = visits(techId, day, "");
         Metrics result = evaluate(Required.value(rows.getFirst()), day, route);
@@ -525,7 +504,7 @@ public class BookingService {
         WeeklyAvailability.Shift shift = WeeklyAvailability.resolve(jdbc, technician, day);
         if (shift == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmed route has no working shift");
         var rows = jdbc.query("SELECT " + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE t.id=?",
-                (rs, _) -> new Tech(technician, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), Required.integer(rs, 7), Required.integer(rs, 8)), dayStamp(day), dayStamp(day), technician);
+                (rs, _) -> new Tech(technician, RouteEndpoints.from(rs, 1), shift.start(), shift.end(), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8)), dayStamp(day), dayStamp(day), technician);
         if (rows.size() != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmed technician is unavailable");
         Metrics actual = evaluate(Required.value(rows.getFirst()), day, confirmed);
         if (!actual.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Confirmed route requires repair");
@@ -537,15 +516,15 @@ public class BookingService {
 
     private Job job(String id, HttpStatus missingLocationStatus) {
         var rows = jdbc.query("SELECT j.id, j.\"serviceId\", j.\"durationMin\", a.lat, a.lng, j.status::text FROM job j JOIN address a ON a.id=j.\"addressId\" WHERE j.id=?",
-                (rs, _) -> new Job(Required.string(rs, 1), Required.string(rs, 2), Required.integer(rs, 3), Required.location(rs, 4, 5, missingLocationStatus), Required.string(rs, 6), ""), id);
+                (rs, _) -> new Job(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), dev.waterflex.scheduler.DatabaseFacts.location(rs, 4, 5, missingLocationStatus), dev.waterflex.scheduler.DatabaseFacts.string(rs, 6), ""), id);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found");
         Job row = Required.value(rows.getFirst());
         return new Job(row.id(), row.serviceId(), row.duration(), row.point(), row.status(), metroFor(row.point()));
     }
 
-    private String metroFor(RoadClient.Point point) {
+    private String metroFor(RoadPoint point) {
         List<ServiceDepot> depots = jdbc.query("SELECT p.\"metroId\",p.lat,p.lng,m.\"serviceRadiusMi\" FROM depot p JOIN metro m ON m.id=p.\"metroId\"",
-                (rs, _) -> new ServiceDepot(Required.string(rs, 1), Required.number(rs, 2), Required.number(rs, 3), Required.number(rs, 4)));
+                (rs, _) -> new ServiceDepot(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.number(rs, 2), dev.waterflex.scheduler.DatabaseFacts.number(rs, 3), dev.waterflex.scheduler.DatabaseFacts.number(rs, 4)));
         String best = null;
         double bestMiles = Double.POSITIVE_INFINITY;
         for (ServiceDepot depot : depots) {
@@ -560,9 +539,9 @@ public class BookingService {
     }
 
     private List<Tech> technicians(String serviceId, LocalDate day, String metroId) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         List<TechBase> rows = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " JOIN technician_qualification q ON q.\"technicianId\"=t.id AND q.\"serviceId\"=? WHERE t.active=true AND p.\"metroId\"=? ORDER BY t.id FOR SHARE OF t",
-                (rs, _) -> new TechBase(Required.string(rs, 1), RouteEndpoints.from(rs, 2), Required.integer(rs, 8), Required.integer(rs, 9)), dayStamp(day), dayStamp(day), serviceId, metroId);
+                (rs, _) -> new TechBase(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 9)), dayStamp(day), dayStamp(day), serviceId, metroId);
         List<Tech> result = new ArrayList<>();
         Map<String, WeeklyAvailability.Availability> availability = WeeklyAvailability.resolveAll(jdbc,
                 Required.value(rows.stream().<String>map((TechBase row) -> row.id()).toList()), day);
@@ -578,37 +557,37 @@ public class BookingService {
         return visits(techId, day, excludeJobId, true);
     }
     private List<Visit> visits(String techId, LocalDate day, String excludeJobId, boolean includeHolds) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         List<Visit> result = new ArrayList<Visit>(Required.value(jdbc.query("SELECT a.id, ad.lat, ad.lng, a.\"windowStart\", a.\"windowEnd\", a.\"plannedStart\", j.\"durationMin\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"technicianId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL AND (? IS NULL OR a.\"jobId\"<>?) ORDER BY a.sequence, a.\"plannedStart\"",
-                (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId, excludeJobId)));
+                (rs, _) -> new Visit(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 6).toInstant()), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), false), techId, dayStamp(day), excludeJobId, excludeJobId)));
         if (includeHolds) result.addAll(jdbc.query("SELECT h.id, h.\"locationLat\", h.\"locationLng\", h.\"windowStart\", h.\"windowEnd\", h.\"plannedStart\", j.\"durationMin\" FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" WHERE h.\"technicianId\"=? AND h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP ORDER BY h.\"plannedStart\"",
-                (rs, _) -> new Visit(Required.string(rs, 1), Required.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()), Required.value(Required.timestamp(rs, 6).toInstant()), Required.integer(rs, 7), false), techId, dayStamp(day), excludeJobId));
+                (rs, _) -> new Visit(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.location(rs, 2, 3, HttpStatus.CONFLICT), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 6).toInstant()), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 7), false), techId, dayStamp(day), excludeJobId));
         result.sort(Comparator.comparing((Visit visit) -> visit.planned()));
         return result;
     }
 
     private Map<String, java.math.BigDecimal> settings() {
         Map<String, java.math.BigDecimal> values = new HashMap<>();
-        jdbc.query("SELECT key, value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> values.put(Required.string(rs, 1), Required.decimal(rs, 2)));
+        jdbc.query("SELECT key, value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> values.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.decimal(rs, 2)));
         return values;
     }
 
     private void lockDay(String techId, LocalDate day) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING", UUID.randomUUID().toString(), techId, dayStamp(day));
-        Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
+        dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, techId, dayStamp(day));
     }
 
     private void lockOfferSetDays(String setId) {
         record HeldDay(String technician, LocalDate day) { }
         var days = jdbc.query("SELECT DISTINCT \"technicianId\",\"serviceDate\" FROM slot_hold WHERE \"offerSetId\"=? AND \"releasedAt\" IS NULL ORDER BY \"technicianId\",\"serviceDate\"",
-                (rs, _) -> new HeldDay(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate())), setId);
+                (rs, _) -> new HeldDay(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate())), setId);
         for (HeldDay day : days) lockDay(day.technician(), day.day());
     }
 
     private void lockJob(String jobId) {
-        SearchDeadline.database(jdbc);
-        var rows = jdbc.query("SELECT id FROM job WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), jobId);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
+        var rows = jdbc.query("SELECT id FROM job WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), jobId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found");
     }
 

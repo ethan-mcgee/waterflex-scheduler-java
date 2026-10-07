@@ -98,8 +98,8 @@ class BookingSnapshotDatabaseIT {
                 return store.save(lock, routed, loaded.snapshot().rates(), proposal, raw.visits(), Required.value(loaded.holds().get(day)), loaded.snapshot().configurationFingerprint(), "fixture-roads");
             }));
             assertEquals(1, saved.version());
-            assertEquals(prefix + "-a", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"), "Reservation must not move confirmed appointments");
-            assertEquals(1, Required.query(jdbc, "SELECT count(*) FROM reservation_dependency WHERE \"holdId\"=? AND \"technicianId\"=? AND \"serviceId\"=?", Integer.class, prefix + "-held", prefix + "-b", prefix + "-other-service"));
+            assertEquals(prefix + "-a", dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"), "Reservation must not move confirmed appointments");
+            assertEquals(1, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_dependency WHERE \"holdId\"=? AND \"technicianId\"=? AND \"serviceId\"=?", Integer.class, prefix + "-held", prefix + "-b", prefix + "-other-service"));
             ReservationStore restarted = new ReservationStore(jdbc);
             var recovered = transaction.execute(_ -> restarted.lock(prefix, Required.value(List.of(day))).getFirst());
             assertEquals(saved, recovered);
@@ -160,28 +160,28 @@ class BookingSnapshotDatabaseIT {
                         mutated.set(true); return mutation.get();
                     }));
                     assertFalse(mutated.get(), "Stale configuration must be detected before the write callback");
-                    assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
+                    assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
                 } finally { change.restore().run(); }
             }
             assertThrows(IllegalStateException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
                 mutation.get(); throw new IllegalStateException("Injected failure before arrangement save");
             }));
-            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
-            assertEquals(prefix + "-a", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
-            assertTrue(Required.query(jdbc, "SELECT \"releasedAt\" IS NULL FROM slot_hold WHERE id=?", Boolean.class, prefix + "-held"));
+            assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
+            assertEquals(prefix + "-a", dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
+            assertTrue(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"releasedAt\" IS NULL FROM slot_hold WHERE id=?", Boolean.class, prefix + "-held"));
             assertThrows(ResponseStatusException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
                 mutation.get();
                 // Force a coverage conflict after route updates, while saving the common arrangement.
                 jdbc.update("UPDATE slot_hold SET \"releasedAt\"=NULL WHERE id=?", prefix + "-held");
                 return newAppointment;
             }));
-            assertEquals(prefix + "-a", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
-            assertEquals(0L, Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, prefix + "-b", date));
-            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
+            assertEquals(prefix + "-a", dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
+            assertEquals(0L, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, prefix + "-b", date));
+            assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE id=?", Integer.class, newAppointment));
             assertEquals(newAppointment, commit.commit(facts, prefix + "-held", "", false, next, true, mutation));
-            assertEquals(prefix + "-b", Required.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
-            assertEquals(1L, Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, prefix + "-b", date));
-            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM reservation_dependency WHERE \"holdId\"=?", Integer.class, prefix + "-held"));
+            assertEquals(prefix + "-b", dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, prefix + "-appointment"));
+            assertEquals(1L, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=?", Long.class, prefix + "-b", date));
+            assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_dependency WHERE \"holdId\"=?", Integer.class, prefix + "-held"));
             java.util.concurrent.atomic.AtomicBoolean staleMutation = new java.util.concurrent.atomic.AtomicBoolean();
             assertThrows(ResponseStatusException.class, () -> commit.commit(facts, prefix + "-held", "", false, next, true, () -> {
                 staleMutation.set(true); return "unexpected";
@@ -207,8 +207,8 @@ class BookingSnapshotDatabaseIT {
                 try {
                     var legacy = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
                     assertEquals("A fresh offer with the current cost model is required", legacy.getReason());
-                    assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
-                    assertTrue(Required.query(jdbc, "SELECT \"selectedOfferId\" IS NULL FROM booking_offer_set WHERE id=?", Boolean.class, prefix + "-request"));
+                    assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
+                    assertTrue(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"selectedOfferId\" IS NULL FROM booking_offer_set WHERE id=?", Boolean.class, prefix + "-request"));
                 } finally {
                     jdbc.update("UPDATE " + table + " SET \"costModelVersion\"=? WHERE id=?", Monetary.COST_MODEL, prefix + "-request");
                 }
@@ -221,19 +221,19 @@ class BookingSnapshotDatabaseIT {
             }
             assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"),
                     "A missing historical delta cannot authorize the transferred overtime");
-            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
+            assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
             jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-30 WHERE id=?", prefix + "-request");
             // Overtime approval is no longer valid. Repair regular availability before testing stale issuance.
             jdbc.update("UPDATE technician_availability_day SET \"shiftStartMin\"=480,\"shiftEndMin\"=1020 WHERE \"versionId\"=?", prefix + "-a");
             changeIssuanceDuringPreparation.set(true);
             var changedOffer = assertThrows(ResponseStatusException.class, () -> lifecycle.select(prefix + "-request", prefix + "-request"));
             assertEquals("Selected offer changed", changedOffer.getReason());
-            assertEquals(0, Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
+            assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"jobId\"=?", Integer.class, prefix + "-request"));
             jdbc.update("UPDATE booking_offer SET \"incrementalOvertimeMinutes\"=-30 WHERE id=?", prefix + "-request");
             var selectedRegular = lifecycle.select(prefix + "-request", prefix + "-request");
-            assertEquals(selectedRegular.appointmentId(), Required.query(jdbc, "SELECT id FROM appointment WHERE \"jobId\"=?", String.class, prefix + "-request"));
-            assertFalse(Required.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=?", Boolean.class, prefix + "-request"));
-            assertTrue(Required.query(jdbc, "SELECT \"releasedAt\" IS NOT NULL FROM slot_hold WHERE id=?", Boolean.class, prefix + "-request"));
+            assertEquals(selectedRegular.appointmentId(), dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT id FROM appointment WHERE \"jobId\"=?", String.class, prefix + "-request"));
+            assertFalse(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"overtimeAuthorized\" FROM booking_offer WHERE id=?", Boolean.class, prefix + "-request"));
+            assertTrue(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT \"releasedAt\" IS NOT NULL FROM slot_hold WHERE id=?", Boolean.class, prefix + "-request"));
         } finally {
             jdbc.update("DELETE FROM reservation_arrangement WHERE \"metroId\"=?", prefix);
             jdbc.update("DELETE FROM appointment WHERE id=?", prefix + "-appointment");

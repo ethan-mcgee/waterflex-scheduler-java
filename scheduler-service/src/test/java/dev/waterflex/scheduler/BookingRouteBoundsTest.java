@@ -12,7 +12,7 @@ class BookingRouteBoundsTest {
     @Test void noFeasibleInsertionIsPrunedAcrossDirectedAbsenceAndChangedPromiseCases() {
         Random random = new Random(9017); int feasible = 0, pruned = 0;
         Instant start = Required.value(Instant.parse("2026-10-26T13:00:00Z"));
-        var point = new RoadClient.Point(41, -96);
+        var point = new RoadPoint(41, -96);
         for (int sample = 0; sample < 250; sample++) {
             var rates = new Rates(30, 45, .67, sample % 2 == 0 ? .2 : 0, sample % 3);
             List<TechRoute.Unavailable> absences = sample % 2 == 0

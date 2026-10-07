@@ -48,34 +48,34 @@ public class TechnicianDepotController {
         LocalDate earliest = ScheduleCutoff.frozen(Required.value(today), Required.value(now)) ? today.plusDays(1) : today;
         if (date.isBefore(earliest)) throw new ResponseStatusException(HttpStatus.CONFLICT, "Assignment date is frozen");
 
-        var owners = jdbc.query("SELECT id FROM technician WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+        var owners = jdbc.query("SELECT id FROM technician WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id);
         if (owners.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Technician not found");
         var targetRows = jdbc.query("SELECT id,\"dealershipId\",\"metroId\" FROM depot WHERE id=?", (rs, _) ->
-                new Depot(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)), depotId);
+                new Depot(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3)), depotId);
         if (targetRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Depot not found");
         Depot target = targetRows.getFirst();
         Timestamp stamp = Timestamp.from(date.atStartOfDay(ZoneOffset.UTC).toInstant());
         var priorRows = jdbc.query("SELECT p.id,p.\"dealershipId\",p.\"metroId\" FROM technician_depot_assignment a JOIN depot p ON p.id=a.\"depotId\" WHERE a.\"technicianId\"=? AND a.\"effectiveDate\"<=? ORDER BY a.\"effectiveDate\" DESC LIMIT 1",
-                (rs, _) -> new Depot(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)), id, stamp);
+                (rs, _) -> new Depot(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3)), id, stamp);
         if (priorRows.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Current depot assignment is missing");
         Depot prior = priorRows.getFirst();
         if (!target.dealershipId().equals(prior.dealershipId()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Depot must belong to the technician's dealership");
         if (target.id().equals(prior.id())) return Required.value(Map.of("success", true));
-        if (Required.query(jdbc, "SELECT count(*) FROM technician_depot_assignment WHERE \"technicianId\"=? AND \"effectiveDate\">=?", Integer.class, id, stamp) > 0)
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM technician_depot_assignment WHERE \"technicianId\"=? AND \"effectiveDate\">=?", Integer.class, id, stamp) > 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A later depot assignment already exists");
         boolean crossMetro = !target.metroId().equals(prior.metroId());
         if (crossMetro && !date.isAfter(BookingService.bookingDates(Required.value(now)).getLast()))
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cross-metro moves must start after the current booking horizon");
 
         List<LocalDate> booked = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\">=? AND \"cancelledAt\" IS NULL ORDER BY \"serviceDate\"",
-                (rs, _) -> Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate(), id, stamp);
+                (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate(), id, stamp);
         if (crossMetro && !booked.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Booked appointments conflict with the metro move");
         List<LocalDate> held = jdbc.query("SELECT DISTINCT \"serviceDate\" FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\">=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP ORDER BY \"serviceDate\"",
-                (rs, _) -> Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate(), id, stamp);
+                (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate(), id, stamp);
         if (crossMetro && !held.isEmpty())
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Active holds conflict with the depot move");
-        if (Required.query(jdbc, "SELECT count(*) FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE d.\"technicianId\"=? AND h.\"serviceDate\">=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP",
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE d.\"technicianId\"=? AND h.\"serviceDate\">=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP",
                 Integer.class, id, stamp) > 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "A reserved route arrangement depends on this depot assignment");
 

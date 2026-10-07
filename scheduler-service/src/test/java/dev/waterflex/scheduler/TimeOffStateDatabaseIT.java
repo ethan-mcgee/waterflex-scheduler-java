@@ -37,12 +37,12 @@ class TimeOffStateDatabaseIT {
                 jdbc.update("UPDATE time_off_report SET status=?,data='{}'::jsonb,progress=80 WHERE \"requestId\"=?", failure, id);
                 assertEquals("PENDING", service.retry(id).get("status"));
                 assertEquals("QUEUED", status(jdbc, id));
-                assertEquals(1, Required.query(jdbc, "SELECT count(*) FROM time_off_report WHERE \"requestId\"=? AND data IS NULL AND progress=0", Integer.class, id));
+                assertEquals(1, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM time_off_report WHERE \"requestId\"=? AND data IS NULL AND progress=0", Integer.class, id));
             }
             jdbc.update("UPDATE time_off_report SET status='ANALYZING' WHERE \"requestId\"=?", id);
             assertEquals("DENIED", service.deny(id).get("status"));
             assertEquals("DENIED", status(jdbc, id));
-            assertEquals(1, Required.query(jdbc, "SELECT count(*) FROM time_off_request WHERE id=? AND status='DENIED' AND \"decidedAt\" IS NOT NULL", Integer.class, id));
+            assertEquals(1, dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM time_off_request WHERE id=? AND status='DENIED' AND \"decidedAt\" IS NOT NULL", Integer.class, id));
             assertThrows(ResponseStatusException.class, () -> service.retry(id));
             service.processQueued();
             assertEquals("DENIED", status(jdbc, id));
@@ -51,6 +51,6 @@ class TimeOffStateDatabaseIT {
     }
 
     private static String status(JdbcTemplate jdbc, String id) {
-        return Required.query(jdbc, "SELECT status FROM time_off_report WHERE \"requestId\"=?", String.class, id);
+        return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT status FROM time_off_report WHERE \"requestId\"=?", String.class, id);
     }
 }
