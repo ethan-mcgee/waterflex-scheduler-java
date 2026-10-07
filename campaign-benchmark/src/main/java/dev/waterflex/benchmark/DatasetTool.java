@@ -27,7 +27,7 @@ public final class DatasetTool {
     }
     public record Corpus(int version, String kind, String outputDirectory, Instant shiftStart, int shiftMinutes,
             double latitude, double longitude, double roadMetersPerDegree, double roadMetersPerSecond, double directionBias,
-            BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile, double travelBufferPct,
+            BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile, BigDecimal travelBufferPct,
             long travelBufferMinutes, List<Long> datasetSeeds, List<String> cohorts, List<@org.jspecify.annotations.NonNull Family> families,
             String solverVariant, long solverSeed, long solverBudgetMs) {
         public Corpus {
@@ -39,7 +39,7 @@ public final class DatasetTool {
                     || cohorts.isEmpty() || !Set.of("assigned","cold","partial","repair","invalid-input").containsAll(cohorts)
                     || new HashSet<>(cohorts).size() != cohorts.size() || families.isEmpty() || solverSeed < 0 || solverBudgetMs < 1)
                 throw new IllegalArgumentException("Invalid corpus job");
-            Required.value(outputDirectory); Required.value(shiftStart);Required.value(regularHourly);Required.value(overtimeHourly);Required.value(mileagePerMile);Required.value(solverVariant);
+            Required.value(outputDirectory); Required.value(shiftStart);Required.value(regularHourly);Required.value(overtimeHourly);Required.value(mileagePerMile);Required.value(travelBufferPct);Required.value(solverVariant);
             datasetSeeds=Required.value(List.copyOf(datasetSeeds));cohorts=Required.value(List.copyOf(cohorts));families=Required.value(List.copyOf(families));
         }
     }

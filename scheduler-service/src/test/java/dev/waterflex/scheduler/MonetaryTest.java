@@ -52,13 +52,33 @@ class MonetaryTest {
     }
     @Test void decimalWireValuesAndLegacyRenderingAreCanonical() throws Exception {
         assertEquals("20.02", Monetary.canonical(Monetary.legacy(20.02)));
-        var rates = new BookingSnapshot.Rates(d("20.0200"), d("30.0300"), d("0.6700"), .2, 5);
+        var rates = new BookingSnapshot.Rates(d("20.0200"), d("30.0300"), d("0.6700"), d("0.200"), 5);
         var json = new ObjectMapper().valueToTree(rates);
         assertEquals("20.02", Required.value(json).path("regularHourly").textValue());
         assertEquals("30.03", json.path("overtimeHourly").textValue());
         assertEquals("0.67", json.path("mileagePerMile").textValue());
+        assertEquals("0.2", json.path("travelBufferPct").textValue());
         assertEquals("0", Monetary.canonical(d("0.0000")));
         assertEquals(new BigDecimal("85.09"), Monetary.dollars(8509));
+    }
+    @Test void bufferedTravelUsesExactDecimalCeiling() {
+        // Binary arithmetic gives 1800 * 1.1 / 60 = 33.00000000000001 and rounds up to 34.
+        assertEquals(33, Monetary.bufferedMinutes(1800, d("0.1"), 0));
+        assertEquals(38, Monetary.bufferedMinutes(1800, d("0.1"), 5));
+        assertEquals(17, Monetary.bufferedMinutes(900, d("0.1"), 0));
+        assertEquals(0, Monetary.bufferedMinutes(0, d("0.25"), 0));
+        assertEquals(1, Monetary.bufferedMinutes(1, d("0"), 0));
+        assertThrows(IllegalArgumentException.class, () -> Monetary.bufferedMinutes(-1, d("0.1"), 0));
+        assertThrows(IllegalArgumentException.class, () -> Monetary.bufferedMinutes(60, d("-0.1"), 0));
+        assertThrows(IllegalArgumentException.class, () -> Monetary.bufferedMinutes(60, d("0.1"), -1));
+    }
+    @Test void bufferedTravelAgreesWithIndependentBasisPointIntegers() {
+        Random random = new Random(20261007);
+        for (int i = 0; i < 20_000; i++) {
+            long seconds = random.nextInt(86_400 * 2); long basis = random.nextInt(10_001); long extra = random.nextInt(31);
+            long expected = (seconds * (10_000 + basis) + 599_999) / 600_000 + extra;
+            assertEquals(expected, Monetary.bufferedMinutes(seconds, Required.value(BigDecimal.valueOf(basis, 4)), extra), seconds + "s " + basis + "bp");
+        }
     }
     @Test void historicalProvenanceRemainsReadableButCannotAuthorizeApplication() {
         var json = new ObjectMapper().createObjectNode().put("mapVersion", "roads").put("configVersion", "config");
