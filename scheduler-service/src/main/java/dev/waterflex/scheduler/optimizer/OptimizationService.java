@@ -477,15 +477,15 @@ public class OptimizationService {
     }
 
     @Transactional
-    public Map<String, Object> applyRepair(String runId, String absentTechnicianId, LocalDate day, int startMin, int endMin, boolean allowAdditionalOvertime) {
-        return applyInternal(runId, absentTechnicianId, day, startMin, endMin, allowAdditionalOvertime);
+    public Map<String, Object> applyRepair(String runId, String absentTechnicianId, LocalDate day, int startMin, int endMin) {
+        return applyInternal(runId, absentTechnicianId, day, startMin, endMin);
     }
 
     private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId) {
-        return applyInternal(runId, absentTechnicianId, null, 0, 0, false);
+        return applyInternal(runId, absentTechnicianId, null, 0, 0);
     }
 
-    private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId, @Nullable LocalDate repairDay, int startMin, int endMin, boolean allowAdditionalOvertime) {
+    private Map<String, Object> applyInternal(String runId, @Nullable String absentTechnicianId, @Nullable LocalDate repairDay, int startMin, int endMin) {
         var runRows = jdbc.query("SELECT \"metroId\", \"serviceDate\", \"scheduleVersions\"::text, \"proposedAssignments\"::text, weights::text, status FROM optimization_run WHERE id=? FOR UPDATE",
                 (rs, _) -> new SavedRun(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant()), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), dev.waterflex.scheduler.DatabaseFacts.string(rs, 4), dev.waterflex.scheduler.DatabaseFacts.string(rs, 5), dev.waterflex.scheduler.DatabaseFacts.string(rs, 6)), runId);
         if (runRows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Preview not found");
@@ -540,10 +540,9 @@ public class OptimizationService {
             var evaluated = RouteEvaluator.evaluate(current.plan());
             if (!evaluated.feasible() || evaluated.overtimeMinutes() != 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Proposal must be feasible with zero overtime");
             var baselineMetrics = RouteEvaluator.evaluate(baselinePlan);
-            if (absentTechnicianId != null) {
-                if (!baselineMetrics.feasible()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Baseline infeasible; a fresh repair is required");
-                requireRepairOvertimeApproval(baselineMetrics.overtimeMinutes(), evaluated.overtimeMinutes(), allowAdditionalOvertime);
-            }
+            // Overtime is never assigned: the zero-overtime check above applies to repairs too.
+            if (absentTechnicianId != null && !baselineMetrics.feasible())
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Baseline infeasible; a fresh repair is required");
             if (absentTechnicianId == null) {
                 JsonNode provenance = SavedJson.provenance(Required.value(mapper.readTree(run.weights())));
                 if (!SchedulingPolicy.VERSION.equals(provenance.path("policyVersion").asText()))
@@ -589,11 +588,6 @@ public class OptimizationService {
         // appointment time for historical display, without claiming that the route is feasible.
         if (before.hardPenalty() > 0) return Required.value(visit.visit().getOriginalPlannedStart(), "saved appointment start");
         throw new IllegalStateException("Feasible baseline is missing an appointment arrival");
-    }
-
-    static void requireRepairOvertimeApproval(long before, long after, boolean approved) {
-        if (before < 0 || after < 0) throw new IllegalArgumentException("Invalid repair overtime metrics");
-        if (after > before && !approved) throw new RepairOvertimeApprovalRequired(after - before);
     }
 
     private static DayPlan restoreReference(DayPlan baseline, JsonNode savedRoutes) {
