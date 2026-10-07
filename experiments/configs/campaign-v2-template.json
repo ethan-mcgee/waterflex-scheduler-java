@@ -1,0 +1,202 @@
+{
+  "version": 2,
+  "name": "contract-fixture-template",
+  "purpose": "Explicit contract fixture, no solver performance claim",
+  "edition": "COMMUNITY",
+  "layer": "solver",
+  "controlId": "tabu",
+  "datasets": [
+    {
+      "id": "dataset-a",
+      "input": {
+        "path": "../datasets/contract-lifecycle.json",
+        "sha256": "5a7434e580becd691ad6045c197d2262c5c699f299af17f63f4e118645d82daa"
+      },
+      "family": "fixture",
+      "role": "tuning",
+      "cohort": "assigned",
+      "origin": "contract-fixture",
+      "datasetSeed": null,
+      "scoreVersion": "fixture",
+      "modelVersion": "fixture",
+      "routingIdentity": "fixture",
+      "target": null
+    }
+  ],
+  "configurations": [
+    {
+      "id": "tabu",
+      "acceptor": "TABU",
+      "acceptorSize": 7,
+      "acceptedCountLimit": 1,
+      "selectedCountLimit": 100,
+      "moves": [
+        {
+          "family": "listChange",
+          "weight": 1
+        },
+        {
+          "family": "listSwap",
+          "weight": 1
+        }
+      ],
+      "environmentMode": "NO_ASSERT",
+      "moveThreads": "NONE",
+      "nativeParallelBenchmarkCount": 1,
+      "termination": {
+        "kind": "fixed",
+        "scope": "local-search",
+        "spentCap": true,
+        "stepCap": null,
+        "windowMs": null,
+        "minimumImprovementRatio": null,
+        "unimprovedMs": null
+      }
+    },
+    {
+      "id": "la",
+      "acceptor": "LATE_ACCEPTANCE",
+      "acceptorSize": 400,
+      "acceptedCountLimit": 1,
+      "selectedCountLimit": 100,
+      "moves": [
+        {
+          "family": "listChange",
+          "weight": 1
+        },
+        {
+          "family": "listSwap",
+          "weight": 1
+        }
+      ],
+      "environmentMode": "NO_ASSERT",
+      "moveThreads": "NONE",
+      "nativeParallelBenchmarkCount": 1,
+      "termination": {
+        "kind": "fixed",
+        "scope": "local-search",
+        "spentCap": true,
+        "stepCap": null,
+        "windowMs": null,
+        "minimumImprovementRatio": null,
+        "unimprovedMs": null
+      }
+    }
+  ],
+  "solverSeeds": [
+    17,
+    23
+  ],
+  "forks": 1,
+  "budgets": [
+    {
+      "id": "reference-test",
+      "purpose": "contract-test",
+      "phase": "reference",
+      "operationMs": 100,
+      "searchMs": 80,
+      "referenceMs": 80,
+      "fairnessMs": 0,
+      "repairMs": 0,
+      "validationReserveMs": 20,
+      "transferUnusedToFairness": false
+    }
+  ],
+  "warmup": {
+    "millisecondsPerFreshJvm": 10,
+    "paths": [
+      "reference"
+    ],
+    "disposableInputs": true,
+    "calibrationMs": [
+      200,
+      30000,
+      60000
+    ],
+    "calibrationRepetitions": 3,
+    "stabilityTolerancePercent": 5
+  },
+  "runtime": {
+    "java": {
+      "path": "C:/Program Files/Java/jdk-25/bin/java.exe",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "jdkMajor": 25,
+    "heapMinMiB": 16,
+    "heapMaxMiB": 32,
+    "gc": "SerialGC",
+    "activeProcessorCount": 1,
+    "flags": [
+      "-Dfile.encoding=UTF-8"
+    ],
+    "environment": {
+      "TZ": "UTC"
+    },
+    "processLifetime": "one-case-per-jvm"
+  },
+  "resources": {
+    "parallelCases": 1,
+    "totalCpuAllocation": 1,
+    "cpuPerCase": 1,
+    "affinityPolicy": "disjoint-physical-cores",
+    "concurrencyCalibration": [
+      1,
+      2
+    ],
+    "memoryLimitMiB": 64
+  },
+  "instrumentation": {
+    "cohort": "quality-basic",
+    "statistics": [],
+    "jfr": "disabled",
+    "sampleIntervalMs": 100,
+    "internalDiagnostics": false,
+    "constraintProfiling": false
+  },
+  "analysis": {
+    "method": "inventory-only",
+    "pairKeys": [
+      "datasetHash",
+      "targetHash",
+      "budgetHash",
+      "solverSeed",
+      "fork",
+      "scoreVersion",
+      "modelVersion",
+      "routingIdentity",
+      "runtimeHash"
+    ],
+    "draws": 10000,
+    "seed": 20261006,
+    "confidenceLevel": 0.95,
+    "selection": "tuning-only",
+    "latencyNoninferiorityPercent": 5,
+    "failureTolerance": 0,
+    "costDifferenceUpperBoundCents": 0
+  },
+  "applicationLoad": null,
+  "execution": {
+    "orderSeed": 99,
+    "failurePolicy": "stop-new-blocks",
+    "automaticRetries": false,
+    "resumePolicy": "hash-verified-missing-cases",
+    "campaignCutoffUtc": null,
+    "processGraceMs": 5000
+  },
+  "estimation": {
+    "startupMsPerJvm": 1,
+    "preparationMsPerCase": 2,
+    "validationMsPerCase": 3,
+    "reportingMsPerCase": 4,
+    "referenceSetupMsPerDataset": 20,
+    "serialAnalysisMs": 30
+  },
+  "outputLocation": "../runs",
+  "adapter": {
+    "protocol": "waterflex-campaign-jvm-v1",
+    "jar": {
+      "path": "../../.scratch/campaign-fixture.jar",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  }
+}
