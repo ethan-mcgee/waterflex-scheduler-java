@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "final-audit-template",
+  "purpose": "Non-executable design template. Pin a validated v2 campaign and its real artifacts before registration; no production promotion.",
+  "baseCampaign": {
+    "path": "campaign-v2-template.json",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "studies": [
+    {
+      "id": "tabu-versus-la",
+      "factor": "algorithm",
+      "control": {
+        "id": "tabu", "acceptor": "TABU", "acceptorSize": 7,
+        "acceptedCountLimit": 1000, "selectedCountLimit": 10000,
+        "moves": [{"family": "listChange", "weight": 45}, {"family": "listSwap", "weight": 45}],
+        "environmentMode": "NO_ASSERT", "moveThreads": "NONE", "nativeParallelBenchmarkCount": 1,
+        "termination": {"kind": "fixed", "scope": "local-search", "spentCap": true, "stepCap": null,
+                        "windowMs": null, "minimumImprovementRatio": null, "unimprovedMs": null}
+      },
+      "candidates": [
+        {
+          "id": "la", "acceptor": "LATE_ACCEPTANCE", "acceptorSize": 400,
+          "acceptedCountLimit": 1, "selectedCountLimit": 10000,
+          "moves": [{"family": "listChange", "weight": 45}, {"family": "listSwap", "weight": 45}],
+          "environmentMode": "NO_ASSERT", "moveThreads": "NONE", "nativeParallelBenchmarkCount": 1,
+          "termination": {"kind": "fixed", "scope": "local-search", "spentCap": true, "stepCap": null,
+                          "windowMs": null, "minimumImprovementRatio": null, "unimprovedMs": null}
+        }
+      ]
+    }
+  ],
+  "outputLocation": "../runs/final-audit-template-registration"
+}
