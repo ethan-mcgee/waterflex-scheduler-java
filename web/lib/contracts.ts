@@ -88,14 +88,14 @@ const engineProvenance = z.object({ artifact: z.literal("timefold-solver-core"),
   sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(), unavailableReason: text.nullable(),
 }).refine(v => (v.unavailableReason != null) === (v.version == null) && (v.unavailableReason != null) === (v.sha256 == null), "Missing artifact provenance needs a reason");
 const solverStatisticsV2 = legacySolverStatistics.extend({ format: z.literal(2),
-  termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN"]),
+  termination: z.enum(["CANCELLED", "TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN"]),
   steps: z.int().nonnegative().nullable(), moveEvaluations: z.int().nonnegative().nullable(), scoreCalculations: z.int().nonnegative().nullable(),
   diagnosticsUnavailableReason: text.nullable(), timeToBestUnavailableReason: text.nullable(), terminationBasis: z.enum(["OBSERVED", "INFERRED"]),
   environmentMode: z.enum(["NO_ASSERT", "FULL_ASSERT", "NON_INTRUSIVE_FULL_ASSERT", "PHASE_ASSERT"]),
   instrumentation: z.enum(["NONE", "TIMEFOLD_INTERNAL_2_6_0"]), provenance: engineProvenance,
 }).refine(v => [v.steps, v.moveEvaluations, v.scoreCalculations].every(n => (n == null) === (v.diagnosticsUnavailableReason != null)), "Unavailable counters need a reason")
   .refine(v => (v.timeToBestMs == null) === (v.timeToBestUnavailableReason != null), "Unavailable time to best needs a reason")
-  .refine(v => (["SOLVE_RETURNED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
+  .refine(v => (["SOLVE_RETURNED", "CANCELLED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
     : v.terminationBasis === "INFERRED" && v.diagnosticsUnavailableReason == null), "Stopping cause must distinguish inference from observation");
 export const solverAnalysis = z.object({ engine: text, configurationXml: text, constructionConfigurationXml: text.nullish(), policy: z.lazy(() => dailyPolicyDiagnostics).nullish(), phases: z.array(z.object({
   name: text, statistics: z.union([solverStatisticsV2, legacySolverStatistics]),

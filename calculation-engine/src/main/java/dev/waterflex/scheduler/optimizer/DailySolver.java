@@ -46,6 +46,7 @@ public final class DailySolver {
                     null, false, new SolverEngine.Cancellation() {
                         @Override public void started(ai.timefold.solver.core.api.solver.Solver<DayPlan> solver) { operation.started(solver); }
                         @Override public void stopped() { operation.stopped(); }
+                        @Override public boolean cancelled() { return operation.isCancelled(); }
                     }));
         } finally { operation.finishPhase(); }
     }
