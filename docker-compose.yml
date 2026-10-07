@@ -23,6 +23,20 @@ services:
       ROUTING_CH_ENABLED: ${ROUTING_CH_ENABLED:-false}
     volumes: ["map-data:/maps"]
     ports: ["127.0.0.1:8001:8001"]
+  solver-service:
+    profiles: ["remote-solver"]
+    image: waterflex-calculation-solver:local
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: solver-service/Dockerfile
+    environment:
+      SOLVER_BIND_ADDRESS: 0.0.0.0
+      SOLVER_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
+      SOLVER_CAPACITY: ${SOLVER_CAPACITY:-2}
+      SOLVER_QUEUE_LIMIT: ${SOLVER_QUEUE_LIMIT:-16}
+    # Internal Compose connectivity only. No published solver port or database/routing credentials.
+    expose: ["8002"]
   scheduler-service:
     image: waterflex-scheduler-engine:local
     pull_policy: build
@@ -34,6 +48,9 @@ services:
       DATABASE_USER: waterflex
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://routing-service:8001
+      SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
+      SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}
+      SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
       BOOKING_RESERVATIONS_ENABLED: ${BOOKING_RESERVATIONS_ENABLED:-false}
       BOOKING_OFFER_LIMIT: "${BOOKING_OFFER_LIMIT-4}"
       BOOKING_SEARCH_BOUNDED: ${BOOKING_SEARCH_BOUNDED:-false}

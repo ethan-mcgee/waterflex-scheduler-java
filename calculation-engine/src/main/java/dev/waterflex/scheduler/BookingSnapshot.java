@@ -21,8 +21,8 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
     public BookingSnapshot {
         text(metroId); text(configurationFingerprint); text(routingIdentity);
         days = Required.value(Map.copyOf(days));
-        Set<LocalDate> normal = new HashSet<>(BookingService.bookingDates(calendarReference));
-        Set<LocalDate> extended = new HashSet<>(normal); extended.addAll(BookingService.overflowDates(calendarReference));
+        Set<LocalDate> normal = new HashSet<>(BookingCalendar.bookingDates(calendarReference));
+        Set<LocalDate> extended = new HashSet<>(normal); extended.addAll(BookingCalendar.overflowDates(calendarReference));
         if (!days.keySet().equals(normal) && !days.keySet().equals(extended))
             throw new Incomplete("Snapshot does not cover the complete booking horizon");
     }
@@ -53,7 +53,7 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
 
     public record Technician(String id, Instant shiftStart, Instant shiftEnd, int maxDailyMinutes,
             int maxOvertimeMinutes, Set<String> services, List<TechRoute.Unavailable> absences,
-            RoadClient.Point departure, RoadClient.Point returnTo, long scheduleVersion) {
+            RoadPoint departure, RoadPoint returnTo, long scheduleVersion) {
         public Technician {
             text(id);
             if (!shiftStart.isBefore(shiftEnd) || maxDailyMinutes <= 0 || maxOvertimeMinutes < 0 || scheduleVersion < 0)
@@ -72,7 +72,7 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
     }
 
     public record Visit(String id, String jobId, String serviceId, Instant windowStart, Instant windowEnd,
-            int durationMinutes, RoadClient.Point location, String originalTechnicianId,
+            int durationMinutes, RoadPoint location, String originalTechnicianId,
             Instant plannedStart, boolean reservation) {
         public Visit {
             text(id); text(jobId); text(serviceId); text(originalTechnicianId);
@@ -107,7 +107,8 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
         private final int hash;
         private @org.jspecify.annotations.Nullable String signature;
 
-        public Arrangement(Map<String, List<String>> routes) {
+        @com.fasterxml.jackson.annotation.JsonCreator
+        public Arrangement(@com.fasterxml.jackson.annotation.JsonProperty("routes") Map<String, List<String>> routes) {
             Map<String, List<String>> copy = new TreeMap<>();
             Set<String> seen = new HashSet<>();
             for (var entry : routes.entrySet()) {
@@ -131,6 +132,7 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
             insertedTechnician = technician;
             hash = parent.hash - (technician.hashCode() ^ previous.hashCode()) + (technician.hashCode() ^ order.hashCode());
         }
+        @com.fasterxml.jackson.annotation.JsonProperty("routes")
         public Map<String, List<String>> routes() { return routes; }
         @org.jspecify.annotations.Nullable String insertionTechnician(Arrangement original, String visit) {
             return parent == original && visit.equals(insertedVisit) ? insertedTechnician : null;

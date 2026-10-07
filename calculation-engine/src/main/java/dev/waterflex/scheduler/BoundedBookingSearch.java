@@ -21,23 +21,39 @@ public final class BoundedBookingSearch {
         public static Limits defaults() { return new Limits(6, 2, 8, 500); }
         public static Limits expanded() { return new Limits(12, 3, 16, 2000); }
     }
-    public record Request(String jobId, String serviceId, int durationMinutes, RoadClient.Point location) {
+    public record Request(String jobId, String serviceId, int durationMinutes, RoadPoint location) {
         public Request {
+            Required.value(location); dev.waterflex.scheduler.optimizer.PlanFacts.identity(jobId,"request job");
+            dev.waterflex.scheduler.optimizer.PlanFacts.identity(serviceId,"request service");
             if (jobId.isBlank() || serviceId.isBlank() || durationMinutes <= 0)
                 throw new IllegalArgumentException("Invalid booking request");
         }
     }
     public record Window(LocalDate day, Instant start, Instant end) {
-        public Window { if (!start.isBefore(end)) throw new IllegalArgumentException("Invalid booking window"); }
+        public Window { Required.value(day); Required.value(start); Required.value(end); if (!start.isBefore(end)) throw new IllegalArgumentException("Invalid booking window"); }
     }
     public record Candidate(Window window, String technicianId, Arrangement arrangement,
             long overtimeDelta, long costDeltaCents, BigDecimal fairnessDelta, int changedAssignments,
-            int insertionPosition, String source, RouteEvaluator.Result validation) { }
+            int insertionPosition, String source, RouteEvaluator.Result validation) {
+        public Candidate {
+            Required.value(window); Required.value(arrangement); Required.value(fairnessDelta); Required.value(validation);
+            CalculationJson.text(technicianId); CalculationJson.text(source);
+            if (changedAssignments < 0 || insertionPosition < 0) throw new IllegalArgumentException("Invalid booking candidate counts");
+        }
+    }
     public record Coverage(Window window, int routesExamined, int arrangementsExamined, int movesGenerated,
-                           int candidateEvaluations, boolean complete, String stopReason) { }
+                           int candidateEvaluations, boolean complete, String stopReason) {
+        public Coverage { Required.value(window); CalculationJson.text(stopReason);
+            if (routesExamined < 0 || arrangementsExamined < 0 || movesGenerated < 0 || candidateEvaluations < 0) throw new IllegalArgumentException("Invalid coverage counts"); }
+    }
     public record Result(List<Candidate> candidates, List<Coverage> coverage, boolean complete,
                          int distinctRegularWindows, long confirmedRegularMinutes, long regularCapacityMinutes,
-                         boolean overtimeAuthorized, String stopReason) { }
+                         boolean overtimeAuthorized, String stopReason) {
+        public Result {
+            candidates=Required.value(List.copyOf(candidates)); coverage=Required.value(List.copyOf(coverage)); CalculationJson.text(stopReason);
+            if (distinctRegularWindows < 0 || confirmedRegularMinutes < 0 || regularCapacityMinutes < confirmedRegularMinutes) throw new IllegalArgumentException("Invalid booking utilization");
+        }
+    }
     private record Ranked(Arrangement arrangement, long overtime, long cost, BigDecimal fairness) { }
     private record Merit(long cost, BigDecimal fairness, int changes, String technician, int position, Arrangement arrangement) {
         static Merit of(Candidate candidate) {
@@ -564,7 +580,7 @@ public final class BoundedBookingSearch {
                 reconstructionAttempts++;
                 Set<String> removed = new TreeSet<>();
                 for (int i = 0; i < count; i++) removed.add(Required.value(related.get((anchor + i) % related.size())));
-                Arrangement arrangement = ReservationOffers.without(day.baseline(), removed);
+                Arrangement arrangement = BookingArrangements.without(day.baseline(), removed);
                 Map<String, Visit> facts = new TreeMap<>(day.visits()); removed.forEach(facts::remove);
                 Map<String, Visit> pendingVisits = new TreeMap<>();
                 for (String id : removed) pendingVisits.put(id, Required.value(day.visits().get(id)));
@@ -604,7 +620,7 @@ public final class BoundedBookingSearch {
                         || (evaluation.hasReservations() && !evaluation.metrics(arrangement, facts, true).feasible())) continue;
                 String assigned = arrangement.routes().entrySet().stream().filter(route -> route.getValue().contains(request.jobId()))
                         .map(route -> route.getKey()).findFirst().orElseThrow();
-                Arrangement existing = ReservationOffers.without(arrangement, Required.value(Set.<String>of(request.jobId())));
+                Arrangement existing = BookingArrangements.without(arrangement, Required.value(Set.<String>of(request.jobId())));
                 retain(new Merit(Math.subtractExact(result.costCents(), baseline.costCents()), Required.value(evaluation.fairness(arrangement, facts).subtract(baselineFairness)),
                         changes(existing), Required.value(assigned), Required.value(arrangement.routes().get(assigned)).indexOf(request.jobId()), arrangement),
                         result.overtimeMinutes() - baseline.overtimeMinutes(), "RUIN_RECREATE", facts);

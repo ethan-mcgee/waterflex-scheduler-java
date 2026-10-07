@@ -36,6 +36,66 @@ public final class DailyDataset {
     public String contentHash() { return hash; }
     public PlanFacts facts() { return facts; }
 
+    /** Caller capture: real locations and revision tokens accompany every indexed fact. */
+    public static DailyDataset capture(DayPlan plan, Map<String,dev.waterflex.scheduler.RoadPoint> points,
+            String snapshotId, String revision, String routingIdentity, String configuration,
+            Map<String,Integer> schedule, String variant, long seed, long remainingMillis) {
+        ObjectNode root = JSON.createObjectNode(); root.put("schemaVersion",1).put("operation","DAILY")
+                .put("mode",plan.getMode().name()).put("snapshotId",snapshotId).putNull("contentHash");
+        root.putObject("versions").put("policy",SchedulingPolicy.VERSION).put("cost",COST_MODEL).put("score",SCORE_MODEL);
+        root.putObject("routing").put("provider","caller").put("profile","car").put("identity",routingIdentity);
+        root.putObject("search").put("variant",variant).put("seed",seed).put("remainingMillis",remainingMillis);
+        var revisions = root.putObject("revisions"); revisions.put("configuration",configuration).put("reservation",revision);
+        var tokens = revisions.putArray("schedule");
+        var rates = root.putObject("rates"); rates.put("regularHourly",Monetary.canonical(plan.getRegularHourly()))
+                .put("overtimeHourly",Monetary.canonical(plan.getOvertimeHourly())).put("mileagePerMile",Monetary.canonical(plan.getMileagePerMile()))
+                .put("travelBufferPct",Monetary.canonical(Required.value(java.math.BigDecimal.valueOf(plan.getTravelBufferPct())))).put("travelBufferMinutes",plan.getTravelBufferMinutes());
+        var locations = root.putArray("locations"); Map<String,Integer> locationIndices = new LinkedHashMap<>();
+        for (var point : new TreeMap<>(points).entrySet()) {
+            locationIndices.put(point.getKey(),locationIndices.size());
+            locations.addObject().put("id",point.getKey()).put("latitude",point.getValue().lat()).put("longitude",point.getValue().lng());
+        }
+        Set<String> serviceNames = new TreeSet<>(plan.getFacts().demandServices());
+        plan.getRoutes().forEach(route -> serviceNames.addAll(route.getQualifiedServiceIds()));
+        Map<String,Integer> services = new LinkedHashMap<>(); var serviceArray = root.putArray("services");
+        for (String service : serviceNames) { services.put(service,services.size()); serviceArray.addObject().put("id",service); }
+        Map<String,Integer> technicians = new LinkedHashMap<>(), visits = new LinkedHashMap<>();
+        plan.getRoutes().forEach(route -> technicians.put(route.getId(),technicians.size()));
+        plan.getVisits().forEach(visit -> visits.put(visit.getId(),visits.size()));
+        var techArray = root.putArray("technicians");
+        for (TechRoute route : plan.getRoutes()) {
+            tokens.add(Integer.toString(Required.value(schedule.get(route.getId()),"schedule revision")));
+            var tech = techArray.addObject(); tech.put("id",route.getId()).put("departureLocation",Required.value(locationIndices.get(route.getId())))
+                    .put("returnLocation",Required.value(locationIndices.get(route.getId()+":return")))
+                    .put("shiftStart",route.getShiftStart().toString()).put("shiftEnd",route.getShiftEnd().toString())
+                    .put("maxDailyMinutes",route.getMaxDailyMinutes()).put("maxOvertimeMinutes",route.getMaxOvertimeMinutes()).put("pinnedPrefix",route.getPinnedPrefix());
+            var qualifications = tech.putArray("qualifications"); for (String service : new TreeSet<>(route.getQualifiedServiceIds())) qualifications.add(Required.value(services.get(service)));
+            var absences = tech.putArray("absences"); for (var absence : route.getUnavailable()) absences.addObject().put("start",absence.start().toString()).put("end",absence.end().toString());
+            var assigned = tech.putArray("assigned"); route.getVisits().forEach(visit -> assigned.add(Required.value(visits.get(visit.getId()))));
+        }
+        var visitArray = root.putArray("visits");
+        for (PlanVisit visit : plan.getVisits()) {
+            var node = visitArray.addObject(); node.put("id",visit.getId()).put("service",Required.value(services.get(visit.getServiceId())))
+                    .put("location",Required.value(locationIndices.get(visit.getId()))).put("windowStart",visit.getWindowStart().toString())
+                    .put("windowEnd",visit.getWindowEnd().toString()).put("durationMinutes",visit.getDurationMinutes());
+            String original = visit.getOriginalTechnicianId(); Instant originalStart = visit.getOriginalPlannedStart();
+            if (original == null) { node.putNull("originalTechnician"); node.putNull("originalPlannedStart"); }
+            else { node.put("originalTechnician",Required.value(technicians.get(original))); node.put("originalPlannedStart",Required.value(originalStart).toString()); }
+        }
+        var unassigned = root.putArray("unassigned"); plan.getUnassignedVisitIds().forEach(id -> unassigned.add(Required.value(visits.get(id))));
+        var roads = root.putObject("roads"); roads.put("encoding","SPARSE").put("size",locationIndices.size()); var entries = roads.putArray("entries");
+        for (var road : plan.getMatrix().entrySet()) {
+            String[] pair = road.getKey().split(">",-1); var value = entries.addObject();
+            value.put("from",Required.value(locationIndices.get(pair[0]))).put("to",Required.value(locationIndices.get(pair[1])))
+                    .put("state","REACHABLE").put("seconds",road.getValue().seconds()).put("meters",road.getValue().meters());
+        }
+        for (String road : plan.getFacts().unreachable()) {
+            String[] pair = road.split(">",-1); entries.addObject().put("from",Required.value(locationIndices.get(pair[0])))
+                    .put("to",Required.value(locationIndices.get(pair[1]))).put("state","UNREACHABLE").putNull("seconds").putNull("meters");
+        }
+        return parse(seal(serialize(root)));
+    }
+
     private static DailyDataset read(String input, boolean requireHash) {
         try {
             ObjectNode root = object(Required.value(JSON.readTree(input), "daily dataset"), "dataset",

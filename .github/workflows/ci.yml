@@ -147,7 +147,9 @@ jobs:
           DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=benchmark_cleanup_it
         run: npx prisma migrate deploy && npx tsx scripts/check-benchmark-cleanup.ts
       - name: Immutable snapshot, reservation and database admission gates
-        run: ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT,!BookingSnapshotDatabaseIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
+        run: |
+          ./mvnw -Pnullability -pl calculation-engine -DskipTests install --batch-mode --no-transfer-progress
+          ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT,!BookingSnapshotDatabaseIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
@@ -266,6 +268,37 @@ jobs:
           SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
           SCHEDULER_CANCEL_PENDING_TEST: 'true'
         run: node ../infra/run-check.mjs test:bounded-booking:integration npm run test:bounded-booking:integration
+      - name: Remote calculation business workflows in an isolated database schema
+        env:
+          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=remote_calculation_it
+          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=remote_calculation_it
+          ENGINE_URL: http://127.0.0.1:18003
+          SCHEDULER_TEST_URL: http://127.0.0.1:18003
+          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18003
+          SCHEDULER_CANCEL_URL: http://127.0.0.1:18003
+          BOOKING_RESERVATIONS_ENABLED: 'true'
+          BOOKING_SEARCH_BOUNDED: 'true'
+          SCHEDULER_RESERVATIONS_TEST: 'true'
+        run: |
+          ./mvnw -pl solver-service -am -DskipTests package --batch-mode --no-transfer-progress
+          node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
+          token=$(openssl rand -hex 32)
+          SOLVER_AUTH_TOKEN="$token" SERVER_PORT=18004 java -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-solver.log" 2>&1 &
+          solver_pid=$!
+          SCHEDULER_CALCULATION_AUTH_TOKEN="$token" SCHEDULER_CALCULATION_MODE=REMOTE SCHEDULER_CALCULATION_URL=http://127.0.0.1:18004 SERVER_PORT=18003 java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-scheduler.log" 2>&1 &
+          remote_pid=$!
+          trap 'kill "$remote_pid" "$solver_pid"' EXIT
+          for _attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:18003/health > /dev/null && curl --fail --silent http://127.0.0.1:18004/health > /dev/null; then break; fi
+            sleep 1
+          done
+          cd web
+          npx prisma db seed
+          node ../infra/run-check.mjs remote-booking npm run test:booking:integration
+          node ../infra/run-check.mjs remote-optimizer npm run test:optimizer:integration
+          node ../infra/run-check.mjs remote-time-off npm run test:time-off:integration
+          node ../infra/run-check.mjs remote-bounded npm run test:bounded-booking:integration
+          node ../infra/run-check.mjs remote-cancellation npm run test:search-cancellation:integration
       - name: Print service logs on failure
         if: failure()
         run: |
@@ -274,6 +307,8 @@ jobs:
           echo 'Scheduler log:'
           cat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true
           cat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/remote-solver.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/remote-scheduler.log" 2>/dev/null || true
       - name: Summarize database tests
         if: always()
         run: python3 infra/summarize-tests.py 'scheduler-service/target/surefire-reports/TEST-*.xml' --label 'Database integration'

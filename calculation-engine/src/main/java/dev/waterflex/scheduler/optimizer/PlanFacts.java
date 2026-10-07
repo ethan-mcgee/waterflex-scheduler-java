@@ -101,7 +101,7 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
     public static void identity(String id, String field) {
         check(!id.isBlank() && !id.contains(">") && !id.endsWith(":return"), field + " is blank or uses reserved legacy endpoint syntax");
     }
-    private static void roadKey(String key) {
+    public static void roadKey(String key) {
         int split = key.indexOf('>'); check(split > 0 && split == key.lastIndexOf('>') && split < key.length() - 1, "invalid legacy directed road key: " + key);
     }
     public static void number(double value, String field) { check(Double.isFinite(value) && value >= 0, field + " must be finite and nonnegative"); }

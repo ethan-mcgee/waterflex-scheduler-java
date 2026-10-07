@@ -8,6 +8,9 @@ on:
     branches: [main]
     paths:
       - 'scheduler-service/**'
+      - 'calculation-engine/**'
+      - 'solver-service/**'
+      - 'pom.xml'
       - '.github/workflows/solver-assertions.yml'
 
 permissions:
@@ -42,6 +45,7 @@ jobs:
           if [ "$MODE" = PHASE_ASSERT ]; then profile=phase-assert-evaluation; fi
           budget=2000
           if [ "$EVENT" = pull_request ]; then budget=250; fi
+          ./mvnw -pl calculation-engine -DskipTests install --batch-mode --no-transfer-progress
           ./mvnw -pl scheduler-service -P"$profile" test --batch-mode --no-transfer-progress \
             -Dassertions.mode="$MODE" -Dassertions.budgetMs="$budget" \
             -Dassertions.revision="$REVISION" -Dassertions.output="$OUTPUT"

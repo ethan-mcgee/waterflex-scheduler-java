@@ -17,7 +17,7 @@ class SnapshotRoutingTest {
     private static final Instant START = Required.value(Instant.parse("2026-10-26T14:00:00Z"));
     private static final Instant END = Required.value(START.plusSeconds(8 * 3600));
     private static final Rates RATES = new Rates(30, 45, 0, 0, 0);
-    private static RoadClient.Point point(int value) { return new RoadClient.Point(41 + value * .01, -95); }
+    private static RoadPoint point(int value) { return new RoadPoint(41 + value * .01, -95); }
 
     private static final class DirectedRoads extends RoadClient {
         final List<Pair> requested = new ArrayList<>();
@@ -33,7 +33,7 @@ class SnapshotRoutingTest {
             }
             return result;
         }
-        static long seconds(Point from, Point to) { return Math.round((from.lat() - 40) * 100 + (to.lat() - 40) * 10); }
+        static long seconds(RoadPoint from, RoadPoint to) { return Math.round((from.lat() - 40) * 100 + (to.lat() - 40) * 10); }
     }
 
     @Test void insertionLoadsConfirmedShortcutsAndPreservesDirectedUnreachableLegs() {

@@ -22,9 +22,8 @@ import java.util.*;
 
 @Service
 public class RoadClient {
-    public record Point(double lat, double lng) { }
     public record Leg(long seconds, long meters) { }
-    public record Pair(String id, Point origin, Point destination) { }
+    public record Pair(String id, RoadPoint origin, RoadPoint destination) { }
     public static class RoadUnavailable extends RuntimeException {
         private static final long serialVersionUID = 1L;
         public RoadUnavailable(String message) { super(message); }
@@ -70,7 +69,7 @@ public class RoadClient {
     public String activeIdentity() { return healthIdentity(); }
     void clearMemoryForIsolatedBenchmark() { memory.clear(); }
 
-    public JsonNode routeGeometry(List<Point> points, String expectedIdentity) {
+    public JsonNode routeGeometry(List<RoadPoint> points, String expectedIdentity) {
         String identity = healthIdentity();
         if (!identity.equals(expectedIdentity)) throw new RoadUnavailable("Routing identity changed");
         try {
@@ -99,8 +98,8 @@ public class RoadClient {
           catch (Exception e) { throw requestFailure(e, "Road geometry unavailable"); }
     }
 
-    public Leg leg(Point origin, Point destination) {
-        Map<String, Leg> result = matrix(Required.value(Map.<String, Point>of("origin", origin, "destination", destination)));
+    public Leg leg(RoadPoint origin, RoadPoint destination) {
+        Map<String, Leg> result = matrix(Required.value(Map.<String, RoadPoint>of("origin", origin, "destination", destination)));
         Leg leg = result.get("origin>destination");
         if (leg == null) throw new RoadUnavailable("No road route");
         return leg;
@@ -134,9 +133,9 @@ public class RoadClient {
             String values = String.join(",", Collections.nCopies(batch.size(), "(?,?)"));
             cache(() -> jdbc.query("SELECT \"originKey\",\"destinationKey\",seconds,meters,routable FROM road_route_cache WHERE \"mapVersion\"=? AND profile='car' AND (\"originKey\",\"destinationKey\") IN (" + values + ") AND \"fetchedAt\">CURRENT_TIMESTAMP-INTERVAL '30 days'",
                     (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
-                        String id = Required.string(rs, 1) + ">" + Required.string(rs, 2);
-                        boolean routable = Required.bool(rs, 5);
-                        Long seconds = Required.nullableLong(rs, 3), meters = Required.nullableLong(rs, 4);
+                        String id = dev.waterflex.scheduler.DatabaseFacts.string(rs, 1) + ">" + dev.waterflex.scheduler.DatabaseFacts.string(rs, 2);
+                        boolean routable = dev.waterflex.scheduler.DatabaseFacts.bool(rs, 5);
+                        Long seconds = dev.waterflex.scheduler.DatabaseFacts.nullableLong(rs, 3), meters = dev.waterflex.scheduler.DatabaseFacts.nullableLong(rs, 4);
                         if (routable && (seconds == null || meters == null || seconds < 0 || meters < 0)) {
                             org.slf4j.LoggerFactory.getLogger(RoadClient.class).warn("Discarding malformed cached directed leg for routing identity {}", identity);
                             return;
@@ -218,12 +217,12 @@ public class RoadClient {
     }
 
     /** Returns directed legs by caller ID; missing entries are proven unreachable. */
-    public Map<String, Leg> matrix(Map<String, Point> locations) {
+    public Map<String, Leg> matrix(Map<String, RoadPoint> locations) {
         if (locations.isEmpty()) return Required.value(Map.of());
         return matrix(locations, healthIdentity());
     }
 
-    public Map<String, Leg> matrix(Map<String, Point> locations, String identity) {
+    public Map<String, Leg> matrix(Map<String, RoadPoint> locations, String identity) {
         SearchDeadline.checkpoint();
         List<Pair> pairs = new ArrayList<>();
         for (var from : locations.entrySet()) for (var to : locations.entrySet())
@@ -260,19 +259,19 @@ public class RoadClient {
         return new RoadUnavailable(message + ": " + failure.getClass().getSimpleName());
     }
 
-    private static String key(@Nullable Point point) {
+    private static String key(@Nullable RoadPoint point) {
         if (point == null || !Double.isFinite(point.lat()) || !Double.isFinite(point.lng()) ||
                 Math.abs(point.lat()) > 90 || Math.abs(point.lng()) > 180) throw new IllegalArgumentException("Invalid coordinate");
         return Required.value(String.format(Locale.ROOT, "%.5f,%.5f", point.lat(), point.lng()));
     }
-    private static Point normalized(String key) {
+    private static RoadPoint normalized(String key) {
         String[] parts = key.split(",");
-        return new Point(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]));
+        return new RoadPoint(Double.parseDouble(parts[0]), Double.parseDouble(parts[1]));
     }
 
     private void cache(Runnable operation) {
         cacheTransactions.executeWithoutResult(_ -> {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             operation.run();
             SearchDeadline.checkpoint();
         });

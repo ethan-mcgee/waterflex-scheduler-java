@@ -13,8 +13,17 @@ import java.util.*;
 public final class RouteEvaluator {
     public record Result(boolean feasible, long costCents, Map<String, Instant> arrivals,
                          long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters,
-                         Map<String, List<WorkingSegment>> segments) { }
-    public record WorkingSegment(Instant departure, Instant returnedAt, List<String> visitIds) { }
+                         Map<String, List<WorkingSegment>> segments) {
+        public Result {
+            arrivals=Required.value(Map.copyOf(arrivals)); Map<String,List<WorkingSegment>> copy=new TreeMap<>();
+            segments.forEach((id,values) -> copy.put(Required.value(id),Required.value(List.copyOf(values)))); segments=Required.value(Map.copyOf(copy));
+            if (costCents < 0 || paidMinutes < 0 || overtimeMinutes < 0 || driveMinutes < 0 || waitingMinutes < 0 || meters < 0) throw new IllegalArgumentException("Invalid route resource metrics");
+        }
+    }
+    public record WorkingSegment(Instant departure, Instant returnedAt, List<String> visitIds) {
+        public WorkingSegment { Required.value(departure); Required.value(returnedAt); visitIds=Required.value(List.copyOf(visitIds));
+            if (departure.isAfter(returnedAt)) throw new IllegalArgumentException("Invalid working segment"); }
+    }
     private record Segment(String previous, Instant departure, Instant done) { }
     private record Timing(PlanVisit visit, Instant arrival, long waitingBefore) { }
     private record Work(Instant start, Instant end) { }

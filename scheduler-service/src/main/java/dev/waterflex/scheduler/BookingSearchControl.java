@@ -40,11 +40,11 @@ public final class BookingSearchControl {
         if (active.size() >= 64 || active.putIfAbsent(id, deadline) != null) throw new SearchAdmission.Busy("Search request already active or service busy");
         try {
             transaction.executeWithoutResult(_ -> {
-                SearchDeadline.database(jdbc);
+                dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
                 requireJob(jobId);
                 jdbc.update("INSERT INTO booking_search_request (id,\"jobId\",\"deadlineAt\") VALUES (?,?,?) ON CONFLICT (id) DO NOTHING",
                         id, jobId, Timestamp.from(Instant.now().plusNanos(deadline.remainingNanos())));
-                if (Required.query(jdbc, "SELECT count(*) FROM booking_search_request WHERE id=? AND \"jobId\"=? AND \"cancelledAt\" IS NULL AND \"deadlineAt\">clock_timestamp() AND \"offerSetId\" IS NULL", Integer.class, id, jobId) != 1)
+                if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM booking_search_request WHERE id=? AND \"jobId\"=? AND \"cancelledAt\" IS NULL AND \"deadlineAt\">clock_timestamp() AND \"offerSetId\" IS NULL", Integer.class, id, jobId) != 1)
                     throw new SearchDeadline.Expired();
             });
             deadline.cancellationGuard(() -> guard(id, jobId), set -> {
@@ -56,9 +56,9 @@ public final class BookingSearchControl {
         } catch (RuntimeException failure) { active.remove(id, deadline); throw failure; }
     }
     private void guard(String id, String jobId) {
-        SearchDeadline.database(jdbc);
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
         var rows = jdbc.query("SELECT \"cancelledAt\" IS NOT NULL OR \"deadlineAt\"<=clock_timestamp() FROM booking_search_request WHERE id=? AND \"jobId\"=? FOR UPDATE",
-                (rs, _) -> Required.bool(rs, 1), id, jobId);
+                (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.bool(rs, 1), id, jobId);
         if (rows.size() != 1 || Boolean.TRUE.equals(rows.getFirst())) throw new SearchDeadline.Expired();
     }
     public void cancel(String id, String jobId) {
@@ -72,7 +72,7 @@ public final class BookingSearchControl {
         SearchDeadline running = active.get(id); if (running != null) running.cancel();
     }
     private void requireJob(String id) {
-        if (jdbc.query("SELECT id FROM job WHERE id=?", (rs, _) -> Required.string(rs, 1), id).size() != 1)
+        if (jdbc.query("SELECT id FROM job WHERE id=?", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id).size() != 1)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Search job does not exist");
     }
     public void acknowledge(String id, String jobId) {
@@ -85,7 +85,7 @@ public final class BookingSearchControl {
         try {
             List<String> ids = new ArrayList<>(active.keySet());
             jdbc.query("SELECT id FROM booking_search_request WHERE id IN (" + String.join(",", Collections.nCopies(ids.size(), "?")) + ") AND (\"cancelledAt\" IS NOT NULL OR \"deadlineAt\"<=clock_timestamp())",
-                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> { SearchDeadline running = active.get(Required.string(rs, 1)); if (running != null) running.cancel(); }, ids.toArray(new @org.jspecify.annotations.Nullable Object[0]));
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs -> { SearchDeadline running = active.get(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)); if (running != null) running.cancel(); }, ids.toArray(new @org.jspecify.annotations.Nullable Object[0]));
         } catch (RuntimeException failure) {
             // A failed cancellation read cannot permit publication: the locked guard still fails closed.
             org.slf4j.LoggerFactory.getLogger(BookingSearchControl.class).debug("Cancellation polling unavailable", failure);
@@ -96,13 +96,13 @@ public final class BookingSearchControl {
         try {
             jdbc.update("UPDATE booking_search_request SET \"cancelledAt\"=clock_timestamp() WHERE \"offerSetId\" IS NOT NULL AND \"acknowledgedAt\" IS NULL AND \"cancelledAt\" IS NULL AND \"deadlineAt\"<=clock_timestamp()");
             var pending = jdbc.query("SELECT r.id,r.\"jobId\",o.id FROM booking_search_request r JOIN booking_offer_set s ON s.id=r.\"offerSetId\" JOIN LATERAL (SELECT id FROM booking_offer WHERE \"offerSetId\"=s.id ORDER BY id LIMIT 1) o ON true WHERE r.\"cancelledAt\" IS NOT NULL AND r.\"cleanedAt\" IS NULL ORDER BY r.\"cancelledAt\" LIMIT 8",
-                    (rs, _) -> new Cleanup(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)));
+                    (rs, _) -> new Cleanup(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3)));
             for (Cleanup item : pending) {
                 try {
                     SearchDeadline deadline = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)));
                     try (var _ = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline)) {
                         deadline.within(() -> {
-                            if (Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, item.jobId()).equals("PENDING")) {
+                            if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, item.jobId()).equals("PENDING")) {
                                 lifecycle.release(item.jobId(), item.offerId());
                             }
                             jdbc.update("UPDATE booking_search_request SET \"cleanedAt\"=clock_timestamp() WHERE id=?", item.id());

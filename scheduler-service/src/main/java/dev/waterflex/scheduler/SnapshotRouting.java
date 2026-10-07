@@ -19,7 +19,7 @@ public final class SnapshotRouting {
             SearchDeadline.checkpoint();
             LocalDate date = Required.value(entry.getKey());
             Day day = Required.value(entry.getValue());
-            Map<String, RoadClient.Point> points = points(day, day.visits());
+            Map<String, RoadPoint> points = points(day, day.visits());
             if (points.putIfAbsent(request.jobId(), request.location()) != null)
                 throw new BookingSnapshot.Incomplete("Request identifier already exists in snapshot");
             add(pairs, date, day, points, request.jobId(), request.jobId());
@@ -47,7 +47,7 @@ public final class SnapshotRouting {
             checkpoint.run();
             LocalDate date = Required.value(entry.getKey());
             Day day = Required.value(snapshot.days().get(date), "neighborhood date");
-            Map<String, RoadClient.Point> points = points(day, day.visits());
+            Map<String, RoadPoint> points = points(day, day.visits());
             Set<String> stops = new TreeSet<>();
             for (String technician : entry.getValue()) stops.addAll(Required.value(day.baseline().routes().get(technician), "neighborhood route"));
             for (String technician : entry.getValue()) for (String visit : stops) {
@@ -63,7 +63,7 @@ public final class SnapshotRouting {
 
     public Day arrangements(LocalDate date, Day day, Map<String, Visit> visits, List<Arrangement> arrangements, String identity) {
         Map<PairKey, RoadClient.Pair> pairs = new LinkedHashMap<>();
-        Map<String, RoadClient.Point> points = points(day, visits);
+        Map<String, RoadPoint> points = points(day, visits);
         for (Arrangement arrangement : arrangements) routePairs(pairs, date, day, Required.value(arrangement), visits, points);
         Map<LocalDate, Day> source = new TreeMap<>();
         source.put(date, day);
@@ -71,7 +71,7 @@ public final class SnapshotRouting {
     }
 
     private static void routePairs(Map<PairKey, RoadClient.Pair> pairs, LocalDate date, Day day,
-            Arrangement arrangement, Map<String, Visit> visits, Map<String, RoadClient.Point> points) {
+            Arrangement arrangement, Map<String, Visit> visits, Map<String, RoadPoint> points) {
         for (var entry : arrangement.routes().entrySet()) {
             String technician = Required.value(entry.getKey());
             String previous = technician, confirmedPrevious = technician;
@@ -89,8 +89,8 @@ public final class SnapshotRouting {
         }
     }
 
-    private static Map<String, RoadClient.Point> points(Day day, Map<String, Visit> visits) {
-        Map<String, RoadClient.Point> points = new HashMap<>();
+    private static Map<String, RoadPoint> points(Day day, Map<String, Visit> visits) {
+        Map<String, RoadPoint> points = new HashMap<>();
         day.technicians().forEach((id, technician) -> {
             points.put(id, technician.departure()); points.put(id + ":return", technician.returnTo());
         });
@@ -101,7 +101,7 @@ public final class SnapshotRouting {
     }
 
     private static void add(Map<PairKey, RoadClient.Pair> pairs, LocalDate date, Day day,
-            Map<String, RoadClient.Point> points, String from, String to) {
+            Map<String, RoadPoint> points, String from, String to) {
         String key = from + ">" + to;
         if (day.roads().legs().containsKey(key) || day.roads().unreachable().contains(key)) return;
         PairKey pair = new PairKey(date, from, to);

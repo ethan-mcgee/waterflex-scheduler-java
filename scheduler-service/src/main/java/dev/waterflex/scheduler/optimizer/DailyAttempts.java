@@ -38,7 +38,7 @@ final class DailyAttempts {
         jdbc.queryForList("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", "preview:" + key);
         jdbc.update("UPDATE daily_calculation_attempt SET state='ABANDONED', \"failureReason\"='OWNER_EXPIRED', \"updatedAt\"=clock_timestamp() WHERE \"requestKey\"=? AND state='CLAIMED' AND \"expiresAt\"<=clock_timestamp()", key);
         var rows = jdbc.query("SELECT id,\"requestFingerprint\",\"ownerToken\",state,\"resultJson\"::text FROM daily_calculation_attempt WHERE \"requestKey\"=?",
-                (rs, _) -> new Row(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3), Required.string(rs, 4), rs.getString(5)), key);
+                (rs, _) -> new Row(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), dev.waterflex.scheduler.DatabaseFacts.string(rs, 4), rs.getString(5)), key);
         if (!rows.isEmpty()) {
             Row row = rows.getFirst();
             if (!fingerprint.equals(row.fingerprint())) return new Claim(row.id(), key, row.owner(), null, "Preview key belongs to different inputs");
@@ -64,7 +64,7 @@ final class DailyAttempts {
         owned(jdbc.update("UPDATE daily_calculation_attempt SET state='SUCCEEDED',\"resultRunId\"=?,\"resultJson\"=?::jsonb,\"updatedAt\"=clock_timestamp() WHERE id=? AND \"ownerToken\"=? AND state='CLAIMED' AND \"expiresAt\">clock_timestamp()", result.get("run_id"), encode(result), claim.id(), claim.owner()));
     }
     void verifyCommit(Claim claim) {
-        owned(Required.query(jdbc, "SELECT count(*) FROM daily_calculation_attempt WHERE id=? AND \"ownerToken\"=? AND state='SUCCEEDED' AND \"expiresAt\">clock_timestamp()", Integer.class, claim.id(), claim.owner()));
+        owned(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM daily_calculation_attempt WHERE id=? AND \"ownerToken\"=? AND state='SUCCEEDED' AND \"expiresAt\">clock_timestamp()", Integer.class, claim.id(), claim.owner()));
     }
     void failed(Claim claim, String state, String reason) {
         if (!java.util.Set.of("FAILED", "CANCELLED", "STALE").contains(state)) throw new IllegalArgumentException("Invalid failure state");

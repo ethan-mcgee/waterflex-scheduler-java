@@ -31,7 +31,7 @@ public final class BookingCoordinator {
     public Result offers(String jobId, boolean refresh) {
         booking.searchContext(jobId);
         var active = jdbc.query("SELECT id,\"searchDiagnostics\"::text FROM booking_offer_set WHERE \"jobId\"=? AND \"expiresAt\">clock_timestamp() AND \"supersededAt\" IS NULL ORDER BY \"createdAt\" DESC LIMIT 1",
-                (rs, _) -> new Active(Required.string(rs, 1), rs.getString(2)), jobId);
+                (rs, _) -> new Active(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), rs.getString(2)), jobId);
         if (!active.isEmpty()) {
             Active current = Required.value(active.getFirst());
             var saved = saved(jobId, current.id());
@@ -68,7 +68,7 @@ public final class BookingCoordinator {
                     var lockedContext = booking.searchContext(jobId);
                     if (!context.equals(lockedContext)) throw conflict("Job or service location changed");
                     jdbc.update("UPDATE booking_offer_set s SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE s.\"jobId\"=? AND s.\"supersededAt\" IS NULL AND NOT EXISTS (SELECT 1 FROM booking_offer o WHERE o.\"offerSetId\"=s.id)", jobId);
-                    if (Required.query(jdbc, "SELECT count(*) FROM booking_offer_set WHERE \"jobId\"=? AND \"expiresAt\">clock_timestamp() AND \"supersededAt\" IS NULL", Integer.class, jobId) > 0)
+                    if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM booking_offer_set WHERE \"jobId\"=? AND \"expiresAt\">clock_timestamp() AND \"supersededAt\" IS NULL", Integer.class, jobId) > 0)
                         throw conflict("Another search reserved offers for this job");
                     jdbc.update("UPDATE booking_offer_set SET \"supersededAt\"=CURRENT_TIMESTAMP WHERE \"jobId\"=? AND \"supersededAt\" IS NULL", jobId);
                     jdbc.update("INSERT INTO booking_offer_set (id,\"jobId\",\"expiresAt\",\"searchDiagnostics\") VALUES (?,?,?,?::jsonb)",
@@ -104,22 +104,22 @@ public final class BookingCoordinator {
     }
 
     public boolean managedOffer(String jobId, String offerId) {
-        return Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM slot_hold h LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.\"jobId\"=? AND h.\"offerToken\"=? AND (s.\"searchDiagnostics\" IS NOT NULL OR EXISTS (SELECT 1 FROM reservation_dependency d WHERE d.\"holdId\"=h.id)))", Boolean.class, jobId, offerId);
+        return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM slot_hold h LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.\"jobId\"=? AND h.\"offerToken\"=? AND (s.\"searchDiagnostics\" IS NOT NULL OR EXISTS (SELECT 1 FROM reservation_dependency d WHERE d.\"holdId\"=h.id)))", Boolean.class, jobId, offerId);
     }
     public boolean requiresCommonArrangement() {
-        return Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class);
+        return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM reservation_dependency d JOIN slot_hold h ON h.id=d.\"holdId\" WHERE h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class);
     }
     public boolean managedHold(String holdId) {
-        return Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM slot_hold h LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.id=? AND (s.\"searchDiagnostics\" IS NOT NULL OR EXISTS (SELECT 1 FROM reservation_dependency d WHERE d.\"holdId\"=h.id)))", Boolean.class, holdId);
+        return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM slot_hold h LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.id=? AND (s.\"searchDiagnostics\" IS NOT NULL OR EXISTS (SELECT 1 FROM reservation_dependency d WHERE d.\"holdId\"=h.id)))", Boolean.class, holdId);
     }
     public boolean managedAppointment(String appointmentId) {
-        return Required.query(jdbc, "SELECT EXISTS (SELECT 1 FROM appointment a JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" JOIN reservation_arrangement r ON r.\"metroId\"=p.\"metroId\" AND r.\"serviceDate\"=a.\"serviceDate\" JOIN reservation_dependency dependency ON dependency.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=dependency.\"holdId\" WHERE a.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, appointmentId);
+        return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT EXISTS (SELECT 1 FROM appointment a JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" JOIN reservation_arrangement r ON r.\"metroId\"=p.\"metroId\" AND r.\"serviceDate\"=a.\"serviceDate\" JOIN reservation_dependency dependency ON dependency.\"arrangementId\"=r.id JOIN slot_hold h ON h.id=dependency.\"holdId\" WHERE a.id=? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">clock_timestamp())", Boolean.class, appointmentId);
     }
 
     private BookingService.Offers saved(String jobId, String setId) {
         return new BookingService.Offers(jobId, Required.value(jdbc.query("SELECT id,\"serviceDate\",\"windowStart\",\"windowEnd\",\"expiresAt\" FROM booking_offer WHERE \"offerSetId\"=? ORDER BY \"windowStart\",id",
-                (rs, _) -> new BookingService.Offer(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate().toString()),
-                        Required.value(Required.timestamp(rs, 3).toInstant()), Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant())), setId)));
+                (rs, _) -> new BookingService.Offer(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate().toString()),
+                        Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant())), setId)));
     }
     private boolean completed(@Nullable String encoded) {
         if (encoded == null) return false;

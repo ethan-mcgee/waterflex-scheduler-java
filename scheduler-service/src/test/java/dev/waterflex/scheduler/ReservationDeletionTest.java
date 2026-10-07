@@ -17,7 +17,7 @@ class ReservationDeletionTest {
             var date = Required.value(LocalDate.parse("2026-10-26"));
             var start = Required.value(Instant.parse("2026-10-26T13:00:00Z"));
             var end = Required.value(start.plusSeconds(7200));
-            var point = new RoadClient.Point(41.25, -95.93);
+            var point = new RoadPoint(41.25, -95.93);
             var technician = new Technician("tech", start, end, 60, 0, Required.value(Set.of("service")),
                     Required.value(List.of()), point, point, 1);
             var a = new Visit("a", "first", "service", start, end, 10, point, "tech", start, reservation);

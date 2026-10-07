@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /** One monotonic budget, including admission time. Instances belong to one request. */
 public final class SearchDeadline {
@@ -110,13 +109,5 @@ public final class SearchDeadline {
             current.durationNanos = Math.min(current.durationNanos, millis * 1_000_000L);
             current.requireTime();
         }
-    }
-    /** Apply a PostgreSQL millisecond timeout on the request's existing transaction. */
-    public static void database(JdbcTemplate jdbc) {
-        SearchDeadline current = CURRENT.get();
-        if (current == null) return;
-        long millis = Math.max(1, current.timeout(Required.value(Duration.ofSeconds(5))).toMillis());
-        jdbc.queryForList("SELECT set_config('statement_timeout', ?, true), set_config('lock_timeout', ?, true)",
-                Long.toString(millis), Long.toString(millis));
     }
 }

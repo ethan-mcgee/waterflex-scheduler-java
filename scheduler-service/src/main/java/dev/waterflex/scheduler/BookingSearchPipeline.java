@@ -16,6 +16,9 @@ public final class BookingSearchPipeline {
     private final boolean bounded;
     private final int refinementMillis;
     private final BookingOfferLimit offerLimit;
+    private CalculationTransport transport = new CalculationTransport("EMBEDDED","http://127.0.0.1:8002","");
+    @org.springframework.beans.factory.annotation.Autowired
+    void transport(CalculationTransport value) { transport = value; }
     private String variant = "BOUNDED";
     @Value("${booking.search.variant:BOUNDED}")
     void variant(String value) {
@@ -48,10 +51,11 @@ public final class BookingSearchPipeline {
         var loaded = loader.load(metroId, request.jobId(), captured, identity);
         BookingSnapshot snapshot = routing.insertion(loaded.snapshot(), request);
         loader.flagExistingOvertime(snapshot, request.serviceId());
-        var insertion = engine(snapshot, request, SearchDeadline::checkpoint);
-        var result = insertion.search(false);
-        long evaluatedRoutes = insertion.evaluatedRoutes(), reusedRoutes = insertion.reusedRoutes();
-        long prunedArrangements = insertion.prunedArrangements();
+        var inserted = transport.booking(new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.INSERTION,
+                bounded ? variant : "INSERTION",Required.value(java.util.Set.of()),null,0));
+        var result = inserted.result();
+        long evaluatedRoutes = inserted.evaluatedRoutes(), reusedRoutes = inserted.reusedRoutes();
+        long prunedArrangements = inserted.prunedArrangements();
         long reconstructionAttempts = 0, reconstructionEvaluations = 0;
         String reason = result.stopReason();
         if (bounded && !variant.equals("INSERTION") && !"DEADLINE".equals(result.stopReason())) {
@@ -64,10 +68,10 @@ public final class BookingSearchPipeline {
             };
             try {
                 refinementCheckpoint.run();
-                snapshot = routing.neighborhoods(snapshot, insertion.neighborhoodRoutes(), refinementCheckpoint);
-                var neighborhood = engine(snapshot, request, refinementCheckpoint);
-                var refined = neighborhood.refine(result);
-                result = combine(result, refined, snapshot.policy());
+                snapshot = routing.neighborhoods(snapshot, inserted.neighborhoods(), refinementCheckpoint);
+                var neighborhood = transport.booking(new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.REFINEMENT,
+                        variant,Required.value(java.util.Set.of()),result,optional ? Math.max(1,refinementMillis-(int)((System.nanoTime()-refinementStarted)/1_000_000)) : 0));
+                result = combine(result, neighborhood.result(), snapshot.policy());
                 evaluatedRoutes += neighborhood.evaluatedRoutes(); reusedRoutes += neighborhood.reusedRoutes();
                 prunedArrangements += neighborhood.prunedArrangements();
                 reconstructionAttempts += neighborhood.reconstructionAttempts(); reconstructionEvaluations += neighborhood.reconstructionEvaluations();
@@ -79,6 +83,10 @@ public final class BookingSearchPipeline {
             } catch (RoadClient.RoadUnavailable exception) {
                 // Completed insertion candidates remain independently valid. Failure never establishes scarcity.
                 reason = "ROUTING_UNAVAILABLE"; result = incomplete(result, reason);
+            } catch (HttpCalculation.Unavailable exception) {
+                reason = "REFINEMENT_UNAVAILABLE"; result = incomplete(result,reason);
+            } catch (IllegalArgumentException | BookingSnapshot.Incomplete exception) {
+                reason = "REFINEMENT_INVALID"; result = incomplete(result,reason);
             }
         }
         if (result.complete() && result.candidates().isEmpty()) {
@@ -87,15 +95,17 @@ public final class BookingSearchPipeline {
             for (var date : BookingService.overflowDates(snapshot.calendarReference())) {
                 var overflow = engine(snapshot, request, SearchDeadline::checkpoint);
                 if (bounded) snapshot = routing.neighborhoods(snapshot, overflow.neighborhoodRoutes());
-                overflow = engine(snapshot, request, SearchDeadline::checkpoint);
-                result = overflow.searchDates(Required.value(java.util.Set.of(date)), bounded && !variant.equals("INSERTION"));
-                reconstructionAttempts += overflow.reconstructionAttempts(); reconstructionEvaluations += overflow.reconstructionEvaluations();
-                evaluatedRoutes += overflow.evaluatedRoutes(); reusedRoutes += overflow.reusedRoutes();
-                prunedArrangements += overflow.prunedArrangements(); reason = result.stopReason();
+                var calculated = transport.booking(new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.OVERFLOW,
+                        bounded ? variant : "INSERTION",Required.value(java.util.Set.of(date)),null,0));
+                result = calculated.result();
+                reconstructionAttempts += calculated.reconstructionAttempts(); reconstructionEvaluations += calculated.reconstructionEvaluations();
+                evaluatedRoutes += calculated.evaluatedRoutes(); reusedRoutes += calculated.reusedRoutes();
+                prunedArrangements += calculated.prunedArrangements(); reason = result.stopReason();
                 if (!result.candidates().isEmpty() || !result.complete()) break;
             }
         }
         SearchDeadline.beginCommit();
+        BookingCalculation.validate(snapshot,request,result);
         Instant expiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
         var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, offerLimit, SearchDeadline::checkpoint);
         return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements, SearchDeadline.isDurable() ? 0 : refinementMillis, reconstructionAttempts, reconstructionEvaluations, bounded ? variant : "INSERTION");

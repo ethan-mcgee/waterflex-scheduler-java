@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DirectedLegFlightsTest {
-    private static final RoadClient.Pair PAIR = new RoadClient.Pair("a>b", new RoadClient.Point(0, 0), new RoadClient.Point(1, 1));
+    private static final RoadClient.Pair PAIR = new RoadClient.Pair("a>b", new RoadPoint(0, 0), new RoadPoint(1, 1));
     private static final List<RoadClient.Pair> PAIRS = Required.value(List.<RoadClient.Pair>of(PAIR));
     private static final Map<String, RoadClient.Leg> RESULT = Required.value(Map.<String, RoadClient.Leg>of("a>b", new RoadClient.Leg(60, 100)));
 

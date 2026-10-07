@@ -27,8 +27,8 @@ public final class ServiceCalendar {
         String host = database.getHost();
         if (host == null || !java.util.Set.of("localhost", "127.0.0.1", "[::1]", "::1").contains(host)
                 || !"/waterflex_test".equals(database.getPath())
-                || !"waterflex_test".equals(Required.query(jdbc, "SELECT current_database()", String.class))
-                || !Required.query(jdbc, "SELECT current_schema()", String.class).startsWith("benchmark_"))
+                || !"waterflex_test".equals(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT current_database()", String.class))
+                || !dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT current_schema()", String.class).startsWith("benchmark_"))
             throw new IllegalArgumentException("Fixed service calendar requires local waterflex_test and benchmark_ schema");
         reference = Instant.parse(configured);
     }

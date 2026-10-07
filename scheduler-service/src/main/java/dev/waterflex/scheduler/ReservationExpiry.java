@@ -21,7 +21,7 @@ public final class ReservationExpiry {
     public void expire() {
         try {
             List<Expired> batch = jdbc.query("SELECT s.id,s.\"jobId\",o.id FROM booking_offer_set s JOIN job j ON j.id=s.\"jobId\" JOIN LATERAL (SELECT id FROM booking_offer WHERE \"offerSetId\"=s.id ORDER BY id LIMIT 1) o ON true WHERE s.id>? AND j.status='PENDING' AND s.\"supersededAt\" IS NULL AND s.\"expiresAt\"<=clock_timestamp() AND EXISTS (SELECT 1 FROM slot_hold h WHERE h.\"offerSetId\"=s.id AND h.\"releasedAt\" IS NULL) ORDER BY s.id LIMIT 4",
-                    (rs, _) -> new Expired(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3)), cursor);
+                    (rs, _) -> new Expired(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3)), cursor);
             if (batch.isEmpty()) { cursor = ""; return; }
             for (Expired expired : batch) {
                 // Rotate past failures so one infeasible removal cannot starve unrelated expired sets.
