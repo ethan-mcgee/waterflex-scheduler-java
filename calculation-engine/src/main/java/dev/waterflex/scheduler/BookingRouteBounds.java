@@ -100,7 +100,7 @@ final class BookingRouteBounds {
         String pair = from + ">" + to; Long cached = buffered.get(pair); if (cached != null) return cached;
         day.roads().require(from, to);
         var road = day.roads().legs().get(pair);
-        long minutes = road == null ? Long.MAX_VALUE : (long) Math.ceil(road.seconds() * (1 + rates.travelBufferPct()) / 60.0) + rates.travelBufferMinutes();
+        long minutes = road == null ? Long.MAX_VALUE : Monetary.bufferedMinutes(road.seconds(), rates.travelBufferPct(), rates.travelBufferMinutes());
         buffered.put(pair, minutes); return minutes;
     }
     private @Nullable Instant forward(String technician, Instant earliest, int duration) {

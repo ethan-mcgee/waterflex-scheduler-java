@@ -6,11 +6,11 @@ export const text = z.string().trim().min(1);
 export const date = z.iso.date();
 export const instant = z.iso.datetime({ offset: true });
 export const finite = z.number().finite();
-export const costModelVersion = z.enum(["legacy-double-v1", "exact-fleet-half-up-v2"]);
+export const costModelVersion = z.enum(["legacy-double-v1", "exact-fleet-half-up-v2", "exact-fleet-half-up-v3"]);
 // NUMERIC(65,30); canonical plain strings keep monetary values out of JS number arithmetic.
 export const monetaryDecimal = z.string().regex(/^(?:0|[1-9][0-9]{0,34})(?:\.[0-9]{0,29}[1-9])?$/);
 export const operatingRates = z.object({ regularHourly: monetaryDecimal, overtimeHourly: monetaryDecimal,
-  mileagePerMile: monetaryDecimal, travelBufferPct: finite.nonnegative(), travelBufferMinutes: z.int().nonnegative() });
+  mileagePerMile: monetaryDecimal, travelBufferPct: monetaryDecimal, travelBufferMinutes: z.int().nonnegative() });
 export const minute = z.int().min(0).max(1440);
 export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-180).max(180) });
 export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();
@@ -131,7 +131,7 @@ export const optimization = z.object({
   solver_analysis: solverAnalysis.nullish(),
   changes: z.array(z.object({ appointment_id: text, from_technician_id: text, to_technician_id: text,
     from_sequence: z.int(), to_sequence: z.int(), from_planned_arrival_min: finite, to_planned_arrival_min: finite })),
-}).refine(value => value.cost_model_version !== "exact-fleet-half-up-v2"
+}).refine(value => value.cost_model_version == null || value.cost_model_version === "legacy-double-v1"
   || (value.fleet_cost_before_cents != null && value.fleet_cost_after_cents != null), "Current cost model requires recorded fleet costs")
   .refine(value => value.score_model_version !== "bendable-decimal-repair-v2" || value.calculation_outcome != null,
     "Current score model requires calculation coverage and validation");
