@@ -20,4 +20,5 @@ docs/timefold-audit/remediation/phase7/evidence/** -text -whitespace
 docs/timefold-audit/remediation/phase8/evidence/** -text -whitespace
 docs/timefold-audit/remediation/phase9/evidence/** -text -whitespace
 docs/timefold-audit/remediation/phase10/evidence/** -text -whitespace
+docs/timefold-audit/remediation/phase11/evidence/** -text -whitespace
 experiments/datasets/contract-lifecycle.json -text whitespace=cr-at-eol
