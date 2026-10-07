@@ -24,7 +24,21 @@ def main():
     contention.add_argument('parallel', type=Path)
     imp = commands.add_parser('import-history')
     imp.add_argument('archive', type=Path)
+    commands.add_parser('study-run').add_argument('config', type=Path)
+    commands.add_parser('study-analyze').add_argument('run', type=Path)
+    profile = commands.add_parser('profile-study')
+    profile.add_argument('run', type=Path)
+    profile.add_argument('output', type=Path)
     args = parser.parse_args()
+    if args.command == 'profile-study':
+        import campaign_profile
+        print(json.dumps(campaign_profile.extract(args.run.resolve(), args.output.resolve()), indent=2))
+        return
+    if args.command in ('study-run', 'study-analyze'):
+        import campaign_study
+        result = campaign_study.execute(args.config) if args.command == 'study-run' else campaign_study.analyze(args.run.resolve())
+        print(json.dumps(result, indent=2))
+        return
     # Version dispatch happens before importing any v1 execution/analysis adapter.
     # Historical v1 inputs are never translated into v2 settings or observations.
     if args.command in ('run', 'validate', 'dry-run'):
