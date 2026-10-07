@@ -2,6 +2,8 @@ import copy
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
+from contextlib import nullcontext
 
 import campaign_profile as cp
 import campaign_study as cs
@@ -70,6 +72,25 @@ class CampaignStudyTests(unittest.TestCase):
         bounds = cs.ratio_interval([.5, 1, 2], rules)
         self.assertLess(bounds[0], .95)
         self.assertGreater(bounds[1], 1.05)
+
+    def test_failed_launch_is_retained_once_at_normal_archive_depth(self):
+        spec = self.specification()
+        source = self.base / 'study.json'
+        write_new(source, spec)
+        run = self.base / 'flat-campaign'
+        run.mkdir()
+        write_new(run / 'manifest.json', {'fixture': True})
+        with patch.object(cs, 'measurement_lock', return_value=nullcontext()), patch.object(cs.cr, 'new_run', return_value=run) as create, patch.object(cs.cr, 'execute', side_effect=RuntimeError('launch failed')) as execute:
+            with self.assertRaisesRegex(RuntimeError, 'launch failed'):
+                cs.execute(source)
+        self.assertEqual(create.call_count, 1)
+        self.assertEqual(create.call_args.kwargs, {})
+        self.assertEqual(execute.call_count, 1)
+        study = next((self.base / 'runs').iterdir())
+        self.assertEqual(read_json(study / 'terminal.json')['state'], 'FAILED')
+        pointer = read_json(study / 'probes/probe-0.json')
+        self.assertEqual(pointer['run'], str(run))
+        self.assertEqual(pointer['manifestHash'], sha(run / 'manifest.json'))
 
     def test_missing_jfr_events_are_null_with_reason(self):
         report = cp.summarize({'recording': {'events': []}})
