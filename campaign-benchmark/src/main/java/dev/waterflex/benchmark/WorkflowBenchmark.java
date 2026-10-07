@@ -149,7 +149,7 @@ public final class WorkflowBenchmark {
         }
     }
     private static boolean operationBudgetMismatch(String operation,PolicyBenchmark.Budget budget,SchedulingPolicy.Rules policy) {
-        if(operation.equals("booking-offer")) return !budget.phase().equals("booking") || budget.operationMs()!=policy.bookingDeadlineMs();
+        if(operation.equals("booking-offer")) return !budget.phase().equals("booking") || budget.operationMs()!=5000 || policy.bookingDeadlineMs()!=5000;
         return !budget.phase().equals("pipeline") || budget.operationMs()!=20000 || budget.searchMs()!=15000 || budget.referenceMs()!=10000
                 || budget.fairnessMs()!=5000 || budget.repairMs()!=0 || !budget.transferUnusedToFairness();
     }

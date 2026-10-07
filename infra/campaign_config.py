@@ -172,6 +172,7 @@ def validate(config):
                 check(budget['referenceMs'] > 0 and budget['fairnessMs'] > 0 and budget['repairMs'] == 0, 'Pipeline needs reference and fairness')
         if budget['phase'] == 'booking':
             check(not budget['transferUnusedToFairness'] and budget['operationMs'] == config['policy']['bookingDeadlineMs'], 'Booking allowance must match explicit policy')
+            check(budget['operationMs'] == 5000, 'Caller booking workflows preserve the public five-second operation cap')
         elif budget['purpose'] == 'production' and config['layer'] != 'solver':
             check(budget['operationMs'] == 20000 and budget['searchMs'] == 15000 and
                   (budget['referenceMs'] == 10000 if budget['phase'] == 'pipeline' else budget['repairMs'] == 15000),

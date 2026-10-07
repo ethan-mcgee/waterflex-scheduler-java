@@ -455,6 +455,10 @@ class AdapterContractTests(unittest.TestCase):
         config['budgets'][0]['operationMs'] = 6000
         with self.assertRaises(ValueError):
             cc.validate(config)
+        config['policy']['bookingDeadlineMs'] = 3000
+        config['budgets'][0].update(operationMs=3000,searchMs=2000)
+        with self.assertRaises(ValueError):
+            cc.validate(config)
 
     def fixture(self, directory):
         config = configuration()

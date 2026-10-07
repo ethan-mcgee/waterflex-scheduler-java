@@ -11,6 +11,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class SchedulingBenchmarkControllerTest {
+    @Test void exportedPolicyKeepsCanonicalDecimalStringsAcrossJacksonVersions() throws Exception {
+        var jdbc=mock(JdbcTemplate.class);
+        when(jdbc.queryForObject("SELECT current_database()",String.class,new Object[0])).thenReturn("waterflex_test");
+        var optimization=mock(dev.waterflex.scheduler.optimizer.OptimizationService.class);
+        var request=new dev.waterflex.scheduler.optimizer.OptimizationService.Request("metro","2026-10-26","export");
+        when(optimization.exportDataset(request)).thenReturn(new CalculationProtocol.DailyInput("sealed-snapshot",dev.waterflex.scheduler.optimizer.SchedulingPolicy.Rules.defaults()));
+        var controller=new SchedulingBenchmarkController(jdbc,mock(BookingSnapshotLoader.class),mock(SnapshotRouting.class),mock(RoadClient.class),
+                new org.springframework.mock.env.MockEnvironment(),mock(SearchAdmission.class),mock(dev.waterflex.scheduler.optimizer.DailySolver.class),optimization);
+        var http=MockMvcBuilders.standaloneSetup(controller).setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
+        http.perform(Required.value(post("/internal/benchmark/dataset").contentType("application/json").content("{\"metro_id\":\"metro\",\"date\":\"2026-10-26\",\"request_key\":\"export\"}")))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.policy.utilizationThreshold").isString())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.policy.fairnessAllowance").isString())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.policy.utilizationThreshold").value("0.9"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.policy.fairnessAllowance").value("0.02"));
+    }
     @Test void auditRejectsOtherDatabasesAndMalformedRequestsBeforeLoadingSchedules() throws Exception {
         var jdbc = mock(JdbcTemplate.class); var loader = mock(BookingSnapshotLoader.class);
         var routing = mock(SnapshotRouting.class); var roads = mock(RoadClient.class);
