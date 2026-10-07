@@ -181,7 +181,7 @@ def new_run(config_path, base=None):
     return run
 
 
-def verify(run):
+def verify(run, *, read_only=False):
     manifest = read_json(run / 'manifest.json')
     fields(manifest, ['version', 'inputs', 'frozen', 'toolkit'])
     cc.choice(manifest['version'], 2)
@@ -189,7 +189,11 @@ def verify(run):
     cc.check(set(manifest['inputs']) == {'original-config.json', 'config.json', 'blocks.json', 'estimate.json', 'runtime.json'}, 'Manifest input inventory mismatch')
     for name, expected in manifest['inputs'].items():
         cc.check(sha(run / name) == expected, f'Campaign input hash changed: {name}')
-    cc.check(manifest['toolkit'] == toolkit_hashes(), 'Toolkit changed; use the frozen entry point or register a new campaign')
+    if read_only:
+        cc.check(set(manifest['toolkit']) <= set(TOOLKIT), 'Unsupported historical toolkit inventory')
+        cc.check(manifest['toolkit'] == {name: sha(run / 'frozen/toolkit' / name) for name in manifest['toolkit']}, 'Historical toolkit bytes changed')
+    else:
+        cc.check(manifest['toolkit'] == toolkit_hashes(), 'Toolkit changed; use the frozen entry point or register a new campaign')
     verify_files(run / 'frozen', manifest['frozen'])
     config = cc.validate(read_json(run / 'config.json'))
     cc.check(read_json(run / 'blocks.json') == cc.expand(config), 'Saved expansion mismatch')
@@ -542,7 +546,7 @@ def execute(run, *, now=None, worker=None, observer=None):
 
 
 def analyze(run):
-    config, blocks, runtime = verify(run)
+    config, blocks, runtime = verify(run, read_only=True)
     rows = observations(run, blocks)
     outcomes = {state: sum(r['state'] == state for r in rows.values()) for state in ('SUCCEEDED', 'FAILED', 'INTERRUPTED', 'ABANDONED')}
     complete = sum(all(c['id'] in rows and rows[c['id']]['state'] == 'SUCCEEDED' for c in b['cases']) for b in blocks)
@@ -572,7 +576,7 @@ def analyze(run):
         'independentlyValidCases': sum(validity) if validity else None,
         'validityUnavailableReason': None if validity else 'No successful scheduling benchmark receipts; input contracts and lifecycle fixtures are separate.',
         'expectedInputRejections': contracts,
-        'configuredAnalysis': config['analysis'], 'inference': None,
+        'configuredAnalysis': config['analysis'], 'analyzerToolkit': toolkit_hashes(), 'inference': None,
         'inferenceUnavailableReason': 'Inventory-only analysis was registered; acceptance and lifecycle inventories cannot select a winner.',
         'observations': list(rows.values())}
     if config['analysis']['method'] == 'paired-dataset-bootstrap':
