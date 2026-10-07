@@ -48,18 +48,20 @@ class NullabilityTest {
         verifyNoInteractions(booking);
     }
 
-    @Test void overtimeApprovalRequiresReviewedRepairIdentities() throws Exception {
+    @Test void approvalCannotRequestOvertime() throws Exception {
+        // Overtime is never assigned, so time-off approval accepts only an empty body.
         TimeOffService timeOff = mock(TimeOffService.class);
         var http = MockMvcBuilders.standaloneSetup(new TimeOffController(timeOff))
                 .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
         for (String body : List.of("{\"allowAdditionalOvertime\":true}",
-                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":null}",
-                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[]}",
-                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[null]}",
-                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[\"same\",\"same\"]}"))
+                "{\"allowAdditionalOvertime\":false}",
+                "{\"allowAdditionalOvertime\":true,\"approvedRepairIds\":[\"repair\"]}",
+                "{\"approvedRepairIds\":[]}", "null"))
             http.perform(Required.value(post("/v1/time-off/request/approve").contentType("application/json").content(Required.value(body))))
                     .andExpect(status().isBadRequest());
         verifyNoInteractions(timeOff);
+        http.perform(Required.value(post("/v1/time-off/request/approve").contentType("application/json").content("{}"))).andExpect(status().isOk());
+        verify(timeOff).approve("request");
     }
 
     @Test void sqlNullIsDifferentFromLegitimateZeroAndFalse() throws Exception {

@@ -220,8 +220,8 @@ export function submitTimeOff(request: { technicianId: string; firstDate: string
   return requestEngine("/v1/time-off/request", timeOffResult, request);
 }
 
-export function approveTimeOff(id: string, allowAdditionalOvertime = false, approvedRepairIds: string[] = []): Promise<{ requestId: string; status: string }> {
-  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, { allowAdditionalOvertime, approvedRepairIds });
+export function approveTimeOff(id: string): Promise<{ requestId: string; status: string }> {
+  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, {});
 }
 
 export function retryTimeOff(id: string): Promise<{ requestId: string; status: string }> {
