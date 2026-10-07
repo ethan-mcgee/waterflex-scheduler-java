@@ -85,7 +85,7 @@ public final class SavedJson {
             boolean current = statistics.has("format");
             if (current && integer(statistics, "format") != 2) throw invalid();
             String termination = text(statistics, "termination");
-            if (!(current ? java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN")
+            if (!(current ? java.util.Set.of("CANCELLED", "TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED", "SOLVE_RETURNED", "NOT_RUN")
                     : java.util.Set.of("TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED")).contains(termination)) throw invalid();
             integer(statistics, "seed");
             for (String key : new String[]{"budgetMs", "solveMs"})
@@ -100,7 +100,7 @@ public final class SavedJson {
                 nullableText(statistics, "timeToBestUnavailableReason");
                 if (statistics.path("timeToBestMs").isNull() != statistics.hasNonNull("timeToBestUnavailableReason")) throw invalid();
                 String basis = text(statistics, "terminationBasis");
-                boolean observed = java.util.Set.of("SOLVE_RETURNED", "TERMINATED_EARLY", "NOT_RUN").contains(termination);
+                boolean observed = java.util.Set.of("SOLVE_RETURNED", "CANCELLED", "TERMINATED_EARLY", "NOT_RUN").contains(termination);
                 if (!(observed ? "OBSERVED" : "INFERRED").equals(basis) || (!observed && unavailable)) throw invalid();
                 if (!java.util.Set.of("NO_ASSERT", "FULL_ASSERT", "NON_INTRUSIVE_FULL_ASSERT", "PHASE_ASSERT").contains(text(statistics, "environmentMode"))) throw invalid();
                 if (!java.util.Set.of("NONE", "TIMEFOLD_INTERNAL_2_6_0").contains(text(statistics, "instrumentation"))) throw invalid();
