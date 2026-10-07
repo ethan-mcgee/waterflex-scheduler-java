@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "step": 9,
+  "recordedAtUtc": "2026-10-07T01:53:11.789795+00:00",
+  "correctsRevision": "1099ae4f71fe81173df7f0de7c9c76f8799e2e80",
+  "failedHostedRun": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37558994421",
+  "finding": "Migration applied successfully; schema contract inventory lacked native date and zoned timestamps for overnight receipts.",
+  "correction": "Explicitly verify overnight serviceDate=date, startedAt/finishedAt=timestamp with time zone and all ten required caller columns. Preserve every existing type/nullability assertion.",
+  "checks": [
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "log": "evidence/phase9-schema-correction-lint.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "log": "evidence/phase9-schema-correction-typecheck.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "log": "evidence/phase9-schema-correction-unit.log"
+    }
+  ],
+  "sourceIdentities": [
+    {
+      "path": "web/scripts/check-java-schema-contract.ts",
+      "gitBlobSha256": "22b2318c58b8147764b5d87788f89faee5eaa3c7e22ac3e4a07fd53e578f8cfc"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase9-hosted-schema-failure.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase9-hosted-schema-job-raw.log",
+      "bytes": 59108,
+      "sha256": "51a398ffcece12b907c471902c1076bb36418881232a6db8d381c1720735ab9d"
+    },
+    {
+      "path": "evidence/phase9-hosted-schema-job-retained.log",
+      "bytes": 59108,
+      "sha256": "51a398ffcece12b907c471902c1076bb36418881232a6db8d381c1720735ab9d"
+    },
+    {
+      "path": "evidence/phase9-hosted-schema-job.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase9-schema-correction-lint.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase9-schema-correction-typecheck.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase9-schema-correction-unit.log",
+      "bytes": 10373,
+      "sha256": "e76c66def639d72095bc4ee0b6c34c7d71697606d3f729a8404e1cd839bacae9"
+    }
+  ],
+  "limits": [
+    "Java runtime, migration and portal display are unchanged from the initial accepted gates. Corrected-head hosted schema/business/browser/assertion gates pending at recording time.",
+    "No test weakening, automatic application or performance promotion. Owner review and phases 10-16 remain pending."
+  ]
+}

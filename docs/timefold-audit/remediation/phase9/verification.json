@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "step": 9,
+  "recordedAtUtc": "2026-10-07T01:49:20.286152+00:00",
+  "startingRevision": "584fd25365c505e01a26721325553e1cbd5eb6a4",
+  "scope": "Policy-ineligible fairness skip, typed candidate diagnostics, durable caller-owned overnight outcomes and alertable metrics.",
+  "checks": [
+    {
+      "command": "./mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase9-ecj-delivery.log",
+      "tests": 265,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "./mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase9-javac-delivery.log",
+      "tests": 265,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "npm --prefix web run prisma:generate",
+      "status": "passed",
+      "log": "evidence/phase9-prisma-accepted.log"
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "log": "evidence/phase9-lint-accepted.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "log": "evidence/phase9-typecheck-accepted.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "log": "evidence/phase9-portal-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "log": "evidence/phase9-unit-accepted.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "log": "evidence/phase9-build-accepted.log"
+    },
+    {
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "log": "evidence/phase9-baseline.log"
+    },
+    {
+      "command": "python -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "log": "evidence/phase9-audit-helpers.log",
+      "tests": 10
+    },
+    {
+      "command": ".scratch/phase5/actionlint/actionlint.exe",
+      "status": "passed",
+      "log": "evidence/phase9-actionlint.log"
+    },
+    {
+      "command": "docker compose --profile remote-solver config --quiet",
+      "status": "passed",
+      "log": "evidence/phase9-compose.log"
+    }
+  ],
+  "sourceIdentities": [
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyCalculation.java",
+      "gitBlobSha256": "d909e2121ef3b2a2d79b84f0afbf9d998344e64e3da347dee4f842900e3165c5"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailyPolicyDiagnostics.java",
+      "gitBlobSha256": "f50cbe432878f933bdbdadfd647dbe7e0cf542a42b2c6c6898994807c667ab3b"
+    },
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/optimizer/DailySolver.java",
+      "gitBlobSha256": "8a4b8b31264ac3fd723fdcd48f8e2a7cab203a20844b0461a5d3884210f78361"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/SavedJson.java",
+      "gitBlobSha256": "f4e300ee650d0f458c20fe8b79ea6bd652e9af6932f0abce139f88e6ed0a9dc2"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OptimizationService.java",
+      "gitBlobSha256": "289792355bdff9d6d4896c7a8efbad23828a7653e68988b69bfd0feeade51325"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OvernightController.java",
+      "gitBlobSha256": "6f051005661478f58400524dcdff28baa1aa84ac7e9cf1099ae63b3b9ba89ae0"
+    },
+    {
+      "path": "scheduler-service/src/main/java/dev/waterflex/scheduler/optimizer/OvernightOptimization.java",
+      "gitBlobSha256": "efed3f1b3781c024c902f539a446e64724dbb9b37a0369605d33c6f2c657f9a7"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/BenchmarkIsolationTest.java",
+      "gitBlobSha256": "00c474cd9e60a4b63ae4f43831236920cb919584453459de7aa4fc493f8cb484"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyAttemptDatabaseIT.java",
+      "gitBlobSha256": "ead0134b6102bfd93a5ad73390f9715ba696f8dc9415da4946ed96bcc1325caa"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/DailyPolicyDiagnosticsTest.java",
+      "gitBlobSha256": "c82670c2213a3f8c01d3d7f8a6eea60c125475967067e84bd44d1b14c16ce420"
+    },
+    {
+      "path": "scheduler-service/src/test/java/dev/waterflex/scheduler/optimizer/OvernightControllerTest.java",
+      "gitBlobSha256": "d67f57ef688385c785896fa5de9f61e9986231208875ac2c0146f0bb2fb3aeca"
+    },
+    {
+      "path": "web/app/dispatch/OptimizationReview.tsx",
+      "gitBlobSha256": "535fb66bcedd1bbb9b6b787703b0f295c656a18c7e8d0dbb43d39f2f25b8f3c9"
+    },
+    {
+      "path": "web/lib/contracts.ts",
+      "gitBlobSha256": "f8e0ac261cda30a9264a65aff6bde229ed9756228136416f58295bb1a62d33ce"
+    },
+    {
+      "path": "web/lib/dailyPolicyDiagnostics.test.ts",
+      "gitBlobSha256": "ea39034f3a3339dd35b4227babd49025ba4b896168751164a0c4f83dc5abf494"
+    },
+    {
+      "path": "web/prisma/migrations/20261007020000_overnight_attempt_receipts/migration.sql",
+      "gitBlobSha256": "a0a0bc57f3debfa235e3bf17e16198711f749e12501f68a664fd0b3a499185a2"
+    },
+    {
+      "path": "web/prisma/schema.prisma",
+      "gitBlobSha256": "d7368beddd9eaedff80615a90b5850dc05b2cc2e3fa72247ba61012b13a6ea8c"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase9-actionlint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase9-audit-helpers.log",
+      "bytes": 1506,
+      "sha256": "28834bd0a64bf63183df640727acb1f8b261eab737e53934a6eb0025ee87b060"
+    },
+    {
+      "path": "evidence/phase9-baseline.log",
+      "bytes": 171,
+      "sha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d"
+    },
+    {
+      "path": "evidence/phase9-build-accepted.log",
+      "bytes": 4155,
+      "sha256": "de2d45cab10890275536421720d00d6e8333a83c817e6950ff18ab2ac301cd54"
+    },
+    {
+      "path": "evidence/phase9-compile.log",
+      "bytes": 10741,
+      "sha256": "eead07962507360afe33c7d80920ab8d648cefeba9f2de792cb7abcdb71871d7"
+    },
+    {
+      "path": "evidence/phase9-compile2.log",
+      "bytes": 4874,
+      "sha256": "c3499a9e2c9108a553ae5bb523bc056e8c05060cac473b50f9f0fa445f3cf237"
+    },
+    {
+      "path": "evidence/phase9-compose.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/phase9-ecj-accepted.log",
+      "bytes": 179041,
+      "sha256": "3f79cf044a18b178a502a4fc8b054f71e1d40ecae7f6ec8bdd5e6dba69fcf73e"
+    },
+    {
+      "path": "evidence/phase9-ecj-delivery.log",
+      "bytes": 179736,
+      "sha256": "3be9c8bd425d254d6cfd9cab249178764fa3b097723858a0513553b259091c1a"
+    },
+    {
+      "path": "evidence/phase9-ecj-final.log",
+      "bytes": 179052,
+      "sha256": "cd8e57316db124d74482df09309275b4bc563fbfd6be6d9ba315006055236380"
+    },
+    {
+      "path": "evidence/phase9-ecj-query-accepted.log",
+      "bytes": 47106,
+      "sha256": "4fd47ca3597ddd4d35d55daf15a82bfa0359cf557c70cf53380764d0f898e630"
+    },
+    {
+      "path": "evidence/phase9-ecj-query-final.log",
+      "bytes": 179603,
+      "sha256": "bf0ffda87d71873d2e74ece52d88f3e0f8f4f7154be888c6a8178368fd0ea5b9"
+    },
+    {
+      "path": "evidence/phase9-ecj.log",
+      "bytes": 25097,
+      "sha256": "1bfe2dc32a9c3fcf96e156d8f9203f37190f4a23ec0343fa7ee8c99ebf3ae9ee"
+    },
+    {
+      "path": "evidence/phase9-ecj2.log",
+      "bytes": 45210,
+      "sha256": "9033ce0d2e9446ec965a8ed5899027b2228d0d86547c6984a37d4e2915920672"
+    },
+    {
+      "path": "evidence/phase9-ecj3.log",
+      "bytes": 164792,
+      "sha256": "8720d549663e876e7208d018c462af7920e0fe98bbc69511988e8fa88293ba62"
+    },
+    {
+      "path": "evidence/phase9-ecj4.log",
+      "bytes": 45655,
+      "sha256": "d9daa484808a162258b5a8b6063f79d427e6584f2836599f2e23ba30c7811576"
+    },
+    {
+      "path": "evidence/phase9-ecj5.log",
+      "bytes": 163673,
+      "sha256": "145a647b99bc871f62681df42710089849f131bd35a768b6f64c008f79075962"
+    },
+    {
+      "path": "evidence/phase9-javac-accepted.log",
+      "bytes": 157122,
+      "sha256": "4164d7ce5acc157951984a48edbd1141a021950b914ea4f7d86d805049692c02"
+    },
+    {
+      "path": "evidence/phase9-javac-delivery.log",
+      "bytes": 157954,
+      "sha256": "8c86348fefd6750b793e14e0f83620353f348c5f0b7bcea16463eda45e5e8284"
+    },
+    {
+      "path": "evidence/phase9-javac-query-final.log",
+      "bytes": 157948,
+      "sha256": "e8e1fd94e062f9bc2ca1b8fa0bcf17275cdb268551a851cabe1d22138d698ec9"
+    },
+    {
+      "path": "evidence/phase9-lint-accepted.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase9-lint.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase9-policy-focused.log",
+      "bytes": 33170,
+      "sha256": "f843f7436f451b630c42e9841fc06d3f0d5f189e7a8fc3048dd825c3f860fcad"
+    },
+    {
+      "path": "evidence/phase9-portal-build.log",
+      "bytes": 4155,
+      "sha256": "de2d45cab10890275536421720d00d6e8333a83c817e6950ff18ab2ac301cd54"
+    },
+    {
+      "path": "evidence/phase9-portal-nullability.log",
+      "bytes": 4424,
+      "sha256": "e16fa1a92d07ae1659e6a996d339a70fef211b40d667a09c508589f3127ac3a5"
+    },
+    {
+      "path": "evidence/phase9-portal-unit.log",
+      "bytes": 10372,
+      "sha256": "4735e0d67e2e6a8d99b7b9cba01d42325e5fca4e8265e4945e9c22badfd781a3"
+    },
+    {
+      "path": "evidence/phase9-prisma-accepted.log",
+      "bytes": 403,
+      "sha256": "fcf533beebc2254c11c4bf161dd5c3a453c2e07b3fac243590f7e442d6e39673"
+    },
+    {
+      "path": "evidence/phase9-prisma-final.log",
+      "bytes": 403,
+      "sha256": "3862a4537746450dad3cf7f3d5d39139ad52cdfdb4486ed2781848cdf1c0cdd5"
+    },
+    {
+      "path": "evidence/phase9-prisma.log",
+      "bytes": 401,
+      "sha256": "b6f2b42465066420d0c6b5a8eb67a3b5675bea5e5df4a4c2269928fe7bf683b5"
+    },
+    {
+      "path": "evidence/phase9-typecheck-accepted.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase9-typecheck-final.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase9-typecheck.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase9-unit-accepted.log",
+      "bytes": 10369,
+      "sha256": "96d3c133319fb5d059dbeb4c83b6eada96c9b578bc31505a8f2b87ff4f7bad00"
+    }
+  ],
+  "failureHistory": "Retains concrete ECJ annotation fixes, benchmark cron-owner fixture correction, overtime fixture shift/paid-limit corrections, and a failed incremental focused run. Final accepted gates are named separately.",
+  "limits": [
+    "Hosted PostgreSQL failure-injection, embedded/remote business, browser and exact-head assertion gates pending at recording time. Local Docker Desktop unavailable.",
+    "Overnight creates previews only. No schedule apply, automatic retry, external notification configuration or performance promotion.",
+    "Steps 10-16 and owner review remain pending. Fixtures prove contracts only."
+  ]
+}

@@ -1,0 +1,71 @@
+
+> waterflex-web@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/37) ...
+   Generating static pages (9/37) 
+   Generating static pages (18/37) 
+   Generating static pages (27/37) 
+ ✓ Generating static pages (37/37)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                      Size     First Load JS
+┌ ○ /                                            142 B          87.5 kB
+├ ○ /_not-found                                  873 B          88.2 kB
+├ ƒ /api/book                                    0 B                0 B
+├ ƒ /api/book/confirm                            0 B                0 B
+├ ƒ /api/book/location                           0 B                0 B
+├ ƒ /api/book/refresh                            0 B                0 B
+├ ƒ /api/book/release                            0 B                0 B
+├ ƒ /api/book/search                             0 B                0 B
+├ ƒ /api/book/select                             0 B                0 B
+├ ƒ /api/dealerships                             0 B                0 B
+├ ƒ /api/dealerships/[id]                        0 B                0 B
+├ ƒ /api/depots                                  0 B                0 B
+├ ƒ /api/depots/[id]                             0 B                0 B
+├ ƒ /api/depots/[id]/policy                      0 B                0 B
+├ ƒ /api/dispatch/availability                   0 B                0 B
+├ ƒ /api/dispatch/follow-up                      0 B                0 B
+├ ƒ /api/dispatch/geometry                       0 B                0 B
+├ ƒ /api/dispatch/optimize                       0 B                0 B
+├ ƒ /api/dispatch/optimize/apply                 0 B                0 B
+├ ƒ /api/dispatch/optimize/history               0 B                0 B
+├ ƒ /api/dispatch/optimize/preview               0 B                0 B
+├ ƒ /api/dispatch/qualification                  0 B                0 B
+├ ƒ /api/dispatch/testing                        0 B                0 B
+├ ƒ /api/health                                  0 B                0 B
+├ ƒ /api/schedule/appointments                   0 B                0 B
+├ ƒ /api/technicians                             0 B                0 B
+├ ƒ /api/technicians/[id]                        0 B                0 B
+├ ƒ /api/technicians/[id]/depot-assignments      0 B                0 B
+├ ƒ /api/technicians/[id]/standard-availability  0 B                0 B
+├ ƒ /api/technicians/geocode                     0 B                0 B
+├ ƒ /api/time-off                                0 B                0 B
+├ ƒ /api/time-off/approve                        0 B                0 B
+├ ƒ /api/time-off/deny                           0 B                0 B
+├ ƒ /api/time-off/retry                          0 B                0 B
+├ ƒ /book                                        6.89 kB         380 kB
+├ ƒ /dealerships                                 7.51 kB         380 kB
+├ ƒ /dispatch                                    2.31 kB         124 kB
+├ ○ /dispatch/availability                       142 B          87.5 kB
+├ ƒ /dispatch/follow-up                          630 B            88 kB
+├ ƒ /dispatch/testing                            5.39 kB         118 kB
+├ ƒ /schedule                                    4.93 kB         122 kB
+├ ƒ /technicians                                 16.4 kB         389 kB
+└ ƒ /time-off                                    6.86 kB         115 kB
++ First Load JS shared by all                    87.4 kB
+  ├ chunks/117-93a43ae3615f7ea7.js               31.7 kB
+  ├ chunks/fd9d1056-12c60d1df10ca95d.js          53.6 kB
+  └ other shared chunks (total)                  2 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

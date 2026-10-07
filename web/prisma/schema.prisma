@@ -553,6 +553,22 @@ model OptimizationRun {
   @@map("optimization_run")
 }
 
+model OvernightOptimizationAttempt {
+  id String @id
+  metroId String
+  serviceDate DateTime @db.Date
+  state String
+  previewKey String @unique
+  resultRunId String?
+  resultReason String?
+  failureContext Json?
+  startedAt DateTime @default(now()) @db.Timestamptz(6)
+  finishedAt DateTime? @db.Timestamptz(6)
+  @@index([metroId, serviceDate, startedAt], map: "overnight_optimization_attempt_metro_day")
+  @@index([state, startedAt], map: "overnight_optimization_attempt_state_started")
+  @@map("overnight_optimization_attempt")
+}
+
 model DailyCalculationAttempt {
   id                 String @id
   requestKey         String @unique

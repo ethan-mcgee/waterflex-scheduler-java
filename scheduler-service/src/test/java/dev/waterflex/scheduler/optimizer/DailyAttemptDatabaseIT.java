@@ -25,6 +25,49 @@ import static org.mockito.Mockito.*;
 
 /** Committed, isolated fixtures: each worker and competing writer uses its own database connection. */
 class DailyAttemptDatabaseIT {
+    @Test void overnightRecordsRealPreviewFailuresAndKeepsTheFailedScheduleUnchanged() {
+        try (var f = new Fixture(true)) {
+            var before=f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment");
+            f.matrixHook.set(() -> { throw new IllegalStateException("Injected routing preparation failure"); });
+            var overnight=new OvernightOptimization(f.jdbc,f.manager,request -> f.service.preview(Required.value(request)),f.clock);
+            overnight.runDay(f.id,f.day);
+            assertEquals(OvernightOptimization.State.FAILED,overnight.attempts(f.id,f.day).getFirst().state());
+            assertEquals(before,f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment"));
+            assertEquals(0,f.runCount());
+            assertEquals("FAILED",dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc,"SELECT state FROM daily_calculation_attempt WHERE \"requestKey\"=?",String.class,overnight.attempts(f.id,f.day).getFirst().previewKey()));
+            overnight.runDay(f.id,Required.value(f.day.plusDays(1)));
+            assertEquals(OvernightOptimization.State.SKIPPED,overnight.attempts(f.id,Required.value(f.day.plusDays(1))).getFirst().state());
+            assertEquals(before,f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment"));
+        }
+    }
+    @Test void overnightFailuresAndCancellationAreDurableAndDoNotChangeAppointmentsOrStopOtherDays() {
+        try (var f = new Fixture(true)) {
+            var before=f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment");
+            var calls=new java.util.concurrent.atomic.AtomicInteger();
+            var overnight=new OvernightOptimization(f.jdbc,f.manager,request -> {
+                assertNotNull(request);
+                return switch(calls.incrementAndGet()) {
+                    case 1 -> throw new IllegalStateException("Injected calculation failure");
+                    case 2 -> throw new dev.waterflex.scheduler.SearchDeadline.Expired();
+                    case 3 -> Required.value(Map.of("status","SKIPPED","reason","No appointments"));
+                    default -> Required.value(Map.of("status","PREVIEW","run_id",f.id+"-preview"));
+                };
+            },Required.value(java.time.Clock.fixed(Required.value(f.now.get()),ZoneId.of("UTC"))));
+            var days=Required.value(List.of(f.day,Required.value(f.day.plusDays(1)),Required.value(f.day.plusDays(2)),Required.value(f.day.plusDays(3))));
+            overnight.run(Required.value(List.of(f.id)),days);
+            assertEquals(4,calls.get());
+            assertEquals(OvernightOptimization.State.FAILED,overnight.attempts(f.id,f.day).getFirst().state());
+            assertEquals(OvernightOptimization.FailureCode.CALCULATION_FAILED,Required.value(overnight.attempts(f.id,f.day).getFirst().failure()).code());
+            assertEquals(OvernightOptimization.State.CANCELLED,overnight.attempts(f.id,Required.value(f.day.plusDays(1))).getFirst().state());
+            assertEquals(OvernightOptimization.State.SKIPPED,overnight.attempts(f.id,Required.value(f.day.plusDays(2))).getFirst().state());
+            assertEquals(OvernightOptimization.State.SUCCEEDED,overnight.attempts(f.id,Required.value(f.day.plusDays(3))).getFirst().state());
+            assertEquals(before,f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment"));
+            assertTrue(Required.value(overnight.metrics().get("totalAttempted"))>=4);
+            f.jdbc.update("UPDATE overnight_optimization_attempt SET \"failureContext\"='{\"schemaVersion\":1,\"code\":null,\"exceptionClass\":\"test\",\"stage\":\"PREVIEW\"}'::jsonb WHERE \"metroId\"=? AND state='FAILED'",f.id);
+            assertThrows(RuntimeException.class,() -> overnight.attempts(f.id,f.day));
+            f.jdbc.update("DELETE FROM overnight_optimization_attempt WHERE \"metroId\"=?",f.id);
+        }
+    }
     private static final String HASH = DailyAttempts.fingerprint("fixture request");
 
     @Test void duplicateClaimsConflictsExpiredOwnersAndTerminalFailuresNeverRerun() throws Exception {
@@ -303,6 +346,8 @@ class DailyAttemptDatabaseIT {
         int runCount() { return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM optimization_run WHERE \"metroId\"=?", Integer.class, id); }
         @Override public void close() {
             tx.executeWithoutResult(_ -> {
+                jdbc.update("DELETE FROM daily_calculation_attempt WHERE \"requestKey\" IN (SELECT \"previewKey\" FROM overnight_optimization_attempt WHERE \"metroId\"=?)",id);
+                jdbc.update("DELETE FROM overnight_optimization_attempt WHERE \"metroId\"=?",id);
                 jdbc.update("DELETE FROM daily_calculation_attempt WHERE \"requestKey\" LIKE ?", id + "%");
                 jdbc.update("DELETE FROM optimization_change WHERE \"runId\" IN (SELECT id FROM optimization_run WHERE \"metroId\"=?)", id);
                 jdbc.update("DELETE FROM optimization_run WHERE \"metroId\"=?", id);

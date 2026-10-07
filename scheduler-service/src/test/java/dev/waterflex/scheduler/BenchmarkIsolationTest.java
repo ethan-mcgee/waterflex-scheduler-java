@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler;
 
+import dev.waterflex.scheduler.optimizer.OvernightOptimization;
 import dev.waterflex.scheduler.optimizer.OptimizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -22,7 +23,7 @@ class BenchmarkIsolationTest {
             processor.setBeanFactory(factory);
             processor.setEmbeddedValueResolver(env::resolveRequiredPlaceholders);
             try {
-                processor.postProcessAfterInitialization(mock(OptimizationService.class), "optimizer");
+                processor.postProcessAfterInitialization(mock(OvernightOptimization.class), "optimizer");
                 processor.postProcessAfterInitialization(mock(RoadClient.class), "roads");
                 processor.afterSingletonsInstantiated();
                 assertEquals(benchmark ? 0 : 2, processor.getScheduledTasks().size());
