@@ -167,7 +167,7 @@ public final class DailyOperation {
         deadline.requireTime();
         return Math.min(searchLimitNanos - searchNanos, deadline.explorationNanos()) >= 1_000_000;
     }
-    private synchronized boolean isCancelled() { return cancelled; }
+    synchronized boolean isCancelled() { return cancelled; }
     public synchronized void cancel() {
         if (!cancelled) { cancelled = true; cancelledAt = deadline.elapsedMillis(); deadline.cancel(); }
         Solver<DayPlan> solver = activeSolver;
