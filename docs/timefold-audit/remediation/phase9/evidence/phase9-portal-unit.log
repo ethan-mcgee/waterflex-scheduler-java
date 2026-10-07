@@ -1,0 +1,143 @@
+
+> waterflex-web@0.1.0 test:unit
+> tsx scripts/run-unit-tests.ts
+
+Discovered 18 unit test files:
+lib\bookingLocation.test.ts
+lib\bookingTestAddresses.test.ts
+lib\bookingTestCore.test.ts
+lib\currentRouteTiming.test.ts
+lib\dailyOutcome.test.ts
+lib\dailyPolicyDiagnostics.test.ts
+lib\dispatchGeometry.test.ts
+lib\fakeDataCore.test.ts
+lib\geocode.test.ts
+lib\monetaryContract.test.ts
+lib\nullability.test.ts
+lib\optimizationAnalysis.test.ts
+lib\optimizationExport.test.ts
+lib\phoneDate.test.ts
+lib\technicianAvailability.test.ts
+scripts\benchmarkDiagnostics.test.ts
+scripts\benchmarkExperiment.test.ts
+scripts\poll-until.test.ts
+✔ a valid locality-only response is not malformed address evidence (27.9436ms)
+✔ North 169th Street's Jefferson Precinct is approximate evidence for postal Bennington (6.1848ms)
+✔ North 169th Street: incomplete street evidence is a manual starting point, never an exact house (1.9696ms)
+✔ Reflection Circle: incomplete street evidence is a manual starting point, never an exact house (0.9646ms)
+✔ Appaloosa Drive: incomplete street evidence is a manual starting point, never an exact house (1.1318ms)
+✔ Valley Street: incomplete street evidence is a manual starting point, never an exact house (0.8524ms)
+✔ Grandview Avenue: incomplete street evidence is a manual starting point, never an exact house (0.7632ms)
+✔ Cascio Drive: incomplete street evidence is a manual starting point, never an exact house (0.7449ms)
+✔ Elkhorn suburb and rural locality categories can identify an exact address (1.4709ms)
+✔ multiple street segments are retained, repeats are deduplicated, malformed mixtures fail (2.5318ms)
+✔ manual request identity covers address, contact, service, pin and intent (2.558ms)
+✔ coverage includes all bearings plus margin and rejects missing persisted configuration (2.7289ms)
+✔ candidate batches persist deterministic random state and rotate fairly across missing ordinals (2.401ms)
+✔ candidate sampling is deterministic and remains inside the selected run radius (0.8764ms)
+✔ reverse-geocoded locations outside the selected run radius are rejected (0.414ms)
+✔ a recovered pending batch rejects duplicate and unroutable results without changing its candidates (0.5052ms)
+✔ explicit seeds produce deterministic unique routable real-address inputs (0.8518ms)
+✔ collisions and unroutable candidates are rejected before later candidates succeed (0.7182ms)
+✔ attempt exhaustion reports an exact shortfall and returns no partial inputs (5.0762ms)
+✔ malformed or incomplete Nominatim responses are rejected (33.0775ms)
+✔ configured state completes bounded Nominatim results and rejects conflicts (1.4444ms)
+✔ seeded generation uses weights and stable order (7.8583ms)
+✔ offer policies choose only returned windows without mutating scheduler order (10.5926ms)
+✔ horizon follows Chicago tomorrow plus ten weekdays across weekends and DST (12.0404ms)
+✔ test APIs require explicit enablement and local same-origin requests (17.9182ms)
+✔ current timing requires matching versions, exact confirmed coverage and valid intervals (4.8368ms)
+✔ partial diagnostic coverage remains explicit and cannot become policy eligible (3.9523ms)
+✔ time-off reports retain unresolved demand and remain ineligible for approval (1.7734ms)
+▶ Daily policy diagnostic boundaries
+  ✔ preserves a rejected overtime improvement separately from apply coverage (3.378ms)
+  ✔ rejects fabricated or missing reference targets and duplicate unresolved identities (1.7634ms)
+✔ Daily policy diagnostic boundaries (6.1031ms)
+✔ accepts road coordinates and empty schedules (1.114ms)
+✔ validates saved segment timing and coverage before rendering (0.5303ms)
+✔ rejects Java tree metadata and malformed coordinates before map rendering (0.2112ms)
+✔ rejects stale dates, phases, missing routes, and invalid stop times (0.2238ms)
+✔ seeded call planning is deterministic and uses weekdays only (4.6987ms)
+✔ service weighting boundaries match the requested mix (0.3515ms)
+✔ each fake call gets a random street address and geocode in the Omaha metro (3.0621ms)
+✔ different generated seeds produce different Omaha addresses (0.4483ms)
+✔ input validation accepts 31 days and rejects invalid ranges (1.9653ms)
+✔ versioned external IDs retain the service date for scoped cleanup (0.308ms)
+✔ all 206 USPS primary suffix pairs work only in suffix position (11.5573ms)
+✔ Omaha direction and plaza spellings agree, with strict ZIP and road checks (10.1202ms)
+✔ invalid coordinates and null address data remain malformed (2.075ms)
+✔ retries without state and labels the Papillion street result approximate (1.3308ms)
+✔ rejects conflicting address details (2.4045ms)
+✔ rejects a street response without usable bounds as malformed (0.3181ms)
+✔ accepts an exact matching house without manual confirmation (0.4535ms)
+✔ separates transport, timeout, malformed response, and genuine miss (0.875ms)
+✔ technician lookup API reports misses and geocoder failures separately (5.4058ms)
+✔ street abbreviations never normalize locality names (0.5656ms)
+✔ monetary strings retain exact digits and reject binary-number or noncanonical inputs (2.8165ms)
+✔ cent formatting retains cents at safe integer bounds and negative deltas (0.4428ms)
+✔ operating rates and cost provenance preserve the exact wire contract (1.7703ms)
+✔ refresh preserves the browser deadline and rejects expired or malformed values before scheduling (17.0297ms)
+✔ time-off travel retains unavailable history and rejects malformed accounting (1.0145ms)
+✔ road travel and buffer reporting rejects missing or inconsistent components (0.369ms)
+✔ solver diagnostics require measured phase counts and explicit unavailable optional metrics (2.0194ms)
+✔ v2 solver diagnostics preserve nulls and reject missing reasons or false observation (1.1559ms)
+✔ depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates (0.165ms)
+✔ invalid request bodies fail before downstream requests or writes (10.9348ms)
+✔ depot ownership and technician assignment fields are required (1.191ms)
+✔ scheduler client preserves status and rejects malformed success and transport failures (1.756ms)
+✔ geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero (3.2643ms)
+✔ browser and journal decoders reject incomplete state while permitting unavailable shifts (1.2568ms)
+✔ appointment outcomes reject missing or contradictory search evidence (0.5173ms)
+✔ scheduler search timing is kept separate from client transport duration (0.2164ms)
+✔ selection conflicts preserve retryable refresh outcomes and transport failures (1.5602ms)
+✔ an already abandoned search sends only durable cancellation with its own live signal (0.3089ms)
+✔ calendar utilities reject missing or invalid calendar values (11.8365ms)
+✔ time-off contracts reject invalid categories, intervals, and persisted reports (1.1761ms)
+✔ repair approval sums increases by day without cancelling them against another day's reduction (0.4699ms)
+✔ quick analysis recommends a safe cross-profile winner (1.2964ms)
+✔ customer tolerances and safety violations disqualify candidates (0.2622ms)
+✔ drive minutes break a paid-time tie within one percent (0.1745ms)
+✔ paid minutes per appointment safely handles zero bookings (0.0928ms)
+✔ validation increments and wraps unsigned 32-bit seeds (0.5255ms)
+✔ validation sequencing preserves completed runs when a later seed fails (0.1962ms)
+✔ twenty consistent runs produce summaries and a validated recommendation (5.4066ms)
+✔ partial validation results are retained but inconclusive (0.8587ms)
+✔ one unsafe validation run makes the outcome inconclusive (4.3912ms)
+✔ incomplete simulation results cannot produce recommendations (2.062ms)
+✔ JSON export retains reproducibility metadata and raw metrics (1.7539ms)
+✔ CSV export includes configuration, metrics, and both delta forms (0.3695ms)
+✔ validation JSON includes aggregate conclusions and every raw run (15.3623ms)
+✔ validation CSV has one complete row per seed, profile, and strategy (5.8569ms)
+✔ formatPhone formats as the number is typed (1.0234ms)
+✔ formatPhone accepts pasted country codes and keeps extra text (0.1683ms)
+✔ formatPhone lets backspace remove the last digit (0.0897ms)
+✔ isValidPhone requires seven digits (0.1001ms)
+✔ maskUsDate inserts slashes and leaves other text alone (0.1963ms)
+✔ parseUsDate only accepts real calendar dates (1.2191ms)
+✔ earliestMoveDate mirrors the 06:00 Chicago freeze (15.3472ms)
+✔ technician profile address fields are supplied together (3.2052ms)
+✔ formatStoredPhone only reformats ten digit numbers (6.465ms)
+✔ weekly versions select by calendar date and preserve weekend hours (3.963ms)
+✔ tenth weekday horizon counts intervening weekends and daylight saving dates (15.5836ms)
+✔ malformed weeks and technician profiles fail validation (2.9553ms)
+✔ diagnostics preserve retries and explicitly identify unavailable jobs (13.2017ms)
+✔ malformed required diagnostic values fail instead of becoming zero (13.5575ms)
+✔ frozen horizons reject missing/null/malformed dates and expired comparisons (19.4723ms)
+✔ labels cannot substitute for actual strategy and feature settings (2.2092ms)
+✔ frozen calendar survives midnight, cutoff, weekend and DST: 2026-09-30T04:59:59Z (2.5262ms)
+✔ frozen calendar survives midnight, cutoff, weekend and DST: 2026-09-30T10:59:59Z (2.1185ms)
+✔ frozen calendar survives midnight, cutoff, weekend and DST: 2026-10-03T04:59:59Z (1.5909ms)
+✔ frozen calendar survives midnight, cutoff, weekend and DST: 2026-03-08T07:59:59Z (0.9821ms)
+✔ frozen calendar survives midnight, cutoff, weekend and DST: 2026-11-01T06:59:59Z (1.2665ms)
+✔ effective isolation and calendar are mandatory before and after measurement (1.577ms)
+✔ polling returns the observed terminal state (3.1977ms)
+✔ deadline failures include the last observed state (0.5938ms)
+✔ read failures propagate instead of becoming fabricated states (0.1902ms)
+ℹ tests 110
+ℹ suites 1
+ℹ pass 110
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 715.6555

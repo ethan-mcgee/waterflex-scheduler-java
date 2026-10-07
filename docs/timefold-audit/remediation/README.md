@@ -12,6 +12,8 @@ Each implementation phase ends with a focused, detailed PR and a pause for owner
 
 ## Agreed contracts
 
+[Step 8](phase8/README.md) is reviewed and merged in PR #58. [Step 9](phase9/README.md) adds policy diagnostics and durable overnight receipts; verification and owner review remain its delivery gates.
+
 Use Timefold Community 2.6.0 and Java 25 initially. Dependency upgrades are separate treatments. Preserve the 6 a.m. America/Chicago cutoff, promises, strict booking cost order with fairness ties, daily fairness headroom, and zero-overtime acceptance.
 
 WaterFlex owns the database, reservations, idempotency, durable attempts, and atomic application. A shared calculation module and Spring Boot service accept the same validated versioned dataset and return proposals. Calculation has no database, live routing, or commit authority. Reference, target creation, fairness, and independent calculation validation stay in one daily operation. The caller validates again before persistence and under locks at apply.

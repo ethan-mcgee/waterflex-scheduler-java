@@ -11,7 +11,16 @@ import org.springframework.stereotype.Service;
 public final class DailySolver {
     public record Phase(String name, SolverEngine.Statistics statistics) { }
     public record Diagnostics(String engine, String configurationXml, List<Phase> phases,
-            @org.jspecify.annotations.Nullable String constructionConfigurationXml) { }
+            @org.jspecify.annotations.Nullable String constructionConfigurationXml,
+            @org.jspecify.annotations.Nullable DailyPolicyDiagnostics policy) {
+        public Diagnostics(String engine, String configurationXml, List<Phase> phases,
+                @org.jspecify.annotations.Nullable String constructionConfigurationXml) {
+            this(engine,configurationXml,phases,constructionConfigurationXml,null);
+        }
+        public Diagnostics withPolicy(DailyPolicyDiagnostics value) {
+            return new Diagnostics(engine,configurationXml,phases,constructionConfigurationXml,value);
+        }
+    }
     private final SolverEngine.Definition definition;
     private final SolverEngine.Definition constructionDefinition;
     public DailySolver(@Value("${scheduler.optimizer.variant:TABU}") String variant,

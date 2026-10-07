@@ -13,7 +13,8 @@ public final class DailyCalculation {
             SearchDeadline.checkpoint(); var validation = RouteEvaluator.evaluate(search.plan());
             boolean accepted = valid(search.plan()) && validation.overtimeMinutes() == 0;
             return new Result(search.plan(),search.plan(),accepted,accepted ? "Repair feasible" : "Repair infeasible",
-                    (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(Required.value(List.of(new DailySolver.Phase("REPAIR",search.statistics())))));
+                    (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(Required.value(List.of(new DailySolver.Phase("REPAIR",search.statistics()))))
+                            .withPolicy(DailyPolicyDiagnostics.assess(search.plan(),search.plan(),accepted,DailyPolicyDiagnostics.Fairness.NOT_APPLICABLE_REPAIR)));
         }
         var referenceSearch = solver.solve(baseline,Required.value(Duration.ofSeconds(10)));
         SearchDeadline.checkpoint();
@@ -22,19 +23,22 @@ public final class DailyCalculation {
         boolean candidateValid = valid(solved);
         boolean baselineValid = valid(baseline);
         if (!candidateValid && !baselineValid) return new Result(solved,baseline,false,"INCOMPLETE_OR_INFEASIBLE_DEMAND",
-                (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(phases));
+                (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(phases).withPolicy(DailyPolicyDiagnostics.assess(baseline,solved,false,DailyPolicyDiagnostics.Fairness.SKIPPED_INVALID_REFERENCE)));
         var baselinePolicy = SchedulingPolicy.measure(baselineValid ? baseline : solved);
         var candidatePolicy = candidateValid ? SchedulingPolicy.measure(solved) : baselinePolicy;
         var reference = candidatePolicy.overtimeMinutes() < baselinePolicy.overtimeMinutes()
                 || candidatePolicy.overtimeMinutes() == baselinePolicy.overtimeMinutes() && candidatePolicy.costCents() < baselinePolicy.costCents() ? candidatePolicy : baselinePolicy;
         DayPlan referencePlan = !baselineValid || reference == candidatePolicy ? solved : baseline;
-        if (candidateValid) {
+        var fairnessStatus = reference.overtimeMinutes() > 0 ? DailyPolicyDiagnostics.Fairness.SKIPPED_REFERENCE_OVERTIME
+                : DailyPolicyDiagnostics.Fairness.SKIPPED_NO_SEARCH_ALLOWANCE;
+        if (candidateValid && reference.overtimeMinutes() == 0) {
             DayPlan fairnessSeed = PlanCopies.copy(referencePlan);
             // A constructed cold result is now a populated search seed, not another empty cold input.
             if (fairnessSeed.getMode() == DayPlan.Mode.COLD) fairnessSeed.setMode(DayPlan.Mode.PARTIAL);
             fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(referencePlan,policy.costCeiling(reference.costCents())));
             DailyOperation operation = DailyOperation.current();
             if (operation != null && operation.canSearch()) {
+                fairnessStatus = DailyPolicyDiagnostics.Fairness.SEARCHED;
                 var fairnessSearch = solver.solve(fairnessSeed,Required.value(Duration.ofSeconds(15)));
                 SearchDeadline.checkpoint(); phases.add(new DailySolver.Phase("FAIRNESS",fairnessSearch.statistics()));
                 DayPlan fair = fairnessSearch.plan();
@@ -54,7 +58,8 @@ public final class DailyCalculation {
         var decision = SchedulingPolicy.compare(baselinePolicy,candidatePolicy,reference,policy);
         boolean accepted = candidateValid && (baselineValid ? decision.accepted() : DailyOutcome.assess(solved).policyEligible());
         return new Result(solved,referencePlan,accepted,accepted ? baselineValid ? decision.reason() : "COMPLETE_ZERO_OVERTIME_DEMAND" : "No independently validated policy improvement",
-                (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(phases));
+                (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(phases)
+                        .withPolicy(DailyPolicyDiagnostics.assess(referencePlan,solved,accepted,fairnessStatus)));
     }
     public static boolean valid(DayPlan plan) {
         var score = DayScoreCalculator.evaluate(plan); var validation = RouteEvaluator.evaluate(plan);
