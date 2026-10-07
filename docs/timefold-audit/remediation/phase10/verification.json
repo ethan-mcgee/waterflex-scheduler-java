@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "step": 10,
+  "recordedAtUtc": "2026-10-07T02:28:14.385828+00:00",
+  "startingRevision": "608d127d9ffc0f2f1574838032a3f055de9c528d",
+  "scope": "Strict campaign v2 orchestration, immutable provenance, deterministic block expansion/estimates, pinned JVM lifecycle, no-retry failure/cutoff/missing-case resume and explicit inventory-only analysis.",
+  "checks": [
+    {
+      "command": "./mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase10-javac.log",
+      "tests": 265,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "./mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase10-ecj.log",
+      "tests": 265,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1
+    },
+    {
+      "command": "python -m unittest discover -s infra -p test_experiments.py -v",
+      "status": "passed",
+      "log": "evidence/phase10-experiments-cohorts-final.log",
+      "tests": 88,
+      "passed": 87,
+      "skipped": 1
+    },
+    {
+      "command": "npm --prefix web run lint",
+      "status": "passed",
+      "log": "evidence/phase10-portal-lint.log"
+    },
+    {
+      "command": "npm --prefix web run typecheck",
+      "status": "passed",
+      "log": "evidence/phase10-portal-typecheck.log"
+    },
+    {
+      "command": "npm --prefix web run test:nullability",
+      "status": "passed",
+      "log": "evidence/phase10-portal-nullability.log"
+    },
+    {
+      "command": "npm --prefix web run test:unit",
+      "status": "passed",
+      "log": "evidence/phase10-portal-unit.log"
+    },
+    {
+      "command": "npm --prefix web run build",
+      "status": "passed",
+      "log": "evidence/phase10-portal-build.log"
+    },
+    {
+      "command": "python docs/timefold-audit/remediation/verify_baseline.py --maven-repository C:/Users/mcgee/.m2/repository",
+      "status": "passed",
+      "log": "evidence/phase10-baseline.log",
+      "baselineFiles": 225,
+      "preservedHistoricalFiles": 203,
+      "dependencyArtifacts": 101
+    },
+    {
+      "command": "python -m unittest discover -s docs/timefold-audit -p test_verification.py -v",
+      "status": "passed",
+      "log": "evidence/phase10-audit-helpers.log",
+      "tests": 10
+    },
+    {
+      "command": "python infra/experiments.py validate experiments/configs/campaign-v2-template.json",
+      "status": "passed",
+      "log": "evidence/phase10-cli-validate.log"
+    },
+    {
+      "command": "python infra/experiments.py dry-run experiments/configs/campaign-v2-template.json",
+      "status": "passed",
+      "log": "evidence/phase10-cli-dry-run.log"
+    }
+  ],
+  "sourceIdentities": [
+    {
+      "path": "experiments/configs/campaign-v2-template.json",
+      "gitBlobSha256": "984576b4c23b2919075db78f17173aaa90f18a6535a01f8281a8575b7fa09381"
+    },
+    {
+      "path": "experiments/datasets/contract-lifecycle.json",
+      "gitBlobSha256": "5a7434e580becd691ad6045c197d2262c5c699f299af17f63f4e118645d82daa"
+    },
+    {
+      "path": "infra/campaign_config.py",
+      "gitBlobSha256": "9e5cf89770b7d1a43771b7991a1302537ffafa6e129e36e7a28c550d8c87efda"
+    },
+    {
+      "path": "infra/campaign_runtime.py",
+      "gitBlobSha256": "04432aedd5d0ef0efa5e9d988c34d59eb1434ed5ecb17fe7a533fcf2361d489d"
+    },
+    {
+      "path": "infra/experiments.py",
+      "gitBlobSha256": "6fe774804e2f8f2c472f0b57a89c3c3c025ca510274d02dd1fc191de289ad26f"
+    },
+    {
+      "path": "infra/test-fixtures/CampaignFixture.java",
+      "gitBlobSha256": "a06c7b2e70e55c672cc2216f2161b1ca6cf748389b05ee2af9b99b3459db2baf"
+    },
+    {
+      "path": "infra/test_campaigns.py",
+      "gitBlobSha256": "c63b24d9105e12d588305c9f60b311cb0ab2484c4f0370157cb8fa98c2707253"
+    },
+    {
+      "path": "infra/test_experiments.py",
+      "gitBlobSha256": "80c2ce49e55041e0a7f8caf12508ed20739ef7e528e9180a5daaab20fdea886a"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase10-audit-helpers.log",
+      "bytes": 1506,
+      "sha256": "34cdda1a29804c4266b7e79c01b78634213c66abd4c154ddb137ba07db46a194"
+    },
+    {
+      "path": "evidence/phase10-baseline.log",
+      "bytes": 171,
+      "sha256": "1d87e4aa3efe038fdab84f425869716bd78649442805951bb3bfb294a5a33c6d"
+    },
+    {
+      "path": "evidence/phase10-cli-dry-run.log",
+      "bytes": 3961,
+      "sha256": "e3ca2c992a7bbf452e70722feeed68147dcadffc3662ed05539dbcea056ef382"
+    },
+    {
+      "path": "evidence/phase10-cli-validate.log",
+      "bytes": 40,
+      "sha256": "f47dec143fce48c8a319c6f25b998f3e05375e966e494428880c858a46ca9cce"
+    },
+    {
+      "path": "evidence/phase10-ecj.log",
+      "bytes": 179603,
+      "sha256": "e8c9bac67114233c2d6c4ae96f6d6789e58b5762b1857524853bfeb1994e8451"
+    },
+    {
+      "path": "evidence/phase10-experiments-accepted.log",
+      "bytes": 23680,
+      "sha256": "3eaf19b1cef2eb19188833b9d19504aeda43336d3dce0e52762ec5858c61a2fc"
+    },
+    {
+      "path": "evidence/phase10-experiments-cli.log",
+      "bytes": 22702,
+      "sha256": "a1ddba78c7e6914c626fd1ec2ad2e3e8d85ebb5236a7080c723a591c6794dd45"
+    },
+    {
+      "path": "evidence/phase10-experiments-cohorts-final.log",
+      "bytes": 24074,
+      "sha256": "d0d6ee58a9a8fc569602254c330413a1664dd212531731819ca936aa2b1a94f1"
+    },
+    {
+      "path": "evidence/phase10-experiments-delivery.log",
+      "bytes": 25190,
+      "sha256": "8c311752c2051b0dd5310df6b26c588650bdfe11957f32d6d3090549d6e252cf"
+    },
+    {
+      "path": "evidence/phase10-experiments-diagnostics-accepted.log",
+      "bytes": 23872,
+      "sha256": "a3e8f04ee54920e7410bd674d8d1182cb32808e1667584d0b6d04b7852a44c75"
+    },
+    {
+      "path": "evidence/phase10-experiments-final.log",
+      "bytes": 22894,
+      "sha256": "d1cf7280dfc9172f84685a8375429210e5e44302d61e164bdf017fdbd706627f"
+    },
+    {
+      "path": "evidence/phase10-experiments-initial.log",
+      "bytes": 22855,
+      "sha256": "f182b94c6cc3fbb0b03371f6f48db66176c68a5895e7e046a44ce534d5ed4e20"
+    },
+    {
+      "path": "evidence/phase10-javac.log",
+      "bytes": 157906,
+      "sha256": "d35a2566d8602f360a192705534dc4878aa169d0184820e5a04a816bcebb01b0"
+    },
+    {
+      "path": "evidence/phase10-portal-build.log",
+      "bytes": 4155,
+      "sha256": "de2d45cab10890275536421720d00d6e8333a83c817e6950ff18ab2ac301cd54"
+    },
+    {
+      "path": "evidence/phase10-portal-lint.log",
+      "bytes": 124,
+      "sha256": "259890f8c581e35935101492c033327871dd9368cf536657f1ede927f77724f2"
+    },
+    {
+      "path": "evidence/phase10-portal-nullability.log",
+      "bytes": 4422,
+      "sha256": "baf0490e1d9eed21fec051d2ce22aca0045238b32f09ae45ff181136411751af"
+    },
+    {
+      "path": "evidence/phase10-portal-typecheck.log",
+      "bytes": 53,
+      "sha256": "4860add588c585f6ce7c091e348b0f009e26c9e4799cd28f276bcc7b71143d2c"
+    },
+    {
+      "path": "evidence/phase10-portal-unit.log",
+      "bytes": 10375,
+      "sha256": "5a5c1be92a5c05e3cce31b0d11112f727b1c11593bc9573238051f8ac90a0445"
+    }
+  ],
+  "failureHistory": "All intermediate logs are retained, including phase10-experiments-delivery.log: an instrumentation fixture changed the request object but kept the earlier request hash. Corrected the fixture identity without weakening production validation; final 88-test gate passes. Deliberate child fixture failures remain in test run archives until temporary test cleanup. They are contract tests, not performance evidence.",
+  "limits": [
+    "Hosted exact-head business integration, browser and assertion gates pending at recording time; no local PostgreSQL integration claimed.",
+    "Production native/policy/paced workflow adapters, layer validity, corpus, calibration and equal-dataset inference remain steps 11-12.",
+    "No full study, experimental optimization, performance claim, scheduling-default change, deployment or promotion. Template is deliberately nonexecutable until Java/JAR byte hashes are filled.",
+    "Owner review remains pending; audit remains open through step 16."
+  ]
+}

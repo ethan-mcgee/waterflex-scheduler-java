@@ -1,0 +1,93 @@
+{
+  "estimate": {
+    "version": 2,
+    "comparisonBlocks": 2,
+    "cases": 4,
+    "freshJvms": 4,
+    "warmupInvocations": 4,
+    "warmupMs": 40,
+    "operationAllowanceMs": 400,
+    "declaredOverheadMs": 40,
+    "referenceSetupMs": 20,
+    "serialEstimateMs": 530,
+    "optimisticParallelEstimateMs": 530,
+    "observedRuntimeMs": null,
+    "reason": "Estimates use declared allowances and overhead, not measured runtime. Pipeline counted once; comparison blocks do not overlap."
+  },
+  "blocks": [
+    {
+      "id": "6602ef7951cade6c35d39d3d30bf1dd9d7e5df8f63b73380a5ff24bc7a4672b2",
+      "cases": [
+        {
+          "datasetId": "dataset-a",
+          "datasetHash": "5a7434e580becd691ad6045c197d2262c5c699f299af17f63f4e118645d82daa",
+          "targetHash": null,
+          "budgetId": "reference-test",
+          "budgetHash": "77c3730ad98a8985506885efc0d8e694104abf186ffea74cbb95718045a51a73",
+          "solverSeed": 17,
+          "fork": 0,
+          "scoreVersion": "fixture",
+          "modelVersion": "fixture",
+          "routingIdentity": "fixture",
+          "blockId": "6602ef7951cade6c35d39d3d30bf1dd9d7e5df8f63b73380a5ff24bc7a4672b2",
+          "configurationId": "tabu",
+          "configurationHash": "e03a493e1279174af4207f6a84fc22a868fff96a2bf61098c56aff221d023be7",
+          "id": "fe3dfde9638add7726b1b1d6379e813a77b6232dc40567187d37136b3ec0e5fc"
+        },
+        {
+          "datasetId": "dataset-a",
+          "datasetHash": "5a7434e580becd691ad6045c197d2262c5c699f299af17f63f4e118645d82daa",
+          "targetHash": null,
+          "budgetId": "reference-test",
+          "budgetHash": "77c3730ad98a8985506885efc0d8e694104abf186ffea74cbb95718045a51a73",
+          "solverSeed": 17,
+          "fork": 0,
+          "scoreVersion": "fixture",
+          "modelVersion": "fixture",
+          "routingIdentity": "fixture",
+          "blockId": "6602ef7951cade6c35d39d3d30bf1dd9d7e5df8f63b73380a5ff24bc7a4672b2",
+          "configurationId": "la",
+          "configurationHash": "cc0086a54774699ec4fd092678fa6a55ad9d20d71150ec5491df48d9fb0e578b",
+          "id": "d12f0a5ce36209e55d5867e3e0c18f7f2dbea6231a29e5e3cb8dc358bd46c90e"
+        }
+      ]
+    },
+    {
+      "id": "22740277430fd19df0b520bf398fb73d2a9031cbbe09a8e660f329431cc2a3e2",
+      "cases": [
+        {
+          "datasetId": "dataset-a",
+          "datasetHash": "5a7434e580becd691ad6045c197d2262c5c699f299af17f63f4e118645d82daa",
+          "targetHash": null,
+          "budgetId": "reference-test",
+          "budgetHash": "77c3730ad98a8985506885efc0d8e694104abf186ffea74cbb95718045a51a73",
+          "solverSeed": 23,
+          "fork": 0,
+          "scoreVersion": "fixture",
+          "modelVersion": "fixture",
+          "routingIdentity": "fixture",
+          "blockId": "22740277430fd19df0b520bf398fb73d2a9031cbbe09a8e660f329431cc2a3e2",
+          "configurationId": "la",
+          "configurationHash": "cc0086a54774699ec4fd092678fa6a55ad9d20d71150ec5491df48d9fb0e578b",
+          "id": "3877771043e1327dd5332c326a0a979d3c8ea8a0fe6397e145b6dfb8484643b8"
+        },
+        {
+          "datasetId": "dataset-a",
+          "datasetHash": "5a7434e580becd691ad6045c197d2262c5c699f299af17f63f4e118645d82daa",
+          "targetHash": null,
+          "budgetId": "reference-test",
+          "budgetHash": "77c3730ad98a8985506885efc0d8e694104abf186ffea74cbb95718045a51a73",
+          "solverSeed": 23,
+          "fork": 0,
+          "scoreVersion": "fixture",
+          "modelVersion": "fixture",
+          "routingIdentity": "fixture",
+          "blockId": "22740277430fd19df0b520bf398fb73d2a9031cbbe09a8e660f329431cc2a3e2",
+          "configurationId": "tabu",
+          "configurationHash": "e03a493e1279174af4207f6a84fc22a868fff96a2bf61098c56aff221d023be7",
+          "id": "2e6b1079d9412a77b3bb4748bf8a1ef0d91d7199475f1b6eca20a046857f4144"
+        }
+      ]
+    }
+  ]
+}

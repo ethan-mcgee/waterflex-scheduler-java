@@ -12,6 +12,8 @@ from experiment_config import estimate_daily_wall_seconds, expand, read_json, va
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
+    for name in ('validate', 'dry-run'):
+        commands.add_parser(name).add_argument('config', type=Path)
     run = commands.add_parser('run')
     run.add_argument('config', type=Path)
     run.add_argument('--dry-run', action='store_true')
@@ -23,12 +25,43 @@ def main():
     imp = commands.add_parser('import-history')
     imp.add_argument('archive', type=Path)
     args = parser.parse_args()
+    # Version dispatch happens before importing any v1 execution/analysis adapter.
+    # Historical v1 inputs are never translated into v2 settings or observations.
+    if args.command in ('run', 'validate', 'dry-run'):
+        raw = read_json(args.config)
+        version = raw.get('version') if isinstance(raw, dict) else None
+    elif args.command in ('resume', 'analyze'):
+        raw = read_json(args.run / 'config.json')
+        version = raw.get('version') if isinstance(raw, dict) else None
+    else:
+        version = 1  # Existing v1-only history/contention operations.
+    if type(version) is not int or version not in (1, 2):
+        raise ValueError('Unsupported experiment version; expected integer 1 or 2')
+    if version == 2:
+        import campaign_config as campaign
+        import campaign_runtime as runtime
+        from experiment_runtime import measurement_lock
+        if args.command in ('validate', 'dry-run') or (args.command == 'run' and args.dry_run):
+            config = campaign.resolve(raw, args.config.resolve().parent)
+            print(json.dumps({'valid': True, 'version': 2} if args.command == 'validate' else
+                             {'estimate': campaign.estimate(config), 'blocks': campaign.expand(config)}, indent=2))
+        elif args.command in ('run', 'resume'):
+            with measurement_lock():
+                run = runtime.new_run(args.config.resolve()) if args.command == 'run' else args.run.resolve()
+                runtime.execute(run)
+                print(json.dumps(runtime.analyze(run), indent=2))
+        else:
+            print(json.dumps(runtime.analyze(args.run.resolve()), indent=2))
+        return
     from experiment_runtime import ROOT, execute, new_run, measurement_lock, import_history
     from experiment_analysis import analyze
-    if args.command == 'run':
+    if args.command in ('run', 'validate', 'dry-run'):
         config = validate(read_json(args.config))
         cases = expand(config)
-        if args.dry_run:
+        if args.command == 'validate':
+            print(json.dumps({'valid': True, 'version': 1}))
+            return
+        if args.command == 'dry-run' or args.dry_run:
             seconds = sum(c.get('budget_ms', 0) for c in cases) / 1000
             parallel = config.get('daily', {}).get('parallel_cases')
             wall = estimate_daily_wall_seconds(cases, parallel) if parallel else None
