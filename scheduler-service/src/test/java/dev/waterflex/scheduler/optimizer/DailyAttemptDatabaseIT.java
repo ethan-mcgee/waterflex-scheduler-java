@@ -208,8 +208,9 @@ class DailyAttemptDatabaseIT {
 
     @Test void concurrentApplyRevalidatesAndOnlyOneCanCommit() throws Exception {
         try (var f = new Fixture(true); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            f.fixtureSearchMillis.set(1000); // the apply tests need a found improvement, not a timing race
             var preview = f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), f.id + "-apply"));
-            assertEquals("PREVIEW", preview.get("status"));
+            assertEquals("PREVIEW", preview.get("status"), () -> "preview skipped: " + preview.get("reason"));
             String run = Required.value((String) preview.get("run_id"));
             var start = new CountDownLatch(1);
             Callable<String> apply = () -> {
@@ -225,8 +226,9 @@ class DailyAttemptDatabaseIT {
 
     @Test void applyRoutesBeforeLockingScheduleDays() throws Exception {
         try (var f = new Fixture(true); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            f.fixtureSearchMillis.set(1000); // the apply tests need a found improvement, not a timing race
             var preview = f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), f.id + "-route-first"));
-            assertEquals("PREVIEW", preview.get("status"));
+            assertEquals("PREVIEW", preview.get("status"), () -> "preview skipped: " + preview.get("reason"));
             String run = Required.value((String) preview.get("run_id"));
             // Another connection must be able to lock every schedule day while apply is waiting on routing.
             f.matrixHook.set(() -> {
@@ -240,8 +242,9 @@ class DailyAttemptDatabaseIT {
 
     @Test void inputChangeBetweenCaptureAndDayLocksRejectsApply() throws Exception {
         try (var f = new Fixture(true); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            f.fixtureSearchMillis.set(1000); // the apply tests need a found improvement, not a timing race
             var preview = f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), f.id + "-changed-input"));
-            assertEquals("PREVIEW", preview.get("status"));
+            assertEquals("PREVIEW", preview.get("status"), () -> "preview skipped: " + preview.get("reason"));
             String run = Required.value((String) preview.get("run_id"));
             f.matrixHook.set(() -> {
                 try { executor.submit(() -> f.jdbc.update("UPDATE appointment SET sequence=sequence+1 WHERE id=?", f.id + "-appointment")).get(5, TimeUnit.SECONDS); }
