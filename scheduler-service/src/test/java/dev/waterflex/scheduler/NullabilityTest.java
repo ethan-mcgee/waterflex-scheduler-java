@@ -21,9 +21,9 @@ class NullabilityTest {
         var jdbc = mock(org.springframework.jdbc.core.JdbcTemplate.class);
         when(jdbc.queryForObject("required", Integer.class)).thenThrow(new org.springframework.dao.EmptyResultDataAccessException(1));
         assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
-                () -> Required.query(jdbc, "required", Integer.class)).getStatusCode());
+                () -> dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "required", Integer.class)).getStatusCode());
         assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class,
-                () -> Required.query(jdbc, "null-result", Integer.class)).getStatusCode());
+                () -> dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "null-result", Integer.class)).getStatusCode());
     }
     @Test void malformedDispatchAndAbsenceRequestsNeverReachServices() throws Exception {
         OptimizationService optimization = mock(OptimizationService.class);
@@ -65,15 +65,15 @@ class NullabilityTest {
     @Test void sqlNullIsDifferentFromLegitimateZeroAndFalse() throws Exception {
         ResultSet row = mock(ResultSet.class);
         when(row.wasNull()).thenReturn(false);
-        assertEquals(0, Required.integer(row, 1));
-        assertEquals(0, Required.number(row, 1));
-        assertFalse(Required.bool(row, 1));
-        assertEquals(new RoadClient.Point(0, 0), Required.location(row, 1, 2, HttpStatus.CONFLICT));
+        assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.integer(row, 1));
+        assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.number(row, 1));
+        assertFalse(dev.waterflex.scheduler.DatabaseFacts.bool(row, 1));
+        assertEquals(new RoadPoint(0, 0), dev.waterflex.scheduler.DatabaseFacts.location(row, 1, 2, HttpStatus.CONFLICT));
         when(row.wasNull()).thenReturn(true);
-        assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class, () -> Required.integer(row, 1)).getStatusCode());
+        assertEquals(HttpStatus.CONFLICT, assertThrows(ResponseStatusException.class, () -> dev.waterflex.scheduler.DatabaseFacts.integer(row, 1)).getStatusCode());
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, assertThrows(ResponseStatusException.class,
-                () -> Required.location(row, 1, 2, HttpStatus.UNPROCESSABLE_ENTITY)).getStatusCode());
-        assertThrows(ResponseStatusException.class, () -> Required.timestamp(row, 1));
+                () -> dev.waterflex.scheduler.DatabaseFacts.location(row, 1, 2, HttpStatus.UNPROCESSABLE_ENTITY)).getStatusCode());
+        assertThrows(ResponseStatusException.class, () -> dev.waterflex.scheduler.DatabaseFacts.timestamp(row, 1));
     }
 
     @Test void solverLifecycleRequiresInitializedFacts() {

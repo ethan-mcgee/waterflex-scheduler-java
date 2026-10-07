@@ -110,18 +110,18 @@ public final class BookingSnapshotLoader {
     }
 
     private Facts read(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity, List<LocalDate> dates, boolean pendingRequired) {
-        SearchDeadline.database(jdbc);
-        if (pendingRequired && !"PENDING".equals(Required.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, requestingJobId)))
+        dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
+        if (pendingRequired && !"PENDING".equals(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, requestingJobId)))
             throw conflict("Job is no longer pending");
         Map<String, java.math.BigDecimal> settings = new TreeMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting ORDER BY key", (org.springframework.jdbc.core.RowCallbackHandler) rs ->
-                settings.put(Required.string(rs, 1), Required.decimal(rs, 2)));
+                settings.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.decimal(rs, 2)));
         Rates rates = Rates.read(settings);
         var policy = PolicySettings.read(settings);
         SearchDeadline.policyLimit(policy.bookingDeadlineMs());
         Map<String, Set<String>> qualifications = new HashMap<>();
         jdbc.query("SELECT \"technicianId\",\"serviceId\" FROM technician_qualification ORDER BY \"technicianId\",\"serviceId\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> qualifications.computeIfAbsent(Required.string(rs, 1), _ -> new TreeSet<>()).add(Required.string(rs, 2)));
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> qualifications.computeIfAbsent(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), _ -> new TreeSet<>()).add(dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)));
         Map<LocalDate, Day> days = new TreeMap<>();
         Map<LocalDate, Map<String, ReservationState.Hold>> holds = new TreeMap<>();
         StringBuilder configuration = new StringBuilder();
@@ -129,14 +129,14 @@ public final class BookingSnapshotLoader {
         settings.forEach((key, value) -> { append(configuration, Required.value(key)); append(configuration, Required.value(value.stripTrailingZeros().toPlainString())); });
         for (LocalDate date : dates) {
             LocalDate day = Required.value(date);
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             List<Base> bases = jdbc.query("SELECT t.id,t.active," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\",sd.version FROM technician t" + RouteEndpoints.JOINS
                             + " LEFT JOIN schedule_day sd ON sd.\"technicianId\"=t.id AND sd.\"serviceDate\"=? WHERE p.\"metroId\"=? OR (p.id IS NULL AND t.active=true AND EXISTS (SELECT 1 FROM technician_qualification q JOIN job j ON j.\"serviceId\"=q.\"serviceId\" WHERE q.\"technicianId\"=t.id AND j.id=?)) ORDER BY t.id",
                     (rs, _) -> {
-                        Long version = Required.nullableLong(rs, 11);
+                        Long version = dev.waterflex.scheduler.DatabaseFacts.nullableLong(rs, 11);
                         // A missing lock row means this technician/day has never been mutated.
-                        return new Base(Required.string(rs, 1), Required.bool(rs, 2), RouteEndpoints.from(rs, 3),
-                                Required.integer(rs, 9), Required.integer(rs, 10), version == null ? 0 : version);
+                        return new Base(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.bool(rs, 2), RouteEndpoints.from(rs, 3),
+                                dev.waterflex.scheduler.DatabaseFacts.integer(rs, 9), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 10), version == null ? 0 : version);
                     }, stamp(day), stamp(day), stamp(day), metroId, requestingJobId);
             List<String> ids = Required.value(bases.stream().<String>map((Base base) -> base.id()).toList());
             List<String> activeIds = Required.value(bases.stream().filter((Base base) -> base.active()).<String>map((Base base) -> base.id()).toList());
@@ -193,8 +193,8 @@ public final class BookingSnapshotLoader {
         List<Object> args = new ArrayList<>(); args.add(stamp(day)); args.addAll(technicians);
         jdbc.query("SELECT r.\"technicianId\",i.\"startMin\",i.\"endMin\" FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.status='APPROVED' AND i.\"serviceDate\"=? AND r.\"technicianId\" IN ("
                         + placeholders(technicians.size()) + ") ORDER BY r.\"technicianId\",i.\"startMin\",i.\"endMin\"",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> result.computeIfAbsent(Required.string(rs, 1), _ -> new ArrayList<>()).add(
-                        new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, Required.integer(rs, 2), false), ScheduleCutoff.localMinute(day, Required.integer(rs, 3), true))),
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> result.computeIfAbsent(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), _ -> new ArrayList<>()).add(
+                        new TechRoute.Unavailable(ScheduleCutoff.localMinute(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 2), false), ScheduleCutoff.localMinute(day, dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), true))),
                 Required.value(args.toArray(new @Nullable Object[0])));
         return result;
     }
@@ -209,21 +209,21 @@ public final class BookingSnapshotLoader {
                         + "SELECT h.id,h.\"jobId\",j.\"serviceId\",h.\"windowStart\",h.\"windowEnd\",j.\"durationMin\",h.\"locationLat\",h.\"locationLng\",h.\"technicianId\",h.\"plannedStart\",true,h.\"expiresAt\",h.\"offerToken\",o.\"overtimeAuthorized\",(s.\"searchDiagnostics\" IS NOT NULL OR EXISTS (SELECT 1 FROM reservation_dependency dependency WHERE dependency.\"holdId\"=h.id)) "
                         + "FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" LEFT JOIN booking_offer o ON o.id=h.\"offerToken\" AND o.\"jobId\"=h.\"jobId\" LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" WHERE h.\"serviceDate\"=? AND h.\"jobId\"<>? AND h.\"releasedAt\" IS NULL AND h.\"expiresAt\">CURRENT_TIMESTAMP AND h.\"technicianId\" IN (" + placeholders(technicians.size()) + ") ORDER BY 10,1",
                 (rs, _) -> {
-                    boolean reserved = Required.bool(rs, 11);
-                    Visit visit = new Visit(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3),
-                            Required.value(Required.timestamp(rs, 4).toInstant()), Required.value(Required.timestamp(rs, 5).toInstant()),
-                            Required.integer(rs, 6), Required.location(rs, 7, 8, HttpStatus.CONFLICT), Required.string(rs, 9),
-                            Required.value(Required.timestamp(rs, 10).toInstant()), reserved);
-                    ReservationState.Hold hold = reserved ? new ReservationState.Hold(visit.jobId(), Required.string(rs, 13),
-                            Required.value(Required.timestamp(rs, 12).toInstant()), Required.bool(rs, 14)) : null;
-                    return new Stop(visit, hold, Required.bool(rs, 15));
+                    boolean reserved = dev.waterflex.scheduler.DatabaseFacts.bool(rs, 11);
+                    Visit visit = new Visit(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3),
+                            Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 5).toInstant()),
+                            dev.waterflex.scheduler.DatabaseFacts.integer(rs, 6), dev.waterflex.scheduler.DatabaseFacts.location(rs, 7, 8, HttpStatus.CONFLICT), dev.waterflex.scheduler.DatabaseFacts.string(rs, 9),
+                            Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 10).toInstant()), reserved);
+                    ReservationState.Hold hold = reserved ? new ReservationState.Hold(visit.jobId(), dev.waterflex.scheduler.DatabaseFacts.string(rs, 13),
+                            Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 12).toInstant()), dev.waterflex.scheduler.DatabaseFacts.bool(rs, 14)) : null;
+                    return new Stop(visit, hold, dev.waterflex.scheduler.DatabaseFacts.bool(rs, 15));
                 }, Required.value(args.toArray(new @Nullable Object[0]))));
     }
 
     private Saved saved(String metroId, LocalDate day) {
         var rows = jdbc.query("SELECT version,state::text FROM reservation_arrangement WHERE \"metroId\"=? AND \"serviceDate\"=?",
                 (rs, _) -> {
-                    int version = Required.integer(rs, 1);
+                    int version = dev.waterflex.scheduler.DatabaseFacts.integer(rs, 1);
                     String state = rs.getString(2);
                     if (version < 0 || (version != 0 && state == null)) throw conflict("Invalid reservation state/version");
                     return new Saved(version, state == null ? null : ReservationState.decode(json, state));

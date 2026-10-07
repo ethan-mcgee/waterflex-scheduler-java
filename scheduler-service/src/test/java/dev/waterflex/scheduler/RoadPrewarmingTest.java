@@ -10,9 +10,9 @@ import static org.mockito.Mockito.*;
 
 class RoadPrewarmingTest {
     @Test void versionChangesAndBookingArrivalStopRemainingBatches() {
-        var origin = new RoadClient.Point(41, -96);
+        var origin = new RoadPoint(41, -96);
         var pairs = new java.util.ArrayList<RoadClient.Pair>();
-        for (int i = 0; i < 65; i++) pairs.add(new RoadClient.Pair("pair-" + i, origin, new RoadClient.Point(41.01 + i * .001, -96)));
+        for (int i = 0; i < 65; i++) pairs.add(new RoadClient.Pair("pair-" + i, origin, new RoadPoint(41.01 + i * .001, -96)));
         var firstBatch = Required.value(List.copyOf(pairs.subList(0, 32)));
         for (boolean versionChanged : List.of(true, false)) {
             var roads = mock(RoadClient.class);
@@ -29,7 +29,7 @@ class RoadPrewarmingTest {
     }
 
     @Test void finalBatchVersionAndRoutingChangesCannotMarkPrewarmingComplete() {
-        var point = new RoadClient.Point(41, -96);
+        var point = new RoadPoint(41, -96);
         var pairs = Required.value(List.of(new RoadClient.Pair("one", point, point)));
         var roads = mock(RoadClient.class);
         var current = new java.util.concurrent.atomic.AtomicBoolean(true);
@@ -56,9 +56,9 @@ class RoadPrewarmingTest {
     }
 
     @Test void directedShortcutsAndBothSegmentEndpointsArePrewarmed() {
-        var home = new RoadClient.Point(41, -96); var depot = new RoadClient.Point(42, -97);
-        var a = new RoadClient.Point(41.1, -96.1); var b = new RoadClient.Point(41.2, -96.2); var c = new RoadClient.Point(41.3, -96.3);
-        var pairs = RoadPrewarming.pairs(new RouteEndpoints(home, depot), Required.value(List.<RoadClient.Point>of(a, b, c)));
+        var home = new RoadPoint(41, -96); var depot = new RoadPoint(42, -97);
+        var a = new RoadPoint(41.1, -96.1); var b = new RoadPoint(41.2, -96.2); var c = new RoadPoint(41.3, -96.3);
+        var pairs = RoadPrewarming.pairs(new RouteEndpoints(home, depot), Required.value(List.<RoadPoint>of(a, b, c)));
         assertEquals(12, pairs.size());
         var ids = pairs.stream().map(pair -> Required.value(pair).id()).collect(Collectors.toSet());
         assertEquals(pairs.size(), ids.size());

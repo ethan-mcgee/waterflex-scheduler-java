@@ -25,7 +25,7 @@ class ReservedOvertimeTest {
         var hour = Required.value(start.plusSeconds(3600));
         var twoHours = Required.value(start.plusSeconds(7200));
         var threeHours = Required.value(start.plusSeconds(10800));
-        var point = new RoadClient.Point(41.25, -95.93);
+        var point = new RoadPoint(41.25, -95.93);
         var a = new Technician("a", start, hour, 180, 120, Required.value(Set.of("pinned", "old", "new")), Required.value(List.of()), point, point, 1);
         var b = new Technician("b", start, threeHours, 180, 0, Required.value(Set.of("old")), Required.value(List.of()), point, point, 1);
         var pinned = new Visit("pinned", "pinned-job", "pinned", start, twoHours, 60, point, "a", start, false);
@@ -62,7 +62,7 @@ class ReservedOvertimeTest {
             var date = Required.value(LocalDate.parse("2026-10-26"));
             var start = Required.value(Instant.parse("2026-10-26T14:00:00Z"));
             var end = Required.value(start.plusSeconds(7200));
-            var point = new RoadClient.Point(41.25, -95.93);
+            var point = new RoadPoint(41.25, -95.93);
             var technician = new Technician("tech", start, end, 180, limit, Required.value(Set.of("service")),
                     Required.value(List.of()), point, point, 1);
             var visit = new Visit("hold", "job", "service", end, Required.value(end.plusSeconds(7200)), 30, point, "tech", end, true);

@@ -20,18 +20,18 @@ public class ScheduleGuardService {
     public ScheduleGuardService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     public void lockTechnician(String id) {
-        if (jdbc.query("SELECT id FROM technician WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id).isEmpty())
+        if (jdbc.query("SELECT id FROM technician WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id).isEmpty())
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Technician not found");
     }
 
     public void lockDay(String technicianId, LocalDate day) {
         jdbc.update("INSERT INTO schedule_day (id, \"technicianId\", \"serviceDate\", version) VALUES (?, ?, ?, 0) ON CONFLICT (\"technicianId\", \"serviceDate\") DO NOTHING",
                 UUID.randomUUID().toString(), technicianId, stamp(day));
-        Required.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, technicianId, stamp(day));
+        dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE \"technicianId\"=? AND \"serviceDate\"=? FOR UPDATE", Integer.class, technicianId, stamp(day));
     }
 
     public void noHolds(String technicianId, LocalDate day) {
-        if (Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
                 Integer.class, technicianId, stamp(day)) > 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Active reservations require a fresh proposal");
     }
@@ -48,7 +48,7 @@ public class ScheduleGuardService {
         lockTechnician(technicianId);
         lockDay(technicianId, day);
         noHolds(technicianId, day);
-        if (Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL",
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL",
                 Integer.class, technicianId, stamp(day)) > 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Existing appointments require schedule repair");
         jdbc.update("INSERT INTO technician_shift_override (id, \"technicianId\", \"serviceDate\", available, \"shiftStartMin\", \"shiftEndMin\") VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (\"technicianId\", \"serviceDate\") DO UPDATE SET available=EXCLUDED.available, \"shiftStartMin\"=EXCLUDED.\"shiftStartMin\", \"shiftEndMin\"=EXCLUDED.\"shiftEndMin\"",
@@ -62,7 +62,7 @@ public class ScheduleGuardService {
         lockTechnician(technicianId);
         lockDay(technicianId, day);
         noHolds(technicianId, day);
-        if (Required.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL",
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment WHERE \"technicianId\"=? AND \"serviceDate\"=? AND \"cancelledAt\" IS NULL",
                 Integer.class, technicianId, stamp(day)) > 0)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Existing appointments require schedule repair");
         jdbc.update("DELETE FROM technician_shift_override WHERE \"technicianId\"=? AND \"serviceDate\"=?", technicianId, stamp(day));
@@ -73,9 +73,9 @@ public class ScheduleGuardService {
     public void qualification(String technicianId, String serviceId, boolean qualified) {
         lockTechnician(technicianId);
         if (!qualified) {
-            int appointments = Required.query(jdbc, "SELECT count(*) FROM appointment a JOIN job j ON j.id=a.\"jobId\" WHERE a.\"technicianId\"=? AND j.\"serviceId\"=? AND a.\"cancelledAt\" IS NULL",
+            int appointments = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM appointment a JOIN job j ON j.id=a.\"jobId\" WHERE a.\"technicianId\"=? AND j.\"serviceId\"=? AND a.\"cancelledAt\" IS NULL",
                     Integer.class, technicianId, serviceId);
-            int holds = Required.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
+            int holds = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM reservation_obligation WHERE \"technicianId\"=? AND \"serviceId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">CURRENT_TIMESTAMP",
                     Integer.class, technicianId, serviceId);
             if (appointments + holds > 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Existing schedule requires qualification repair");
             jdbc.update("DELETE FROM technician_qualification WHERE \"technicianId\"=? AND \"serviceId\"=?", technicianId, serviceId);

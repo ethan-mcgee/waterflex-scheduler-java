@@ -2,6 +2,7 @@ package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
+import dev.waterflex.scheduler.RoadPoint;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.SearchDeadline;
 import java.net.URI;
@@ -44,7 +45,7 @@ class DailyAttemptDatabaseIT {
                 assertNotNull(f.claim(key, HASH).rejection());
                 assertEquals("ABANDONED", f.state(key));
                 assertThrows(ResponseStatusException.class, () -> f.tx.executeWithoutResult(_ -> f.attempts.complete(owner, Required.value(Map.of("status", "SKIPPED")))));
-                assertEquals(1, Required.query(f.jdbc, "SELECT count(*) FROM daily_calculation_attempt WHERE \"requestKey\"=?", Integer.class, key));
+                assertEquals(1, dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT count(*) FROM daily_calculation_attempt WHERE \"requestKey\"=?", Integer.class, key));
             }
             var failed = f.claim(f.id + "-failure", HASH);
             f.tx.executeWithoutResult(_ -> f.attempts.failed(failed, "FAILED", "FIXTURE_FAILURE"));
@@ -65,7 +66,7 @@ class DailyAttemptDatabaseIT {
             assertEquals(first.get("run_id"), second.get("run_id")); verifyNoInteractions(f.roads);
             assertEquals(0, f.admission.state().active());
             assertThrows(ResponseStatusException.class, () -> f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.plusDays(1).toString()), key)));
-            assertEquals(1, Required.query(f.jdbc, "SELECT count(*) FROM optimization_run WHERE \"metroId\"=?", Integer.class, f.id));
+            assertEquals(1, dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT count(*) FROM optimization_run WHERE \"metroId\"=?", Integer.class, f.id));
             f.jdbc.update("UPDATE daily_calculation_attempt SET \"resultJson\"=jsonb_set(\"resultJson\",'{route_summary_after}','null'::jsonb) WHERE \"requestKey\"=?", key);
             assertThrows(ResponseStatusException.class, () -> f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), key)));
             verifyNoInteractions(f.roads);
@@ -89,15 +90,15 @@ class DailyAttemptDatabaseIT {
         try (var f = new Fixture(true)) {
             // This can be the first real repair solve in a cold JVM. Initialization consumes the cap too.
             f.fixtureSearchMillis.set(1000);
-            assertEquals(0, Required.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
+            assertEquals(0, dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
             String key = f.id + "-fresh-repair";
             var result = f.service.previewRepair(f.id, f.day, f.id + "-far", 480, 1020, key);
             assertEquals("REPAIR_PREVIEW", result.get("status"), result.toString()); assertEquals("SUCCEEDED", f.state(key)); assertTrue(f.solves.get() > 0);
-            assertEquals(2, Required.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
+            assertEquals(2, dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
             String run = Required.value((String) result.get("run_id"));
             var applied = Required.value(f.tx.execute(_ -> f.service.applyRepair(run, f.id + "-far", f.day, 480, 1020, false)));
             assertEquals("APPLIED", applied.get("status"));
-            assertEquals(f.id + "-near", Required.query(f.jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, f.id + "-appointment"));
+            assertEquals(f.id + "-near", dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, f.id + "-appointment"));
         }
     }
 
@@ -140,7 +141,7 @@ class DailyAttemptDatabaseIT {
             var first = executor.submit(() -> f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), key)));
             try {
                 assertTrue(entered.await(5, TimeUnit.SECONDS));
-                assertNotNull(Required.query(f.jdbc, "SELECT \"snapshotRevision\" FROM daily_calculation_attempt WHERE \"requestKey\"=?", String.class, key));
+                assertNotNull(dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT \"snapshotRevision\" FROM daily_calculation_attempt WHERE \"requestKey\"=?", String.class, key));
                 assertThrows(ResponseStatusException.class, () -> f.newService().preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), key)));
                 assertEquals(1, f.admission.state().active());
             } finally { release.countDown(); }
@@ -175,7 +176,7 @@ class DailyAttemptDatabaseIT {
             };
             var one = executor.submit(apply); var two = executor.submit(apply); start.countDown();
             assertEquals(Set.of("APPLIED", "CONFLICT"), Set.of(one.get(10, TimeUnit.SECONDS), two.get(10, TimeUnit.SECONDS)));
-            assertEquals("APPLIED", Required.query(f.jdbc, "SELECT status FROM optimization_run WHERE id=?", String.class, run));
+            assertEquals("APPLIED", dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT status FROM optimization_run WHERE id=?", String.class, run));
         }
     }
 
@@ -192,7 +193,7 @@ class DailyAttemptDatabaseIT {
                 long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
                 int waiting;
                 do {
-                    waiting = Required.query(f.jdbc, "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE 'UPDATE schedule_day SET version=version+1%'", Integer.class);
+                    waiting = dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE 'UPDATE schedule_day SET version=version+1%'", Integer.class);
                     if (waiting == 0) Thread.sleep(10);
                 } while (waiting == 0 && System.nanoTime() < until);
                 assertEquals(1, waiting); assertFalse(writer.isDone());
@@ -254,7 +255,7 @@ class DailyAttemptDatabaseIT {
                 // apply intentionally performs independent routing under its existing locks.
                 if (DailyOperation.current() != null) assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
                 Runnable hook = matrixHook.getAndSet(null); if (hook != null) hook.run();
-                Map<String, RoadClient.Point> points = Required.value(invocation.getArgument(0));
+                Map<String, RoadPoint> points = Required.value(invocation.getArgument(0));
                 Map<String, RoadClient.Leg> matrix = new HashMap<>();
                 for (String from : points.keySet()) for (String to : points.keySet()) if (!from.equals(to)) {
                     boolean far = from.contains("-far") || to.contains("-far");
@@ -298,8 +299,8 @@ class DailyAttemptDatabaseIT {
         DailyAttempts.Claim claim(String key, String fingerprint) {
             return new SearchDeadline(Required.value(Duration.ofSeconds(20))).within(() -> Required.value(tx.execute(_ -> attempts.claim(key, fingerprint, _ -> null))));
         }
-        String state(String key) { return Required.query(jdbc, "SELECT state FROM daily_calculation_attempt WHERE \"requestKey\"=?", String.class, key); }
-        int runCount() { return Required.query(jdbc, "SELECT count(*) FROM optimization_run WHERE \"metroId\"=?", Integer.class, id); }
+        String state(String key) { return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT state FROM daily_calculation_attempt WHERE \"requestKey\"=?", String.class, key); }
+        int runCount() { return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM optimization_run WHERE \"metroId\"=?", Integer.class, id); }
         @Override public void close() {
             tx.executeWithoutResult(_ -> {
                 jdbc.update("DELETE FROM daily_calculation_attempt WHERE \"requestKey\" LIKE ?", id + "%");

@@ -1,0 +1,2 @@
+Exception in thread "main" java.lang.IllegalAccessError: failed to access class dev.waterflex.solver.ReplayFixture from class dev.waterflex.solver.Phase8PackagedProbe (dev.waterflex.solver.ReplayFixture is in unnamed module of loader 'app'; dev.waterflex.solver.Phase8PackagedProbe is in unnamed module of loader com.sun.tools.javac.launcher.MemoryClassLoader @41a0aa7d)
+	at dev.waterflex.solver.Phase8PackagedProbe.main(Phase8PackagedProbe.java:6)

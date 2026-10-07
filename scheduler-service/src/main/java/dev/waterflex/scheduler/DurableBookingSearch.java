@@ -53,16 +53,16 @@ public final class DurableBookingSearch {
         String id = Required.value(tx.execute(_ -> {
             // Serialize admission counts across instances; the transaction performs no search or routing.
             jdbc.queryForList("SELECT pg_advisory_xact_lock(209292200)");
-            if (jdbc.query("SELECT id FROM job WHERE id=? AND status='PENDING' FOR UPDATE", (rs, _) -> Required.string(rs, 1), request.jobId()).size() != 1)
+            if (jdbc.query("SELECT id FROM job WHERE id=? AND status='PENDING' FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), request.jobId()).size() != 1)
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Job is not pending");
-            var prior = jdbc.query("SELECT \"jobId\" FROM booking_search_request WHERE id=?", (rs, _) -> Required.string(rs, 1), request.requestId());
+            var prior = jdbc.query("SELECT \"jobId\" FROM booking_search_request WHERE id=?", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), request.requestId());
             if (!prior.isEmpty()) {
                 if (!request.jobId().equals(prior.getFirst())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Search token belongs to another job");
                 return request.requestId();
             }
-            var running = jdbc.query("SELECT id FROM booking_search_request WHERE \"jobId\"=? AND state IN ('QUEUED','RUNNING')", (rs, _) -> Required.string(rs, 1), request.jobId());
+            var running = jdbc.query("SELECT id FROM booking_search_request WHERE \"jobId\"=? AND state IN ('QUEUED','RUNNING')", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), request.jobId());
             if (!running.isEmpty()) return Required.value(running.getFirst());
-            if (Required.query(jdbc, "SELECT count(*) FROM booking_search_request WHERE state IN ('QUEUED','RUNNING')", Integer.class) >= 16)
+            if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM booking_search_request WHERE state IN ('QUEUED','RUNNING')", Integer.class) >= 16)
                 throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Search queue is full");
             jdbc.update("INSERT INTO booking_search_request (id,\"jobId\",\"deadlineAt\",state,refresh) VALUES (?,?,clock_timestamp()+interval '2 minutes','QUEUED',?)",
                     request.requestId(), request.jobId(), request.refresh());
@@ -74,8 +74,8 @@ public final class DurableBookingSearch {
     public Status status(String id, String jobId) {
         BookingSearchControl.token(id);
         var rows = jdbc.query("SELECT state,phase,GREATEST(0,EXTRACT(EPOCH FROM (COALESCE(\"finishedAt\",clock_timestamp())-\"createdAt\"))*1000)::bigint,\"queueMs\",\"completedWork\",\"stopReason\",\"offerSetId\",\"bestCostDeltaCents\" FROM booking_search_request WHERE id=? AND \"jobId\"=? AND state IS NOT NULL",
-                (rs, _) -> new Saved(new Status(id, jobId, Required.string(rs, 1), Required.string(rs, 2),
-                        Required.longValue(rs, 3), Required.nullableLong(rs, 4), Required.longValue(rs, 5), rs.getString(6), Required.value(List.of()), Required.nullableLong(rs, 8)), rs.getString(7)), id, jobId);
+                (rs, _) -> new Saved(new Status(id, jobId, dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2),
+                        dev.waterflex.scheduler.DatabaseFacts.longValue(rs, 3), dev.waterflex.scheduler.DatabaseFacts.nullableLong(rs, 4), dev.waterflex.scheduler.DatabaseFacts.longValue(rs, 5), rs.getString(6), Required.value(List.of()), dev.waterflex.scheduler.DatabaseFacts.nullableLong(rs, 8)), rs.getString(7)), id, jobId);
         if (rows.size() != 1) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Search not found");
         Saved saved = Required.value(rows.getFirst());
         Status result = saved.status();
@@ -83,8 +83,8 @@ public final class DurableBookingSearch {
         if (result.state().equals("AVAILABLE")) {
             if (setId == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Published search has no reservation");
             var offers = jdbc.query("SELECT o.id,o.\"serviceDate\",o.\"windowStart\",o.\"windowEnd\",o.\"expiresAt\" FROM booking_offer o JOIN booking_offer_set s ON s.id=o.\"offerSetId\" WHERE s.id=? AND s.\"supersededAt\" IS NULL AND o.\"expiresAt\">clock_timestamp() ORDER BY o.id",
-                    (offer, _) -> new BookingService.Offer(Required.string(offer, 1), Required.value(Required.timestamp(offer, 2).toLocalDateTime().toLocalDate().toString()),
-                            Required.value(Required.timestamp(offer, 3).toInstant()), Required.value(Required.timestamp(offer, 4).toInstant()), Required.value(Required.timestamp(offer, 5).toInstant())), setId);
+                    (offer, _) -> new BookingService.Offer(dev.waterflex.scheduler.DatabaseFacts.string(offer, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(offer, 2).toLocalDateTime().toLocalDate().toString()),
+                            Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(offer, 3).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(offer, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(offer, 5).toInstant())), setId);
             result = new Status(id, jobId, offers.isEmpty() ? "INCOMPLETE" : "AVAILABLE", result.phase(), result.elapsedMs(), result.queueMs(), result.completedWork(),
                     offers.isEmpty() ? "OFFER_EXPIRED_OR_RELEASED" : result.stopReason(), Required.value(offers), result.bestCostDeltaCents());
             if (!offers.isEmpty()) control.acknowledge(id, jobId);
@@ -95,7 +95,7 @@ public final class DurableBookingSearch {
     private void next() {
         try {
             var rows = jdbc.query("UPDATE booking_search_request SET state='RUNNING',owner=?,\"leaseUntil\"=clock_timestamp()+interval '15 seconds',\"startedAt\"=clock_timestamp(),phase='SNAPSHOT',\"queueMs\"=(EXTRACT(EPOCH FROM (clock_timestamp()-\"createdAt\"))*1000)::bigint WHERE id=(SELECT id FROM booking_search_request WHERE state='QUEUED' AND \"cancelledAt\" IS NULL AND \"deadlineAt\">clock_timestamp() ORDER BY \"createdAt\",id FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING id,\"jobId\",refresh",
-                    (rs, _) -> new Work(Required.string(rs, 1), Required.string(rs, 2), Required.bool(rs, 3)), owner);
+                    (rs, _) -> new Work(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.bool(rs, 3)), owner);
             if (!rows.isEmpty()) run(Required.value(rows.getFirst()));
         } catch (RuntimeException failure) { log("Durable search worker unavailable", failure); }
     }
@@ -124,7 +124,7 @@ public final class DurableBookingSearch {
         finally { active.remove(work.id()); }
     }
     private void guard(String id) {
-        if (Required.query(jdbc, "SELECT count(*) FROM (SELECT id FROM booking_search_request WHERE id=? AND owner=? AND state='RUNNING' AND \"cancelledAt\" IS NULL AND \"leaseUntil\">clock_timestamp() AND \"deadlineAt\">clock_timestamp() FOR UPDATE) owned", Integer.class, id, owner) != 1)
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM (SELECT id FROM booking_search_request WHERE id=? AND owner=? AND state='RUNNING' AND \"cancelledAt\" IS NULL AND \"leaseUntil\">clock_timestamp() AND \"deadlineAt\">clock_timestamp() FOR UPDATE) owned", Integer.class, id, owner) != 1)
             throw new SearchDeadline.Expired();
     }
     private void finish(String id, String state, String reason, SearchDeadline deadline) {

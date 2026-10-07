@@ -19,7 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 public final class RoadPrewarming {
     private record Day(String id, String technicianId, LocalDate date, int version) { }
-    private record Snapshot(Day day, RouteEndpoints endpoints, List<RoadClient.Point> stops) { }
+    private record Snapshot(Day day, RouteEndpoints endpoints, List<RoadPoint> stops) { }
     private record Completed(Snapshot snapshot, String identity, Instant expires) { }
     private final JdbcTemplate jdbc;
     private final RoadClient roads;
@@ -53,19 +53,19 @@ public final class RoadPrewarming {
 
     private void warmOne() {
         var days = Required.value(reads.execute(_ -> {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             return jdbc.query("SELECT id,\"technicianId\",\"serviceDate\",version FROM schedule_day WHERE id>? AND \"serviceDate\">=CURRENT_DATE AND \"serviceDate\"<CURRENT_DATE+INTERVAL '21 days' ORDER BY id LIMIT 1",
-                    (rs, _) -> new Day(Required.string(rs, 1), Required.string(rs, 2), Required.value(Required.timestamp(rs, 3).toLocalDateTime().toLocalDate()), Required.integer(rs, 4)), cursor);
+                    (rs, _) -> new Day(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toLocalDateTime().toLocalDate()), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 4)), cursor);
         }));
         if (days.isEmpty()) { cursor = ""; return; }
         Day day = Required.value(days.getFirst()); cursor = day.id();
         if (ScheduleCutoff.frozen(day.date(), Required.value(Instant.now()))) return;
         Snapshot snapshot = Required.value(reads.execute(_ -> {
-            SearchDeadline.database(jdbc);
+            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
             int version = version(day);
             RouteEndpoints endpoints = RouteEndpoints.forTechnician(jdbc, day.technicianId(), day.date());
             var stops = jdbc.query("SELECT ad.lat,ad.lng FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" WHERE a.\"technicianId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.sequence,a.id LIMIT 129",
-                    (rs, _) -> Required.location(rs, 1, 2, HttpStatus.CONFLICT), day.technicianId(), stamp(day.date()));
+                    (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.location(rs, 1, 2, HttpStatus.CONFLICT), day.technicianId(), stamp(day.date()));
             if (stops.size() > 128) throw new IllegalStateException("Prewarm route exceeds bounded snapshot size");
             return new Snapshot(new Day(day.id(), day.technicianId(), day.date(), version), endpoints, Required.value(List.copyOf(stops)));
         }));
@@ -77,7 +77,7 @@ public final class RoadPrewarming {
         var pairs = pairs(snapshot.endpoints(), snapshot.stops());
         boolean warmed = warmBatches(pairs, identity, roads, () -> {
             if (admission.state().queuedBookings() > 0 || admission.state().active() > 1) return false;
-            return Required.value(reads.execute(_ -> { SearchDeadline.database(jdbc); return version(day) == snapshot.day().version(); }));
+            return Required.value(reads.execute(_ -> { dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc); return version(day) == snapshot.day().version(); }));
         });
         if (warmed) {
             completed.put(day.id(), new Completed(snapshot, identity, Required.value(Instant.now().plusSeconds(1800))));
@@ -96,7 +96,7 @@ public final class RoadPrewarming {
         return currentAndIdle.getAsBoolean() && identity.equals(roads.currentVersion());
     }
 
-    static List<RoadClient.Pair> pairs(RouteEndpoints endpoints, List<RoadClient.Point> stops) {
+    static List<RoadClient.Pair> pairs(RouteEndpoints endpoints, List<RoadPoint> stops) {
         List<RoadClient.Pair> result = new ArrayList<>();
         for (int i = 0; i < stops.size(); i++) {
             var point = Required.value(stops.get(i));
@@ -107,6 +107,6 @@ public final class RoadPrewarming {
         }
         return Required.value(List.copyOf(result));
     }
-    private int version(Day day) { return Required.query(jdbc, "SELECT version FROM schedule_day WHERE id=?", Integer.class, day.id()); }
+    private int version(Day day) { return dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT version FROM schedule_day WHERE id=?", Integer.class, day.id()); }
     private static Timestamp stamp(LocalDate day) { return Required.value(Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant())); }
 }

@@ -1,0 +1,47 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.1.1)
+
+2026-10-07T01:08:49.095Z  INFO 7361 --- [           main] dev.waterflex.solver.SolverApplication   : Starting SolverApplication v0.1.0-SNAPSHOT using Java 25.0.4.1 with PID 7361 (/home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java/solver-service/target/solver-service-0.1.0-SNAPSHOT.jar started by runner in /home/runner/work/waterflex-scheduler-java/waterflex-scheduler-java)
+2026-10-07T01:08:49.113Z  INFO 7361 --- [           main] dev.waterflex.solver.SolverApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-10-07T01:08:52.228Z  INFO 7361 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 18004 (http)
+2026-10-07T01:08:52.269Z  INFO 7361 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-10-07T01:08:52.272Z  INFO 7361 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.24]
+2026-10-07T01:08:52.339Z  INFO 7361 --- [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2955 ms
+2026-10-07T01:08:55.631Z  INFO 7361 --- [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 18004 (http) with context path '/'
+2026-10-07T01:08:55.664Z  INFO 7361 --- [           main] dev.waterflex.solver.SolverApplication   : Started SolverApplication in 8.375 seconds (process running for 9.887)
+2026-10-07T01:08:58.388Z  INFO 7361 --- [.1-18004-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-10-07T01:08:58.389Z  INFO 7361 --- [.1-18004-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-10-07T01:08:58.392Z  INFO 7361 --- [.1-18004-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-10-07T01:09:08.773Z  INFO 7361 --- [63-b78555c67146] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (6), best score ([0/0/0/0/0]hard/[0/-4450]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-07T01:09:08.774Z  INFO 7361 --- [63-b78555c67146] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-07T01:09:18.624Z  INFO 7361 --- [ly-cancellation] a.t.s.core.impl.solver.DefaultSolver     : Terminating solver early.
+2026-10-07T01:09:18.625Z  INFO 7361 --- [63-b78555c67146] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (9858), best score ([0/0/0/0/0]hard/[0/-3000]soft), move evaluation speed (268320/sec), step total (280).
+2026-10-07T01:09:18.626Z  INFO 7361 --- [63-b78555c67146] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (9858), best score ([0/0/0/0/0]hard/[0/-3000]soft), move evaluation speed (268130/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-07T01:09:18.636Z  INFO 7361 --- [63-b78555c67146] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (2), best score ([0/0/0/0/0]hard/[-0.003086419753086419753086419753086419/-3000]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-07T01:09:18.637Z  INFO 7361 --- [63-b78555c67146] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-07T01:09:23.622Z  INFO 7361 --- [63-b78555c67146] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (4988), best score ([0/0/0/0/0]hard/[-0.003086419753086419753086419753086419/-3000]soft), move evaluation speed (213450/sec), step total (114).
+2026-10-07T01:09:23.622Z  INFO 7361 --- [63-b78555c67146] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (4988), best score ([0/0/0/0/0]hard/[-0.003086419753086419753086419753086419/-3000]soft), move evaluation speed (213321/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-07T01:09:25.639Z  INFO 7361 --- [7e-45a4292e4cab] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (3), best score ([0/-5640/0/0/0]hard/[0/-4950]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-07T01:09:25.639Z  INFO 7361 --- [7e-45a4292e4cab] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-07T01:09:40.636Z  INFO 7361 --- [7e-45a4292e4cab] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (15000), best score ([0/0/0/0/0]hard/[0/-4950]soft), move evaluation speed (309975/sec), step total (523).
+2026-10-07T01:09:40.636Z  INFO 7361 --- [ly-cancellation] a.t.s.core.impl.solver.DefaultSolver     : Terminating solver early.
+2026-10-07T01:09:40.636Z  INFO 7361 --- [7e-45a4292e4cab] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (15000), best score ([0/0/0/0/0]hard/[0/-4950]soft), move evaluation speed (309913/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-07T01:09:41.883Z  INFO 7361 --- [ba-ce6d59a7b879] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (4), best score ([0/-7440/0/0/0]hard/[0/-6450]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-07T01:09:41.883Z  INFO 7361 --- [ba-ce6d59a7b879] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-07T01:09:56.879Z  INFO 7361 --- [ba-ce6d59a7b879] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (15000), best score ([0/0/0/0/0]hard/[-47/-7625]soft), move evaluation speed (338084/sec), step total (569).
+2026-10-07T01:09:56.879Z  INFO 7361 --- [ly-cancellation] a.t.s.core.impl.solver.DefaultSolver     : Terminating solver early.
+2026-10-07T01:09:56.879Z  INFO 7361 --- [ba-ce6d59a7b879] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (15000), best score ([0/0/0/0/0]hard/[-47/-7625]soft), move evaluation speed (337949/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-07T01:10:02.549Z  INFO 7361 --- [5b-a8ec74860a40] a.t.s.core.impl.solver.DefaultSolver     : Solving started: time spent (3), best score ([0/-5640/0/0/0]hard/[0/-4950]soft), environment mode (NO_ASSERT), move thread count (NONE), random (seed 17).
+2026-10-07T01:10:02.550Z  INFO 7361 --- [5b-a8ec74860a40] a.t.s.core.impl.solver.DefaultSolver     : Problem scale: genuine entity count (2), genuine variable count (2), approximate value count (1), approximate problem scale (3).
+2026-10-07T01:10:17.542Z  INFO 7361 --- [5b-a8ec74860a40] a.t.s.c.i.l.DefaultLocalSearchPhase      : Local Search phase (0) ended: time spent (14996), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (343296/sec), step total (576).
+2026-10-07T01:10:17.542Z  INFO 7361 --- [ly-cancellation] a.t.s.core.impl.solver.DefaultSolver     : Terminating solver early.
+2026-10-07T01:10:17.543Z  INFO 7361 --- [5b-a8ec74860a40] a.t.s.core.impl.solver.DefaultSolver     : Solving ended: time spent (14996), best score ([0/0/-1/0/0]hard/[0/0]soft), move evaluation speed (343204/sec), phase total (1), environment mode (NO_ASSERT), move thread count (NONE).
+2026-10-07T01:10:21.775Z  INFO 7361 --- [ionShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-10-07T01:10:21.797Z  INFO 7361 --- [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete

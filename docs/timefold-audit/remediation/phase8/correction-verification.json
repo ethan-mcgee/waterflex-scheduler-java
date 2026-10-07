@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "step": 8,
+  "recordedAtUtc": "2026-10-07T01:16:06.020992+00:00",
+  "correctsRevision": "c96ac90fefe21d4f2c8fc185af0ebd0bc82ca3b9",
+  "failedHostedRun": "https://github.com/ethan-mcgee/waterflex-scheduler-java/actions/runs/37554817291",
+  "finding": "Remote booking, optimizer and time-off passed; required rearrangement refinement failed because the protocol globally applied nonnegative monetary-rate restrictions to signed fairness deltas.",
+  "correction": "Canonical signed calculation decimal strings; monetary rate DTO validation remains unchanged. Actual HTTP insertion/refinement regression requires a negative fairness delta and independently validated rearrangement.",
+  "checks": [
+    {
+      "command": "./mvnw.cmd -Pnullability clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase8-ecj-refinement-correction.log",
+      "tests": 261,
+      "skipped": 1
+    },
+    {
+      "command": "./mvnw.cmd clean verify --batch-mode --no-transfer-progress",
+      "status": "passed",
+      "log": "evidence/phase8-javac-refinement-accepted.log",
+      "tests": 261,
+      "skipped": 1
+    }
+  ],
+  "sourceIdentities": [
+    {
+      "path": "calculation-engine/src/main/java/dev/waterflex/scheduler/CalculationJson.java",
+      "gitBlobSha256": "55f9cc0a7692a3572caabc2fe18b74e4b44a25e9d493b3d3aad2fe9653d30ae3"
+    },
+    {
+      "path": "solver-service/src/test/java/dev/waterflex/solver/SolverReplayTest.java",
+      "gitBlobSha256": "58f34372bd612389830456eb79c31ae4f2b2795986ea16ed4a249596c177a46e"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "evidence/phase8-ecj-refinement-correction.log",
+      "bytes": 175393,
+      "sha256": "0f009ed7576c1e736f7bc739ac2dc542e8a1a2598d8150d8b33e1c6f3ca2e3d8"
+    },
+    {
+      "path": "evidence/phase8-hosted-remote-failure.log",
+      "bytes": 52056,
+      "sha256": "113d3773d6e8c761285f513036e5726c10968f6c265e3674e7021d475de27811"
+    },
+    {
+      "path": "evidence/phase8-javac-refinement-accepted.log",
+      "bytes": 155008,
+      "sha256": "0607d245cdc3417fb355d025b93c4402ad7c1786be30a9e8faa3e694cb669a3e"
+    },
+    {
+      "path": "evidence/phase8-javac-refinement-correction.log",
+      "bytes": 3288,
+      "sha256": "9841d09f01d593b5b98fb93e0622dc8e1efb299dfadf87d608cdd527e0255c68"
+    },
+    {
+      "path": "evidence/phase8-required-refinement-regression.log",
+      "bytes": 2814,
+      "sha256": "b92d9c2c525316c04bae18f35907a8774a0a23b7c338e70fa3c5277c765cd2c0"
+    },
+    {
+      "path": "evidence/phase8-required-refinement-regression2.log",
+      "bytes": 5853,
+      "sha256": "35376eaf00369f405c9e2440fdf30d63e2d4c2fb874383f20e717011ef0a89aa"
+    },
+    {
+      "path": "evidence/phase8-required-refinement-regression3.log",
+      "bytes": 17363,
+      "sha256": "273db23ff46c12cbc7a7749f494e0e7e54022deb01853ba4a6b74121ba731203"
+    },
+    {
+      "path": "evidence/phase8-required-refinement-regression4.log",
+      "bytes": 17357,
+      "sha256": "afec47ee5642e09957b6d997601385ae67a6886cec1e94b0c40b83b419cea1d9"
+    },
+    {
+      "path": "evidence/phase8-required-refinement-regression5.log",
+      "bytes": 17357,
+      "sha256": "51ab93ec2a62e3e58badbb85048b77bf39c43c7ba47a70274a8514a1a9cb9593"
+    },
+    {
+      "path": "evidence/phase8-required-refinement-regression6.log",
+      "bytes": 17357,
+      "sha256": "d4918e51d284ef3ead26c3be5270a829c78054b05951e343a31803b39ba52904"
+    },
+    {
+      "path": "evidence/hosted-initial-remote-scheduler.log",
+      "bytes": 94992,
+      "sha256": "4dcaefbe35084b338e986a4f4d055fff74bb84608a5ccb885cacb88ac85a7da9"
+    },
+    {
+      "path": "evidence/hosted-initial-remote-solver.log",
+      "bytes": 8235,
+      "sha256": "0a6e43b15b7ef51aecf479a535e4bd7bc6a96673b078d3655d31893e4ff260c3"
+    }
+  ],
+  "limits": [
+    "Initial receipt and failed hosted run are retained unchanged. Exact corrected-head hosted business/browser/assertion gates pending at recording time.",
+    "A premature overlapping javac clean failed on a locked build JAR; its log is retained. The named accepted standard gate ran after ECJ finished.",
+    "Embedded remains default; steps 9-16 and remote performance promotion remain pending owner review."
+  ]
+}

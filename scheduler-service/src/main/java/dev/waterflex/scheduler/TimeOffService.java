@@ -60,10 +60,10 @@ public class TimeOffService {
         if (last.isBefore(first) || first.isBefore(LocalDate.now(LOCAL)) || last.isAfter(first.plusDays(30))
                 || !ScheduleCutoff.localMinute(Required.value(first), request.startMin(), false).isAfter(Instant.now()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or past date range");
-        if (jdbc.query("SELECT id FROM technician WHERE id=? AND active=true FOR UPDATE", (rs, _) -> Required.string(rs, 1), request.technicianId()).isEmpty())
+        if (jdbc.query("SELECT id FROM technician WHERE id=? AND active=true FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), request.technicianId()).isEmpty())
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Technician not found");
         for (LocalDate day = first; !day.isAfter(last); day = day.plusDays(1)) {
-            int overlaps = Required.query(jdbc, "SELECT count(*) FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.\"technicianId\"=? AND r.status IN ('PENDING','READY','APPROVED','ANALYZING') AND i.\"serviceDate\"=? AND i.\"startMin\"<? AND i.\"endMin\">?",
+            int overlaps = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM time_off_interval i JOIN time_off_request r ON r.id=i.\"requestId\" WHERE r.\"technicianId\"=? AND r.status IN ('PENDING','READY','APPROVED','ANALYZING') AND i.\"serviceDate\"=? AND i.\"startMin\"<? AND i.\"endMin\">?",
                     Integer.class, request.technicianId(), stamp(Required.value(day)), request.endMin(), request.startMin());
             if (overlaps > 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Overlapping time-off request");
         }
@@ -82,7 +82,7 @@ public class TimeOffService {
     @Scheduled(fixedDelayString = "#{@timeOffPolling.delayMs()}")
     public void processQueued() {
         if (!analysisEnabled) return;
-        var ids = jdbc.query("SELECT p.\"requestId\" FROM time_off_report p JOIN time_off_request r ON r.id=p.\"requestId\" WHERE p.status='QUEUED' AND r.status='PENDING' ORDER BY p.\"createdAt\" LIMIT 3", (rs, _) -> Required.string(rs, 1));
+        var ids = jdbc.query("SELECT p.\"requestId\" FROM time_off_report p JOIN time_off_request r ON r.id=p.\"requestId\" WHERE p.status='QUEUED' AND r.status='PENDING' ORDER BY p.\"createdAt\" LIMIT 3", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1));
         for (String id : ids) {
             if (jdbc.update("UPDATE time_off_report SET status='ANALYZING', \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='QUEUED' AND EXISTS (SELECT 1 FROM time_off_request WHERE id=? AND status='PENDING')", id, id) == 0) continue;
             try { analyze(Required.value(id)); }
@@ -107,7 +107,7 @@ public class TimeOffService {
 
     private void analyze(String id) throws Exception {
         var owner = jdbc.query("SELECT r.\"technicianId\" FROM time_off_request r WHERE r.id=?",
-                (rs, _) -> new Owner(Required.string(rs, 1)), id);
+                (rs, _) -> new Owner(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1)), id);
         if (owner.isEmpty()) return;
         List<Interval> intervals = intervals(id);
         List<Map<String, Object>> days = new ArrayList<>();
@@ -121,7 +121,7 @@ public class TimeOffService {
                 if (ScheduleCutoff.frozen(interval.day(), Required.value(Instant.now()))) {
                     preview = Map.of("serviceDate", interval.day().toString(), "status", "FROZEN_CSR_COORDINATION", "reason", "Scheduling cutoff has passed; coordinate with customer service");
                 } else {
-                    String metroId = Required.query(jdbc, "SELECT p.\"metroId\" FROM technician_depot_assignment a JOIN depot p ON p.id=a.\"depotId\" WHERE a.\"technicianId\"=? AND a.\"effectiveDate\"<=? ORDER BY a.\"effectiveDate\" DESC LIMIT 1", String.class,
+                    String metroId = dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT p.\"metroId\" FROM technician_depot_assignment a JOIN depot p ON p.id=a.\"depotId\" WHERE a.\"technicianId\"=? AND a.\"effectiveDate\"<=? ORDER BY a.\"effectiveDate\" DESC LIMIT 1", String.class,
                             owner.getFirst().technicianId(), java.sql.Timestamp.from(interval.day().atStartOfDay(java.time.ZoneOffset.UTC).toInstant()));
                     preview = optimizer.previewRepair(metroId, interval.day(), owner.getFirst().technicianId(), interval.start(), interval.end());
                 }
@@ -169,7 +169,7 @@ public class TimeOffService {
         String reportJson = mapper.writeValueAsString(data);
         boolean ready = feasible;
         boolean committed = Boolean.TRUE.equals(transactions.execute(_ -> {
-            var current = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+            var current = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id);
             if (current.isEmpty() || !"PENDING".equals(current.getFirst())) return false;
             int updated = jdbc.update("UPDATE time_off_report SET status=?, data=?::jsonb, progress=100, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status='ANALYZING'",
                     status, reportJson, id);
@@ -190,7 +190,7 @@ public class TimeOffService {
 
     public Map<String, Object> retry(String id) {
         return Required.value(transactions.execute(_ -> {
-            var rows = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+            var rows = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id);
             if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
             if (!"PENDING".equals(rows.getFirst())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending requests can be retried");
             int updated = jdbc.update("UPDATE time_off_report SET status='QUEUED', data=NULL, progress=0, \"updatedAt\"=CURRENT_TIMESTAMP WHERE \"requestId\"=? AND status IN ('ANALYSIS_FAILURE','ROUTING_FAILURE')", id);
@@ -201,7 +201,7 @@ public class TimeOffService {
 
     public Map<String, Object> deny(String id) {
         return Required.value(transactions.execute(_ -> {
-            var rows = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> Required.string(rs, 1), id);
+            var rows = jdbc.query("SELECT status FROM time_off_request WHERE id=? FOR UPDATE", (rs, _) -> dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), id);
             if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
             if ("DENIED".equals(rows.getFirst())) return Map.<String, Object>of("requestId", id, "status", "DENIED");
             if (!"PENDING".equals(rows.getFirst()) && !"READY".equals(rows.getFirst()))
@@ -228,13 +228,13 @@ public class TimeOffService {
 
     private Map<String, Object> approveLocked(String id, boolean allowAdditionalOvertime, List<String> approvedRepairIds) {
         var owner = jdbc.query("SELECT \"technicianId\", status FROM time_off_request WHERE id=? FOR UPDATE",
-                (rs, _) -> new ApprovalOwner(Required.string(rs, 1), Required.string(rs, 2)), id);
+                (rs, _) -> new ApprovalOwner(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)), id);
         if (owner.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
         if (owner.getFirst().status().equals("APPROVED")) return Required.value(Map.<String, Object>of("requestId", id, "status", "APPROVED"));
         if (!owner.getFirst().status().equals("READY")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Fresh feasible report required");
         guard.lockTechnician(owner.getFirst().technicianId());
         var reports = jdbc.query("SELECT data::text, status FROM time_off_report WHERE \"requestId\"=? FOR UPDATE",
-                (rs, _) -> new Report(Required.string(rs, 1), Required.string(rs, 2)), id);
+                (rs, _) -> new Report(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2)), id);
         if (reports.isEmpty() || !reports.getFirst().status().equals("READY")) throw new ResponseStatusException(HttpStatus.CONFLICT, "Fresh feasible report required");
         try {
             List<Interval> intervals = intervals(id);
@@ -279,7 +279,7 @@ public class TimeOffService {
 
     private List<Interval> intervals(String id) {
         return jdbc.query("SELECT \"serviceDate\", \"startMin\", \"endMin\" FROM time_off_interval WHERE \"requestId\"=? ORDER BY \"serviceDate\"",
-                (rs, _) -> new Interval(Required.value(Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), Required.integer(rs, 2), Required.integer(rs, 3)), id);
+                (rs, _) -> new Interval(Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3)), id);
     }
 
     private static final List<String> METRICS = Required.value(List.of("route_minutes", "overtime_minutes", "drive_minutes", "waiting_minutes", "distance_meters", "modeled_cost_cents"));

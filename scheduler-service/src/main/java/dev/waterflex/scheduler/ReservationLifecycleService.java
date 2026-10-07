@@ -17,7 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 public final class ReservationLifecycleService {
     private record Offer(String holdId, String offerId, String jobId, LocalDate day, String metroId, Instant expiresAt,
             @Nullable Instant releasedAt, @Nullable String setId, @Nullable String selectedOfferId,
-            @Nullable Instant supersededAt, String status, RoadClient.Point address, @Nullable Integer reservedOvertimeDelta,
+            @Nullable Instant supersededAt, String status, RoadPoint address, @Nullable Integer reservedOvertimeDelta,
             @Nullable String costModelVersion, @Nullable String setCostModelVersion) { }
     private record Cancellation(String jobId, LocalDate day, String metroId, boolean cancelled) { }
     private final JdbcTemplate jdbc;
@@ -105,8 +105,8 @@ public final class ReservationLifecycleService {
         if (reason.isBlank() || reason.length() > 500) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cancellation reason required");
         var rows = jdbc.query("SELECT a.\"jobId\",a.\"serviceDate\",p.\"metroId\",a.\"cancelledAt\" IS NOT NULL FROM appointment a "
                 + "JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=a.\"technicianId\" AND \"effectiveDate\"<=a.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) d ON true JOIN depot p ON p.id=d.\"depotId\" WHERE a.id=?",
-                (rs, _) -> new Cancellation(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate()),
-                        Required.string(rs, 3), Required.bool(rs, 4)), appointmentId);
+                (rs, _) -> new Cancellation(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant().atZone(ZoneOffset.UTC).toLocalDate()),
+                        dev.waterflex.scheduler.DatabaseFacts.string(rs, 3), dev.waterflex.scheduler.DatabaseFacts.bool(rs, 4)), appointmentId);
         if (rows.size() != 1) throw conflict("Appointment or dated depot is missing");
         Cancellation cancellation = Required.value(rows.getFirst());
         if (cancellation.cancelled()) return Required.value(Map.<String, Object>of("success", true, "appointmentId", appointmentId, "alreadyCancelled", true));
@@ -123,11 +123,11 @@ public final class ReservationLifecycleService {
 
     private List<LocalDate> dates(String jobId) {
         return Required.value(jdbc.query("SELECT DISTINCT \"serviceDate\" FROM slot_hold WHERE \"jobId\"=? AND \"releasedAt\" IS NULL ORDER BY \"serviceDate\"",
-                (rs, _) -> Required.value(Required.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), jobId));
+                (rs, _) -> Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 1).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), jobId));
     }
 
     private void sameActiveSet(Offer offer) {
-        if (Required.query(jdbc, "SELECT count(*) FROM slot_hold WHERE \"jobId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">clock_timestamp() AND \"offerSetId\" IS DISTINCT FROM ?",
+        if (dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT count(*) FROM slot_hold WHERE \"jobId\"=? AND \"releasedAt\" IS NULL AND \"expiresAt\">clock_timestamp() AND \"offerSetId\" IS DISTINCT FROM ?",
                 Integer.class, offer.jobId(), offer.setId()) > 0) throw conflict("A newer offer set exists for this job");
     }
 
@@ -136,17 +136,17 @@ public final class ReservationLifecycleService {
                 + "FROM slot_hold h JOIN job j ON j.id=h.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" LEFT JOIN booking_offer_set s ON s.id=h.\"offerSetId\" "
                 + "LEFT JOIN booking_offer o ON o.id=h.\"offerToken\" AND o.\"jobId\"=h.\"jobId\" "
                 + "JOIN LATERAL (SELECT \"depotId\" FROM technician_depot_assignment WHERE \"technicianId\"=h.\"technicianId\" AND \"effectiveDate\"<=h.\"serviceDate\" ORDER BY \"effectiveDate\" DESC LIMIT 1) a ON true JOIN depot p ON p.id=a.\"depotId\" WHERE " + predicate,
-                (rs, _) -> new Offer(Required.string(rs, 1), Required.string(rs, 2), Required.string(rs, 3),
-                        Required.value(Required.timestamp(rs, 4).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), Required.string(rs, 5),
-                        Required.value(Required.timestamp(rs, 6).toInstant()), instant(rs.getTimestamp(7)), rs.getString(8), rs.getString(9),
-                        instant(rs.getTimestamp(10)), Required.string(rs, 11), Required.location(rs, 12, 13, HttpStatus.CONFLICT), rs.getObject(14, Integer.class), rs.getString(15), rs.getString(16)), parameters);
+                (rs, _) -> new Offer(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.string(rs, 3),
+                        Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant().atZone(ZoneOffset.UTC).toLocalDate()), dev.waterflex.scheduler.DatabaseFacts.string(rs, 5),
+                        Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 6).toInstant()), instant(rs.getTimestamp(7)), rs.getString(8), rs.getString(9),
+                        instant(rs.getTimestamp(10)), dev.waterflex.scheduler.DatabaseFacts.string(rs, 11), dev.waterflex.scheduler.DatabaseFacts.location(rs, 12, 13, HttpStatus.CONFLICT), rs.getObject(14, Integer.class), rs.getString(15), rs.getString(16)), parameters);
         if (rows.size() != 1) throw conflict("Reserved offer is missing or ambiguous");
         return Required.value(rows.getFirst());
     }
 
     private BookingService.Confirmation appointment(String jobId) {
         var rows = jdbc.query("SELECT id,\"windowStart\",\"windowEnd\" FROM appointment WHERE \"jobId\"=? AND \"cancelledAt\" IS NULL",
-                (rs, _) -> new BookingService.Confirmation(Required.string(rs, 1), Required.value(Required.timestamp(rs, 2).toInstant()), Required.value(Required.timestamp(rs, 3).toInstant())), jobId);
+                (rs, _) -> new BookingService.Confirmation(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 2).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 3).toInstant())), jobId);
         if (rows.size() != 1) throw conflict("Confirmed appointment is missing or ambiguous");
         return Required.value(rows.getFirst());
     }
