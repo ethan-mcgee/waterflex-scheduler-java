@@ -84,11 +84,11 @@ async function post(path: string, body: unknown): Promise<unknown> {
 const policy = z.object({ overtimeMinutes: z.int().nonnegative(), costCents: z.int().nonnegative(), fairness: z.object({ variance: z.number().nonnegative(), maximumUtilization: z.number().nonnegative(),
   workloads: z.array(z.object({ technicianId: z.string(), paidMinutes: z.int().nonnegative(), regularCapacityMinutes: z.int().positive(), utilization: z.number().nonnegative() })) }) });
 const auditContract = z.object({ routingIdentity: z.string().min(1), configurationFingerprint: z.string().min(1), independentlyValidated: z.literal(true),
-  costModelVersion: z.literal("exact-fleet-half-up-v2"),
+  costModelVersion: z.literal("exact-fleet-half-up-v3"),
   policyRules: z.object({ regularWindowThreshold: z.int().nonnegative(), utilizationThreshold: z.number().min(0).max(1),
     fairnessAllowance: z.number().min(0).max(1), bookingDeadlineMs: z.int().min(1000).max(5000) }).optional(),
   operatingRates: z.object({ regularHourly: monetaryDecimal, overtimeHourly: monetaryDecimal, mileagePerMile: monetaryDecimal,
-    travelBufferPct: z.number().nonnegative(), travelBufferMinutes: z.int().nonnegative() }).optional(),
+    travelBufferPct: monetaryDecimal, travelBufferMinutes: z.int().nonnegative() }).optional(),
   days: z.array(z.object({ date: z.iso.date(), policy, waitingMinutes: z.int().nonnegative(), roadSeconds: z.int().nonnegative(),
     configuredBufferSeconds: z.number().nonnegative(), roundingSeconds: z.number().nonnegative(), confirmedAppointments: z.int().nonnegative(), reservedStops: z.int().nonnegative() })) });
 async function audit(metroId: string, serviceDates: string[] = dates) { return auditContract.parse(await post("/internal/benchmark/audit", { metroId, dates: serviceDates })); }

@@ -223,6 +223,36 @@ class DailyAttemptDatabaseIT {
         }
     }
 
+    @Test void applyRoutesBeforeLockingScheduleDays() throws Exception {
+        try (var f = new Fixture(true); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var preview = f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), f.id + "-route-first"));
+            assertEquals("PREVIEW", preview.get("status"));
+            String run = Required.value((String) preview.get("run_id"));
+            // Another connection must be able to lock every schedule day while apply is waiting on routing.
+            f.matrixHook.set(() -> {
+                try { executor.submit(() -> f.tx.execute(_ -> { f.jdbc.queryForList("SELECT version FROM schedule_day WHERE \"technicianId\" LIKE ? FOR UPDATE NOWAIT", f.id + "%"); return Boolean.TRUE; })).get(5, TimeUnit.SECONDS); }
+                catch (Exception failure) { throw new AssertionError("Schedule days were locked during routing", failure); }
+            });
+            assertEquals("APPLIED", f.tx.execute(_ -> f.newService().apply(run).get("status")));
+            assertNull(f.matrixHook.get());
+        }
+    }
+
+    @Test void inputChangeBetweenCaptureAndDayLocksRejectsApply() throws Exception {
+        try (var f = new Fixture(true); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            var preview = f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()), f.id + "-changed-input"));
+            assertEquals("PREVIEW", preview.get("status"));
+            String run = Required.value((String) preview.get("run_id"));
+            f.matrixHook.set(() -> {
+                try { executor.submit(() -> f.jdbc.update("UPDATE appointment SET sequence=sequence+1 WHERE id=?", f.id + "-appointment")).get(5, TimeUnit.SECONDS); }
+                catch (Exception failure) { throw new AssertionError(failure); }
+            });
+            var conflict = assertThrows(ResponseStatusException.class, () -> f.tx.execute(_ -> f.newService().apply(run)));
+            assertEquals(409, conflict.getStatusCode().value());
+            assertEquals("PREVIEW", dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT status FROM optimization_run WHERE id=?", String.class, run));
+        }
+    }
+
     @Test void finalFenceBlocksAWriterUntilProposalAndAttemptCommitTogether() throws Exception {
         try (var f = new Fixture(true); var executor = Executors.newVirtualThreadPerTaskExecutor()) {
             var entered = new CountDownLatch(1); var release = new CountDownLatch(1);
@@ -295,7 +325,7 @@ class DailyAttemptDatabaseIT {
                 if (invocation.getMethod().getName().equals("activeIdentity")) { assertFalse(TransactionSynchronizationManager.isActualTransactionActive()); return routing.get(); }
                 if (invocation.getMethod().getName().equals("currentVersion")) return routing.get();
                 if (!invocation.getMethod().getName().equals("matrix")) return org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation);
-                // apply intentionally performs independent routing under its existing locks.
+                // apply routes inside its transaction but before locking schedule days.
                 if (DailyOperation.current() != null) assertFalse(TransactionSynchronizationManager.isActualTransactionActive());
                 Runnable hook = matrixHook.getAndSet(null); if (hook != null) hook.run();
                 Map<String, RoadPoint> points = Required.value(invocation.getArgument(0));
