@@ -60,6 +60,17 @@ class CampaignStudyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'declared factor'):
             cs.validate(spec, self.base)
 
+    def test_probe_must_match_original_registered_configuration_bytes(self):
+        run = self.base / 'probe'
+        run.mkdir()
+        original = run / 'original-config.json'
+        original.write_bytes(b'{"registered":true}')
+        pinned = sha(original)
+        cs.registered_configuration(run, pinned)
+        original.write_bytes(b'{"registered":false}')
+        with self.assertRaisesRegex(ValueError, 'registered artifact'):
+            cs.registered_configuration(run, pinned)
+
     def test_concurrency_keeps_total_resources_and_native_one(self):
         self.assertEqual(len(cs.validate(self.specification('concurrency'), self.base)), 2)
 
