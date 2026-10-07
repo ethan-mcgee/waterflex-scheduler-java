@@ -22,7 +22,7 @@ import campaign_config as cc
 from experiment_config import digest, fields, read_json, unique_object
 from experiment_runtime import command, sha, stamp, topology, tree_hashes, verify_files, write_new, StopRequested
 
-TOOLKIT = ['campaign_config.py', 'campaign_runtime.py', 'campaign_analysis.py', 'campaign_study.py', 'campaign_profile.py', 'campaign_promotion.py', 'campaign_matrix.py', 'experiments.py', 'experiment_config.py', 'experiment_runtime.py']
+TOOLKIT = ['campaign_config.py', 'campaign_runtime.py', 'campaign_analysis.py', 'campaign_study.py', 'campaign_profile.py', 'experiments.py', 'experiment_config.py', 'experiment_runtime.py']
 
 
 def toolkit_hashes():
