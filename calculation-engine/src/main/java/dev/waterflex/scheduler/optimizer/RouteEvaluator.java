@@ -299,7 +299,7 @@ public final class RouteEvaluator {
     }
 
     private static long travel(DayPlan plan, DayPlan.RoadLeg road) {
-        return (long) Math.ceil(road.seconds() * (1 + plan.getTravelBufferPct()) / 60.0) + plan.getTravelBufferMinutes();
+        return dev.waterflex.scheduler.Monetary.bufferedMinutes(road.seconds(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes());
     }
     private static Instant latest(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
 }

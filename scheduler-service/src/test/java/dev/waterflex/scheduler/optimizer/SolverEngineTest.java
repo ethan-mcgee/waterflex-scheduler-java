@@ -71,6 +71,35 @@ class SolverEngineTest {
             assertNotNull(failure.result().statistics().diagnosticsUnavailableReason());
         }
     }
+    /** SolverEngine copies the whole declared termination; production must declare only its budget and legacy step cap. */
+    @Test void productionVariantsDeclareOnlySpentLimitAndLegacyStepCap() {
+        var allowed = java.util.Set.of("<spentLimit>PT15S</spentLimit>", "<spentLimit>15s</spentLimit><stepCountLimit>1000</stepCountLimit>", "<spentLimit>15s</spentLimit>");
+        for (var variant : SolverEngine.Variant.values()) for (boolean construction : new boolean[]{false, true}) {
+            String xml = SolverEngine.configuration(variant, 17, ai.timefold.solver.core.config.solver.EnvironmentMode.NO_ASSERT, construction).configurationXml().replaceAll("\s+", "");
+            var blocks = java.util.regex.Pattern.compile("<termination>(.*?)</termination>").matcher(xml).results().map(match -> match.group(1)).toList();
+            assertEquals(1, blocks.size(), variant + " must declare one solver-level termination");
+            assertTrue(allowed.contains(blocks.getFirst()), variant + " declares unexpected termination " + blocks.getFirst());
+        }
+    }
+    @Test void earlyTerminationDistinguishesOperationCancellationFromPhaseBudgetStop() {
+        var definition = SolverEngine.configuration(SolverEngine.Variant.TABU, 17);
+        for (boolean cancelled : new boolean[]{true, false}) {
+            var result = SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), Required.value(Duration.ofSeconds(30)), null, false,
+                    new SolverEngine.Cancellation() {
+                        @Override public void started(ai.timefold.solver.core.api.solver.Solver<DayPlan> solver) {
+                            Thread.ofVirtual().start(() -> {
+                                try { Thread.sleep(50); } catch (InterruptedException failure) { Thread.currentThread().interrupt(); }
+                                solver.terminateEarly();
+                            });
+                        }
+                        @Override public void stopped() { }
+                        @Override public boolean cancelled() { return cancelled; }
+                    });
+            assertEquals(cancelled ? "CANCELLED" : "TERMINATED_EARLY", result.statistics().termination());
+            assertEquals("OBSERVED", result.statistics().terminationBasis());
+            assertTrue(result.statistics().solveMs() < 30_000);
+        }
+    }
     @Test void loadedArtifactIsIdentifiedAndNoSearchDoesNotInventCounters() {
         var provenance = EngineProvenance.loaded();
         assertEquals("2.6.0", provenance.version()); assertNotNull(provenance.sha256()); assertNull(provenance.unavailableReason());

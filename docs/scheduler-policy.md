@@ -2,7 +2,7 @@
 
 This describes the implemented consolidated policy. Release acceptance and measured limitations are tracked separately in [the original-plan checklist](scheduler-plan-checklist.md), [booking benchmarks](booking-benchmarks.md) and [solver experiments](solver-benchmarks.md). The dispatcher still previews and manually applies optimization proposals. No same-day replanning, paid service migration or automatic dispatch apply is introduced.
 
-The new booking path, including booking fairness and common reservation arrangements, requires `booking.reservations.enabled=true`. Its bounded rearrangement search additionally requires `booking.search.bounded=true`. Both remain disabled by default for staged rollout. The fallback cannot authorize new overtime without the prescribed scarcity search, and previously issued managed offers retain their confirmation path when either flag is disabled. Daily optimization policy operates independently of these booking flags.
+The new booking path, including booking fairness and common reservation arrangements, requires `booking.reservations.enabled=true`. Its bounded rearrangement search additionally requires `booking.search.bounded=true`. Both remain disabled by default for staged rollout. No booking path authorizes new overtime (see below), and previously issued managed offers retain their confirmation path when either flag is disabled. Daily optimization policy operates independently of these booking flags.
 
 ## Customer promises and overtime
 
@@ -10,13 +10,17 @@ Bookings retain two-hour arrival windows, ten-minute offer expiry, the existing 
 
 A regular offer adds no overtime relative to the common reservation baseline. A day that already contains overtime can therefore accept another regular offer. Distinct choices are counted by service date and window start/end across the complete horizon before limiting the response to four offers. Several technicians serving one window do not create several choices.
 
-New overtime authorization requires both at most two distinct regular windows and at least 90 percent confirmed utilization, after the prescribed insertion and bounded neighborhood search completes. Eligibility is service qualification plus the effective metro assignment on each date. Regular capacity is the smaller of the daily paid limit and regular working minutes after the union of approved absences. Zero-capacity dates are excluded. Consumed capacity includes confirmed work for every service and is capped per technician/date before aggregation. Active holds constrain feasibility but are not confirmed demand; a refresh excludes the requesting job's old alternatives.
+New overtime is never offered under policy `zero-overtime-four-hour-v2`. `SchedulingPolicy.authorizeOvertime` validates its utilization inputs and always returns false, whatever the window count, confirmed utilization or search completion; the prohibition survives algorithm rollback and saved settings. The `regular_window_threshold` and `confirmed_utilization_threshold` settings are still validated, fingerprinted and reported, but they do not authorize overtime. Allowing overtime offers again requires a separate business decision and a new policy version. The window threshold still decides when capacity is abundant enough for optional fairness refinement (more distinct regular windows than the threshold). Eligibility is service qualification plus the effective metro assignment on each date. Regular capacity is the smaller of the daily paid limit and regular working minutes after the union of approved absences. Zero-capacity dates are excluded. Consumed capacity includes confirmed work for every service and is capped per technician/date before aggregation. Active holds constrain feasibility but are not confirmed demand; a refresh excludes the requesting job's old alternatives.
 
-Deadline exhaustion, routing failures and incomplete snapshots cannot establish scarcity. Completed bounded search describes the configured neighborhood, not proof of global infeasibility. Regular choices are retained first; authorized overtime only fills remaining positions up to four. Authorization is persisted with an offer until expiry. A later demand drop alone does not revoke it, but confirmation still checks feasibility, reservation compatibility and technician limits.
+Deadline exhaustion, routing failures and incomplete snapshots are reported as incomplete search, not as a lack of capacity. Completed bounded search describes the configured neighborhood, not proof of global infeasibility. Only regular choices are offered, up to four. Offers issued under earlier policy versions may carry a persisted overtime authorization; confirmation still checks feasibility, reservation compatibility and technician limits.
 
 ## Cost, workload and acceptance
 
-The objective order is hard feasibility and reservation protection, minimum found overtime, minimum found operating cost at that overtime, then lower unfairness within `floor(referenceCost * 1.02)`. Booking uses incremental cost against a consistent reservation baseline; daily optimization uses total daily cost. Zero or negative incremental reference cost gets no positive allowance.
+Booking and daily optimization use different rules after hard feasibility and reservation protection.
+
+Booking considers only candidates that add no overtime, then ranks them strictly by incremental operating cost against a consistent reservation baseline. Fairness only breaks exact cost ties, followed by window, technician and route order. Booking applies no cost allowance: a fairer candidate that costs one cent more is not preferred.
+
+Daily optimization uses total daily cost. Its reference phase minimizes overtime, then cost. Its fairness phase keeps the reference overtime and permits cost up to `floor(referenceCost * (1 + fairness_cost_allowance))`, normally 2 percent above the cost found by the reference phase (not above the current schedule). Zero or negative reference cost gets no positive allowance.
 
 Unfairness is decimal capacity-weighted variance of paid workload divided by available regular capacity. Paid workload includes service, directed travel and paid waiting. Idle technicians qualified for at least one service in the day's demand remain in the comparison. Sibling offers do not count as additional customer jobs. Reports include each technician's workload/capacity/utilization and maximum utilization. Fairness cannot relax skills or availability.
 
@@ -24,7 +28,9 @@ Every arrangement uses canonical timing that minimizes overtime, modeled operati
 
 Cost remains integer cents rounded once after aggregating regular paid minutes, overtime paid minutes and road mileage. It is modeled operating cost, not customer price or a claim about actual payroll. Road seconds, configured buffer seconds and whole-minute rounding are reported separately; buffers are unchanged. Remaining candidate ties use lower cost, fewer changed existing assignments, earlier customer window, technician ID and route order.
 
-Ordinary preview and locked apply use the same policy comparison. They reject overtime increases, require independently feasible validated arrangements, and retain the baseline unless an admissible overtime, cost or fairness improvement exists. A cheaper proposal does not displace a fairer baseline that is inside the cost allowance. Repair may request additional overtime to preserve existing appointments, but labels it explicitly and requires dispatcher approval of the reviewed proposal. Limits remain hard.
+Ordinary preview and locked apply use the same comparison, `SchedulingPolicy.compare`. Any candidate with overtime is rejected (`OVERTIME_PROHIBITED`), even one that reduces overtime: reducing a day from 90 to 20 overtime minutes is recorded as a diagnostic improvement with a policy rejection, and the schedule stays unchanged. A zero-overtime candidate that removes existing overtime is accepted as `OVERTIME_REDUCTION`. When the validated reference still has overtime, the fairness phase is skipped (`SKIPPED_REFERENCE_OVERTIME`) because no candidate preserving that overtime could be accepted. Otherwise a candidate must be independently feasible, within the cost ceiling, and improve overtime, fairness or cost; a cheaper proposal does not displace a fairer baseline that is inside the cost allowance. Paid time includes return travel to the end-of-day endpoint.
+
+Repair proposals must also have zero overtime at preview and apply. The API still carries a dispatcher approval flag for additional repair overtime, but apply rejects any repair with overtime before that approval is consulted, so additional repair overtime cannot currently be applied. Limits remain hard.
 
 ## Search and reservation lifecycle
 
@@ -61,8 +67,8 @@ Policy defaults are persisted settings and included in configuration fingerprint
 | Setting | Default |
 | --- | --- |
 | `regular_window_threshold` | 2 |
-| `confirmed_utilization_threshold` | 0.90 |
-| `fairness_cost_allowance` | 0.02 |
+| `confirmed_utilization_threshold` | 0.90 (retained and reported; does not authorize overtime under the current policy) |
+| `fairness_cost_allowance` | 0.02 (daily fairness phase only; booking uses no allowance) |
 | `booking_deadline_ms` | 5000 |
 
 Spring properties can be supplied as command-line arguments or their standard environment-variable equivalents:
@@ -79,7 +85,7 @@ Spring properties can be supplied as command-line arguments or their standard en
 | `spring.datasource.hikari.connection-timeout` | 250 ms |
 | `spring.datasource.hikari.validation-timeout` | 250 ms |
 
-Keep rollout disabled until the relevant correctness, latency and quality gates pass. With new issuance disabled, the fallback cannot authorize new overtime from an incomplete scarcity search. Already-issued managed offers still use the durable confirmation/release path. Start with the default admission capacity and benchmark before raising it. Budget database connections across scheduler instances, portals and benchmark clients; application search admission alone does not bound every instance's idle pool.
+Keep rollout disabled until the relevant correctness, latency and quality gates pass. No booking path authorizes new overtime, with or without new issuance. Already-issued managed offers still use the durable confirmation/release path. Start with the default admission capacity and benchmark before raising it. Budget database connections across scheduler instances, portals and benchmark clients; application search admission alone does not bound every instance's idle pool.
 
 Compose exposes `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `SCHEDULER_SEARCH_CAPACITY`, `ROUTING_PREWARM_ENABLED` and `ROUTING_CH_ENABLED` with the defaults above. Supplying these changes configuration only when the relevant containers are recreated; this implementation does not deploy or enable them automatically.
 

@@ -39,6 +39,8 @@ public final class SolverEngine {
     interface Cancellation {
         void started(Solver<DayPlan> solver);
         void stopped();
+        /** True when the enclosing operation was cancelled, as opposed to a phase budget stop. */
+        boolean cancelled();
     }
     public static final class DiagnosticsFailure extends IllegalStateException {
         private static final long serialVersionUID = 1L;
@@ -143,7 +145,8 @@ public final class SolverEngine {
         }
         // Preserve the historical experiment clock; production measures public solve() wall time.
         if (measured != null) solveMs = measured.solveMs();
-        String reason = solver.isTerminateEarly() ? "TERMINATED_EARLY" : "SOLVE_RETURNED";
+        String reason = !solver.isTerminateEarly() ? "SOLVE_RETURNED"
+                : cancellation != null && cancellation.cancelled() ? "CANCELLED" : "TERMINATED_EARLY";
         String basis = "OBSERVED";
         if (!solver.isTerminateEarly() && measured != null) {
             Integer cap = definition.stepLimit();

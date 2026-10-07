@@ -121,6 +121,6 @@ final class RouteTimingSearch {
     private static java.math.BigDecimal cost(Timing value, DayPlan plan) {
         return Monetary.numerator(value.paid(), value.overtime(), value.meters(), plan.getRegularHourly(), plan.getOvertimeHourly(), plan.getMileagePerMile());
     }
-    private static long buffered(DayPlan plan, DayPlan.RoadLeg leg) { return (long) Math.ceil(leg.seconds() * (1 + plan.getTravelBufferPct()) / 60.0) + plan.getTravelBufferMinutes(); }
+    private static long buffered(DayPlan plan, DayPlan.RoadLeg leg) { return dev.waterflex.scheduler.Monetary.bufferedMinutes(leg.seconds(), plan.getTravelBufferPct(), plan.getTravelBufferMinutes()); }
     private static Instant later(Instant first, Instant second) { return first.isAfter(second) ? first : second; }
 }
