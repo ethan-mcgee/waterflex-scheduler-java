@@ -33,7 +33,7 @@ def measurements(result):
         if result.get('policyMetrics') is not None:
             policy = result['policyMetrics']
             cc.check(policy['costCents'] == metrics['costCents'] and policy['overtimeMinutes'] == metrics['overtimeMinutes'], 'Independent policy metrics disagree')
-            values['fairnessVariance'] = float(decimal_number(policy['fairness']['variance']))
+            values['fairnessVariance'] = decimal_number(policy['fairness']['variance'])
         if result['layer'] == 'solver':
             native = result['nativeMeasurement']
             if native['solveMs'] > 0:
@@ -48,7 +48,7 @@ def measurements(result):
         reasons['fairnessVariance'] = 'Caller workflow fairness is not an accepted matched treatment outcome'
     for name, value in values.items():
         if value is not None:
-            cc.check(type(value) in (int, float) and math.isfinite(value) and value >= 0, f'Invalid measurement: {name}')
+            cc.check(type(value) in (int, float, Decimal) and math.isfinite(value) and value >= 0, f'Invalid measurement: {name}')
         else:
             reasons.setdefault(name, 'Measurement unavailable in this validated adapter receipt')
     return {'values': values, 'unavailable': reasons, 'servedIdentities': served}
@@ -194,4 +194,15 @@ def paired(config, blocks, observations, loaded, runtime_hash):
                 'latencyGateUnavailableReason': 'Request p95 and held-out service promotion are separate phase 15 gates'})
     # Counts are comparison-specific for candidates; the control can be paired with several candidates.
     counts[config['controlId']]['paired'] = len({canonical(pair['pair']) for comparison in result['comparisons'] for pair in comparison['pairs']})
-    return result
+    return json_measurements(result)
+
+
+def json_measurements(value):
+    """Keep exact decimal fairness differences in wire strings through family eligibility gates."""
+    if isinstance(value, Decimal):
+        return format(value, 'f')
+    if isinstance(value, dict):
+        return {key: json_measurements(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_measurements(item) for item in value]
+    return value

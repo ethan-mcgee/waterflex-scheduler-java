@@ -71,6 +71,15 @@ class CampaignAnalysisTests(unittest.TestCase):
         self.assertIsNone(metric['estimate'])
         self.assertIsNone(metric['interval'])
 
+    def test_decimal_fairness_order_cannot_collapse_into_binary_tie(self):
+        fixture = self.fixture()
+        for case_id, sample in fixture[3].items():
+            candidate = fixture[2][case_id]['case']['configurationId'] == 'la'
+            sample['result']['policyMetrics']['fairness']['variance'] = '0.01000000000000000000000000000000001' if candidate else '0.01'
+        comparison = self.report(fixture)['comparisons'][0]
+        self.assertEqual(comparison['metrics']['fairnessVariance']['estimate'], '0.00000000000000000000000000000000001')
+        self.assertFalse(comparison['costGateSatisfied'])
+
     def test_all_failure_states_stay_in_requested_denominator(self):
         config, blocks, observations, loaded = self.fixture(3)
         candidates = [case for block in blocks for case in block['cases'] if case['configurationId'] == 'la']
