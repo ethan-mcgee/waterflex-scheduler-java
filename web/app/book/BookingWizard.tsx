@@ -1,6 +1,6 @@
 "use client";
 
-import { durableSearchStatus, savedBookingSearch, bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
+import { durableSearchStatus, offersResponse, savedBookingSearch, bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
 import { appointmentSearchMessage, recordBookingApiDuration } from "@/lib/appointmentSearch";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/book/booking.module.css";
@@ -107,6 +107,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [searchCursor, setSearchCursor] = useState<{ id: string; jobId: string } | null>(null);
+  // Through the public scheduling API every search answers directly; otherwise refresh uses the background search.
+  const [directSearch, setDirectSearch] = useState(false);
   const [searchElapsed, setSearchElapsed] = useState(0);
   const [searchWork, setSearchWork] = useState(0);
   const [searchPhase, setSearchPhase] = useState("QUEUED");
@@ -267,6 +269,17 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   async function refreshOffers() {
     if (!jobId) return;
     setSubmitting(true); setError(null);
+    if (directSearch) {
+      const started = performance.now();
+      try {
+        const refreshed = await readResponse(await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId }) }), offersResponse);
+        setOffers(refreshed.offers); setInvalidOffers(refreshed.offers.length === 0); setNow(Date.now());
+        setError(appointmentSearchMessage(refreshed.search));
+      } catch (error) { setError(errorMessage(error, "Could not refresh times.")); }
+      finally { recordBookingApiDuration(started, "refresh"); setSubmitting(false); }
+      return;
+    }
     try {
       const response = await fetch("/api/book/search", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId, requestId: crypto.randomUUID(), refresh: true }) });
@@ -294,6 +307,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       if (current !== revision.current) return;
       setJobId(data.jobId);
       if (data.pendingReference) { setStep("pending"); return; }
+      setDirectSearch(data.searchMode === "DIRECT");
       if (data.searchRequestId) { setSearchCursor({ id: data.searchRequestId, jobId: data.jobId }); setStep("slots"); return; }
       const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
       if (problem) { setError(problem); return; }

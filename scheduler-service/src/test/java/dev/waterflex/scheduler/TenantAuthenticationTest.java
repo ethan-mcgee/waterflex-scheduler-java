@@ -49,6 +49,29 @@ class TenantAuthenticationTest {
         org.mockito.Mockito.verify(proposals, org.mockito.Mockito.times(1)).create("acme", body);
     }
 
+    @Test void jsonBodiesReachTheServiceThroughTheApplicationsStrictJsonConverter() throws Exception {
+        // The deployed application registers its strict JSON converter ahead of the plain-text one. A JSON object must
+        // still arrive as the exact raw text, not be refused while Spring tries to bind it to a String.
+        TenantTokens tokens = mock(TenantTokens.class);
+        when(tokens.tenantFor(VECTOR)).thenReturn("acme");
+        var offers = mock(dev.waterflex.scheduler.api.BookingOffers.class);
+        var holds = mock(dev.waterflex.scheduler.api.BookingHolds.class);
+        String body = "{\"requestId\":\"7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10\",\"job\":{\"id\":\"j\"},\"snapshot\":{\"technicians\":[]}}";
+        when(offers.create("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(201, "{\"offerSetId\":\"set\"}", null));
+        when(holds.select("acme", "offer-1", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(200, "{\"holdId\":\"h\"}", null));
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), offers, holds, mock(dev.waterflex.scheduler.api.BookingConfirm.class)))
+                .setMessageConverters(new JsonConfiguration().strictJsonConverter())
+                .addFilters(new TenantAuthentication(tokens)).build());
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/booking/offers")
+                        .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))
+                .andExpect(status().is(201)).andExpect(jsonPath("$.offerSetId").value("set"));
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/booking/offers/offer-1/select")
+                        .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.holdId").value("h"));
+        org.mockito.Mockito.verify(offers).create("acme", body);
+        org.mockito.Mockito.verify(holds).select("acme", "offer-1", body);
+    }
+
     @Test void commitRepliesPassThroughWithTheTokenTenantPathProposalAndRawBody() throws Exception {
         TenantTokens tokens = mock(TenantTokens.class);
         when(tokens.tenantFor(VECTOR)).thenReturn("acme");
