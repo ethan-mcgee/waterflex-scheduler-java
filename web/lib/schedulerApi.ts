@@ -13,28 +13,43 @@ const instant = z.iso.datetime({ offset: true });
 const serviceDate = z.iso.date();
 const window = z.object({ start: instant, end: instant }).strict();
 
+const skippedTechnicianDay = z.object({ technicianId: id, serviceDate, reason: z.enum(["LOCATION_UNRESOLVED"]), message: z.string().min(1) }).strict();
+const technicianDayVersion = z.object({ technicianId: id, serviceDate, lastModified: instant }).strict();
+/** A refusal. Only a STALE commit carries `changed`: the technician-days whose recorded timestamp differs. */
 export const problem = z.object({ error: z.enum(["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMITTABLE", "HOLD_UNAVAILABLE",
-  "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE"]), message: z.string().min(1) }).strict();
+  "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE"]), message: z.string().min(1),
+  changed: z.array(technicianDayVersion).min(1).optional() }).strict()
+  .refine(value => (value.changed !== undefined) === (value.error === "STALE"), "Only a STALE problem lists changed technician-days");
 export const offerSet = z.object({ offerSetId: id, expiresAt: instant, searchComplete: z.boolean(),
   offers: z.array(z.object({ offerId: id, serviceDate, window }).strict()).max(4),
-  skippedTechnicianDays: z.array(z.object({ technicianId: id, serviceDate, reason: z.enum(["LOCATION_UNRESOLVED"]), message: z.string().min(1) }).strict()),
+  skippedTechnicianDays: z.array(skippedTechnicianDay),
 }).strict();
 export const hold = z.object({ holdId: id, offerId: id, expiresAt: instant }).strict();
 export const released = z.object({ released: z.literal(true) }).strict();
 export const commitReceipt = z.object({ receiptId: id,
   assignments: z.array(z.object({ appointmentId: id, technicianId: id, serviceDate, sequence: z.int().min(0), plannedStart: instant, plannedEnd: instant }).strict()),
-  technicianDays: z.array(z.object({ technicianId: id, serviceDate, lastModified: instant }).strict()),
+  technicianDays: z.array(technicianDayVersion),
+}).strict();
+export const dailyProposal = z.object({ proposalId: id, inputRevision: z.string().regex(/^[0-9a-f]{64}$/),
+  decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]), reason: z.string().min(1),
+  routes: z.array(z.object({ technicianId: id, serviceDate, stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0),
+    plannedStart: instant, plannedEnd: instant }).strict()) }).strict()),
+  unresolvedAppointmentIds: z.array(id), skippedTechnicianDays: z.array(skippedTechnicianDay),
+  costCents: z.int().min(0), overtimeMinutes: z.literal(0),
 }).strict();
 const whoami = z.object({ tenantId: z.string().min(1) }).strict();
 
 export type OfferSet = z.infer<typeof offerSet>;
 export type Hold = z.infer<typeof hold>;
 export type CommitReceipt = z.infer<typeof commitReceipt>;
+export type DailyProposal = z.infer<typeof dailyProposal>;
+export type TechnicianDayVersion = z.infer<typeof technicianDayVersion>;
 export type ProblemCode = z.infer<typeof problem>["error"];
 
 /** A refused or failed call. `code` is the API's error, or TRANSPORT / MALFORMED / NOT_CONNECTED for the portal's own failures. */
 export class SchedulerApiError extends Error {
-  constructor(readonly status: number, readonly code: ProblemCode | "TRANSPORT" | "MALFORMED" | "NOT_CONNECTED", message: string) {
+  constructor(readonly status: number, readonly code: ProblemCode | "TRANSPORT" | "MALFORMED" | "NOT_CONNECTED", message: string,
+    readonly changed: readonly TechnicianDayVersion[] = []) {
     super(message);
     this.name = "SchedulerApiError";
   }
@@ -91,7 +106,7 @@ async function call<T>(clientId: string, method: "GET" | "POST", path: string, b
     const refused = problem.safeParse(payload);
     if (!refused.success)
       throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unexpected ${response.status} response: ${JSON.stringify(payload).slice(0, 300)}`);
-    throw new SchedulerApiError(response.status, refused.data.error, refused.data.message);
+    throw new SchedulerApiError(response.status, refused.data.error, refused.data.message, refused.data.changed);
   }
   const parsed = schema.safeParse(payload);
   if (!parsed.success) throw new SchedulerApiError(502, "MALFORMED", `The scheduling service's ${path} response does not match the API`);
@@ -135,4 +150,13 @@ export function releaseBookingOffer(clientId: string, offerId: string, requestId
 
 export function confirmBookingHold(clientId: string, holdId: string, requestId: string, snapshot: PublicSnapshot): Promise<CommitReceipt> {
   return tenantCall(clientId, `/api/v1/booking/holds/${encodeURIComponent(holdId)}/confirm`, { requestId, snapshot }, commitReceipt, 15000);
+}
+
+export function createDailyProposal(clientId: string, request: { requestId: string; serviceDate: string; snapshot: PublicSnapshot }): Promise<DailyProposal> {
+  // The calculation stops at its own 20-second deadline; the rest covers the snapshot upload, routing and the network.
+  return tenantCall(clientId, "/api/v1/daily/proposals", request, dailyProposal, 30000);
+}
+
+export function commitDailyProposal(clientId: string, proposalId: string, request: { requestId: string; technicianDays: TechnicianDayVersion[] }): Promise<CommitReceipt> {
+  return tenantCall(clientId, `/api/v1/daily/proposals/${encodeURIComponent(proposalId)}/commit`, request, commitReceipt, 10000);
 }

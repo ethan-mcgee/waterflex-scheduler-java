@@ -1,10 +1,14 @@
 import { date as dateContract, text } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
+import { notUsedWithApi } from "@/lib/apiBookingRoute";
+import { publicApiEnabled } from "@/lib/schedulerApi";
 import { activeClient } from "@/lib/activeClient";
 import { notFound, servesMetro } from "@/lib/clientScope";
 import { EngineError, optimizationHistory, optimizationRun } from "@/lib/engineClient";
 
 export async function GET(req: NextRequest) {
+  // Through the scheduling API, the board uses /api/dispatch/proposals instead.
+  if (publicApiEnabled()) return notUsedWithApi();
   const metroId = req.nextUrl.searchParams.get("metroId");
   const date = req.nextUrl.searchParams.get("date");
   if (!metroId || !date || !text.safeParse(metroId).success || !dateContract.safeParse(date).success) {
