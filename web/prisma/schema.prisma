@@ -564,6 +564,9 @@ model OvernightOptimizationAttempt {
   failureContext Json?
   startedAt DateTime @default(now()) @db.Timestamptz(6)
   finishedAt DateTime? @db.Timestamptz(6)
+  /// Chicago date the overnight run fired; NULL only for rows written before per-night claims.
+  nightOf DateTime? @db.Date
+  @@unique([metroId, serviceDate, nightOf], map: "overnight_optimization_attempt_night_claim")
   @@index([metroId, serviceDate, startedAt], map: "overnight_optimization_attempt_metro_day")
   @@index([state, startedAt], map: "overnight_optimization_attempt_state_started")
   @@map("overnight_optimization_attempt")

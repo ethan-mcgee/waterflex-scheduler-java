@@ -38,6 +38,8 @@ public final class OvernightOptimization {
     private final Function<OptimizationService.Request,Map<String,Object>> preview;
     private final Clock clock;
     private final AtomicLong receiptWriteFailures = new AtomicLong();
+    private final AtomicLong claimedElsewhere = new AtomicLong();
+    private static final ZoneId NIGHT_ZONE = Required.value(ZoneId.of("America/Chicago"));
     private static final org.slf4j.Logger LOG = Required.value(org.slf4j.LoggerFactory.getLogger(OvernightOptimization.class));
     @org.springframework.beans.factory.annotation.Autowired
     public OvernightOptimization(JdbcTemplate jdbc,OptimizationService service,org.springframework.transaction.PlatformTransactionManager manager) {
@@ -56,12 +58,19 @@ public final class OvernightOptimization {
         run(metros,OptimizationService.overnightDates(Required.value(clock.instant())));
     }
     void run(List<String> metros,List<LocalDate> days) {
-        for (String metro : metros) for (LocalDate day : days) runDay(Required.value(metro),Required.value(day));
+        LocalDate night=night();
+        for (String metro : metros) for (LocalDate day : days) runDay(Required.value(metro),Required.value(day),night);
     }
-    void runDay(String metro,LocalDate day) {
+    void runDay(String metro,LocalDate day) { runDay(metro,day,night()); }
+    private LocalDate night() { return Required.value(LocalDate.ofInstant(Required.value(clock.instant()),NIGHT_ZONE)); }
+    /** Every replica fires the cron; the receipt insert is the claim, so one replica runs each metro-day per night. */
+    void runDay(String metro,LocalDate day,LocalDate night) {
         String id=Required.value(UUID.randomUUID().toString()), key="overnight:"+id;
         try {
-            transactions.executeWithoutResult(_ -> jdbc.update("INSERT INTO overnight_optimization_attempt (id,\"metroId\",\"serviceDate\",state,\"previewKey\") VALUES (?,?,?,'ATTEMPTED',?)",id,metro,day,key));
+            Integer inserted=transactions.execute(_ -> jdbc.update("INSERT INTO overnight_optimization_attempt (id,\"metroId\",\"serviceDate\",state,\"previewKey\",\"nightOf\") VALUES (?,?,?,'ATTEMPTED',?,?) ON CONFLICT (\"metroId\",\"serviceDate\",\"nightOf\") DO NOTHING",id,metro,day,key,night));
+            if (Required.value(inserted,"overnight claim result") == 0) {
+                claimedElsewhere.incrementAndGet(); LOG.info("Overnight metro={} serviceDate={} night={} already claimed by another replica",metro,day,night); return;
+            }
         } catch (RuntimeException failure) {
             receiptWriteFailures.incrementAndGet(); LOG.error("Overnight receipt creation failed attempt={} metro={} serviceDate={}",id,metro,day,failure); return;
         }
@@ -115,6 +124,7 @@ public final class OvernightOptimization {
         counts.put("totalAttempted",counts.values().stream().mapToLong(value -> Required.value(value).longValue()).sum());
         counts.put("unfinishedOlderThanFiveMinutes",DatabaseFacts.query(jdbc,"SELECT count(*) FROM overnight_optimization_attempt WHERE state='ATTEMPTED' AND \"startedAt\"<clock_timestamp()-interval '5 minutes'",Long.class));
         counts.put("receiptWriteFailuresSinceProcessStart",receiptWriteFailures.get());
+        counts.put("claimedByOtherReplicaSinceProcessStart",claimedElsewhere.get());
         return counts;
     }
 }
