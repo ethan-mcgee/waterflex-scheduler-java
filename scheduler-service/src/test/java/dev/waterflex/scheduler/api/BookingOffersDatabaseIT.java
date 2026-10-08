@@ -34,7 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-/** The booking endpoints below HTTP (offers, select, release): search, holds, reconciliation, supersession and failures, on a real database. */
+/** The booking endpoints below HTTP (offers, select, release, confirm): search, holds, reconciliation, supersession and failures, on a real database. */
 class BookingOffersDatabaseIT {
     private static final LocalDate DAY = Required.value(LocalDate.parse("2026-10-12"));
     private final String suffix = Required.value(UUID.randomUUID().toString().substring(0, 8));
@@ -74,7 +74,7 @@ class BookingOffersDatabaseIT {
     }
 
     @AfterEach void clean() {
-        for (String table : List.of("api_booking_offer", "api_booking_offer_set", "api_booking_day", "api_request"))
+        for (String table : List.of("api_booking_receipt", "api_booking_offer", "api_booking_offer_set", "api_booking_day", "api_request"))
             jdbc.update("DELETE FROM " + table + " WHERE \"tenantId\" IN (?,?)", tenant, other);
         jdbc.update("DELETE FROM tenant WHERE id IN (?,?)", tenant, other);
     }
@@ -126,6 +126,64 @@ class BookingOffersDatabaseIT {
     private Set<String> heldIds() { return Required.value(state().holds().keySet()); }
 
     private static String requestOnly() { return "{\"requestId\":\"" + UUID.randomUUID() + "\"}"; }
+
+    private BookingConfirm confirms() {
+        return new BookingConfirm(store, bookings, new MetroRouting(Required.value(Map.of("omaha", "http://routing-omaha:8001")), _ -> omaha), _ -> null,
+                new SearchAdmission(2, 16), jdbc, new Clock() {
+                    @Override public ZoneId getZone() { return Required.value(java.time.ZoneOffset.UTC); }
+                    @Override public Clock withZone(@Nullable ZoneId zone) { return this; }
+                    @Override public Instant instant() { return Required.value(now.get()); }
+                });
+    }
+
+    /** A confirm body from a booking request: its snapshot with a fresh request ID. */
+    private static ObjectNode confirmation(String bookingRequest) {
+        ObjectNode body = object(CalculationJson.tree(bookingRequest));
+        body.remove("job"); body.remove("horizon"); body.remove("offerLimit");
+        body.put("requestId", UUID.randomUUID().toString());
+        return body;
+    }
+
+    private static String confirmBody() { return CalculationJson.write(confirmation(request())); }
+
+    private static CommitReceipt receipt(DailyProposals.Reply reply) {
+        assertEquals(200, reply.status(), reply.json());
+        return PublicRequests.read(reply.json(), CommitReceipt.class);
+    }
+
+    private static Assignment assignment(CommitReceipt receipt, String appointment) {
+        List<Assignment> found = Required.value(receipt.assignments().stream().filter(item -> Required.value(item).appointmentId().equals(appointment)).toList());
+        assertEquals(1, found.size(), appointment + " in " + receipt);
+        return Required.value(found.getFirst());
+    }
+
+    private String holdOf(String offerId) {
+        return Required.value(jdbc.queryForObject("SELECT \"holdId\" FROM api_booking_offer WHERE \"tenantId\"=? AND id=?", String.class, tenant, offerId));
+    }
+
+    /**
+     * The host after writing a receipt, as WaterFlex Software would: each listed appointment as assigned, the job added
+     * under its ID, and a new timestamp on every listed technician-day.
+     */
+    private static ObjectNode written(ObjectNode confirm, CommitReceipt receipt, Offer offered) {
+        ObjectNode snapshot = object(confirm.get("snapshot"));
+        ArrayNode listed = (ArrayNode) Required.value(snapshot.get("appointments"));
+        for (Assignment assignment : receipt.assignments()) {
+            ObjectNode found = null;
+            for (JsonNode node : listed) if (Required.value(node).path("id").asText().equals(assignment.appointmentId())) found = object(node);
+            if (found == null) {
+                found = listed.addObject().put("id", assignment.appointmentId()).put("serviceDate", DAY.toString()).put("serviceId", "softener-install").put("durationMinutes", 90);
+                found.putObject("window").put("start", offered.window().start().toString()).put("end", offered.window().end().toString());
+                found.putObject("location").put("lat", 41.235).put("lng", -96.042);
+            }
+            found.put("technicianId", assignment.technicianId()).put("sequence", assignment.sequence()).put("plannedStart", assignment.plannedStart().toString());
+        }
+        for (PublicTypes.TechnicianDayVersion day : receipt.technicianDays())
+            for (JsonNode node : Required.value(snapshot.get("technicianDays")))
+                if (Required.value(node).path("technicianId").asText().equals(day.technicianId())) object(node).put("lastModified", "2026-10-11T23:00:00Z");
+        confirm.put("requestId", UUID.randomUUID().toString());
+        return confirm;
+    }
 
     private static Hold hold(DailyProposals.Reply reply) {
         assertEquals(200, reply.status(), reply.json());
@@ -317,6 +375,90 @@ class BookingOffersDatabaseIT {
         assertFalse(state().holds().containsKey(kept.holdId()));
         assertEquals(second.offers().size(), state().holds().size());
         problem(holds().select(tenant, kept.offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE);
+    }
+
+    @Test void confirmingTurnsTheSelectedHoldIntoTheJobsAppointment() {
+        OfferSet set = offerSet(offers().create(tenant, request()));
+        Hold kept = hold(holds().select(tenant, offer(set, 0).offerId(), requestOnly()));
+        String body = confirmBody();
+        var reply = confirms().confirm(tenant, kept.holdId(), body);
+        CommitReceipt receipt = receipt(reply);
+        Assignment job = assignment(receipt, "job-311");
+        assertEquals("tech-1", job.technicianId(), "only tech-1 installs softeners");
+        assertEquals(DAY, job.serviceDate());
+        assertFalse(job.plannedStart().isBefore(offer(set, 0).window().start()));
+        assertFalse(job.plannedStart().isAfter(offer(set, 0).window().end()));
+        assertEquals(job.plannedStart().plusSeconds(90 * 60), job.plannedEnd());
+        assertEquals(new PublicTypes.TechnicianDayVersion("tech-1", DAY, Required.value(Instant.parse("2026-10-11T21:04:17.123456Z"))),
+                receipt.technicianDays().stream().filter(day -> Required.value(day).technicianId().equals("tech-1")).findFirst().orElseThrow());
+        for (var day : receipt.technicianDays())
+            assertTrue(receipt.assignments().stream().anyMatch(item -> Required.value(item).technicianId().equals(day.technicianId())), "a listed day lists its appointments");
+        assertEquals("CONFIRMED", statusesByOffer(set).get(kept.offerId()));
+        assertEquals("CONFIRMED", setStatus(set.offerSetId()));
+        assertTrue(state().holds().isEmpty());
+        assertTrue(Required.value(state().technicians().get("tech-1")).expected().contains("job-311"), "the scheduler now expects the job on tech-1");
+        assertEquals(reply, confirms().confirm(tenant, kept.holdId(), body), "the same requestId replays the receipt");
+        assertEquals(receipt, receipt(confirms().confirm(tenant, kept.holdId(), confirmBody())), "confirming again returns the same receipt");
+        problem(holds().select(tenant, kept.offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE);
+    }
+
+    @Test void writingAReceiptKeepsTheOtherHoldsOfTheDay() {
+        OfferSet first = offerSet(offers().create(tenant, forJob("job-a")));
+        Hold a = hold(holds().select(tenant, offer(first, 0).offerId(), requestOnly()));
+        OfferSet second = offerSet(offers().create(tenant, forJob("job-b")));
+        Hold b = hold(holds().select(tenant, offer(second, 0).offerId(), requestOnly()));
+        CommitReceipt receipt = receipt(confirms().confirm(tenant, a.holdId(), confirmBody()));
+        assertEquals(Set.of(b.holdId()), state().holds().keySet(), "job-b's hold stays after job-a is confirmed");
+        CommitReceipt next = receipt(confirms().confirm(tenant, b.holdId(), CalculationJson.write(written(confirmation(request()), receipt, offer(first, 0)))));
+        assignment(next, "job-b");
+        assertEquals("CONFIRMED", statusesByOffer(second).get(b.offerId()), "the host's written receipt is what the scheduler expected");
+        assertTrue(state().holds().isEmpty());
+    }
+
+    @Test void confirmRefusesUnknownUnselectedExpiredLostAndMisdirectedHolds() {
+        OfferSet set = offerSet(offers().create(tenant, forJob("job-a")));
+        String holdId = holdOf(offer(set, 0).offerId());
+        String unknown = confirmBody();
+        var missing = confirms().confirm(tenant, "0c8b8f0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", unknown);
+        problem(missing, 404, ErrorCode.NOT_FOUND);
+        assertEquals(missing, confirms().confirm(tenant, "0c8b8f0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", unknown), "a 404 is stored and replayed");
+        problem(confirms().confirm(other, holdId, confirmBody()), 404, ErrorCode.NOT_FOUND);
+        assertTrue(problem(confirms().confirm(tenant, holdId, confirmBody()), 409, ErrorCode.HOLD_UNAVAILABLE).message().contains("Select"));
+
+        long requests = count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant);
+        problem(confirms().confirm(tenant, holdId, "{\"requestId\":"), 400, ErrorCode.INVALID_REQUEST);
+        problem(confirms().confirm(tenant, " ", confirmBody()), 400, ErrorCode.INVALID_REQUEST);
+        ObjectNode twoDates = confirmation(request());
+        object(((ArrayNode) Required.value(object(twoDates.get("snapshot")).get("technicianDays"))).get(1)).put("serviceDate", "2026-10-13");
+        problem(confirms().confirm(tenant, holdId, CalculationJson.write(twoDates)), 400, ErrorCode.INVALID_REQUEST);
+        ObjectNode withJob = confirmation(request());
+        withJob.putObject("job").put("id", "job-a");
+        problem(confirms().confirm(tenant, holdId, CalculationJson.write(withJob)), 400, ErrorCode.INVALID_REQUEST);
+        assertEquals(requests, count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant), "a malformed confirm claims nothing");
+
+        hold(holds().select(tenant, offer(set, 0).offerId(), requestOnly()));
+        ObjectNode lincoln = confirmation(request());
+        object(lincoln.get("snapshot")).put("metroId", "lincoln");
+        assertTrue(problem(confirms().confirm(tenant, holdId, CalculationJson.write(lincoln)), 400, ErrorCode.INVALID_REQUEST).message().contains("metro"));
+        Instant issued = now.get();
+        now.set(Required.value(issued.plusSeconds(601)));
+        assertTrue(problem(confirms().confirm(tenant, holdId, confirmBody()), 409, ErrorCode.HOLD_UNAVAILABLE).message().contains("expired"));
+        now.set(issued);
+        String changed = CalculationJson.write(confirmation(dispatcherChange("job-a")));
+        assertTrue(problem(confirms().confirm(tenant, holdId, changed), 409, ErrorCode.HOLD_UNAVAILABLE).message().contains("lost"));
+        assertEquals("LOST", statusesByOffer(set).get(offer(set, 0).offerId()), "the lost hold is recorded");
+        assertTrue(state().holds().isEmpty());
+        assertEquals(List.of("appt-7", "appt-8", "appt-9"), Required.value(state().technicians().get("tech-1")).expected(), "the day restarts from the host's routes");
+    }
+
+    @Test void aRoutingOutageReleasesTheConfirmForARetry() {
+        OfferSet set = offerSet(offers().create(tenant, request()));
+        Hold kept = hold(holds().select(tenant, offer(set, 0).offerId(), requestOnly()));
+        String body = confirmBody();
+        routingDown.set(true);
+        problem(confirms().confirm(tenant, kept.holdId(), body), 503, ErrorCode.ROUTING_UNAVAILABLE);
+        routingDown.set(false);
+        assignment(receipt(confirms().confirm(tenant, kept.holdId(), body)), "job-311");
     }
 
     @Test void aNewSearchForTheSameJobSupersedesItsEarlierOffers() {

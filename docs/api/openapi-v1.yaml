@@ -16,8 +16,9 @@ info:
     - Money and rates are canonical decimal strings, never JSON numbers.
     - Instants are RFC 3339 with an offset; service dates are calendar dates in the metro's time zone.
     - Unknown fields, duplicate keys and missing required values are rejected with 400.
-    - Each technician-day carries the host `lastModified` timestamp. A commit or confirm whose timestamps
-      differ from the ones a proposal or offer was computed from gets 409, and nothing is changed.
+    - Each technician-day carries the host `lastModified` timestamp. A commit whose timestamps differ from
+      the ones a proposal was computed from gets 409, and nothing is changed. A confirm sends the hold's
+      date as a new snapshot instead, and the scheduler reconciles its holds with it.
     - Overtime is never assigned.
 
     Operations marked `x-implementation: planned` are specified but not yet served.
@@ -32,6 +33,8 @@ info:
     - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
     - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
     - `BookingOffersRequest.offerLimit` (1 to 4) is required; send the client's own cap on offers per search.
+    - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
+      confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
 servers:
   - url: https://scheduler.internal.example
@@ -213,20 +216,27 @@ paths:
     post:
       operationId: confirmBookingHold
       tags: [Booking]
-      summary: Revalidate a held offer against current technician-day timestamps and return the appointment arrangement to write.
-      x-implementation: planned
+      summary: Confirm a selected hold against the host's current snapshot of its date and return the appointments to write.
+      description: >-
+        Send the snapshot of the hold's metro and date (technician-days on any other date are a 400). The scheduler
+        reconciles its holds with it, turns the hold into the job's appointment, under the job's ID, and checks the
+        result is feasible and adds no overtime. Confirming a confirmed hold again returns the same receipt.
+        Select the offer first: confirming a hold that is only offered is a 409.
+      x-implementation: implemented
       parameters:
         - $ref: '#/components/parameters/HoldId'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CommitRequest' }
+            schema: { $ref: '#/components/schemas/ConfirmRequest' }
             examples:
-              current: { $ref: '#/components/examples/CommitRequest' }
+              current: { $ref: '#/components/examples/ConfirmRequest' }
       responses:
         '200':
-          description: Hold confirmed. The host writes the arrangement with a compare-and-set on the same timestamps.
+          description: >-
+            Hold confirmed. The host writes every listed appointment with a compare-and-set on the listed
+            technician-day timestamps. If that write fails, search again.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CommitReceipt' }
@@ -235,7 +245,10 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Stale' }
+        '409': { $ref: '#/components/responses/HoldUnavailable' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/repairs/proposals:
     post:
       operationId: createRepairProposal
@@ -320,17 +333,11 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
             missing: { value: { error: NOT_FOUND, message: Proposal not found } }
-    Stale:
-      description: A technician-day changed since the proposal or offer was computed, or the hold expired. Nothing was changed.
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/StaleProblem' }
-          examples:
-            changed: { $ref: '#/components/examples/StaleProblem' }
     HoldUnavailable:
       description: >-
-        The hold expired or ended (lost, released or superseded), or its offer set already selected another offer.
-        Nothing was changed; search again for new offers.
+        The hold expired or ended (lost, released or superseded), its offer set already selected another offer, its
+        date is past the 6 a.m. cutoff, or (on confirm) it was not selected or the confirmed day would need overtime
+        or repair. Search again for new offers.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -678,6 +685,15 @@ components:
         technicianId: { $ref: '#/components/schemas/Id' }
         serviceDate: { $ref: '#/components/schemas/ServiceDate' }
         lastModified: { $ref: '#/components/schemas/Instant' }
+    ConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, snapshot]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+        snapshot:
+          $ref: '#/components/schemas/Snapshot'
+          description: The host's current facts for the hold's metro and date; every technician-day is on that date.
     CommitRequest:
       type: object
       additionalProperties: false
@@ -712,7 +728,9 @@ components:
           type: array
           description: >-
             Every appointment on the proposal's routes with its technician, sequence and planned times. Writing all
-            of them leaves each routed technician-day exactly as proposed. A booking confirm includes the new job.
+            of them leaves each routed technician-day exactly as proposed. A booking confirm lists every appointment
+            on each technician-day whose appointments, order or planned times change, the new job included under
+            its job ID.
           items: { $ref: '#/components/schemas/Assignment' }
         technicianDays:
           type: array
@@ -852,6 +870,10 @@ components:
         offers:
           - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T10:00:00-05:00', end: '2026-10-12T12:00:00-05:00' } }
           - { offerId: offer-2, serviceDate: '2026-10-12', window: { start: '2026-10-12T13:00:00-05:00', end: '2026-10-12T15:00:00-05:00' } }
+    ConfirmRequest:
+      value:
+        requestId: 5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a
+        snapshot: *snapshot
     CommitRequest:
       value:
         requestId: 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
