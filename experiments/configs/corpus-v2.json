@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "kind": "corpus",
+  "outputDirectory": "experiments/runs/corpus-v2",
+  "shiftStart": "2026-10-12T12:00:00Z",
+  "shiftMinutes": 480,
+  "latitude": 41.25,
+  "longitude": -96,
+  "roadMetersPerDegree": 111000,
+  "roadMetersPerSecond": 15,
+  "directionBias": 0.15,
+  "regularHourly": "20",
+  "overtimeHourly": "30",
+  "mileagePerMile": "0.67",
+  "travelBufferPct": "0.2",
+  "travelBufferMinutes": 2,
+  "datasetSeeds": [104729, 130363],
+  "cohorts": ["assigned", "cold", "partial", "repair", "invalid-input"],
+  "families": [
+    {"id":"sparse","technicians":6,"visits":12,"skills":1,"radiusDegrees":0.05,"durationMin":20,"durationMax":40,"windowMinutes":240,"windowStartSpreadMinutes":120,"absenceProbability":0,"absenceMinutes":60,"unassignedFraction":0.4,"pinnedPrefix":0},
+    {"id":"clustered","technicians":6,"visits":24,"skills":1,"radiusDegrees":0.005,"durationMin":20,"durationMax":40,"windowMinutes":240,"windowStartSpreadMinutes":180,"absenceProbability":0,"absenceMinutes":60,"unassignedFraction":0.4,"pinnedPrefix":0},
+    {"id":"dispersed","technicians":6,"visits":24,"skills":1,"radiusDegrees":0.12,"durationMin":20,"durationMax":40,"windowMinutes":240,"windowStartSpreadMinutes":120,"absenceProbability":0,"absenceMinutes":60,"unassignedFraction":0.4,"pinnedPrefix":0},
+    {"id":"mixed-skill","technicians":6,"visits":24,"skills":4,"radiusDegrees":0.04,"durationMin":20,"durationMax":50,"windowMinutes":240,"windowStartSpreadMinutes":180,"absenceProbability":0,"absenceMinutes":60,"unassignedFraction":0.4,"pinnedPrefix":0},
+    {"id":"tight-window","technicians":6,"visits":24,"skills":2,"radiusDegrees":0.03,"durationMin":20,"durationMax":40,"windowMinutes":60,"windowStartSpreadMinutes":360,"absenceProbability":0,"absenceMinutes":60,"unassignedFraction":0.4,"pinnedPrefix":0},
+    {"id":"absence","technicians":6,"visits":24,"skills":2,"radiusDegrees":0.03,"durationMin":20,"durationMax":40,"windowMinutes":240,"windowStartSpreadMinutes":180,"absenceProbability":0.5,"absenceMinutes":120,"unassignedFraction":0.4,"pinnedPrefix":0},
+    {"id":"near-capacity","technicians":6,"visits":48,"skills":2,"radiusDegrees":0.03,"durationMin":40,"durationMax":55,"windowMinutes":240,"windowStartSpreadMinutes":220,"absenceProbability":0.2,"absenceMinutes":60,"unassignedFraction":0.4,"pinnedPrefix":1}
+  ],
+  "solverVariant": "TABU",
+  "solverSeed": 17,
+  "solverBudgetMs": 20000
+}
