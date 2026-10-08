@@ -49,7 +49,7 @@ The scheduler API is the only public surface. Calculation and routing stay priva
 
 ## Public contract v1
 
-All requests carry a host `requestId` (idempotency key) and host IDs only. The tenant is derived from the caller's API token, never from the request body. Money and rates are decimal strings. Times are ISO-8601 instants. Unknown fields, duplicate keys, nonfinite numbers and missing required values are rejected, as `DailyDataset` does today.
+Public routes live under `/api/v1/`, separate from the scheduler's internal `/v1/` routes used by the admin portal. Every `/api/v1/` call must send `Authorization: Bearer <tenant token>` (exists today, with `GET /api/v1/whoami` returning the token's tenant). All requests carry a host `requestId` (idempotency key) and host IDs only. The tenant is derived from the caller's API token, never from the request body. Money and rates are decimal strings. Times are ISO-8601 instants. Unknown fields, duplicate keys, nonfinite numbers and missing required values are rejected, as `DailyDataset` does today.
 
 ### Snapshot
 
@@ -66,13 +66,13 @@ The scheduler computes a canonical content hash of the snapshot (the input revis
 
 | Endpoint | Purpose |
 | --- | --- |
-| `POST /v1/daily/proposals` | Snapshot of one metro day. Returns a proposal ID, proposed routes, unresolved demand, policy decision and diagnostics. Stores the proposal and revision in the thin store. |
-| `POST /v1/daily/proposals/{id}/commit` | Host sends its current snapshot (or revision hash plus technician-day timestamps). Scheduler revalidates (cutoff, promises, zero overtime, independent `RouteEvaluator`, holds) and returns a commit receipt with the final assignments and times. 409 if anything changed. |
-| `POST /v1/booking/offers` | Snapshot of the booking horizon plus the job to book. Returns up to four offers and creates holds in the thin store. |
-| `POST /v1/booking/offers/{id}/select` and `/release` | Convert or release holds, as today. |
-| `POST /v1/booking/holds/{id}/confirm` | Host sends its current snapshot; scheduler revalidates against holds and returns the arrangement to write. |
-| `POST /v1/repairs/proposals` | Absence repair for a technician-day, same pattern as daily. Repair never adds overtime. |
-| `DELETE /v1/requests/{requestId}` | Best-effort cancellation of an in-flight calculation. |
+| `POST /api/v1/daily/proposals` | Snapshot of one metro day. Returns a proposal ID, proposed routes, unresolved demand, policy decision and diagnostics. Stores the proposal and revision in the thin store. |
+| `POST /api/v1/daily/proposals/{id}/commit` | Host sends its current snapshot (or revision hash plus technician-day timestamps). Scheduler revalidates (cutoff, promises, zero overtime, independent `RouteEvaluator`, holds) and returns a commit receipt with the final assignments and times. 409 if anything changed. |
+| `POST /api/v1/booking/offers` | Snapshot of the booking horizon plus the job to book. Returns up to four offers and creates holds in the thin store. |
+| `POST /api/v1/booking/offers/{id}/select` and `/release` | Convert or release holds, as today. |
+| `POST /api/v1/booking/holds/{id}/confirm` | Host sends its current snapshot; scheduler revalidates against holds and returns the arrangement to write. |
+| `POST /api/v1/repairs/proposals` | Absence repair for a technician-day, same pattern as daily. Repair never adds overtime. |
+| `DELETE /api/v1/requests/{requestId}` | Best-effort cancellation of an in-flight calculation. |
 
 ### Latency target (Decided)
 
@@ -145,7 +145,7 @@ Client schedules are not stored in the scheduler. They stay in WaterFlex Softwar
 ### Tenant isolation
 
 - One Postgres database and one set of tables for all clients. Every client-owned table has a `tenant_id` column, and every primary key, unique constraint and index starts with it, for example `(tenant_id, technician_id, service_date)`. Host IDs are unique only within a client, so two clients can both have technician `42`.
-- Each client has its own API tokens. The server maps the token to `tenant_id`; requests cannot choose a tenant.
+- Each client has its own API tokens. The server maps the token to `tenant_id`; requests cannot choose a tenant. Exists today: `tenant` and `tenant_api_token` tables, tokens of the form `wfs_` plus 32 random bytes (base64url), stored only as SHA-256 digests, issued and revoked with `web/scripts/issue-tenant-token.ts`. A revoked token or a disabled tenant gets 401.
 - Postgres row-level security is the second guard: each transaction sets `app.tenant_id`, and policies restrict every client-owned table to that tenant. A missed filter in application code then fails closed instead of reading another client's rows.
 - Schema-per-client or database-per-client gives stronger isolation but multiplies migrations and operations. Keep it as an option for a client that contractually requires it. Because every row already carries `tenant_id`, that client's rows can be moved into a dedicated database without an API change.
 
@@ -211,7 +211,7 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 ## Remaining stateless gaps in calculation and routing
 
 - Remote solve cancellation (`DELETE /v1/solves/{id}`) is tracked in memory per `solver-service` instance. The `Solve-Request-Id` header lets the load balancer send the solve and its cancellation to the same replica (see "Scaling"); without that hashing, a cancel may miss and the solve stops at its own deadline (at most 20 s daily, 120 s booking). The embedded default has no such gap.
-- Remote results must come from the same Timefold core artifact (version and SHA-256) and the same policy, cost and score model versions as the caller (`CalculationProtocol.Response.match`). This is the audit's TF01 provenance guarantee and is kept deliberately. A Timefold upgrade is deployed by running the new solver pool beside the old one and switching the scheduler with it, not by loosening the check.
+- Remote results must come from the same Timefold core artifact (version and SHA-256) and the same policy, cost and score model versions as the caller (`CalculationProtocol.Response.match`). This is the audit's TF01 provenance guarantee and is kept deliberately (decided by the owner on 2026-10-08: roadmap item S1e, a compatible-version set, was declined). A Timefold upgrade is deployed by running the new solver pool beside the old one and switching the scheduler with it, not by loosening the check.
 - Routing requires the `ROUTING_AUTH_TOKEN` bearer token on computation endpoints, but traffic is plain http inside the private network. Add TLS if routing is ever reachable beyond that network.
 - Remote mode has not been performance-tested; that study is deferred with the rest of the performance work.
 
