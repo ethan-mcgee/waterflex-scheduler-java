@@ -30,6 +30,8 @@
     "test:api-dispatch:integration": "tsx scripts/smoke-api-dispatch.ts",
     "test:api-repair:integration": "tsx scripts/smoke-api-repair.ts",
     "test:shared-metro:integration": "tsx scripts/smoke-shared-metro.ts",
+    "test:portal-overnight:integration": "tsx scripts/smoke-portal-overnight.ts",
+    "overnight:worker": "tsx scripts/overnight-worker.ts",
     "test:multi-depot:integration": "tsx scripts/smoke-multi-depot.ts",
     "test:depot-setup:integration": "tsx scripts/smoke-depot-setup.ts",
     "test:technician-home:integration": "tsx scripts/smoke-technician-home.ts",

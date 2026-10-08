@@ -65,6 +65,9 @@ services:
       # them up in the scheduler's own Nominatim and accepts only an exact house.
       GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
       NOMINATIM_URL: http://nominatim:8080
+      # The scheduler's own overnight batch for metros with one client. "-" turns it off, for example when the portal's
+      # overnight-worker runs each client's overnight optimization through the public API instead.
+      SCHEDULER_OPTIMIZER_CRON: ${SCHEDULER_OPTIMIZER_CRON:-0 0 2 * * *}
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
@@ -110,6 +113,25 @@ services:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
     ports: ["127.0.0.1:3001:3000"]
+  # Each client's overnight optimization through the public scheduling API, at the client's run times and on "Run
+  # now". Only with SCHEDULER_PUBLIC_API=true: docker compose --profile public-api up. Proposals wait for a dispatcher.
+  overnight-worker:
+    profiles: ["public-api"]
+    image: waterflex-scheduler-web:local
+    pull_policy: build
+    build: ./web
+    command: ["npm", "run", "overnight:worker"]
+    environment:
+      DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
+      SCHEDULER_PUBLIC_API: "true"
+      SCHEDULER_API_URL: http://scheduler-service:8000
+    env_file:
+      - path: portal-api-tokens.env
+        required: false
+    depends_on:
+      db: { condition: service_healthy }
+      schema-migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
   schema-migrate:
     image: waterflex-scheduler-schema-migrate:local
     pull_policy: build

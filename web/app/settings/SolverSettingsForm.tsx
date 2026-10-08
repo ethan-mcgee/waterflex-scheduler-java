@@ -31,7 +31,7 @@ function whole(value: string): number | string {
   return /^[0-9]+$/.test(value.trim()) ? Number(value.trim()) : value;
 }
 
-export default function SolverSettingsForm({ clientName, initial }: { clientName: string; initial: SolverSettingsView | null }) {
+export default function SolverSettingsForm({ clientName, initial, overnight }: { clientName: string; initial: SolverSettingsView | null; overnight: ReactNode }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(() => draftOf(initial));
   const [version, setVersion] = useState<number | null>(initial?.version ?? null);
@@ -115,6 +115,7 @@ export default function SolverSettingsForm({ clientName, initial }: { clientName
           {status && <p role={status.kind === "error" ? "alert" : "status"} className={status.kind === "error" ? styles.error : styles.saved}>{status.text}</p>}
         </div>
       </form>
+      {overnight}
     </main>
   );
 }

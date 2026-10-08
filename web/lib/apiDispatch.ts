@@ -21,6 +21,7 @@ export class DispatchRefused extends Error {
 }
 
 export const CHANGED = "The schedule changed since this proposal was made. Preview the day again.";
+export const NO_TECHNICIANS = "No technician of this client works in this metro on that day.";
 
 export type ProposalState = "OPEN" | "COMMITTED" | "REFUSED" | "NOT_COMMITTABLE";
 
@@ -38,6 +39,8 @@ export interface ApiProposalView {
   unresolvedAppointmentIds: string[];
   skippedTechnicianDays: DailyProposal["skippedTechnicianDays"];
   changes: ProposalChange[];
+  /** The overnight run that made the proposal, or null when a dispatcher asked for it. */
+  overnightRunId: string | null;
 }
 
 function stored(row: PortalApiDailyProposal) {
@@ -47,7 +50,7 @@ function stored(row: PortalApiDailyProposal) {
   return parsed.data;
 }
 
-export function view(row: PortalApiDailyProposal): ApiProposalView {
+export function view(row: PortalApiDailyProposal, overnightRunId: string | null): ApiProposalView {
   const { proposal, baseline } = stored(row);
   const state: ProposalState = row.receiptId !== null ? "COMMITTED" : row.commitRefusal !== null ? "REFUSED"
     : proposal.decision === "IMPROVED" ? "OPEN" : "NOT_COMMITTABLE";
@@ -55,8 +58,13 @@ export function view(row: PortalApiDailyProposal): ApiProposalView {
     decision: proposal.decision, reason: proposal.reason, costCents: proposal.costCents, state,
     committedAt: row.committedAt?.toISOString() ?? null, refusal: row.commitRefusal,
     routes: proposal.routes, unresolvedAppointmentIds: proposal.unresolvedAppointmentIds, skippedTechnicianDays: proposal.skippedTechnicianDays,
-    changes: proposalChanges(baseline, proposal) };
+    changes: proposalChanges(baseline, proposal), overnightRunId };
 }
+
+/** A daily proposal row with the overnight run that made it, if any. */
+type DailyRow = PortalApiDailyProposal & { overnightDay: { runId: string } | null };
+const withOvernight = { overnightDay: { select: { runId: true } } } as const;
+const dailyView = (row: DailyRow) => view(row, row.overnightDay?.runId ?? null);
 
 export function refusedFor(error: unknown): never {
   if (error instanceof SnapshotError) {
@@ -76,21 +84,30 @@ export function refusedFor(error: unknown): never {
   throw error;
 }
 
-/** Asks the scheduler for an optimized day of the client's technicians in the metro, and keeps the proposal. */
-export async function proposeApiDay(clientId: string, metroId: string, serviceDate: string): Promise<ApiProposalView> {
+/**
+ * Asks the scheduler for an optimized day of the client's technicians in the metro, and keeps the proposal. An
+ * overnight run passes `record`, which links the proposal to the run in the transaction that stores it.
+ */
+export async function proposeApiDay(clientId: string, metroId: string, serviceDate: string,
+  record?: (tx: Prisma.TransactionClient, proposalId: string) => Promise<string>): Promise<ApiProposalView> {
   const requestId = randomUUID();
   let proposal: DailyProposal;
   let snapshot: PublicSnapshot;
   try {
     snapshot = await buildClientSnapshot(clientId, metroId, [serviceDate]);
-    if (snapshot.technicianDays.length === 0) throw new DispatchRefused(409, "No technician of this client works in this metro on that day.");
+    if (snapshot.technicianDays.length === 0) throw new DispatchRefused(409, NO_TECHNICIANS);
     proposal = await createDailyProposal(clientId, { requestId, serviceDate, snapshot });
     checkProposal(proposal, snapshot, serviceDate);
   } catch (error) {
     if (error instanceof DispatchRefused) throw error;
     return refusedFor(error);
   }
-  return view(await storeProposal(clientId, serviceDate, snapshot, requestId, proposal, null));
+  if (record === undefined) return view(await storeProposal(prisma, clientId, serviceDate, snapshot, requestId, proposal, null), null);
+  const [row, runId] = await prisma.$transaction(async tx => {
+    const stored = await storeProposal(tx, clientId, serviceDate, snapshot, requestId, proposal, null);
+    return [stored, await record(tx, stored.id)] as const;
+  });
+  return view(row, runId);
 }
 
 /**
@@ -105,29 +122,29 @@ export async function proposeApiRepair(clientId: string, snapshot: PublicSnapsho
     proposal = await createRepairProposal(clientId, { requestId, absence, snapshot });
     checkProposal(proposal, snapshot, absence.serviceDate);
   } catch (error) { return refusedFor(error); }
-  return storeProposal(clientId, absence.serviceDate, snapshot, requestId, proposal, timeOffRequestId);
+  return storeProposal(prisma, clientId, absence.serviceDate, snapshot, requestId, proposal, timeOffRequestId);
 }
 
 /** Keeps a checked proposal with the snapshot's technician-days and appointment placements, read in the snapshot's transaction. */
-function storeProposal(clientId: string, serviceDate: string, snapshot: PublicSnapshot, requestId: string, proposal: DailyProposal,
-  timeOffRequestId: string | null): Promise<PortalApiDailyProposal> {
+function storeProposal(db: Prisma.TransactionClient, clientId: string, serviceDate: string, snapshot: PublicSnapshot, requestId: string,
+  proposal: DailyProposal, timeOffRequestId: string | null): Promise<PortalApiDailyProposal> {
   const technicianDays = snapshot.technicianDays.map(day => ({ technicianId: day.technicianId, serviceDate: day.serviceDate }));
   const baseline: Placement[] = snapshot.appointments.map(item => ({ appointmentId: item.id, technicianId: item.technicianId, sequence: item.sequence,
     plannedStart: new Date(item.plannedStart).toISOString() }));
-  return prisma.portalApiDailyProposal.create({ data: { id: proposal.proposalId, clientId, metroId: snapshot.metroId, serviceDate: new Date(`${serviceDate}T00:00:00Z`),
+  return db.portalApiDailyProposal.create({ data: { id: proposal.proposalId, clientId, metroId: snapshot.metroId, serviceDate: new Date(`${serviceDate}T00:00:00Z`),
     requestId, kind: timeOffRequestId === null ? "DAILY" : "REPAIR", timeOffRequestId, decision: proposal.decision, proposal, technicianDays, baseline } });
 }
 
 /** The client's latest daily proposals for a metro day, newest first. */
 export async function apiProposalHistory(clientId: string, metroId: string, serviceDate: string): Promise<ApiProposalView[]> {
   const rows = await prisma.portalApiDailyProposal.findMany({ where: { clientId, metroId, kind: "DAILY", serviceDate: new Date(`${serviceDate}T00:00:00Z`) },
-    orderBy: { createdAt: "desc" }, take: 20 });
-  return rows.map(view);
+    orderBy: { createdAt: "desc" }, take: 20, include: withOvernight });
+  return rows.map(dailyView);
 }
 
-async function load(clientId: string, proposalId: string): Promise<PortalApiDailyProposal> {
+async function load(clientId: string, proposalId: string): Promise<DailyRow> {
   // A repair proposal is applied only by approving its time-off request.
-  const row = await prisma.portalApiDailyProposal.findFirst({ where: { id: proposalId, clientId, kind: "DAILY" } });
+  const row = await prisma.portalApiDailyProposal.findFirst({ where: { id: proposalId, clientId, kind: "DAILY" }, include: withOvernight });
   if (row === null) throw new DispatchRefused(404, "Proposal not found");
   return row;
 }
@@ -186,7 +203,7 @@ export async function markRefused(proposalId: string, message: string): Promise<
 async function refuse(clientId: string, proposalId: string, message: string): Promise<ApiProposalView> {
   const marked = await markRefused(proposalId, message);
   const row = await load(clientId, proposalId);
-  if (row.receiptId !== null) return view(row);
+  if (row.receiptId !== null) return dailyView(row);
   throw new DispatchRefused(409, marked ? message : row.commitRefusal ?? message);
 }
 
@@ -197,7 +214,7 @@ async function refuse(clientId: string, proposalId: string, message: string): Pr
  */
 export async function commitApiProposal(clientId: string, proposalId: string): Promise<ApiProposalView> {
   const row = await load(clientId, proposalId);
-  if (row.receiptId !== null) return view(row);
+  if (row.receiptId !== null) return dailyView(row);
   if (row.commitRefusal !== null) throw new DispatchRefused(409, row.commitRefusal);
   const committed = await commitAtScheduler(clientId, row);
   if ("refused" in committed) return refuse(clientId, proposalId, committed.refused);
@@ -208,5 +225,5 @@ export async function commitApiProposal(clientId: string, proposalId: string): P
     if (error instanceof StaleReceipt) return refuse(clientId, proposalId, CHANGED);
     throw error;
   }
-  return view(await load(clientId, proposalId));
+  return dailyView(await load(clientId, proposalId));
 }

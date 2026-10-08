@@ -26,6 +26,7 @@ model Metro {
   reservationArrangements ReservationArrangement[]
   apiOfferSets     PortalApiOfferSet[]
   apiDailyProposals PortalApiDailyProposal[]
+  overnightDays PortalOvernightDay[]
 
   @@map("metro")
 }
@@ -84,6 +85,8 @@ model Client {
   solverSettings ClientSolverSettings?
   apiOfferSets   PortalApiOfferSet[]
   apiDailyProposals PortalApiDailyProposal[]
+  overnightTimes ClientOvernightTime[]
+  overnightRuns  PortalOvernightRun[]
 
   @@map("client")
 }
@@ -411,6 +414,7 @@ model PortalApiDailyProposal {
   committedAt     DateTime? @db.Timestamptz(6)
   commitRefusal   String?
   createdAt       DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  overnightDay    PortalOvernightDay?
 
   @@index([clientId, metroId, serviceDate, createdAt], map: "portal_api_daily_proposal_day")
   @@index([timeOffRequestId], map: "portal_api_daily_proposal_time_off")
@@ -1046,4 +1050,50 @@ model ApiBookingReceipt {
   @@unique([tenantId, offerId])
   @@unique([tenantId, requestId])
   @@map("api_booking_receipt")
+}
+
+// A client's scheduled overnight run times, as minutes after local midnight. No rows means manual runs only.
+model ClientOvernightTime {
+  clientId    String
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  localMinute Int
+
+  @@id([clientId, localMinute])
+  @@map("client_overnight_time")
+}
+
+// One overnight optimization run for a client; the table is the run queue. Partial unique indexes (one run per
+// scheduled time, one queued or running run per client) are in the migration.
+model PortalOvernightRun {
+  id           String               @id @db.Uuid
+  clientId     String
+  client       Client               @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  trigger      String
+  scheduledFor DateTime?            @db.Timestamptz(6)
+  status       String
+  createdAt    DateTime             @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  startedAt    DateTime?            @db.Timestamptz(6)
+  heartbeatAt  DateTime?            @db.Timestamptz(6)
+  finishedAt   DateTime?            @db.Timestamptz(6)
+  days         PortalOvernightDay[]
+
+  @@index([clientId, createdAt], map: "portal_overnight_run_client")
+  @@map("portal_overnight_run")
+}
+
+// What an overnight run did for one metro day: the proposal it kept for a dispatcher, or why it kept none.
+model PortalOvernightDay {
+  runId       String                  @db.Uuid
+  run         PortalOvernightRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  metroId     String
+  metro       Metro                   @relation(fields: [metroId], references: [id], onDelete: Restrict)
+  serviceDate DateTime                @db.Date
+  outcome     String
+  proposalId  String?                 @unique
+  proposal    PortalApiDailyProposal? @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  message     String?
+  finishedAt  DateTime                @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+
+  @@id([runId, metroId, serviceDate])
+  @@map("portal_overnight_day")
 }

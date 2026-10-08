@@ -94,7 +94,7 @@ async function analyzeDay(clientId: string, request: Loaded, pending: ApiTimeOff
   try {
     const row = await proposeApiRepair(clientId, snapshot, { technicianId: request.technicianId, serviceDate,
       window: absenceWindow(serviceDate, startMin, endMin, metro.timezone) }, request.id);
-    const proposal = view(row);
+    const proposal = view(row, null);
     if (proposal.decision !== "IMPROVED") return { ...pending, status: "NEEDS_COORDINATION", proposal_id: row.id, reason: proposal.reason };
     const reassigned = proposal.changes.filter(change => change.fromTechnicianId !== change.toTechnicianId).length;
     return { ...pending, status: "REPAIR_PREVIEW", proposal_id: row.id, reassigned_jobs: reassigned };
