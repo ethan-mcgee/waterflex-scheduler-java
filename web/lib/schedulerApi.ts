@@ -160,3 +160,9 @@ export function createDailyProposal(clientId: string, request: { requestId: stri
 export function commitDailyProposal(clientId: string, proposalId: string, request: { requestId: string; technicianDays: TechnicianDayVersion[] }): Promise<CommitReceipt> {
   return tenantCall(clientId, `/api/v1/daily/proposals/${encodeURIComponent(proposalId)}/commit`, request, commitReceipt, 10000);
 }
+
+export function createRepairProposal(clientId: string, request: { requestId: string; absence: { technicianId: string; serviceDate: string; window: { start: string; end: string } };
+  snapshot: PublicSnapshot }): Promise<DailyProposal> {
+  // The same 20-second calculation as a daily proposal.
+  return tenantCall(clientId, "/api/v1/repairs/proposals", request, dailyProposal, 30000);
+}
