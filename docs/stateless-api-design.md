@@ -21,7 +21,7 @@ The product has no end-user screens of its own. WaterFlex Software renders all m
 | Strict daily dataset | `DailyDataset` parses a complete day (technicians, visits, windows, rates, policy versions, indexed locations and directed roads) with duplicate-key, unknown-field, index and road-completeness checks. |
 | Strict booking dataset | `BookingDataset` encodes a complete booking snapshot the same way. |
 | Calculation service | `solver-service` accepts a hashed `CalculationProtocol.Request` (`DAILY` or `BOOKING`), runs the shared `calculation-engine`, and returns a proposal. No database. Bearer token auth, admission limits, `DELETE /v1/solves/{id}` cancellation. |
-| Routing service | `routing-service` turns points into directed legs (`/internal/matrix`, `/internal/legs`) with a routing identity hash. No database; in-memory cache only. |
+| Routing service | `routing-service` turns points into directed legs (`/internal/matrix`, `/internal/legs`) with a routing identity hash. No database; in-memory cache only. Computation endpoints require the `ROUTING_AUTH_TOKEN` bearer token; `/health` is open. |
 | Caller | `scheduler-service` reads its own copy of master data from Postgres (about 40 tables), calls routing, calls the engine (embedded by default, remote optional), revalidates the result, persists previews, reservations and appointments, and applies under locks. |
 | Geocoding | Self-hosted Nominatim (`NOMINATIM_URL`) over OpenStreetMap, with address matching and validation in the portal. No paid geocoding or matrix API. |
 
@@ -112,7 +112,7 @@ Apply these levers in order, each only when measurements call for it. Signals: b
 
 1. **More scheduler replicas behind a load balancer.** Works once no correctness state lives in replica memory (see "Multiple clients").
 2. **Separate roles from one artifact.** Run booking replicas (latency sensitive, short solves) apart from batch replicas (overnight and daily proposals, up to 20 s of full CPU per solve). Same JAR, a role setting chooses which endpoints and schedules a replica serves. This removes the most likely CPU contention without a remote hop.
-3. **Remote solver pool.** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Prerequisites (roadmap S1): https with service tokens (enforced today for non-loopback solver URLs), cancellation that works across replicas, and an explicit compatible-version set instead of the byte-identical engine requirement. The remote round trips (up to three per booking search today) must fit the 5 second budget.
+3. **Remote solver pool.** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Already in place: https with a service token for non-loopback solver URLs, and cancellation routed to the solving replica (below). The scheduler and solver must load the same Timefold core artifact; upgrade Timefold by bringing up the new solver pool beside the old one and switching the scheduler over (see "Remaining gaps"). The remote round trips (up to three per booking search today) must fit the 5 second budget.
 
    Cancellation across solver replicas (exists today): every solve `POST` and its cancellation `DELETE` carry the solve's request ID in the `Solve-Request-Id` header, and `solver-service` rejects either call when the header is missing or does not match the request. The load balancer in front of the solver pool hashes on that header so both calls reach the same replica. For nginx:
 
@@ -185,11 +185,11 @@ How a lookup works:
 
 Implications for the target design:
 
-- **Per metro.** With one routing service per metro, the scheduler needs a metro-to-routing-URL map instead of the single `routing.url` today, and `RoadClient` becomes one client per metro. Each metro's routing identity differs, so tier 2 and tier 3 entries for different metros never collide. Clearing tier 2 on identity change must become per metro, so a graph update in one metro does not flush the others.
+- **Per metro.** With one routing service per metro, the scheduler needs a metro-to-routing-URL map instead of the single `routing.url` today, and `RoadClient` becomes one client per metro. About 30 routing call sites lack a metro today, so this is planned with the request-fed preparation step, where every request carries its metro. Each metro's routing identity differs, so tier 2 and tier 3 entries for different metros never collide. Clearing tier 2 on identity change must become per metro, so a graph update in one metro does not flush the others.
 - **Across clients.** Route legs are not tenant data and are shared across clients in a metro, which is where most of the cache benefit comes from. `road_route_cache` therefore has no `tenant_id`. It does contain customer coordinates at about 1 m precision, so it is treated as location data: reachable only by the scheduler, never exposed through the API, and purged within 30 days so deleted customers age out.
 - **Across replicas.** Tier 2 is per replica by design; tier 3 makes a new or restarted replica warm immediately. No change is needed for correctness.
-- **Health call per lookup.** Each lookup currently makes one `/health` round trip to confirm the routing identity. Under heavy booking load, cache the identity for a few seconds per metro; the identity is still verified on every routing response, so a stale cached identity only causes a retry.
-- **Cleanup on every replica.** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes at most 50,000 rows per run, so if the table grows faster than that per week the 500,000 row cap is not enforced; the trim should loop until under the cap.
+- **Health call per lookup.** Each lookup currently makes one `/health` round trip to confirm the routing identity. Caching the identity for a few seconds per metro would save that round trip, but the identity is how a changed road graph is detected, so this waits for the deferred performance work and a measured need.
+- **Cleanup on every replica.** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes the oldest rows in batches of 50,000 until the table is within the 500,000 row cap (exists today).
 - **Moving tier 3 into routing.** An alternative is to give each metro's routing service its own persistent cache and drop `road_route_cache` from the scheduler, making the scheduler database hold no coordinates at all. It costs routing its statelessness. Keep tier 3 in the scheduler database for now and revisit if location-data retention requirements tighten.
 
 ## Thin store
@@ -210,9 +210,9 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 
 ## Remaining stateless gaps in calculation and routing
 
-- Remote solve cancellation (`DELETE /v1/solves/{id}`) is in memory per `solver-service` instance. With several solver replicas behind a load balancer, route `DELETE` to the replica running the solve, or accept that a cancel may miss and the solve stops at its own deadline (at most 20 s daily, 120 s booking). This applies only to the remote solver pool; the embedded default has no such gap.
-- Remote results must come from the byte-identical engine artifact (`CalculationProtocol.Response.match`). This forces scheduler and solver to deploy together, which is acceptable while they ship as one product.
-- Routing has no authentication and must stay on the private network.
+- Remote solve cancellation (`DELETE /v1/solves/{id}`) is tracked in memory per `solver-service` instance. The `Solve-Request-Id` header lets the load balancer send the solve and its cancellation to the same replica (see "Scaling"); without that hashing, a cancel may miss and the solve stops at its own deadline (at most 20 s daily, 120 s booking). The embedded default has no such gap.
+- Remote results must come from the same Timefold core artifact (version and SHA-256) and the same policy, cost and score model versions as the caller (`CalculationProtocol.Response.match`). This is the audit's TF01 provenance guarantee and is kept deliberately. A Timefold upgrade is deployed by running the new solver pool beside the old one and switching the scheduler with it, not by loosening the check.
+- Routing requires the `ROUTING_AUTH_TOKEN` bearer token on computation endpoints, but traffic is plain http inside the private network. Add TLS if routing is ever reachable beyond that network.
 - Remote mode has not been performance-tested; that study is deferred with the rest of the performance work.
 
 ## Resolved questions
