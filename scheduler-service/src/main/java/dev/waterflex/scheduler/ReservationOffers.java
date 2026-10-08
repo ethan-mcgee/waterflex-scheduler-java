@@ -15,11 +15,14 @@ public final class ReservationOffers {
     public record Bundle(List<Reserved> offers, Map<LocalDate, Prepared> dates, boolean completed) {
         public Bundle { offers = Required.value(List.copyOf(offers)); dates = Required.value(Map.copyOf(dates)); }
     }
+    /** The most offers one search may hold. */
+    public static final int MAX_OFFERS = 4;
     private ReservationOffers() { }
 
     public static Bundle prepare(BookingSnapshot snapshot, BoundedBookingSearch.Request request,
             Map<LocalDate, Map<String, ReservationState.Hold>> existingHolds, BoundedBookingSearch.Result search,
-            Instant expiresAt, BookingOfferLimit offerLimit, Runnable checkpoint) {
+            Instant expiresAt, int offerLimit, Runnable checkpoint) {
+        if (offerLimit < 1 || offerLimit > MAX_OFFERS) throw new IllegalArgumentException("offer limit must be between 1 and " + MAX_OFFERS);
         List<Candidate> pending = new ArrayList<>(search.candidates());
         pending.removeIf(candidate -> candidate.overtimeDelta() > 0);
         List<Reserved> offers = new ArrayList<>();
@@ -27,7 +30,7 @@ public final class ReservationOffers {
         Set<BoundedBookingSearch.Window> chosen = new HashSet<>();
         boolean completed = true;
         try {
-        while (!pending.isEmpty() && offers.size() < offerLimit.value()) {
+        while (!pending.isEmpty() && offers.size() < offerLimit) {
             checkpoint.run();
             List<Candidate> regular = Required.value(pending.stream().filter(candidate -> candidate.overtimeDelta() <= 0).toList());
             Candidate candidate = Required.value(BoundedBookingSearch.choose(regular.isEmpty() ? pending : regular, snapshot.policy()));
