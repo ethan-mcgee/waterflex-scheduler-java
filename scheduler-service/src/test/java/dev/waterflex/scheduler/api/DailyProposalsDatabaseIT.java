@@ -73,7 +73,7 @@ class DailyProposalsDatabaseIT {
     }
 
     @AfterEach void clean() {
-        for (String table : List.of("api_proposal_technician_day", "api_daily_proposal", "api_request"))
+        for (String table : List.of("api_commit_receipt", "api_proposal_technician_day", "api_daily_proposal", "api_request"))
             jdbc.update("DELETE FROM " + table + " WHERE \"tenantId\"=?", tenant);
         jdbc.update("DELETE FROM tenant WHERE id=?", tenant);
     }
@@ -128,6 +128,7 @@ class DailyProposalsDatabaseIT {
         var stored = Required.value(store.proposal(tenant, proposal.proposalId()));
         assertEquals(proposal, stored.proposal());
         assertEquals("omaha-map-v7", stored.routingIdentity());
+        assertEquals("America/Chicago", stored.timeZone());
         assertEquals(List.of("tech-1", "tech-2"), stored.technicianDays().stream().map(day -> Required.value(day).technicianId()).toList());
         assertEquals(Instant.parse("2026-10-11T21:04:17.123456Z"), stored.technicianDays().getFirst().lastModified());
         int solved = solves.get();

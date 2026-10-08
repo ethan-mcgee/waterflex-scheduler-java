@@ -140,7 +140,7 @@ public class DailyProposals {
         DailyProposal proposal = response(request, proposalId, revision, outcome);
         List<TechnicianDayVersion> days = new ArrayList<>();
         for (TechnicianDay day : snapshot.technicianDays()) days.add(new TechnicianDayVersion(day.technicianId(), day.serviceDate(), day.lastModified()));
-        return new StoredProposal(proposalId, request.requestId(), snapshot.metroId(), request.serviceDate(), revision,
+        return new StoredProposal(proposalId, request.requestId(), snapshot.metroId(), snapshot.timeZone(), request.serviceDate(), revision,
                 outcome.prepared().routingIdentity(), ProposalStatus.PROPOSED, days, proposal);
     }
 
@@ -200,7 +200,7 @@ public class DailyProposals {
     }
 
     /** The parser's own first line for malformed JSON, since the wrapper's message alone says only that it was invalid. */
-    private static String invalidRequest(IllegalArgumentException invalid) {
+    static String invalidRequest(IllegalArgumentException invalid) {
         Throwable cause = invalid.getCause();
         String detail = cause == null ? null : cause.getMessage();
         if (detail == null || detail.isBlank()) return message(invalid);

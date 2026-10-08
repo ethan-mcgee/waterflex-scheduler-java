@@ -7,8 +7,9 @@ const expected: Record<string, string[]> = {
   tenant: ["id", "disabledAt"],
   tenant_api_token: ["tenantId", "tokenSha256", "revokedAt"],
   api_request: ["tenantId", "requestId", "operation", "requestSha256", "state", "ownerToken", "leaseExpiresAt", "responseStatus", "responseJson", "completedAt"],
-  api_daily_proposal: ["tenantId", "id", "requestId", "metroId", "serviceDate", "inputRevision", "routingIdentity", "status", "proposalJson"],
+  api_daily_proposal: ["tenantId", "id", "requestId", "metroId", "timeZone", "serviceDate", "inputRevision", "routingIdentity", "status", "proposalJson", "committedAt"],
   api_proposal_technician_day: ["tenantId", "proposalId", "technicianId", "serviceDate", "lastModified"],
+  api_commit_receipt: ["tenantId", "id", "proposalId", "requestId", "receiptJson"],
   overnight_optimization_attempt: ["id", "metroId", "serviceDate", "state", "previewKey", "resultRunId", "resultReason", "failureContext", "startedAt", "finishedAt", "nightOf"],
   daily_calculation_attempt: ["id", "requestKey", "requestFingerprint", "ownerToken", "state", "expiresAt", "snapshotRevision", "routingIdentity", "resultRunId", "resultJson", "failureReason"],
   booking_search_request: ["id", "jobId", "deadlineAt", "cancelledAt", "acknowledgedAt", "offerSetId", "cleanedAt"],
@@ -44,7 +45,7 @@ try {
   const actual = z.array(column).parse(await prisma.$queryRaw`
     SELECT table_name, column_name, data_type, udt_name, is_nullable FROM information_schema.columns WHERE table_schema = current_schema()
   `);
-  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt", "daily_calculation_attempt.expiresAt", "daily_calculation_attempt.createdAt", "daily_calculation_attempt.updatedAt", "overnight_optimization_attempt.startedAt", "overnight_optimization_attempt.finishedAt", "tenant.createdAt", "tenant.disabledAt", "tenant_api_token.createdAt", "tenant_api_token.revokedAt", "api_request.leaseExpiresAt", "api_request.createdAt", "api_request.completedAt", "api_daily_proposal.createdAt", "api_daily_proposal.committedAt"]);
+  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt", "daily_calculation_attempt.expiresAt", "daily_calculation_attempt.createdAt", "daily_calculation_attempt.updatedAt", "overnight_optimization_attempt.startedAt", "overnight_optimization_attempt.finishedAt", "tenant.createdAt", "tenant.disabledAt", "tenant_api_token.createdAt", "tenant_api_token.revokedAt", "api_request.leaseExpiresAt", "api_request.createdAt", "api_request.completedAt", "api_daily_proposal.createdAt", "api_daily_proposal.committedAt", "api_commit_receipt.createdAt"]);
   const dateColumns = new Set(["overnight_optimization_attempt.serviceDate", "overnight_optimization_attempt.nightOf", "api_daily_proposal.serviceDate", "api_proposal_technician_day.serviceDate"]);
   const sqlTypes: Record<string, string> = { String: "text", Int: "integer", BigInt: "bigint", Float: "double precision", Decimal: "numeric", Boolean: "boolean", DateTime: "timestamp without time zone", Json: "jsonb", Bytes: "bytea" };
   for (const model of Prisma.dmmf.datamodel.models) {

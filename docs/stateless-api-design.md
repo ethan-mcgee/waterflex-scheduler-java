@@ -75,7 +75,7 @@ The scheduler computes a canonical content hash of the snapshot (the input revis
 | Endpoint | Purpose |
 | --- | --- |
 | `POST /api/v1/daily/proposals` | Snapshot of one metro day. Returns a proposal ID, proposed routes, unresolved demand, policy decision and diagnostics. Stores the proposal and revision in the thin store. |
-| `POST /api/v1/daily/proposals/{id}/commit` | Host sends its current snapshot (or revision hash plus technician-day timestamps). Scheduler revalidates (cutoff, promises, zero overtime, independent `RouteEvaluator`, holds) and returns a commit receipt with the final assignments and times. 409 if anything changed. |
+| `POST /api/v1/daily/proposals/{id}/commit` | Host sends its current timestamp for every technician-day the proposal covers. Equal timestamps mean the facts the proposal was computed and validated from are unchanged, so the scheduler checks the 6 a.m. cutoff again and returns a commit receipt with every assignment on the proposal's routes. 409 if anything changed; nothing is changed then. |
 | `POST /api/v1/booking/offers` | Snapshot of the booking horizon plus the job to book. Returns up to four offers and creates holds in the thin store. |
 | `POST /api/v1/booking/offers/{id}/select` and `/release` | Convert or release holds, as today. |
 | `POST /api/v1/booking/holds/{id}/confirm` | Host sends its current snapshot; scheduler revalidates against holds and returns the arrangement to write. |
@@ -93,6 +93,7 @@ The contract is a draft until the first endpoint that calculates ships, but ever
 | `DailyProposal.reason` and `DailyProposal.skippedTechnicianDays` added | #96 | Reads `reason` to see why the scheduler decided as it did. Leaves every technician-day in `skippedTechnicianDays` exactly as it is (it is not in `routes`), and sends coordinates for the location its `message` names to include it next time. |
 | `Snapshot.policy.fairnessBudget` is required | #97 | Sends each client's own fairness budget: "0" for none, or a share such as "0.02" (2 percent) by which the daily plan's cost may rise to spread work more evenly. A missing value is rejected, never assumed. |
 | Repeated and reused `requestId` | #96 | Retries with the same `requestId` and the same body after a timeout or a 429/503; the stored answer is replayed. Uses a new `requestId` for different facts: reusing one gets 400. |
+| Daily commit served; 409 split into `STALE` and `NOT_COMMITTABLE`; 422 after the cutoff | #98 | Sends the current `lastModified` of every technician-day the proposal covers, skipped ones included (a missing or extra one is a 400). On 200, writes every assignment in the receipt with a compare-and-set on the receipt's timestamps. On `STALE`, requests a new proposal. On `NOT_COMMITTABLE`, does nothing: the proposal was already committed (the message names the receipt) or its decision is not `IMPROVED`. On 422, the day's routes are frozen. |
 
 ### Latency target (Decided)
 
@@ -105,7 +106,8 @@ The scheduler cannot lock rows it does not own, so commits use optimistic concur
 1. Every snapshot includes `lastModified` for each technician-day it covers.
 2. A proposal or offer records the timestamps it was computed from.
 3. On commit or confirm, the scheduler requires the submitted timestamps to equal the recorded ones, revalidates, and atomically updates its own holds and receipts.
-4. The host then writes the business record with a compare-and-set on the same timestamps. If that fails, the host calls release, and the scheduler retains the failed receipt.
+4. The host then writes the business record with a compare-and-set on the same timestamps. If that fails, the host calls release, and the scheduler retains the failed receipt. A daily proposal has nothing to release: it stays committed with its receipt, and the host asks for a new proposal from its current facts.
+5. A proposal is committed at most once. Its row is locked for the commit, and the receipt table is unique per proposal as a second guard.
 
 Rules WaterFlex Software must guarantee for the timestamp:
 
@@ -226,15 +228,16 @@ Implications for the target design:
 
 The public API gets its own tables instead of adding a tenant column to the portal's booking and optimization tables. Those tables reference master data (appointments, jobs, technicians) the thin store must not hold, and the portal path has to keep running unchanged while the two paths are compared before cutover (see "Migration").
 
-Exists today (migration `20261009120000_public_api_store`):
+Exists today (migrations `20261009120000_public_api_store` and `20261010120000_public_api_commit`):
 
 | Table | Holds |
 | --- | --- |
 | `api_request` | One row per host `requestId` per tenant: the operation, a SHA-256 of the canonical request, a 60 second claim lease, and the stored response once finished. A repeat with the same body replays the response; a different body is a conflict; an abandoned claim is taken over after its lease. Requests that failed for a passing reason (for example routing unavailable) release their claim so a retry runs again. |
-| `api_daily_proposal` | A served daily proposal: host metro and date, input revision, routing identity, status (`PROPOSED`, `COMMITTED`, `STALE`) and the proposal body. |
+| `api_daily_proposal` | A served daily proposal: host metro, time zone and date, input revision, routing identity, status (`PROPOSED`, `COMMITTED`, `STALE`) and the proposal body. |
 | `api_proposal_technician_day` | The host `lastModified` of every technician-day a proposal covers, stored as exact ISO-8601 text so nanoseconds survive. A commit compares the host's current values with these. |
+| `api_commit_receipt` | The one commit of a proposal: receipt ID, the commit's `requestId`, and the receipt body (assignments and timestamps). Unique per proposal. |
 
-Every key starts with `tenantId`. Row-level security is on for all three: `PublicApiStore` runs each transaction as the `scheduler_tenant` database role with `app.tenant_id` set, so even a query without a tenant filter sees only the caller's rows, an unset tenant sees none, and that role cannot read any other table. Persisted proposal JSON is validated again on every read. Commit receipts arrive with the commit protocol, and booking holds and offers with the booking endpoints.
+Every key starts with `tenantId`. Row-level security is on for all four: `PublicApiStore` runs each transaction as the `scheduler_tenant` database role with `app.tenant_id` set, so even a query without a tenant filter sees only the caller's rows, an unset tenant sees none, and that role cannot read any other table. Persisted proposal JSON is validated again on every read, and a stored answer is validated again before it is replayed. Booking holds and offers arrive with the booking endpoints.
 
 The portal's tables (`slot_hold`, `reservation_arrangement`, `optimization_run` and the rest) and the master data tables are removed after migration.
 

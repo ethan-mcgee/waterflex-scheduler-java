@@ -26,7 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Component
 public class PublicApiStore {
-    public enum Operation { DAILY_PROPOSAL }
+    public enum Operation { DAILY_PROPOSAL, DAILY_COMMIT }
     public enum ProposalStatus { PROPOSED, COMMITTED, STALE }
 
     /** The outcome of claiming a request ID. */
@@ -41,10 +41,11 @@ public class PublicApiStore {
     public record Busy() implements Claim { }
 
     /** A saved daily proposal and the host timestamps it was computed from. */
-    public record StoredProposal(String id, String requestId, String metroId, LocalDate serviceDate, String inputRevision,
+    public record StoredProposal(String id, String requestId, String metroId, String timeZone, LocalDate serviceDate, String inputRevision,
                                  String routingIdentity, ProposalStatus status, List<TechnicianDayVersion> technicianDays,
                                  PublicResponses.DailyProposal proposal) {
         public StoredProposal {
+            Input.zone(timeZone);
             technicianDays = Input.list(technicianDays, "technicianDays");
             if (technicianDays.isEmpty()) throw new IllegalArgumentException("A proposal covers at least one technician-day");
             Set<PublicTypes.Key> keys = new HashSet<>();
@@ -78,6 +79,30 @@ public class PublicApiStore {
     }
 
     public static String newProposalId() { return "prop-" + UUID.randomUUID(); }
+
+    public static String newReceiptId() { return "rcpt-" + UUID.randomUUID(); }
+
+    /** A proposal locked for commit, with the receipt it was committed under, if any. */
+    public record Locked(StoredProposal proposal, @Nullable String receiptId) {
+        public Locked {
+            if ((proposal.status() == ProposalStatus.COMMITTED) != (receiptId != null))
+                throw new IllegalStateException("A proposal has a receipt exactly when it is committed");
+        }
+    }
+
+    /** What a commit decided once its proposal was locked. */
+    public sealed interface CommitOutcome permits Committed, Refused { }
+    /** The proposal is committed under this receipt; the request answers 200 with it. */
+    public record Committed(PublicResponses.CommitReceipt receipt) implements CommitOutcome { }
+    /** Nothing changes; the request answers with this final error, which is stored for replay. */
+    public record Refused(int status, String json) implements CommitOutcome {
+        public Refused {
+            if (status < 400 || status > 499) throw new IllegalArgumentException("A refused commit answers 4xx");
+        }
+    }
+
+    /** Decides a commit. It receives null when the tenant has no proposal with the ID. */
+    public interface CommitDecision { CommitOutcome decide(@Nullable Locked locked); }
 
     public Claim claim(String tenantId, String requestId, Operation operation, String requestSha256) {
         Input.requestId(requestId);
@@ -123,8 +148,8 @@ public class PublicApiStore {
         asTenant(tenantId, () -> {
             if (stored.status() != ProposalStatus.PROPOSED) throw new IllegalArgumentException("A new proposal must be PROPOSED");
             String body = CalculationJson.write(stored.proposal());
-            jdbc.update("INSERT INTO api_daily_proposal (\"tenantId\",id,\"requestId\",\"metroId\",\"serviceDate\",\"inputRevision\",\"routingIdentity\",status,\"proposalJson\") "
-                    + "VALUES (?,?,?,?,?,?,?,'PROPOSED',?::jsonb)", tenantId, stored.id(), stored.requestId(), stored.metroId(),
+            jdbc.update("INSERT INTO api_daily_proposal (\"tenantId\",id,\"requestId\",\"metroId\",\"timeZone\",\"serviceDate\",\"inputRevision\",\"routingIdentity\",status,\"proposalJson\") "
+                    + "VALUES (?,?,?,?,?,?,?,?,'PROPOSED',?::jsonb)", tenantId, stored.id(), stored.requestId(), stored.metroId(), stored.timeZone(),
                     Date.valueOf(stored.serviceDate()), stored.inputRevision(), stored.routingIdentity(), body);
             for (TechnicianDayVersion day : stored.technicianDays())
                 jdbc.update("INSERT INTO api_proposal_technician_day (\"tenantId\",\"proposalId\",\"technicianId\",\"serviceDate\",\"lastModified\") VALUES (?,?,?,?,?)",
@@ -140,25 +165,63 @@ public class PublicApiStore {
         if (updated != 1) throw new IllegalStateException("The request claim was lost before completion");
     }
 
-    private record ProposalRow(String id, String requestId, String metroId, LocalDate serviceDate, String inputRevision,
+    /**
+     * Locks the proposal, lets {@code decision} judge it, and stores the outcome with the request, atomically. A
+     * concurrent commit of the same proposal waits for the lock and then sees it committed. The receipt's unique
+     * proposal key is a second guard against committing twice.
+     */
+    public CommitOutcome commitDaily(String tenantId, String requestId, String ownerToken, String proposalId, CommitDecision decision) {
+        return asTenant(tenantId, () -> {
+            List<String> locked = jdbc.query("SELECT id FROM api_daily_proposal WHERE \"tenantId\"=? AND id=? FOR UPDATE",
+                    (rs, _) -> DatabaseFacts.string(rs, 1), tenantId, proposalId);
+            Locked judged = null;
+            if (!locked.isEmpty()) {
+                StoredProposal stored = Required.value(load(tenantId, proposalId), "locked proposal");
+                List<String> receipts = jdbc.query("SELECT id FROM api_commit_receipt WHERE \"tenantId\"=? AND \"proposalId\"=?",
+                        (rs, _) -> DatabaseFacts.string(rs, 1), tenantId, proposalId);
+                if (receipts.size() > 1) throw new IllegalStateException("A proposal has more than one receipt");
+                judged = new Locked(stored, receipts.isEmpty() ? null : receipts.getFirst());
+            }
+            CommitOutcome outcome = decision.decide(judged);
+            switch (outcome) {
+                case Committed committed -> {
+                    if (judged == null || judged.proposal().status() != ProposalStatus.PROPOSED)
+                        throw new IllegalStateException("Only a stored PROPOSED proposal can be committed");
+                    String body = CalculationJson.write(committed.receipt());
+                    jdbc.update("INSERT INTO api_commit_receipt (\"tenantId\",id,\"proposalId\",\"requestId\",\"receiptJson\") VALUES (?,?,?,?,?::jsonb)",
+                            tenantId, committed.receipt().receiptId(), proposalId, requestId, body);
+                    int updated = jdbc.update("UPDATE api_daily_proposal SET status='COMMITTED',\"committedAt\"=clock_timestamp() WHERE \"tenantId\"=? AND id=? AND status='PROPOSED'",
+                            tenantId, proposalId);
+                    if (updated != 1) throw new IllegalStateException("The proposal changed while it was locked");
+                    complete(tenantId, requestId, ownerToken, 200, body);
+                }
+                case Refused refused -> complete(tenantId, requestId, ownerToken, refused.status(), refused.json());
+            }
+            return outcome;
+        });
+    }
+
+    private record ProposalRow(String id, String requestId, String metroId, String timeZone, LocalDate serviceDate, String inputRevision,
                                String routingIdentity, String status, String json) { }
 
     /** A proposal of this tenant, or null when it has none with that ID. Persisted JSON is validated again before use. */
     public @Nullable StoredProposal proposal(String tenantId, String proposalId) {
-        return asTenant(tenantId, () -> {
-            List<ProposalRow> rows = jdbc.query("SELECT id,\"requestId\",\"metroId\",\"serviceDate\",\"inputRevision\",\"routingIdentity\",status,\"proposalJson\"::text "
-                    + "FROM api_daily_proposal WHERE \"tenantId\"=? AND id=?", (rs, _) -> new ProposalRow(DatabaseFacts.string(rs, 1), DatabaseFacts.string(rs, 2),
-                    DatabaseFacts.string(rs, 3), day(rs, 4), DatabaseFacts.string(rs, 5), DatabaseFacts.string(rs, 6), DatabaseFacts.string(rs, 7), DatabaseFacts.string(rs, 8)),
-                    tenantId, proposalId);
-            if (rows.isEmpty()) return Found.NONE;
-            ProposalRow row = Required.value(rows.getFirst());
-            List<TechnicianDayVersion> days = jdbc.query("SELECT \"technicianId\",\"serviceDate\",\"lastModified\" FROM api_proposal_technician_day "
-                    + "WHERE \"tenantId\"=? AND \"proposalId\"=? ORDER BY \"technicianId\",\"serviceDate\"",
-                    (rs, _) -> new TechnicianDayVersion(DatabaseFacts.string(rs, 1), day(rs, 2), Required.value(Instant.parse(DatabaseFacts.string(rs, 3)))),
-                    tenantId, row.id());
-            return new Found(new StoredProposal(row.id(), row.requestId(), row.metroId(), row.serviceDate(), row.inputRevision(), row.routingIdentity(),
-                    ProposalStatus.valueOf(row.status()), Input.list(days, "technicianDays"), PublicRequests.read(row.json(), PublicResponses.DailyProposal.class)));
-        }).value();
+        return asTenant(tenantId, () -> new Found(load(tenantId, proposalId))).value();
+    }
+
+    private @Nullable StoredProposal load(String tenantId, String proposalId) {
+        List<ProposalRow> rows = jdbc.query("SELECT id,\"requestId\",\"metroId\",\"timeZone\",\"serviceDate\",\"inputRevision\",\"routingIdentity\",status,\"proposalJson\"::text "
+                + "FROM api_daily_proposal WHERE \"tenantId\"=? AND id=?", (rs, _) -> new ProposalRow(DatabaseFacts.string(rs, 1), DatabaseFacts.string(rs, 2),
+                DatabaseFacts.string(rs, 3), DatabaseFacts.string(rs, 4), day(rs, 5), DatabaseFacts.string(rs, 6), DatabaseFacts.string(rs, 7),
+                DatabaseFacts.string(rs, 8), DatabaseFacts.string(rs, 9)), tenantId, proposalId);
+        if (rows.isEmpty()) return null;
+        ProposalRow row = Required.value(rows.getFirst());
+        List<TechnicianDayVersion> days = jdbc.query("SELECT \"technicianId\",\"serviceDate\",\"lastModified\" FROM api_proposal_technician_day "
+                + "WHERE \"tenantId\"=? AND \"proposalId\"=? ORDER BY \"technicianId\",\"serviceDate\"",
+                (rs, _) -> new TechnicianDayVersion(DatabaseFacts.string(rs, 1), day(rs, 2), Required.value(Instant.parse(DatabaseFacts.string(rs, 3)))),
+                tenantId, row.id());
+        return new StoredProposal(row.id(), row.requestId(), row.metroId(), row.timeZone(), row.serviceDate(), row.inputRevision(), row.routingIdentity(),
+                ProposalStatus.valueOf(row.status()), Input.list(days, "technicianDays"), PublicRequests.read(row.json(), PublicResponses.DailyProposal.class));
     }
 
     private static LocalDate day(java.sql.ResultSet rs, int column) throws java.sql.SQLException {
@@ -166,7 +229,5 @@ public class PublicApiStore {
     }
 
     /** Lets {@link #asTenant} carry an absent proposal, since the transaction result itself is never null. */
-    private record Found(@Nullable StoredProposal value) {
-        static final Found NONE = new Found(null);
-    }
+    private record Found(@Nullable StoredProposal value) { }
 }
