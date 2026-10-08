@@ -33,6 +33,8 @@ public class RoadClient {
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper = new ObjectMapper();
     private final String url;
+    /** Bearer token for routing-service computation endpoints; null only when none is configured (fixture routers). */
+    private final @Nullable String authorization;
     private final HttpClient http = Required.value(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
     private final Map<String, Cached> memory;
     private final Duration cacheTtl;
@@ -47,11 +49,19 @@ public class RoadClient {
         return new HttpMeasurements(legRequests.get(), requestedPairs.get(), identityRequests.get(), geometryRequests.get());
     }
 
-    public RoadClient(JdbcTemplate jdbc, @Value("${routing.url}") String url,
+    public RoadClient(JdbcTemplate jdbc, String url, int maxEntries, int ttlMinutes, PlatformTransactionManager transactions) {
+        this(jdbc, url, "", maxEntries, ttlMinutes, transactions);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RoadClient(JdbcTemplate jdbc, @Value("${routing.url}") String url, @Value("${routing.auth-token:}") String token,
                       @Value("${routing.cache.max-entries:100000}") int maxEntries,
                       @Value("${routing.cache.ttl-minutes:60}") int ttlMinutes, PlatformTransactionManager transactions) {
+        if (!token.isEmpty() && (token.length() < 32 || token.chars().anyMatch(Character::isWhitespace)))
+            throw new IllegalArgumentException("Routing authentication token must contain at least 32 non-whitespace characters");
         this.jdbc = jdbc;
         this.url = url;
+        this.authorization = token.isEmpty() ? null : "Bearer " + token;
         this.cacheTtl = Required.value(Duration.ofMinutes(Math.max(1, ttlMinutes)));
         cacheTransactions = new TransactionTemplate(transactions);
         cacheTransactions.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -74,9 +84,9 @@ public class RoadClient {
         if (!identity.equals(expectedIdentity)) throw new RoadUnavailable("Routing identity changed");
         try {
             byte[] body = mapper.writeValueAsBytes(Map.of("points", points, "expectedRoutingIdentity", identity));
-            var request = HttpRequest.newBuilder(URI.create(url + "/internal/route"))
+            var request = authorized(Required.value(HttpRequest.newBuilder(URI.create(url + "/internal/route"))
                     .timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10)))).header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body)))).build();
             geometryRequests.incrementAndGet();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             SearchDeadline.checkpoint();
@@ -171,8 +181,8 @@ public class RoadClient {
         if (!requested.isEmpty()) {
             try {
                 byte[] body = mapper.writeValueAsBytes(Map.of("pairs", requested, "expectedRoutingIdentity", identity));
-                var request = HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10))))
-                        .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
+                var request = authorized(Required.value(HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10))))
+                        .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)))).build();
                 legRequests.incrementAndGet(); requestedPairs.addAndGet(requested.size());
                 var response = http.send(request, HttpResponse.BodyHandlers.ofString());
                 SearchDeadline.checkpoint();
@@ -248,6 +258,11 @@ public class RoadClient {
           catch (org.springframework.dao.DataAccessException e) { throw e; }
           catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
           catch (Exception e) { throw requestFailure(e, "Road routing unavailable"); }
+    }
+
+    private HttpRequest.Builder authorized(HttpRequest.Builder request) {
+        String value = authorization;
+        return value == null ? request : Required.value(request.header("Authorization", value));
     }
 
     private static RoadUnavailable requestFailure(Exception failure, String message) {

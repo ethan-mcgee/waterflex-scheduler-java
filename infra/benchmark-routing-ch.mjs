@@ -4,6 +4,9 @@ import { writeFile } from "node:fs/promises";
 import { cpus, totalmem } from "node:os";
 import { createHash } from "node:crypto";
 
+// routing-service requires its shared token on /internal endpoints; /health stays open.
+const routingAuth = process.env.ROUTING_AUTH_TOKEN ? { Authorization: `Bearer ${process.env.ROUTING_AUTH_TOKEN}` } : {};
+
 const [flexibleUrl, preparedUrl, output, revision] = process.argv.slice(2);
 assert.ok(flexibleUrl && preparedUrl && output && revision, "Pass flexible URL, CH URL, new output file and exact revision");
 const points = [
@@ -23,7 +26,7 @@ assert.notEqual(engines[0].health.routingIdentity, engines[1].health.routingIden
 assert.equal(engines[0].health.mapVersion, engines[1].health.mapVersion);
 async function request(engine, path, body) {
   const started = performance.now();
-  const response = await fetch(engine.url + path, { method: "POST", headers: { "Content-Type": "application/json" },
+  const response = await fetch(engine.url + path, { method: "POST", headers: { "Content-Type": "application/json", ...routingAuth },
     body: JSON.stringify({ ...body, expectedRoutingIdentity: engine.health.routingIdentity }), signal: AbortSignal.timeout(30000) });
   const value = await response.json(); assert.equal(response.status, 200, JSON.stringify(value));
   assert.equal(value.routingIdentity, engine.health.routingIdentity);
@@ -49,7 +52,7 @@ for (const engine of engines) {
   for (const pair of sparse) { const [from, to] = pair.id.split(">").map(Number); assert.deepEqual(pair.leg, full.value.legs[from][to]); }
   const outside = await request(engine, "/internal/legs", { pairs: [{ id: "outside", origin: points[0], destination: { lat: 0, lng: 0 } }] });
   assert.equal(outside.value.pairs[0].leg.routable, false);
-  const stale = await fetch(engine.url + "/internal/legs", { method: "POST", headers: { "Content-Type": "application/json" },
+  const stale = await fetch(engine.url + "/internal/legs", { method: "POST", headers: { "Content-Type": "application/json", ...routingAuth },
     body: JSON.stringify({ pairs: [pairs[0]], expectedRoutingIdentity: "stale" }), signal: AbortSignal.timeout(10000) });
   assert.equal(stale.status, 409);
 }
