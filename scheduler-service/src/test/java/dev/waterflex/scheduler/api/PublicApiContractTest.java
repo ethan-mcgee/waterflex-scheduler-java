@@ -51,6 +51,7 @@ class PublicApiContractTest {
         types.put("PlannedStop", PublicResponses.PlannedStop.class);
         types.put("PlannedRoute", PublicResponses.PlannedRoute.class);
         types.put("DailyProposal", PublicResponses.DailyProposal.class);
+        types.put("SkippedTechnicianDay", PublicResponses.SkippedTechnicianDay.class);
         types.put("Offer", PublicResponses.Offer.class);
         types.put("OfferSet", PublicResponses.OfferSet.class);
         types.put("Hold", PublicResponses.Hold.class);

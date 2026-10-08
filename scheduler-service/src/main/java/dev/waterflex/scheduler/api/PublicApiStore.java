@@ -118,7 +118,7 @@ public class PublicApiStore {
         asTenant(tenantId, () -> { complete(tenantId, requestId, ownerToken, status, CalculationJson.write(problem)); return Boolean.TRUE; });
     }
 
-    /** Saves the proposal and its technician-day timestamps and completes the request with it, atomically. */
+    /** Saves the proposal and its technician-day timestamps and completes the request with it (201), atomically. */
     public void completeDaily(String tenantId, String ownerToken, StoredProposal stored) {
         asTenant(tenantId, () -> {
             if (stored.status() != ProposalStatus.PROPOSED) throw new IllegalArgumentException("A new proposal must be PROPOSED");
@@ -129,7 +129,7 @@ public class PublicApiStore {
             for (TechnicianDayVersion day : stored.technicianDays())
                 jdbc.update("INSERT INTO api_proposal_technician_day (\"tenantId\",\"proposalId\",\"technicianId\",\"serviceDate\",\"lastModified\") VALUES (?,?,?,?,?)",
                         tenantId, stored.id(), day.technicianId(), Date.valueOf(day.serviceDate()), day.lastModified().toString());
-            complete(tenantId, stored.requestId(), ownerToken, 200, body);
+            complete(tenantId, stored.requestId(), ownerToken, 201, body);
             return Boolean.TRUE;
         });
     }

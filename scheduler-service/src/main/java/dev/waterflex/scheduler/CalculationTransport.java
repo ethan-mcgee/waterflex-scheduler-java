@@ -26,9 +26,16 @@ public final class CalculationTransport {
     }
     public DailyCalculation.Result daily(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,
             java.util.Map<String,RoadPoint> points,String snapshotId,String revision,String routing,String configuration,java.util.Map<String,Integer> schedule) {
+        java.util.Map<String,String> tokens = new java.util.LinkedHashMap<>();
+        schedule.forEach((technician,version) -> tokens.put(Required.value(technician),Integer.toString(Required.value(version))));
+        return dailyTokens(plan,policy,solver,points,snapshotId,revision,routing,configuration,tokens);
+    }
+    /** As {@link #daily}, with opaque per-technician revision tokens such as host last-modified timestamps. */
+    public DailyCalculation.Result dailyTokens(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,
+            java.util.Map<String,RoadPoint> points,String snapshotId,String revision,String routing,String configuration,java.util.Map<String,String> schedule) {
         if (remote == null) return DailyCalculation.run(plan,policy,solver);
         long remaining = allowance(20000);
-        var dataset = DailyDataset.capture(plan,points,snapshotId,revision,routing,configuration,schedule,solver.variant(),solver.seed(),remaining);
+        var dataset = DailyDataset.captureTokens(plan,points,snapshotId,revision,routing,configuration,schedule,solver.variant(),solver.seed(),remaining);
         var request = CalculationProtocol.Request.of("DAILY",remaining,new CalculationProtocol.DailyInput(dataset.json(DailyDataset.Encoding.SPARSE),policy));
         var response = Required.value(remote).calculate(request); var output = CalculationJson.read(response.payload(),CalculationProtocol.DailyOutput.class);
         DayPlan proposed = output.proposal().restore(plan), reference = output.reference().restore(plan);

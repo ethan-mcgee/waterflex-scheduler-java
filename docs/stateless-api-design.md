@@ -55,6 +55,8 @@ The machine-readable contract is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml)
 
 `DailyPreparation` routes a daily request through its own metro's routing service (`MetroRouting`, configured by `ROUTING_METRO_URLS`) and records the routing identity the legs came from. An unconfigured metro fails before any geocoding and never falls back to the portal's single `ROUTING_URL`. A routing identity change while the legs are fetched fails the preparation, as in the database path.
 
+`POST /api/v1/daily/proposals` exists today (`DailyProposals`). It parses strictly, claims the `requestId` in the thin store, applies the 6 a.m. cutoff in the snapshot's time zone, routes through the metro's service, and runs the same daily calculation and preview decision as the portal path (`OptimizationService.createPreview`), inside the same 20 second operation and admission limits. The decision is `IMPROVED` when the calculation's proposal is accepted; `REJECTED_BY_POLICY` when it found a valid plan that policy rejected; otherwise `NO_IMPROVEMENT`, with the current routes and a `reason`. A technician-day with a location that cannot be resolved (`geocoding.mode=COORDINATES_REQUIRED`, the only mode so far) is left out and listed in `skippedTechnicianDays`. The proposal is stored with the host timestamp of every technician-day in the snapshot and answered with 201. Failures that repeat on retry (invalid facts, unknown metro, frozen date) are stored and replayed; routing outages (503), admission limits (429) and deadline overruns (503) release the claim so a retry runs again. Policy settings (fairness allowance and the like) still come from the scheduler's own `omaha_setting` table, as in the portal path; they are scheduler configuration, not client data.
+
 Public routes live under `/api/v1/`, separate from the scheduler's internal `/v1/` routes used by the admin portal. Every `/api/v1/` call must send `Authorization: Bearer <tenant token>` (exists today, with `GET /api/v1/whoami` returning the token's tenant). All requests carry a host `requestId` (idempotency key) and host IDs only. The tenant is derived from the caller's API token, never from the request body. Money and rates are decimal strings. Times are ISO-8601 instants. Unknown fields, duplicate keys, nonfinite numbers and missing required values are rejected, as `DailyDataset` does today.
 
 ### Snapshot
@@ -84,10 +86,12 @@ The scheduler computes a canonical content hash of the snapshot (the input revis
 
 The contract is a draft until the first endpoint that calculates ships, but every change WaterFlex Software must act on is listed here and in the spec's description.
 
-| Change | Since | What WaterFlex Software sends |
+| Change | Since | What WaterFlex Software does |
 | --- | --- | --- |
 | `TechnicianDay.absences` is required | #88 | An empty list when the technician has no absence that day. A missing list is rejected, never read as "no absences". |
 | `Appointment.plannedStart` is required | #89 | The appointment's currently planned arrival, as an instant. The solver records it as the appointment's original start, and proposals report moves against it. A missing value is rejected, never guessed. |
+| `DailyProposal.reason` and `DailyProposal.skippedTechnicianDays` added | #96 | Reads `reason` to see why the scheduler decided as it did. Leaves every technician-day in `skippedTechnicianDays` exactly as it is (it is not in `routes`), and sends coordinates for the location its `message` names to include it next time. |
+| Repeated and reused `requestId` | #96 | Retries with the same `requestId` and the same body after a timeout or a 429/503; the stored answer is replayed. Uses a new `requestId` for different facts: reusing one gets 400. |
 
 ### Latency target (Decided)
 

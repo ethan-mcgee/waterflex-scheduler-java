@@ -13,7 +13,12 @@ public final class ScheduleCutoff {
     private ScheduleCutoff() { }
 
     public static boolean frozen(LocalDate serviceDate, Instant now) {
-        return !now.isBefore(serviceDate.atTime(6, 0).atZone(LOCAL).toInstant());
+        return frozen(serviceDate, now, LOCAL);
+    }
+
+    /** The same 6 a.m. cutoff in the metro's own time zone, for requests that carry it. */
+    public static boolean frozen(LocalDate serviceDate, Instant now, ZoneId zone) {
+        return !now.isBefore(serviceDate.atTime(6, 0).atZone(zone).toInstant());
     }
 
     public static Instant localMinute(LocalDate day, int minute, boolean endBoundary) {
