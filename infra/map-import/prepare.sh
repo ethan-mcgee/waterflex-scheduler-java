@@ -17,6 +17,7 @@ if [ "${1:-}" = activate ]; then
   test -f "$target/manifest.json"
   test -f "$target/omaha.pmtiles"
   test -f "$target/graph/properties"
+  test -f "$target/tiger-nominatim-preprocessed.csv.tar.gz"
   test -f "$target/validated.json" || { echo 'Validate all three preview services before activation' >&2; exit 1; }
   python3 /usr/local/bin/verify-map.py "$version"
   python3 - "$target" <<'PY'
@@ -27,9 +28,11 @@ PY
   ln -s "versions/$version/omaha.osm.pbf" /maps/omaha.osm.pbf.next
   ln -s "versions/$version/omaha.pmtiles" /maps/omaha.pmtiles.next
   ln -s "versions/$version/graph" /maps/graph.next
+  ln -s "versions/$version/tiger-nominatim-preprocessed.csv.tar.gz" /maps/tiger-nominatim-preprocessed.csv.tar.gz.next
   mv -Tf /maps/omaha.osm.pbf.next /maps/omaha.osm.pbf
   mv -Tf /maps/omaha.pmtiles.next /maps/omaha.pmtiles
   mv -Tf /maps/graph.next /maps/graph
+  mv -Tf /maps/tiger-nominatim-preprocessed.csv.tar.gz.next /maps/tiger-nominatim-preprocessed.csv.tar.gz
   printf '%s' "$version" > /maps/map-version.next
   mv -Tf /maps/map-version.next /maps/map-version
   exit 0
@@ -38,7 +41,7 @@ version="${1:?Pass a map version such as 2026-09-16}"
 case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
 target="/maps/versions/$version"
 if [ -e "$target/manifest.json" ]; then
-  if python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); assert "missouri" in m["sources"] and "coverage" in m' "$target/manifest.json" 2>/dev/null; then
+  if python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); assert "missouri" in m["sources"] and "coverage" in m and "tiger" in m' "$target/manifest.json" 2>/dev/null; then
     echo "Version already prepared: $version"; exit 0
   fi
 fi
@@ -58,9 +61,20 @@ for state in nebraska iowa missouri; do
   actual="$(md5sum "$target/${state}.osm.pbf" | cut -d ' ' -f 1)"
   test "$expected" = "$actual" || { echo "Checksum failed: $state" >&2; exit 1; }
 done
+# US Census TIGER address ranges, preprocessed by the Nominatim project, place house numbers OpenStreetMap lacks
+# along their street. The versioned file is downloaded from nominatim.org directly; its SHA-256 is recorded in the
+# manifest and verified before activation. The Nominatim image's own TIGER download is never used.
+tiger_year="${TIGER_YEAR:-2025}"
+case "$tiger_year" in [0-9][0-9][0-9][0-9]) ;; *) echo 'Invalid TIGER_YEAR' >&2; exit 2;; esac
+tiger_url="https://nominatim.org/data/tiger${tiger_year}-nominatim-preprocessed.csv.tar.gz"
+if [ ! -f "$target/tiger-nominatim-preprocessed.csv.tar.gz" ]; then
+  curl --fail --location --retry 3 --silent --show-error --user-agent "waterflex-map-import" "$tiger_url" --output "$target/tiger-nominatim-preprocessed.csv.tar.gz.part"
+  tar -tzf "$target/tiger-nominatim-preprocessed.csv.tar.gz.part" >/dev/null
+  mv "$target/tiger-nominatim-preprocessed.csv.tar.gz.part" "$target/tiger-nominatim-preprocessed.csv.tar.gz"
+fi
 osmium merge "$target/nebraska.osm.pbf" "$target/iowa.osm.pbf" "$target/missouri.osm.pbf" --overwrite -o "$target/omaha.osm.pbf"
 osmium fileinfo "$target/omaha.osm.pbf" >/dev/null
-python3 - "$target" "$version" <<'PY'
+python3 - "$target" "$version" "$tiger_year" "$tiger_url" <<'PY'
 import hashlib, json, pathlib, subprocess, sys, datetime
 with pathlib.Path(sys.argv[1], 'coverage.json').open() as f:
     coverage = json.load(f)
@@ -76,6 +90,7 @@ for state in ['nebraska', 'iowa', 'missouri']:
         'sourceTimestamp': subprocess.check_output(['osmium', 'fileinfo', '-e', '-g', 'data.timestamp.last', str(target / f'{state}.osm.pbf')], text=True).strip(),
         'sha256': checksum(target / f'{state}.osm.pbf'),
     }
+manifest['tiger'] = {'year': sys.argv[3], 'url': sys.argv[4], 'sha256': checksum(target / 'tiger-nominatim-preprocessed.csv.tar.gz')}
 (target / 'manifest.json.next').write_text(json.dumps(manifest, indent=2) + '\n')
 (target / 'manifest.json.next').replace(target / 'manifest.json')
 PY

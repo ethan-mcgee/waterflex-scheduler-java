@@ -247,10 +247,10 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 3. Tenancy: one shared database with `tenant_id` on every row and row-level security, from day one.
 4. Repair never adds overtime; the dispatcher overtime approval flag was removed (see `docs/scheduler-policy.md`).
 5. Booking latency: offers within 5 seconds end to end.
+6. TIGER: the Nominatim import adds the US Census TIGER address ranges, so a house number OpenStreetMap lacks is placed along its street (see the README map steps).
 
 ## Open questions
 
 1. Does WaterFlex Software's Google Maps Platform agreement allow passing Google-geocoded coordinates to the scheduler and caching them for up to 30 days?
 2. What audit retention period applies to receipts?
 3. Does any client require a dedicated database?
-4. Should the Nominatim import add the US Census TIGER address ranges, so a house number OpenStreetMap lacks can be placed along its street? Without them such an address is rejected as "house number not in the map".
