@@ -134,7 +134,7 @@ class DailyAttemptDatabaseIT {
                 var database = Required.value(facts.days().get(f.day));
                 var request = new PublicRequests.BookingOffersRequest(Required.value(UUID.randomUUID().toString()),
                         new PublicRequests.Job(f.id + "-new-job", f.id, 30, new PublicTypes.Location(43.7, 7.4, null)),
-                        new PublicRequests.Horizon(f.day, f.day), hostSnapshot(f));
+                        new PublicRequests.Horizon(f.day, f.day), 4, hostSnapshot(f));
                 var built = dev.waterflex.scheduler.api.RequestBooking.build(request, SchedulingPolicy.Rules.defaults(), "fixture-routing-v1", captured,
                         _ -> { throw new AssertionError("Host coordinates are authoritative"); });
                 var fromRequest = Required.value(built.snapshot().days().get(f.day));

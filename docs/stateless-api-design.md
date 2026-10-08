@@ -76,7 +76,7 @@ The scheduler computes a canonical content hash of the snapshot (the input revis
 | --- | --- |
 | `POST /api/v1/daily/proposals` | Snapshot of one metro day. Returns a proposal ID, proposed routes, unresolved demand, policy decision and diagnostics. Stores the proposal and revision in the thin store. |
 | `POST /api/v1/daily/proposals/{id}/commit` | Host sends its current timestamp for every technician-day the proposal covers. Equal timestamps mean the facts the proposal was computed and validated from are unchanged, so the scheduler checks the 6 a.m. cutoff again and returns a commit receipt with every assignment on the proposal's routes. 409 if anything changed; nothing is changed then. |
-| `POST /api/v1/booking/offers` | Snapshot of the booking horizon plus the job to book. Returns up to four offers (`booking.offer.limit`) and holds each for 10 minutes in the thin store. |
+| `POST /api/v1/booking/offers` | Snapshot of the booking horizon plus the job to book. Returns at most the request's `offerLimit` offers (1 to 4, the client's own cap) and holds each for 10 minutes in the thin store. The portal's `booking.offer.limit` does not apply. |
 | `POST /api/v1/booking/offers/{id}/select` and `/release` | Convert or release holds, as today. |
 | `POST /api/v1/booking/holds/{id}/confirm` | Host sends its current snapshot; scheduler revalidates against holds and returns the arrangement to write. |
 | `POST /api/v1/repairs/proposals` | Absence repair for a technician-day, same pattern as daily. Repair never adds overtime. |
@@ -95,6 +95,8 @@ The contract is a draft until the first endpoint that calculates ships, but ever
 | Repeated and reused `requestId` | #96 | Retries with the same `requestId` and the same body after a timeout or a 429/503; the stored answer is replayed. Uses a new `requestId` for different facts: reusing one gets 400. |
 | Daily commit served; 409 split into `STALE` and `NOT_COMMITTABLE`; 422 after the cutoff | #98 | Sends the current `lastModified` of every technician-day the proposal covers, skipped ones included (a missing or extra one is a 400). On 200, writes every assignment in the receipt with a compare-and-set on the receipt's timestamps. On `STALE`, requests a new proposal. On `NOT_COMMITTABLE`, does nothing: the proposal was already committed (the message names the receipt) or its decision is not `IMPROVED`. On 422, the day's routes are frozen. |
 | Booking horizon at most 21 dates; `job.id` must differ from every appointment and technician ID | #99 | Sends a horizon of 1 to 21 dates. Uses a job ID that is not already an appointment or technician ID in the snapshot; a clash is a 400. |
+| `BookingOffersRequest.offerLimit` is required | #101 | Sends each client's own cap on offers per search, 1 to 4. A missing or out-of-range value is a 400, never assumed. |
+| Select and release served; new error `HOLD_UNAVAILABLE` | #101 | Treats a 409 `HOLD_UNAVAILABLE` from select as "search again": the hold expired or ended, or another offer in the set was selected. Releases a set it no longer needs; a release is a 200 even when nothing was still held. |
 | Booking offers served; `OfferSet.skippedTechnicianDays` added | #100 | Reads `skippedTechnicianDays`: nothing is offered on those technician-days until their locations have coordinates. Starts the horizon after any date already past 6 a.m. local (a frozen date is a 422). Treats a new search for a job as replacing that job's earlier offers, which are no longer held. Retries a 429 or 503 with the same `requestId`. |
 
 ### Latency target (Decided)
@@ -124,7 +126,9 @@ This keeps the audit's rule (caller-side locked revalidation before apply) witho
 
 The owner chose three things for the booking endpoints: confirm sends the day's snapshot, a search covers exactly the dates WaterFlex Software asks for, and an offer may move other customers' appointments to make room.
 
-Built so far: booking search facts from a request instead of the database (`api/RequestBooking`, proven equal to the database loader's facts for the same day in `DailyAttemptDatabaseIT`), and `POST /api/v1/booking/offers` (`api/BookingOffers`, reconciliation in `api/BookingReconciliation`). Select, release and confirm follow in separate pull requests.
+Built so far: booking search facts from a request instead of the database (`api/RequestBooking`, proven equal to the database loader's facts for the same day in `DailyAttemptDatabaseIT`), and `POST /api/v1/booking/offers` (`api/BookingOffers`, reconciliation in `api/BookingReconciliation`). `POST /api/v1/booking/offers/{offerId}/select` and `/release` (`api/BookingHolds`, `BookingStore.select` and `release`). Confirm follows in a separate pull request.
+
+Select and release run no search. Each locks the set's days in the one lock order, then the set, edits the stored day states (an ended hold leaves the arrangement; its moves stay) and answers. Selecting keeps the chosen hold with its original expiry, releases its siblings, and marks the offer and set `SELECTED`; selecting it again returns the same hold. It is a 409 `HOLD_UNAVAILABLE` when the hold expired or ended, or the set was released, superseded or already selected another offer. Releasing ends every hold in the set still held or selected and is a 200 even when nothing was still held. Both are 404 for an offer the tenant does not have, and every answer is stored and replayed for a repeated `requestId`. A new search for the job also ends a selected hold.
 
 `POST /api/v1/booking/offers` parses strictly and claims the `requestId` like the daily endpoint. It refuses (422) a horizon date already past its 6 a.m. cutoff, an unknown metro, an unlocatable job and contradictory orders. It reconciles each horizon date's stored state with the snapshot, ends the job's holds on any date, routes the days, loses the holds of any date whose arrangement no longer fits, and runs the portal pipeline's insertion and bounded refinement (`booking.search.variant`, default `BOUNDED`) within the policy's booking deadline and the booking admission limit. Offers are validated independently and prepared in the common arrangement as the portal does (`ReservationOffers`), then published atomically: each touched day is locked in one order and must still have the version the search read. If another booking changed a day meanwhile, the search runs once more within the same deadline, then answers 429. Routing outages and a deadline with nothing found answer 503 and release the claim; offers found before the deadline are published with `searchComplete: false`.
 
@@ -257,7 +261,7 @@ Implications for the target design:
 
 The public API gets its own tables instead of adding a tenant column to the portal's booking and optimization tables. Those tables reference master data (appointments, jobs, technicians) the thin store must not hold, and the portal path has to keep running unchanged while the two paths are compared before cutover (see "Migration").
 
-Exists today (migrations `20261009120000_public_api_store`, `20261010120000_public_api_commit` and `20261011120000_public_api_booking`):
+Exists today (migrations `20261009120000_public_api_store`, `20261010120000_public_api_commit`, `20261011120000_public_api_booking` and `20261012120000_public_api_booking_select`):
 
 | Table | Holds |
 | --- | --- |
@@ -266,7 +270,7 @@ Exists today (migrations `20261009120000_public_api_store`, `20261010120000_publ
 | `api_proposal_technician_day` | The host `lastModified` of every technician-day a proposal covers, stored as exact ISO-8601 text so nanoseconds survive. A commit compares the host's current values with these. |
 | `api_commit_receipt` | The one commit of a proposal: receipt ID, the commit's `requestId`, and the receipt body (assignments and timestamps). Unique per proposal. |
 | `api_booking_day` | Each metro-day's booking state (`BookingDayState`): the common arrangement with every active hold, and per technician the host timestamp and the appointments WaterFlex Software is expected to have. Versioned; every write locks the row and checks the version the search read. |
-| `api_booking_offer_set`, `api_booking_offer` | What each search offered, and what became of each hold (`HELD`, `SUPERSEDED`, `LOST`). Expiry is a time, not a status. |
+| `api_booking_offer_set`, `api_booking_offer` | What each search offered, and what became of each hold (`HELD`, `SELECTED`, `RELEASED`, `SUPERSEDED`, `LOST`). Expiry is a time, not a status. |
 
 Every key starts with `tenantId`. Row-level security is on for all of them: `PublicApiStore` runs each transaction as the `scheduler_tenant` database role with `app.tenant_id` set, so even a query without a tenant filter sees only the caller's rows, an unset tenant sees none, and that role cannot read any other table. Persisted proposal and booking state JSON is validated again on every read, and a stored answer is validated again before it is replayed.
 

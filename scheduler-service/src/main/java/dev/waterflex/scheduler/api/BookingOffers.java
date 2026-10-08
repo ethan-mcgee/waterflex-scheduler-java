@@ -1,7 +1,6 @@
 package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.BookingCalculation;
-import dev.waterflex.scheduler.BookingOfferLimit;
 import dev.waterflex.scheduler.BookingSearchPipeline;
 import dev.waterflex.scheduler.BookingSnapshot;
 import dev.waterflex.scheduler.BoundedBookingSearch;
@@ -72,7 +71,6 @@ public class BookingOffers {
     private final DailyPreparation.AddressLocator locator;
     private final CalculationTransport transport;
     private final SearchAdmission admission;
-    private final BookingOfferLimit offerLimit;
     private final JdbcTemplate jdbc;
     private final String variant;
     private final int refinementMillis;
@@ -80,17 +78,17 @@ public class BookingOffers {
 
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                         SearchAdmission admission, BookingOfferLimit offerLimit, JdbcTemplate jdbc,
+                         SearchAdmission admission, JdbcTemplate jdbc,
                          @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:250}") int refinementMillis) {
-        this(store, bookings, routing, locator, transport, admission, offerLimit, jdbc, variant, refinementMillis, Required.value(Clock.systemUTC()));
+        this(store, bookings, routing, locator, transport, admission, jdbc, variant, refinementMillis, Required.value(Clock.systemUTC()));
     }
 
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                         SearchAdmission admission, BookingOfferLimit offerLimit, JdbcTemplate jdbc, String variant, int refinementMillis, Clock clock) {
+                         SearchAdmission admission, JdbcTemplate jdbc, String variant, int refinementMillis, Clock clock) {
         if (!VARIANTS.contains(variant)) throw new IllegalArgumentException("Unknown booking search variant " + variant);
         if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid optional refinement budget");
         this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.transport = transport;
-        this.admission = admission; this.offerLimit = offerLimit; this.jdbc = jdbc; this.variant = variant;
+        this.admission = admission; this.jdbc = jdbc; this.variant = variant;
         this.refinementMillis = refinementMillis; this.clock = clock;
     }
 
@@ -217,7 +215,7 @@ public class BookingOffers {
         Instant expiresAt = Required.value(now.truncatedTo(ChronoUnit.MILLIS).plus(HOLD));
         Map<LocalDate, Map<String, ReservationState.Hold>> holds = new TreeMap<>();
         days.forEach((date, day) -> holds.put(date, day.result().holds()));
-        var bundle = ReservationOffers.prepare(routed, job, holds, result, expiresAt, offerLimit, SearchDeadline::checkpoint);
+        var bundle = ReservationOffers.prepare(routed, job, holds, result, expiresAt, request.offerLimit(), SearchDeadline::checkpoint);
 
         String offerSetId = BookingStore.newOfferSetId();
         List<BookingStore.NewOffer> newOffers = new ArrayList<>();
