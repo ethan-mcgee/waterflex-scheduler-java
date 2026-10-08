@@ -4,7 +4,9 @@ import dev.waterflex.scheduler.api.PublicTypes.TechnicianDayVersion;
 import dev.waterflex.scheduler.api.PublicTypes.Window;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /** Public response bodies. Constructors enforce the guarantees the contract promises to WaterFlex Software. */
@@ -36,15 +38,34 @@ public final class PublicResponses {
 
     public enum Decision { IMPROVED, NO_IMPROVEMENT, REJECTED_BY_POLICY }
 
+    public enum SkipReason { LOCATION_UNRESOLVED }
+
+    /** A technician-day left exactly as it is; it does not appear in the proposal's routes. */
+    public record SkippedTechnicianDay(String technicianId, LocalDate serviceDate, SkipReason reason, String message) {
+        public SkippedTechnicianDay {
+            Input.id(technicianId, "technicianId");
+            Input.present(serviceDate, "serviceDate");
+            Input.present(reason, "reason");
+            if (Input.present(message, "message").isBlank()) throw new IllegalArgumentException("Blank message");
+        }
+    }
+
     /** A proposal never carries overtime: the scheduler never assigns it. */
-    public record DailyProposal(String proposalId, String inputRevision, Decision decision, List<PlannedRoute> routes,
-                                List<String> unresolvedAppointmentIds, Long costCents, Integer overtimeMinutes) {
+    public record DailyProposal(String proposalId, String inputRevision, Decision decision, String reason, List<PlannedRoute> routes,
+                                List<String> unresolvedAppointmentIds, List<SkippedTechnicianDay> skippedTechnicianDays,
+                                Long costCents, Integer overtimeMinutes) {
         public DailyProposal {
             Input.id(proposalId, "proposalId");
             if (!SHA256.matcher(Input.present(inputRevision, "inputRevision")).matches()) throw new IllegalArgumentException("inputRevision must be a SHA-256 hex digest");
             Input.present(decision, "decision");
+            if (Input.present(reason, "reason").isBlank()) throw new IllegalArgumentException("Blank reason");
             routes = Input.list(routes, "routes");
             unresolvedAppointmentIds = Input.uniqueIds(unresolvedAppointmentIds, "unresolvedAppointmentIds");
+            skippedTechnicianDays = Input.list(skippedTechnicianDays, "skippedTechnicianDays");
+            Set<String> routed = new HashSet<>();
+            for (PlannedRoute route : routes) if (!routed.add(route.technicianId())) throw new IllegalArgumentException("Duplicate route for " + route.technicianId());
+            for (SkippedTechnicianDay skipped : skippedTechnicianDays)
+                if (!routed.add(skipped.technicianId())) throw new IllegalArgumentException("Technician " + skipped.technicianId() + " is both routed and skipped");
             if (Input.present(costCents, "costCents") < 0) throw new IllegalArgumentException("costCents must not be negative");
             Input.integer(overtimeMinutes, "overtimeMinutes", 0, 0);
         }

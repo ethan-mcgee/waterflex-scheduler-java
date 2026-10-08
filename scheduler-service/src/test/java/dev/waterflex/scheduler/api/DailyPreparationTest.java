@@ -18,7 +18,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 class DailyPreparationTest {
-    private static final RequestDay.Locator LOCATOR = _ -> new RoadPoint(41.2587, -95.9378);
+    private static final DailyPreparation.AddressLocator LOCATOR = _ -> new RoadPoint(41.2587, -95.9378);
 
     private static DailyProposalRequest request() {
         return PublicRequests.read(PublicApiContractTest.example("DailyProposalRequest"), DailyProposalRequest.class);
@@ -65,5 +65,20 @@ class DailyPreparationTest {
         RoadClient omaha = roads(identity, new ArrayList<>(), () -> identity.set("omaha-map-v8"));
         var routing = new MetroRouting(Required.value(Map.of("omaha", "http://a:1")), _ -> omaha);
         assertThrows(RoadClient.RoadUnavailable.class, () -> DailyPreparation.prepare(request(), routing, LOCATOR));
+    }
+
+    @Test void aTechnicianDayWithAnUnlocatableAddressIsSkippedAndTheRestIsRouted() {
+        var identity = new AtomicReference<>("omaha-map-v7");
+        RoadClient omaha = roads(identity, new ArrayList<>(), null);
+        var routing = new MetroRouting(Required.value(Map.of("omaha", "http://a:1")), _ -> omaha);
+        var prepared = DailyPreparation.prepare(request(), routing, _ -> null);
+        assertEquals(1, prepared.skipped().size());
+        var skipped = Required.value(prepared.skipped().getFirst());
+        assertEquals("tech-1", skipped.technicianId());
+        assertEquals(PublicResponses.SkipReason.LOCATION_UNRESOLVED, skipped.reason());
+        assertTrue(skipped.message().contains("appointment appt-8"), skipped.message());
+        assertEquals(List.of("tech-2"), prepared.plan().getRoutes().stream().map(route -> Required.value(route).getId()).toList());
+        assertEquals(List.of(), prepared.plan().getVisits());
+        assertEquals(java.util.Set.of("tech-2", "tech-2:return"), prepared.points().keySet());
     }
 }

@@ -47,8 +47,8 @@ class PublicApiStoreDatabaseIT {
     private static StoredProposal proposal(String requestId) {
         String id = PublicApiStore.newProposalId();
         var example = PublicRequests.read(PublicApiContractTest.example("DailyProposal"), PublicResponses.DailyProposal.class);
-        var body = new PublicResponses.DailyProposal(id, example.inputRevision(), example.decision(), example.routes(),
-                example.unresolvedAppointmentIds(), example.costCents(), example.overtimeMinutes());
+        var body = new PublicResponses.DailyProposal(id, example.inputRevision(), example.decision(), example.reason(), example.routes(),
+                example.unresolvedAppointmentIds(), example.skippedTechnicianDays(), example.costCents(), example.overtimeMinutes());
         LocalDate day = Required.value(LocalDate.parse("2026-10-12"));
         return new StoredProposal(id, requestId, "omaha", day, example.inputRevision(), "omaha-map-v7", ProposalStatus.PROPOSED,
                 Required.value(List.of(new TechnicianDayVersion("tech-1", day, Required.value(Instant.parse("2026-10-11T21:04:17.123456789Z"))),
@@ -67,7 +67,7 @@ class PublicApiStoreDatabaseIT {
         StoredProposal stored = proposal(request);
         store.completeDaily(tenantA, owner, stored);
         Replay replay = assertInstanceOf(Replay.class, store.claim(tenantA, request, Operation.DAILY_PROPOSAL, SHA_A));
-        assertEquals(200, replay.status());
+        assertEquals(201, replay.status());
         assertEquals(stored.proposal(), PublicRequests.read(replay.json(), PublicResponses.DailyProposal.class));
         assertInstanceOf(Conflict.class, store.claim(tenantA, request, Operation.DAILY_PROPOSAL, SHA_B));
         assertEquals(stored, store.proposal(tenantA, stored.id()));

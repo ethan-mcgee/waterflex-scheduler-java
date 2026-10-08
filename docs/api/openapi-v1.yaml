@@ -25,6 +25,8 @@ info:
     Changes WaterFlex Software must act on (also listed in docs/stateless-api-design.md):
     - `TechnicianDay.absences` is required; send an empty list when there are none.
     - `Appointment.plannedStart` is required; send the appointment's currently planned arrival.
+    - `DailyProposal` now has `reason` and `skippedTechnicianDays`; a skipped technician-day is not in `routes` and stays as it is.
+    - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
 servers:
   - url: https://scheduler.internal.example
     description: Private network address of the scheduler service (placeholder).
@@ -56,7 +58,11 @@ paths:
       operationId: createDailyProposal
       tags: [Daily]
       summary: Propose optimized routes for one metro day.
-      x-implementation: planned
+      description: >-
+        Technician-days whose locations cannot be resolved are left exactly as they are and listed in
+        skippedTechnicianDays; every other technician-day is still optimized. Routes are frozen from 6 a.m.
+        local time on the service date. Repeating a request with the same requestId replays the stored result.
+      x-implementation: implemented
       requestBody:
         required: true
         content:
@@ -308,7 +314,7 @@ components:
           examples:
             unroutable: { value: { error: INCOMPLETE_FACTS, message: No road route to appointment appt-7 } }
     Busy:
-      description: Admission limit reached; retry with backoff.
+      description: Admission limit reached, or a call with the same requestId is still running; retry with backoff.
       headers:
         Retry-After:
           schema: { type: integer, minimum: 1 }
@@ -334,7 +340,9 @@ components:
     RequestId:
       type: string
       format: uuid
-      description: Host idempotency key. Repeating a request with the same ID returns the original result.
+      description: >-
+        Host idempotency key. Repeating a request with the same ID returns the original result; reusing an ID
+        with a different request is rejected with 400.
     TenantId:
       type: string
       pattern: '^[a-z0-9][a-z0-9-]{0,62}$'
@@ -497,7 +505,7 @@ components:
     DailyProposal:
       type: object
       additionalProperties: false
-      required: [proposalId, inputRevision, decision, routes, unresolvedAppointmentIds, costCents, overtimeMinutes]
+      required: [proposalId, inputRevision, decision, reason, routes, unresolvedAppointmentIds, skippedTechnicianDays, costCents, overtimeMinutes]
       properties:
         proposalId: { $ref: '#/components/schemas/Id' }
         inputRevision:
@@ -508,14 +516,34 @@ components:
           type: string
           enum: [IMPROVED, NO_IMPROVEMENT, REJECTED_BY_POLICY]
           description: Only IMPROVED proposals can be committed.
+        reason:
+          type: string
+          minLength: 1
+          description: Why the scheduler reached this decision, for operators.
         routes:
           type: array
           items: { $ref: '#/components/schemas/PlannedRoute' }
         unresolvedAppointmentIds:
           type: array
           items: { $ref: '#/components/schemas/Id' }
+        skippedTechnicianDays:
+          type: array
+          description: Technician-days left exactly as they are; they are not in routes.
+          items: { $ref: '#/components/schemas/SkippedTechnicianDay' }
         costCents: { type: integer, minimum: 0 }
         overtimeMinutes: { type: integer, const: 0 }
+    SkippedTechnicianDay:
+      type: object
+      additionalProperties: false
+      required: [technicianId, serviceDate, reason, message]
+      properties:
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        reason:
+          type: string
+          enum: [LOCATION_UNRESOLVED]
+          description: LOCATION_UNRESOLVED means a location on that day arrived without coordinates and could not be located with certainty.
+        message: { type: string, minLength: 1 }
     BookingOffersRequest:
       type: object
       additionalProperties: false
@@ -705,6 +733,7 @@ components:
         proposalId: prop-0c4e
         inputRevision: 9f2b6c0d4e1a7b3c5d8e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e
         decision: IMPROVED
+        reason: Lower fleet cost within policy
         routes:
           - technicianId: tech-1
             serviceDate: '2026-10-12'
@@ -715,6 +744,7 @@ components:
             stops:
               - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
         unresolvedAppointmentIds: []
+        skippedTechnicianDays: []
         costCents: 18942
         overtimeMinutes: 0
     RepairProposalRequest:
