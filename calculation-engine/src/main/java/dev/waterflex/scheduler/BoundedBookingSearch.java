@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 /** Deterministic, bounded, same-date search. All inputs are immutable and already routed. */
 public final class BoundedBookingSearch {
-    static final class RefinementLimit extends RuntimeException { private static final long serialVersionUID = 1L; }
+    public static final class RefinementLimit extends RuntimeException { private static final long serialVersionUID = 1L; }
     public record Limits(int routes, int depth, int beam, int arrangementsPerWindow) {
         public Limits {
             if (routes < 1 || routes > 12 || depth < 1 || depth > 3 || beam < 1 || beam > 16

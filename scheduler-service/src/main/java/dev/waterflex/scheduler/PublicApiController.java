@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler;
 
+import dev.waterflex.scheduler.api.BookingOffers;
 import dev.waterflex.scheduler.api.DailyCommits;
 import dev.waterflex.scheduler.api.DailyProposals;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,10 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class PublicApiController {
     private final DailyProposals dailyProposals;
     private final DailyCommits dailyCommits;
+    private final BookingOffers bookingOffers;
 
-    public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits) {
+    public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers) {
         this.dailyProposals = dailyProposals;
         this.dailyCommits = dailyCommits;
+        this.bookingOffers = bookingOffers;
     }
 
     /** Lets an integrator confirm which tenant a token belongs to. */
@@ -37,6 +40,11 @@ public class PublicApiController {
     @PostMapping("/api/v1/daily/proposals/{proposalId}/commit")
     public ResponseEntity<String> commitDailyProposal(HttpServletRequest request, @PathVariable String proposalId, @RequestBody String body) {
         return reply(dailyCommits.commit(TenantAuthentication.tenant(request), proposalId, body));
+    }
+
+    @PostMapping("/api/v1/booking/offers")
+    public ResponseEntity<String> createBookingOffers(HttpServletRequest request, @RequestBody String body) {
+        return reply(bookingOffers.create(TenantAuthentication.tenant(request), body));
     }
 
     private static ResponseEntity<String> reply(DailyProposals.Reply reply) {

@@ -182,7 +182,9 @@ class PublicApiContractTest {
         var offers = PublicRequests.read(example("OfferSet"), PublicResponses.OfferSet.class);
         List<PublicResponses.Offer> five = new ArrayList<>();
         for (int i = 0; i < 5; i++) five.add(Required.value(offers.offers().getFirst()));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays()));
+        List<PublicResponses.Offer> twice = Required.value(List.of(Required.value(offers.offers().getFirst()), Required.value(offers.offers().getFirst())));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays()));
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read("{\"requestId\":\"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\",\"technicianDays\":[]}", PublicRequests.CommitRequest.class));
     }
 }

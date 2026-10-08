@@ -29,6 +29,7 @@ info:
     - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
     - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
     - A booking horizon covers at most 21 dates, and `job.id` must differ from every appointment and technician ID.
+    - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
 servers:
   - url: https://scheduler.internal.example
@@ -123,8 +124,11 @@ paths:
       operationId: createBookingOffers
       tags: [Booking]
       summary: Find up to four arrival windows for a job and hold them.
-      description: Must answer within 5 seconds end to end. Offers add no overtime.
-      x-implementation: planned
+      description: >-
+        Must answer within 5 seconds end to end. Offers add no overtime and may move other appointments
+        (see "Booking (Decided 2026-10-08)" in docs/stateless-api-design.md). A new search for the same job
+        ends its earlier offers. A date already past its 6 a.m. cutoff is a 422.
+      x-implementation: implemented
       requestBody:
         required: true
         content:
@@ -614,7 +618,7 @@ components:
     OfferSet:
       type: object
       additionalProperties: false
-      required: [offerSetId, expiresAt, offers, searchComplete]
+      required: [offerSetId, expiresAt, offers, searchComplete, skippedTechnicianDays]
       properties:
         offerSetId: { $ref: '#/components/schemas/Id' }
         expiresAt: { $ref: '#/components/schemas/Instant' }
@@ -625,6 +629,10 @@ components:
         searchComplete:
           type: boolean
           description: False when the deadline ended the search early; an empty offer list then does not prove there is no capacity.
+        skippedTechnicianDays:
+          type: array
+          description: Technician-days left out of the search because a location could not be located; nothing is offered on them.
+          items: { $ref: '#/components/schemas/SkippedTechnicianDay' }
     Hold:
       type: object
       additionalProperties: false
@@ -816,6 +824,7 @@ components:
         offerSetId: set-77a1
         expiresAt: '2026-10-12T15:10:00-05:00'
         searchComplete: true
+        skippedTechnicianDays: []
         offers:
           - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T10:00:00-05:00', end: '2026-10-12T12:00:00-05:00' } }
           - { offerId: offer-2, serviceDate: '2026-10-12', window: { start: '2026-10-12T13:00:00-05:00', end: '2026-10-12T15:00:00-05:00' } }

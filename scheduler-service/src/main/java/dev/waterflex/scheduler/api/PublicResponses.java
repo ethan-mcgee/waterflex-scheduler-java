@@ -79,13 +79,17 @@ public final class PublicResponses {
         }
     }
 
-    public record OfferSet(String offerSetId, Instant expiresAt, List<Offer> offers, Boolean searchComplete) {
+    /** Technician-days that could not be located are left out of the search and listed in {@code skippedTechnicianDays}. */
+    public record OfferSet(String offerSetId, Instant expiresAt, List<Offer> offers, Boolean searchComplete, List<SkippedTechnicianDay> skippedTechnicianDays) {
         public OfferSet {
             Input.id(offerSetId, "offerSetId");
             Input.present(expiresAt, "expiresAt");
             offers = Input.list(offers, "offers");
             if (offers.size() > 4) throw new IllegalArgumentException("At most four offers");
+            Set<String> ids = new HashSet<>();
+            for (Offer offer : offers) if (!ids.add(offer.offerId())) throw new IllegalArgumentException("Duplicate offer " + offer.offerId());
             Input.present(searchComplete, "searchComplete");
+            skippedTechnicianDays = Input.list(skippedTechnicianDays, "skippedTechnicianDays");
         }
     }
 
