@@ -413,6 +413,18 @@ components:
         mileagePerMile: { $ref: '#/components/schemas/Decimal' }
         travelBufferPct: { $ref: '#/components/schemas/Decimal' }
         travelBufferMinutes: { type: integer, minimum: 0, maximum: 120 }
+    Policy:
+      type: object
+      additionalProperties: false
+      required: [fairnessBudget]
+      description: The client's own scheduling choices, sent with every calculation.
+      properties:
+        fairnessBudget:
+          $ref: '#/components/schemas/Decimal'
+          description: >-
+            How much the daily plan's cost may rise, as a share of the lowest-cost plan, to spread work more evenly
+            across technicians. "0" means no fairness budget (fairness only chooses between plans of equal cost);
+            "0.02" allows up to 2 percent. At most "1".
     Technician:
       type: object
       additionalProperties: false
@@ -461,11 +473,12 @@ components:
     Snapshot:
       type: object
       additionalProperties: false
-      required: [metroId, timeZone, rates, technicians, technicianDays, appointments]
+      required: [metroId, timeZone, rates, policy, technicians, technicianDays, appointments]
       properties:
         metroId: { $ref: '#/components/schemas/Id' }
         timeZone: { type: string, minLength: 1, examples: [America/Chicago] }
         rates: { $ref: '#/components/schemas/Rates' }
+        policy: { $ref: '#/components/schemas/Policy' }
         technicians:
           type: array
           items: { $ref: '#/components/schemas/Technician' }
@@ -714,6 +727,7 @@ components:
           metroId: omaha
           timeZone: America/Chicago
           rates: { regularHourly: '20', overtimeHourly: '30', mileagePerMile: '0.67', travelBufferPct: '0.2', travelBufferMinutes: 2 }
+          policy: { fairnessBudget: '0.02' }
           technicians:
             - { id: tech-1, qualifications: [softener-install, softener-service] }
             - { id: tech-2, qualifications: [softener-service] }

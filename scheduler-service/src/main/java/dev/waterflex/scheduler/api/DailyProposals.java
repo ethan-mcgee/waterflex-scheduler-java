@@ -132,7 +132,7 @@ public class DailyProposals {
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Routes for " + request.serviceDate() + " are frozen from 6 a.m. local time");
         String revision = sha256(CalculationJson.write(snapshot));
         String proposalId = PublicApiStore.newProposalId();
-        SchedulingPolicy.Rules policy = policy();
+        SchedulingPolicy.Rules policy = rules(policy(), snapshot.policy());
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
         Outcome outcome = DailyOperation.execute(admission, Required.value(Duration.ofSeconds(20)), () -> calculate(request, policy, proposalId, revision, tokens),
@@ -184,6 +184,11 @@ public class DailyProposals {
         }
         return new DailyProposal(proposalId, revision, outcome.decision(), outcome.reason(), Required.value(List.copyOf(routes)),
                 plan.getUnassignedVisitIds(), outcome.prepared().skipped(), evaluation.costCents(), 0);
+    }
+
+    /** The scheduler's policy settings with the client's own fairness budget in place of the shared one. */
+    static SchedulingPolicy.Rules rules(SchedulingPolicy.Rules shared, PublicTypes.Policy client) {
+        return new SchedulingPolicy.Rules(shared.regularWindowThreshold(), shared.utilizationThreshold(), client.fairnessBudget(), shared.bookingDeadlineMs());
     }
 
     /** The scheduler's own policy settings, the same ones the portal path reads. */

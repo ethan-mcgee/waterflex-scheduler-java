@@ -62,7 +62,7 @@ public final class DailyPreparation {
                     "No coordinates and no certain address match for " + String.join(", ", unresolved) + "; send coordinates to include this technician-day"));
         }
         var kept = new DailyProposalRequest(request.requestId(), request.serviceDate(), new PublicTypes.Snapshot(snapshot.metroId(), snapshot.timeZone(),
-                snapshot.rates(), snapshot.technicians(), Required.value(List.copyOf(keptDays)), Required.value(List.copyOf(keptAppointments))));
+                snapshot.rates(), snapshot.policy(), snapshot.technicians(), Required.value(List.copyOf(keptDays)), Required.value(List.copyOf(keptAppointments))));
         RequestDay day = RequestDay.of(kept, address -> Required.value(located.get(address), "located address"));
         String identity = roads.activeIdentity();
         Map<String, DayPlan.RoadLeg> reachable = new HashMap<>();
