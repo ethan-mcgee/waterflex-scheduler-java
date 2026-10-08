@@ -56,6 +56,7 @@ export const confirmation = z.object({ appointmentId: text, windowStart: instant
 export const selection = confirmation.extend({ holdId: text, expiresAt: instant });
 export const success = z.object({ success: z.boolean() });
 export const timeOffResult = z.object({ requestId: text, status: text });
+export const timeOffAnalysis = z.object({ requestId: text, status: text, progress: z.int().min(0).max(100), done: z.boolean() }).strict();
 export const routabilityResponse = z.object({ results: z.array(z.object({ id: text, routable: z.boolean() })) });
 export const travelBreakdown = z.object({ road_seconds: z.int().nonnegative(), configured_buffer_seconds: finite.nonnegative(),
   rounding_seconds: finite.nonnegative(), modeled_travel_minutes: z.int().nonnegative(), leg_count: z.int().nonnegative(),

@@ -135,11 +135,15 @@ async function main() {
     assert.deepEqual(await changedDays(async () => {
       await prisma.timeOffRequest.create({ data: { id: id("timeoff"), technicianId: id("tech-a"), category: "Other", reason: "Snapshot", status: "PENDING" } });
       await prisma.timeOffInterval.create({ data: { requestId: id("timeoff"), serviceDate: stamp(NEXT), startMin: 600, endMin: 660 } });
-    }), [NEXT], "Pending time off still changes its day's facts");
+    }), [], "Pending time off is not an absence, so it changes no day");
+    assert.deepEqual(await changedDays(() => prisma.timeOffRequest.update({ where: { id: id("timeoff") }, data: { status: "READY" } })), [],
+      "Analyzing time off changes no day");
     assert.deepEqual(await changedDays(() => prisma.timeOffRequest.update({ where: { id: id("timeoff") }, data: { status: "APPROVED" } })), [NEXT],
       "Approving time off changes its days");
     assert.deepEqual((await snapshot()).technicianDays.find(day => day.serviceDate === NEXT)?.absences,
       [{ start: `${NEXT}T16:00:00.000Z`, end: `${NEXT}T17:00:00.000Z` }]);
+    assert.deepEqual(await changedDays(() => prisma.timeOffRequest.delete({ where: { id: id("timeoff") } })), [NEXT],
+      "Deleting approved time off removes its absence, so its days change even though its intervals go by cascade");
     assert.deepEqual(await changedDays(() => prisma.technician.update({ where: { id: id("tech-a") }, data: { homeLat: 41.32 } })), [DATE, NEXT],
       "Moving the technician's home changes every day");
     assert.deepEqual(await changedDays(() => prisma.depotEndpointPolicy.create({ data: { depotId: id("depot-a"), effectiveDate: stamp("2026-01-01"), departure: "HOME", returnTo: "HOME" } })), [DATE, NEXT],
