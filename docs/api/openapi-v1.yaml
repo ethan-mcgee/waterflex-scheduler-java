@@ -399,7 +399,7 @@ components:
     TechnicianDay:
       type: object
       additionalProperties: false
-      required: [technicianId, serviceDate, lastModified, shift, start, end, maxPaidMinutes]
+      required: [technicianId, serviceDate, lastModified, shift, absences, start, end, maxPaidMinutes]
       properties:
         technicianId: { $ref: '#/components/schemas/Id' }
         serviceDate: { $ref: '#/components/schemas/ServiceDate' }
@@ -409,6 +409,7 @@ components:
         shift: { $ref: '#/components/schemas/Window' }
         absences:
           type: array
+          description: Required; send an empty list when the technician has no absences that day.
           items: { $ref: '#/components/schemas/Window' }
         start: { $ref: '#/components/schemas/Location' }
         end: { $ref: '#/components/schemas/Location' }
@@ -661,6 +662,7 @@ components:
               serviceDate: '2026-10-12'
               lastModified: '2026-10-11T21:04:17.123456Z'
               shift: { start: '2026-10-12T08:00:00-05:00', end: '2026-10-12T17:00:00-05:00' }
+              absences: []
               start: { lat: 41.2565, lng: -95.9345 }
               end: { lat: 41.2565, lng: -95.9345 }
               maxPaidMinutes: 540
