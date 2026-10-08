@@ -17,7 +17,7 @@ class SolverReplayTest {
     private URI uri(String path) { return Required.value(URI.create("http://127.0.0.1:"+port+path)); }
     private HttpResponse<String> post(CalculationProtocol.Request request,String token) throws Exception {
         return Required.value(HttpClient.newHttpClient().send(HttpRequest.newBuilder(uri("/v1/solve/"+request.operation().toLowerCase(Locale.ROOT)))
-                .header("Authorization","Bearer "+token).header("Content-Type","application/json").timeout(Duration.ofSeconds(25))
+                .header("Authorization","Bearer "+token).header("Content-Type","application/json").header(HttpCalculation.REQUEST_HEADER,request.requestId()).timeout(Duration.ofSeconds(25))
                 .POST(HttpRequest.BodyPublishers.ofString(CalculationJson.write(request))).build(),HttpResponse.BodyHandlers.ofString()));
     }
     @Test void databaseFreeBootAuthenticatesAndBookingReplayMatchesEmbeddedExactly() throws Exception {
@@ -85,8 +85,20 @@ class SolverReplayTest {
         assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(facts.replace("\"durationMinutes\":30","\"durationMinutes\":null")),BookingCalculation.Input.class));
         assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(facts.replace("\"regularHourly\":\"30\"","\"regularHourly\":30")),BookingCalculation.Input.class));
         assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(facts.replace("\"lat\":41.25","\"lat\":null")),BookingCalculation.Input.class));
-        var deleted = HttpClient.newHttpClient().send(HttpRequest.newBuilder(uri("/v1/solves/"+request.requestId())).header("Authorization","Bearer "+TOKEN).DELETE().build(),HttpResponse.BodyHandlers.ofString());
+        var deleted = HttpClient.newHttpClient().send(HttpRequest.newBuilder(uri("/v1/solves/"+request.requestId())).header("Authorization","Bearer "+TOKEN).header(HttpCalculation.REQUEST_HEADER,request.requestId()).DELETE().build(),HttpResponse.BodyHandlers.ofString());
         assertEquals(404,deleted.statusCode());
+    }
+    @Test void solveAndCancelRequireTheMatchingRoutingHeader() throws Exception {
+        var request = ReplayFixture.bookingRequest(); var client = HttpClient.newHttpClient();
+        for (String key : List.of("", Required.value(UUID.randomUUID().toString()))) {
+            var builder = HttpRequest.newBuilder(uri("/v1/solve/booking")).header("Authorization","Bearer "+TOKEN).header("Content-Type","application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(CalculationJson.write(request)));
+            if (!key.isEmpty()) builder.header(HttpCalculation.REQUEST_HEADER,key);
+            assertEquals(400,client.send(builder.build(),HttpResponse.BodyHandlers.ofString()).statusCode());
+            var cancel = HttpRequest.newBuilder(uri("/v1/solves/"+request.requestId())).header("Authorization","Bearer "+TOKEN).DELETE();
+            if (!key.isEmpty()) cancel.header(HttpCalculation.REQUEST_HEADER,key);
+            assertEquals(400,client.send(cancel.build(),HttpResponse.BodyHandlers.ofString()).statusCode());
+        }
     }
     @Test void missingRoadsAndForgedCandidateMetricsNeverCreateValidatedOffers() {
         var input = ReplayFixture.booking(); var day = Required.value(input.snapshot().days().get(ReplayFixture.DAY));
