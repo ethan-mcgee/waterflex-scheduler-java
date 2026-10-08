@@ -1,0 +1,15 @@
+.page { max-width: 760px; }
+.lead { color: var(--muted); }
+.notice { padding: 10px 12px; background: var(--brand-wash); border-radius: 6px; }
+.form { display: flex; flex-direction: column; gap: 16px; }
+.form h2 { margin: 0 0 8px; font-size: 16px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid rgba(0, 0, 0, 0.06); }
+.label { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
+.label small { color: var(--muted); font-weight: 400; }
+.control { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.control input { width: 110px; padding: 6px 8px; }
+.control select { padding: 6px 8px; }
+.actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.error { color: #b42318; margin: 0; }
+.saved { color: #067647; margin: 0; }
+@media (max-width: 600px) { .row { flex-direction: column; align-items: flex-start; } }

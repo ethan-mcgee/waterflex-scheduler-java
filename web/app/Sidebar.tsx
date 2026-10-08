@@ -10,6 +10,7 @@ import {
   FlaskConical,
   PhoneCall,
   Route,
+  SlidersHorizontal,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/dealerships", label: "Dealerships", icon: Users },
   { href: "/time-off", label: "Time Off", icon: CalendarOff },
   { href: "/dispatch/follow-up", label: "Manual Follow-up", icon: PhoneCall },
+  { href: "/settings", label: "Solver Settings", icon: SlidersHorizontal },
 ];
 
 const TESTING_ITEM: NavItem = {
