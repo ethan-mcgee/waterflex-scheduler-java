@@ -28,6 +28,7 @@ info:
     - `DailyProposal` now has `reason` and `skippedTechnicianDays`; a skipped technician-day is not in `routes` and stays as it is.
     - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
     - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
+    - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
 servers:
   - url: https://scheduler.internal.example
     description: Private network address of the scheduler service (placeholder).
@@ -89,7 +90,10 @@ paths:
       operationId: commitDailyProposal
       tags: [Daily]
       summary: Revalidate a proposal against current technician-day timestamps and return the assignments to write.
-      x-implementation: planned
+      description: >-
+        A proposal is committed at most once, and only when its decision is IMPROVED. Repeating the same
+        requestId returns the stored answer. A stale or refused commit changes nothing.
+      x-implementation: implemented
       parameters:
         - $ref: '#/components/parameters/ProposalId'
       requestBody:
@@ -110,7 +114,9 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Stale' }
+        '409': { $ref: '#/components/responses/CommitConflict' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
   /api/v1/booking/offers:
     post:
       operationId: createBookingOffers
@@ -307,6 +313,16 @@ components:
           schema: { $ref: '#/components/schemas/StaleProblem' }
           examples:
             changed: { $ref: '#/components/examples/StaleProblem' }
+    CommitConflict:
+      description: >-
+        STALE when a technician-day changed since the proposal was computed. NOT_COMMITTABLE when the proposal
+        was already committed or its decision is not IMPROVED. Nothing was changed.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/CommitConflict' }
+          examples:
+            changed: { $ref: '#/components/examples/StaleProblem' }
+            committed: { value: { error: NOT_COMMITTABLE, message: Proposal was already committed as rcpt-41d9 } }
     IncompleteFacts:
       description: The snapshot is well formed but cannot be scheduled, for example a location with no road route.
       content:
@@ -634,7 +650,9 @@ components:
         technicianDays:
           type: array
           minItems: 1
-          description: Current host timestamps for every technician-day the proposal or offer covers.
+          description: >-
+            Current host timestamps for every technician-day the proposal or offer covers, including skipped ones;
+            a missing or extra technician-day is a 400.
           items: { $ref: '#/components/schemas/TechnicianDayVersion' }
     Assignment:
       type: object
@@ -655,7 +673,9 @@ components:
         receiptId: { $ref: '#/components/schemas/Id' }
         assignments:
           type: array
-          description: Every appointment whose technician, sequence or planned time the host must write. A booking confirm includes the new job.
+          description: >-
+            Every appointment on the proposal's routes with its technician, sequence and planned times. Writing all
+            of them leaves each routed technician-day exactly as proposed. A booking confirm includes the new job.
           items: { $ref: '#/components/schemas/Assignment' }
         technicianDays:
           type: array
@@ -680,7 +700,7 @@ components:
       properties:
         error:
           type: string
-          enum: [INVALID_REQUEST, NOT_FOUND, STALE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE]
+          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE]
         message: { type: string, minLength: 1 }
     StaleProblem:
       type: object
@@ -694,6 +714,11 @@ components:
           minItems: 1
           items: { $ref: '#/components/schemas/TechnicianDayVersion' }
           description: Technician-days whose submitted timestamp differs from the recorded one, with the recorded value.
+    CommitConflict:
+      description: A STALE answer lists the changed technician-days; a NOT_COMMITTABLE answer is a plain Problem.
+      oneOf:
+        - { $ref: '#/components/schemas/StaleProblem' }
+        - { $ref: '#/components/schemas/Problem' }
   examples:
     DailyProposalRequest:
       value:

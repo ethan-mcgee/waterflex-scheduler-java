@@ -124,7 +124,7 @@ public final class PublicResponses {
         }
     }
 
-    public enum ErrorCode { INVALID_REQUEST, NOT_FOUND, STALE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE }
+    public enum ErrorCode { INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE }
 
     public record Problem(ErrorCode error, String message) {
         public Problem {
