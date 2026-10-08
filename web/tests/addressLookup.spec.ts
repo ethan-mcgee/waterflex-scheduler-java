@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 for (const form of ["technician", "depot", "edit"] as const) {
   test(`${form} lookup preserves specific errors and drafts and discards stale responses`, async ({ page }) => {
     const metro = await prisma.metro.create({ data: { name: `Lookup ${form} metro`, timezone: "America/Chicago" } });
-    const dealer = await prisma.dealership.create({ data: { name: `Lookup ${form} dealer` } });
+    const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: `Lookup ${form} dealer` } });
     const depot = await prisma.depot.create({ data: { name: `Lookup ${form} depot`, metroId: metro.id, dealershipId: dealer.id, lat: 41.23, lng: -96.18,
       endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
     let release: (() => void) | undefined;

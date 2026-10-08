@@ -7,6 +7,7 @@ import { addCalendarDays, localMidnightUtc, tomorrowInTz } from "../lib/date";
 import { technicianColor } from "../lib/technicianColor";
 import { currentRouteTiming } from "../lib/currentRouteTiming";
 import { isDispatchGeometry } from "../lib/dispatchGeometry";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -34,11 +35,11 @@ async function main() {
   const end = new Date(start.getTime() + 2 * 3600000);
   try {
     await prisma.metro.create({ data: { id: ids.metro, name: "Bounded booking fixture", timezone: "America/Chicago" } });
-    await prisma.dealership.create({ data: { id: ids.dealer, name: "Bounded booking fixture" } });
+    await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, id: ids.dealer, name: "Bounded booking fixture" } });
     await prisma.depot.create({ data: { id: ids.depot, metroId: ids.metro, dealershipId: ids.dealer, name: "Bounded fixture", lat: 43.735, lng: 7.420,
       endpointPolicies: { create: { effectiveDate: new Date("1900-01-01"), departure: "HOME", returnTo: "HOME" } } } });
     for (const id of [ids.oldService, ids.newService]) await prisma.serviceCatalog.create({ data: { id, code: id, name: id, estDurationMin: 60 } });
-    for (const id of [ids.a, ids.b]) await prisma.technician.create({ data: { id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
+    for (const id of [ids.a, ids.b]) await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
       shiftStartMin: 540, shiftEndMin: 780, maxDailyMinutes: 120, maxOvertimeMinutes: 0,
       availabilityVersions: { create: { effectiveDate: new Date("1900-01-01"), days: { create: Array.from({ length: 7 }, (_, dayOfWeek) => ({
         dayOfWeek, available: false, shiftStartMin: null, shiftEndMin: null,
@@ -47,7 +48,7 @@ async function main() {
       depotAssignments: { create: { depotId: ids.depot, effectiveDate: new Date("1900-01-01") } },
       qualifications: { create: (id === ids.a ? [ids.oldService, ids.newService] : [ids.oldService]).map(serviceId => ({ serviceId })) },
     } });
-    await prisma.customer.create({ data: { id: ids.customer, firstName: "Bounded", lastName: "Fixture", email: "bounded@example.invalid", phone: "0000000000" } });
+    await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: ids.customer, firstName: "Bounded", lastName: "Fixture", email: "bounded@example.invalid", phone: "0000000000" } });
     await prisma.address.create({ data: { id: ids.address, customerId: ids.customer, line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
     for (const id of [ids.oldJob, ids.first, ids.second]) await prisma.job.create({ data: { id, customerId: ids.customer, addressId: ids.address,
       serviceId: id === ids.oldJob ? ids.oldService : ids.newService, durationMin: 60, status: id === ids.oldJob ? "SCHEDULED" : "PENDING", bookingRequestId: id } });

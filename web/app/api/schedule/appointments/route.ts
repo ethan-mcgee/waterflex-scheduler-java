@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { activeClient } from "@/lib/activeClient";
+import { notFound, ownsAppointment } from "@/lib/clientScope";
 import { cancelAppointment, EngineError } from "@/lib/engineClient";
 
 export async function DELETE(request: NextRequest) {
@@ -20,6 +22,7 @@ export async function DELETE(request: NextRequest) {
   }
   if (typeof reason !== "string" || !reason.trim()) return NextResponse.json({ error: "Cancellation reason required." }, { status: 400 });
 
+  if (!(await ownsAppointment((await activeClient(request)).id, appointmentId))) return notFound("Appointment");
   try {
     return NextResponse.json(await cancelAppointment({ appointment_id: appointmentId, reason }));
   } catch (error) {

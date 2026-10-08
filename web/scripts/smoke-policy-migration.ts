@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const database = new URL(process.env.DATABASE_URL ?? "");
 assert.equal(database.pathname, "/waterflex_test");
@@ -14,9 +15,9 @@ async function main() {
   try {
     await prisma.$transaction(async tx => {
       const service = await tx.serviceCatalog.create({ data: { code: prefix, name: "Policy fixture", estDurationMin: 30 } });
-      const customer = await tx.customer.create({ data: { firstName: "Policy", lastName: "Fixture", email: "fixture@example.invalid", phone: "0000000000" } });
+      const customer = await tx.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Policy", lastName: "Fixture", email: "fixture@example.invalid", phone: "0000000000" } });
       const address = await tx.address.create({ data: { customerId: customer.id, line1: "Fixture", city: "Omaha", state: "NE", postalCode: "68102", lat: 41.25, lng: -95.93 } });
-      const tech = await tx.technician.create({ data: { name: prefix, color: "#059669", homeLat: 41.25, homeLng: -95.93,
+      const tech = await tx.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: prefix, color: "#059669", homeLat: 41.25, homeLng: -95.93,
         shiftStartMin: 480, shiftEndMin: 1020, maxDailyMinutes: 540, maxOvertimeMinutes: 0 } });
       const day = new Date("2030-01-07T00:00:00Z");
       const start = new Date("2030-01-07T15:00:00Z");

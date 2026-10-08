@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -23,7 +24,7 @@ test("dealership creation selects the new owner for depot setup", async ({ page 
 
 test("address changes discard stale geocodes and unavailable tiles retain a confirmable pin", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Depot setup browser metro", timezone: "America/Chicago" } });
-  const dealer = await prisma.dealership.create({ data: { name: "Depot setup browser dealer" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Depot setup browser dealer" } });
   try {
     let first: (() => void) | undefined;
     await page.route("**/api/technicians/geocode", async route => {
@@ -60,14 +61,14 @@ test("address changes discard stale geocodes and unavailable tiles retain a conf
 test("depot counts and policy history stay visible under the dealership", async ({ page }) => {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const next = new Date(`${today}T00:00:00Z`); next.setUTCDate(next.getUTCDate() + 4);
-  const dealer = await prisma.dealership.create({ data: { name: "Policy browser dealer" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Policy browser dealer" } });
   const metro = await prisma.metro.create({ data: { name: "Policy browser metro", timezone: "America/Chicago" } });
   const first = await prisma.depot.create({ data: { dealershipId: dealer.id, metroId: metro.id, name: "Current browser depot", lat: 41.25, lng: -95.93,
     endpointPolicies: { create: [{ effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" },
       { effectiveDate: next, departure: "DEPOT", returnTo: "HOME" }] } } });
   const second = await prisma.depot.create({ data: { dealershipId: dealer.id, metroId: metro.id, name: "Future browser depot", lat: 41.25, lng: -95.93,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const technician = await prisma.technician.create({ data: { name: "Policy browser tech", color: "#2563eb", homeLat: 41.25, homeLng: -95.93,
+  const technician = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Policy browser tech", color: "#2563eb", homeLat: 41.25, homeLng: -95.93,
     shiftStartMin: 480, shiftEndMin: 1020, depotAssignments: { create: [
       { effectiveDate: new Date("1900-01-01T00:00:00Z"), depotId: first.id }, { effectiveDate: next, depotId: second.id },
     ] } } });

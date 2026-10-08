@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { POST } from "../app/api/technicians/route";
 import { PATCH } from "../app/api/technicians/[id]/route";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const database = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1) : "";
@@ -36,7 +37,7 @@ async function main() {
   const location = geocoder.address();
   if (!location || typeof location === "string") throw new Error("Missing geocoder port");
   process.env.NOMINATIM_URL = `http://127.0.0.1:${location.port}`;
-  const dealer = await prisma.dealership.create({ data: { name: "Home pin smoke dealer" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Home pin smoke dealer" } });
   const metro = await prisma.metro.create({ data: { name: "Home pin smoke metro", timezone: "America/Chicago" } });
   const depot = await prisma.depot.create({ data: { name: "Home pin smoke depot", dealershipId: dealer.id, metroId: metro.id, lat: 41.16, lng: -96.01 } });
   const service = await prisma.serviceCatalog.create({ data: { code: `home-pin-${Date.now()}`, name: "Home pin smoke service", estDurationMin: 60 } });
@@ -98,7 +99,7 @@ async function main() {
     assert.equal((await patch(houseSaved.id, { ...profile, address, confirmedPin: { lat: 41.1637462, lng: -96.0079032 }, manuallyConfirmed: false })).status, 200);
     assert.equal((await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } })).homePinProvenance, "GEOCODER_HOUSE");
     // Without a depot assignment in effect there is no metro to check the address against.
-    const unassigned = await prisma.technician.create({ data: { name: "Unassigned smoke tech", color: "#2563eb", homeLat: 41.16, homeLng: -96.01, shiftStartMin: 480, shiftEndMin: 1020 } });
+    const unassigned = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Unassigned smoke tech", color: "#2563eb", homeLat: 41.16, homeLng: -96.01, shiftStartMin: 480, shiftEndMin: 1020 } });
     created.push(unassigned.id);
     assert.equal((await patch(unassigned.id, { ...profile, name: "Unassigned smoke tech", address, confirmedPin: { lat: 41.1637462, lng: -96.0079032 }, manuallyConfirmed: false })).status, 409);
     assert.equal((await patch("missing-technician", profile)).status, 404);

@@ -1,12 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("dealership policy controls save independent departure and return endpoints", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Dealership UI metro", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Dealership UI fixture" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Dealership UI fixture" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Dealership UI depot", lat: 41.25, lng: -95.93,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   try {
@@ -31,7 +32,7 @@ test("dealership policy controls save independent departure and return endpoints
 
 test("detail editors retain failed input and legacy depot address is explicit", async ({ page, request }) => {
   const metro = await prisma.metro.create({ data: { name: "Detail UI metro", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Detail UI dealer" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Detail UI dealer" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Detail UI depot", lat: 41.25, lng: -95.93,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   try {
@@ -64,7 +65,7 @@ test("detail editors retain failed input and legacy depot address is explicit", 
 
 test("changing a saved address requires a newly confirmed pin", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Address edit metro", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Address edit dealer" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Address edit dealer" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Address edit depot", lat: 41.25, lng: -95.93,
     addressLine1: "1 Main St", addressCity: "Omaha", addressState: "NE", addressPostalCode: "68102",
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });

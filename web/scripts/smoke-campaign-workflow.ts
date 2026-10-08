@@ -9,6 +9,7 @@ import { required } from "../lib/contracts";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
 import { removeSuccessfulCase } from "./benchmarkCleanup";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 // Acceptance smoke only. Every case uses a fresh JVM and the real caller/database/routing path.
 const prisma = new PrismaClient();
@@ -40,15 +41,15 @@ async function main() {
   try {
     // The existing cleanup helper is scoped to these fixture identities and retains failed fixtures.
     await prisma.metro.create({ data: { id: caseId, name: "Campaign acceptance fixture", timezone: "America/Chicago" } });
-    await prisma.dealership.create({ data: { id: `${caseId}-dealer`, name: "Campaign fixture" } });
+    await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, id: `${caseId}-dealer`, name: "Campaign fixture" } });
     await prisma.depot.create({ data: { id: `${caseId}-depot`, metroId: caseId, dealershipId: `${caseId}-dealer`, name: "Campaign fixture", lat: 43.735, lng: 7.42,
       endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
     await prisma.serviceCatalog.create({ data: { id: `${caseId}-common`, code: caseId, name: "Campaign fixture", estDurationMin: 30 } });
-    await prisma.customer.create({ data: { id: `${caseId}-customer`, firstName: "Campaign", lastName: "Fixture", email: `${caseId}@example.invalid`, phone: "0000000000" } });
+    await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: `${caseId}-customer`, firstName: "Campaign", lastName: "Fixture", email: `${caseId}@example.invalid`, phone: "0000000000" } });
     await prisma.address.create({ data: { id: `${caseId}-address`, customerId: `${caseId}-customer`, line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
     for (let index = 0; index < 2; index++) {
       const id = `${caseId}-tech-${index}`;
-      await prisma.technician.create({ data: { id, name: "Campaign fixture", color: technicianColor(id), availabilityVersions: initialAvailability(480, 1020),
+      await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, id, name: "Campaign fixture", color: technicianColor(id), availabilityVersions: initialAvailability(480, 1020),
         depotAssignments: { create: { depotId: `${caseId}-depot`, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
         homeLat: index === 0 ? 43.735 : 43.748, homeLng: index === 0 ? 7.42 : 7.438, shiftStartMin: 480, shiftEndMin: 1020,
         maxDailyMinutes: 540, maxOvertimeMinutes: 0, qualifications: { create: { serviceId: `${caseId}-common` } } } });

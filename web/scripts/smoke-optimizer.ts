@@ -7,6 +7,7 @@ import { PrismaClient } from "@prisma/client";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
 import { isDispatchGeometry } from "../lib/dispatchGeometry";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const suffix = randomUUID();
@@ -51,7 +52,7 @@ async function geometry(path: string, phase: string, expectedHome: [number, numb
 
 async function main() {
   const metro = await prisma.metro.create({ data: { id: `opt-metro-${suffix}`, name: "Optimizer fixture", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Optimizer dealership" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Optimizer dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Optimizer depot", lat: 43.735, lng: 7.420,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `OPT_${suffix}`, name: "Optimizer fixture", estDurationMin: 50 } });
@@ -63,7 +64,7 @@ async function main() {
   let runId: string | null = null;
   try {
     for (const [index, techId] of techIds.entries()) {
-      await prisma.technician.create({ data: {
+      await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID,
         id: techId, name: `Optimizer fixture ${index}`, color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
         depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
         homeLat: index === 0 ? 43.735 : 43.748, homeLng: index === 0 ? 7.420 : 7.438,
@@ -72,7 +73,7 @@ async function main() {
       } });
     }
     for (let index = 0; index < 1; index++) {
-      await prisma.customer.create({ data: { id: required(customerIds[index]), firstName: "Optimize", lastName: "Fixture", email: `opt${index}@example.invalid`, phone: "0000000000" } });
+      await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: required(customerIds[index]), firstName: "Optimize", lastName: "Fixture", email: `opt${index}@example.invalid`, phone: "0000000000" } });
       await prisma.address.create({ data: { id: required(addressIds[index]), customerId: required(customerIds[index]), line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
       await prisma.job.create({ data: { id: required(jobIds[index]), customerId: required(customerIds[index]), addressId: required(addressIds[index]), serviceId: service.id, durationMin: 50, status: "SCHEDULED" } });
       const plannedStart = new Date(windowStart.getTime() + (index === 0 ? 20 : 75) * 60_000);

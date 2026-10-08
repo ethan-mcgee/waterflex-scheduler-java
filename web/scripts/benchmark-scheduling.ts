@@ -17,6 +17,7 @@ import { legacyBenchmarkServer, legacyOffers, LegacyRequestUncertain } from "./b
 import { browserBenchmark, BrowserSearchError } from "./benchmarkBrowser";
 import { benchmarkDiagnostics } from "./benchmarkDiagnostics";
 import { experimentDates, verifyExperimentSettings } from "./benchmarkExperiment";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 async function durableSlots(jobId: string) {
   const start = performance.now();
@@ -115,13 +116,13 @@ type Workload = z.infer<typeof workloadSchema>;
 async function dataset(size: number, workload: Workload, caseId: string) {
   const random = createSeededRandom(seed);
   const metro = await prisma.metro.create({ data: { id: caseId, name: caseId, timezone: "America/Chicago", stateCode: "NE", serviceRadiusMi: 65 } });
-  const dealer = await prisma.dealership.create({ data: { id: `${caseId}-dealer`, name: caseId } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, id: `${caseId}-dealer`, name: caseId } });
   const first = required(points[0]);
   const depot = await prisma.depot.create({ data: { id: `${caseId}-depot`, name: caseId, metroId: metro.id, dealershipId: dealer.id, ...first,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01"), departure: "HOME", returnTo: "HOME" } } } });
   const common = await prisma.serviceCatalog.create({ data: { id: `${caseId}-common`, code: `${caseId}-common`, name: "Benchmark common", estDurationMin: 30 } });
   const scarce = await prisma.serviceCatalog.create({ data: { id: `${caseId}-scarce`, code: `${caseId}-scarce`, name: "Benchmark scarce", estDurationMin: 30 } });
-  const customer = await prisma.customer.create({ data: { id: `${caseId}-customer`, firstName: "Benchmark", lastName: "Fixture", email: "benchmark@example.invalid", phone: "0000000000" } });
+  const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: `${caseId}-customer`, firstName: "Benchmark", lastName: "Fixture", email: "benchmark@example.invalid", phone: "0000000000" } });
   const addresses: string[] = [];
   for (let index = 0; index < points.length; index++) {
     const address = await prisma.address.create({ data: { id: `${caseId}-address-${index}`, customerId: customer.id, line1: `Benchmark pin ${index}`, city: "Omaha", state: "NE", postalCode: "68102", ...required(points[index]) } });
@@ -134,7 +135,7 @@ async function dataset(size: number, workload: Workload, caseId: string) {
     const home = required(points[homeIndex]);
     const shiftEnd = workload === "TIGHT_WINDOW" ? 720 : workload === "NEAR_CAPACITY" ? 990 : 1020;
     const canScarce = workload !== "MIXED_SKILL" || technician % 4 === 0;
-    await prisma.technician.create({ data: { id: techId, name: `Benchmark ${technician}`, color: technicianColor(techId), homeLat: home.lat, homeLng: home.lng,
+    await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, id: techId, name: `Benchmark ${technician}`, color: technicianColor(techId), homeLat: home.lat, homeLng: home.lng,
       shiftStartMin: 480, shiftEndMin: shiftEnd, maxDailyMinutes: 540, maxOvertimeMinutes: 60, availabilityVersions: initialAvailability(480, shiftEnd),
       depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01") } },
       qualifications: { create: [{ serviceId: common.id }, ...(canScarce ? [{ serviceId: scarce.id }] : [])] } } });
