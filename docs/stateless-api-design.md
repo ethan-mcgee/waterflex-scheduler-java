@@ -211,7 +211,7 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 ## Remaining stateless gaps in calculation and routing
 
 - Remote solve cancellation (`DELETE /v1/solves/{id}`) is tracked in memory per `solver-service` instance. The `Solve-Request-Id` header lets the load balancer send the solve and its cancellation to the same replica (see "Scaling"); without that hashing, a cancel may miss and the solve stops at its own deadline (at most 20 s daily, 120 s booking). The embedded default has no such gap.
-- Remote results must come from the same Timefold core artifact (version and SHA-256) and the same policy, cost and score model versions as the caller (`CalculationProtocol.Response.match`). This is the audit's TF01 provenance guarantee and is kept deliberately. A Timefold upgrade is deployed by running the new solver pool beside the old one and switching the scheduler with it, not by loosening the check.
+- Remote results must come from the same Timefold core artifact (version and SHA-256) and the same policy, cost and score model versions as the caller (`CalculationProtocol.Response.match`). This is the audit's TF01 provenance guarantee and is kept deliberately (Decided by the owner on 2026-10-08: roadmap item S1e, a compatible-version set, was declined). A Timefold upgrade is deployed by running the new solver pool beside the old one and switching the scheduler with it, not by loosening the check.
 - Routing requires the `ROUTING_AUTH_TOKEN` bearer token on computation endpoints, but traffic is plain http inside the private network. Add TLS if routing is ever reachable beyond that network.
 - Remote mode has not been performance-tested; that study is deferred with the rest of the performance work.
 
