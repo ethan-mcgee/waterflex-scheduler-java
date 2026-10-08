@@ -1,6 +1,5 @@
 package dev.waterflex.scheduler.api;
 
-import dev.waterflex.scheduler.BookingOfferLimit;
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
 import dev.waterflex.scheduler.MetroRouting;
@@ -35,7 +34,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-/** POST /api/v1/booking/offers below HTTP: search, holds, reconciliation, supersession and failures, on a real database. */
+/** The booking endpoints below HTTP (offers, select, release): search, holds, reconciliation, supersession and failures, on a real database. */
 class BookingOffersDatabaseIT {
     private static final LocalDate DAY = Required.value(LocalDate.parse("2026-10-12"));
     private final String suffix = Required.value(UUID.randomUUID().toString().substring(0, 8));
@@ -87,10 +86,55 @@ class BookingOffersDatabaseIT {
             @Override public Instant instant() { return Required.value(now.get()); }
         };
         return new BookingOffers(store, bookings, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                new SearchAdmission(2, 16), new BookingOfferLimit("4"), jdbc, "BOUNDED", 250, clock);
+                new SearchAdmission(2, 16), jdbc, "BOUNDED", 250, clock);
     }
 
     private BookingOffers offers() { return offers(Required.value(Map.of("omaha", "http://routing-omaha:8001"))); }
+
+    private BookingHolds holds() {
+        return new BookingHolds(store, bookings, new Clock() {
+            @Override public ZoneId getZone() { return Required.value(java.time.ZoneOffset.UTC); }
+            @Override public Clock withZone(@Nullable ZoneId zone) { return this; }
+            @Override public Instant instant() { return Required.value(now.get()); }
+        });
+    }
+
+    /** A published set with two holds, one on each technician's route, as a search would publish it. */
+    private OfferSet twoHolds() {
+        String requestId = Required.value(UUID.randomUUID().toString()), setId = BookingStore.newOfferSetId();
+        String first = Required.value(UUID.randomUUID().toString()), second = Required.value(UUID.randomUUID().toString());
+        String firstHold = Required.value(UUID.randomUUID().toString()), secondHold = Required.value(UUID.randomUUID().toString());
+        Instant expiresAt = Required.value(now.get().plusSeconds(600));
+        Instant start = Required.value(Instant.parse("2026-10-12T15:00:00Z")), end = Required.value(Instant.parse("2026-10-12T17:00:00Z"));
+        Map<String, BookingDayState.TechnicianState> technicians = new java.util.TreeMap<>();
+        technicians.put("tech-1", new BookingDayState.TechnicianState(1L, Required.value(List.of("appt-7", "appt-8")), Required.value(List.of("appt-7", firstHold, "appt-8"))));
+        technicians.put("tech-2", new BookingDayState.TechnicianState(1L, Required.value(List.of()), Required.value(List.of(secondHold))));
+        Map<String, BookingDayState.HoldState> held = new java.util.TreeMap<>();
+        held.put(firstHold, new BookingDayState.HoldState("job-311", first, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-1"));
+        held.put(secondHold, new BookingDayState.HoldState("job-311", second, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-2"));
+        var body = new OfferSet(setId, expiresAt, Required.value(List.of(new Offer(first, DAY, new PublicTypes.Window(start, end)), new Offer(second, DAY, new PublicTypes.Window(start, end)))),
+                true, Required.value(List.of()));
+        var started = assertInstanceOf(PublicApiStore.Started.class, store.claim(tenant, requestId, PublicApiStore.Operation.BOOKING_OFFERS, Required.value("c".repeat(64))));
+        var key = new BookingStore.DayKey("omaha", DAY);
+        bookings.publish(tenant, started.ownerToken(), Required.value(Map.of(key, 0)), Required.value(Map.of(key, new BookingDayState(technicians, held))), Required.value(Map.of()),
+                new BookingStore.Publication(setId, requestId, "job-311", "omaha", expiresAt, body, Required.value(List.of(
+                        new BookingStore.NewOffer(first, firstHold, DAY, "tech-1", start, end), new BookingStore.NewOffer(second, secondHold, DAY, "tech-2", start, end)))));
+        return body;
+    }
+
+    /** Every active hold on the day. */
+    private Set<String> heldIds() { return Required.value(state().holds().keySet()); }
+
+    private static String requestOnly() { return "{\"requestId\":\"" + UUID.randomUUID() + "\"}"; }
+
+    private static Hold hold(DailyProposals.Reply reply) {
+        assertEquals(200, reply.status(), reply.json());
+        return PublicRequests.read(reply.json(), Hold.class);
+    }
+
+    private static Offer offer(OfferSet set, int index) { return Required.value(set.offers().get(index)); }
+
+    private Map<String, String> statusesByOffer(OfferSet set) { return offerStatuses(set.offerSetId()); }
 
     /** The spec's booking example with a fresh request ID, coordinates for appt-8, and any change applied. */
     private static String request(Consumer<ObjectNode> change) {
@@ -163,6 +207,19 @@ class BookingOffersDatabaseIT {
         assertEquals(routed, routingCalls.get(), "a replay does not search again");
     }
 
+    @Test void theClientsOfferLimitCapsTheSearch() {
+        OfferSet one = offerSet(offers().create(tenant, request(request -> request.put("offerLimit", 1))));
+        assertEquals(1, one.offers().size());
+        assertEquals(1, state().holds().size());
+        OfferSet four = offerSet(offers().create(tenant, request()));
+        assertTrue(four.offers().size() > 1, "the example day has room for several offers");
+        assertTrue(four.offers().size() <= 4);
+        long requests = count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant);
+        problem(offers().create(tenant, request(request -> request.remove("offerLimit"))), 400, ErrorCode.INVALID_REQUEST);
+        problem(offers().create(tenant, request(request -> request.put("offerLimit", 5))), 400, ErrorCode.INVALID_REQUEST);
+        assertEquals(requests, count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant), "a missing limit claims nothing");
+    }
+
     @Test void anotherJobSearchesAroundTheHoldsAlreadyGiven() {
         OfferSet first = offerSet(offers().create(tenant, forJob("job-a")));
         OfferSet second = offerSet(offers().create(tenant, forJob("job-b")));
@@ -181,6 +238,85 @@ class BookingOffersDatabaseIT {
             held += offerSet(offers().create(tenant, forJob(Required.value(job)))).offers().size();
             assertEquals(held, state().holds().size(), job);
         }
+    }
+
+    @Test void selectingKeepsOneHoldReleasesTheOthersAndIsReplayed() {
+        OfferSet set = twoHolds();
+        assertTrue(set.offers().size() >= 2, "a set with siblings");
+        String body = requestOnly();
+        var reply = holds().select(tenant, offer(set, 0).offerId(), body);
+        Hold kept = hold(reply);
+        assertEquals(offer(set, 0).offerId(), kept.offerId());
+        assertEquals(set.expiresAt(), kept.expiresAt(), "selecting keeps the original expiry");
+        assertEquals(Set.of(kept.holdId()), heldIds());
+        Map<String, String> statuses = statusesByOffer(set);
+        assertEquals("SELECTED", statuses.get(kept.offerId()));
+        assertEquals(set.offers().size() - 1, statuses.values().stream().filter("RELEASED"::equals).count());
+        assertEquals("SELECTED", setStatus(set.offerSetId()));
+        assertEquals(reply, holds().select(tenant, kept.offerId(), body), "the same requestId replays the hold");
+        assertEquals(kept, hold(holds().select(tenant, kept.offerId(), requestOnly())), "selecting the selected offer again returns its hold");
+        assertTrue(problem(holds().select(tenant, offer(set, 1).offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE).message().contains("selected"));
+    }
+
+    @Test void releasingEndsTheWholeSetAndCanBeRepeated() {
+        OfferSet set = twoHolds();
+        String body = requestOnly();
+        var reply = holds().release(tenant, offer(set, 0).offerId(), body);
+        assertEquals(200, reply.status(), reply.json());
+        assertEquals(new Released(true), PublicRequests.read(reply.json(), Released.class));
+        assertTrue(heldIds().isEmpty());
+        assertTrue(statusesByOffer(set).values().stream().allMatch("RELEASED"::equals));
+        assertEquals("RELEASED", setStatus(set.offerSetId()));
+        assertEquals(reply, holds().release(tenant, offer(set, 0).offerId(), body));
+        assertEquals(200, holds().release(tenant, offer(set, 1).offerId(), requestOnly()).status(), "releasing again is a 200");
+        problem(holds().select(tenant, offer(set, 0).offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE);
+    }
+
+    @Test void releasingAfterSelectingEndsTheSelectedHold() {
+        OfferSet set = twoHolds();
+        hold(holds().select(tenant, offer(set, 0).offerId(), requestOnly()));
+        assertEquals(200, holds().release(tenant, offer(set, 0).offerId(), requestOnly()).status());
+        assertTrue(heldIds().isEmpty());
+        assertEquals("RELEASED", statusesByOffer(set).get(offer(set, 0).offerId()));
+    }
+
+    @Test void expiredLostAndUnknownOffersCannotBeSelected() {
+        OfferSet set = twoHolds();
+        String unknown = requestOnly();
+        var missing = holds().select(tenant, "0c8b8f0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", unknown);
+        problem(missing, 404, ErrorCode.NOT_FOUND);
+        assertEquals(missing, holds().select(tenant, "0c8b8f0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f", unknown), "a 404 is stored and replayed");
+        problem(holds().select(other, offer(set, 0).offerId(), requestOnly()), 404, ErrorCode.NOT_FOUND);
+        problem(holds().release(other, offer(set, 0).offerId(), requestOnly()), 404, ErrorCode.NOT_FOUND);
+        long requests = count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant);
+        problem(holds().select(tenant, offer(set, 0).offerId(), "{\"requestId\":"), 400, ErrorCode.INVALID_REQUEST);
+        problem(holds().select(tenant, " ", requestOnly()), 400, ErrorCode.INVALID_REQUEST);
+        problem(holds().select(tenant, offer(set, 0).offerId(), "{\"requestId\":\"" + UUID.randomUUID() + "\",\"offerId\":\"x\"}"), 400, ErrorCode.INVALID_REQUEST);
+        assertEquals(requests, count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant), "a malformed request claims nothing");
+        Instant issued = now.get();
+        now.set(Required.value(issued.plusSeconds(601)));
+        assertTrue(problem(holds().select(tenant, offer(set, 0).offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE).message().contains("expired"));
+        now.set(issued);
+        String reused = requestOnly();
+        hold(holds().select(tenant, offer(set, 0).offerId(), reused));
+        problem(holds().release(tenant, offer(set, 0).offerId(), reused), 400, ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test void aLostHoldCannotBeSelected() {
+        OfferSet set = offerSet(offers().create(tenant, forJob("job-a")));
+        offerSet(offers().create(tenant, dispatcherChange("job-b")));
+        assertTrue(problem(holds().select(tenant, offer(set, 0).offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE).message().contains("lost"));
+    }
+
+    @Test void aNewSearchForTheJobEndsItsSelectedHold() {
+        OfferSet first = offerSet(offers().create(tenant, request()));
+        Hold kept = hold(holds().select(tenant, offer(first, 0).offerId(), requestOnly()));
+        OfferSet second = offerSet(offers().create(tenant, request()));
+        assertEquals("SUPERSEDED", setStatus(first.offerSetId()));
+        assertEquals("SUPERSEDED", statusesByOffer(first).get(kept.offerId()));
+        assertFalse(state().holds().containsKey(kept.holdId()));
+        assertEquals(second.offers().size(), state().holds().size());
+        problem(holds().select(tenant, kept.offerId(), requestOnly()), 409, ErrorCode.HOLD_UNAVAILABLE);
     }
 
     @Test void aNewSearchForTheSameJobSupersedesItsEarlierOffers() {
@@ -205,9 +341,16 @@ class BookingOffersDatabaseIT {
 
     @Test void aDispatcherChangeUnderAHoldLosesTheDaysHolds() {
         OfferSet held = offerSet(offers().create(tenant, forJob("job-a")));
-        // A dispatcher adds an appointment to tech-1, whose route holds job-a's slots.
-        String changed = request(request -> {
-            object(request.get("job")).put("id", "job-b");
+        offerSet(offers().create(tenant, dispatcherChange("job-b")));
+        assertTrue(offerStatuses(held.offerSetId()).values().stream().allMatch("LOST"::equals));
+        for (var hold : state().holds().values()) assertEquals("job-b", hold.jobId());
+        assertEquals(List.of("appt-7", "appt-8", "appt-9"), Required.value(state().technicians().get("tech-1")).expected());
+    }
+
+    /** A dispatcher adds an appointment to tech-1, whose route holds the earlier jobs' slots; then {@code job} searches. */
+    private static String dispatcherChange(String job) {
+        return request(request -> {
+            object(request.get("job")).put("id", job);
             ObjectNode tech1 = object(((ArrayNode) Required.value(object(request.get("snapshot")).get("technicianDays"))).get(0));
             tech1.put("lastModified", "2026-10-11T22:00:00Z");
             appointments(request).addObject().put("id", "appt-9").put("technicianId", "tech-1").put("serviceDate", "2026-10-12")
@@ -215,10 +358,6 @@ class BookingOffersDatabaseIT {
                     .<ObjectNode>set("window", object(CalculationJson.tree("{\"start\":\"2026-10-12T14:00:00-05:00\",\"end\":\"2026-10-12T16:00:00-05:00\"}")))
                     .putObject("location").put("lat", 41.27).put("lng", -95.95);
         });
-        offerSet(offers().create(tenant, changed));
-        assertTrue(offerStatuses(held.offerSetId()).values().stream().allMatch("LOST"::equals));
-        for (var hold : state().holds().values()) assertEquals("job-b", hold.jobId());
-        assertEquals(List.of("appt-7", "appt-8", "appt-9"), Required.value(state().technicians().get("tech-1")).expected());
     }
 
     @Test void finalFailuresAreStoredAndReplayedAndMalformedRequestsClaimNothing() {

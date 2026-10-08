@@ -107,7 +107,7 @@ public final class BookingSearchPipeline {
         SearchDeadline.beginCommit();
         BookingCalculation.validate(snapshot,request,result);
         Instant expiry = Required.value(Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS).plusSeconds(600));
-        var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, offerLimit, SearchDeadline::checkpoint);
+        var reservations = ReservationOffers.prepare(snapshot, request, loaded.holds(), result, expiry, offerLimit.value(), SearchDeadline::checkpoint);
         return new Prepared(loaded, snapshot, result, reservations, expiry, reservations.completed() ? reason : "DEADLINE", evaluatedRoutes, reusedRoutes, prunedArrangements, SearchDeadline.isDurable() ? 0 : refinementMillis, reconstructionAttempts, reconstructionEvaluations, bounded ? variant : "INSERTION");
     }
 

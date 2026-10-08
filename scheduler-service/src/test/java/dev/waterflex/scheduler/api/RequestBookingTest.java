@@ -141,6 +141,16 @@ class RequestBookingTest {
                 "a technician-day outside the horizon");
     }
 
+    @Test void theClientSendsItsOwnOfferLimit() {
+        assertEquals(4, request(_ -> { }).offerLimit());
+        assertEquals(1, request(request -> request.put("offerLimit", 1)).offerLimit());
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.remove("offerLimit")), "never assumed");
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.putNull("offerLimit")));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", 0)));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", 5)));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", "4")));
+    }
+
     @Test void theScheduleVersionIsTheExactLastModifiedInstant() {
         assertEquals(1_760_216_657_123_456_789L, RequestBooking.version(Required.value(Instant.parse("2025-10-11T21:04:17.123456789Z"))));
         assertThrows(IllegalArgumentException.class, () -> RequestBooking.version(Required.value(Instant.parse("1969-12-31T23:59:59Z"))));

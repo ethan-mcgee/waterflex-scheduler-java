@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.CalculationJson;
+import dev.waterflex.scheduler.ReservationOffers;
 import dev.waterflex.scheduler.api.PublicTypes.Key;
 import dev.waterflex.scheduler.api.PublicTypes.Location;
 import dev.waterflex.scheduler.api.PublicTypes.Snapshot;
@@ -73,11 +74,13 @@ public final class PublicRequests {
         boolean contains(LocalDate date) { return !date.isBefore(firstDate) && !date.isAfter(lastDate); }
     }
 
-    public record BookingOffersRequest(String requestId, Job job, Horizon horizon, Snapshot snapshot) {
+    /** {@code offerLimit} is the client's own cap on offers per search, 1 to {@link ReservationOffers#MAX_OFFERS}; never assumed. */
+    public record BookingOffersRequest(String requestId, Job job, Horizon horizon, Integer offerLimit, Snapshot snapshot) {
         public BookingOffersRequest {
             Input.requestId(requestId);
             Input.present(job, "job");
             Input.present(horizon, "horizon");
+            Input.integer(offerLimit, "offerLimit", 1, ReservationOffers.MAX_OFFERS);
             Input.present(snapshot, "snapshot");
             for (TechnicianDay day : snapshot.technicianDays()) {
                 if (!horizon.contains(day.serviceDate())) throw new IllegalArgumentException("Technician-day " + day.key() + " is outside the horizon");
