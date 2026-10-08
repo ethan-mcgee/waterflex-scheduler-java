@@ -152,6 +152,39 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.sidebar-client {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 6px;
+  margin-bottom: 18px;
+}
+
+.sidebar-client label {
+  color: #92a69e;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sidebar-client select {
+  padding: 7px 8px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.sidebar-client select option {
+  color: #10202e;
+}
+
+.sidebar-client small {
+  color: #ffb4a8;
+  font-size: 12px;
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;

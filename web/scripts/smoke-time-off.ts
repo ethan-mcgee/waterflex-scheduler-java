@@ -6,6 +6,7 @@ import { technicianColor } from "../lib/technicianColor";
 import { parseTimeOffReport } from "../lib/timeOffView";
 import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -36,7 +37,7 @@ async function main() {
   while (day.getUTCDay() !== 1) day.setUTCDate(day.getUTCDate() + 1);
   const date = day.toISOString().slice(0, 10);
   const metro = await prisma.metro.create({ data: { id: `timeoff-metro-${suffix}`, name: "Time off fixture", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Time off dealership" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Time off dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Time off depot", lat: 43.735, lng: 7.420,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `TIMEOFF_${suffix}`, name: "Time off fixture", estDurationMin: 60 } });
@@ -46,12 +47,12 @@ async function main() {
   const overtimeJobId = `timeoff-overtime-job-${suffix}`;
   const requestIds: string[] = [];
   try {
-    for (const id of [techA, techB]) await prisma.technician.create({ data: {
+    for (const id of [techA, techB]) await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID,
       id, name: id, color: technicianColor(id), availabilityVersions: initialAvailability(480, 1020), homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
       depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
       qualifications: { create: { serviceId: service.id } },
     } });
-    await prisma.customer.create({ data: { id: customerId, firstName: "Time", lastName: "Off", email: "timeoff@example.invalid", phone: "0000000000" } });
+    await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: customerId, firstName: "Time", lastName: "Off", email: "timeoff@example.invalid", phone: "0000000000" } });
     await prisma.address.create({ data: { id: addressId, customerId, line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
     await prisma.job.create({ data: { id: jobId, customerId, addressId, serviceId: service.id, durationMin: 60, status: "SCHEDULED" } });
     await prisma.appointment.create({ data: { jobId, technicianId: techA, serviceDate: day,
@@ -166,7 +167,7 @@ async function main() {
     assert.equal((await prisma.timeOffRequest.findUniqueOrThrow({ where: { id: impossible.requestId } })).status, "PENDING");
     await prisma.technicianQualification.create({ data: { technicianId: techB, serviceId: service.id } });
 
-    await prisma.technician.create({ data: { id: techC, name: techC, color: technicianColor(techC), homeLat: 43.735, homeLng: 7.420,
+    await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, id: techC, name: techC, color: technicianColor(techC), homeLat: 43.735, homeLng: 7.420,
       depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
       shiftStartMin: 480, shiftEndMin: 1020, qualifications: { create: { serviceId: service.id } } } });
     const tuesday = new Date(day);

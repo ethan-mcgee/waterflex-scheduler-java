@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { POST } from "../app/api/depots/route";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const database = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1) : "";
@@ -21,7 +22,7 @@ async function main() {
   const address = geocoder.address();
   if (!address || typeof address === "string") throw new Error("Missing geocoder port");
   process.env.NOMINATIM_URL = `http://127.0.0.1:${address.port}`;
-  const dealer = await prisma.dealership.create({ data: { name: "Depot pin setup fixture" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Depot pin setup fixture" } });
   const metro = await prisma.metro.create({ data: { name: "Depot pin metro", timezone: "America/Chicago" } });
   let createdId: string | null = null;
   try {

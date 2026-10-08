@@ -1,16 +1,17 @@
 import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { initialAvailability } from "../lib/technicianAvailability";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 for (const beforeOvertime of [0, 60]) test(`repair with 60 minutes overtime is blocked when previous overtime was ${beforeOvertime}`, async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Overtime UI metro", timezone: "America/Chicago" } });
-  const dealer = await prisma.dealership.create({ data: { name: "Overtime UI dealer" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Overtime UI dealer" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealer.id, name: "Overtime UI depot", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const technician = await prisma.technician.create({ data: { name: "Overtime Reviewer", color: "#2563eb", homeLat: 41.2, homeLng: -95.9,
+  const technician = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Overtime Reviewer", color: "#2563eb", homeLat: 41.2, homeLng: -95.9,
     shiftStartMin: 480, shiftEndMin: 1020,
     availabilityVersions: initialAvailability(480, 1020), depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } } } });
   const metric = (overtime: number) => ({ route_minutes: 150, overtime_minutes: overtime, drive_minutes: 30,

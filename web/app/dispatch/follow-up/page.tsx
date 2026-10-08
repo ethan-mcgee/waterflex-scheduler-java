@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import FollowUpActions from "./FollowUpActions";
 
 export const dynamic = "force-dynamic";
 
 export default async function FollowUpPage() {
+  const clientId = (await activeClient()).id;
   const jobs = await prisma.job.findMany({
-    where: { manualFollowUpStatus: { in: ["PENDING", "CONTACTED"] } },
+    where: { customer: { clientId }, manualFollowUpStatus: { in: ["PENDING", "CONTACTED"] } },
     include: { customer: true, address: true, service: true },
     orderBy: { createdAt: "asc" },
   });

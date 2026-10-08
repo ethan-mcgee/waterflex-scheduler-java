@@ -13,6 +13,8 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ClientSummary } from "@/lib/clients";
+import ClientSwitcher from "./ClientSwitcher";
 
 type NavItem = {
   href: string;
@@ -36,7 +38,9 @@ const TESTING_ITEM: NavItem = {
   icon: FlaskConical,
 };
 
-export default function Sidebar({ showBookingTests }: { showBookingTests: boolean }) {
+export default function Sidebar({ showBookingTests, clients, activeClientId }: {
+  showBookingTests: boolean; clients: ClientSummary[]; activeClientId: string;
+}) {
   const pathname = usePathname();
   const items = showBookingTests ? [...NAV_ITEMS, TESTING_ITEM] : NAV_ITEMS;
 
@@ -51,6 +55,7 @@ export default function Sidebar({ showBookingTests }: { showBookingTests: boolea
           <small>Scheduler</small>
         </span>
       </Link>
+      <ClientSwitcher clients={clients} activeClientId={activeClientId} />
       <nav className="sidebar-nav" aria-label="Scheduler sections">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;

@@ -7,6 +7,7 @@ import { prisma } from "./prisma";
 import { lockPurgeDays, purgeHasReservations, preparePurgeRoutes, applyPurgeRoutes } from "./reservationGuards";
 import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestConfig, validateTestConfigInput, type TestConfig, type TestConfigInput } from "./bookingTestCore";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
+import { metroClientId } from "./metroClient";
 import { EngineError, previewOptimization, requestSlots, selectOffer, checkTestAddressRoutability } from "./engineClient";
 import { addressKey, coordinateKey, createAddressCandidateBatch, evaluateAddressCandidateBatch, initialAddressRandomState,
   reverseTestAddress, type AddressGenerationDependencies, type PendingAddressCandidate, type TestServiceArea } from "./bookingTestAddresses";
@@ -152,7 +153,8 @@ async function ensureJob(request: Awaited<ReturnType<typeof readTestRun>>["reque
     if (existing) return existing;
     const service = await tx.serviceCatalog.findUnique({ where: { code: input.serviceCode } });
     if (!service?.active) throw new Error(`Service ${input.serviceCode} is not active.`);
-    const customer = await tx.customer.create({ data: { id: request.id, externalId: request.id,
+    const clientId = await metroClientId(tx, OMAHA_METRO_ID);
+    const customer = await tx.customer.create({ data: { id: request.id, clientId, externalId: request.id,
       firstName: "Synthetic", lastName: `Test ${request.ordinal + 1}`, email: `${request.runId}.${request.ordinal}@test.waterflex.invalid`, phone: "402-555-0100" } });
     const { line1, city, state, postalCode, lat, lng } = input.location;
     await tx.address.create({ data: { id: request.id, customerId: customer.id, line1, city, state, postalCode, lat, lng, geocodePrecision: "OSM_HOUSE", geocodedAt: new Date() } });

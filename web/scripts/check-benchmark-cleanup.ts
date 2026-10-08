@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { removeSuccessfulCase } from "./benchmarkCleanup";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 async function main() {
 const database = new URL(process.env.DATABASE_URL ?? "");
@@ -12,7 +13,7 @@ const prisma = new PrismaClient();
 const first = `cleanup-${randomUUID()}`, unrelated = `${first}-unrelated`;
 async function fixture(id: string) {
   await prisma.metro.create({ data: { id, name: id, timezone: "America/Chicago" } });
-  await prisma.dealership.create({ data: { id: `${id}-dealer`, name: id } });
+  await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, id: `${id}-dealer`, name: id } });
   await prisma.depot.create({ data: { id: `${id}-depot`, name: id, metroId: id, dealershipId: `${id}-dealer`, lat: 41, lng: -96,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01"), departure: "HOME", returnTo: "HOME" } } } });
   await prisma.optimizationRun.create({ data: { id: `${id}-run`, metroId: id, serviceDate: new Date("2026-10-01"),

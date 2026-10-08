@@ -1,17 +1,19 @@
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import { todayInTz } from "@/lib/date";
 import DealershipSetup from "./DealershipSetup";
 
 export const dynamic = "force-dynamic";
 
 export default async function DealershipsPage() {
+  const clientId = (await activeClient()).id;
   const today = todayInTz("America/Chicago");
   const todayKey = new Date(`${today}T00:00:00Z`);
   const [metros, depots, dealerships, technicians] = await Promise.all([
-    prisma.metro.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.depot.findMany({ include: { endpointPolicies: { orderBy: { effectiveDate: "asc" } } }, orderBy: { name: "asc" } }),
-    prisma.dealership.findMany({ orderBy: { name: "asc" } }),
-    prisma.technician.findMany({ where: { active: true }, select: { depotAssignments: {
+    prisma.metro.findMany({ where: { depots: { none: { dealership: { clientId: { not: clientId } } } } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.depot.findMany({ where: { dealership: { clientId } }, include: { endpointPolicies: { orderBy: { effectiveDate: "asc" } } }, orderBy: { name: "asc" } }),
+    prisma.dealership.findMany({ where: { clientId }, orderBy: { name: "asc" } }),
+    prisma.technician.findMany({ where: { clientId, active: true }, select: { depotAssignments: {
       where: { effectiveDate: { lte: todayKey } }, orderBy: { effectiveDate: "desc" }, take: 1,
       select: { depotId: true, depot: { select: { dealershipId: true } } },
     } } }),

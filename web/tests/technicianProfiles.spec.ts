@@ -2,18 +2,19 @@ import { test, expect } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { initialAvailability, nextTemplateEffectiveDate } from "../lib/technicianAvailability";
 import { addCalendarDays, formatUsDate, localMidnightUtc } from "../lib/date";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("legacy contacts stay nullable and profile and pending week persist after refresh", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Profile UI metro", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Profile dealership" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Profile dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile depot", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const nextDepot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile destination", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const technician = await prisma.technician.create({ data: { name: "Profile Fixture", color: "#2563eb",
+  const technician = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Profile Fixture", color: "#2563eb",
     depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
     availabilityVersions: initialAvailability(480, 1020) } });
@@ -98,10 +99,10 @@ test("legacy contacts stay nullable and profile and pending week persist after r
 
 test("profile phone formats as typed and an address edit sends a confirmed pin", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Profile address metro", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Profile address dealership" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Profile address dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Profile address depot", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const technician = await prisma.technician.create({ data: { name: "Address Fixture", color: "#2563eb", phone: "4025550100",
+  const technician = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Address Fixture", color: "#2563eb", phone: "4025550100",
     homeAddressLine1: "1 Main St", homeAddressCity: "Omaha", homeAddressState: "NE", homeAddressPostalCode: "68102",
     depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
@@ -144,18 +145,18 @@ test("profile phone formats as typed and an address edit sends a confirmed pin",
 
 test("weekly edits reject malformed payloads and conflicts with an appointment", async ({ request }) => {
   const metro = await prisma.metro.create({ data: { name: "Profile conflict metro", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Conflict dealership" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Conflict dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Conflict depot", lat: 41.2, lng: -95.9,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
-  const technician = await prisma.technician.create({ data: { name: "Conflict Fixture", color: "#2563eb",
+  const technician = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Conflict Fixture", color: "#2563eb",
     depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020,
     availabilityVersions: initialAvailability(480, 1020) } });
-  const missingWeek = await prisma.technician.create({ data: { name: "Missing week fixture", color: "#2563eb",
+  const missingWeek = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Missing week fixture", color: "#2563eb",
     depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
     homeLat: 41.2, homeLng: -95.9, shiftStartMin: 480, shiftEndMin: 1020 } });
   const service = await prisma.serviceCatalog.create({ data: { code: `PROFILE_${technician.id}`, name: "Profile fixture service", estDurationMin: 60 } });
-  const customer = await prisma.customer.create({ data: { firstName: "Profile", lastName: "Fixture", email: "profile@example.invalid", phone: "4025550123" } });
+  const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Profile", lastName: "Fixture", email: "profile@example.invalid", phone: "4025550123" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102", lat: 41.2, lng: -95.9 } });
   const job = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 60, status: "SCHEDULED" } });
   let date = nextTemplateEffectiveDate();

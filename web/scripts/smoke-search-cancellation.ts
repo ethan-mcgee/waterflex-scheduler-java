@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { offersResponse, required, selection, success } from "../lib/contracts";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 if (new URL(process.env.DATABASE_URL ?? "").pathname !== "/waterflex_test") throw new Error("Use isolated waterflex_test only.");
@@ -42,15 +43,15 @@ async function expireJob(targetJobId: string) {
 }
 async function main() {
   await prisma.metro.create({ data: { id, name: id, timezone: "America/Chicago" } });
-  await prisma.dealership.create({ data: { id, name: id } });
+  await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, id, name: id } });
   await prisma.depot.create({ data: { id, metroId: id, dealershipId: id, name: id, lat: 43.735, lng: 7.420,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   await prisma.serviceCatalog.create({ data: { id, code: id, name: id, estDurationMin: 30 } });
-  await prisma.technician.create({ data: { id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
+  await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
     shiftStartMin: 480, shiftEndMin: 1020, maxDailyMinutes: 540, maxOvertimeMinutes: 0,
     availabilityVersions: initialAvailability(480, 1020), qualifications: { create: { serviceId: id } },
     depotAssignments: { create: { depotId: id, effectiveDate: new Date("1900-01-01T00:00:00Z") } } } });
-  await prisma.customer.create({ data: { id, firstName: "Cancellation", lastName: "Fixture", email: "cancel@example.invalid", phone: "0000000000" } });
+  await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id, firstName: "Cancellation", lastName: "Fixture", email: "cancel@example.invalid", phone: "0000000000" } });
   await prisma.address.create({ data: { id, customerId: id, line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
   await prisma.job.create({ data: { id: jobId, customerId: id, addressId: id, serviceId: id, durationMin: 30 } });
   const search = (searchRequestId: string) => post(base, "/v1/offers", { jobId, searchRequestId, refresh: true, deadlineEpochMs: Date.now() + 5000 }).then(value => offersResponse.parse(value));
@@ -92,7 +93,7 @@ async function main() {
   assert.equal(await prisma.slotHold.count({ where: { offerToken: selected.offerId, releasedAt: null } }), 0);
 
   // Two independent customers share a date. Refresh and expiry of one must preserve the other.
-  await prisma.customer.create({ data: { id: otherJobId, firstName: "Other", lastName: "Fixture", email: "other@example.invalid", phone: "0000000000" } });
+  await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: otherJobId, firstName: "Other", lastName: "Fixture", email: "other@example.invalid", phone: "0000000000" } });
   await prisma.address.create({ data: { id: otherJobId, customerId: otherJobId, line1: "Other fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
   await prisma.job.create({ data: { id: otherJobId, customerId: otherJobId, addressId: otherJobId, serviceId: id, durationMin: 30 } });
   const firstCustomer = offersResponse.parse(await post(base, "/v1/offers", { jobId, refresh: true }));

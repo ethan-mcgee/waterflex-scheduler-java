@@ -8,6 +8,7 @@ import { POST as createDepot } from "../app/api/depots/route";
 import { PATCH as editDepot } from "../app/api/depots/[id]/route";
 import { POST as createTechnician } from "../app/api/technicians/route";
 import { POST as book } from "../app/api/book/route";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 if (!process.env.DATABASE_URL || new URL(process.env.DATABASE_URL).pathname !== "/waterflex_test") throw new Error("Requires waterflex_test");
 if (process.env.ENGINE_URL !== (process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000")) throw new Error("Requires isolated test engine");
@@ -27,7 +28,7 @@ async function main() {
   if (!location || typeof location === "string") throw new Error("Missing fixture port");
   process.env.NOMINATIM_URL = `http://127.0.0.1:${location.port}`;
   const suffix = randomUUID();
-  const dealer = await prisma.dealership.create({ data: { name: `Address fixture ${suffix}` } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: `Address fixture ${suffix}` } });
   const metro = await prisma.metro.create({ data: { name: `Address fixture ${suffix}`, timezone: "America/Chicago" } });
   const service = await prisma.serviceCatalog.create({ data: { code: suffix, name: "Address fixture", estDurationMin: 60 } });
   const address = { line1: "2825 S 170th Plz", city: "Omaha", state: "NE", postalCode: "68130" };

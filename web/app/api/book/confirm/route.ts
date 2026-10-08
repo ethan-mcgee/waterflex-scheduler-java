@@ -2,11 +2,14 @@ import { readBody, confirmRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { confirmHold, EngineError } from "@/lib/engineClient";
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
+import { notFound, ownsHold } from "@/lib/clientScope";
 
 export async function POST(req: NextRequest) {
   const parsed = await readBody(req, confirmRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const body = parsed.data;
+  if (!(await ownsHold((await activeClient(req)).id, body.holdId))) return notFound("Hold");
   try {
     const result = await confirmHold(body.holdId);
     return NextResponse.json(result);

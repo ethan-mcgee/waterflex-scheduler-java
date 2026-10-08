@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import { readBody, updateStandardWeekRequest } from "@/lib/contracts";
 import { addCalendarDays, calendarDateInTz, todayInTz } from "@/lib/date";
 import { nextTemplateEffectiveDate, resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
@@ -26,12 +27,13 @@ function commitmentMinute(value: Date, serviceDate: string, endBoundary: boolean
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const parsed = await readBody(request, updateStandardWeekRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid seven-day availability" }, { status: 400 });
+  const clientId = (await activeClient(request)).id;
   const now = new Date();
   const effectiveDate = nextTemplateEffectiveDate(now);
   const today = todayInTz(CHICAGO, now);
   try {
     await prisma.$transaction(async tx => {
-      const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM technician WHERE id=${params.id} FOR UPDATE`);
+      const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM technician WHERE id=${params.id} AND "clientId"=${clientId} FOR UPDATE`);
       if (locked.length !== 1) throw new Error("Technician not found");
       const versions = await tx.technicianAvailabilityVersion.findMany({ where: { technicianId: params.id },
         include: { days: true }, orderBy: { effectiveDate: "asc" } });
