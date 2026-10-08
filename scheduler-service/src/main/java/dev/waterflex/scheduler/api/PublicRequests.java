@@ -58,11 +58,16 @@ public final class PublicRequests {
         }
     }
 
+    /** The dates one booking search covers, both included; at most {@link #MAX_DAYS} of them. */
     public record Horizon(LocalDate firstDate, LocalDate lastDate) {
+        public static final int MAX_DAYS = 21;
+
         public Horizon {
             Input.present(firstDate, "horizon.firstDate");
             Input.present(lastDate, "horizon.lastDate");
             if (lastDate.isBefore(firstDate)) throw new IllegalArgumentException("horizon.lastDate is before horizon.firstDate");
+            if (java.time.temporal.ChronoUnit.DAYS.between(firstDate, lastDate) >= MAX_DAYS)
+                throw new IllegalArgumentException("A horizon covers at most " + MAX_DAYS + " dates");
         }
 
         boolean contains(LocalDate date) { return !date.isBefore(firstDate) && !date.isAfter(lastDate); }
@@ -74,8 +79,12 @@ public final class PublicRequests {
             Input.present(job, "job");
             Input.present(horizon, "horizon");
             Input.present(snapshot, "snapshot");
-            for (TechnicianDay day : snapshot.technicianDays())
+            for (TechnicianDay day : snapshot.technicianDays()) {
                 if (!horizon.contains(day.serviceDate())) throw new IllegalArgumentException("Technician-day " + day.key() + " is outside the horizon");
+                if (day.technicianId().equals(job.id())) throw new IllegalArgumentException("job.id " + job.id() + " is also a technician ID");
+            }
+            for (PublicTypes.Appointment appointment : snapshot.appointments())
+                if (appointment.id().equals(job.id())) throw new IllegalArgumentException("job.id " + job.id() + " is already an appointment in the snapshot");
         }
     }
 
