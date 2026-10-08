@@ -98,10 +98,9 @@ export default function TimeOffDemo({ technicians, requests, selectedFilter, tru
     const additional = repairOvertimeMinutes(request.report);
     if (!reportMatches(request) || additional === null || request.report.kind !== "complete") { setMessage("Review a fresh repair report before approving."); return; }
     if (additional > 0) { setMessage("This repair requires overtime and needs manual resolution."); return; }
-    const approvedRepairIds = request.report.summary.days.flatMap(day => day.status === "REPAIR_PREVIEW" && day.run_id ? [day.run_id] : []);
     const id = request.id;
     setBusy(true); setMessage("");
-    try { const response = await fetch("/api/time-off/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, allowAdditionalOvertime: false, approvedRepairIds }) }); await readResponse(response, timeOffResult); setMessage(`Request ${id} approved.`); router.refresh(); }
+    try { const response = await fetch("/api/time-off/approve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); await readResponse(response, timeOffResult); setMessage(`Request ${id} approved.`); router.refresh(); }
     catch (error) { setMessage(errorMessage(error)); } finally { setBusy(false); }
   }
   async function act(id: string, action: "retry" | "deny") {

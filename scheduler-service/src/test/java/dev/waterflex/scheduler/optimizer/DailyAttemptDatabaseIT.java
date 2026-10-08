@@ -139,7 +139,7 @@ class DailyAttemptDatabaseIT {
             assertEquals("REPAIR_PREVIEW", result.get("status"), result.toString()); assertEquals("SUCCEEDED", f.state(key)); assertTrue(f.solves.get() > 0);
             assertEquals(2, dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT count(*) FROM schedule_day WHERE \"technicianId\" LIKE ?", Integer.class, f.id + "%"));
             String run = Required.value((String) result.get("run_id"));
-            var applied = Required.value(f.tx.execute(_ -> f.service.applyRepair(run, f.id + "-far", f.day, 480, 1020, false)));
+            var applied = Required.value(f.tx.execute(_ -> f.service.applyRepair(run, f.id + "-far", f.day, 480, 1020)));
             assertEquals("APPLIED", applied.get("status"));
             assertEquals(f.id + "-near", dev.waterflex.scheduler.DatabaseFacts.query(f.jdbc, "SELECT \"technicianId\" FROM appointment WHERE id=?", String.class, f.id + "-appointment"));
         }
