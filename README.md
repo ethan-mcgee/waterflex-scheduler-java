@@ -4,7 +4,7 @@ Local booking and dispatch prototype with Omaha map data and support for dealers
 
 ## Requirements
 
-- Docker Desktop with space for Nebraska and Iowa OSM extracts, a GraphHopper graph, Nominatim, and PMTiles.
+- Docker Desktop with space for Nebraska, Iowa and Missouri OSM extracts, the US Census TIGER address file (about 1.9 GB per map version), a GraphHopper graph, Nominatim, and PMTiles.
 - Java 25 for running Maven outside Docker. The checked-in Maven Wrapper downloads Maven 3.9.16.
 - Node 22 for portal checks outside Docker.
 
@@ -12,8 +12,8 @@ All published Compose ports bind to `127.0.0.1`. The portal is at `http://localh
 
 ## First local setup
 
-1. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, merges them, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
-2. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space.
+1. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, downloads the US Census TIGER address ranges preprocessed by the Nominatim project (`TIGER_YEAR`, default 2025, recorded with its SHA-256 in the manifest), merges the extracts, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
+2. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf -e IMPORT_TIGER_ADDRESSES=/maps/versions/<version>/tiger-nominatim-preprocessed.csv.tar.gz nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space. The TIGER ranges let Nominatim place a house number OpenStreetMap lacks along its street; a match still needs the house number, street and ZIP to agree. Never set `IMPORT_TIGER_ADDRESSES=true`, which makes the image download TIGER data from a third-party server. Activation links the version's TIGER file to `/maps/tiger-nominatim-preprocessed.csv.tar.gz`, and the running Nominatim searches TIGER ranges only while that file exists, so a Nominatim database imported without TIGER must be reimported before activating a TIGER version.
 3. Activate the prepared map with `docker compose --profile map-import run --rm map-import activate <version>`.
 4. Before upgrading an existing database to multi-depot dealerships, run the [depot owner audit](docs/dealerships.md). Resolve every ownerless or multiply owned depot explicitly. The migration stops if the audit has unresolved rows.
 5. Start the application with `docker compose up -d`. Compose builds the local application images, waits for PostgreSQL, applies all tracked Prisma migrations, and starts the portal and scheduler only after migration succeeds.
