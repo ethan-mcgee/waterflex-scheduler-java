@@ -4,6 +4,7 @@ services:
     image: mediagis/nominatim:5.3
     environment:
       PBF_PATH: /maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}/omaha.osm.pbf
+      IMPORT_TIGER_ADDRESSES: /maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}/tiger-nominatim-preprocessed.csv.tar.gz
       IMPORT_STYLE: address
       IMPORT_WIKIPEDIA: "false"
       UPDATE_MODE: none
