@@ -40,6 +40,15 @@ public final class DailyDataset {
     public static DailyDataset capture(DayPlan plan, Map<String,dev.waterflex.scheduler.RoadPoint> points,
             String snapshotId, String revision, String routingIdentity, String configuration,
             Map<String,Integer> schedule, String variant, long seed, long remainingMillis) {
+        Map<String,String> tokens = new LinkedHashMap<>();
+        schedule.forEach((technician, version) -> tokens.put(Required.value(technician), Integer.toString(Required.value(version))));
+        return captureTokens(plan, points, snapshotId, revision, routingIdentity, configuration, tokens, variant, seed, remainingMillis);
+    }
+
+    /** Capture with opaque per-technician revision tokens, such as a host's last-modified timestamps. */
+    public static DailyDataset captureTokens(DayPlan plan, Map<String,dev.waterflex.scheduler.RoadPoint> points,
+            String snapshotId, String revision, String routingIdentity, String configuration,
+            Map<String,String> schedule, String variant, long seed, long remainingMillis) {
         ObjectNode root = JSON.createObjectNode(); root.put("schemaVersion",1).put("operation","DAILY")
                 .put("mode",plan.getMode().name()).put("snapshotId",snapshotId).putNull("contentHash");
         root.putObject("versions").put("policy",SchedulingPolicy.VERSION).put("cost",COST_MODEL).put("score",SCORE_MODEL);
@@ -64,7 +73,7 @@ public final class DailyDataset {
         plan.getVisits().forEach(visit -> visits.put(visit.getId(),visits.size()));
         var techArray = root.putArray("technicians");
         for (TechRoute route : plan.getRoutes()) {
-            tokens.add(Integer.toString(Required.value(schedule.get(route.getId()),"schedule revision")));
+            tokens.add(Required.value(schedule.get(route.getId()),"schedule revision"));
             var tech = techArray.addObject(); tech.put("id",route.getId()).put("departureLocation",Required.value(locationIndices.get(route.getId())))
                     .put("returnLocation",Required.value(locationIndices.get(route.getId()+":return")))
                     .put("shiftStart",route.getShiftStart().toString()).put("shiftEnd",route.getShiftEnd().toString())

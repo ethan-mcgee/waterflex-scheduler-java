@@ -22,7 +22,7 @@ class TenantAuthenticationTest {
     @Test void publicApiResolvesTenantOnlyFromAValidToken() throws Exception {
         TenantTokens tokens = mock(TenantTokens.class);
         when(tokens.tenantFor(VECTOR)).thenReturn("acme");
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController())
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class)))
                 .addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(get("/api/v1/whoami").header("Authorization", "Bearer " + VECTOR)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tenantId").value("acme"));
@@ -32,6 +32,21 @@ class TenantAuthenticationTest {
         http.perform(Required.value(get("/api/v1/whoami"))).andExpect(status().isUnauthorized());
         // A tenant parameter or header in the request never selects the tenant.
         http.perform(Required.value(get("/api/v1/whoami").param("tenantId", "acme").header("X-Tenant", "acme"))).andExpect(status().isUnauthorized());
+    }
+
+    @Test void dailyProposalRepliesPassThroughWithTheTokenTenantAndRawBody() throws Exception {
+        TenantTokens tokens = mock(TenantTokens.class);
+        when(tokens.tenantFor(VECTOR)).thenReturn("acme");
+        var proposals = mock(dev.waterflex.scheduler.api.DailyProposals.class);
+        String body = "{\"requestId\":\"x\",\"tenantId\":\"other\"}";
+        when(proposals.create("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(429, "{\"error\":\"BUSY\",\"message\":\"m\"}", 1));
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals)).addFilters(new TenantAuthentication(tokens)).build());
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals")
+                        .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))
+                .andExpect(status().is(429)).andExpect(header().string("Retry-After", "1")).andExpect(jsonPath("$.error").value("BUSY"));
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals").content(body)))
+                .andExpect(status().isUnauthorized());
+        org.mockito.Mockito.verify(proposals, org.mockito.Mockito.times(1)).create("acme", body);
     }
 
     @Test void internalRoutesAreOutsideThePublicFilterAndHandlersFailClosedWithoutIt() {
