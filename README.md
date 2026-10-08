@@ -31,6 +31,10 @@ Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` v
 
 `routing-service` requires a shared bearer token on its `/internal/*` computation endpoints and refuses to start without one (`ROUTING_AUTH_TOKEN`, at least 32 non-whitespace characters); `/health` stays open. Compose sets a local-only default for both `routing-service` and `scheduler-service`. Any deployment outside local Compose must set its own secret in both services. Scripts that call a real routing service directly (`infra/validate-map.py`, `infra/verify-sparse-routing.mjs`, `infra/benchmark-routing-ch.mjs`) read the same variable. The CI fixture router does not check it.
 
+## Public API tokens
+
+The public scheduling API for WaterFlex Software lives under `/api/v1/` and requires a per-client bearer token; the internal `/v1/` routes used by this portal are unchanged. With `DATABASE_URL` set, issue a token from `web/` with `npx tsx scripts/issue-tenant-token.ts issue <tenantId> "<tenant name>" "<token label>"` (the token is printed once and only its SHA-256 digest is stored) and revoke one with `npx tsx scripts/issue-tenant-token.ts revoke <tokenId>`. `GET /api/v1/whoami` returns the tenant a token belongs to. See [docs/stateless-api-design.md](docs/stateless-api-design.md).
+
 ## Appointment offer limit
 
 `BOOKING_OFFER_LIMIT` sets the deployment-wide maximum choices for each new booking offer set. Valid values are exactly `1`, `2`, or `4`; the default is `4` only when unset. Empty, malformed, and unsupported values fail scheduler startup with a configuration error. The scheduler logs the effective limit at startup.

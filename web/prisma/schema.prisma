@@ -553,6 +553,29 @@ model OptimizationRun {
   @@map("optimization_run")
 }
 
+/// Client of the public scheduling API (/api/v1).
+model Tenant {
+  id         String           @id
+  name       String
+  createdAt  DateTime         @default(now()) @db.Timestamptz(6)
+  disabledAt DateTime?        @db.Timestamptz(6)
+  tokens     TenantApiToken[]
+  @@map("tenant")
+}
+
+/// Public API token; only its SHA-256 hex digest is stored.
+model TenantApiToken {
+  id          String    @id
+  tenantId    String
+  tokenSha256 String    @unique
+  label       String
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  revokedAt   DateTime? @db.Timestamptz(6)
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  @@index([tenantId], map: "tenant_api_token_tenant")
+  @@map("tenant_api_token")
+}
+
 model OvernightOptimizationAttempt {
   id String @id
   metroId String
