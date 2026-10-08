@@ -36,9 +36,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * POST /api/v1/daily/proposals. Parses strictly, claims the request ID, routes through the metro's routing service,
+ * POST /api/v1/daily/proposals and POST /api/v1/repairs/proposals. Parses strictly, claims the request ID, routes through the metro's routing service,
  * runs the same daily calculation as the portal path, and stores the proposal with the host timestamps it was
- * computed from. A failure that would repeat on retry is stored and replayed; a passing one releases the claim.
+ * computed from. A failure that would repeat on retry is stored and replayed; a passing one releases the claim. A repair
+ * is the same calculation with the absence added to the technician's day, in the portal's repair mode: it is accepted
+ * only when every appointment is placed, every constraint holds and no overtime is added. It is committed like any
+ * daily proposal.
  */
 @Service
 public class DailyProposals {
@@ -87,7 +90,20 @@ public class DailyProposals {
             case Replay replay -> replayed(replay);
             case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
             case Busy _ -> Reply.of(429, new Problem(ErrorCode.BUSY, "A request with this requestId is still running"));
-            case Started started -> run(tenantId, request, started.ownerToken());
+            case Started started -> run(tenantId, request.requestId(), started.ownerToken(), () -> propose(request, null));
+        };
+    }
+
+    public Reply repair(String tenantId, String body) {
+        PublicRequests.RepairProposalRequest request;
+        try { request = PublicRequests.read(body, PublicRequests.RepairProposalRequest.class); }
+        catch (IllegalArgumentException invalid) { return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, invalidRequest(invalid))); }
+        Claim claim = store.claim(tenantId, request.requestId(), Operation.REPAIR_PROPOSAL, sha256(CalculationJson.write(request)));
+        return switch (claim) {
+            case Replay replay -> replayed(replay);
+            case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
+            case Busy _ -> Reply.of(429, new Problem(ErrorCode.BUSY, "A request with this requestId is still running"));
+            case Started started -> run(tenantId, request.requestId(), started.ownerToken(), () -> propose(request.day(), request.absence()));
         };
     }
 
@@ -108,40 +124,45 @@ public class DailyProposals {
                 ? Required.value(unavailable.getMessage()) : "Road routing unavailable");
     }
 
-    private Reply run(String tenantId, DailyProposalRequest request, String owner) {
+    private Reply run(String tenantId, String requestId, String owner, java.util.function.Supplier<StoredProposal> propose) {
         try {
-            StoredProposal stored = propose(request);
+            StoredProposal stored = Required.value(propose.get());
             store.completeDaily(tenantId, owner, stored);
             return new Reply(201, CalculationJson.write(stored.proposal()), null);
         } catch (Final failure) {
             Problem problem = new Problem(failure.code, message(failure));
-            store.completeWithError(tenantId, request.requestId(), owner, failure.status, problem);
+            store.completeWithError(tenantId, requestId, owner, failure.status, problem);
             return Reply.of(failure.status, problem);
         } catch (RoadClient.RoadUnavailable unavailable) {
-            store.release(tenantId, request.requestId(), owner);
+            store.release(tenantId, requestId, owner);
             return Reply.of(503, routingUnavailable(unavailable));
         } catch (SearchAdmission.Busy busy) {
-            store.release(tenantId, request.requestId(), owner);
+            store.release(tenantId, requestId, owner);
             return Reply.of(429, new Problem(ErrorCode.BUSY, "Search capacity exhausted"));
         } catch (SearchDeadline.Expired expired) {
-            store.release(tenantId, request.requestId(), owner);
+            store.release(tenantId, requestId, owner);
             return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The calculation deadline passed"));
         } catch (RuntimeException unexpected) {
-            store.release(tenantId, request.requestId(), owner);
+            store.release(tenantId, requestId, owner);
             throw unexpected;
         }
     }
 
-    private StoredProposal propose(DailyProposalRequest request) {
+    /** The input revision: the snapshot, and for a repair also the absence it repairs. */
+    static String revision(PublicTypes.Snapshot snapshot, PublicRequests.@Nullable Absence absence) {
+        return absence == null ? sha256(CalculationJson.write(snapshot)) : sha256(CalculationJson.write(absence) + "\n" + CalculationJson.write(snapshot));
+    }
+
+    private StoredProposal propose(DailyProposalRequest request, PublicRequests.@Nullable Absence absence) {
         PublicTypes.Snapshot snapshot = request.snapshot();
         if (ScheduleCutoff.frozen(request.serviceDate(), Required.value(clock.instant()), Required.value(ZoneId.of(snapshot.timeZone()))))
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Routes for " + request.serviceDate() + " are frozen from 6 a.m. local time");
-        String revision = sha256(CalculationJson.write(snapshot));
+        String revision = revision(snapshot, absence);
         String proposalId = PublicApiStore.newProposalId();
         SchedulingPolicy.Rules policy = rules(sharedPolicy(jdbc), snapshot.policy());
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
-        Outcome outcome = DailyOperation.execute(admission, Required.value(Duration.ofSeconds(20)), () -> calculate(request, policy, proposalId, revision, tokens),
+        Outcome outcome = DailyOperation.execute(admission, Required.value(Duration.ofSeconds(20)), () -> calculate(request, policy, proposalId, revision, tokens, absence),
                 receipt -> LOG.info("Public daily operation {}", receipt));
         DailyProposal proposal = response(request, proposalId, revision, outcome);
         List<TechnicianDayVersion> days = new ArrayList<>();
@@ -152,13 +173,21 @@ public class DailyProposals {
 
     private record Outcome(DailyPreparation.Prepared prepared, DayPlan chosen, Decision decision, String reason) { }
 
-    /** The portal path's preview decision (OptimizationService.createPreview), applied to request-fed facts. */
-    private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, String proposalId, String revision, Map<String, String> tokens) {
+    /**
+     * The portal path's preview decision (OptimizationService.createPreview), applied to request-fed facts; with an
+     * absence, the portal's repair (OptimizationService.createRepair) of the same facts.
+     */
+    private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, String proposalId, String revision, Map<String, String> tokens,
+                              PublicRequests.@Nullable Absence absence) {
         DailyPreparation.Prepared prepared;
         try { prepared = DailyPreparation.prepare(request, routing, locator); }
         catch (MetroRouting.UnknownMetro unknown) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, message(unknown)); }
         DayPlan baseline = prepared.plan();
-        if (baseline.getVisits().isEmpty()) return new Outcome(prepared, baseline, Decision.NO_IMPROVEMENT, "No appointments to optimize");
+        if (absence != null && baseline.getRoutes().stream().noneMatch(route -> route.getId().equals(absence.technicianId())))
+            throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Technician-day " + absence.technicianId() + " on " + absence.serviceDate()
+                    + " could not be located (see skippedTechnicianDays in a daily proposal), so it cannot be repaired");
+        if (baseline.getVisits().isEmpty())
+            return new Outcome(prepared, baseline, Decision.NO_IMPROVEMENT, absence == null ? "No appointments to optimize" : "No appointments to repair");
         var before = DayScoreCalculator.evaluate(baseline);
         SearchDeadline.checkpoint();
         var validated = RouteEvaluator.evaluate(baseline);
@@ -167,7 +196,9 @@ public class DailyProposals {
         Map<String, String> kept = new LinkedHashMap<>();
         for (TechRoute route : baseline.getRoutes()) kept.put(route.getId(), Required.value(tokens.get(route.getId()), "technician-day token"));
         String configuration = sha256(CalculationJson.write(policy));
-        var calculation = transport.dailyTokens(baseline, policy, solver, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
+        DayPlan searched = absence == null ? baseline : PlanCopies.withAbsence(baseline, absence.technicianId(),
+                new TechRoute.Unavailable(absence.window().start(), absence.window().end()));
+        var calculation = transport.dailyTokens(searched, policy, solver, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
         SearchDeadline.checkpoint();
         if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, calculation.reason());
         Decision decision = DailyCalculation.valid(calculation.plan()) ? Decision.REJECTED_BY_POLICY : Decision.NO_IMPROVEMENT;

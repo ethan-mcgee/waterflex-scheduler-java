@@ -33,6 +33,7 @@ info:
     - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
     - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
     - `BookingOffersRequest.offerLimit` (1 to 4) is required; send the client's own cap on offers per search.
+    - `POST /api/v1/repairs/proposals` is served; commit an IMPROVED repair like a daily proposal.
     - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
       confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
@@ -254,7 +255,13 @@ paths:
       operationId: createRepairProposal
       tags: [Repair]
       summary: Propose how to cover a technician's absence on one day without overtime.
-      x-implementation: planned
+      description: >-
+        The same calculation as a daily proposal, with the absence added to the technician's day. The snapshot holds
+        the absence's date only and must include the absent technician-day. The decision is IMPROVED only when every
+        appointment is placed, every constraint holds and no overtime is added; otherwise the current routes are
+        returned with reason "Repair infeasible" and nothing can be committed. An absent technician-day that cannot
+        be located is a 422. The absence itself is the host's to record.
+      x-implementation: implemented
       requestBody:
         required: true
         content:
@@ -264,7 +271,7 @@ paths:
               absence: { $ref: '#/components/examples/RepairProposalRequest' }
       responses:
         '201':
-          description: Repair proposal stored; commit it with the daily commit endpoint.
+          description: Repair proposal stored; commit an IMPROVED one with the daily commit endpoint.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/DailyProposal' }
