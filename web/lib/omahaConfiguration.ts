@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
+import { DEFAULT_CLIENT_ID } from "./clients";
 import { initialAvailability } from "./technicianAvailability";
 import { technicianColor } from "./technicianColor";
 
@@ -82,7 +83,7 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
   const dealership = await prisma.dealership.upsert({
     where: { id: OMAHA_DEALERSHIP_ID },
     update: { name: "Omaha Main Dealership" },
-    create: { id: OMAHA_DEALERSHIP_ID, name: "Omaha Main Dealership" },
+    create: { id: OMAHA_DEALERSHIP_ID, clientId: DEFAULT_CLIENT_ID, name: "Omaha Main Dealership" },
   });
   const depot = await prisma.depot.upsert({
     where: { id: OMAHA_DEPOT_ID },
@@ -119,7 +120,7 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
     await prisma.technician.upsert({
       where: { id: technician.id },
       update: configuration,
-      create: { id: technician.id, ...configuration, color: technicianColor(technician.id), availabilityVersions: initialAvailability(8 * 60, 17 * 60) },
+      create: { id: technician.id, clientId: dealership.clientId, ...configuration, color: technicianColor(technician.id), availabilityVersions: initialAvailability(8 * 60, 17 * 60) },
     });
     await prisma.technicianDepotAssignment.upsert({ where: { technicianId_effectiveDate: { technicianId: technician.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
       update: {}, create: { technicianId: technician.id, effectiveDate: new Date("1900-01-01T00:00:00Z"), depotId: depot.id } });

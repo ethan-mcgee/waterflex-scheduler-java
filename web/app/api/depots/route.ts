@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { activeClient } from "@/lib/activeClient";
+import { notFound, ownsDealership } from "@/lib/clientScope";
 import { depotSetup, readBody } from "@/lib/contracts";
 import { GeocoderError, searchAddress } from "@/lib/geocode";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +15,7 @@ export async function POST(request: NextRequest) {
     prisma.dealership.findUnique({ where: { id: input.dealershipId } }),
   ]);
   if (!metro || !dealership) return NextResponse.json({ error: "Metro or dealership not found" }, { status: 404 });
+  if (!(await ownsDealership((await activeClient(request)).id, dealership.id))) return NextResponse.json({ error: "Metro or dealership not found" }, { status: 404 });
   let candidates;
   try { candidates = await searchAddress(input.address); }
   catch (error) {

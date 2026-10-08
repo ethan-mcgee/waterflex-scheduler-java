@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import { todayInTz } from "@/lib/date";
 import TechnicianRoster from "./TechnicianRoster";
 import { validateVersions } from "@/lib/technicianAvailability";
@@ -6,15 +7,16 @@ import { validateVersions } from "@/lib/technicianAvailability";
 export const dynamic = "force-dynamic";
 
 export default async function TechniciansPage() {
+  const clientId = (await activeClient()).id;
   const today = todayInTz("America/Chicago");
   const [technicians, services, metros, dealerships, depots] = await Promise.all([
-    prisma.technician.findMany({ include: { qualifications: true, depotAssignments: { include: { depot: true }, orderBy: { effectiveDate: "asc" } }, availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } }, shiftOverrides: {
+    prisma.technician.findMany({ where: { clientId }, include: { qualifications: true, depotAssignments: { include: { depot: true }, orderBy: { effectiveDate: "asc" } }, availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } }, shiftOverrides: {
       where: { serviceDate: { gte: new Date(`${today}T00:00:00Z`) } }, orderBy: { serviceDate: "asc" }, take: 101,
     } }, orderBy: { name: "asc" } }),
     prisma.serviceCatalog.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
-    prisma.metro.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.dealership.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.depot.findMany({ select: { id: true, name: true, dealershipId: true, metroId: true }, orderBy: { name: "asc" } }),
+    prisma.metro.findMany({ where: { depots: { none: { dealership: { clientId: { not: clientId } } } } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.dealership.findMany({ where: { clientId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.depot.findMany({ where: { dealership: { clientId } }, select: { id: true, name: true, dealershipId: true, metroId: true }, orderBy: { name: "asc" } }),
   ]);
   return <TechnicianRoster technicians={technicians.map((tech) => {
     const versions = validateVersions(tech.availabilityVersions.map(version => ({ effectiveDate: version.effectiveDate, days: version.days })));

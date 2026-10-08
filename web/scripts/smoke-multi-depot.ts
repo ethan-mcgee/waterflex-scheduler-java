@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 import { initialAvailability } from "../lib/technicianAvailability";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -30,7 +31,7 @@ async function endpoint(metroId: string, date: string, techId: string) {
 async function main() {
   const database = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1) : "";
   if (!new Set(["waterflex_test", "waterflex_dealership_test"]).has(database)) throw new Error("Requires an isolated test database");
-  const dealer = await prisma.dealership.create({ data: { name: `Multi metro fixture ${suffix}` } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: `Multi metro fixture ${suffix}` } });
   const lincoln = await prisma.metro.create({ data: { name: "Lincoln fixture", timezone: "America/Chicago" } });
   const omaha = await prisma.metro.create({ data: { name: "Omaha fixture", timezone: "America/Chicago" } });
   const first = await prisma.depot.create({ data: { dealershipId: dealer.id, metroId: lincoln.id, name: "Lincoln first", lat: 43.735, lng: 7.420,
@@ -40,10 +41,10 @@ async function main() {
   const third = await prisma.depot.create({ data: { dealershipId: dealer.id, metroId: omaha.id, name: "Omaha", lat: 43.748, lng: 7.438,
     endpointPolicies: { create: { effectiveDate: epoch, departure: "DEPOT", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `MULTI_${suffix}`, name: "Multi depot fixture", estDurationMin: 50 } });
-  const tech = await prisma.technician.create({ data: { name: "Multi depot fixture", color: "#2563eb", homeLat: 43.735, homeLng: 7.420,
+  const tech = await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Multi depot fixture", color: "#2563eb", homeLat: 43.735, homeLng: 7.420,
     shiftStartMin: 480, shiftEndMin: 1020, availabilityVersions: initialAvailability(480, 1020),
     depotAssignments: { create: { effectiveDate: epoch, depotId: first.id } }, qualifications: { create: { serviceId: service.id } } } });
-  const customer = await prisma.customer.create({ data: { firstName: "Multi", lastName: "Depot", email: `${suffix}@example.invalid`, phone: "0000000000" } });
+  const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Multi", lastName: "Depot", email: `${suffix}@example.invalid`, phone: "0000000000" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
   const job = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 50, status: "SCHEDULED" } });
   const holdJob = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 50 } });

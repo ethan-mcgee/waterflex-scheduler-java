@@ -27,7 +27,7 @@ class DurableBookingSearchIT {
         var restarted = new DurableBookingSearch(jdbc, manager, coordinator, admission, control);
         try {
             jdbc.update("INSERT INTO service_catalog (id,code,name,\"estDurationMin\",\"updatedAt\") VALUES (?,?,?,30,CURRENT_TIMESTAMP)", prefix, prefix, prefix);
-            jdbc.update("INSERT INTO customer (id,\"firstName\",\"lastName\",email,phone) VALUES (?,'Durable','Test','durable@example.invalid','0000000000')", prefix);
+            jdbc.update("INSERT INTO customer (id,\"clientId\",\"firstName\",\"lastName\",email,phone) VALUES (?,'default','Durable','Test','durable@example.invalid','0000000000')", prefix);
             jdbc.update("INSERT INTO address (id,\"customerId\",line1,city,state,\"postalCode\",lat,lng) VALUES (?,?,'Fixture','Omaha','NE','68102',41.25,-95.93)", prefix, prefix);
             jdbc.update("INSERT INTO job (id,\"customerId\",\"addressId\",\"serviceId\",\"durationMin\",\"updatedAt\") VALUES (?,?,?,?,30,CURRENT_TIMESTAMP)", prefix, prefix, prefix, prefix);
             String token = Required.value(UUID.randomUUID().toString());

@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createTechnicianRequest, readBody } from "@/lib/contracts";
 import { resolveHomeLocation } from "@/lib/technicianHome";
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 
 export async function POST(request: NextRequest) {
   const parsed = await readBody(request, createTechnicianRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid technician profile or weekly availability" }, { status: 400 });
   const input = parsed.data;
+  const client = await activeClient(request);
   const [depot, services] = await Promise.all([
-    prisma.depot.findUnique({ where: { id: input.depotId } }),
+    prisma.depot.findFirst({ where: { id: input.depotId, dealership: { clientId: client.id } } }),
     prisma.serviceCatalog.findMany({ where: { id: { in: input.qualifications }, active: true }, select: { id: true } }),
   ]);
   if (!depot || services.length !== input.qualifications.length)
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
   const firstAvailable = input.days.find(day => day.available);
   if (!firstAvailable || firstAvailable.shiftStartMin == null || firstAvailable.shiftEndMin == null)
     return NextResponse.json({ error: "Valid shift hours are required" }, { status: 400 });
-  const technician = await prisma.technician.create({ data: {
+  const technician = await prisma.technician.create({ data: { clientId: client.id,
     name: input.name, email: input.email ?? null, phone: input.phone ?? null,
     bio: input.bio ?? null, color: input.color, ...resolved.location,
     shiftStartMin: firstAvailable.shiftStartMin, shiftEndMin: firstAvailable.shiftEndMin,

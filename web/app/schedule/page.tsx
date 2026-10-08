@@ -1,5 +1,6 @@
 import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import { addCalendarDays, mondayOfWeek, tomorrowInTz } from "@/lib/date";
 import ScheduleView from "./ScheduleView";
 import type { ScheduleAbsence, ScheduleAppointment, ScheduleTechnician } from "./types";
@@ -18,7 +19,8 @@ export default async function SchedulePage({
 }: {
   searchParams: { week?: string; metroId?: string };
 }) {
-  const metros = await prisma.metro.findMany({ orderBy: { name: "asc" } });
+  const clientId = (await activeClient()).id;
+  const metros = await prisma.metro.findMany({ where: { depots: { some: { dealership: { clientId } } } }, orderBy: { name: "asc" } });
   const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
@@ -37,7 +39,7 @@ export default async function SchedulePage({
   const weekEnd = new Date(`${nextMonday}T00:00:00.000Z`);
 
   const technicians = await prisma.technician.findMany({
-    where: { active: true },
+    where: { clientId, active: true },
     orderBy: { name: "asc" },
     include: { availabilityVersions: { include: { days: true }, orderBy: { effectiveDate: "asc" } },
       depotAssignments: { where: { effectiveDate: { lt: weekEnd } }, include: { depot: { select: { metroId: true } } }, orderBy: { effectiveDate: "asc" } },

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
 import { tomorrowInTz, addCalendarDays } from "../lib/date";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -28,7 +29,7 @@ async function post<T>(schema: z.ZodType<T>, path: string, body: unknown, server
 async function main() {
   // Only the fixture technician can qualify, so seeded Omaha routes cannot affect offers.
   const metro = await prisma.metro.create({ data: { id: `smoke-metro-${suffix}`, name: "Booking fixture", timezone: "America/Chicago" } });
-  const dealership = await prisma.dealership.create({ data: { name: "Booking dealership" } });
+  const dealership = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Booking dealership" } });
   const depot = await prisma.depot.create({ data: { metroId: metro.id, dealershipId: dealership.id, name: "Booking depot", lat: 43.735, lng: 7.420,
     endpointPolicies: { create: { effectiveDate: new Date("1900-01-01T00:00:00Z"), departure: "HOME", returnTo: "HOME" } } } });
   const service = await prisma.serviceCatalog.create({ data: { code: `BOOK_${suffix}`, name: "Booking fixture", estDurationMin: 50 } });
@@ -38,14 +39,14 @@ async function main() {
   const jobId = `smoke-job-${suffix}`;
   const otherJobId = `smoke-other-job-${suffix}`;
   try {
-    await prisma.technician.create({ data: {
+    await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID,
       id: techId, name: "Monaco fixture technician", color: technicianColor(techId), availabilityVersions: initialAvailability(480, 1020),
       depotAssignments: { create: { depotId: depot.id, effectiveDate: new Date("1900-01-01T00:00:00Z") } },
       homeLat: 43.735, homeLng: 7.420, shiftStartMin: 480, shiftEndMin: 1020,
       maxDailyMinutes: 600, maxOvertimeMinutes: 60,
       qualifications: { create: { serviceId: service.id } },
     } });
-    await prisma.customer.create({ data: { id: customerId, firstName: "Smoke", lastName: "Test", email: "smoke@example.invalid", phone: "0000000000" } });
+    await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: customerId, firstName: "Smoke", lastName: "Test", email: "smoke@example.invalid", phone: "0000000000" } });
     await prisma.address.create({ data: { id: addressId, customerId, line1: "Fixture address", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
     await prisma.job.create({ data: { id: jobId, customerId, addressId, serviceId: service.id, durationMin: 50, bookingRequestId: suffix } });
     await prisma.job.create({ data: { id: otherJobId, customerId, addressId, serviceId: service.id, durationMin: 50, bookingRequestId: `other-${suffix}` } });

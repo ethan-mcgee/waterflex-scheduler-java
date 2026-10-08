@@ -43,13 +43,13 @@ class BookingSnapshotDatabaseIT {
         Timestamp expiry = Required.value(Timestamp.from(captured.plusSeconds(600)));
         try {
             jdbc.update("INSERT INTO metro (id,name,timezone) VALUES (?,?,'America/Chicago')", prefix, prefix);
-            jdbc.update("INSERT INTO dealership (id,name,\"updatedAt\") VALUES (?,?,CURRENT_TIMESTAMP)", prefix, prefix);
+            jdbc.update("INSERT INTO dealership (id,\"clientId\",name,\"updatedAt\") VALUES (?,'default',?,CURRENT_TIMESTAMP)", prefix, prefix);
             jdbc.update("INSERT INTO depot (id,\"metroId\",\"dealershipId\",name,lat,lng) VALUES (?,?,?,?,43.735,7.420)", prefix, prefix, prefix, prefix);
             jdbc.update("INSERT INTO depot_endpoint_policy (\"depotId\",\"effectiveDate\",departure,\"returnTo\") VALUES (?,'1900-01-01','HOME','HOME')", prefix);
             for (String service : List.of(prefix + "-service", prefix + "-other-service"))
                 jdbc.update("INSERT INTO service_catalog (id,code,name,\"estDurationMin\",\"updatedAt\") VALUES (?,?,?,30,CURRENT_TIMESTAMP)", service, service, service);
             for (String tech : List.of(prefix + "-a", prefix + "-b")) {
-                jdbc.update("INSERT INTO technician (id,name,color,\"homeLat\",\"homeLng\",\"shiftStartMin\",\"shiftEndMin\",\"maxDailyMinutes\",\"maxOvertimeMinutes\",\"updatedAt\") VALUES (?,?,'#059669',43.735,7.420,480,1020,600,60,CURRENT_TIMESTAMP)", tech, tech);
+                jdbc.update("INSERT INTO technician (id,\"clientId\",name,color,\"homeLat\",\"homeLng\",\"shiftStartMin\",\"shiftEndMin\",\"maxDailyMinutes\",\"maxOvertimeMinutes\",\"updatedAt\") VALUES (?,'default',?,'#059669',43.735,7.420,480,1020,600,60,CURRENT_TIMESTAMP)", tech, tech);
                 jdbc.update("INSERT INTO technician_depot_assignment (\"technicianId\",\"depotId\",\"effectiveDate\") VALUES (?,?,'1900-01-01')", tech, prefix);
                 jdbc.update("INSERT INTO technician_availability_version (id,\"technicianId\",\"effectiveDate\") VALUES (?,?,'1900-01-01')", tech, tech);
                 for (int weekday = 0; weekday < 7; weekday++) jdbc.update("INSERT INTO technician_availability_day (\"versionId\",\"dayOfWeek\",available,\"shiftStartMin\",\"shiftEndMin\") VALUES (?,?,true,480,1020)", tech, weekday);
@@ -57,7 +57,7 @@ class BookingSnapshotDatabaseIT {
                 jdbc.update("INSERT INTO schedule_day (id,\"technicianId\",\"serviceDate\",version) VALUES (?,?,?,0)", tech, tech, date);
             }
             jdbc.update("INSERT INTO technician_qualification (\"technicianId\",\"serviceId\") VALUES (?,?)", prefix + "-a", prefix + "-service");
-            jdbc.update("INSERT INTO customer (id,\"firstName\",\"lastName\",email,phone) VALUES (?,'Snapshot','Test','snapshot@example.invalid','0000000000')", prefix);
+            jdbc.update("INSERT INTO customer (id,\"clientId\",\"firstName\",\"lastName\",email,phone) VALUES (?,'default','Snapshot','Test','snapshot@example.invalid','0000000000')", prefix);
             jdbc.update("INSERT INTO address (id,\"customerId\",line1,city,state,\"postalCode\",lat,lng) VALUES (?,?,'Fixture','Monaco','MC','98000',43.735,7.420)", prefix, prefix);
             for (String job : List.of(prefix + "-request", prefix + "-confirmed", prefix + "-held"))
                 jdbc.update("INSERT INTO job (id,\"customerId\",\"addressId\",\"serviceId\",\"durationMin\",\"updatedAt\") VALUES (?,?,?,?,30,CURRENT_TIMESTAMP)", job, prefix, prefix,

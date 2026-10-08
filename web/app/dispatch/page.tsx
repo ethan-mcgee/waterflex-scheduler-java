@@ -1,5 +1,6 @@
 import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
 import Link from "next/link";
@@ -12,7 +13,8 @@ export default async function DispatchPage({
 }: {
   searchParams: { date?: string; run?: string; metroId?: string };
 }) {
-  const metros = await prisma.metro.findMany({ orderBy: { name: "asc" } });
+  const clientId = (await activeClient()).id;
+  const metros = await prisma.metro.findMany({ where: { depots: { some: { dealership: { clientId } } } }, orderBy: { name: "asc" } });
   const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
@@ -28,7 +30,7 @@ export default async function DispatchPage({
   const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
   const candidates = await prisma.technician.findMany({
-    where: { active: true },
+    where: { clientId, active: true },
     include: { depotAssignments: { where: { effectiveDate: { lte: dayStart } }, include: { depot: { select: { metroId: true } } }, orderBy: { effectiveDate: "desc" }, take: 1 } },
     orderBy: { name: "asc" },
   });

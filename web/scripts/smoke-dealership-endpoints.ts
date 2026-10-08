@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:8004";
@@ -33,7 +34,7 @@ async function main() {
   const original = await prisma.depotEndpointPolicy.findFirstOrThrow({ where: { depotId }, orderBy: { effectiveDate: "desc" } });
   const technician = await prisma.technician.findUniqueOrThrow({ where: { id: techId } });
   const service = await prisma.serviceCatalog.findFirstOrThrow();
-  const customer = await prisma.customer.create({ data: { firstName: "Route", lastName: "Fixture", email: `${suffix}@example.invalid`, phone: "4025550100" } });
+  const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Route", lastName: "Fixture", email: `${suffix}@example.invalid`, phone: "4025550100" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "Route fixture", city: "Omaha", state: "NE", postalCode: "68102", lat: 41.25, lng: -95.94 } });
   const job = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 45, status: "SCHEDULED" } });
   const heldJob = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 45 } });

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { bookingAddress, bookingLocationResponse, readBody } from "@/lib/contracts";
 import { bookingServiceArea } from "@/lib/serviceArea";
 import { GeocoderError, searchAddress } from "@/lib/geocode";
+import { activeClient } from "@/lib/activeClient";
 
 export async function POST(req: NextRequest) {
   const input = await readBody(req, bookingAddress);
   if (!input.success) return NextResponse.json({ error: "Complete the service address." }, { status: 400 });
   try {
-    const serviceArea = await bookingServiceArea();
+    const serviceArea = await bookingServiceArea((await activeClient(req)).id);
+    if (serviceArea == null) return NextResponse.json({ status: "OUTSIDE_COVERAGE", error: "This client has no service area yet." }, { status: 422 });
     const candidates = await searchAddress(input.data, serviceArea.bounds);
     return NextResponse.json(bookingLocationResponse.parse({ serviceArea, candidates,
       status: candidates.some(c => c.precision === "ROOFTOP") ? "MATCHED" : candidates.length ? "NEEDS_PLACEMENT" : "NO_MATCH" }));

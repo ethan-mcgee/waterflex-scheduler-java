@@ -26,7 +26,7 @@ class TimeOffStateDatabaseIT {
         new TransactionTemplate(manager).executeWithoutResult(transaction -> {
             transaction.setRollbackOnly();
             String technician = "timeoff-state-" + UUID.randomUUID();
-            jdbc.update("INSERT INTO technician (id,name,color,\"homeLat\",\"homeLng\",\"shiftStartMin\",\"shiftEndMin\",\"updatedAt\") VALUES (?,?,'#000000',43.7,7.4,480,1020,CURRENT_TIMESTAMP)", technician, technician);
+            jdbc.update("INSERT INTO technician (id,\"clientId\",name,color,\"homeLat\",\"homeLng\",\"shiftStartMin\",\"shiftEndMin\",\"updatedAt\") VALUES (?,'default',?,'#000000',43.7,7.4,480,1020,CURRENT_TIMESTAMP)", technician, technician);
             String date = Required.value(LocalDate.now().plusDays(30).toString());
             var submitted = service.submit(new TimeOffService.Request(technician, date, date, 480, 1020, "Other", "State fixture"));
             String id = (String) Required.value(submitted.get("requestId"));

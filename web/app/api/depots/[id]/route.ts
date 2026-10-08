@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { activeClient } from "@/lib/activeClient";
+import { notFound, ownsDepot } from "@/lib/clientScope";
 import { depotDetails, readBody } from "@/lib/contracts";
 import { updateDepotDetails, EngineError } from "@/lib/engineClient";
 import { GeocoderError, searchAddress } from "@/lib/geocode";
@@ -9,6 +11,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = await readBody(request, depotDetails);
   if (!parsed.success) return NextResponse.json({ error: "Invalid depot details" }, { status: 400 });
   const { id } = await params;
+  if (!(await ownsDepot((await activeClient(request)).id, id))) return notFound("Depot");
   const existing = await prisma.depot.findUnique({ where: { id }, select: {
     addressLine1: true, addressCity: true, addressState: true, addressPostalCode: true,
   } });

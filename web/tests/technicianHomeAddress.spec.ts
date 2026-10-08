@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("street result needs a working map and address edits discard its confirmation", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Home pin browser metro", timezone: "America/Chicago" } });
-  const dealer = await prisma.dealership.create({ data: { name: "Home pin browser dealer" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Home pin browser dealer" } });
   const depot = await prisma.depot.create({ data: { name: "Home pin browser depot", metroId: metro.id, dealershipId: dealer.id, lat: 41.16, lng: -96.01 } });
   try {
     await page.route("**/api/technicians/geocode", route => route.fulfill({ json: { candidates: [{
@@ -35,7 +36,7 @@ test("street result needs a working map and address edits discard its confirmati
 
 test("a confirmed street pin is cleared by an address edit", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Home confirmation browser metro", timezone: "America/Chicago" } });
-  const dealer = await prisma.dealership.create({ data: { name: "Home confirmation browser dealer" } });
+  const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: "Home confirmation browser dealer" } });
   const depot = await prisma.depot.create({ data: { name: "Home confirmation browser depot", metroId: metro.id, dealershipId: dealer.id, lat: 41.16, lng: -96.01 } });
   try {
     await page.route("http://localhost:8083/omaha.json", route => route.fulfill({ json: { bounds: [-97.5, 40.5, -95.2, 42.1] } }));
