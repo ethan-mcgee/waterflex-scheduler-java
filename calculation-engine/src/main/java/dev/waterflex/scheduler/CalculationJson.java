@@ -11,9 +11,11 @@ import org.jspecify.annotations.Nullable;
 /** A strict private protocol. Invalid external facts never become fabricated primitive defaults. */
 public final class CalculationJson {
     public static final int MAX_BYTES = 8 * 1024 * 1024;
-    private static final ObjectMapper JSON = create();
+    private static final ObjectMapper JSON = create(true);
+    /** Same strictness, but an absent property arrives as null; the target type must validate every required value. */
+    private static final ObjectMapper OMITTABLE = create(false);
     private CalculationJson() { }
-    private static ObjectMapper create() {
+    private static ObjectMapper create(boolean everyPropertyPresent) {
         var factory = new JsonFactory(); factory.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
         var mapper = new ObjectMapper(factory);
         mapper.registerModule(new JavaTimeModule());
@@ -38,7 +40,8 @@ public final class CalculationJson {
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
         mapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-                DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
+                DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+        if (everyPropertyPresent) mapper.enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
         mapper.disable(MapperFeature.ALLOW_COERCION_OF_SCALARS);
         return mapper;
     }
@@ -50,6 +53,19 @@ public final class CalculationJson {
         checkSize(json);
         try { return Required.value(JSON.readValue(json, type), "calculation document"); }
         catch (java.io.IOException failure) { throw new IllegalArgumentException("Invalid calculation document", failure); }
+    }
+    /**
+     * Strict read for external documents with optional properties: unknown fields, duplicate keys, trailing tokens,
+     * numeric or noncanonical decimals and scalar coercion still fail. Absent properties become null, so target types
+     * must use boxed numbers and reject every missing required value themselves.
+     */
+    public static <T> T readOmittable(String json, Class<T> type) {
+        checkSize(json);
+        @Nullable T value;
+        try { value = OMITTABLE.readValue(json, type); }
+        catch (java.io.IOException failure) { throw new IllegalArgumentException("Invalid external document", failure); }
+        if (value == null) throw new IllegalArgumentException("External document must not be null");
+        return value;
     }
     public static JsonNode tree(String json) {
         checkSize(json);
