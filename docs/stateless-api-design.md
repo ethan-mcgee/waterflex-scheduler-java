@@ -121,6 +121,16 @@ The scheduler keeps its local Nominatim geocoding and the current address flow. 
 - Small travel-time differences between a host coordinate and a Nominatim coordinate for the same address are expected. GraphHopper snaps every point to the nearest routable road either way; a point whose nearest road is not its access road (highway, back alley) can add travel time whichever geocoder produced it.
 - Because the product has no maps of its own, Google map display terms do not apply to the scheduler. WaterFlex Software should still confirm that its Google Maps Platform agreement allows Google-geocoded coordinates to be passed to a non-Google routing engine and held in the scheduler's caches. If it does not, the host sends addresses only and the scheduler geocodes with Nominatim.
 
+### Address quality (Decided)
+
+An address reaches the solver only after it has been located with certainty. The scheduler never guesses a location.
+
+- **Formatting is standardized before matching.** Street types and their abbreviations (Street and St), directions (North and N), periods, capitals and spacing, state names and codes, numbered streets (First and 1st), unit designators on the street line (Apt 4, #4, Suite 200), highway and county road names (US-6, US Hwy 6, Co Rd 12), Saint and St at the start of a name, and half or ranged house numbers (123 1/2, 123-125) must all compare as equal when they mean the same place. Any of these the scheduler's address handling does not cover is a defect to fix.
+- **ZIP, house number and street decide a match.** All three must agree. The city may differ when the ZIP agrees, because many addresses carry a mailing city that is not the municipality the map uses.
+- **An uncertain match is rejected, never used.** The rejection names the location and the reason (house number not in the map, street differs, ZIP differs). WaterFlex Software can then send coordinates for that one location.
+- **One bad address affects only itself.** A booking request fails only for its own job. For a daily proposal, the technician-day that holds an appointment that cannot be located is left exactly as it is and reported as skipped, and every other technician-day is still optimized.
+- Coordinates sent by WaterFlex Software skip all of this and are used as given.
+
 ## Scaling (Decided: embedded first, configuration to scale out)
 
 Apply these levers in order, each only when measurements call for it. Signals: booking response time approaching 5 seconds, `SearchAdmission` rejections, sustained CPU saturation, overnight runs not finishing in their window.
@@ -243,3 +253,4 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 1. Does WaterFlex Software's Google Maps Platform agreement allow passing Google-geocoded coordinates to the scheduler and caching them for up to 30 days?
 2. What audit retention period applies to receipts?
 3. Does any client require a dedicated database?
+4. Should the Nominatim import add the US Census TIGER address ranges, so a house number OpenStreetMap lacks can be placed along its street? Without them such an address is rejected as "house number not in the map".
