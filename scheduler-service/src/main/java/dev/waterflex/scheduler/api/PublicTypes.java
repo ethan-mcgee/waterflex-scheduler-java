@@ -85,7 +85,8 @@ public final class PublicTypes {
     }
 
     public record Appointment(String id, String technicianId, LocalDate serviceDate, String serviceId,
-                              Integer durationMinutes, Window window, Location location, Integer sequence) {
+                              Integer durationMinutes, Window window, Location location, Integer sequence,
+                              Instant plannedStart) {
         public Appointment {
             Input.id(id, "appointment.id");
             Input.id(technicianId, "appointment.technicianId");
@@ -95,6 +96,7 @@ public final class PublicTypes {
             Input.present(window, "appointment.window");
             Input.present(location, "appointment.location");
             Input.integer(sequence, "appointment.sequence", 0, Integer.MAX_VALUE);
+            Input.present(plannedStart, "appointment.plannedStart");
         }
 
         public Key key() { return new Key(technicianId, serviceDate); }
