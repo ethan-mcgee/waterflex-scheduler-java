@@ -109,6 +109,25 @@ class BenchmarkContractTest {
             assertNotEquals(a.facts(),DatasetTool.generate(first,Required.value(first.families().getFirst()),2,Required.value(cohort)).facts());
         }
     }
+    @Test void corpusConfigsDeclareTravelBufferAsFraction() throws Exception {
+        // corpus-v1 is frozen phase 11 evidence. It declared the number 10 (a +1000% buffer), which the exact decimal
+        // contract now rejects; every later corpus must declare a canonical decimal string fraction.
+        try(var files=Files.list(Path.of("../experiments/configs"))) {
+            var corpora=files.filter(path -> path.getFileName().toString().matches("corpus-v\\d+\\.json")).sorted().toList();
+            assertTrue(corpora.size() >= 2);
+            for(Path path:corpora) {
+                String json=Required.value(Files.readString(path));
+                if(path.getFileName().toString().equals("corpus-v1.json")) {
+                    assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(json,DatasetTool.Corpus.class));
+                    continue;
+                }
+                var spec=CalculationJson.read(json,DatasetTool.Corpus.class);
+                assertTrue(spec.travelBufferPct().signum() >= 0 && spec.travelBufferPct().compareTo(java.math.BigDecimal.ONE) < 0,path::toString);
+            }
+        }
+        var current=CalculationJson.read(Required.value(Files.readString(Path.of("../experiments/configs/corpus-v2.json"))),DatasetTool.Corpus.class);
+        assertEquals(0,current.travelBufferPct().compareTo(new java.math.BigDecimal("0.2")));
+    }
     @Test void nativeFailedBatchFinishesReportsAndPreservesSuccessfulSibling() throws Exception {
         var dataset=dataset();Path input=directory().resolve("daily.json");
         Files.writeString(input,CalculationJson.write(new SnapshotFileIO.Input(1,dataset.json(DailyDataset.Encoding.SPARSE),null)));
