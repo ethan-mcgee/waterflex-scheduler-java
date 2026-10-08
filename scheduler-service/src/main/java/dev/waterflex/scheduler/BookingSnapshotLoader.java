@@ -111,6 +111,8 @@ public final class BookingSnapshotLoader {
 
     private Facts read(String metroId, String requestingJobId, Instant capturedAt, String routingIdentity, List<LocalDate> dates, boolean pendingRequired) {
         dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
+        // The snapshot holds the whole metro's technicians, so a metro shared by several clients books through the public API.
+        MetroTenancy.requireSingleClient(jdbc, metroId);
         if (pendingRequired && !"PENDING".equals(dev.waterflex.scheduler.DatabaseFacts.query(jdbc, "SELECT status::text FROM job WHERE id=?", String.class, requestingJobId)))
             throw conflict("Job is no longer pending");
         Map<String, java.math.BigDecimal> settings = new TreeMap<>();

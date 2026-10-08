@@ -210,8 +210,10 @@ export function cancelAppointment(params: { appointment_id: string; reason: stri
   return request("/v1/appointments/cancel", success, params);
 }
 
-export function dispatchGeometry(metroId: string, date: string, runId?: string, phase = "current") {
+/** Current routes are limited to the client's technicians when clientId is given, which a metro shared by several clients needs. */
+export function dispatchGeometry(metroId: string, date: string, runId?: string, phase = "current", clientId?: string) {
   const query = new URLSearchParams({ metro_id: metroId, date, phase });
+  if (clientId !== undefined) query.set("client_id", clientId);
   if (runId) query.set("run_id", runId);
   return request(`/v1/dispatch/geometry?${query}`, z.custom<GeometryResponse>(v => isDispatchGeometry(v, date, phase)));
 }

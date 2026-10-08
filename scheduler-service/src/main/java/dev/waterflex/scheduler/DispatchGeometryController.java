@@ -71,7 +71,8 @@ public class DispatchGeometryController {
     @GetMapping("/v1/dispatch/geometry")
     public Map<String, @NonNull Object> geometry(@RequestParam("metro_id") String metroId, @RequestParam String date,
                                          @RequestParam(value = "run_id", required = false) @Nullable String runId,
-                                         @RequestParam(value = "phase", defaultValue = "current") String phase) {
+                                         @RequestParam(value = "phase", defaultValue = "current") String phase,
+                                         @RequestParam(value = "client_id", required = false) @Nullable String clientId) {
         LocalDate day;
         try { day = LocalDate.parse(date); }
         catch (Exception e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid service date"); }
@@ -80,16 +81,24 @@ public class DispatchGeometryController {
         if (phase.equals("after") && (runId == null || runId.isBlank()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Optimization run required");
         Timestamp serviceDate = Timestamp.from(day.atStartOfDay(ZoneOffset.UTC).toInstant());
+        // Current routes can be limited to one client's technicians; anything else reads the whole metro, and an
+        // optimization run always covers the whole metro, so those need a metro with one client.
+        boolean scoped = clientId != null && phase.equals("current");
+        if (clientId != null && clientId.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid client");
+        if (!scoped) MetroTenancy.requireSingleClient(jdbc, metroId);
+        String clientFilter = scoped ? " AND t.\"clientId\"=?" : "";
         String identity = roads.activeIdentity();
         Map<String, List<WorkingSegment>> savedTiming = new TreeMap<>();
         Map<String, RouteEndpoints> endpoints = new LinkedHashMap<>();
-        if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? ORDER BY t.id",
-                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2)), serviceDate, serviceDate, metroId);
+        if (phase.equals("current")) jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + " FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=?" + clientFilter + " ORDER BY t.id",
+                (org.springframework.jdbc.core.RowCallbackHandler) rs -> endpoints.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2)),
+                scoped ? new @Nullable Object[] {serviceDate, serviceDate, metroId, clientId} : new @Nullable Object[] {serviceDate, serviceDate, metroId});
         List<Stop> stops;
         if (phase.equals("current")) {
-            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng, a.\"plannedEnd\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=? AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
+            stops = jdbc.query("SELECT a.id, a.\"technicianId\", a.sequence, a.\"plannedStart\", ad.lat, ad.lng, a.\"plannedEnd\" FROM appointment a JOIN job j ON j.id=a.\"jobId\" JOIN address ad ON ad.id=j.\"addressId\" JOIN technician t ON t.id=a.\"technicianId\" JOIN technician_depot_assignment assignment ON assignment.\"technicianId\"=t.id AND assignment.\"effectiveDate\"=(SELECT max(x.\"effectiveDate\") FROM technician_depot_assignment x WHERE x.\"technicianId\"=t.id AND x.\"effectiveDate\"<=a.\"serviceDate\") JOIN depot p ON p.id=assignment.\"depotId\" WHERE p.\"metroId\"=?" + clientFilter + " AND a.\"serviceDate\"=? AND a.\"cancelledAt\" IS NULL ORDER BY a.\"technicianId\", a.sequence",
                     (rs, _) -> new Stop(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.string(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 3), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 4).toInstant()), Required.value(dev.waterflex.scheduler.DatabaseFacts.timestamp(rs, 7).toInstant()),
-                            dev.waterflex.scheduler.DatabaseFacts.location(rs, 5, 6, HttpStatus.CONFLICT)), metroId, serviceDate);
+                            dev.waterflex.scheduler.DatabaseFacts.location(rs, 5, 6, HttpStatus.CONFLICT)),
+                    scoped ? new @Nullable Object[] {metroId, clientId, serviceDate} : new @Nullable Object[] {metroId, serviceDate});
             jdbc.query("SELECT \"technicianId\",version,\"routeTiming\"::text FROM schedule_day WHERE \"serviceDate\"=?",
                     (org.springframework.jdbc.core.RowCallbackHandler) rs -> {
                         String technician = dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), raw = rs.getString(3);
