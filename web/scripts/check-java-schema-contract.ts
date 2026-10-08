@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import { Prisma, PrismaClient } from "@prisma/client";
 
 const expected: Record<string, string[]> = {
+  tenant: ["id", "disabledAt"],
+  tenant_api_token: ["tenantId", "tokenSha256", "revokedAt"],
   overnight_optimization_attempt: ["id", "metroId", "serviceDate", "state", "previewKey", "resultRunId", "resultReason", "failureContext", "startedAt", "finishedAt", "nightOf"],
   daily_calculation_attempt: ["id", "requestKey", "requestFingerprint", "ownerToken", "state", "expiresAt", "snapshotRevision", "routingIdentity", "resultRunId", "resultJson", "failureReason"],
   booking_search_request: ["id", "jobId", "deadlineAt", "cancelledAt", "acknowledgedAt", "offerSetId", "cleanedAt"],
@@ -39,7 +41,7 @@ try {
   const actual = z.array(column).parse(await prisma.$queryRaw`
     SELECT table_name, column_name, data_type, udt_name, is_nullable FROM information_schema.columns WHERE table_schema = current_schema()
   `);
-  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt", "daily_calculation_attempt.expiresAt", "daily_calculation_attempt.createdAt", "daily_calculation_attempt.updatedAt", "overnight_optimization_attempt.startedAt", "overnight_optimization_attempt.finishedAt"]);
+  const timestampWithZone = new Set(["booking_optimization.createdAt", "optimization_run.serviceDate", "optimization_run.createdAt", "optimization_run.appliedAt", "monetary_migration_receipt.migratedAt", "daily_calculation_attempt.expiresAt", "daily_calculation_attempt.createdAt", "daily_calculation_attempt.updatedAt", "overnight_optimization_attempt.startedAt", "overnight_optimization_attempt.finishedAt", "tenant.createdAt", "tenant.disabledAt", "tenant_api_token.createdAt", "tenant_api_token.revokedAt"]);
   const dateColumns = new Set(["overnight_optimization_attempt.serviceDate", "overnight_optimization_attempt.nightOf"]);
   const sqlTypes: Record<string, string> = { String: "text", Int: "integer", BigInt: "bigint", Float: "double precision", Decimal: "numeric", Boolean: "boolean", DateTime: "timestamp without time zone", Json: "jsonb", Bytes: "bytea" };
   for (const model of Prisma.dmmf.datamodel.models) {
