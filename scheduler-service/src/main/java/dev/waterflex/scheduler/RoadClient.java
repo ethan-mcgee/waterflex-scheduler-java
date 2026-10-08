@@ -295,6 +295,17 @@ public class RoadClient {
     @Scheduled(cron = "${routing.cache.cleanup-cron:0 30 3 * * SUN}", zone = "America/Chicago")
     public void cleanPersistentCache() {
         jdbc.update("DELETE FROM road_route_cache WHERE \"fetchedAt\" < CURRENT_TIMESTAMP - INTERVAL '30 days'");
-        jdbc.update("DELETE FROM road_route_cache WHERE id IN (SELECT id FROM road_route_cache ORDER BY \"fetchedAt\" DESC, id DESC OFFSET 500000 LIMIT 50000)");
+        trimPersistentCache(500_000, 50_000);
+    }
+
+    /** Deletes the oldest rows in bounded batches until the table is within the cap; one batch alone could fall behind growth. */
+    int trimPersistentCache(int cap, int batch) {
+        if (cap < 0 || batch < 1) throw new IllegalArgumentException("Invalid route cache trim bounds");
+        int removed = 0;
+        while (true) {
+            int deleted = jdbc.update("DELETE FROM road_route_cache WHERE id IN (SELECT id FROM road_route_cache ORDER BY \"fetchedAt\" DESC, id DESC OFFSET ? LIMIT ?)", cap, batch);
+            removed += deleted;
+            if (deleted < batch) return removed;
+        }
     }
 }
