@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { todayInTz } from "./date";
 import { loadSolverSettings } from "./clientSettingsStore";
 import { buildClientSnapshot, SnapshotError } from "./clientSnapshot";
 import { resolveMetroForLocation } from "./serviceArea";
-import { bookingHorizon, checkReceipt, failedSearch, offersView, sameInstant, type TechnicianDayKey } from "./apiBookingCore";
+import { bookingHorizon, checkReceipt, failedSearch, offersView } from "./apiBookingCore";
+import { writeReceipt } from "./apiReceipt";
 import { confirmBookingHold, createBookingOffers, releaseBookingOffer, SchedulerApiError, selectBookingOffer, type CommitReceipt } from "./schedulerApi";
 
 /**
@@ -80,63 +80,13 @@ export async function searchApiOffers(clientId: string, jobId: string) {
   return offersView(jobId, offerSet, elapsed());
 }
 
-/** The current lastModified of technician-days, as exact text. */
-async function currentLastModified(tx: Prisma.TransactionClient, days: readonly TechnicianDayKey[]): Promise<Map<string, string>> {
-  const rows = await tx.$queryRaw<Array<{ technicianId: string; serviceDate: string; lastModified: string }>>(Prisma.sql`
-    SELECT t.id AS "technicianId", to_char(d.day, 'YYYY-MM-DD') AS "serviceDate",
-      to_char(GREATEST(t."factsChangedAt", c."changedAt") AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "lastModified"
-    FROM unnest(${days.map(item => item.technicianId)}::text[], ${days.map(item => item.serviceDate)}::date[]) AS d(technician, day)
-    JOIN technician t ON t.id = d.technician
-    LEFT JOIN technician_day_change c ON c."technicianId" = t.id AND c."serviceDate" = d.day::timestamp`);
-  return new Map(rows.map(row => [`${row.technicianId}|${row.serviceDate}`, row.lastModified]));
-}
+export { StaleReceipt } from "./apiReceipt";
 
-export class StaleReceipt extends Error {
-  constructor(message: string) { super(message); this.name = "StaleReceipt"; }
-}
-
-/**
- * Writes a confirmed booking: locks the receipt's technician-days the way the scheduler does (schedule_day lock rows,
- * then technicians), checks every lastModified still equals the receipt's, and only then writes every listed
- * appointment, the new one under the job's ID. Any difference writes nothing.
- */
+/** Writes a confirmed booking with a compare-and-set on every technician-day the receipt lists; any difference writes nothing. */
 export async function writeBookingReceipt(clientId: string, jobId: string, offer: { serviceDate: string; windowStart: Date; windowEnd: Date },
   receipt: CommitReceipt): Promise<void> {
   const days = checkReceipt(receipt, jobId, offer.serviceDate);
-  await prisma.$transaction(async tx => {
-    for (const item of days) {
-      await tx.$executeRaw`INSERT INTO schedule_day (id, "technicianId", "serviceDate", version) VALUES (${randomUUID()}, ${item.technicianId}, ${day(item.serviceDate)}, 0)
-        ON CONFLICT ("technicianId", "serviceDate") DO NOTHING`;
-    }
-    for (const item of days)
-      await tx.$queryRaw`SELECT version FROM schedule_day WHERE "technicianId" = ${item.technicianId} AND "serviceDate" = ${day(item.serviceDate)} FOR UPDATE`;
-    const technicianIds = [...new Set(days.map(item => item.technicianId))].sort();
-    const owned = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM technician WHERE id IN (${Prisma.join(technicianIds)}) AND "clientId" = ${clientId} ORDER BY id FOR UPDATE`;
-    if (owned.length !== technicianIds.length) throw new StaleReceipt("The receipt names a technician that is not this client's");
-    const current = await currentLastModified(tx, days);
-    for (const listed of receipt.technicianDays) {
-      const now = current.get(`${listed.technicianId}|${listed.serviceDate}`);
-      if (now === undefined || !sameInstant(now, listed.lastModified))
-        throw new StaleReceipt(`Technician-day ${listed.technicianId} ${listed.serviceDate} changed since the snapshot`);
-    }
-    for (const assignment of receipt.assignments) {
-      const placement = { technicianId: assignment.technicianId, serviceDate: day(assignment.serviceDate), sequence: assignment.sequence,
-        plannedStart: new Date(assignment.plannedStart), plannedEnd: new Date(assignment.plannedEnd) };
-      if (assignment.appointmentId === jobId) {
-        const existing = await tx.appointment.findUnique({ where: { jobId }, select: { id: true } });
-        if (existing !== null) throw new StaleReceipt(`Job ${jobId} already has an appointment`);
-        await tx.appointment.create({ data: { id: jobId, jobId, windowStart: offer.windowStart, windowEnd: offer.windowEnd, ...placement } });
-        continue;
-      }
-      const moved = await tx.appointment.updateMany({ where: { id: assignment.appointmentId, cancelledAt: null,
-        job: { customer: { clientId } }, serviceDate: day(assignment.serviceDate) }, data: placement });
-      if (moved.count !== 1) throw new StaleReceipt(`Appointment ${assignment.appointmentId} is not a current appointment of this client on ${assignment.serviceDate}`);
-    }
-    for (const item of days)
-      await tx.$executeRaw`UPDATE schedule_day SET version = version + 1 WHERE "technicianId" = ${item.technicianId} AND "serviceDate" = ${day(item.serviceDate)}`;
-    const scheduled = await tx.job.updateMany({ where: { id: jobId, status: "PENDING" }, data: { status: "SCHEDULED" } });
-    if (scheduled.count !== 1) throw new StaleReceipt(`Job ${jobId} is no longer pending`);
-  });
+  await writeReceipt(clientId, receipt, days, { complete: days, create: { jobId, windowStart: offer.windowStart, windowEnd: offer.windowEnd } });
 }
 
 /** Selects an offer, confirms its hold against a fresh snapshot of its date and writes the booking. */
