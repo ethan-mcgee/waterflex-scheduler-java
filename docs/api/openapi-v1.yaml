@@ -27,6 +27,7 @@ info:
     - `Appointment.plannedStart` is required; send the appointment's currently planned arrival.
     - `DailyProposal` now has `reason` and `skippedTechnicianDays`; a skipped technician-day is not in `routes` and stays as it is.
     - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
+    - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
 servers:
   - url: https://scheduler.internal.example
