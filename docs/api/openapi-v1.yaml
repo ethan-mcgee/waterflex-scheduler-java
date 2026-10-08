@@ -28,6 +28,7 @@ info:
     - `DailyProposal` now has `reason` and `skippedTechnicianDays`; a skipped technician-day is not in `routes` and stays as it is.
     - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
     - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
+    - A booking horizon covers at most 21 dates, and `job.id` must differ from every appointment and technician ID.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
 servers:
   - url: https://scheduler.internal.example
@@ -585,7 +586,9 @@ components:
           additionalProperties: false
           required: [id, serviceId, durationMinutes, location]
           properties:
-            id: { $ref: '#/components/schemas/Id' }
+            id:
+              $ref: '#/components/schemas/Id'
+              description: Must differ from every appointment and technician ID in the snapshot.
             serviceId: { $ref: '#/components/schemas/Id' }
             durationMinutes: { type: integer, minimum: 1, maximum: 720 }
             location: { $ref: '#/components/schemas/Location' }
@@ -593,6 +596,9 @@ components:
           type: object
           additionalProperties: false
           required: [firstDate, lastDate]
+          description: >-
+            Every date from firstDate to lastDate, both included, at most 21 dates. Every technician-day in the
+            snapshot falls inside it. The search covers exactly these dates.
           properties:
             firstDate: { $ref: '#/components/schemas/ServiceDate' }
             lastDate: { $ref: '#/components/schemas/ServiceDate' }

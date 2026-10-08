@@ -103,21 +103,7 @@ class DailyAttemptDatabaseIT {
             f.jdbc.update("INSERT INTO time_off_interval (id,\"requestId\",\"serviceDate\",\"startMin\",\"endMin\") VALUES (?,?,?,720,780)", timeOff, timeOff, Timestamp.valueOf(f.day.atStartOfDay()));
             try {
                 DayPlan database = f.service.capturedPlan(f.id, f.day);
-                Map<String, java.math.BigDecimal> settings = new HashMap<>();
-                f.jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.decimal(rs, 2)));
-                var rates = new PublicTypes.Rates(Required.value(settings.get("regular_hourly_dollars")), Required.value(settings.get("overtime_hourly_dollars")),
-                        Required.value(settings.get("mileage_dollars_per_mile")), Required.value(settings.get("travel_buffer_pct")),
-                        Required.value(settings.get("travel_buffer_minutes_per_leg")).intValueExact());
-                var home = new PublicTypes.Location(43.7, 7.4, null);
-                var shift = new PublicTypes.Window(f.local(8), f.local(17));
-                Instant modified = Required.value(Instant.parse("2026-10-01T00:00:00Z"));
-                var snapshot = new PublicTypes.Snapshot(f.id, "America/Chicago", rates, new PublicTypes.Policy(new java.math.BigDecimal("0.02")),
-                        Required.value(List.of(new PublicTypes.Technician(f.id + "-near", Required.value(List.of(f.id))), new PublicTypes.Technician(f.id + "-far", Required.value(List.of(f.id))))),
-                        Required.value(List.of(
-                                new PublicTypes.TechnicianDay(f.id + "-near", f.day, modified, shift, Required.value(List.of(new PublicTypes.Window(f.local(12), f.local(13)))), home, home, 600),
-                                new PublicTypes.TechnicianDay(f.id + "-far", f.day, modified, shift, Required.value(List.of()), home, home, 600))),
-                        Required.value(List.of(new PublicTypes.Appointment(f.id + "-appointment", f.id + "-far", f.day, f.id, 30,
-                                new PublicTypes.Window(f.local(10), f.local(14)), home, 0, f.local(10)))));
+                var snapshot = hostSnapshot(f);
                 var request = new PublicRequests.DailyProposalRequest(Required.value(UUID.randomUUID().toString()), f.day, snapshot);
                 var day = RequestDay.of(request, _ -> { throw new AssertionError("Host coordinates are authoritative"); });
                 Map<String, DayPlan.RoadLeg> reachable = new HashMap<>();
@@ -130,6 +116,66 @@ class DailyAttemptDatabaseIT {
                 f.jdbc.update("DELETE FROM time_off_request WHERE id=?", timeOff);
             }
         }
+    }
+
+    /**
+     * The booking path's facts for the same day: the request-fed snapshot has the database loader's technicians,
+     * appointments and assignment order. Only the identifiers each side owns differ: the schedule version is the host's
+     * last-modified instant instead of the scheduler's counter, and an appointment is its own job.
+     */
+    @Test void aRequestSnapshotOfTheSameDayBuildsTheSameBookingFactsAsTheDatabase() {
+        try (var f = new Fixture(true)) {
+            String timeOff = f.id + "-time-off";
+            f.jdbc.update("INSERT INTO time_off_request (id,\"technicianId\",category,reason,status) VALUES (?,?,'Other','fixture','APPROVED')", timeOff, f.id + "-near");
+            f.jdbc.update("INSERT INTO time_off_interval (id,\"requestId\",\"serviceDate\",\"startMin\",\"endMin\") VALUES (?,?,?,720,780)", timeOff, timeOff, Timestamp.valueOf(f.day.atStartOfDay()));
+            try {
+                Instant captured = Required.value(Instant.now());
+                var facts = new dev.waterflex.scheduler.BookingSnapshotLoader(f.jdbc, f.manager).loadDates(f.id, Required.value(List.of(f.day)), captured, "fixture-routing-v1");
+                var database = Required.value(facts.days().get(f.day));
+                var request = new PublicRequests.BookingOffersRequest(Required.value(UUID.randomUUID().toString()),
+                        new PublicRequests.Job(f.id + "-new-job", f.id, 30, new PublicTypes.Location(43.7, 7.4, null)),
+                        new PublicRequests.Horizon(f.day, f.day), hostSnapshot(f));
+                var built = dev.waterflex.scheduler.api.RequestBooking.build(request, SchedulingPolicy.Rules.defaults(), "fixture-routing-v1", captured,
+                        _ -> { throw new AssertionError("Host coordinates are authoritative"); });
+                var fromRequest = Required.value(built.snapshot().days().get(f.day));
+                assertEquals(List.of(), built.skipped());
+                assertEquals(database.technicians().keySet(), fromRequest.technicians().keySet());
+                for (String id : database.technicians().keySet()) {
+                    var expected = Required.value(database.technicians().get(id)); var actual = Required.value(fromRequest.technicians().get(id));
+                    assertEquals(new dev.waterflex.scheduler.BookingSnapshot.Technician(expected.id(), expected.shiftStart(), expected.shiftEnd(), expected.maxDailyMinutes(),
+                            expected.maxOvertimeMinutes(), expected.services(), expected.absences(), expected.departure(), expected.returnTo(), actual.scheduleVersion()), actual, id);
+                }
+                assertEquals(database.visits().keySet(), fromRequest.visits().keySet());
+                for (String id : database.visits().keySet()) {
+                    var expected = Required.value(database.visits().get(id)); var actual = Required.value(fromRequest.visits().get(id));
+                    assertEquals(new dev.waterflex.scheduler.BookingSnapshot.Visit(expected.id(), actual.jobId(), expected.serviceId(), expected.windowStart(), expected.windowEnd(),
+                            expected.durationMinutes(), expected.location(), expected.originalTechnicianId(), expected.plannedStart(), expected.reservation()), actual, id);
+                }
+                assertEquals(database.baseline(), fromRequest.baseline());
+                assertEquals(database.actualArrangement(), fromRequest.actualArrangement());
+            } finally {
+                f.jdbc.update("DELETE FROM time_off_request WHERE id=?", timeOff);
+            }
+        }
+    }
+
+    /** The host's snapshot of the fixture day, as WaterFlex Software would send it. */
+    private static PublicTypes.Snapshot hostSnapshot(Fixture f) {
+        Map<String, java.math.BigDecimal> settings = new HashMap<>();
+        f.jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.decimal(rs, 2)));
+        var rates = new PublicTypes.Rates(Required.value(settings.get("regular_hourly_dollars")), Required.value(settings.get("overtime_hourly_dollars")),
+                Required.value(settings.get("mileage_dollars_per_mile")), Required.value(settings.get("travel_buffer_pct")),
+                Required.value(settings.get("travel_buffer_minutes_per_leg")).intValueExact());
+        var home = new PublicTypes.Location(43.7, 7.4, null);
+        var shift = new PublicTypes.Window(f.local(8), f.local(17));
+        Instant modified = Required.value(Instant.parse("2026-10-01T00:00:00Z"));
+        return new PublicTypes.Snapshot(f.id, "America/Chicago", rates, new PublicTypes.Policy(new java.math.BigDecimal("0.02")),
+                Required.value(List.of(new PublicTypes.Technician(f.id + "-near", Required.value(List.of(f.id))), new PublicTypes.Technician(f.id + "-far", Required.value(List.of(f.id))))),
+                Required.value(List.of(
+                        new PublicTypes.TechnicianDay(f.id + "-near", f.day, modified, shift, Required.value(List.of(new PublicTypes.Window(f.local(12), f.local(13)))), home, home, 600),
+                        new PublicTypes.TechnicianDay(f.id + "-far", f.day, modified, shift, Required.value(List.of()), home, home, 600))),
+                Required.value(List.of(new PublicTypes.Appointment(f.id + "-appointment", f.id + "-far", f.day, f.id, 30,
+                        new PublicTypes.Window(f.local(10), f.local(14)), home, 0, f.local(10)))));
     }
 
     private static Map<String, List<String>> routes(DayPlan plan) {
