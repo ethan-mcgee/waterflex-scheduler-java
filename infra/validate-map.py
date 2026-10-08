@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import sys
 import urllib.request
@@ -10,8 +11,10 @@ import urllib.request
 manifest_path = Path(sys.argv[1])
 manifest = json.loads(manifest_path.read_text(encoding='utf-8-sig'))
 def get(url, body=None):
-    request = urllib.request.Request(url, data=None if body is None else json.dumps(body).encode(),
-                                     headers={'Content-Type': 'application/json'})
+    headers = {'Content-Type': 'application/json'}
+    if os.environ.get('ROUTING_AUTH_TOKEN'):
+        headers['Authorization'] = 'Bearer ' + os.environ['ROUTING_AUTH_TOKEN']
+    request = urllib.request.Request(url, data=None if body is None else json.dumps(body).encode(), headers=headers)
     with urllib.request.urlopen(request, timeout=30) as response:
         return json.load(response)
 

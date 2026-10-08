@@ -21,6 +21,8 @@ services:
       ROUTING_OSM_FILE: /maps/omaha.osm.pbf
       ROUTING_GRAPH_DIR: /maps/graph
       ROUTING_CH_ENABLED: ${ROUTING_CH_ENABLED:-false}
+      # Local-only default; production VMs must set their own secret.
+      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
     volumes: ["map-data:/maps"]
     ports: ["127.0.0.1:8001:8001"]
   solver-service:
@@ -48,6 +50,7 @@ services:
       DATABASE_USER: waterflex
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://routing-service:8001
+      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
       SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
       SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}
       SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
