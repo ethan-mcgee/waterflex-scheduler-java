@@ -33,6 +33,7 @@ class DispatchGeometryControllerTest {
         // Use Spring MVC's HTTP converters, not the controller's Jackson 2 mapper.
         http = MockMvcBuilders.standaloneSetup(new DispatchGeometryController(jdbc, roads)).build();
         when(roads.activeIdentity()).thenReturn("test-roads");
+        clients(1);
         Required.value(doAnswer(call -> {
             ResultSet row = mock(ResultSet.class);
             when(row.getString(1)).thenReturn("tech");
@@ -104,6 +105,22 @@ class DispatchGeometryControllerTest {
             Required.value(call.<@org.jspecify.annotations.Nullable RowCallbackHandler>getArgument(1)).processRow(row);
             return null;
         }).<@org.jspecify.annotations.Nullable JdbcTemplate>when(jdbc)).query(MockArguments.startsText("SELECT \"technicianId\",version"), MockArguments.callback(), any(Timestamp.class));
+    }
+
+    @Test
+    void aMetroSharedByTwoClientsIsNotDrawnWhole() throws Exception {
+        clients(2);
+        Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-23")))
+                .andExpect(status().isConflict());
+        Required.value(http).perform(Required.value(get("/v1/dispatch/geometry").param("metro_id", "metro").param("date", "2026-09-23")
+                        .param("phase", "before").param("run_id", "run").param("client_id", "acme")))
+                .andExpect(status().isConflict());
+        verify(roads, never()).routeGeometry(Required.value(anyList()), Required.value(anyString()));
+    }
+
+    /** How many clients' depots the test metro has. */
+    private void clients(int count) {
+        when(jdbc.queryForObject(MockArguments.startsText("SELECT count(DISTINCT d."), MockArguments.equalType(Integer.class), MockArguments.equalText("metro"))).thenReturn(count);
     }
 
     @Test

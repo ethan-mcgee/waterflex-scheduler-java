@@ -33,16 +33,10 @@ async function setUp() {
   for (const [side, clientId] of Object.entries(clients)) {
     await prisma.client.create({ data: { id: clientId, name: `Snapshot ${side}` } });
     await prisma.dealership.create({ data: { id: id(`dealer-${side}`), clientId, name: `Dealer ${side}` } });
-    // A second client in the same metro is the real requirement; the temporary one-client-per-metro rule (dropped in
-    // S6 P5) is lifted only for this insert so the builder's own isolation can be proven now.
-    if (side === "b") await prisma.$executeRawUnsafe("ALTER TABLE depot DISABLE TRIGGER depot_metro_one_client");
-    try {
-      await prisma.depot.create({ data: { id: id(`depot-${side}`), metroId, dealershipId: id(`dealer-${side}`), name: `Depot ${side}`,
-        lat: side === "a" ? 41.25 : 41.2, lng: side === "a" ? -95.93 : -96.0,
-        endpointPolicies: { create: { effectiveDate: stamp("1900-01-01"), departure: "DEPOT", returnTo: "HOME" } } } });
-    } finally {
-      if (side === "b") await prisma.$executeRawUnsafe("ALTER TABLE depot ENABLE TRIGGER depot_metro_one_client");
-    }
+    // Both clients serve the same metro, each with its own depot.
+    await prisma.depot.create({ data: { id: id(`depot-${side}`), metroId, dealershipId: id(`dealer-${side}`), name: `Depot ${side}`,
+      lat: side === "a" ? 41.25 : 41.2, lng: side === "a" ? -95.93 : -96.0,
+      endpointPolicies: { create: { effectiveDate: stamp("1900-01-01"), departure: "DEPOT", returnTo: "HOME" } } } });
     await prisma.technician.create({ data: { id: id(`tech-${side}`), clientId, name: `Tech ${side}`, color: "#000000",
       homeLat: 41.3, homeLng: -96.05, shiftStartMin: 480, shiftEndMin: 1020, maxDailyMinutes: 540,
       qualifications: { create: { serviceId: id("service") } },

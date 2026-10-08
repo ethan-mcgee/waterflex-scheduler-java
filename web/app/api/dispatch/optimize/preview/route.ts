@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { notUsedWithApi } from "@/lib/apiBookingRoute";
 import { publicApiEnabled } from "@/lib/schedulerApi";
 import { activeClient } from "@/lib/activeClient";
-import { notFound, servesMetro } from "@/lib/clientScope";
+import { notFound, servesMetroAlone } from "@/lib/clientScope";
 import { EngineError, previewOptimization } from "@/lib/engineClient";
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   const parsed = await readBody(req, previewRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const body = parsed.data;
-  if (!(await servesMetro((await activeClient(req)).id, body.metroId))) return notFound("Metro");
+  if (!(await servesMetroAlone((await activeClient(req)).id, body.metroId))) return notFound("Metro");
   try {
     return NextResponse.json(
       await previewOptimization({ metro_id: body.metroId, date: body.date })

@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** The portal's client boundaries are enforced by the database, not only by the portal's routes. */
 class PortalClientsDatabaseIT {
-    @Test void clientsKeepTheirRowsTechniciansAndMetrosApart() {
+    @Test void clientsKeepTheirRowsAndTechniciansApartEvenInOneMetro() {
         String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
         assertEquals("/waterflex_test", URI.create(url.substring("jdbc:".length())).getPath());
         var source = new DriverManagerDataSource(url, "waterflex", "waterflex");
@@ -40,9 +40,12 @@ class PortalClientsDatabaseIT {
             rejects(jdbc, "depot of its own client",
                 "UPDATE technician_depot_assignment SET \"depotId\"=? WHERE \"technicianId\"=?", brook, acme);
             rejects(jdbc, "another client's dealership", "UPDATE depot SET \"dealershipId\"=? WHERE id=?", brook, acme);
-            rejects(jdbc, "already serves another client",
-                "INSERT INTO depot (id,\"metroId\",\"dealershipId\",name,lat,lng) VALUES (?,?,?,?,41.25,-95.93)", brook + "-second", acme, brook, brook);
-            rejects(jdbc, "already serves another client", "UPDATE depot SET \"metroId\"=? WHERE id=?", acme, brook);
+            // Two clients may serve the same metro, each with its own depots and technicians.
+            jdbc.update("INSERT INTO depot (id,\"metroId\",\"dealershipId\",name,lat,lng) VALUES (?,?,?,?,41.25,-95.93)", brook + "-second", acme, brook, brook);
+            assertEquals(1, jdbc.update("UPDATE depot SET \"metroId\"=? WHERE id=?", acme, brook));
+            rejects(jdbc, "depot of its own client",
+                "INSERT INTO technician_depot_assignment (\"technicianId\",\"depotId\",\"effectiveDate\") VALUES (?,?,'2001-01-01')", acme, brook + "-second");
+            rejects(jdbc, "another client's dealership", "UPDATE depot SET \"dealershipId\"=? WHERE id=?", acme, brook + "-second");
 
             // The same client may add depots to its own metro, and an unchanged clientId is not a change.
             jdbc.update("INSERT INTO depot (id,\"metroId\",\"dealershipId\",name,lat,lng) VALUES (?,?,?,?,41.26,-95.94)", acme + "-second", acme, acme, acme);
