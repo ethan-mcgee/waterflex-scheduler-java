@@ -561,6 +561,7 @@ model Tenant {
   disabledAt DateTime?        @db.Timestamptz(6)
   tokens     TenantApiToken[]
   apiRequests ApiRequest[]
+  bookingDays ApiBookingDay[]
   @@map("tenant")
 }
 
@@ -800,6 +801,7 @@ model ApiRequest {
   tenant         Tenant            @relation(fields: [tenantId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   proposal       ApiDailyProposal?
   receipt        ApiCommitReceipt?
+  offerSet       ApiBookingOfferSet?
   @@id([tenantId, requestId])
   @@map("api_request")
 }
@@ -853,4 +855,54 @@ model ApiCommitReceipt {
   @@unique([tenantId, proposalId])
   @@unique([tenantId, requestId])
   @@map("api_commit_receipt")
+}
+
+/// One metro-day's common booking arrangement and active holds for the public API, as validated JSON.
+model ApiBookingDay {
+  tenantId    String
+  metroId     String
+  serviceDate DateTime @db.Date
+  version     Int
+  stateJson   Json?
+  updatedAt   DateTime @default(now()) @db.Timestamptz(6)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  @@id([tenantId, metroId, serviceDate])
+  @@map("api_booking_day")
+}
+
+/// The offers one booking search returned.
+model ApiBookingOfferSet {
+  tenantId     String
+  id           String
+  requestId    String
+  jobId        String
+  metroId      String
+  expiresAt    DateTime          @db.Timestamptz(6)
+  status       String
+  offerSetJson Json
+  createdAt    DateTime          @default(now()) @db.Timestamptz(6)
+  request      ApiRequest        @relation(fields: [tenantId, requestId], references: [tenantId, requestId], onDelete: Restrict, onUpdate: NoAction)
+  offers       ApiBookingOffer[]
+  @@id([tenantId, id])
+  @@unique([tenantId, requestId])
+  @@index([tenantId, jobId], map: "api_booking_offer_set_job")
+  @@map("api_booking_offer_set")
+}
+
+/// One offer and its hold.
+model ApiBookingOffer {
+  tenantId     String
+  id           String
+  offerSetId   String
+  holdId       String
+  serviceDate  DateTime           @db.Date
+  technicianId String
+  windowStart  DateTime           @db.Timestamptz(6)
+  windowEnd    DateTime           @db.Timestamptz(6)
+  status       String
+  offerSet     ApiBookingOfferSet @relation(fields: [tenantId, offerSetId], references: [tenantId, id], onDelete: Cascade, onUpdate: NoAction)
+  @@id([tenantId, id])
+  @@unique([tenantId, holdId])
+  @@index([tenantId, offerSetId], map: "api_booking_offer_set_member")
+  @@map("api_booking_offer")
 }

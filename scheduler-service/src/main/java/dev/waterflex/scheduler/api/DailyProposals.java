@@ -132,7 +132,7 @@ public class DailyProposals {
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Routes for " + request.serviceDate() + " are frozen from 6 a.m. local time");
         String revision = sha256(CalculationJson.write(snapshot));
         String proposalId = PublicApiStore.newProposalId();
-        SchedulingPolicy.Rules policy = rules(policy(), snapshot.policy());
+        SchedulingPolicy.Rules policy = rules(sharedPolicy(jdbc), snapshot.policy());
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
         Outcome outcome = DailyOperation.execute(admission, Required.value(Duration.ofSeconds(20)), () -> calculate(request, policy, proposalId, revision, tokens),
@@ -192,7 +192,7 @@ public class DailyProposals {
     }
 
     /** The scheduler's own policy settings, the same ones the portal path reads. */
-    private SchedulingPolicy.Rules policy() {
+    static SchedulingPolicy.Rules sharedPolicy(JdbcTemplate jdbc) {
         Map<String, BigDecimal> settings = new HashMap<>();
         jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs ->
                 settings.put(DatabaseFacts.string(rs, 1), DatabaseFacts.decimal(rs, 2)));
