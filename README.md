@@ -27,6 +27,10 @@ Use `docker compose up --no-build` only when intentionally restarting with the e
 
 Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh must prepare a new version first, rebuild the Nominatim database separately, pause booking, activate the matching graph and tiles, and restart the map services. The Nominatim volume is currently a single active database, so back it up before a refresh. Do not activate a new map version while an old Nominatim import is serving bookings.
 
+## Routing service token
+
+`routing-service` requires a shared bearer token on its `/internal/*` computation endpoints and refuses to start without one (`ROUTING_AUTH_TOKEN`, at least 32 non-whitespace characters); `/health` stays open. Compose sets a local-only default for both `routing-service` and `scheduler-service`. Any deployment outside local Compose must set its own secret in both services. Scripts that call a real routing service directly (`infra/validate-map.py`, `infra/verify-sparse-routing.mjs`, `infra/benchmark-routing-ch.mjs`) read the same variable. The CI fixture router does not check it.
+
 ## Appointment offer limit
 
 `BOOKING_OFFER_LIMIT` sets the deployment-wide maximum choices for each new booking offer set. Valid values are exactly `1`, `2`, or `4`; the default is `4` only when unset. Empty, malformed, and unsupported values fail scheduler startup with a configuration error. The scheduler logs the effective limit at startup.
