@@ -89,9 +89,19 @@ class RequestDayTest {
         Map<String, DayPlan.RoadLeg> legs = everyLeg(day);
         legs.put("appt-7>appt-9", new DayPlan.RoadLeg(60, 100));
         assertThrows(IllegalStateException.class, () -> day.plan(legs));
-        Map<String, DayPlan.RoadLeg> self = everyLeg(day);
-        self.put("appt-7>appt-7", new DayPlan.RoadLeg(0, 0));
-        assertThrows(IllegalStateException.class, () -> day.plan(self));
+        Map<String, DayPlan.RoadLeg> malformed = everyLeg(day);
+        malformed.put("appt-7>appt-8>tech-1", new DayPlan.RoadLeg(60, 100));
+        assertThrows(IllegalStateException.class, () -> day.plan(malformed));
+    }
+
+    /** RoadClient.matrix returns every ordered pair including each point to itself; the database path keeps those. */
+    @Test void aPointsLegToItselfIsKeptLikeTheDatabasePath() {
+        RequestDay day = day(request(), new ArrayList<>());
+        Map<String, DayPlan.RoadLeg> legs = everyLeg(day);
+        for (String point : day.points().keySet()) legs.put(point + ">" + point, new DayPlan.RoadLeg(0, 0));
+        DayPlan plan = day.plan(legs);
+        assertEquals(36, plan.getFacts().matrix().size());
+        assertEquals(Set.of(), plan.getFacts().unreachable());
     }
 
     @Test void inputOrderDoesNotChangeThePlan() {
