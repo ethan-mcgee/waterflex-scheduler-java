@@ -71,9 +71,20 @@ function ApiDispatchBoard({ metroId, timezone, date, technicians, appointments }
   const [history, setHistory] = useState<ApiProposal[]>([]);
   const loadHistory = useCallback(async () => {
     const response = await fetch(`/api/dispatch/proposals?metroId=${encodeURIComponent(metroId)}&date=${encodeURIComponent(date)}`, { cache: "no-store" });
-    setHistory((await readResponse(response, apiProposals)).proposals);
+    const proposals = (await readResponse(response, apiProposals)).proposals;
+    setHistory(proposals);
+    return proposals;
   }, [metroId, date]);
-  useEffect(() => { setSelected(null); void loadHistory().catch(error => setStatus(errorMessage(error))); }, [loadHistory]);
+  useEffect(() => {
+    setSelected(null);
+    void loadHistory().then(proposals => {
+      // An overnight improvement waits here for a dispatcher; show the newest one that can still be applied.
+      const waiting = proposals.find(item => item.overnightRunId !== null && item.state === "OPEN");
+      if (waiting === undefined) return;
+      setSelected(current => current ?? waiting);
+      setStatus(`An overnight proposal is waiting for approval: ${waiting.changes.length} appointment change(s).`);
+    }).catch(error => setStatus(errorMessage(error)));
+  }, [loadHistory]);
   const unlocated = appointments.some(a => a.lat === null || a.lng === null);
   const technicianName = (id: string) => technicians.find(item => item.id === id)?.name ?? id;
   async function handlePreview() {
@@ -92,7 +103,7 @@ function ApiDispatchBoard({ metroId, timezone, date, technicians, appointments }
     {selected && <ApiProposalReview proposal={selected} timezone={timezone} technicianName={technicianName} disabled={busy || unlocated}
       onApplied={async applied => { setSelected(applied); await loadHistory(); router.refresh(); }} />}
     {history.length > 0 && <details className={styles.history}><summary>Optimization history ({history.length})</summary>
-      {history.map(item => <button key={item.proposalId} onClick={() => setSelected(item)}>{new Date(item.createdAt).toLocaleString()} | {item.decision.replaceAll("_", " ")} | {item.state.replaceAll("_", " ")}</button>)}
+      {history.map(item => <button key={item.proposalId} onClick={() => setSelected(item)}>{new Date(item.createdAt).toLocaleString()}{item.overnightRunId !== null ? " | Overnight" : ""} | {item.decision.replaceAll("_", " ")} | {item.state.replaceAll("_", " ")}</button>)}
     </details>}
     <div className={styles.body}><Columns technicians={technicians} appointments={appointments} timezone={timezone} />
       <div className={styles.mapPane}><DispatchMap technicians={technicians} appointments={appointments} timezone={timezone} metroId={metroId} date={date} phase="current" /></div></div>

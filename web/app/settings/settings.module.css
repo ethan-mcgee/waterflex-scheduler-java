@@ -1,4 +1,5 @@
 .page { max-width: 760px; }
+.page > section { margin-top: 16px; }
 .lead { color: var(--muted); }
 .notice { padding: 10px 12px; background: var(--brand-wash); border-radius: 6px; }
 .form { display: flex; flex-direction: column; gap: 16px; }
@@ -12,4 +13,9 @@
 .actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .error { color: #b42318; margin: 0; }
 .saved { color: #067647; margin: 0; }
+.times { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 0; }
+.time { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; background: var(--brand-wash); }
+.runs { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.runs details { border-top: 1px solid rgba(0, 0, 0, 0.06); padding-top: 8px; }
+.runs ul { margin: 6px 0 0; padding-left: 18px; }
 @media (max-width: 600px) { .row { flex-direction: column; align-items: flex-start; } }
