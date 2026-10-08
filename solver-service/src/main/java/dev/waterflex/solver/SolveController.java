@@ -53,6 +53,7 @@ public final class SolveController {
         if (bytes.length > CalculationJson.MAX_BYTES) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE);
         var request = CalculationJson.read(new String(bytes,StandardCharsets.UTF_8),CalculationProtocol.Request.class);
         if (!request.operation().equals(operation.toUpperCase(java.util.Locale.ROOT))) throw new IllegalArgumentException("Endpoint operation mismatch");
+        requireRoutingKey(http,request.requestId());
         long remaining = request.remainingMillis() - (System.nanoTime()-entered)/1_000_000;
         if (remaining <= 0) throw new SearchDeadline.Expired();
         Running state = new Running();
@@ -90,10 +91,14 @@ public final class SolveController {
                 calculated.policyVersion(),calculated.costVersion(),calculated.scoreVersion(),calculated.engine(),calculated.provenance(),(System.nanoTime()-entered)/1_000_000,calculated.payload());
         byte[] bytes = Required.value(CalculationJson.write(result).getBytes(StandardCharsets.UTF_8)); SearchDeadline.checkpoint(); return bytes;
     }
+    /** The load balancer hashes this header, so a solve and its cancellation must carry the same, correct value. */
+    private static void requireRoutingKey(HttpServletRequest http,String requestId) {
+        if (!requestId.equals(http.getHeader(HttpCalculation.REQUEST_HEADER))) throw new IllegalArgumentException("Solve request routing header mismatch");
+    }
     @DeleteMapping("/v1/solves/{requestId}")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void cancel(@PathVariable String requestId,HttpServletRequest request) {
-        authenticate(request); java.util.UUID.fromString(requestId);
+        authenticate(request); java.util.UUID.fromString(requestId); requireRoutingKey(request,requestId);
         Running state = running.get(requestId); if (state == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"No active solve"); state.cancel();
     }
     @ExceptionHandler(IllegalArgumentException.class)

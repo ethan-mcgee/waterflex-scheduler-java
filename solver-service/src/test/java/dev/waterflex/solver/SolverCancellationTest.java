@@ -7,8 +7,9 @@ import org.springframework.mock.web.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class SolverCancellationTest {
-    private static MockHttpServletRequest http(String json) {
+    private static MockHttpServletRequest http(String json,String requestId) {
         var request = new MockHttpServletRequest(); request.addHeader("Authorization","Bearer "+SolverReplayTest.TOKEN);
+        request.addHeader(HttpCalculation.REQUEST_HEADER,requestId);
         request.setContent(json.getBytes(java.nio.charset.StandardCharsets.UTF_8)); return request;
     }
     @Test void cancellationRetainsCapacityUntilActualBookingWorkerStops() throws Exception {
@@ -21,14 +22,15 @@ class SolverCancellationTest {
         });
         var controller = new SolveController(SolverReplayTest.TOKEN,admission,calculator,1);
         try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            var worker = executor.submit(() -> { controller.solve("booking",http(CalculationJson.write(request)),new MockHttpServletResponse()); return true; });
+            var worker = executor.submit(() -> { controller.solve("booking",http(CalculationJson.write(request),request.requestId()),new MockHttpServletResponse()); return true; });
             try {
-                assertTrue(entered.await(3,TimeUnit.SECONDS)); controller.cancel(request.requestId(),http(""));
+                assertTrue(entered.await(3,TimeUnit.SECONDS)); controller.cancel(request.requestId(),http("",request.requestId()));
                 var duplicate = assertThrows(org.springframework.web.server.ResponseStatusException.class,
-                        () -> controller.solve("booking",http(CalculationJson.write(request)),new MockHttpServletResponse()));
+                        () -> controller.solve("booking",http(CalculationJson.write(request),request.requestId()),new MockHttpServletResponse()));
                 assertEquals(409,duplicate.getStatusCode().value());
-                var full = assertThrows(org.springframework.web.server.ResponseStatusException.class,
-                        () -> controller.solve("booking",http(CalculationJson.write(ReplayFixture.bookingRequest())),new MockHttpServletResponse()));
+                var other = ReplayFixture.bookingRequest();
+        var full = assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                        () -> controller.solve("booking",http(CalculationJson.write(other),other.requestId()),new MockHttpServletResponse()));
                 assertEquals(429,full.getStatusCode().value());
                 assertThrows(SearchAdmission.Busy.class,() -> admission.acquire(SearchAdmission.Kind.BOOKING,new SearchDeadline(Required.value(Duration.ofMillis(100)))));
                 assertFalse(worker.isDone());
@@ -43,11 +45,11 @@ class SolverCancellationTest {
         var request = ReplayFixture.dailyRequest();
         try (var executor = Executors.newVirtualThreadPerTaskExecutor(); var lease = admission.acquire(SearchAdmission.Kind.BOOKING,new SearchDeadline(Required.value(Duration.ofSeconds(10))))) {
             assertNotNull(lease);
-            var worker = executor.submit(() -> { controller.solve("daily",http(CalculationJson.write(request)),new MockHttpServletResponse()); return true; });
+            var worker = executor.submit(() -> { controller.solve("daily",http(CalculationJson.write(request),request.requestId()),new MockHttpServletResponse()); return true; });
             long until = System.nanoTime()+2_000_000_000L;
             boolean cancelled = false;
             while (!cancelled && System.nanoTime() < until) {
-                try { controller.cancel(request.requestId(),http("")); cancelled = true; }
+                try { controller.cancel(request.requestId(),http("",request.requestId())); cancelled = true; }
                 catch (org.springframework.web.server.ResponseStatusException absent) { Thread.onSpinWait(); }
             }
             assertTrue(cancelled); var failure = assertThrows(ExecutionException.class,() -> worker.get(2,TimeUnit.SECONDS));
