@@ -38,7 +38,7 @@ export default function ApiProposalReview({ proposal, timezone, technicianName, 
   }
   return <section className={styles.optimizationPanel} aria-label="Optimization proposal">
     <div className={styles.optimizationHeader}>
-      <div><strong>{STATE_LABEL[proposal.state]}</strong><span>Proposal {proposal.proposalId.slice(0, 12)} | {new Date(proposal.createdAt).toLocaleString()}</span></div>
+      <div><strong>{STATE_LABEL[proposal.state]}</strong><span>{proposal.overnightRunId !== null ? "Overnight proposal" : "Proposal"} {proposal.proposalId.slice(0, 12)} | {new Date(proposal.createdAt).toLocaleString()}</span></div>
       {proposal.state === "OPEN" && <button className={styles.applyButton} disabled={disabled || busy} onClick={() => void apply()}>{busy ? "Applying..." : "Apply proposal"}</button>}
     </div>
     <p>Scheduler decision: {proposal.decision.replaceAll("_", " ").toLowerCase()}. {proposal.reason}.</p>

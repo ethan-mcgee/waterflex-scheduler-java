@@ -147,8 +147,18 @@ export const apiProposal = z.object({ proposalId: text, serviceDate: date, creat
   skippedTechnicianDays: z.array(z.object({ technicianId: text, serviceDate: date, reason: z.literal("LOCATION_UNRESOLVED"), message: text }).strict()),
   changes: z.array(z.object({ appointmentId: text, fromTechnicianId: text, toTechnicianId: text, fromSequence: z.int().nonnegative(),
     toSequence: z.int().nonnegative(), fromStart: instant, toStart: instant }).strict()),
+  overnightRunId: text.nullable(),
 }).strict();
 export const apiProposals = z.object({ proposals: z.array(apiProposal) }).strict();
+export const overnightRun = z.object({ runId: text, trigger: z.enum(["SCHEDULED", "MANUAL"]), status: z.enum(["QUEUED", "RUNNING", "FINISHED", "ABANDONED"]),
+  scheduledFor: instant.nullable(), createdAt: instant, startedAt: instant.nullable(), finishedAt: instant.nullable(),
+  days: z.array(z.object({ metroId: text, serviceDate: date, outcome: z.enum(["PROPOSED", "SKIPPED", "FAILED"]), message: text.nullable(),
+    proposal: z.object({ proposalId: text, decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]),
+      state: z.enum(["WAITING", "APPLIED", "REFUSED", "NOTHING_TO_APPLY"]) }).strict().nullable() }).strict()),
+}).strict();
+export const overnightSettings = z.object({ times: z.array(text), runs: z.array(overnightRun) }).strict();
+export const overnightTimesSaved = z.object({ times: z.array(text) }).strict();
+export const overnightRunRequested = z.object({ run: overnightRun, alreadyActive: z.boolean() }).strict();
 export const commitProposalRequest = z.object({ proposalId: text }).strict();
 export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
