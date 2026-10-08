@@ -31,6 +31,8 @@ Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` v
 
 `routing-service` requires a shared bearer token on its `/internal/*` computation endpoints and refuses to start without one (`ROUTING_AUTH_TOKEN`, at least 32 non-whitespace characters); `/health` stays open. Compose sets a local-only default for both `routing-service` and `scheduler-service`. Any deployment outside local Compose must set its own secret in both services. Scripts that call a real routing service directly (`infra/validate-map.py`, `infra/verify-sparse-routing.mjs`, `infra/benchmark-routing-ch.mjs`) read the same variable. The CI fixture router does not check it.
 
+The public `/api/v1` calculations route through one routing service per metro, set with `ROUTING_METRO_URLS` (`metro=url` entries separated by commas, using WaterFlex Software metro IDs, for example `omaha=http://routing-omaha:8001,lincoln=http://routing-lincoln:8001`). A request for a metro that is not listed fails; it never falls back to `ROUTING_URL`, which stays the routing service for the internal portal. Every listed service uses the same `ROUTING_AUTH_TOKEN`.
+
 ## Public API tokens
 
 The public scheduling API for WaterFlex Software lives under `/api/v1/` and requires a per-client bearer token; the internal `/v1/` routes used by this portal are unchanged. With `DATABASE_URL` set, issue a token from `web/` with `npx tsx scripts/issue-tenant-token.ts issue <tenantId> "<tenant name>" "<token label>"` (the token is printed once and only its SHA-256 digest is stored) and revoke one with `npx tsx scripts/issue-tenant-token.ts revoke <tokenId>`. `GET /api/v1/whoami` returns the tenant a token belongs to. See [docs/stateless-api-design.md](docs/stateless-api-design.md).
