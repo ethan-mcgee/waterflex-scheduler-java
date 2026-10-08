@@ -1,0 +1,542 @@
+[
+  {
+    "run": 37687456196,
+    "job": "Paced caller benchmark acceptance",
+    "seconds": 222.0,
+    "slowest": [
+      {
+        "name": "Exercise real embedded and remote booking/daily caller paths once",
+        "seconds": 119.0
+      },
+      {
+        "name": "Install fixture dependencies",
+        "seconds": 28.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 26.0
+      },
+      {
+        "name": "Build adapter and callers once",
+        "seconds": 23.0
+      },
+      {
+        "name": "Preserve all caller campaign evidence",
+        "seconds": 10.0
+      }
+    ]
+  },
+  {
+    "run": 37687456196,
+    "job": "Browser regressions",
+    "seconds": 238.0,
+    "slowest": [
+      {
+        "name": "Browser regressions in an isolated schema",
+        "seconds": 125.0
+      },
+      {
+        "name": "Install Playwright Chromium",
+        "seconds": 48.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 32.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 18.0
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "seconds": 4.0
+      }
+    ]
+  },
+  {
+    "run": 37687456196,
+    "job": "Build and unit",
+    "seconds": 397.0,
+    "slowest": [
+      {
+        "name": "Verify Java modules",
+        "seconds": 90.0
+      },
+      {
+        "name": "Verify Java nullability contracts",
+        "seconds": 85.0
+      },
+      {
+        "name": "Build portal",
+        "seconds": 62.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 27.0
+      },
+      {
+        "name": "Lint portal",
+        "seconds": 22.0
+      }
+    ]
+  },
+  {
+    "run": 37687456196,
+    "job": "Booking and optimizer integration",
+    "seconds": 482.0,
+    "slowest": [
+      {
+        "name": "Remote calculation business workflows in an isolated database schema",
+        "seconds": 129.0
+      },
+      {
+        "name": "Time-off repair smoke",
+        "seconds": 56.0
+      },
+      {
+        "name": "Configurable offer limits across both booking paths",
+        "seconds": 51.0
+      },
+      {
+        "name": "Cross-instance search cancellation and lost response cleanup",
+        "seconds": 45.0
+      },
+      {
+        "name": "Immutable snapshot, reservation and database admission gates",
+        "seconds": 37.0
+      }
+    ]
+  },
+  {
+    "run": 37687424374,
+    "job": "Booking and optimizer integration",
+    "seconds": 693.0,
+    "slowest": [
+      {
+        "name": "Time-off repair smoke",
+        "seconds": 169.0
+      },
+      {
+        "name": "Remote calculation business workflows in an isolated database schema",
+        "seconds": 138.0
+      },
+      {
+        "name": "Configurable offer limits across both booking paths",
+        "seconds": 79.0
+      },
+      {
+        "name": "Immutable snapshot, reservation and database admission gates",
+        "seconds": 61.0
+      },
+      {
+        "name": "Cross-instance search cancellation and lost response cleanup",
+        "seconds": 50.0
+      }
+    ]
+  },
+  {
+    "run": 37687424374,
+    "job": "Paced caller benchmark acceptance",
+    "seconds": 182.0,
+    "slowest": [
+      {
+        "name": "Exercise real embedded and remote booking/daily caller paths once",
+        "seconds": 102.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 33.0
+      },
+      {
+        "name": "Install fixture dependencies",
+        "seconds": 17.0
+      },
+      {
+        "name": "Build adapter and callers once",
+        "seconds": 13.0
+      },
+      {
+        "name": "Set up job",
+        "seconds": 3.0
+      }
+    ]
+  },
+  {
+    "run": 37687424374,
+    "job": "Browser regressions",
+    "seconds": 227.0,
+    "slowest": [
+      {
+        "name": "Browser regressions in an isolated schema",
+        "seconds": 127.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 34.0
+      },
+      {
+        "name": "Install Playwright Chromium",
+        "seconds": 34.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 20.0
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "seconds": 3.0
+      }
+    ]
+  },
+  {
+    "run": 37687424374,
+    "job": "Build and unit",
+    "seconds": 406.0,
+    "slowest": [
+      {
+        "name": "Verify Java modules",
+        "seconds": 92.0
+      },
+      {
+        "name": "Verify Java nullability contracts",
+        "seconds": 84.0
+      },
+      {
+        "name": "Build portal",
+        "seconds": 62.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 27.0
+      },
+      {
+        "name": "Lint portal",
+        "seconds": 22.0
+      }
+    ]
+  },
+  {
+    "run": 37687179935,
+    "job": "Booking and optimizer integration",
+    "seconds": 678.0,
+    "slowest": [
+      {
+        "name": "Time-off repair smoke",
+        "seconds": 169.0
+      },
+      {
+        "name": "Remote calculation business workflows in an isolated database schema",
+        "seconds": 137.0
+      },
+      {
+        "name": "Configurable offer limits across both booking paths",
+        "seconds": 77.0
+      },
+      {
+        "name": "Cross-instance search cancellation and lost response cleanup",
+        "seconds": 50.0
+      },
+      {
+        "name": "Immutable snapshot, reservation and database admission gates",
+        "seconds": 50.0
+      }
+    ]
+  },
+  {
+    "run": 37687179935,
+    "job": "Build and unit",
+    "seconds": 415.0,
+    "slowest": [
+      {
+        "name": "Verify Java modules",
+        "seconds": 95.0
+      },
+      {
+        "name": "Verify Java nullability contracts",
+        "seconds": 85.0
+      },
+      {
+        "name": "Build portal",
+        "seconds": 60.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 26.0
+      },
+      {
+        "name": "Verify experiment and campaign toolkits (no full matrix)",
+        "seconds": 22.0
+      }
+    ]
+  },
+  {
+    "run": 37687179935,
+    "job": "Paced caller benchmark acceptance",
+    "seconds": 210.0,
+    "slowest": [
+      {
+        "name": "Exercise real embedded and remote booking/daily caller paths once",
+        "seconds": 112.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 32.0
+      },
+      {
+        "name": "Install fixture dependencies",
+        "seconds": 23.0
+      },
+      {
+        "name": "Build adapter and callers once",
+        "seconds": 17.0
+      },
+      {
+        "name": "Set up job",
+        "seconds": 5.0
+      }
+    ]
+  },
+  {
+    "run": 37687179935,
+    "job": "Browser regressions",
+    "seconds": 221.0,
+    "slowest": [
+      {
+        "name": "Browser regressions in an isolated schema",
+        "seconds": 146.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 23.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 21.0
+      },
+      {
+        "name": "Install Playwright Chromium",
+        "seconds": 18.0
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "seconds": 3.0
+      }
+    ]
+  },
+  {
+    "run": 37686206321,
+    "job": "Build and unit",
+    "seconds": 323.0,
+    "slowest": [
+      {
+        "name": "Verify Java modules",
+        "seconds": 80.0
+      },
+      {
+        "name": "Verify Java nullability contracts",
+        "seconds": 64.0
+      },
+      {
+        "name": "Build portal",
+        "seconds": 42.0
+      },
+      {
+        "name": "Verify experiment and campaign toolkits (no full matrix)",
+        "seconds": 23.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 19.0
+      }
+    ]
+  },
+  {
+    "run": 37686206321,
+    "job": "Paced caller benchmark acceptance",
+    "seconds": 209.0,
+    "slowest": [
+      {
+        "name": "Exercise real embedded and remote booking/daily caller paths once",
+        "seconds": 114.0
+      },
+      {
+        "name": "Install fixture dependencies",
+        "seconds": 28.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 25.0
+      },
+      {
+        "name": "Build adapter and callers once",
+        "seconds": 19.0
+      },
+      {
+        "name": "Run actions/setup-node@v7",
+        "seconds": 5.0
+      }
+    ]
+  },
+  {
+    "run": 37686206321,
+    "job": "Browser regressions",
+    "seconds": 257.0,
+    "slowest": [
+      {
+        "name": "Browser regressions in an isolated schema",
+        "seconds": 155.0
+      },
+      {
+        "name": "Install Playwright Chromium",
+        "seconds": 37.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 29.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 24.0
+      },
+      {
+        "name": "Run actions/checkout@v7",
+        "seconds": 3.0
+      }
+    ]
+  },
+  {
+    "run": 37686206321,
+    "job": "Booking and optimizer integration",
+    "seconds": 616.0,
+    "slowest": [
+      {
+        "name": "Time-off repair smoke",
+        "seconds": 168.0
+      },
+      {
+        "name": "Remote calculation business workflows in an isolated database schema",
+        "seconds": 129.0
+      },
+      {
+        "name": "Configurable offer limits across both booking paths",
+        "seconds": 61.0
+      },
+      {
+        "name": "Cross-instance search cancellation and lost response cleanup",
+        "seconds": 41.0
+      },
+      {
+        "name": "Immutable snapshot, reservation and database admission gates",
+        "seconds": 38.0
+      }
+    ]
+  },
+  {
+    "run": 37685706081,
+    "job": "Build and unit",
+    "seconds": 389.0,
+    "slowest": [
+      {
+        "name": "Verify Java modules",
+        "seconds": 88.0
+      },
+      {
+        "name": "Verify Java nullability contracts",
+        "seconds": 80.0
+      },
+      {
+        "name": "Build portal",
+        "seconds": 60.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 25.0
+      },
+      {
+        "name": "Lint portal",
+        "seconds": 21.0
+      }
+    ]
+  },
+  {
+    "run": 37685706081,
+    "job": "Paced caller benchmark acceptance",
+    "seconds": 204.0,
+    "slowest": [
+      {
+        "name": "Exercise real embedded and remote booking/daily caller paths once",
+        "seconds": 118.0
+      },
+      {
+        "name": "Install fixture dependencies",
+        "seconds": 26.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 23.0
+      },
+      {
+        "name": "Build adapter and callers once",
+        "seconds": 23.0
+      },
+      {
+        "name": "Preserve all caller campaign evidence",
+        "seconds": 4.0
+      }
+    ]
+  },
+  {
+    "run": 37685706081,
+    "job": "Browser regressions",
+    "seconds": 249.0,
+    "slowest": [
+      {
+        "name": "Browser regressions in an isolated schema",
+        "seconds": 149.0
+      },
+      {
+        "name": "Install Playwright Chromium",
+        "seconds": 40.0
+      },
+      {
+        "name": "Initialize containers",
+        "seconds": 23.0
+      },
+      {
+        "name": "Install portal dependencies and generate Prisma client",
+        "seconds": 22.0
+      },
+      {
+        "name": "Run actions/setup-node@v7",
+        "seconds": 4.0
+      }
+    ]
+  },
+  {
+    "run": 37685706081,
+    "job": "Booking and optimizer integration",
+    "seconds": 573.0,
+    "slowest": [
+      {
+        "name": "Remote calculation business workflows in an isolated database schema",
+        "seconds": 138.0
+      },
+      {
+        "name": "Configurable offer limits across both booking paths",
+        "seconds": 78.0
+      },
+      {
+        "name": "Time-off repair smoke",
+        "seconds": 57.0
+      },
+      {
+        "name": "Cross-instance search cancellation and lost response cleanup",
+        "seconds": 49.0
+      },
+      {
+        "name": "Immutable snapshot, reservation and database admission gates",
+        "seconds": 48.0
+      }
+    ]
+  }
+]
