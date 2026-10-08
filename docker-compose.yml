@@ -69,6 +69,9 @@ services:
     image: mediagis/nominatim:5.3
     environment:
       PBF_PATH: /maps/omaha.osm.pbf
+      # A file path, never "true": the image would then download TIGER data from a third-party server. The image
+      # rereads this on every start and only searches TIGER ranges while the file exists.
+      IMPORT_TIGER_ADDRESSES: /maps/tiger-nominatim-preprocessed.csv.tar.gz
       IMPORT_STYLE: address
       IMPORT_WIKIPEDIA: "false"
       UPDATE_MODE: none
