@@ -61,6 +61,10 @@ services:
       BOOKING_SEARCH_BOUNDED: ${BOOKING_SEARCH_BOUNDED:-false}
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_SEARCH_CAPACITY:-0}
       ROUTING_PREWARM_ENABLED: ${ROUTING_PREWARM_ENABLED:-false}
+      # Public API locations sent with an address only: COORDINATES_REQUIRED never locates them; NOMINATIM looks
+      # them up in the scheduler's own Nominatim and accepts only an exact house.
+      GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
+      NOMINATIM_URL: http://nominatim:8080
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }

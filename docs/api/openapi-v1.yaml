@@ -406,7 +406,11 @@ components:
     Location:
       type: object
       additionalProperties: false
-      description: Coordinates are authoritative when present. An address alone is geocoded by the scheduler.
+      description: >-
+        Coordinates are authoritative when present. An address alone is located only when the deployment runs with
+        `geocoding.mode=NOMINATIM` and the scheduler's map has exactly one house matching the house number, street
+        and ZIP; otherwise it is not located (the technician-day is skipped, or a booking job is a 422). A lookup
+        outage is a 503 `ROUTING_UNAVAILABLE` and can be retried.
       properties:
         lat: { type: number, minimum: -90, maximum: 90 }
         lng: { type: number, minimum: -180, maximum: 180 }

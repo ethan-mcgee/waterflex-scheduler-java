@@ -102,6 +102,12 @@ public class DailyProposals {
         return Reply.of(replay.status(), body);
     }
 
+    /** Road routing, or the address lookup that serves it, was unavailable; a retry runs again. */
+    static Problem routingUnavailable(RoadClient.RoadUnavailable unavailable) {
+        return new Problem(ErrorCode.ROUTING_UNAVAILABLE, unavailable instanceof NominatimGeocoder.Unavailable
+                ? Required.value(unavailable.getMessage()) : "Road routing unavailable");
+    }
+
     private Reply run(String tenantId, DailyProposalRequest request, String owner) {
         try {
             StoredProposal stored = propose(request);
@@ -113,7 +119,7 @@ public class DailyProposals {
             return Reply.of(failure.status, problem);
         } catch (RoadClient.RoadUnavailable unavailable) {
             store.release(tenantId, request.requestId(), owner);
-            return Reply.of(503, new Problem(ErrorCode.ROUTING_UNAVAILABLE, "Road routing unavailable"));
+            return Reply.of(503, routingUnavailable(unavailable));
         } catch (SearchAdmission.Busy busy) {
             store.release(tenantId, request.requestId(), owner);
             return Reply.of(429, new Problem(ErrorCode.BUSY, "Search capacity exhausted"));

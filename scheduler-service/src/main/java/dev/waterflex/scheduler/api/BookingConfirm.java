@@ -117,7 +117,7 @@ public class BookingConfirm {
             });
         } catch (RoadClient.RoadUnavailable unavailable) {
             store.release(tenantId, request.requestId(), owner);
-            return Reply.of(503, new Problem(ErrorCode.ROUTING_UNAVAILABLE, "Road routing unavailable"));
+            return Reply.of(503, DailyProposals.routingUnavailable(unavailable));
         } catch (SearchAdmission.Busy | BookingStore.DayMoved busy) {
             store.release(tenantId, request.requestId(), owner);
             return Reply.of(429, new Problem(ErrorCode.BUSY, busy instanceof BookingStore.DayMoved
