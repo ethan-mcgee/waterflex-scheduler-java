@@ -60,7 +60,7 @@ Public routes live under `/api/v1/`, separate from the scheduler's internal `/v1
 Every calculating call carries a snapshot of the facts it needs:
 
 - technicians: host ID, departure and return location, shift, paid and overtime limits, qualifications, absences, and the host's `lastModified` timestamp per technician-day,
-- appointments already committed for those technician-days: host ID, service, location, window, duration, assigned technician, sequence,
+- appointments already committed for those technician-days: host ID, service, location, window, duration, assigned technician, sequence, current planned start,
 - rates and policy settings, or a reference to a versioned settings document,
 - locations as coordinates (see "Locations and geocoding").
 
@@ -77,6 +77,15 @@ The scheduler computes a canonical content hash of the snapshot (the input revis
 | `POST /api/v1/booking/holds/{id}/confirm` | Host sends its current snapshot; scheduler revalidates against holds and returns the arrangement to write. |
 | `POST /api/v1/repairs/proposals` | Absence repair for a technician-day, same pattern as daily. Repair never adds overtime. |
 | `DELETE /api/v1/requests/{requestId}` | Best-effort cancellation of an in-flight calculation. |
+
+### Contract changes
+
+The contract is a draft until the first endpoint that calculates ships, but every change WaterFlex Software must act on is listed here and in the spec's description.
+
+| Change | Since | What WaterFlex Software sends |
+| --- | --- | --- |
+| `TechnicianDay.absences` is required | #88 | An empty list when the technician has no absence that day. A missing list is rejected, never read as "no absences". |
+| `Appointment.plannedStart` is required | #89 | The appointment's currently planned arrival, as an instant. The solver records it as the appointment's original start, and proposals report moves against it. A missing value is rejected, never guessed. |
 
 ### Latency target (Decided)
 
