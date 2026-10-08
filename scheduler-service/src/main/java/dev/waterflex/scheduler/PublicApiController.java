@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler;
 
+import dev.waterflex.scheduler.api.BookingConfirm;
 import dev.waterflex.scheduler.api.BookingHolds;
 import dev.waterflex.scheduler.api.BookingOffers;
 import dev.waterflex.scheduler.api.DailyCommits;
@@ -20,12 +21,15 @@ public class PublicApiController {
     private final DailyCommits dailyCommits;
     private final BookingOffers bookingOffers;
     private final BookingHolds bookingHolds;
+    private final BookingConfirm bookingConfirm;
 
-    public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers, BookingHolds bookingHolds) {
+    public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers, BookingHolds bookingHolds,
+                               BookingConfirm bookingConfirm) {
         this.dailyProposals = dailyProposals;
         this.dailyCommits = dailyCommits;
         this.bookingOffers = bookingOffers;
         this.bookingHolds = bookingHolds;
+        this.bookingConfirm = bookingConfirm;
     }
 
     /** Lets an integrator confirm which tenant a token belongs to. */
@@ -58,6 +62,11 @@ public class PublicApiController {
     @PostMapping("/api/v1/booking/offers/{offerId}/release")
     public ResponseEntity<String> releaseBookingOffer(HttpServletRequest request, @PathVariable String offerId, @RequestBody String body) {
         return reply(bookingHolds.release(TenantAuthentication.tenant(request), offerId, body));
+    }
+
+    @PostMapping("/api/v1/booking/holds/{holdId}/confirm")
+    public ResponseEntity<String> confirmBookingHold(HttpServletRequest request, @PathVariable String holdId, @RequestBody String body) {
+        return reply(bookingConfirm.confirm(TenantAuthentication.tenant(request), holdId, body));
     }
 
     private static ResponseEntity<String> reply(DailyProposals.Reply reply) {
