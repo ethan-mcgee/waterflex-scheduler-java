@@ -26,7 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Component
 public class PublicApiStore {
-    public enum Operation { DAILY_PROPOSAL, DAILY_COMMIT }
+    public enum Operation { DAILY_PROPOSAL, DAILY_COMMIT, BOOKING_OFFERS }
     public enum ProposalStatus { PROPOSED, COMMITTED, STALE }
 
     /** The outcome of claiming a request ID. */
@@ -68,9 +68,10 @@ public class PublicApiStore {
         this.transactions = new TransactionTemplate(transactions);
     }
 
-    private interface Work<T extends Object> { T run(); }
+    interface Work<T extends Object> { T run(); }
 
-    private <T extends Object> T asTenant(String tenantId, Work<T> work) {
+    /** Runs {@code work} in one transaction as scheduler_tenant with app.tenant_id set to {@code tenantId}. */
+    <T extends Object> T asTenant(String tenantId, Work<T> work) {
         return Required.value(transactions.execute(_ -> {
             DatabaseFacts.query(jdbc, "SELECT set_config('app.tenant_id', ?, true)", String.class, tenantId);
             jdbc.execute("SET LOCAL ROLE scheduler_tenant");
@@ -159,7 +160,8 @@ public class PublicApiStore {
         });
     }
 
-    private void complete(String tenantId, String requestId, String ownerToken, int status, String json) {
+    /** Completes a claimed request with its final answer; call inside {@link #asTenant}. */
+    void complete(String tenantId, String requestId, String ownerToken, int status, String json) {
         int updated = jdbc.update("UPDATE api_request SET state='COMPLETED',\"responseStatus\"=?,\"responseJson\"=?::jsonb,\"completedAt\"=clock_timestamp() "
                 + "WHERE \"tenantId\"=? AND \"requestId\"=? AND \"ownerToken\"=? AND state='IN_PROGRESS'", status, json, tenantId, requestId, ownerToken);
         if (updated != 1) throw new IllegalStateException("The request claim was lost before completion");

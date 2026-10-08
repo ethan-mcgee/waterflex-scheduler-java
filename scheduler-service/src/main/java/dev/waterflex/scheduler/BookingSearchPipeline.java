@@ -117,7 +117,7 @@ public final class BookingSearchPipeline {
     }
 
     /** Preserve independently validated insertion offers when later optional refinement runs out of time. */
-    static BoundedBookingSearch.Result combine(BoundedBookingSearch.Result insertion, BoundedBookingSearch.Result refined,
+    public static BoundedBookingSearch.Result combine(BoundedBookingSearch.Result insertion, BoundedBookingSearch.Result refined,
             dev.waterflex.scheduler.optimizer.SchedulingPolicy.Rules policy) {
         java.util.Set<BoundedBookingSearch.Candidate> candidates = new java.util.LinkedHashSet<>(insertion.candidates());
         candidates.addAll(refined.candidates());
