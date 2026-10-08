@@ -466,17 +466,13 @@ jobs:
         working-directory: web
         timeout-minutes: 10
         run: |
-          # A stalled mirror download fails fast and retries instead of hanging, and a
-          # killed attempt must not leave apt-get holding the dpkg lock for the next one.
-          echo 'Acquire::Retries "3"; Acquire::http::Timeout "20"; Acquire::https::Timeout "20"; DPkg::Lock::Timeout "60";' \
-            | sudo tee /etc/apt/apt.conf.d/99ci-network > /dev/null
+          # The ubuntu-24.04 runner image already has every library Chromium needs. --with-deps
+          # only added optional font packages from the Azure apt mirror, which repeatedly stalled
+          # or crawled past the step limit. Download the browser alone (from the Playwright CDN);
+          # a genuinely missing host library still fails the browser tests at launch.
           for attempt in 1 2 3; do
-            timeout 180 npx playwright install --with-deps chromium && exit 0
-            echo "Playwright install attempt $attempt failed or timed out"
-            sudo pkill -x apt-get || true
-            sudo pkill -x dpkg || true
-            sleep 10
-            sudo dpkg --configure -a || true
+            timeout 180 npx playwright install chromium && exit 0
+            echo "Playwright install attempt $attempt failed or timed out"; sleep 10
           done
           exit 1
       - name: Browser regressions in an isolated schema
