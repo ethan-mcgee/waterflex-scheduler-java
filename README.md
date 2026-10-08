@@ -37,6 +37,10 @@ The public `/api/v1` calculations route through one routing service per metro, s
 
 The public scheduling API for WaterFlex Software lives under `/api/v1/` and requires a per-client bearer token; the internal `/v1/` routes used by this portal are unchanged. With `DATABASE_URL` set, issue a token from `web/` with `npx tsx scripts/issue-tenant-token.ts issue <tenantId> "<tenant name>" "<token label>"` (the token is printed once and only its SHA-256 digest is stored) and revoke one with `npx tsx scripts/issue-tenant-token.ts revoke <tokenId>`. `GET /api/v1/whoami` returns the tenant a token belongs to. See [docs/stateless-api-design.md](docs/stateless-api-design.md).
 
+## Portal clients
+
+The portal schedules for one or more clients, chosen in the sidebar. Each client's dealerships, depots, technicians, customers and bookings are kept apart, and existing data belongs to the client `default`. With `DATABASE_URL` set, add a client from `web/` with `npx tsx scripts/create-client.ts <clientId> "<client name>"`. Until booking and dispatch run through the public API, each metro serves one client. See [docs/stateless-api-design.md](docs/stateless-api-design.md#portal-as-a-client-decided-2026-10-08).
+
 ## Appointment offer limit
 
 `BOOKING_OFFER_LIMIT` sets the deployment-wide maximum choices for each new booking offer set. Valid values are exactly `1`, `2`, or `4`; the default is `4` only when unset. Empty, malformed, and unsupported values fail scheduler startup with a configuration error. The scheduler logs the effective limit at startup.

@@ -3,8 +3,11 @@ import { haversineMiles } from "@/lib/geo";
 import { coverageBounds } from "./coverage";
 import { serviceAreaCircle } from "./contracts";
 
-export async function bookingServiceArea() {
-  const depots = await prisma.depot.findMany({ select: { lat: true, lng: true, metro: { select: { serviceRadiusMi: true } } } });
+/** The client's service area, or null when the client has no depots yet (nothing can be booked). */
+export async function bookingServiceArea(clientId: string) {
+  const depots = await prisma.depot.findMany({ where: { dealership: { clientId } },
+    select: { lat: true, lng: true, metro: { select: { serviceRadiusMi: true } } } });
+  if (depots.length === 0) return null;
   const circles = depots.map(d => serviceAreaCircle.parse({ lat: d.lat, lng: d.lng, radiusMi: d.metro.serviceRadiusMi }));
   return { circles, bounds: coverageBounds(circles) };
 }
@@ -13,8 +16,9 @@ export async function bookingServiceArea() {
 // This lets an operating area include nearby communities outside the urban
 // core without baking one city's coverage policy into application code.
 
-export async function resolveMetroForLocation(lat: number, lng: number): Promise<string | null> {
+export async function resolveMetroForLocation(lat: number, lng: number, clientId: string): Promise<string | null> {
   const depots = await prisma.depot.findMany({
+    where: { dealership: { clientId } },
     select: {
       metroId: true,
       lat: true,

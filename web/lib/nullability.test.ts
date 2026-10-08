@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { after, before } from "node:test";
 import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 import { POST as confirm } from "../app/api/book/confirm/route";
@@ -14,6 +14,42 @@ import { availabilityRequest, readResponse, offersResponse, testInput, testAttem
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
 import { parseTimeOffReport, timeOffIntervalView, additionalRepairOvertime, repairOvertimeMinutes } from "./timeOffView";
+import { prisma } from "./prisma";
+import { DEFAULT_CLIENT_ID } from "./clients";
+
+// Routes check that each ID belongs to the active client before calling the engine. These tests run without a
+// database, so the client list and the ownership counts are stubbed; ownedRows decides whether a row is the client's.
+let ownedRows = 1;
+const restores: Array<() => void> = [];
+function stub(target: object, method: string, value: unknown) {
+  const original: unknown = Reflect.get(target, method);
+  Reflect.set(target, method, value);
+  restores.push(() => { Reflect.set(target, method, original); });
+}
+before(() => {
+  stub(prisma.client, "findMany", async () => [{ id: DEFAULT_CLIENT_ID, name: "Default client" }]);
+  for (const delegate of [prisma.job, prisma.slotHold, prisma.technician, prisma.depot, prisma.dealership, prisma.appointment, prisma.timeOffRequest])
+    stub(delegate, "count", async () => ownedRows);
+});
+after(() => { for (const restore of restores.splice(0).reverse()) restore(); });
+
+test("another client's booking is not found and never reaches the scheduling engine", async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return Response.json({}); };
+  ownedRows = 0;
+  try {
+    const body = (value: unknown) => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+    const responses = [
+      await refresh(new NextRequest("http://localhost/api/book/refresh", body({ jobId: "other-client-job" }))),
+      await select(new NextRequest("http://localhost/api/book/select", body({ jobId: "other-client-job", offerId: "offer" }))),
+      await confirm(new NextRequest("http://localhost/api/book/confirm", body({ holdId: "other-client-hold" }))),
+      await qualification(new NextRequest("http://localhost/api/dispatch/qualification", body({ technicianId: "other-client-tech", serviceId: "service", qualified: true }))),
+    ];
+    assert.deepEqual(responses.map(response => response.status), [404, 404, 404, 404]);
+    assert.equal(calls, 0);
+  } finally { ownedRows = 1; globalThis.fetch = original; }
+});
 
 test("refresh preserves the browser deadline and rejects expired or malformed values before scheduling", async () => {
   const original = globalThis.fetch;

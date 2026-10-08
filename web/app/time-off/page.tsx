@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { activeClient } from "@/lib/activeClient";
 import { parseTimeOffReport, timeOffIntervalView } from "@/lib/timeOffView";
 import TimeOffDemo from "./TimeOffDemo";
 
@@ -16,10 +17,11 @@ function isFilterKey(value: string | undefined): value is FilterKey { return val
 export default async function TimeOffPage({ searchParams }: { searchParams: { status?: string } }) {
   const selectedFilter: FilterKey = isFilterKey(searchParams.status) ? searchParams.status : "all";
   const statuses = FILTERS[selectedFilter];
+  const clientId = (await activeClient()).id;
   const [technicians, loadedRequests] = await Promise.all([
-    prisma.technician.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.technician.findMany({ where: { clientId, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.timeOffRequest.findMany({
-      where: statuses ? { status: { in: [...statuses] } } : undefined,
+      where: { technician: { clientId }, status: { in: [...statuses] } },
       include: { technician: { select: { name: true } }, intervals: { orderBy: { serviceDate: "asc" } }, report: true },
       orderBy: { createdAt: "desc" }, take: 101,
     }),

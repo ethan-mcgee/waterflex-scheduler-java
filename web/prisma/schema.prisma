@@ -71,18 +71,35 @@ model DepotEndpointPolicy {
   @@map("depot_endpoint_policy")
 }
 
+/// A client the portal schedules for, standing in for WaterFlex Software. Its API token is in the environment.
+model Client {
+  id          String       @id
+  name        String
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
+  dealerships Dealership[]
+  technicians Technician[]
+  customers   Customer[]
+
+  @@map("client")
+}
+
 model Dealership {
   id String @id @default(cuid())
+  clientId String
+  client Client @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   name String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   depots Depot[]
 
+  @@index([clientId], map: "dealership_client")
   @@map("dealership")
 }
 
 model Technician {
   id                 String      @id @default(cuid())
+  clientId           String
+  client             Client      @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   name               String
   email              String?
   phone              String?
@@ -115,6 +132,7 @@ model Technician {
   reservationDependencies ReservationDependency[]
 
   @@index([active])
+  @@index([clientId], map: "technician_client")
   @@map("technician")
 }
 
@@ -184,6 +202,8 @@ model ServiceCatalog {
 
 model Customer {
   id         String   @id @default(cuid())
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   firstName  String
   lastName   String
   email      String
@@ -194,6 +214,7 @@ model Customer {
   addresses Address[]
   jobs      Job[]
 
+  @@index([clientId], map: "customer_client")
   @@map("customer")
 }
 

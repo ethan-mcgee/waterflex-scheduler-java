@@ -9,6 +9,7 @@ import type { SlotOffer } from "../lib/engineClient";
 import { validateTestConfig } from "../lib/bookingTestCore";
 import { OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
 import type { AddressGenerationDependencies } from "../lib/bookingTestAddresses";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 // Intentionally retains run history in the disposable test database for inspection.
 if (!new URL(process.env.DATABASE_URL ?? "").pathname.endsWith("/waterflex_test")) throw new Error("Use isolated waterflex_test database only.");
@@ -100,7 +101,7 @@ async function main() {
   collision = await advanceTestRun(collisionId, collision.revision, { ...testEngine, generation: {
     reverse: async () => collisionLocation,
     routable: async candidates => {
-      const customer = await prisma.customer.create({ data: { id: collisionRecordId, firstName: "Collision", lastName: "Test",
+      const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: collisionRecordId, firstName: "Collision", lastName: "Test",
         email: `${collisionRecordId}@example.invalid`, phone: "4025550111" } });
       const address = await prisma.address.create({ data: { id: collisionRecordId, customerId: customer.id, line1: collisionLocation.line1,
         city: collisionLocation.city, state: collisionLocation.state, postalCode: collisionLocation.postalCode, lat: collisionLocation.lat, lng: collisionLocation.lng } });
@@ -252,7 +253,7 @@ async function main() {
   assert.equal(await prisma.job.count({ where: { id: recoveredJob } }), 1);
   assert.equal(await prisma.appointment.count({ where: { jobId: recoveredJob } }), 1);
   await controlTestRun(id, "pause");
-  const manualCustomer = await prisma.customer.create({ data: { firstName: "Manual", lastName: "Survivor", email: `${randomUUID()}@example.invalid`, phone: "4025550199" } });
+  const manualCustomer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Manual", lastName: "Survivor", email: `${randomUUID()}@example.invalid`, phone: "4025550199" } });
   const manualAddress = await prisma.address.create({ data: { customerId: manualCustomer.id, line1: "Manual survivor", city: "Omaha", state: "NE", postalCode: "68102", lat: 41.2524, lng: -95.9980 } });
   const service = await prisma.serviceCatalog.findFirstOrThrow({ where: { active: true } });
   const manualJob = await prisma.job.create({ data: { customerId: manualCustomer.id, addressId: manualAddress.id, serviceId: service.id, durationMin: 30, status: "SCHEDULED" } });

@@ -291,6 +291,20 @@ The portal's tables (`slot_hold`, `reservation_arrangement`, `optimization_run` 
 - Time off and shift edits: the host owns them and sends the result in later snapshots. Repair is requested through `/v1/repairs/proposals`.
 - The current `web/` portal becomes an admin and demo client of the public API, or is retired.
 
+## Portal as a client (Decided 2026-10-08)
+
+The portal stays, keeps its pages, and becomes a client of the public API, standing in for WaterFlex Software. It schedules for several clients and switches between them, including two clients in the same metro. The work is phased:
+
+1. Client model and switcher (done). A `client` table; `clientId` on `dealership`, `technician` and `customer`; every portal page and route is scoped to the active client chosen in the sidebar (cookie `wf_client`). A row of another client is a 404. Database triggers keep `clientId` fixed, keep each technician at its own client's depots and keep a depot at its own client's dealerships. Until steps 4 and 5, the scheduler's database path routes all technicians of a metro together, so a trigger also keeps each metro to one client.
+2. Per-client booking and routing solver settings page.
+3. Snapshot builder from the portal's tables.
+4. Booking through `/api/v1`.
+5. Dispatch, daily proposals and repair through `/api/v1`; then the one-client-per-metro trigger is dropped.
+6. Per-client overnight runner owned by the portal (each client chooses its run times, manual only, or both) with a "Run now" action. Improved overnight proposals wait for dispatcher approval.
+7. Retire the portal-only engine endpoints.
+
+Each client's public API token lives in the portal's environment or secret file, never in the portal database. Clients are created with `npx tsx scripts/create-client.ts <clientId> "<client name>"`.
+
 ## Migration
 
 1. Add the public endpoints alongside the existing ones, backed by a request-fed path that builds `DayPlan` and `BookingSnapshot` from the snapshot instead of the database.

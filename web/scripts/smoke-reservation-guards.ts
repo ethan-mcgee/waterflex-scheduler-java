@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { technicianColor } from "../lib/technicianColor";
 import { purgeHasReservations } from "../lib/reservationGuards";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = new PrismaClient();
 const base = process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000";
@@ -28,15 +29,15 @@ async function main() {
   assert.equal(database.pathname, "/waterflex_test", "Use isolated waterflex_test data");
   try {
     await prisma.metro.create({ data: { id: ids.metro, name: "Reservation guards", timezone: "America/Chicago" } });
-    await prisma.dealership.create({ data: { id: ids.dealership, name: "Reservation guards" } });
+    await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, id: ids.dealership, name: "Reservation guards" } });
     for (const id of [ids.depot, ids.target]) await prisma.depot.create({ data: { id, metroId: ids.metro, dealershipId: ids.dealership,
       name: id, lat: 43.735, lng: 7.420, endpointPolicies: { create: { effectiveDate: new Date("1900-01-01"), departure: "HOME", returnTo: "HOME" } } } });
     for (const id of [ids.service, ids.movedService]) await prisma.serviceCatalog.create({ data: { id, code: id, name: id, estDurationMin: 50 } });
-    for (const id of [ids.a, ids.b]) await prisma.technician.create({ data: { id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
+    for (const id of [ids.a, ids.b]) await prisma.technician.create({ data: { clientId: DEFAULT_CLIENT_ID, id, name: id, color: technicianColor(id), homeLat: 43.735, homeLng: 7.420,
       shiftStartMin: 480, shiftEndMin: 1020, maxDailyMinutes: 600, maxOvertimeMinutes: 60, availabilityVersions: initialAvailability(480, 1020),
       depotAssignments: { create: { depotId: ids.depot, effectiveDate: new Date("1900-01-01") } },
       qualifications: { create: (id === ids.a ? [ids.service, ids.movedService] : [ids.movedService]).map(serviceId => ({ serviceId })) } } });
-    await prisma.customer.create({ data: { id: ids.customer, firstName: "Reservation", lastName: "Test", email: "reservation@example.invalid", phone: "0000000000" } });
+    await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, id: ids.customer, firstName: "Reservation", lastName: "Test", email: "reservation@example.invalid", phone: "0000000000" } });
     await prisma.address.create({ data: { id: ids.address, customerId: ids.customer, line1: "Fixture", city: "Monaco", state: "MC", postalCode: "98000", lat: 43.748, lng: 7.438 } });
     for (const id of [ids.job, ids.existingJob]) await prisma.job.create({ data: { id, customerId: ids.customer, addressId: ids.address,
       serviceId: id === ids.job ? ids.service : ids.movedService, durationMin: 50, bookingRequestId: id, status: id === ids.job ? "PENDING" : "SCHEDULED" } });

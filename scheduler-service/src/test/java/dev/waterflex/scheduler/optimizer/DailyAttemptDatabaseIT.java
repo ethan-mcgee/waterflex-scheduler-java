@@ -464,12 +464,12 @@ class DailyAttemptDatabaseIT {
                 return actual.solve(Required.value(invocation.getArgument(0)), Required.value(Duration.ofMillis(fixtureSearchMillis.get())));
             });
             if (appointment) {
-                jdbc.update("INSERT INTO dealership (id,name,\"updatedAt\") VALUES (?,?,CURRENT_TIMESTAMP)", id, id);
+                jdbc.update("INSERT INTO dealership (id,\"clientId\",name,\"updatedAt\") VALUES (?,'default',?,CURRENT_TIMESTAMP)", id, id);
                 jdbc.update("INSERT INTO depot (id,\"metroId\",\"dealershipId\",name,lat,lng) VALUES (?,?,?,?,43.7,7.4)", id, id, id, id);
                 jdbc.update("INSERT INTO depot_endpoint_policy (\"depotId\",\"effectiveDate\",departure,\"returnTo\") VALUES (?,'1900-01-01','HOME','HOME')", id);
                 jdbc.update("INSERT INTO service_catalog (id,code,name,\"estDurationMin\",\"updatedAt\") VALUES (?,?,?,30,CURRENT_TIMESTAMP)", id, id, id);
                 addTechnician(id + "-far", true); addTechnician(id + "-near", true);
-                jdbc.update("INSERT INTO customer (id,\"firstName\",\"lastName\",email,phone) VALUES (?,'Daily','Fixture','daily@example.invalid','0000000000')", id);
+                jdbc.update("INSERT INTO customer (id,\"clientId\",\"firstName\",\"lastName\",email,phone) VALUES (?,'default','Daily','Fixture','daily@example.invalid','0000000000')", id);
                 jdbc.update("INSERT INTO address (id,\"customerId\",line1,city,state,\"postalCode\",lat,lng) VALUES (?,?,'Fixture','Monaco','MC','98000',43.7,7.4)", id, id);
                 jdbc.update("INSERT INTO job (id,\"customerId\",\"addressId\",\"serviceId\",\"durationMin\",status,\"updatedAt\") VALUES (?,?,?,?,30,'SCHEDULED',CURRENT_TIMESTAMP)", id, id, id, id);
                 jdbc.update("INSERT INTO appointment (id,\"jobId\",\"technicianId\",\"serviceDate\",\"windowStart\",\"windowEnd\",\"plannedStart\",\"plannedEnd\",sequence,\"updatedAt\") VALUES (?,?,?,?,?,?,?,?,0,CURRENT_TIMESTAMP)",
@@ -479,7 +479,7 @@ class DailyAttemptDatabaseIT {
         }
         private Instant local(int hour) { return Required.value(day.atTime(hour, 0).atZone(ZoneId.of("America/Chicago")).toInstant()); }
         void addTechnician(String tech, boolean available) {
-            jdbc.update("INSERT INTO technician (id,name,color,\"homeLat\",\"homeLng\",\"shiftStartMin\",\"shiftEndMin\",\"maxDailyMinutes\",\"maxOvertimeMinutes\",\"updatedAt\") VALUES (?,?,'#000000',43.7,7.4,480,1020,600,0,CURRENT_TIMESTAMP)", tech, tech);
+            jdbc.update("INSERT INTO technician (id,\"clientId\",name,color,\"homeLat\",\"homeLng\",\"shiftStartMin\",\"shiftEndMin\",\"maxDailyMinutes\",\"maxOvertimeMinutes\",\"updatedAt\") VALUES (?,'default',?,'#000000',43.7,7.4,480,1020,600,0,CURRENT_TIMESTAMP)", tech, tech);
             jdbc.update("INSERT INTO technician_availability_version (id,\"technicianId\",\"effectiveDate\") VALUES (?,?,'1900-01-01')", tech, tech);
             for (int d = 0; d < 7; d++) jdbc.update("INSERT INTO technician_availability_day (\"versionId\",\"dayOfWeek\",available,\"shiftStartMin\",\"shiftEndMin\") VALUES (?,?,?,?,?)", tech, d, available, available ? 480 : null, available ? 1020 : null);
             if (available) {

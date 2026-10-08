@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { readBody, text } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
+import { activeClient } from "@/lib/activeClient";
+import { notFound, ownsTimeOffRequest } from "@/lib/clientScope";
 import { approveTimeOff, EngineError } from "@/lib/engineClient";
 
 export async function POST(request: NextRequest) {
@@ -9,6 +11,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const { id } = parsed.data;
   if (!id) return NextResponse.json({ error: "Missing request ID" }, { status: 400 });
+  if (!(await ownsTimeOffRequest((await activeClient(request)).id, id))) return notFound("Time-off request");
   try { return NextResponse.json(await approveTimeOff(id)); }
   catch (error) {
     if (error instanceof EngineError) return NextResponse.json({ error: error.message }, { status: error.status });

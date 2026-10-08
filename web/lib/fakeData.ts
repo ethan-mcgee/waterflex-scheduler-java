@@ -2,6 +2,7 @@ import { z } from "zod";
 import { required } from "./contracts";
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
+import { metroClientId } from "./metroClient";
 import { confirmHold, selectOffer, EngineError, requestSlots, type SlotOffer } from "./engineClient";
 import { addCalendarDays, todayInTz } from "./date";
 import {
@@ -183,7 +184,8 @@ async function createPendingJob(
   location: FakeLocation,
   service: { id: string; durationMin: number }
 ) {
-  const customer = await tx.customer.create({ data: { externalId, ...identity } });
+  const clientId = await metroClientId(tx, OMAHA_METRO_ID);
+  const customer = await tx.customer.create({ data: { clientId, externalId, ...identity } });
   const address = await tx.address.create({
     data: {
       customerId: customer.id,

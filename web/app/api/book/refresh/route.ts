@@ -1,12 +1,15 @@
 import { readBody, refreshRequest } from "@/lib/contracts";
 import { NextRequest, NextResponse } from "next/server";
 import { EngineError, requestSlots } from "@/lib/engineClient";
+import { activeClient } from "@/lib/activeClient";
+import { notFound, ownsJob } from "@/lib/clientScope";
 
 export async function POST(request: NextRequest) {
   const started = performance.now();
   const parsed = await readBody(request, refreshRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const body = parsed.data;
+  if (!(await ownsJob((await activeClient(request)).id, body.jobId))) return notFound("Booking");
   try {
     const result = await requestSlots(body.jobId, true, 5000, request.signal, body.deadlineEpochMs);
     return NextResponse.json(result);
