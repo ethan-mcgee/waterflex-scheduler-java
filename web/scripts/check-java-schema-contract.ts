@@ -13,6 +13,7 @@ const expected: Record<string, string[]> = {
   api_booking_day: ["tenantId", "metroId", "serviceDate", "version", "stateJson"],
   api_booking_offer_set: ["tenantId", "id", "requestId", "jobId", "metroId", "expiresAt", "status", "offerSetJson"],
   api_booking_offer: ["tenantId", "id", "offerSetId", "holdId", "serviceDate", "technicianId", "windowStart", "windowEnd", "status"],
+  api_booking_receipt: ["tenantId", "id", "offerId", "requestId", "receiptJson"],
   overnight_optimization_attempt: ["id", "metroId", "serviceDate", "state", "previewKey", "resultRunId", "resultReason", "failureContext", "startedAt", "finishedAt", "nightOf"],
   daily_calculation_attempt: ["id", "requestKey", "requestFingerprint", "ownerToken", "state", "expiresAt", "snapshotRevision", "routingIdentity", "resultRunId", "resultJson", "failureReason"],
   booking_search_request: ["id", "jobId", "deadlineAt", "cancelledAt", "acknowledgedAt", "offerSetId", "cleanedAt"],

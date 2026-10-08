@@ -91,6 +91,17 @@ public final class PublicRequests {
         }
     }
 
+    /** The host's current snapshot of the hold's metro and date; every technician-day is on that one date. */
+    public record ConfirmRequest(String requestId, Snapshot snapshot) {
+        public ConfirmRequest {
+            Input.requestId(requestId);
+            Input.present(snapshot, "snapshot");
+            Set<LocalDate> dates = new HashSet<>();
+            for (TechnicianDay day : snapshot.technicianDays()) dates.add(day.serviceDate());
+            if (dates.size() > 1) throw new IllegalArgumentException("A confirm snapshot covers one date, the hold's");
+        }
+    }
+
     public record RequestOnly(String requestId) {
         public RequestOnly { Input.requestId(requestId); }
     }
