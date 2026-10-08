@@ -30,7 +30,7 @@ Cost remains integer cents rounded once after aggregating regular paid minutes, 
 
 Ordinary preview and locked apply use the same comparison, `SchedulingPolicy.compare`. Any candidate with overtime is rejected (`OVERTIME_PROHIBITED`), even one that reduces overtime: reducing a day from 90 to 20 overtime minutes is recorded as a diagnostic improvement with a policy rejection, and the schedule stays unchanged. A zero-overtime candidate that removes existing overtime is accepted as `OVERTIME_REDUCTION`. When the validated reference still has overtime, the fairness phase is skipped (`SKIPPED_REFERENCE_OVERTIME`) because no candidate preserving that overtime could be accepted. Otherwise a candidate must be independently feasible, within the cost ceiling, and improve overtime, fairness or cost; a cheaper proposal does not displace a fairer baseline that is inside the cost allowance. Paid time includes return travel to the end-of-day endpoint.
 
-Repair proposals must also have zero overtime at preview and apply. The API still carries a dispatcher approval flag for additional repair overtime, but apply rejects any repair with overtime before that approval is consulted, so additional repair overtime cannot currently be applied. Limits remain hard.
+Repair proposals must also have zero overtime at preview and apply. Overtime is never assigned, so there is no dispatcher approval for repair overtime: the time-off approve request carries no body fields and rejects any overtime flag. A repair that would need overtime stays unapplied and needs manual resolution. Limits remain hard. The `time_off_request.additionalOvertimeApproved` column is kept only for historical rows; new approvals leave it false.
 
 ## Search and reservation lifecycle
 

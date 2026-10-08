@@ -66,7 +66,7 @@ async function main() {
     assert.equal(appointment.technicianId, techB, "Repair must reassign the affected visit");
     const report = await prisma.timeOffReport.findUniqueOrThrow({ where: { requestId } });
     assert.equal(report.status, "APPLIED");
-    // Even with enough notice for automatic approval, additional overtime needs review.
+    // Even with enough notice for automatic approval, a repair that needs overtime is never applied.
     const overtimeDay = new Date(day); overtimeDay.setUTCDate(overtimeDay.getUTCDate() + 7);
     const overtimeDate = overtimeDay.toISOString().slice(0, 10);
     await prisma.technician.updateMany({ where: { id: { in: [techA, techB] } }, data: { maxOvertimeMinutes: 120 } });
@@ -81,11 +81,11 @@ async function main() {
     const overtimeReview = await waitRequest(overtimeRequest.requestId, "READY");
     assert.equal(overtimeReview.status, "PENDING");
     assert.equal(required(overtimeReview.report).status, "NEEDS_COORDINATION");
-    for (const allowAdditionalOvertime of [false, true]) {
+    for (const [body, status] of [[{}, 409], [{ allowAdditionalOvertime: true, approvedRepairIds: ["retired-overtime-preview"] }, 400]] as const) {
       const rejected = await fetch(`${base}/v1/time-off/${overtimeRequest.requestId}/approve`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowAdditionalOvertime, approvedRepairIds: ["retired-overtime-preview"] }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       });
-      assert.equal(rejected.status, 409);
+      assert.equal(rejected.status, status);
       assert.deepEqual(await prisma.appointment.findUniqueOrThrow({ where: { id: overtimeAppointment.id } }), overtimeAppointment);
     }
     const shortDate = localToday();
