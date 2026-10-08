@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     if (input.followUp) return NextResponse.json({ status: "FOLLOW_UP", jobId: job.id, pendingReference: job.id });
     if (publicApiEnabled()) {
       const jobId = job.id;
-      return apiBookingStep(client.id, jobId, () => searchApiOffers(client.id, jobId));
+      return apiBookingStep(client.id, jobId, async () => ({ ...await searchApiOffers(client.id, jobId), searchMode: "DIRECT" }));
     }
     if (input.backgroundSearch) {
       const search = await startBookingSearch(job.id, input.requestId, false);

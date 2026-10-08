@@ -107,8 +107,8 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [searchCursor, setSearchCursor] = useState<{ id: string; jobId: string } | null>(null);
-  // Background (durable) search is the scheduler's own path; through the public API every search answers directly.
-  const [durableSearch, setDurableSearch] = useState(false);
+  // Through the public scheduling API every search answers directly; otherwise refresh uses the background search.
+  const [directSearch, setDirectSearch] = useState(false);
   const [searchElapsed, setSearchElapsed] = useState(0);
   const [searchWork, setSearchWork] = useState(0);
   const [searchPhase, setSearchPhase] = useState("QUEUED");
@@ -117,7 +117,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     if (!saved) return;
     try {
       const cursor = savedBookingSearch.parse(JSON.parse(saved));
-      setJobId(cursor.jobId); setSearchCursor(cursor); setDurableSearch(true); setStep("slots");
+      setJobId(cursor.jobId); setSearchCursor(cursor); setStep("slots");
     } catch { localStorage.removeItem("waterflex.bookingSearch"); }
   }, []);
   useEffect(() => {
@@ -269,7 +269,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   async function refreshOffers() {
     if (!jobId) return;
     setSubmitting(true); setError(null);
-    if (!durableSearch) {
+    if (directSearch) {
       const started = performance.now();
       try {
         const refreshed = await readResponse(await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -307,7 +307,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
       if (current !== revision.current) return;
       setJobId(data.jobId);
       if (data.pendingReference) { setStep("pending"); return; }
-      setDurableSearch(data.searchRequestId !== undefined);
+      setDirectSearch(data.searchMode === "DIRECT");
       if (data.searchRequestId) { setSearchCursor({ id: data.searchRequestId, jobId: data.jobId }); setStep("slots"); return; }
       const problem = appointmentSearchMessage(required(data.search, "Appointment search status"));
       if (problem) { setError(problem); return; }
