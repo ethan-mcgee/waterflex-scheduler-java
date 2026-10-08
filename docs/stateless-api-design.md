@@ -216,8 +216,3 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 1. Does WaterFlex Software's Google Maps Platform agreement allow passing Google-geocoded coordinates to the scheduler and caching them for up to 30 days?
 2. What audit retention period applies to receipts?
 3. Does any client require a dedicated database?
-1. Does WaterFlex Software keep a version (or updated-at) per technician-day that can serve as the optimistic concurrency token? If not, it needs one.
-2. Who geocodes addresses: WaterFlex Software, or the scheduler using the existing validated geocoding path?
-3. Is one deployment per customer acceptable, or does the API need multi-tenant isolation from day one?
-4. Resolved: repair never adds overtime. The dispatcher overtime approval flag was removed (see `docs/scheduler-policy.md`).
-5. What latency target applies to `POST /v1/booking/offers` once the snapshot crosses the network (today's budget is five seconds end to end)?
