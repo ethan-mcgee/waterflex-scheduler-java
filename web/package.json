@@ -28,6 +28,7 @@
     "test:client-snapshot:integration": "tsx scripts/smoke-client-snapshot.ts",
     "test:api-booking:integration": "tsx scripts/smoke-api-booking.ts",
     "test:api-dispatch:integration": "tsx scripts/smoke-api-dispatch.ts",
+    "test:api-repair:integration": "tsx scripts/smoke-api-repair.ts",
     "test:multi-depot:integration": "tsx scripts/smoke-multi-depot.ts",
     "test:depot-setup:integration": "tsx scripts/smoke-depot-setup.ts",
     "test:technician-home:integration": "tsx scripts/smoke-technician-home.ts",

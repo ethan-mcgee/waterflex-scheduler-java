@@ -72,7 +72,7 @@ The limit applies while building and reserving both legacy and common-reservatio
 - `/dealerships`: create an organization, then add its metro depots and their route policies. See [setup and dated moves](docs/dealerships.md).
 - `/technicians`: create technicians at a depot and schedule same-dealership depot moves by service date.
 - `/dispatch/testing`: local Compose sequential booking runs and automatic day previews. Compose enables the route by default; set `LOCAL_BOOKING_TESTS=false` to opt out. Non-Compose and production environments remain disabled unless they explicitly set `LOCAL_BOOKING_TESTS=true`. See [operation, recovery, and verification](docs/sequential-booking-tests.md).
-- `/dispatch/availability`: qualifications and date-specific shifts.
+- `/dispatch/availability`: qualifications and date-specific shifts. With `SCHEDULER_PUBLIC_API=true` the portal saves these itself, and time-off requests are analyzed day by day through `/api/v1/repairs/proposals` and approved with a compare-and-set.
 - `/dispatch/follow-up`: pending and contacted requests without a promised window, with contacted and resolved actions.
 - `/time-off`: local demo technician selector, request history, and staff approval queue. The selector does not authenticate a technician.
 

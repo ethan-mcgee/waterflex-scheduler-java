@@ -399,6 +399,9 @@ model PortalApiDailyProposal {
   metro           Metro     @relation(fields: [metroId], references: [id], onDelete: Restrict)
   serviceDate     DateTime  @db.Date
   requestId       String    @unique @db.Uuid
+  kind            String
+  timeOffRequestId String?
+  timeOffRequest  TimeOffRequest? @relation(fields: [timeOffRequestId], references: [id], onDelete: Cascade)
   decision        String
   proposal        Json
   technicianDays  Json
@@ -410,6 +413,7 @@ model PortalApiDailyProposal {
   createdAt       DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
 
   @@index([clientId, metroId, serviceDate, createdAt], map: "portal_api_daily_proposal_day")
+  @@index([timeOffRequestId], map: "portal_api_daily_proposal_time_off")
   @@map("portal_api_daily_proposal")
 }
 
@@ -529,6 +533,7 @@ model TimeOffRequest {
   additionalOvertimeApproved Boolean @default(false)
   intervals TimeOffInterval[]
   report TimeOffReport?
+  apiRepairProposals PortalApiDailyProposal[]
 
   @@index([technicianId, status])
   @@map("time_off_request")

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { activeClient } from "@/lib/activeClient";
 import { parseTimeOffReport, timeOffIntervalView } from "@/lib/timeOffView";
 import TimeOffDemo from "./TimeOffDemo";
+import { publicApiEnabled } from "@/lib/schedulerApi";
 
 export const dynamic = "force-dynamic";
 const FILTERS = {
@@ -39,5 +40,5 @@ export default async function TimeOffPage({ searchParams }: { searchParams: { st
       report: parseTimeOffReport(request.report?.data),
     };
   });
-  return <TimeOffDemo technicians={technicians} requests={requests} selectedFilter={selectedFilter} truncated={truncated} />;
+  return <TimeOffDemo technicians={technicians} requests={requests} selectedFilter={selectedFilter} truncated={truncated} apiMode={publicApiEnabled()} />;
 }

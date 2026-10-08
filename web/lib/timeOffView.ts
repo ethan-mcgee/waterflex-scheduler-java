@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { date, minute, text, travelBreakdown, dailyOutcome, solverAnalysis } from "./contracts";
+import { apiTimeOffReport, feasible, type ApiTimeOffReport } from "./apiTimeOffCore";
 
 export const timeOffIntervalView = z.object({ date, startMin: minute, endMin: minute }).refine(value => value.startMin < value.endMin);
 const metrics = z.object({
@@ -24,10 +25,13 @@ export type ParsedTimeOffReport =
   | { kind: "missing" }
   | { kind: "malformed" }
   | { kind: "failure"; reason: string }
-  | { kind: "complete"; summary: TimeOffReportSummary };
+  | { kind: "complete"; summary: TimeOffReportSummary }
+  | { kind: "api"; summary: ApiTimeOffReport };
 
 /** Approval requires absolute zero overtime, including unchanged historical overtime. */
 export function repairOvertimeMinutes(report: ParsedTimeOffReport): number | null {
+  // The scheduling API never proposes a repair with overtime, so a fully repairable API report adds none.
+  if (report.kind === "api") return feasible(report.summary) ? 0 : null;
   if (report.kind !== "complete") return null;
   let overtime = 0;
   for (const day of report.summary.days) {
@@ -51,6 +55,11 @@ export function additionalRepairOvertime(report: ParsedTimeOffReport): number | 
 
 export function parseTimeOffReport(value: unknown): ParsedTimeOffReport {
   if (value == null) return { kind: "missing" };
+  // A report that names its source is an API analysis, and never falls back to the engine's looser shape.
+  if (typeof value === "object" && "source" in value) {
+    const api = apiTimeOffReport.safeParse(value);
+    return api.success ? { kind: "api", summary: api.data } : { kind: "malformed" };
+  }
   const completed = completedReport.safeParse(value);
   if (completed.success) return { kind: "complete", summary: completed.data };
   const failure = failureReport.safeParse(value);
