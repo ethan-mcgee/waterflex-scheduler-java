@@ -672,6 +672,8 @@ public class OptimizationService {
     private record RawProblem(List<TechData> techs, List<VisitData> visits, Map<String, RoadPoint> points,
             dev.waterflex.scheduler.BookingSnapshot.Rates rates, Map<String, Integer> versions, Map<String, RouteEndpoints> endpoints,
             SchedulingPolicy.Rules policy, String configuration, String revision, boolean held) { }
+    /** The database-built solver input, so tests can compare it with the request-fed path. */
+    DayPlan capturedPlan(String metroId, LocalDate day) { return build(metroId, day).plan(); }
     private Problem build(String metroId, LocalDate day) {
         return build(metroId, day, null);
     }

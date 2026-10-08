@@ -101,7 +101,7 @@ class PublicApiContractTest {
         assertMatches("BookingOffersRequest.horizon", map(map(map(SCHEMAS.get("BookingOffersRequest")).get("properties")).get("horizon")), PublicRequests.Horizon.class);
     }
 
-    private static String example(String name) {
+    static String example(String name) {
         return CalculationJson.write(Required.value(map(EXAMPLES.get(name)).get("value")));
     }
 
@@ -152,6 +152,7 @@ class PublicApiContractTest {
         rejected("string integer", request -> { day(request, 0).put("maxPaidMinutes", "540"); });
         rejected("missing absences", request -> { day(request, 0).remove("absences"); });
         rejected("missing lastModified", request -> { day(request, 0).remove("lastModified"); });
+        rejected("missing plannedStart", request -> { appointment(request, 0).remove("plannedStart"); });
         rejected("uppercase request ID", request -> { request.put("requestId", "3B1F6C1E-2A7D-4F0E-8C52-9A1D7E6B4C21"); });
         rejected("day outside serviceDate", request -> { request.put("serviceDate", "2026-10-13"); });
         rejected("appointment without technician-day", request -> { appointment(request, 1).put("technicianId", "tech-9"); });
