@@ -417,7 +417,7 @@ components:
     Appointment:
       type: object
       additionalProperties: false
-      required: [id, technicianId, serviceDate, serviceId, durationMinutes, window, location, sequence]
+      required: [id, technicianId, serviceDate, serviceId, durationMinutes, window, location, sequence, plannedStart]
       properties:
         id: { $ref: '#/components/schemas/Id' }
         technicianId: { $ref: '#/components/schemas/Id' }
@@ -427,6 +427,9 @@ components:
         window: { $ref: '#/components/schemas/Window' }
         location: { $ref: '#/components/schemas/Location' }
         sequence: { type: integer, minimum: 0 }
+        plannedStart:
+          $ref: '#/components/schemas/Instant'
+          description: The appointment's currently planned arrival. Proposals report moves relative to it.
     Snapshot:
       type: object
       additionalProperties: false
@@ -683,6 +686,7 @@ components:
               window: { start: '2026-10-12T08:00:00-05:00', end: '2026-10-12T12:00:00-05:00' }
               location: { lat: 41.2603, lng: -96.0731 }
               sequence: 0
+              plannedStart: '2026-10-12T08:20:00-05:00'
             - id: appt-8
               technicianId: tech-1
               serviceDate: '2026-10-12'
@@ -691,6 +695,7 @@ components:
               window: { start: '2026-10-12T12:00:00-05:00', end: '2026-10-12T16:00:00-05:00' }
               location: { address: { line1: 1200 Example St, city: Omaha, state: NE, postalCode: '68102' } }
               sequence: 1
+              plannedStart: '2026-10-12T12:30:00-05:00'
     DailyProposal:
       value:
         proposalId: prop-0c4e
