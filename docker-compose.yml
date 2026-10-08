@@ -50,6 +50,8 @@ services:
       DATABASE_USER: waterflex
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://routing-service:8001
+      # Public API routing per WaterFlex metro ID, for example omaha=http://routing-service:8001
+      ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:-}
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
       SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
       SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}

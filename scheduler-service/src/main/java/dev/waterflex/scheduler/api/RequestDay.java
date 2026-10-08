@@ -53,12 +53,13 @@ public final class RequestDay {
 
     /**
      * Every directed pair between two different points that is absent from {@code reachable} is unroutable, as in
-     * the database path. Overtime is never assigned, so every route allows zero overtime minutes.
+     * the database path. A point's leg to itself is kept as routing returned it, also as in the database path.
+     * Overtime is never assigned, so every route allows zero overtime minutes.
      */
     public DayPlan plan(Map<String, DayPlan.RoadLeg> reachable) {
         for (String pair : reachable.keySet()) {
             String[] ends = Required.value(pair).split(">", -1);
-            if (ends.length != 2 || !points.containsKey(ends[0]) || !points.containsKey(ends[1]) || ends[0].equals(ends[1]))
+            if (ends.length != 2 || !points.containsKey(ends[0]) || !points.containsKey(ends[1]))
                 throw new IllegalStateException("Routing returned a leg outside the requested points: " + pair);
         }
         Set<String> unreachable = new HashSet<>();

@@ -53,6 +53,8 @@ The machine-readable contract is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml)
 
 `RequestDay` builds the solver input for one service date from a daily request instead of the database: the same road point keys, the same technician and appointment order, absent legs treated as unroutable, coordinates used as sent and only address-only locations geocoded. Every route allows zero overtime minutes. Each appointment carries its current `plannedStart`, which proposals report moves against. `DailyAttemptDatabaseIT` checks that a request describing a seeded day produces exactly the solver input the database path produces.
 
+`DailyPreparation` routes a daily request through its own metro's routing service (`MetroRouting`, configured by `ROUTING_METRO_URLS`) and records the routing identity the legs came from. An unconfigured metro fails before any geocoding and never falls back to the portal's single `ROUTING_URL`. A routing identity change while the legs are fetched fails the preparation, as in the database path.
+
 Public routes live under `/api/v1/`, separate from the scheduler's internal `/v1/` routes used by the admin portal. Every `/api/v1/` call must send `Authorization: Bearer <tenant token>` (exists today, with `GET /api/v1/whoami` returning the token's tenant). All requests carry a host `requestId` (idempotency key) and host IDs only. The tenant is derived from the caller's API token, never from the request body. Money and rates are decimal strings. Times are ISO-8601 instants. Unknown fields, duplicate keys, nonfinite numbers and missing required values are rejected, as `DailyDataset` does today.
 
 ### Snapshot
