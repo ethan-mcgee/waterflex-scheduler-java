@@ -61,6 +61,14 @@ public final class PublicTypes {
         }
     }
 
+    /** The client's own scheduling choices. A fairness budget of zero means fairness may never add cost. */
+    public record Policy(BigDecimal fairnessBudget) {
+        public Policy {
+            if (Input.nonNegative(fairnessBudget, "policy.fairnessBudget").compareTo(BigDecimal.ONE) > 0)
+                throw new IllegalArgumentException("policy.fairnessBudget must be at most 1");
+        }
+    }
+
     public record Technician(String id, List<String> qualifications) {
         public Technician {
             Input.id(id, "technician.id");
@@ -109,12 +117,13 @@ public final class PublicTypes {
      * Every fact a calculation needs. Cross-references are checked here so a calculation never meets a dangling or
      * duplicated fact.
      */
-    public record Snapshot(String metroId, String timeZone, Rates rates, List<Technician> technicians,
+    public record Snapshot(String metroId, String timeZone, Rates rates, Policy policy, List<Technician> technicians,
                            List<TechnicianDay> technicianDays, List<Appointment> appointments) {
         public Snapshot {
             Input.id(metroId, "snapshot.metroId");
             Input.zone(timeZone);
             Input.present(rates, "snapshot.rates");
+            Input.present(policy, "snapshot.policy");
             technicians = Input.list(technicians, "snapshot.technicians");
             technicianDays = Input.list(technicianDays, "snapshot.technicianDays");
             appointments = Input.list(appointments, "snapshot.appointments");

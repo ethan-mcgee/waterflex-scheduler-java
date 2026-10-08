@@ -37,6 +37,7 @@ class PublicApiContractTest {
         types.put("Location", PublicTypes.Location.class);
         types.put("Window", PublicTypes.Window.class);
         types.put("Rates", PublicTypes.Rates.class);
+        types.put("Policy", PublicTypes.Policy.class);
         types.put("Technician", PublicTypes.Technician.class);
         types.put("TechnicianDay", PublicTypes.TechnicianDay.class);
         types.put("Appointment", PublicTypes.Appointment.class);
@@ -149,6 +150,10 @@ class PublicApiContractTest {
         rejected("unknown field", request -> { request.put("surprise", 1); });
         rejected("numeric money", request -> { child(snapshot(request), "rates").put("regularHourly", 20); });
         rejected("noncanonical decimal", request -> { child(snapshot(request), "rates").put("travelBufferPct", "0.20"); });
+        rejected("missing policy", request -> { snapshot(request).remove("policy"); });
+        rejected("missing fairness budget", request -> { child(snapshot(request), "policy").remove("fairnessBudget"); });
+        rejected("numeric fairness budget", request -> { child(snapshot(request), "policy").put("fairnessBudget", 0.02); });
+        rejected("fairness budget above one", request -> { child(snapshot(request), "policy").put("fairnessBudget", "1.5"); });
         rejected("null required integer", request -> { day(request, 0).putNull("maxPaidMinutes"); });
         rejected("string integer", request -> { day(request, 0).put("maxPaidMinutes", "540"); });
         rejected("missing absences", request -> { day(request, 0).remove("absences"); });
