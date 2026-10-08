@@ -8,6 +8,9 @@ import { activeClient } from "@/lib/activeClient";
 import { notFound, ownsJob } from "@/lib/clientScope";
 import { startBookingSearch, requestSlots, validateBookingLocation, EngineError } from "@/lib/engineClient";
 import { bookingFingerprint } from "@/lib/bookingIdentity";
+import { publicApiEnabled } from "@/lib/schedulerApi";
+import { apiBookingStep } from "@/lib/apiBookingRoute";
+import { searchApiOffers } from "@/lib/apiBooking";
 
 export async function POST(req: NextRequest) {
   const parsed = await readBody(req, bookingRequest);
@@ -69,6 +72,10 @@ export async function POST(req: NextRequest) {
       if (job.bookingRequestFingerprint !== fingerprint) return conflict();
     }
     if (input.followUp) return NextResponse.json({ status: "FOLLOW_UP", jobId: job.id, pendingReference: job.id });
+    if (publicApiEnabled()) {
+      const jobId = job.id;
+      return apiBookingStep(client.id, jobId, () => searchApiOffers(client.id, jobId));
+    }
     if (input.backgroundSearch) {
       const search = await startBookingSearch(job.id, input.requestId, false);
       return NextResponse.json({ jobId: job.id, searchRequestId: search.id });

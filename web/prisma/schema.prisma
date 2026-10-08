@@ -24,6 +24,7 @@ model Metro {
   depots           Depot[]
   optimizationRuns OptimizationRun[]
   reservationArrangements ReservationArrangement[]
+  apiOfferSets     PortalApiOfferSet[]
 
   @@map("metro")
 }
@@ -80,6 +81,7 @@ model Client {
   technicians Technician[]
   customers   Customer[]
   solverSettings ClientSolverSettings?
+  apiOfferSets   PortalApiOfferSet[]
 
   @@map("client")
 }
@@ -290,6 +292,7 @@ model Job {
   bookingOffers BookingOffer[]
   offerSets BookingOfferSet[]
   searchRequests BookingSearchRequest[]
+  apiOfferSets   PortalApiOfferSet[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
 
@@ -347,6 +350,43 @@ model TechnicianDayChange {
 
   @@id([technicianId, serviceDate])
   @@map("technician_day_change")
+}
+
+// Offers the public scheduling API returned for a job, kept by the portal acting as the host.
+model PortalApiOfferSet {
+  id              String           @id
+  clientId        String
+  client          Client           @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  jobId           String
+  job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  metroId         String
+  metro           Metro            @relation(fields: [metroId], references: [id], onDelete: Restrict)
+  requestId       String           @unique @db.Uuid
+  expiresAt       DateTime         @db.Timestamptz(6)
+  searchComplete  Boolean
+  holdId          String?
+  selectedOfferId String?
+  selectedOffer   PortalApiOffer?  @relation("SelectedOffer", fields: [selectedOfferId], references: [id], onDelete: Restrict)
+  receiptId       String?          @unique
+  endedAt         DateTime?        @db.Timestamptz(6)
+  createdAt       DateTime         @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+  offers          PortalApiOffer[] @relation("SetOffers")
+
+  @@index([jobId, createdAt], map: "portal_api_offer_set_job")
+  @@map("portal_api_offer_set")
+}
+
+model PortalApiOffer {
+  id          String              @id
+  offerSetId  String
+  offerSet    PortalApiOfferSet   @relation("SetOffers", fields: [offerSetId], references: [id], onDelete: Cascade)
+  serviceDate DateTime            @db.Date
+  windowStart DateTime            @db.Timestamptz(6)
+  windowEnd   DateTime            @db.Timestamptz(6)
+  selectedBy  PortalApiOfferSet[] @relation("SelectedOffer")
+
+  @@index([offerSetId], map: "portal_api_offer_set_offers")
+  @@map("portal_api_offer")
 }
 
 model SlotHold {
