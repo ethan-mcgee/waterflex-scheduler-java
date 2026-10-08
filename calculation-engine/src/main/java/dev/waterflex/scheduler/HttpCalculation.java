@@ -11,6 +11,8 @@ import java.util.concurrent.Flow;
 import org.jspecify.annotations.Nullable;
 /** Bounded transport under the caller's existing clock, with no retries or second-solve fallback. */
 public final class HttpCalculation implements CalculationAdapter {
+    /** Carries the solve's request ID on both the solve and its cancellation, so a load balancer can hash both to one replica. */
+    public static final String REQUEST_HEADER = "Solve-Request-Id";
     public static final class Unavailable extends RuntimeException {
         private static final long serialVersionUID = 1L;
         public Unavailable(String message,@Nullable Throwable cause) { super(message,cause); }
@@ -37,7 +39,7 @@ public final class HttpCalculation implements CalculationAdapter {
         String body = CalculationJson.write(request);
         var timeout = clock.timeout(Required.value(Duration.ofMillis(request.remainingMillis())));
         var http = HttpRequest.newBuilder(base.resolve("/v1/solve/"+request.operation().toLowerCase(java.util.Locale.ROOT)))
-                .header("Authorization","Bearer "+token).header("Content-Type","application/json")
+                .header("Authorization","Bearer "+token).header("Content-Type","application/json").header(REQUEST_HEADER,request.requestId())
                 .timeout(timeout).POST(HttpRequest.BodyPublishers.ofString(body)).build();
         CompletableFuture<HttpResponse<String>> flight = client.sendAsync(http,_ -> new LimitedBody());
         try {
@@ -58,7 +60,7 @@ public final class HttpCalculation implements CalculationAdapter {
     /** Cancellation is best effort cleanup of this request, never a retry of its calculation. */
     public void cancel(String requestId) {
         UUIDCheck.valid(requestId);
-        var request = HttpRequest.newBuilder(base.resolve("/v1/solves/"+requestId)).header("Authorization","Bearer "+token)
+        var request = HttpRequest.newBuilder(base.resolve("/v1/solves/"+requestId)).header("Authorization","Bearer "+token).header(REQUEST_HEADER,requestId)
                 .timeout(Duration.ofSeconds(1)).DELETE().build();
         client.sendAsync(request,HttpResponse.BodyHandlers.discarding()).exceptionally(_ -> null);
     }
