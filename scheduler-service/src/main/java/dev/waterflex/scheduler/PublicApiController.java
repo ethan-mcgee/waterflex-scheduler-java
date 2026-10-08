@@ -44,6 +44,11 @@ public class PublicApiController {
         return reply(dailyProposals.create(TenantAuthentication.tenant(request), body));
     }
 
+    @PostMapping("/api/v1/repairs/proposals")
+    public ResponseEntity<String> createRepairProposal(HttpServletRequest request, @RequestBody String body) {
+        return reply(dailyProposals.repair(TenantAuthentication.tenant(request), body));
+    }
+
     @PostMapping("/api/v1/daily/proposals/{proposalId}/commit")
     public ResponseEntity<String> commitDailyProposal(HttpServletRequest request, @PathVariable String proposalId, @RequestBody String body) {
         return reply(dailyCommits.commit(TenantAuthentication.tenant(request), proposalId, body));
