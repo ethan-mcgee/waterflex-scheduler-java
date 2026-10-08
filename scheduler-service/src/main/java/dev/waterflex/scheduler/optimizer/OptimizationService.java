@@ -706,6 +706,8 @@ public class OptimizationService {
 
     private RawProblem capture(String metroId, LocalDate day) {
         dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
+        // Every read below takes the whole metro, so a metro shared by several clients is never captured here.
+        dev.waterflex.scheduler.MetroTenancy.requireSingleClient(jdbc, metroId);
         List<TechBase> base = jdbc.query("SELECT t.id," + RouteEndpoints.COLUMNS + ",t.\"maxDailyMinutes\",t.\"maxOvertimeMinutes\" FROM technician t" + RouteEndpoints.JOINS + " WHERE p.\"metroId\"=? AND t.active=true ORDER BY t.id",
                 (rs, _) -> new TechBase(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), RouteEndpoints.from(rs, 2), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 8), dev.waterflex.scheduler.DatabaseFacts.integer(rs, 9)), dayStamp(day), dayStamp(day), metroId);
         List<TechData> techs = new ArrayList<>();

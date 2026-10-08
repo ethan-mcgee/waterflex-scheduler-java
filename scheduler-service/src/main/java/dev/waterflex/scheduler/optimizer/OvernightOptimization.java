@@ -54,7 +54,8 @@ public final class OvernightOptimization {
     }
     @Scheduled(cron="${scheduler.optimizer.cron:0 0 2 * * *}",zone="America/Chicago")
     public void run() {
-        List<String> metros=jdbc.query("SELECT id FROM metro ORDER BY id",(rs,_) -> DatabaseFacts.string(rs,1));
+        // A metro shared by several clients is optimized by each client's own host through the public API.
+        List<String> metros=jdbc.query(MetroTenancy.SINGLE_CLIENT_METROS,(rs,_) -> DatabaseFacts.string(rs,1));
         run(metros,OptimizationService.overnightDates(Required.value(clock.instant())));
     }
     void run(List<String> metros,List<LocalDate> days) {

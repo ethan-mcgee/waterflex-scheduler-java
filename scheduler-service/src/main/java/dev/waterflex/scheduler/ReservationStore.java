@@ -25,6 +25,8 @@ public final class ReservationStore {
     /** Call after acquiring all affected technician/day locks in sorted order. */
     public List<Locked> lock(String metroId, Collection<LocalDate> dates) {
         transaction();
+        // One arrangement per metro-day holds every client's reservations, so a shared metro is never locked here.
+        MetroTenancy.requireSingleClient(jdbc, metroId);
         List<Locked> locked = new ArrayList<>();
         for (LocalDate date : new TreeSet<>(dates)) {
             dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
