@@ -32,7 +32,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-/** POST /api/v1/daily/proposals end to end below HTTP: strict parsing, claim, routing, solve, store and replay. */
+/** POST /api/v1/daily/proposals and /repairs/proposals end to end below HTTP: strict parsing, claim, routing, solve, store and replay. */
 class DailyProposalsDatabaseIT {
     private final String tenant = "daily-it-" + UUID.randomUUID().toString().substring(0, 8);
     private final JdbcTemplate jdbc;
@@ -98,6 +98,27 @@ class DailyProposalsDatabaseIT {
         return CalculationJson.write(request);
     }
 
+    /** The spec's repair example (tech-1 absent all day) with a fresh request ID, coordinates for appt-8, and any change applied. */
+    private static String repair(java.util.function.Consumer<ObjectNode> change) {
+        ObjectNode request = object(CalculationJson.tree(PublicApiContractTest.example("RepairProposalRequest")));
+        request.put("requestId", UUID.randomUUID().toString());
+        ArrayNode appointments = (ArrayNode) Required.value(object(request.get("snapshot")).get("appointments"));
+        object(appointments.get(1)).putObject("location").put("lat", 41.2587).put("lng", -95.9378);
+        change.accept(request);
+        return CalculationJson.write(request);
+    }
+
+    private static String repair() { return repair(_ -> { }); }
+
+    /** A lambda parameter carries no nullness annotation, so this accepts one and checks it. */
+    private static ObjectNode snapshot(@Nullable ObjectNode request) { return object(Required.value(request).get("snapshot")); }
+
+    private static List<String> stopsOf(DailyProposal proposal, String technician) {
+        for (PlannedRoute route : proposal.routes())
+            if (route.technicianId().equals(technician)) return Required.value(route.stops().stream().map(stop -> Required.value(stop).appointmentId()).toList());
+        return Required.value(List.of());
+    }
+
     private static ObjectNode object(@Nullable JsonNode node) {
         assertInstanceOf(ObjectNode.class, node);
         return (ObjectNode) Required.value(node);
@@ -135,6 +156,65 @@ class DailyProposalsDatabaseIT {
         var replay = proposals().create(tenant, body);
         assertEquals(new DailyProposals.Reply(201, reply.json(), null), replay);
         assertEquals(solved, solves.get());
+    }
+
+    @Test void aRepairMovesTheAbsentTechniciansAppointmentsAndCommitsLikeADailyProposal() {
+        String body = repair();
+        var reply = proposals().repair(tenant, body);
+        DailyProposal proposal = proposal(reply);
+        assertEquals(Decision.IMPROVED, proposal.decision(), proposal.reason());
+        assertEquals(List.of(), stopsOf(proposal, "tech-1"), "the absent technician keeps nothing");
+        assertEquals(java.util.Set.of("appt-7", "appt-8"), java.util.Set.copyOf(stopsOf(proposal, "tech-2")));
+        assertEquals(0, proposal.overtimeMinutes());
+        assertEquals(List.of(), proposal.unresolvedAppointmentIds());
+        var request = PublicRequests.read(body, PublicRequests.RepairProposalRequest.class);
+        assertEquals(DailyProposals.revision(request.snapshot(), request.absence()), proposal.inputRevision());
+        assertNotEquals(DailyProposals.revision(request.snapshot(), null), proposal.inputRevision(), "the absence is part of the input");
+        int solved = solves.get();
+        assertEquals(reply, proposals().repair(tenant, body), "the same requestId replays without solving again");
+        assertEquals(solved, solves.get());
+        var commit = new DailyCommits(store, Required.value(Clock.fixed(BEFORE_CUTOFF, ZoneOffset.UTC))).commit(tenant, proposal.proposalId(),
+                "{\"requestId\":\"" + UUID.randomUUID() + "\",\"technicianDays\":[{\"technicianId\":\"tech-1\",\"serviceDate\":\"2026-10-12\",\"lastModified\":\"2026-10-11T21:04:17.123456Z\"},"
+                        + "{\"technicianId\":\"tech-2\",\"serviceDate\":\"2026-10-12\",\"lastModified\":\"2026-10-10T16:30:00Z\"}]}");
+        assertEquals(200, commit.status(), commit.json());
+        CommitReceipt receipt = PublicRequests.read(commit.json(), CommitReceipt.class);
+        assertTrue(receipt.assignments().stream().allMatch(assignment -> Required.value(assignment).technicianId().equals("tech-2")));
+    }
+
+    @Test void aRepairThatCannotPlaceEveryAppointmentWithoutOvertimeProposesNothing() {
+        // Only tech-1 does softener service, so nobody can take its appointments.
+        DailyProposal proposal = proposal(proposals().repair(tenant, repair(request -> {
+            for (JsonNode technician : Required.value(snapshot(request).get("technicians")))
+                if (Required.value(technician).path("id").asText().equals("tech-2")) object(technician).putArray("qualifications").add("softener-install");
+        })));
+        assertNotEquals(Decision.IMPROVED, proposal.decision());
+        assertEquals("Repair infeasible", proposal.reason());
+        assertEquals(List.of("appt-7", "appt-8"), stopsOf(proposal, "tech-1"), "the current routes are reported unchanged");
+        var commit = new DailyCommits(store, Required.value(Clock.fixed(BEFORE_CUTOFF, ZoneOffset.UTC))).commit(tenant, proposal.proposalId(),
+                "{\"requestId\":\"" + UUID.randomUUID() + "\",\"technicianDays\":[{\"technicianId\":\"tech-1\",\"serviceDate\":\"2026-10-12\",\"lastModified\":\"2026-10-11T21:04:17.123456Z\"},"
+                        + "{\"technicianId\":\"tech-2\",\"serviceDate\":\"2026-10-12\",\"lastModified\":\"2026-10-10T16:30:00Z\"}]}");
+        problem(commit, 409, ErrorCode.NOT_COMMITTABLE);
+    }
+
+    @Test void aRepairIsRefusedForAnUnlocatedDayAndBadRequestsClaimNothing() {
+        String addressOnly = repair(request -> object(((ArrayNode) Required.value(snapshot(request).get("appointments"))).get(1)).putObject("location")
+                .putObject("address").put("line1", "1200 Example St").put("city", "Omaha").put("state", "NE").put("postalCode", "68102"));
+        var unlocated = proposals().repair(tenant, addressOnly);
+        assertTrue(problem(unlocated, 422, ErrorCode.INCOMPLETE_FACTS).message().contains("cannot be repaired"));
+        assertEquals(0, solves.get());
+
+        long requests = Required.value(jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant));
+        problem(proposals().repair(tenant, repair(request -> object(request.get("absence")).put("technicianId", "tech-9"))), 400, ErrorCode.INVALID_REQUEST);
+        problem(proposals().repair(tenant, repair(request -> object(request.get("absence")).put("serviceDate", "2026-10-13"))), 400, ErrorCode.INVALID_REQUEST);
+        problem(proposals().repair(tenant, repair(request -> object(object(request.get("absence")).get("window")).put("end", "2026-10-12T07:00:00-05:00"))),
+                400, ErrorCode.INVALID_REQUEST);
+        problem(proposals().repair(tenant, repair(request -> object(request.get("absence")).put("reason", "sick"))), 400, ErrorCode.INVALID_REQUEST);
+        assertEquals(requests, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "a malformed repair claims nothing");
+
+        String daily = request(false);
+        String reused = repair(request -> request.put("requestId", Required.value(object(CalculationJson.tree(daily)).path("requestId").asText())));
+        proposal(proposals().create(tenant, daily));
+        problem(proposals().repair(tenant, reused), 400, ErrorCode.INVALID_REQUEST);
     }
 
     @Test void anAddressOnlyAppointmentLeavesOnlyItsTechnicianDayUnchanged() {
