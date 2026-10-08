@@ -28,6 +28,47 @@ import static org.mockito.Mockito.*;
 
 /** Committed, isolated fixtures: each worker and competing writer uses its own database connection. */
 class DailyAttemptDatabaseIT {
+    /**
+     * Two clients serve one metro. Every database path that reads a whole metro refuses it rather than mixing the
+     * clients' technicians and appointments, the overnight batch leaves it out, and current dispatch geometry can be
+     * read for one client's technicians only.
+     */
+    @Test void aMetroSharedByTwoClientsIsNeverReadWholeByTheDatabasePaths() {
+        try (var f = new Fixture(true)) {
+            String other = f.id + "-other";
+            try {
+                assertFalse(dev.waterflex.scheduler.MetroTenancy.shared(f.jdbc, f.id));
+                f.jdbc.update("INSERT INTO client (id,name) VALUES (?,?)", other, other);
+                f.jdbc.update("INSERT INTO dealership (id,\"clientId\",name,\"updatedAt\") VALUES (?,?,?,CURRENT_TIMESTAMP)", other, other, other);
+                f.jdbc.update("INSERT INTO depot (id,\"metroId\",\"dealershipId\",name,lat,lng) VALUES (?,?,?,?,43.7,7.4)", other, f.id, other, other);
+                assertTrue(dev.waterflex.scheduler.MetroTenancy.shared(f.jdbc, f.id), "Two clients' depots in one metro, which the database now allows");
+                var before = f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?", f.id + "-appointment");
+
+                var preview = assertThrows(ResponseStatusException.class, () -> f.service.preview(new OptimizationService.Request(f.id, Required.value(f.day.toString()))));
+                assertEquals(409, preview.getStatusCode().value());
+                assertEquals(409, assertThrows(ResponseStatusException.class, () -> f.service.previewRepair(f.id, f.day, f.id + "-far", 480, 600)).getStatusCode().value());
+                assertEquals(0, f.runCount(), "Nothing was proposed for the shared metro");
+                var loader = new dev.waterflex.scheduler.BookingSnapshotLoader(f.jdbc, f.manager,
+                        new dev.waterflex.scheduler.ServiceCalendar(new org.springframework.mock.env.MockEnvironment(), f.jdbc));
+                assertEquals(409, assertThrows(ResponseStatusException.class, () -> loader.loadDates(f.id, List.of(f.day), Required.value(f.now.get()), "fixture-routing-v1"))
+                        .getStatusCode().value(), "Booking never snapshots a shared metro");
+                assertFalse(f.jdbc.queryForList(dev.waterflex.scheduler.MetroTenancy.SINGLE_CLIENT_METROS, String.class).contains(f.id), "The overnight batch leaves it out");
+
+                var geometry = new dev.waterflex.scheduler.DispatchGeometryController(f.jdbc, f.roads);
+                assertEquals(409, assertThrows(ResponseStatusException.class, () -> geometry.geometry(f.id, Required.value(f.day.toString()), null, "current", null))
+                        .getStatusCode().value(), "The whole metro's routes are not shown");
+                var scoped = geometry.geometry(f.id, Required.value(f.day.toString()), null, "current", other);
+                assertEquals(List.of(), scoped.get("stops"), "The other client sees none of this client's appointments");
+                assertEquals(List.of(), scoped.get("endpoints"), "nor its technicians");
+                assertEquals(before, f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?", f.id + "-appointment"));
+            } finally {
+                f.jdbc.update("DELETE FROM depot WHERE id=?", other);
+                f.jdbc.update("DELETE FROM dealership WHERE id=?", other);
+                f.jdbc.update("DELETE FROM client WHERE id=?", other);
+            }
+        }
+    }
+
     @Test void overnightRecordsRealPreviewFailuresAndKeepsTheFailedScheduleUnchanged() {
         try (var f = new Fixture(true)) {
             var before=f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment");
