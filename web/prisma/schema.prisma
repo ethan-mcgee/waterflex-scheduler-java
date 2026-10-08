@@ -79,8 +79,27 @@ model Client {
   dealerships Dealership[]
   technicians Technician[]
   customers   Customer[]
+  solverSettings ClientSolverSettings?
 
   @@map("client")
+}
+
+// A client's own booking and routing settings. No row means the client has not configured them yet.
+model ClientSolverSettings {
+  clientId               String   @id
+  client                 Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  regularHourly          Decimal  @db.Decimal(14, 4)
+  overtimeHourly         Decimal  @db.Decimal(14, 4)
+  mileagePerMile         Decimal  @db.Decimal(14, 4)
+  travelBufferPct        Decimal  @db.Decimal(6, 4)
+  travelBufferMinutes    Int
+  fairnessBudget         Decimal  @db.Decimal(6, 4)
+  offerLimit             Int
+  bookingHorizonWeekdays Int
+  version                Int      @default(0)
+  updatedAt              DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("client_solver_settings")
 }
 
 model Dealership {

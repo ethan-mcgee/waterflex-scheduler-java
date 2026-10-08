@@ -274,6 +274,9 @@ jobs:
       - name: Depot pin setup smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:depot-setup:integration npm run test:depot-setup:integration
+      - name: Client solver settings smoke
+        working-directory: web
+        run: node ../infra/run-check.mjs test:client-settings:integration npm run test:client-settings:integration
       - name: Shared address matching smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:address-matching:integration npm run test:address-matching:integration
