@@ -99,10 +99,7 @@ public class BookingStore {
             writes.forEach((day, state) -> jdbc.update("UPDATE api_booking_day SET \"stateJson\"=?::jsonb,version=version+1,\"updatedAt\"=clock_timestamp() "
                     + "WHERE \"tenantId\"=? AND \"metroId\"=? AND \"serviceDate\"=?", CalculationJson.write(Required.value(state)), tenantId, Required.value(day).metroId(),
                     Date.valueOf(Required.value(day).serviceDate())));
-            ended.forEach((hold, ending) -> {
-                if (ending != BookingReconciliation.Ending.EXPIRED)
-                    jdbc.update("UPDATE api_booking_offer SET status=? WHERE \"tenantId\"=? AND \"holdId\"=? AND status IN ('HELD','SELECTED')", ending.name(), tenantId, hold);
-            });
+            end(tenantId, ended);
             jdbc.update("UPDATE api_booking_offer_set SET status='SUPERSEDED' WHERE \"tenantId\"=? AND \"jobId\"=? AND status IN ('ACTIVE','SELECTED')", tenantId, publication.jobId());
             String body = CalculationJson.write(publication.body());
             jdbc.update("INSERT INTO api_booking_offer_set (\"tenantId\",id,\"requestId\",\"jobId\",\"metroId\",\"expiresAt\",status,\"offerSetJson\") VALUES (?,?,?,?,?,?,'ACTIVE',?::jsonb)",
@@ -112,6 +109,63 @@ public class BookingStore {
                         tenantId, offer.offerId(), publication.offerSetId(), offer.holdId(), Date.valueOf(offer.serviceDate()), offer.technicianId(),
                         Timestamp.from(offer.windowStart()), Timestamp.from(offer.windowEnd()));
             store.complete(tenantId, publication.requestId(), ownerToken, 201, body);
+            return Boolean.TRUE;
+        });
+    }
+
+    /** Records how each ended hold ended. An expired hold is not written, since expiry is a time. */
+    private void end(String tenantId, Map<String, BookingReconciliation.Ending> ended) {
+        ended.forEach((hold, ending) -> {
+            if (ending != BookingReconciliation.Ending.EXPIRED)
+                jdbc.update("UPDATE api_booking_offer SET status=? WHERE \"tenantId\"=? AND \"holdId\"=? AND status IN ('HELD','SELECTED')", ending.name(), tenantId, hold);
+        });
+    }
+
+    /** A hold to confirm, with its job and metro, and its stored receipt once it is confirmed. */
+    public record HoldToConfirm(String offerId, String holdId, String offerSetId, String jobId, String metroId, LocalDate serviceDate,
+                                String status, String setStatus, Instant expiresAt, @Nullable String receiptJson) {
+        public DayKey day() { return new DayKey(metroId, serviceDate); }
+    }
+
+    /** The hold with this ID, or nothing when the tenant has none. */
+    public List<HoldToConfirm> holdToConfirm(String tenantId, String holdId) {
+        return store.asTenant(tenantId, () -> Required.value(jdbc.query(
+                "SELECT o.id,o.\"holdId\",o.\"offerSetId\",s.\"jobId\",s.\"metroId\",o.\"serviceDate\",o.status,s.status,s.\"expiresAt\",r.\"receiptJson\"::text "
+                + "FROM api_booking_offer o JOIN api_booking_offer_set s ON s.\"tenantId\"=o.\"tenantId\" AND s.id=o.\"offerSetId\" "
+                + "LEFT JOIN api_booking_receipt r ON r.\"tenantId\"=o.\"tenantId\" AND r.\"offerId\"=o.id WHERE o.\"tenantId\"=? AND o.\"holdId\"=?",
+                (rs, _) -> new HoldToConfirm(DatabaseFacts.string(rs, 1), DatabaseFacts.string(rs, 2), DatabaseFacts.string(rs, 3), DatabaseFacts.string(rs, 4),
+                        DatabaseFacts.string(rs, 5), date(rs, 6), DatabaseFacts.string(rs, 7), DatabaseFacts.string(rs, 8),
+                        Required.value(DatabaseFacts.timestamp(rs, 9).toInstant()), rs.getString(10)), tenantId, holdId)));
+    }
+
+    /** A confirmed hold: the offer it confirms and the receipt to store and answer with. */
+    public record Confirmation(String offerId, String offerSetId, PublicResponses.CommitReceipt receipt) { }
+
+    /**
+     * Locks the day and writes atomically: its new state, the holds that ended, and, with a {@code confirmation}, the
+     * confirmed offer, its set and its receipt; then completes the request with {@code status} and {@code body}. Throws
+     * {@link DayMoved} and writes nothing when the day's version is not the one read, or the offer is no longer selected.
+     */
+    public void settle(String tenantId, String requestId, String ownerToken, DayKey day, int readVersion, BookingDayState next,
+                       Map<String, BookingReconciliation.Ending> ended, @Nullable Confirmation confirmation, int status, String body) {
+        store.asTenant(tenantId, () -> {
+            StoredDay locked = read(tenantId, day, true);
+            if (locked.version() != readVersion) throw new DayMoved(day);
+            if (confirmation != null) {
+                jdbc.queryForList("SELECT id FROM api_booking_offer_set WHERE \"tenantId\"=? AND id=? FOR UPDATE", String.class, tenantId, confirmation.offerSetId());
+                OfferRow offer = offer(tenantId, confirmation.offerId());
+                if (offer == null || !offer.status().equals("SELECTED") || !offer.setStatus().equals("SELECTED")) throw new DayMoved(day);
+            }
+            if (!next.equals(locked.state())) jdbc.update("UPDATE api_booking_day SET \"stateJson\"=?::jsonb,version=version+1,\"updatedAt\"=clock_timestamp() "
+                    + "WHERE \"tenantId\"=? AND \"metroId\"=? AND \"serviceDate\"=?", CalculationJson.write(next), tenantId, day.metroId(), Date.valueOf(day.serviceDate()));
+            end(tenantId, ended);
+            if (confirmation != null) {
+                jdbc.update("UPDATE api_booking_offer SET status='CONFIRMED' WHERE \"tenantId\"=? AND id=?", tenantId, confirmation.offerId());
+                jdbc.update("UPDATE api_booking_offer_set SET status='CONFIRMED' WHERE \"tenantId\"=? AND id=?", tenantId, confirmation.offerSetId());
+                jdbc.update("INSERT INTO api_booking_receipt (\"tenantId\",id,\"offerId\",\"requestId\",\"receiptJson\") VALUES (?,?,?,?,?::jsonb)",
+                        tenantId, confirmation.receipt().receiptId(), confirmation.offerId(), requestId, body);
+            }
+            store.complete(tenantId, requestId, ownerToken, status, body);
             return Boolean.TRUE;
         });
     }

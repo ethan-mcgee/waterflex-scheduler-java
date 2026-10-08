@@ -802,6 +802,7 @@ model ApiRequest {
   proposal       ApiDailyProposal?
   receipt        ApiCommitReceipt?
   offerSet       ApiBookingOfferSet?
+  bookingReceipt ApiBookingReceipt?
   @@id([tenantId, requestId])
   @@map("api_request")
 }
@@ -901,8 +902,25 @@ model ApiBookingOffer {
   windowEnd    DateTime           @db.Timestamptz(6)
   status       String
   offerSet     ApiBookingOfferSet @relation(fields: [tenantId, offerSetId], references: [tenantId, id], onDelete: Cascade, onUpdate: NoAction)
+  receipt      ApiBookingReceipt?
   @@id([tenantId, id])
   @@unique([tenantId, holdId])
   @@index([tenantId, offerSetId], map: "api_booking_offer_set_member")
   @@map("api_booking_offer")
+}
+
+/// The one confirm of a booking hold: the appointments the host was told to write.
+model ApiBookingReceipt {
+  tenantId    String
+  id          String
+  offerId     String
+  requestId   String
+  receiptJson Json
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  offer       ApiBookingOffer @relation(fields: [tenantId, offerId], references: [tenantId, id], onDelete: Restrict, onUpdate: NoAction)
+  request     ApiRequest      @relation(fields: [tenantId, requestId], references: [tenantId, requestId], onDelete: Restrict, onUpdate: NoAction)
+  @@id([tenantId, id])
+  @@unique([tenantId, offerId])
+  @@unique([tenantId, requestId])
+  @@map("api_booking_receipt")
 }

@@ -47,6 +47,7 @@ class PublicApiContractTest {
         types.put("RepairProposalRequest", PublicRequests.RepairProposalRequest.class);
         types.put("BookingOffersRequest", PublicRequests.BookingOffersRequest.class);
         types.put("RequestOnly", PublicRequests.RequestOnly.class);
+        types.put("ConfirmRequest", PublicRequests.ConfirmRequest.class);
         types.put("CommitRequest", PublicRequests.CommitRequest.class);
         types.put("WhoAmI", PublicResponses.WhoAmI.class);
         types.put("PlannedStop", PublicResponses.PlannedStop.class);
