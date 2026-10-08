@@ -136,6 +136,7 @@ model Technician {
   maxDailyMinutes    Int         @default(540)
   maxOvertimeMinutes Int         @default(60)
   active             Boolean     @default(true)
+  factsChangedAt     DateTime    @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6) // set by database triggers
   externalId         String?     @unique // integration seam
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
@@ -143,6 +144,7 @@ model Technician {
   appointments Appointment[]
   slotHolds    SlotHold[]
   scheduleDays ScheduleDay[]
+  dayChanges   TechnicianDayChange[]
   qualifications TechnicianQualification[]
   shiftOverrides TechnicianShiftOverride[]
   availabilityVersions TechnicianAvailabilityVersion[]
@@ -333,6 +335,18 @@ model ScheduleDay {
 
   @@unique([technicianId, serviceDate])
   @@map("schedule_day")
+}
+
+// When a technician-day's own facts last changed (appointments, date exception, time off). Written only by database
+// triggers; no row means never. The public API lastModified is the later of this and technician.factsChangedAt.
+model TechnicianDayChange {
+  technicianId String
+  technician   Technician @relation(fields: [technicianId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  serviceDate  DateTime
+  changedAt    DateTime   @db.Timestamptz(6)
+
+  @@id([technicianId, serviceDate])
+  @@map("technician_day_change")
 }
 
 model SlotHold {

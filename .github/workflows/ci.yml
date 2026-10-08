@@ -277,6 +277,9 @@ jobs:
       - name: Client solver settings smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:client-settings:integration npm run test:client-settings:integration
+      - name: Client snapshot smoke
+        working-directory: web
+        run: node ../infra/run-check.mjs test:client-snapshot:integration npm run test:client-snapshot:integration
       - name: Shared address matching smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:address-matching:integration npm run test:address-matching:integration
