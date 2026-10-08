@@ -1,0 +1,754 @@
+openapi: 3.1.0
+info:
+  title: WaterFlex Scheduler public API
+  version: 0.1.0-draft
+  summary: Stateless scheduling and booking for WaterFlex Software.
+  description: |
+    Draft contract for the thin scheduler store design in docs/stateless-api-design.md.
+
+    WaterFlex Software owns all master data and the business record. Every calculating call carries a
+    snapshot of the facts it needs. The scheduler keeps only holds, offers, proposals and receipts.
+
+    Conventions:
+    - The tenant is derived from the bearer token. Requests never name a tenant.
+    - Every write carries a host `requestId` (UUID) used as an idempotency key.
+    - IDs are WaterFlex Software IDs, opaque strings.
+    - Money and rates are canonical decimal strings, never JSON numbers.
+    - Instants are RFC 3339 with an offset; service dates are calendar dates in the metro's time zone.
+    - Unknown fields, duplicate keys and missing required values are rejected with 400.
+    - Each technician-day carries the host `lastModified` timestamp. A commit or confirm whose timestamps
+      differ from the ones a proposal or offer was computed from gets 409, and nothing is changed.
+    - Overtime is never assigned.
+
+    Operations marked `x-implementation: planned` are specified but not yet served.
+servers:
+  - url: https://scheduler.internal.example
+    description: Private network address of the scheduler service (placeholder).
+security:
+  - tenantToken: []
+tags:
+  - name: Integration
+  - name: Daily
+  - name: Booking
+  - name: Repair
+paths:
+  /api/v1/whoami:
+    get:
+      operationId: whoami
+      tags: [Integration]
+      summary: Return the tenant that the bearer token belongs to.
+      x-implementation: implemented
+      responses:
+        '200':
+          description: Token is active.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WhoAmI' }
+              examples:
+                tenant: { value: { tenantId: acme-water } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/daily/proposals:
+    post:
+      operationId: createDailyProposal
+      tags: [Daily]
+      summary: Propose optimized routes for one metro day.
+      x-implementation: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DailyProposalRequest' }
+            examples:
+              oneDay: { $ref: '#/components/examples/DailyProposalRequest' }
+      responses:
+        '201':
+          description: Proposal stored; it can be committed until any technician-day it covers changes.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DailyProposal' }
+              examples:
+                proposed: { $ref: '#/components/examples/DailyProposal' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/daily/proposals/{proposalId}/commit:
+    post:
+      operationId: commitDailyProposal
+      tags: [Daily]
+      summary: Revalidate a proposal against current technician-day timestamps and return the assignments to write.
+      x-implementation: planned
+      parameters:
+        - $ref: '#/components/parameters/ProposalId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommitRequest' }
+            examples:
+              current: { $ref: '#/components/examples/CommitRequest' }
+      responses:
+        '200':
+          description: Proposal still valid. The host writes these assignments with a compare-and-set on the same timestamps.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommitReceipt' }
+              examples:
+                committed: { $ref: '#/components/examples/CommitReceipt' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Stale' }
+  /api/v1/booking/offers:
+    post:
+      operationId: createBookingOffers
+      tags: [Booking]
+      summary: Find up to four arrival windows for a job and hold them.
+      description: Must answer within 5 seconds end to end. Offers add no overtime.
+      x-implementation: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BookingOffersRequest' }
+            examples:
+              newJob: { $ref: '#/components/examples/BookingOffersRequest' }
+      responses:
+        '201':
+          description: Offer set created. Each offer holds its slot until `expiresAt`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OfferSet' }
+              examples:
+                offers: { $ref: '#/components/examples/OfferSet' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/booking/offers/{offerId}/select:
+    post:
+      operationId: selectBookingOffer
+      tags: [Booking]
+      summary: Keep the hold for one offer and release the others in its set.
+      x-implementation: planned
+      parameters:
+        - $ref: '#/components/parameters/OfferId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestOnly' }
+            examples:
+              select: { value: { requestId: 7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10 } }
+      responses:
+        '200':
+          description: Offer selected.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Hold' }
+              examples:
+                held: { value: { holdId: hold-5f2c, offerId: offer-1, expiresAt: '2026-10-12T15:10:00-05:00' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Stale' }
+  /api/v1/booking/offers/{offerId}/release:
+    post:
+      operationId: releaseBookingOffer
+      tags: [Booking]
+      summary: Release every hold in the offer's set.
+      x-implementation: planned
+      parameters:
+        - $ref: '#/components/parameters/OfferId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestOnly' }
+            examples:
+              release: { value: { requestId: 1f3a9b2c-6d4e-4a8b-9c0d-2e1f3a4b5c6d } }
+      responses:
+        '200':
+          description: Released, or already released.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Released' }
+              examples:
+                released: { value: { released: true } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/booking/holds/{holdId}/confirm:
+    post:
+      operationId: confirmBookingHold
+      tags: [Booking]
+      summary: Revalidate a held offer against current technician-day timestamps and return the appointment arrangement to write.
+      x-implementation: planned
+      parameters:
+        - $ref: '#/components/parameters/HoldId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommitRequest' }
+            examples:
+              current: { $ref: '#/components/examples/CommitRequest' }
+      responses:
+        '200':
+          description: Hold confirmed. The host writes the arrangement with a compare-and-set on the same timestamps.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommitReceipt' }
+              examples:
+                confirmed: { $ref: '#/components/examples/CommitReceipt' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Stale' }
+  /api/v1/repairs/proposals:
+    post:
+      operationId: createRepairProposal
+      tags: [Repair]
+      summary: Propose how to cover a technician's absence on one day without overtime.
+      x-implementation: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RepairProposalRequest' }
+            examples:
+              absence: { $ref: '#/components/examples/RepairProposalRequest' }
+      responses:
+        '201':
+          description: Repair proposal stored; commit it with the daily commit endpoint.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DailyProposal' }
+              examples:
+                proposed: { $ref: '#/components/examples/DailyProposal' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/requests/{requestId}:
+    delete:
+      operationId: cancelRequest
+      tags: [Integration]
+      summary: Best-effort cancellation of an in-flight calculation.
+      description: A calculation that is not cancelled in time still stops at its own deadline.
+      x-implementation: planned
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/RequestId' }
+      responses:
+        '202': { description: Cancellation recorded. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    tenantToken:
+      type: http
+      scheme: bearer
+      description: Per-tenant token (`wfs_` plus 43 base64url characters), issued by the scheduler operator.
+  parameters:
+    ProposalId:
+      name: proposalId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+    OfferId:
+      name: offerId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+    HoldId:
+      name: holdId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Id' }
+  responses:
+    BadRequest:
+      description: Malformed request, unknown field, duplicate key or missing required value.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            unknownField: { value: { error: INVALID_REQUEST, message: Unknown field "tenantId" } }
+    Unauthorized:
+      description: Missing, malformed, unknown or revoked token, or a disabled tenant.
+      headers:
+        WWW-Authenticate:
+          schema: { type: string, const: Bearer }
+    NotFound:
+      description: No such proposal, offer, hold or request for this tenant.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            missing: { value: { error: NOT_FOUND, message: Proposal not found } }
+    Stale:
+      description: A technician-day changed since the proposal or offer was computed, or the hold expired. Nothing was changed.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/StaleProblem' }
+          examples:
+            changed: { $ref: '#/components/examples/StaleProblem' }
+    IncompleteFacts:
+      description: The snapshot is well formed but cannot be scheduled, for example a location with no road route.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            unroutable: { value: { error: INCOMPLETE_FACTS, message: No road route to appointment appt-7 } }
+    Busy:
+      description: Admission limit reached; retry with backoff.
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            busy: { value: { error: BUSY, message: Search capacity exhausted } }
+    Unavailable:
+      description: Routing or calculation was unavailable, or the deadline passed. Nothing was stored.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            routing: { value: { error: ROUTING_UNAVAILABLE, message: Road routing unavailable } }
+  schemas:
+    Id:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: '^\S(.*\S)?$'
+      description: Opaque WaterFlex Software or scheduler identifier.
+    RequestId:
+      type: string
+      format: uuid
+      description: Host idempotency key. Repeating a request with the same ID returns the original result.
+    TenantId:
+      type: string
+      pattern: '^[a-z0-9][a-z0-9-]{0,62}$'
+    Instant:
+      type: string
+      format: date-time
+    ServiceDate:
+      type: string
+      format: date
+    Decimal:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]*[1-9])?$'
+      description: Canonical non-negative decimal string, for example "20", "0.2" or "0.67".
+    Location:
+      type: object
+      additionalProperties: false
+      description: Coordinates are authoritative when present. An address alone is geocoded by the scheduler.
+      properties:
+        lat: { type: number, minimum: -90, maximum: 90 }
+        lng: { type: number, minimum: -180, maximum: 180 }
+        address: { $ref: '#/components/schemas/Address' }
+      anyOf:
+        - required: [lat, lng]
+        - required: [address]
+      dependentRequired:
+        lat: [lng]
+        lng: [lat]
+    Address:
+      type: object
+      additionalProperties: false
+      required: [line1, city, state, postalCode]
+      properties:
+        line1: { type: string, minLength: 1 }
+        line2: { type: string }
+        city: { type: string, minLength: 1 }
+        state: { type: string, minLength: 2, maxLength: 2 }
+        postalCode: { type: string, minLength: 5 }
+    Window:
+      type: object
+      additionalProperties: false
+      required: [start, end]
+      properties:
+        start: { $ref: '#/components/schemas/Instant' }
+        end: { $ref: '#/components/schemas/Instant' }
+    Rates:
+      type: object
+      additionalProperties: false
+      required: [regularHourly, overtimeHourly, mileagePerMile, travelBufferPct, travelBufferMinutes]
+      properties:
+        regularHourly: { $ref: '#/components/schemas/Decimal' }
+        overtimeHourly: { $ref: '#/components/schemas/Decimal' }
+        mileagePerMile: { $ref: '#/components/schemas/Decimal' }
+        travelBufferPct: { $ref: '#/components/schemas/Decimal' }
+        travelBufferMinutes: { type: integer, minimum: 0, maximum: 120 }
+    Technician:
+      type: object
+      additionalProperties: false
+      required: [id, qualifications]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        qualifications:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Id' }
+          description: Service IDs this technician may perform.
+    TechnicianDay:
+      type: object
+      additionalProperties: false
+      required: [technicianId, serviceDate, lastModified, shift, start, end, maxPaidMinutes]
+      properties:
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        lastModified:
+          $ref: '#/components/schemas/Instant'
+          description: Host timestamp that changes whenever anything affecting this technician-day changes. Compared for exact equality.
+        shift: { $ref: '#/components/schemas/Window' }
+        absences:
+          type: array
+          items: { $ref: '#/components/schemas/Window' }
+        start: { $ref: '#/components/schemas/Location' }
+        end: { $ref: '#/components/schemas/Location' }
+        maxPaidMinutes: { type: integer, minimum: 1, maximum: 1440 }
+    Appointment:
+      type: object
+      additionalProperties: false
+      required: [id, technicianId, serviceDate, serviceId, durationMinutes, window, location, sequence]
+      properties:
+        id: { $ref: '#/components/schemas/Id' }
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        serviceId: { $ref: '#/components/schemas/Id' }
+        durationMinutes: { type: integer, minimum: 1, maximum: 720 }
+        window: { $ref: '#/components/schemas/Window' }
+        location: { $ref: '#/components/schemas/Location' }
+        sequence: { type: integer, minimum: 0 }
+    Snapshot:
+      type: object
+      additionalProperties: false
+      required: [metroId, timeZone, rates, technicians, technicianDays, appointments]
+      properties:
+        metroId: { $ref: '#/components/schemas/Id' }
+        timeZone: { type: string, minLength: 1, examples: [America/Chicago] }
+        rates: { $ref: '#/components/schemas/Rates' }
+        technicians:
+          type: array
+          items: { $ref: '#/components/schemas/Technician' }
+        technicianDays:
+          type: array
+          items: { $ref: '#/components/schemas/TechnicianDay' }
+        appointments:
+          type: array
+          description: Every committed appointment on the covered technician-days.
+          items: { $ref: '#/components/schemas/Appointment' }
+    DailyProposalRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, serviceDate, snapshot]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        snapshot: { $ref: '#/components/schemas/Snapshot' }
+    RepairProposalRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, absence, snapshot]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+        absence:
+          type: object
+          additionalProperties: false
+          required: [technicianId, serviceDate, window]
+          properties:
+            technicianId: { $ref: '#/components/schemas/Id' }
+            serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+            window: { $ref: '#/components/schemas/Window' }
+        snapshot: { $ref: '#/components/schemas/Snapshot' }
+    PlannedStop:
+      type: object
+      additionalProperties: false
+      required: [appointmentId, sequence, plannedStart, plannedEnd]
+      properties:
+        appointmentId: { $ref: '#/components/schemas/Id' }
+        sequence: { type: integer, minimum: 0 }
+        plannedStart: { $ref: '#/components/schemas/Instant' }
+        plannedEnd: { $ref: '#/components/schemas/Instant' }
+    PlannedRoute:
+      type: object
+      additionalProperties: false
+      required: [technicianId, serviceDate, stops]
+      properties:
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        stops:
+          type: array
+          items: { $ref: '#/components/schemas/PlannedStop' }
+    DailyProposal:
+      type: object
+      additionalProperties: false
+      required: [proposalId, inputRevision, decision, routes, unresolvedAppointmentIds, costCents, overtimeMinutes]
+      properties:
+        proposalId: { $ref: '#/components/schemas/Id' }
+        inputRevision:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: SHA-256 of the canonical snapshot.
+        decision:
+          type: string
+          enum: [IMPROVED, NO_IMPROVEMENT, REJECTED_BY_POLICY]
+          description: Only IMPROVED proposals can be committed.
+        routes:
+          type: array
+          items: { $ref: '#/components/schemas/PlannedRoute' }
+        unresolvedAppointmentIds:
+          type: array
+          items: { $ref: '#/components/schemas/Id' }
+        costCents: { type: integer, minimum: 0 }
+        overtimeMinutes: { type: integer, const: 0 }
+    BookingOffersRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, job, horizon, snapshot]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+        job:
+          type: object
+          additionalProperties: false
+          required: [id, serviceId, durationMinutes, location]
+          properties:
+            id: { $ref: '#/components/schemas/Id' }
+            serviceId: { $ref: '#/components/schemas/Id' }
+            durationMinutes: { type: integer, minimum: 1, maximum: 720 }
+            location: { $ref: '#/components/schemas/Location' }
+        horizon:
+          type: object
+          additionalProperties: false
+          required: [firstDate, lastDate]
+          properties:
+            firstDate: { $ref: '#/components/schemas/ServiceDate' }
+            lastDate: { $ref: '#/components/schemas/ServiceDate' }
+        snapshot: { $ref: '#/components/schemas/Snapshot' }
+    Offer:
+      type: object
+      additionalProperties: false
+      required: [offerId, serviceDate, window]
+      properties:
+        offerId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        window: { $ref: '#/components/schemas/Window' }
+    OfferSet:
+      type: object
+      additionalProperties: false
+      required: [offerSetId, expiresAt, offers, searchComplete]
+      properties:
+        offerSetId: { $ref: '#/components/schemas/Id' }
+        expiresAt: { $ref: '#/components/schemas/Instant' }
+        offers:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/Offer' }
+        searchComplete:
+          type: boolean
+          description: False when the deadline ended the search early; an empty offer list then does not prove there is no capacity.
+    Hold:
+      type: object
+      additionalProperties: false
+      required: [holdId, offerId, expiresAt]
+      properties:
+        holdId: { $ref: '#/components/schemas/Id' }
+        offerId: { $ref: '#/components/schemas/Id' }
+        expiresAt: { $ref: '#/components/schemas/Instant' }
+    Released:
+      type: object
+      additionalProperties: false
+      required: [released]
+      properties:
+        released: { type: boolean, const: true }
+    TechnicianDayVersion:
+      type: object
+      additionalProperties: false
+      required: [technicianId, serviceDate, lastModified]
+      properties:
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        lastModified: { $ref: '#/components/schemas/Instant' }
+    CommitRequest:
+      type: object
+      additionalProperties: false
+      required: [requestId, technicianDays]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+        technicianDays:
+          type: array
+          minItems: 1
+          description: Current host timestamps for every technician-day the proposal or offer covers.
+          items: { $ref: '#/components/schemas/TechnicianDayVersion' }
+    Assignment:
+      type: object
+      additionalProperties: false
+      required: [appointmentId, technicianId, serviceDate, sequence, plannedStart, plannedEnd]
+      properties:
+        appointmentId: { $ref: '#/components/schemas/Id' }
+        technicianId: { $ref: '#/components/schemas/Id' }
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        sequence: { type: integer, minimum: 0 }
+        plannedStart: { $ref: '#/components/schemas/Instant' }
+        plannedEnd: { $ref: '#/components/schemas/Instant' }
+    CommitReceipt:
+      type: object
+      additionalProperties: false
+      required: [receiptId, assignments, technicianDays]
+      properties:
+        receiptId: { $ref: '#/components/schemas/Id' }
+        assignments:
+          type: array
+          description: Every appointment whose technician, sequence or planned time the host must write. A booking confirm includes the new job.
+          items: { $ref: '#/components/schemas/Assignment' }
+        technicianDays:
+          type: array
+          description: The timestamps the host must compare-and-set against when writing.
+          items: { $ref: '#/components/schemas/TechnicianDayVersion' }
+    RequestOnly:
+      type: object
+      additionalProperties: false
+      required: [requestId]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+    WhoAmI:
+      type: object
+      additionalProperties: false
+      required: [tenantId]
+      properties:
+        tenantId: { $ref: '#/components/schemas/TenantId' }
+    Problem:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [INVALID_REQUEST, NOT_FOUND, STALE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE]
+        message: { type: string, minLength: 1 }
+    StaleProblem:
+      type: object
+      additionalProperties: false
+      required: [error, message, changed]
+      properties:
+        error: { type: string, const: STALE }
+        message: { type: string, minLength: 1 }
+        changed:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TechnicianDayVersion' }
+          description: Technician-days whose submitted timestamp differs from the recorded one, with the recorded value.
+  examples:
+    DailyProposalRequest:
+      value:
+        requestId: 3b1f6c1e-2a7d-4f0e-8c52-9a1d7e6b4c21
+        serviceDate: '2026-10-12'
+        snapshot: &snapshot
+          metroId: omaha
+          timeZone: America/Chicago
+          rates: { regularHourly: '20', overtimeHourly: '30', mileagePerMile: '0.67', travelBufferPct: '0.2', travelBufferMinutes: 2 }
+          technicians:
+            - { id: tech-1, qualifications: [softener-install, softener-service] }
+            - { id: tech-2, qualifications: [softener-service] }
+          technicianDays:
+            - technicianId: tech-1
+              serviceDate: '2026-10-12'
+              lastModified: '2026-10-11T21:04:17.123456Z'
+              shift: { start: '2026-10-12T08:00:00-05:00', end: '2026-10-12T17:00:00-05:00' }
+              start: { lat: 41.2565, lng: -95.9345 }
+              end: { lat: 41.2565, lng: -95.9345 }
+              maxPaidMinutes: 540
+            - technicianId: tech-2
+              serviceDate: '2026-10-12'
+              lastModified: '2026-10-10T16:30:00Z'
+              shift: { start: '2026-10-12T08:00:00-05:00', end: '2026-10-12T17:00:00-05:00' }
+              absences: [ { start: '2026-10-12T12:00:00-05:00', end: '2026-10-12T13:00:00-05:00' } ]
+              start: { lat: 41.2864, lng: -96.2345 }
+              end: { lat: 41.2864, lng: -96.2345 }
+              maxPaidMinutes: 540
+          appointments:
+            - id: appt-7
+              technicianId: tech-1
+              serviceDate: '2026-10-12'
+              serviceId: softener-service
+              durationMinutes: 60
+              window: { start: '2026-10-12T08:00:00-05:00', end: '2026-10-12T12:00:00-05:00' }
+              location: { lat: 41.2603, lng: -96.0731 }
+              sequence: 0
+            - id: appt-8
+              technicianId: tech-1
+              serviceDate: '2026-10-12'
+              serviceId: softener-service
+              durationMinutes: 45
+              window: { start: '2026-10-12T12:00:00-05:00', end: '2026-10-12T16:00:00-05:00' }
+              location: { address: { line1: 1200 Example St, city: Omaha, state: NE, postalCode: '68102' } }
+              sequence: 1
+    DailyProposal:
+      value:
+        proposalId: prop-0c4e
+        inputRevision: 9f2b6c0d4e1a7b3c5d8e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e
+        decision: IMPROVED
+        routes:
+          - technicianId: tech-1
+            serviceDate: '2026-10-12'
+            stops:
+              - { appointmentId: appt-7, sequence: 0, plannedStart: '2026-10-12T08:24:00-05:00', plannedEnd: '2026-10-12T09:24:00-05:00' }
+          - technicianId: tech-2
+            serviceDate: '2026-10-12'
+            stops:
+              - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
+        unresolvedAppointmentIds: []
+        costCents: 18942
+        overtimeMinutes: 0
+    RepairProposalRequest:
+      value:
+        requestId: 5c2d8e4f-1a3b-4c6d-8e0f-2a4b6c8d0e1f
+        absence:
+          technicianId: tech-1
+          serviceDate: '2026-10-12'
+          window: { start: '2026-10-12T08:00:00-05:00', end: '2026-10-12T17:00:00-05:00' }
+        snapshot: *snapshot
+    BookingOffersRequest:
+      value:
+        requestId: 9e8d7c6b-5a49-4382-9170-6f5e4d3c2b1a
+        job:
+          id: job-311
+          serviceId: softener-install
+          durationMinutes: 90
+          location: { lat: 41.2350, lng: -96.0420 }
+        horizon: { firstDate: '2026-10-12', lastDate: '2026-10-12' }
+        snapshot: *snapshot
+    OfferSet:
+      value:
+        offerSetId: set-77a1
+        expiresAt: '2026-10-12T15:10:00-05:00'
+        searchComplete: true
+        offers:
+          - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T10:00:00-05:00', end: '2026-10-12T12:00:00-05:00' } }
+          - { offerId: offer-2, serviceDate: '2026-10-12', window: { start: '2026-10-12T13:00:00-05:00', end: '2026-10-12T15:00:00-05:00' } }
+    CommitRequest:
+      value:
+        requestId: 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
+        technicianDays:
+          - { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T21:04:17.123456Z' }
+          - { technicianId: tech-2, serviceDate: '2026-10-12', lastModified: '2026-10-10T16:30:00Z' }
+    CommitReceipt:
+      value:
+        receiptId: rcpt-41d9
+        assignments:
+          - { appointmentId: appt-8, technicianId: tech-2, serviceDate: '2026-10-12', sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
+        technicianDays:
+          - { technicianId: tech-1, serviceDate: '2026-10-12', lastModified: '2026-10-11T21:04:17.123456Z' }
+          - { technicianId: tech-2, serviceDate: '2026-10-12', lastModified: '2026-10-10T16:30:00Z' }
+    StaleProblem:
+      value:
+        error: STALE
+        message: Technician-day changed since the proposal was computed
+        changed:
+          - { technicianId: tech-2, serviceDate: '2026-10-12', lastModified: '2026-10-10T16:30:00Z' }
