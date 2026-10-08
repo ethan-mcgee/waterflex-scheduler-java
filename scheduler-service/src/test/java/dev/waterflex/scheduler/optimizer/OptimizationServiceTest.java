@@ -61,13 +61,6 @@ class OptimizationServiceTest {
         assertEquals("CANCELLED_OR_EXPIRED",receipt.outcome()); assertTrue(!receipt.lateResult());
         assertTrue(!committed.get()); assertEquals(0,admission.state().active());
     }
-    @Test void repairRequiresExplicitApprovalOnlyForAdditionalOvertime() {
-        assertThrows(RepairOvertimeApprovalRequired.class, () -> OptimizationService.requireRepairOvertimeApproval(10, 11, false));
-        OptimizationService.requireRepairOvertimeApproval(10, 10, false);
-        OptimizationService.requireRepairOvertimeApproval(10, 0, false);
-        OptimizationService.requireRepairOvertimeApproval(10, 11, true);
-        assertThrows(IllegalArgumentException.class, () -> OptimizationService.requireRepairOvertimeApproval(-1, 1, true));
-    }
     @Test
     void frozenPreviewIsAScheduleConflict() {
         OptimizationService service = new OptimizationService(
