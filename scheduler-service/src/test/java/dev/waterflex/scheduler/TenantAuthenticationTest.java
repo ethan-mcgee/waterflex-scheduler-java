@@ -22,7 +22,7 @@ class TenantAuthenticationTest {
     @Test void publicApiResolvesTenantOnlyFromAValidToken() throws Exception {
         TenantTokens tokens = mock(TenantTokens.class);
         when(tokens.tenantFor(VECTOR)).thenReturn("acme");
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class)))
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class)))
                 .addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(get("/api/v1/whoami").header("Authorization", "Bearer " + VECTOR)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tenantId").value("acme"));
@@ -40,7 +40,7 @@ class TenantAuthenticationTest {
         var proposals = mock(dev.waterflex.scheduler.api.DailyProposals.class);
         String body = "{\"requestId\":\"x\",\"tenantId\":\"other\"}";
         when(proposals.create("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(429, "{\"error\":\"BUSY\",\"message\":\"m\"}", 1));
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals, mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class))).addFilters(new TenantAuthentication(tokens)).build());
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals, mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class))).addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals")
                         .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))
                 .andExpect(status().is(429)).andExpect(header().string("Retry-After", "1")).andExpect(jsonPath("$.error").value("BUSY"));
@@ -55,7 +55,7 @@ class TenantAuthenticationTest {
         var commits = mock(dev.waterflex.scheduler.api.DailyCommits.class);
         String body = "{\"requestId\":\"x\"}";
         when(commits.commit("acme", "prop-1", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(409, "{\"error\":\"NOT_COMMITTABLE\",\"message\":\"m\"}", null));
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), commits, mock(dev.waterflex.scheduler.api.BookingOffers.class)))
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), commits, mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class)))
                 .addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals/prop-1/commit")
                         .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))

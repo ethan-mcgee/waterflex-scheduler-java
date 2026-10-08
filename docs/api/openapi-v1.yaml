@@ -30,6 +30,8 @@ info:
     - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
     - A booking horizon covers at most 21 dates, and `job.id` must differ from every appointment and technician ID.
     - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
+    - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
+    - `BookingOffersRequest.offerLimit` (1 to 4) is required; send the client's own cap on offers per search.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
 servers:
   - url: https://scheduler.internal.example
@@ -125,7 +127,8 @@ paths:
       tags: [Booking]
       summary: Find up to four arrival windows for a job and hold them.
       description: >-
-        Must answer within 5 seconds end to end. Offers add no overtime and may move other appointments
+        Must answer within 5 seconds end to end. Returns at most `offerLimit` offers, the client's own cap.
+        Offers add no overtime and may move other appointments
         (see "Booking (Decided 2026-10-08)" in docs/stateless-api-design.md). A new search for the same job
         ends its earlier offers. A date already past its 6 a.m. cutoff is a 422.
       x-implementation: implemented
@@ -154,7 +157,9 @@ paths:
       operationId: selectBookingOffer
       tags: [Booking]
       summary: Keep the hold for one offer and release the others in its set.
-      x-implementation: planned
+      description: >-
+        The hold keeps its original expiry. Selecting the already selected offer again returns its hold.
+      x-implementation: implemented
       parameters:
         - $ref: '#/components/parameters/OfferId'
       requestBody:
@@ -172,15 +177,17 @@ paths:
               schema: { $ref: '#/components/schemas/Hold' }
               examples:
                 held: { value: { holdId: hold-5f2c, offerId: offer-1, expiresAt: '2026-10-12T15:10:00-05:00' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Stale' }
+        '409': { $ref: '#/components/responses/HoldUnavailable' }
+        '429': { $ref: '#/components/responses/Busy' }
   /api/v1/booking/offers/{offerId}/release:
     post:
       operationId: releaseBookingOffer
       tags: [Booking]
       summary: Release every hold in the offer's set.
-      x-implementation: planned
+      x-implementation: implemented
       parameters:
         - $ref: '#/components/parameters/OfferId'
       requestBody:
@@ -198,8 +205,10 @@ paths:
               schema: { $ref: '#/components/schemas/Released' }
               examples:
                 released: { value: { released: true } }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/Busy' }
   /api/v1/booking/holds/{holdId}/confirm:
     post:
       operationId: confirmBookingHold
@@ -318,6 +327,15 @@ components:
           schema: { $ref: '#/components/schemas/StaleProblem' }
           examples:
             changed: { $ref: '#/components/examples/StaleProblem' }
+    HoldUnavailable:
+      description: >-
+        The hold expired or ended (lost, released or superseded), or its offer set already selected another offer.
+        Nothing was changed; search again for new offers.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            expired: { value: { error: HOLD_UNAVAILABLE, message: The hold expired } }
     CommitConflict:
       description: >-
         STALE when a technician-day changed since the proposal was computed. NOT_COMMITTABLE when the proposal
@@ -582,9 +600,14 @@ components:
     BookingOffersRequest:
       type: object
       additionalProperties: false
-      required: [requestId, job, horizon, snapshot]
+      required: [requestId, job, horizon, offerLimit, snapshot]
       properties:
         requestId: { $ref: '#/components/schemas/RequestId' }
+        offerLimit:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: The client's own cap on offers per search. Required; never assumed.
         job:
           type: object
           additionalProperties: false
@@ -714,7 +737,7 @@ components:
       properties:
         error:
           type: string
-          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE]
+          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE]
         message: { type: string, minLength: 1 }
     StaleProblem:
       type: object
@@ -818,6 +841,7 @@ components:
           durationMinutes: 90
           location: { lat: 41.2350, lng: -96.0420 }
         horizon: { firstDate: '2026-10-12', lastDate: '2026-10-12' }
+        offerLimit: 4
         snapshot: *snapshot
     OfferSet:
       value:
