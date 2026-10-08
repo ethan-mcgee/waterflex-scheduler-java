@@ -30,9 +30,10 @@ for (const road of ["North 169th Street", "Reflection Circle", "Appaloosa Drive"
     };
     const results = await searchAddress({ line1: `123 ${road}`, city: "Omaha", state: "NE", postalCode: "68130" }, bounds);
     assert.equal(results.length, 1); assert.equal(results[0]?.precision, "APPROXIMATE");
-    assert.equal(queries.length, 3); assert.equal(new Set(signals).size, 1);
+    assert.equal(queries.length, 4); assert.equal(new Set(signals).size, 1);
     assert.ok(queries.every(q => q.searchParams.get("bounded") === "1"));
-    assert.equal(queries[2]?.searchParams.get("street"), road);
+    assert.equal(queries[2]?.searchParams.get("street"), `123 ${road}`);
+    assert.equal(queries[3]?.searchParams.get("street"), road);
   });
 }
 test("Elkhorn suburb and rural locality categories can identify an exact address", async () => {
