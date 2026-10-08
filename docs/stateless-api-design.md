@@ -112,7 +112,19 @@ Apply these levers in order, each only when measurements call for it. Signals: b
 
 1. **More scheduler replicas behind a load balancer.** Works once no correctness state lives in replica memory (see "Multiple clients").
 2. **Separate roles from one artifact.** Run booking replicas (latency sensitive, short solves) apart from batch replicas (overnight and daily proposals, up to 20 s of full CPU per solve). Same JAR, a role setting chooses which endpoints and schedules a replica serves. This removes the most likely CPU contention without a remote hop.
-3. **Remote solver pool.** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Prerequisites (roadmap S1): https with service tokens, cancellation that works across replicas, and an explicit compatible-version set instead of the byte-identical engine requirement. The remote round trips (up to three per booking search today) must fit the 5 second budget.
+3. **Remote solver pool.** Switch `SCHEDULER_CALCULATION_MODE=REMOTE` and scale `solver-service` independently. Prerequisites (roadmap S1): https with service tokens (enforced today for non-loopback solver URLs), cancellation that works across replicas, and an explicit compatible-version set instead of the byte-identical engine requirement. The remote round trips (up to three per booking search today) must fit the 5 second budget.
+
+   Cancellation across solver replicas (exists today): every solve `POST` and its cancellation `DELETE` carry the solve's request ID in the `Solve-Request-Id` header, and `solver-service` rejects either call when the header is missing or does not match the request. The load balancer in front of the solver pool hashes on that header so both calls reach the same replica. For nginx:
+
+   ```nginx
+   upstream solver_pool {
+       hash $http_solve_request_id consistent;
+       server solver-1.internal:8443;
+       server solver-2.internal:8443;
+   }
+   ```
+
+   A replica that leaves the pool loses only the solves it was running; their callers see a transport failure, and a cancel that misses still ends at the solve's own deadline.
 
 Routing scales per metro by adding replicas of that metro's routing service behind its own internal address.
 
