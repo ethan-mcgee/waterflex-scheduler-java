@@ -5,6 +5,9 @@ import dev.waterflex.scheduler.RoadClient;
 import dev.waterflex.scheduler.RoadPoint;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.SearchDeadline;
+import dev.waterflex.scheduler.api.PublicRequests;
+import dev.waterflex.scheduler.api.PublicTypes;
+import dev.waterflex.scheduler.api.RequestDay;
 import java.net.URI;
 import java.sql.Timestamp;
 import java.time.*;
@@ -93,6 +96,48 @@ class DailyAttemptDatabaseIT {
             f.jdbc.update("DELETE FROM overnight_optimization_attempt WHERE \"metroId\"=?",f.id);
         }
     }
+    @Test void aRequestSnapshotOfTheSameDayBuildsTheSameSolverInputAsTheDatabase() {
+        try (var f = new Fixture(true)) {
+            String timeOff = f.id + "-time-off";
+            f.jdbc.update("INSERT INTO time_off_request (id,\"technicianId\",category,reason,status) VALUES (?,?,'Other','fixture','APPROVED')", timeOff, f.id + "-near");
+            f.jdbc.update("INSERT INTO time_off_interval (id,\"requestId\",\"serviceDate\",\"startMin\",\"endMin\") VALUES (?,?,?,720,780)", timeOff, timeOff, Timestamp.valueOf(f.day.atStartOfDay()));
+            try {
+                DayPlan database = f.service.capturedPlan(f.id, f.day);
+                Map<String, java.math.BigDecimal> settings = new HashMap<>();
+                f.jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs -> settings.put(dev.waterflex.scheduler.DatabaseFacts.string(rs, 1), dev.waterflex.scheduler.DatabaseFacts.decimal(rs, 2)));
+                var rates = new PublicTypes.Rates(Required.value(settings.get("regular_hourly_dollars")), Required.value(settings.get("overtime_hourly_dollars")),
+                        Required.value(settings.get("mileage_dollars_per_mile")), Required.value(settings.get("travel_buffer_pct")),
+                        Required.value(settings.get("travel_buffer_minutes_per_leg")).intValueExact());
+                var home = new PublicTypes.Location(43.7, 7.4, null);
+                var shift = new PublicTypes.Window(f.local(8), f.local(17));
+                Instant modified = Required.value(Instant.parse("2026-10-01T00:00:00Z"));
+                var snapshot = new PublicTypes.Snapshot(f.id, "America/Chicago", rates,
+                        Required.value(List.of(new PublicTypes.Technician(f.id + "-near", Required.value(List.of(f.id))), new PublicTypes.Technician(f.id + "-far", Required.value(List.of(f.id))))),
+                        Required.value(List.of(
+                                new PublicTypes.TechnicianDay(f.id + "-near", f.day, modified, shift, Required.value(List.of(new PublicTypes.Window(f.local(12), f.local(13)))), home, home, 600),
+                                new PublicTypes.TechnicianDay(f.id + "-far", f.day, modified, shift, Required.value(List.of()), home, home, 600))),
+                        Required.value(List.of(new PublicTypes.Appointment(f.id + "-appointment", f.id + "-far", f.day, f.id, 30,
+                                new PublicTypes.Window(f.local(10), f.local(14)), home, 0, f.local(10)))));
+                var request = new PublicRequests.DailyProposalRequest(Required.value(UUID.randomUUID().toString()), f.day, snapshot);
+                var day = RequestDay.of(request, _ -> { throw new AssertionError("Host coordinates are authoritative"); });
+                Map<String, DayPlan.RoadLeg> reachable = new HashMap<>();
+                f.roads.matrix(day.points()).forEach((pair, leg) -> reachable.put(pair, new DayPlan.RoadLeg(leg.seconds(), leg.meters())));
+                DayPlan fromRequest = day.plan(reachable);
+                assertEquals(database.getFacts(), fromRequest.getFacts());
+                assertEquals(routes(database), routes(fromRequest));
+                assertEquals(database.getMode(), fromRequest.getMode());
+            } finally {
+                f.jdbc.update("DELETE FROM time_off_request WHERE id=?", timeOff);
+            }
+        }
+    }
+
+    private static Map<String, List<String>> routes(DayPlan plan) {
+        Map<String, List<String>> routes = new LinkedHashMap<>();
+        for (TechRoute route : plan.getRoutes()) routes.put(route.getId(), Required.value(route.getVisits().stream().map(visit -> Required.value(visit).getId()).toList()));
+        return routes;
+    }
+
     private static final String HASH = DailyAttempts.fingerprint("fixture request");
 
     @Test void duplicateClaimsConflictsExpiredOwnersAndTerminalFailuresNeverRerun() throws Exception {
