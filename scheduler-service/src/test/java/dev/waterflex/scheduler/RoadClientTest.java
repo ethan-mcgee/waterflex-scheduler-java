@@ -53,6 +53,39 @@ class RoadClientTest {
         } finally { roads.closeRoutingWork(); server.stop(0); }
     }
 
+    @Test void configuredRoutingTokenIsSentOnComputationAndOmittedWhenAbsent() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        var seen = new java.util.concurrent.LinkedBlockingQueue<String>();
+        var json = new com.fasterxml.jackson.databind.ObjectMapper();
+        server.createContext("/internal/legs", exchange -> {
+            String header = exchange.getRequestHeaders().getFirst("Authorization");
+            seen.add(header == null ? "<none>" : header);
+            var body = json.readTree(exchange.getRequestBody());
+            var result = json.createObjectNode().put("routingIdentity", "test");
+            var pairs = result.putArray("pairs");
+            for (var pair : body.path("pairs")) pairs.addObject().put("id", pair.path("id").asText()).putObject("leg")
+                    .put("routable", true).put("seconds", 60).put("meters", 42);
+            byte[] bytes = json.writeValueAsBytes(result);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.start();
+        String url = "http://127.0.0.1:" + server.getAddress().getPort();
+        String token = "routing-fixture-token-at-least-32-characters";
+        var transactions = mock(org.springframework.transaction.PlatformTransactionManager.class);
+        var secured = new RoadClient(mock(JdbcTemplate.class), url, token, 10, 10, transactions);
+        var open = new RoadClient(mock(JdbcTemplate.class), url, 10, 10, transactions);
+        try {
+            var pairs = Required.value(List.<RoadClient.Pair>of(new RoadClient.Pair("p", new RoadPoint(0, 0), new RoadPoint(1, 1))));
+            assertEquals(Map.of("p", new RoadClient.Leg(60, 42)), secured.sparse(pairs, "test"));
+            assertEquals("Bearer " + token, seen.poll(2, java.util.concurrent.TimeUnit.SECONDS));
+            assertEquals(Map.of("p", new RoadClient.Leg(60, 42)), open.sparse(pairs, "test"));
+            assertEquals("<none>", seen.poll(2, java.util.concurrent.TimeUnit.SECONDS));
+            for (String invalid : List.of("short", "routing token with spaces that is long enough ok"))
+                assertThrows(IllegalArgumentException.class, () -> new RoadClient(mock(JdbcTemplate.class), url, Required.value(invalid), 10, 10, transactions));
+        } finally { secured.closeRoutingWork(); open.closeRoutingWork(); server.stop(0); }
+    }
+
     @Test void slowRoutingConsumesExplorationBudgetWithoutCachingAFailure() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);

@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import { cpus, totalmem } from "node:os";
 import { writeFile } from "node:fs/promises";
 
+// routing-service requires its shared token on /internal endpoints; /health stays open.
+const routingAuth = process.env.ROUTING_AUTH_TOKEN ? { Authorization: `Bearer ${process.env.ROUTING_AUTH_TOKEN}` } : {};
+
 const base = process.argv[2] ?? "http://127.0.0.1:18003";
 const health = await fetch(`${base}/health`).then(response => response.json());
 assert.equal(health.ready, true);
@@ -11,7 +14,7 @@ const points = [{ lat: 41.2565, lng: -95.9345 }, { lat: 41.1544, lng: -96.0422 }
 const pairs = points.flatMap((origin, from) => points.flatMap((destination, to) => from === to ? [] : [{ id: `${from}>${to}`, origin, destination }]));
 async function post(path, body) {
   const started = performance.now();
-  const response = await fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });
+  const response = await fetch(base + path, { method: "POST", headers: { "Content-Type": "application/json", ...routingAuth }, body: JSON.stringify(body), signal: AbortSignal.timeout(30000) });
   const result = await response.json();
   assert.equal(response.status, 200, JSON.stringify(result));
   assert.equal(result.routingIdentity, health.routingIdentity);
@@ -29,7 +32,7 @@ for (const { id, leg } of sparse.result.pairs) {
 }
 const unreachable = await post("/internal/legs", { pairs: [{ id: "outside", origin: points[0], destination: { lat: 0, lng: 0 } }], expectedRoutingIdentity: health.routingIdentity });
 assert.equal(unreachable.result.pairs[0].leg.routable, false);
-const stale = await fetch(`${base}/internal/legs`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pairs, expectedRoutingIdentity: "stale" }) });
+const stale = await fetch(`${base}/internal/legs`, { method: "POST", headers: { "Content-Type": "application/json", ...routingAuth }, body: JSON.stringify({ pairs, expectedRoutingIdentity: "stale" }) });
 assert.equal(stale.status, 409);
 const report = {
   recordedAt: new Date().toISOString(), evidence: "Direct Omaha routing check only; not customer latency or fleet quality acceptance",
