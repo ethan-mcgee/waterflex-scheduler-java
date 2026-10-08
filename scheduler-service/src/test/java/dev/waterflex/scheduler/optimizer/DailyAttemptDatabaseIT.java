@@ -40,6 +40,31 @@ class DailyAttemptDatabaseIT {
             assertEquals(before,f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment"));
         }
     }
+    @Test void overnightReplicasClaimEachMetroDayOncePerNight() throws Exception {
+        try (var f = new Fixture(true)) {
+            var calls=new java.util.concurrent.atomic.AtomicInteger();
+            var bothStarted=new java.util.concurrent.CountDownLatch(2);
+            var night=Required.value(LocalDate.of(2026,10,8));
+            java.util.function.Supplier<OvernightOptimization> replica=() -> new OvernightOptimization(f.jdbc,f.manager,request -> {
+                assertNotNull(request); calls.incrementAndGet();
+                return Required.value(Map.of("status","PREVIEW","run_id",f.id+"-preview"));
+            },f.clock);
+            var first=replica.get(); var second=replica.get();
+            try (var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+                var a=pool.submit(() -> { bothStarted.countDown(); bothStarted.await(); first.runDay(f.id,f.day,night); return true; });
+                var b=pool.submit(() -> { bothStarted.countDown(); bothStarted.await(); second.runDay(f.id,f.day,night); return true; });
+                assertTrue(Required.value(a.get())); assertTrue(Required.value(b.get()));
+            }
+            assertEquals(1,calls.get());
+            assertEquals(1,first.attempts(f.id,f.day).size());
+            assertEquals(OvernightOptimization.State.SUCCEEDED,first.attempts(f.id,f.day).getFirst().state());
+            assertEquals(1L,Required.value(first.metrics().get("claimedByOtherReplicaSinceProcessStart"))+Required.value(second.metrics().get("claimedByOtherReplicaSinceProcessStart")));
+            second.runDay(f.id,f.day,Required.value(night.plusDays(1)));
+            assertEquals(2,calls.get());
+            assertEquals(2,first.attempts(f.id,f.day).size());
+            f.jdbc.update("DELETE FROM overnight_optimization_attempt WHERE \"metroId\"=?",f.id);
+        }
+    }
     @Test void overnightFailuresAndCancellationAreDurableAndDoNotChangeAppointmentsOrStopOtherDays() {
         try (var f = new Fixture(true)) {
             var before=f.jdbc.queryForList("SELECT * FROM appointment WHERE id=?",f.id+"-appointment");
