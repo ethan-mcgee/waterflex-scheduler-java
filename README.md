@@ -68,7 +68,7 @@ The limit applies while building and reserving both legacy and common-reservatio
 
 - `/book`: customer address resolution, local pin confirmation, ten-minute reserved offers, refresh, and immediate confirmation.
 - `/schedule`: weekly routes, approved time-off blocks, promises, and reasoned cancellation.
-- `/dispatch`: route review and overnight optimization preview and apply.
+- `/dispatch`: route review and overnight optimization preview and apply. With `SCHEDULER_PUBLIC_API=true`, a preview optimizes only the active client's routes through `/api/v1/daily/proposals`, and applying it commits the proposal and writes it only if none of its technician-days changed since.
 - `/dealerships`: create an organization, then add its metro depots and their route policies. See [setup and dated moves](docs/dealerships.md).
 - `/technicians`: create technicians at a depot and schedule same-dealership depot moves by service date.
 - `/dispatch/testing`: local Compose sequential booking runs and automatic day previews. Compose enables the route by default; set `LOCAL_BOOKING_TESTS=false` to opt out. Non-Compose and production environments remain disabled unless they explicitly set `LOCAL_BOOKING_TESTS=true`. See [operation, recovery, and verification](docs/sequential-booking-tests.md).

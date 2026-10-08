@@ -25,6 +25,7 @@ model Metro {
   optimizationRuns OptimizationRun[]
   reservationArrangements ReservationArrangement[]
   apiOfferSets     PortalApiOfferSet[]
+  apiDailyProposals PortalApiDailyProposal[]
 
   @@map("metro")
 }
@@ -82,6 +83,7 @@ model Client {
   customers   Customer[]
   solverSettings ClientSolverSettings?
   apiOfferSets   PortalApiOfferSet[]
+  apiDailyProposals PortalApiDailyProposal[]
 
   @@map("client")
 }
@@ -387,6 +389,28 @@ model PortalApiOffer {
 
   @@index([offerSetId], map: "portal_api_offer_set_offers")
   @@map("portal_api_offer")
+}
+
+model PortalApiDailyProposal {
+  id              String    @id
+  clientId        String
+  client          Client    @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  metroId         String
+  metro           Metro     @relation(fields: [metroId], references: [id], onDelete: Restrict)
+  serviceDate     DateTime  @db.Date
+  requestId       String    @unique @db.Uuid
+  decision        String
+  proposal        Json
+  technicianDays  Json
+  baseline        Json
+  commitRequestId String?   @unique @db.Uuid
+  receiptId       String?   @unique
+  committedAt     DateTime? @db.Timestamptz(6)
+  commitRefusal   String?
+  createdAt       DateTime  @default(dbgenerated("clock_timestamp()")) @db.Timestamptz(6)
+
+  @@index([clientId, metroId, serviceDate, createdAt], map: "portal_api_daily_proposal_day")
+  @@map("portal_api_daily_proposal")
 }
 
 model SlotHold {

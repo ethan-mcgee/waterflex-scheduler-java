@@ -136,6 +136,19 @@ export const optimization = z.object({
   .refine(value => value.score_model_version !== "bendable-decimal-repair-v2" || value.calculation_outcome != null,
     "Current score model requires calculation coverage and validation");
 export const optimizationRuns = z.object({ runs: z.array(optimization) });
+// A daily proposal from the public scheduling API, as the portal keeps it (lib/apiDispatch.ts).
+export const apiProposal = z.object({ proposalId: text, serviceDate: date, createdAt: instant,
+  decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]), reason: text, costCents: z.int().nonnegative(),
+  state: z.enum(["OPEN", "COMMITTED", "REFUSED", "NOT_COMMITTABLE"]), committedAt: instant.nullable(), refusal: text.nullable(),
+  routes: z.array(z.object({ technicianId: text, serviceDate: date, stops: z.array(z.object({ appointmentId: text, sequence: z.int().nonnegative(),
+    plannedStart: instant, plannedEnd: instant }).strict()) }).strict()),
+  unresolvedAppointmentIds: z.array(text),
+  skippedTechnicianDays: z.array(z.object({ technicianId: text, serviceDate: date, reason: z.literal("LOCATION_UNRESOLVED"), message: text }).strict()),
+  changes: z.array(z.object({ appointmentId: text, fromTechnicianId: text, toTechnicianId: text, fromSequence: z.int().nonnegative(),
+    toSequence: z.int().nonnegative(), fromStart: instant, toStart: instant }).strict()),
+}).strict();
+export const apiProposals = z.object({ proposals: z.array(apiProposal) }).strict();
+export const commitProposalRequest = z.object({ proposalId: text }).strict();
 export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
   confirmedPin: point.extend({ manuallyConfirmed: z.boolean().optional() }).optional(), followUp: z.boolean().optional(), backgroundSearch: z.boolean().optional() })
