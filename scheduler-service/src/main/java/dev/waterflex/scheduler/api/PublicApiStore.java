@@ -26,7 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Component
 public class PublicApiStore {
-    public enum Operation { DAILY_PROPOSAL, DAILY_COMMIT, BOOKING_OFFERS, BOOKING_SELECT, BOOKING_RELEASE, BOOKING_CONFIRM }
+    public enum Operation { DAILY_PROPOSAL, DAILY_COMMIT, BOOKING_OFFERS, BOOKING_SELECT, BOOKING_RELEASE, BOOKING_CONFIRM, REPAIR_PROPOSAL }
     public enum ProposalStatus { PROPOSED, COMMITTED, STALE }
 
     /** The outcome of claiming a request ID. */

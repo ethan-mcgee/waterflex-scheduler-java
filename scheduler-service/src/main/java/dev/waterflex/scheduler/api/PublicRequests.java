@@ -40,6 +40,7 @@ public final class PublicRequests {
         }
     }
 
+    /** The snapshot holds the absence's date only, as a daily request does, and includes the absent technician-day. */
     public record RepairProposalRequest(String requestId, Absence absence, Snapshot snapshot) {
         public RepairProposalRequest {
             Input.requestId(requestId);
@@ -47,7 +48,11 @@ public final class PublicRequests {
             Input.present(snapshot, "snapshot");
             if (!snapshot.covers(new Key(absence.technicianId(), absence.serviceDate())))
                 throw new IllegalArgumentException("Absent technician-day is not in the snapshot");
+            new DailyProposalRequest(requestId, absence.serviceDate(), snapshot);
         }
+
+        /** The same facts as a daily request for the absence's date. */
+        public DailyProposalRequest day() { return new DailyProposalRequest(requestId, absence.serviceDate(), snapshot); }
     }
 
     public record Job(String id, String serviceId, Integer durationMinutes, Location location) {
