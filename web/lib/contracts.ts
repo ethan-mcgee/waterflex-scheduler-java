@@ -219,8 +219,10 @@ export function required<T>(value: T | undefined | null, label = "Required value
   return value;
 }
 
+// searchMode DIRECT marks a search through the public scheduling API: refreshing searches again directly instead of
+// starting the scheduler's background search.
 export const bookingResponse = z.object({ jobId: text, offers: z.array(offer).optional(), pendingReference: text.optional(),
-  search: appointmentSearch.optional(), searchRequestId: z.uuid().optional(),
+  search: appointmentSearch.optional(), searchRequestId: z.uuid().optional(), searchMode: z.literal("DIRECT").optional(),
   pinRequired: z.boolean().optional(), candidates: z.array(point.extend({ precision: z.enum(["ROOFTOP", "APPROXIMATE"]) })).optional()
 }).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || v.searchRequestId !== undefined || offersResponse.safeParse(v).success, "Incomplete booking response");
 export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional(), search: appointmentSearch.optional() });
