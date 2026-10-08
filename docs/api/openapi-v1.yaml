@@ -21,6 +21,10 @@ info:
     - Overtime is never assigned.
 
     Operations marked `x-implementation: planned` are specified but not yet served.
+
+    Changes WaterFlex Software must act on (also listed in docs/stateless-api-design.md):
+    - `TechnicianDay.absences` is required; send an empty list when there are none.
+    - `Appointment.plannedStart` is required; send the appointment's currently planned arrival.
 servers:
   - url: https://scheduler.internal.example
     description: Private network address of the scheduler service (placeholder).
