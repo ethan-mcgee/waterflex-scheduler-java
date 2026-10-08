@@ -49,7 +49,7 @@ The scheduler API is the only public surface. Calculation and routing stay priva
 
 ## Public contract v1
 
-The machine-readable contract is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (OpenAPI 3.1, draft). Each operation is marked `x-implementation: implemented` or `planned`; `web/scripts/openapi-v1.test.ts` validates every example against its schema and fails if the implemented operations differ from the `/api/v1` routes the scheduler serves.
+The machine-readable contract is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (OpenAPI 3.1, draft). Each operation is marked `x-implementation: implemented` or `planned`; `web/scripts/openapi-v1.test.ts` validates every example against its schema and fails if the implemented operations differ from the `/api/v1` routes the scheduler serves. The Java types in `dev.waterflex.scheduler.api` mirror every object schema (same fields, same required fields), read request bodies strictly (unknown fields, duplicate keys, numeric or noncanonical money, missing values and dangling snapshot references all fail), and `PublicApiContractTest` keeps them in step with the spec.
 
 Public routes live under `/api/v1/`, separate from the scheduler's internal `/v1/` routes used by the admin portal. Every `/api/v1/` call must send `Authorization: Bearer <tenant token>` (exists today, with `GET /api/v1/whoami` returning the token's tenant). All requests carry a host `requestId` (idempotency key) and host IDs only. The tenant is derived from the caller's API token, never from the request body. Money and rates are decimal strings. Times are ISO-8601 instants. Unknown fields, duplicate keys, nonfinite numbers and missing required values are rejected, as `DailyDataset` does today.
 
