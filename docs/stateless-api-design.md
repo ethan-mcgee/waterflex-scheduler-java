@@ -94,6 +94,7 @@ The contract is a draft until the first endpoint that calculates ships, but ever
 | `Snapshot.policy.fairnessBudget` is required | #97 | Sends each client's own fairness budget: "0" for none, or a share such as "0.02" (2 percent) by which the daily plan's cost may rise to spread work more evenly. A missing value is rejected, never assumed. |
 | Repeated and reused `requestId` | #96 | Retries with the same `requestId` and the same body after a timeout or a 429/503; the stored answer is replayed. Uses a new `requestId` for different facts: reusing one gets 400. |
 | Daily commit served; 409 split into `STALE` and `NOT_COMMITTABLE`; 422 after the cutoff | #98 | Sends the current `lastModified` of every technician-day the proposal covers, skipped ones included (a missing or extra one is a 400). On 200, writes every assignment in the receipt with a compare-and-set on the receipt's timestamps. On `STALE`, requests a new proposal. On `NOT_COMMITTABLE`, does nothing: the proposal was already committed (the message names the receipt) or its decision is not `IMPROVED`. On 422, the day's routes are frozen. |
+| Booking horizon at most 21 dates; `job.id` must differ from every appointment and technician ID | #99 | Sends a horizon of 1 to 21 dates. Uses a job ID that is not already an appointment or technician ID in the snapshot; a clash is a 400. |
 
 ### Latency target (Decided)
 
@@ -117,6 +118,31 @@ Rules WaterFlex Software must guarantee for the timestamp:
 - It is compared for exact equality at full stored precision, never ordered. Clock skew between servers therefore cannot cause a wrong decision; at worst an unrelated change forces a retry.
 
 This keeps the audit's rule (caller-side locked revalidation before apply) without the scheduler owning appointments. Step 4 makes the host responsible for the final atomic write, which is unavoidable once it owns the data.
+
+### Booking (Decided 2026-10-08)
+
+The owner chose three things for the booking endpoints: confirm sends the day's snapshot, a search covers exactly the dates WaterFlex Software asks for, and an offer may move other customers' appointments to make room.
+
+Built so far (`api/RequestBooking`): booking search facts from a request instead of the database, proven equal to the database loader's facts for the same day (`DailyAttemptDatabaseIT`). The endpoints follow in separate pull requests.
+
+**Horizon.** A search covers every date from `horizon.firstDate` to `horizon.lastDate`, at most 21 dates, including dates with no technician-day. There is no automatic overflow: when nothing is offered, WaterFlex Software asks again with later dates. The scheduler's own calendar (ten weekdays, then five overflow weekdays) stays for the portal only. The booking engine takes the horizon as declared (`BookingSnapshot.horizon`), and the remote solver receives it in the dataset.
+
+**Facts.** Mapped like the daily path: the shift and absences as instants, `maxPaidMinutes` as the daily limit, zero overtime minutes, qualifications as services. An appointment is its own job. A technician-day's schedule version is its `lastModified` in nanoseconds since 1970, so a stored arrangement can tell exactly which technician-days changed. A technician-day's `sequence` and `plannedStart` must put its appointments in the same order (the engine keeps that order and WaterFlex Software writes both); otherwise the request is refused, never reordered. A technician-day with a location that cannot be located is left out of the search and reported, as in the daily path. A job location that cannot be located refuses the request (422), since no offer can be made for it.
+
+**Moves and the common arrangement.** Offers come from the bounded search the portal uses (`booking.search.bounded`), which may reorder or reassign existing appointments. As in the portal, each metro-day has one stored common arrangement: every technician's route with the host's appointments and every active hold, including moves that pending offers depend on. It is the scheduler's own state, kept in the thin store with the host timestamps it was built from and the routes WaterFlex Software is expected to have.
+
+**Reconciling with a new snapshot.** Each search and confirm compares the snapshot with the stored arrangement, technician-day by technician-day:
+
+1. A technician-day whose `lastModified` is unchanged is as stored.
+2. A changed technician-day whose appointments, in order, are the ones the scheduler expects (for example, after WaterFlex Software wrote a confirm receipt) is accepted, and its new timestamp recorded.
+3. Any other changed technician-day (a dispatcher added, removed or moved an appointment) replaces its stored route only when that route has no hold and no pending move. Otherwise every hold on that date is lost: a later select or confirm of it is refused, and the date's arrangement restarts from the host's routes.
+4. The whole arrangement is then evaluated with the snapshot's current facts (windows, durations, shifts, absences). If it is no longer feasible, every hold on that date is lost the same way.
+
+Nothing is guessed: a hold either still fits the current facts exactly as stored, or it is lost and reported.
+
+**Confirm.** The confirm sends the snapshot of the hold's date. After reconciliation the hold must still be active. The scheduler replaces it with the job, releases the job's other holds, checks the result is feasible and adds no overtime, and returns a receipt with every appointment on each technician-day whose route changes (technician, order or planned times), the new job included under its job ID, plus those technician-days' timestamps for the host's compare-and-set. Applying the receipt brings WaterFlex Software's routes to the common arrangement without its remaining holds, which is also what the scheduler then expects (rule 2 above). Moves that another pending offer depended on are applied at that point too, as the portal does.
+
+**Holds.** Every offer holds its slot for 10 minutes (the portal's expiry). Selecting an offer keeps its hold and releases the others in its set. Releasing an offer releases its whole set. A new search for the same job supersedes the job's earlier offer set. Expired holds are dropped from the arrangement on its next use.
 
 ## Locations and geocoding (Decided)
 
