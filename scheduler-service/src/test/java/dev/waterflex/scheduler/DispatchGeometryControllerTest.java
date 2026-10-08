@@ -120,7 +120,7 @@ class DispatchGeometryControllerTest {
 
     /** How many clients' depots the test metro has. */
     private void clients(int count) {
-        when(jdbc.queryForObject(MockArguments.startsText("SELECT count(DISTINCT d."), eq(Integer.class), MockArguments.equalText("metro"))).thenReturn(count);
+        when(jdbc.queryForObject(MockArguments.startsText("SELECT count(DISTINCT d."), MockArguments.equalType(Integer.class), MockArguments.equalText("metro"))).thenReturn(count);
     }
 
     @Test
