@@ -140,11 +140,16 @@ Client schedules are not stored in the scheduler. They stay in WaterFlex Softwar
 ### Several scheduler replicas on one database
 
 - Correctness lives in the database. Holds are protected by row locks and unique constraints on `(tenant_id, technician_id, service_date)` and by the timestamp comparison inside one transaction. Any replica can serve any request, so the load balancer needs no sticky sessions.
-- Scheduled work (overnight proposals, cache cleanup, expiry sweeps) is claimed through the database with a lease row taken by `SELECT ... FOR UPDATE SKIP LOCKED`, so each unit runs on exactly one replica and is picked up by another if that replica dies.
-- In-memory state that must move or be accepted before running several replicas:
-  - booking search cancellation registry (`BookingSearchControl`): move to the database or route cancels by request ID,
-  - admission counters (`SearchAdmission`): per replica is acceptable if limits are set per replica; a global limit needs a shared counter,
-  - the route cache memory tier: per replica is correct as is (see below).
+- Scheduled work is claimed through the database so each unit runs once across replicas. Status of each job (exists today unless noted):
+  - Overnight optimization: every replica fires the 2 AM cron, and the receipt insert in `overnight_optimization_attempt` is the claim, unique on `(metroId, serviceDate, nightOf)`. One replica runs each metro-day per night; the others skip it and count `claimedByOtherReplicaSinceProcessStart`. Replicas also split the metro-days between them. If the claiming replica dies mid-run, the receipt stays `ATTEMPTED` and appears in `unfinishedOlderThanFiveMinutes`; that metro-day is not retried until the next night.
+  - Time-off analysis: claimed per request by a conditional `QUEUED` to `ANALYZING` update.
+  - Reservation expiry: releases go through the locked reservation release path, so concurrent sweeps are safe.
+  - Route prewarming: runs per replica; duplicates only repeat cache warming.
+  - Route cache cleanup: idempotent on every replica (see "Route cache").
+- Booking search cancellation already works across replicas: `BookingSearchControl` records cancellation durably in `booking_search_request`, every replica polls it every 100 ms, and offer publication takes a `FOR UPDATE` guard on the row and fails closed.
+- In-memory state that stays per replica by design:
+  - admission counters (`SearchAdmission`): limits are per replica; a global limit would need a shared counter,
+  - the route cache memory tier (see "Route cache").
 - Database scale: the rows are small and short-lived, so one primary with connection pooling (PgBouncer) serves many clients. If one database is ever outgrown, shard by tenant with a tenant-to-database map.
 
 ## Route cache
@@ -172,7 +177,7 @@ Implications for the target design:
 - **Across clients.** Route legs are not tenant data and are shared across clients in a metro, which is where most of the cache benefit comes from. `road_route_cache` therefore has no `tenant_id`. It does contain customer coordinates at about 1 m precision, so it is treated as location data: reachable only by the scheduler, never exposed through the API, and purged within 30 days so deleted customers age out.
 - **Across replicas.** Tier 2 is per replica by design; tier 3 makes a new or restarted replica warm immediately. No change is needed for correctness.
 - **Health call per lookup.** Each lookup currently makes one `/health` round trip to confirm the routing identity. Under heavy booking load, cache the identity for a few seconds per metro; the identity is still verified on every routing response, so a stale cached identity only causes a retry.
-- **Cleanup on every replica.** The weekly cleanup runs on every replica. It is idempotent, but it should take the scheduled-work lease. The size trim deletes at most 50,000 rows per run, so if the table grows faster than that per week the 500,000 row cap is not enforced; the trim should loop until under the cap.
+- **Cleanup on every replica.** The weekly cleanup runs on every replica. It is idempotent, so running it more than once is harmless. The size trim deletes at most 50,000 rows per run, so if the table grows faster than that per week the 500,000 row cap is not enforced; the trim should loop until under the cap.
 - **Moving tier 3 into routing.** An alternative is to give each metro's routing service its own persistent cache and drop `road_route_cache` from the scheduler, making the scheduler database hold no coordinates at all. It costs routing its statelessness. Keep tier 3 in the scheduler database for now and revisit if location-data retention requirements tighten.
 
 ## Thin store
@@ -193,7 +198,7 @@ Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking
 
 ## Remaining stateless gaps in calculation and routing
 
-- Cancellation state is in memory per solver instance. With several replicas, route `DELETE` by request ID consistently, or accept that a cancel may miss and the solve stops at its own deadline (at most 20 s daily, 120 s booking).
+- Remote solve cancellation (`DELETE /v1/solves/{id}`) is in memory per `solver-service` instance. With several solver replicas behind a load balancer, route `DELETE` to the replica running the solve, or accept that a cancel may miss and the solve stops at its own deadline (at most 20 s daily, 120 s booking). This applies only to the remote solver pool; the embedded default has no such gap.
 - Remote results must come from the byte-identical engine artifact (`CalculationProtocol.Response.match`). This forces scheduler and solver to deploy together, which is acceptable while they ship as one product.
 - Routing has no authentication and must stay on the private network.
 - Remote mode has not been performance-tested; that study is deferred with the rest of the performance work.
