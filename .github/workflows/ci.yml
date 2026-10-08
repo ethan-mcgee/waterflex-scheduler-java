@@ -178,6 +178,8 @@ jobs:
       DATABASE_USER: waterflex
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://127.0.0.1:18001
+      # The public API booking smoke's metro routes through the fixture router.
+      ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
@@ -280,6 +282,9 @@ jobs:
       - name: Client snapshot smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:client-snapshot:integration npm run test:client-snapshot:integration
+      - name: Public API booking smoke
+        working-directory: web
+        run: node ../infra/run-check.mjs test:api-booking:integration npm run test:api-booking:integration
       - name: Shared address matching smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:address-matching:integration npm run test:address-matching:integration

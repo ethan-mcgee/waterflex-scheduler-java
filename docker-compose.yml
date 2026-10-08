@@ -99,6 +99,13 @@ services:
       ENGINE_URL: http://scheduler-service:8000
       NOMINATIM_URL: http://nominatim:8080
       LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-true}
+      # Booking through the public scheduling API. Each client's token is SCHEDULER_API_TOKEN_<CLIENT ID> in
+      # portal-api-tokens.env (ignored by git), never in the database.
+      SCHEDULER_PUBLIC_API: ${SCHEDULER_PUBLIC_API:-false}
+      SCHEDULER_API_URL: http://scheduler-service:8000
+    env_file:
+      - path: portal-api-tokens.env
+        required: false
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
