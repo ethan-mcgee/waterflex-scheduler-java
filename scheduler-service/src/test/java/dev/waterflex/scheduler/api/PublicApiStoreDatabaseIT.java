@@ -37,7 +37,7 @@ class PublicApiStoreDatabaseIT {
     }
 
     @AfterEach void clean() {
-        for (String table : List.of("api_proposal_technician_day", "api_daily_proposal", "api_request"))
+        for (String table : List.of("api_commit_receipt", "api_proposal_technician_day", "api_daily_proposal", "api_request"))
             jdbc.update("DELETE FROM " + table + " WHERE \"tenantId\" IN (?,?)", tenantA, tenantB);
         jdbc.update("DELETE FROM tenant WHERE id IN (?,?)", tenantA, tenantB);
     }
@@ -50,7 +50,7 @@ class PublicApiStoreDatabaseIT {
         var body = new PublicResponses.DailyProposal(id, example.inputRevision(), example.decision(), example.reason(), example.routes(),
                 example.unresolvedAppointmentIds(), example.skippedTechnicianDays(), example.costCents(), example.overtimeMinutes());
         LocalDate day = Required.value(LocalDate.parse("2026-10-12"));
-        return new StoredProposal(id, requestId, "omaha", day, example.inputRevision(), "omaha-map-v7", ProposalStatus.PROPOSED,
+        return new StoredProposal(id, requestId, "omaha", "America/Chicago", day, example.inputRevision(), "omaha-map-v7", ProposalStatus.PROPOSED,
                 Required.value(List.of(new TechnicianDayVersion("tech-1", day, Required.value(Instant.parse("2026-10-11T21:04:17.123456789Z"))),
                         new TechnicianDayVersion("tech-2", day, Required.value(Instant.parse("2026-10-10T16:30:00Z"))))), body);
     }

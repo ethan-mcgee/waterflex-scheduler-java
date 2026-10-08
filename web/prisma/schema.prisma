@@ -799,6 +799,7 @@ model ApiRequest {
   completedAt    DateTime?         @db.Timestamptz(6)
   tenant         Tenant            @relation(fields: [tenantId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   proposal       ApiDailyProposal?
+  receipt        ApiCommitReceipt?
   @@id([tenantId, requestId])
   @@map("api_request")
 }
@@ -809,6 +810,7 @@ model ApiDailyProposal {
   id              String
   requestId       String
   metroId         String
+  timeZone        String
   serviceDate     DateTime                   @db.Date
   inputRevision   String
   routingIdentity String
@@ -818,6 +820,7 @@ model ApiDailyProposal {
   committedAt     DateTime?                  @db.Timestamptz(6)
   request         ApiRequest                 @relation(fields: [tenantId, requestId], references: [tenantId, requestId], onDelete: Restrict, onUpdate: NoAction)
   technicianDays  ApiProposalTechnicianDay[]
+  receipt         ApiCommitReceipt?
   @@id([tenantId, id])
   @@unique([tenantId, requestId])
   @@index([tenantId, metroId, serviceDate], map: "api_daily_proposal_day")
@@ -834,4 +837,20 @@ model ApiProposalTechnicianDay {
   proposal     ApiDailyProposal @relation(fields: [tenantId, proposalId], references: [tenantId, id], onDelete: Cascade, onUpdate: NoAction)
   @@id([tenantId, proposalId, technicianId, serviceDate])
   @@map("api_proposal_technician_day")
+}
+
+/// The one commit of a daily proposal: the assignments the host was told to write.
+model ApiCommitReceipt {
+  tenantId    String
+  id          String
+  proposalId  String
+  requestId   String
+  receiptJson Json
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  proposal    ApiDailyProposal @relation(fields: [tenantId, proposalId], references: [tenantId, id], onDelete: Restrict, onUpdate: NoAction)
+  request     ApiRequest       @relation(fields: [tenantId, requestId], references: [tenantId, requestId], onDelete: Restrict, onUpdate: NoAction)
+  @@id([tenantId, id])
+  @@unique([tenantId, proposalId])
+  @@unique([tenantId, requestId])
+  @@map("api_commit_receipt")
 }
