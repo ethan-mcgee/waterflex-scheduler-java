@@ -560,6 +560,7 @@ model Tenant {
   createdAt  DateTime         @default(now()) @db.Timestamptz(6)
   disabledAt DateTime?        @db.Timestamptz(6)
   tokens     TenantApiToken[]
+  apiRequests ApiRequest[]
   @@map("tenant")
 }
 
@@ -781,4 +782,56 @@ model BookingSearchRequest {
   @@index([cancelledAt, cleanedAt], map: "booking_search_request_cleanup_idx")
   @@index([deadlineAt], map: "booking_search_request_deadline_idx")
   @@map("booking_search_request")
+}
+
+/// Public API request idempotency. Row-level security limits the scheduler_tenant role to app.tenant_id.
+model ApiRequest {
+  tenantId       String
+  requestId      String
+  operation      String
+  requestSha256  String
+  state          String
+  ownerToken     String
+  leaseExpiresAt DateTime          @db.Timestamptz(6)
+  responseStatus Int?
+  responseJson   Json?
+  createdAt      DateTime          @default(now()) @db.Timestamptz(6)
+  completedAt    DateTime?         @db.Timestamptz(6)
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  proposal       ApiDailyProposal?
+  @@id([tenantId, requestId])
+  @@map("api_request")
+}
+
+/// A daily proposal served by the public API. No master data: only host IDs and the proposal body.
+model ApiDailyProposal {
+  tenantId        String
+  id              String
+  requestId       String
+  metroId         String
+  serviceDate     DateTime                   @db.Date
+  inputRevision   String
+  routingIdentity String
+  status          String
+  proposalJson    Json
+  createdAt       DateTime                   @default(now()) @db.Timestamptz(6)
+  committedAt     DateTime?                  @db.Timestamptz(6)
+  request         ApiRequest                 @relation(fields: [tenantId, requestId], references: [tenantId, requestId], onDelete: Restrict, onUpdate: NoAction)
+  technicianDays  ApiProposalTechnicianDay[]
+  @@id([tenantId, id])
+  @@unique([tenantId, requestId])
+  @@index([tenantId, metroId, serviceDate], map: "api_daily_proposal_day")
+  @@map("api_daily_proposal")
+}
+
+/// Host lastModified per technician-day a proposal covers, as canonical ISO-8601 instant text.
+model ApiProposalTechnicianDay {
+  tenantId     String
+  proposalId   String
+  technicianId String
+  serviceDate  DateTime         @db.Date
+  lastModified String
+  proposal     ApiDailyProposal @relation(fields: [tenantId, proposalId], references: [tenantId, id], onDelete: Cascade, onUpdate: NoAction)
+  @@id([tenantId, proposalId, technicianId, serviceDate])
+  @@map("api_proposal_technician_day")
 }

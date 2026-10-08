@@ -219,7 +219,19 @@ Implications for the target design:
 
 ## Thin store
 
-Keep: `slot_hold`, `reservation_arrangement`, `reservation_dependency`, `booking_offer_set`, `booking_offer`, `booking_search_request`, `optimization_run` (as proposals), `daily_calculation_attempt`, `overnight_optimization_attempt`, `road_route_cache`. Add `tenant`, `tenant_id` and host-ID columns and the row-level security policies. Remove: customer, address, job, appointment, technician and related master data tables, after migration.
+The public API gets its own tables instead of adding a tenant column to the portal's booking and optimization tables. Those tables reference master data (appointments, jobs, technicians) the thin store must not hold, and the portal path has to keep running unchanged while the two paths are compared before cutover (see "Migration").
+
+Exists today (migration `20261009120000_public_api_store`):
+
+| Table | Holds |
+| --- | --- |
+| `api_request` | One row per host `requestId` per tenant: the operation, a SHA-256 of the canonical request, a 60 second claim lease, and the stored response once finished. A repeat with the same body replays the response; a different body is a conflict; an abandoned claim is taken over after its lease. Requests that failed for a passing reason (for example routing unavailable) release their claim so a retry runs again. |
+| `api_daily_proposal` | A served daily proposal: host metro and date, input revision, routing identity, status (`PROPOSED`, `COMMITTED`, `STALE`) and the proposal body. |
+| `api_proposal_technician_day` | The host `lastModified` of every technician-day a proposal covers, stored as exact ISO-8601 text so nanoseconds survive. A commit compares the host's current values with these. |
+
+Every key starts with `tenantId`. Row-level security is on for all three: `PublicApiStore` runs each transaction as the `scheduler_tenant` database role with `app.tenant_id` set, so even a query without a tenant filter sees only the caller's rows, an unset tenant sees none, and that role cannot read any other table. Persisted proposal JSON is validated again on every read. Commit receipts arrive with the commit protocol, and booking holds and offers with the booking endpoints.
+
+The portal's tables (`slot_hold`, `reservation_arrangement`, `optimization_run` and the rest) and the master data tables are removed after migration.
 
 ## Operations that move to the host
 
