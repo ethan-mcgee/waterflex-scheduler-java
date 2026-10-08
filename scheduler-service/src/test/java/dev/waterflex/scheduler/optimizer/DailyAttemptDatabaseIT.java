@@ -111,7 +111,7 @@ class DailyAttemptDatabaseIT {
                 var home = new PublicTypes.Location(43.7, 7.4, null);
                 var shift = new PublicTypes.Window(f.local(8), f.local(17));
                 Instant modified = Required.value(Instant.parse("2026-10-01T00:00:00Z"));
-                var snapshot = new PublicTypes.Snapshot(f.id, "America/Chicago", rates,
+                var snapshot = new PublicTypes.Snapshot(f.id, "America/Chicago", rates, new PublicTypes.Policy(new java.math.BigDecimal("0.02")),
                         Required.value(List.of(new PublicTypes.Technician(f.id + "-near", Required.value(List.of(f.id))), new PublicTypes.Technician(f.id + "-far", Required.value(List.of(f.id))))),
                         Required.value(List.of(
                                 new PublicTypes.TechnicianDay(f.id + "-near", f.day, modified, shift, Required.value(List.of(new PublicTypes.Window(f.local(12), f.local(13)))), home, home, 600),
