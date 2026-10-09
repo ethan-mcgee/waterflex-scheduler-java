@@ -11,8 +11,13 @@ import { addCalendarDays } from "./date";
 export type Anchor = "HOME" | "DEPOT";
 
 /** A change that cannot be made, with the HTTP status the portal answers. */
-export class MasterDataRefused extends Error {
-  constructor(readonly status: number, message: string) { super(message); this.name = "MasterDataRefused"; }
+export class ChangeRefused extends Error {
+  constructor(readonly status: number, message: string) { super(message); this.name = "ChangeRefused"; }
+}
+
+/** A change refused because a booked route could not be timed with it (infeasible, unlocatable, or no longer worked). */
+export class RouteRefused extends ChangeRefused {
+  constructor(message: string) { super(409, message); this.name = "RouteRefused"; }
 }
 
 /** Snapshot facts, or any part of them that carries the technicians. */
@@ -67,13 +72,13 @@ export interface TimedDay {
 }
 
 export function retimedWrite(serviceDate: string, technicianIds: readonly string[], changed: TimedDay, evaluation: RouteEvaluation): RetimedWrite {
-  if (!evaluation.feasible) throw new MasterDataRefused(409, `The change would make the booked routes on ${serviceDate} infeasible`);
+  if (!evaluation.feasible) throw new RouteRefused(`The change would make the booked routes on ${serviceDate} infeasible`);
   const skipped = evaluation.skippedTechnicianDays.find(day => technicianIds.includes(day.technicianId));
-  if (skipped !== undefined) throw new MasterDataRefused(409, `The booked route of ${skipped.technicianId} on ${serviceDate} could not be located: ${skipped.message}`);
+  if (skipped !== undefined) throw new RouteRefused(`The booked route of ${skipped.technicianId} on ${serviceDate} could not be located: ${skipped.message}`);
   const receipt: RetimedWrite["receipt"] = { assignments: [], technicianDays: [] };
   for (const technicianId of [...technicianIds].sort()) {
     const day = changed.technicianDays.find(item => item.technicianId === technicianId && item.serviceDate === serviceDate);
-    if (day === undefined) throw new MasterDataRefused(409, `Technician ${technicianId} would no longer work on ${serviceDate}, where they have booked appointments`);
+    if (day === undefined) throw new RouteRefused(`Technician ${technicianId} would no longer work on ${serviceDate}, where they have booked appointments`);
     const route = evaluation.routes.find(item => item.technicianId === technicianId && item.serviceDate === serviceDate);
     if (route === undefined) throw new Error(`The scheduler did not time the route of ${technicianId} on ${serviceDate}`);
     const booked = changed.appointments.filter(item => item.technicianId === technicianId && item.serviceDate === serviceDate).map(item => item.id).sort();

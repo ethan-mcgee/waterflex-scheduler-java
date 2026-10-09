@@ -6,6 +6,7 @@ import dev.waterflex.scheduler.api.BookingOffers;
 import dev.waterflex.scheduler.api.DailyCommits;
 import dev.waterflex.scheduler.api.DailyProposals;
 import dev.waterflex.scheduler.api.RouteEvaluations;
+import dev.waterflex.scheduler.api.RouteGeometries;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -25,15 +26,17 @@ public class PublicApiController {
     private final BookingHolds bookingHolds;
     private final BookingConfirm bookingConfirm;
     private final RouteEvaluations routeEvaluations;
+    private final RouteGeometries routeGeometries;
 
     public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers, BookingHolds bookingHolds,
-                               BookingConfirm bookingConfirm, RouteEvaluations routeEvaluations) {
+                               BookingConfirm bookingConfirm, RouteEvaluations routeEvaluations, RouteGeometries routeGeometries) {
         this.dailyProposals = dailyProposals;
         this.dailyCommits = dailyCommits;
         this.bookingOffers = bookingOffers;
         this.bookingHolds = bookingHolds;
         this.bookingConfirm = bookingConfirm;
         this.routeEvaluations = routeEvaluations;
+        this.routeGeometries = routeGeometries;
     }
 
     /** Lets an integrator confirm which tenant a token belongs to. */
@@ -60,6 +63,11 @@ public class PublicApiController {
     @PostMapping("/api/v1/routes/evaluate")
     public void evaluateRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, routeEvaluations.evaluate(TenantAuthentication.tenant(request), body(request)));
+    }
+
+    @PostMapping("/api/v1/routes/geometry")
+    public void drawRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        reply(response, routeGeometries.draw(TenantAuthentication.tenant(request), body(request)));
     }
 
     @PostMapping("/api/v1/booking/offers")
