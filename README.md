@@ -104,7 +104,7 @@ Dispatch geometry is serialized as plain response records containing `LineString
 
 See the [acceptance report and measured tradeoffs](docs/scheduler-acceptance.md), [booking measurements](docs/booking-benchmarks.md), [solver experiments](docs/solver-benchmarks.md), [one-command experiment launcher](docs/configurable-experiments.md) and [implementation evidence](docs/scheduler-policy-progress.md) for verification boundaries and release gates. The earlier [quality foundation](docs/scheduling-quality-foundations.md) is retained as historical context.
 
-The opt-in [Timefold audit benchmark adapters](docs/timefold-audit/remediation/phase11/README.md) provide native solver, complete-policy and paced caller measurements with immutable inputs, explicit JSON settings and retained raw reports. Acceptance fixtures and synthetic corpus results do not establish production savings.
+The opt-in [Timefold audit benchmark adapters](docs/timefold-audit/remediation/phase11/README.md) provide native solver and complete-policy measurements with immutable inputs, explicit JSON settings and retained raw reports. Acceptance fixtures and synthetic corpus results do not establish production savings.
 
 [Paired analysis and registered calibration](docs/timefold-audit/remediation/phase12/README.md) preserve reliability denominators, equal-dataset effects, exact fairness ordering and unmatched reasons. Explicit warmup, concurrency and separate JFR studies retain every attempt and never automatically select production defaults.
 
