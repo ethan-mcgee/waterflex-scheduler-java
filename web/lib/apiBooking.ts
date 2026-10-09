@@ -37,8 +37,11 @@ function refusedFor(error: unknown): never {
   throw error;
 }
 
-/** Searches offers for a pending job of the client, ending the job's earlier offers. */
-export async function searchApiOffers(clientId: string, jobId: string) {
+/**
+ * Searches offers for a pending job of the client, ending the job's earlier offers. The horizon is the client's booking
+ * horizon from today, or `onlyDate` alone when a generator books a chosen day.
+ */
+export async function searchApiOffers(clientId: string, jobId: string, onlyDate?: string) {
   const started = performance.now();
   const elapsed = () => Math.ceil(performance.now() - started);
   const job = await prisma.job.findFirst({ where: { id: jobId, customer: { clientId } },
@@ -51,7 +54,7 @@ export async function searchApiOffers(clientId: string, jobId: string) {
   if (settings === null) throw new BookingRefused(503, "Online booking is not set up for this client yet.");
   if (metroId === null) throw new BookingRefused(422, "That pin is outside our service area.");
   const metro = await prisma.metro.findUniqueOrThrow({ where: { id: metroId }, select: { timezone: true } });
-  const dates = bookingHorizon(todayInTz(metro.timezone), settings.bookingHorizonWeekdays);
+  const dates = onlyDate === undefined ? bookingHorizon(todayInTz(metro.timezone), settings.bookingHorizonWeekdays) : [onlyDate];
   const firstDate = dates[0], lastDate = dates.at(-1);
   if (firstDate === undefined || lastDate === undefined) throw new Error("A booking horizon has at least one date");
   const requestId = randomUUID();

@@ -3,7 +3,11 @@ import { required } from "./contracts";
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { metroClientId } from "./metroClient";
-import { confirmHold, selectOffer, EngineError, requestSlots, type SlotOffer } from "./engineClient";
+import { confirmHold, selectOffer, EngineError, requestSlots } from "./engineClient";
+import { bookApiOffer, BookingRefused, searchApiOffers } from "./apiBooking";
+import { purgeApiJobs } from "./apiPurge";
+import { publicApiEnabled } from "./schedulerApi";
+import { servesMetro } from "./clientScope";
 import { addCalendarDays, todayInTz } from "./date";
 import {
   buildCallPlans,
@@ -79,15 +83,26 @@ async function loadOmahaConfiguration(): Promise<OmahaConfiguration> {
   return { services: byCode };
 }
 
+/**
+ * The client the generated calls belong to: the one named, or the Omaha metro's only client. Through the public API a
+ * metro may be shared, so the client must serve Omaha and only its own generated calls are touched.
+ */
+async function fakeDataClient(clientId: string | undefined): Promise<string> {
+  if (clientId === undefined) return metroClientId(prisma, OMAHA_METRO_ID);
+  if (!(await servesMetro(clientId, OMAHA_METRO_ID))) throw new Error(`Client ${clientId} has no depot in the Omaha metro.`);
+  return clientId;
+}
+
 function inRange(date: string, startDate: string, endDate: string): boolean {
   return date >= startDate && date <= endDate;
 }
 
-async function cleanupFakeDataValidated(startDate: string, endDate: string): Promise<number> {
+async function cleanupFakeDataValidated(clientId: string, startDate: string, endDate: string): Promise<number> {
   const dayStart = new Date(`${startDate}T00:00:00.000Z`);
   const dayAfterEnd = new Date(`${addCalendarDays(endDate, 1)}T00:00:00.000Z`);
+  const api = publicApiEnabled();
   const candidates = await prisma.job.findMany({
-    where: { externalId: { startsWith: FAKE_DATA_PREFIX } },
+    where: { externalId: { startsWith: FAKE_DATA_PREFIX }, ...(api ? { customer: { clientId } } : {}) },
     select: {
       id: true,
       externalId: true,
@@ -106,6 +121,10 @@ async function cleanupFakeDataValidated(startDate: string, endDate: string): Pro
     return encodedDate !== null && inRange(encodedDate, startDate, endDate);
   });
   if (jobs.length === 0) return 0;
+  if (api) {
+    await purgeApiJobs(clientId, OMAHA_METRO_ID, jobs.map(job => job.id));
+    return jobs.length;
+  }
 
   const jobIds = jobs.map((job) => job.id);
   const addressIds = [...new Set(jobs.map((job) => job.addressId))];
@@ -132,9 +151,9 @@ async function cleanupFakeDataValidated(startDate: string, endDate: string): Pro
   return jobs.length;
 }
 
-export async function clearFakeData(startDate: string, endDate: string): Promise<FakeDataClearSummary> {
+export async function clearFakeData(startDate: string, endDate: string, clientId?: string): Promise<FakeDataClearSummary> {
   validateFakeDataInput({ startDate, endDate, totalCalls: 1 });
-  const removed = await cleanupFakeDataValidated(startDate, endDate);
+  const removed = await cleanupFakeDataValidated(await fakeDataClient(clientId), startDate, endDate);
   return { removed, startDate, endDate };
 }
 
@@ -179,12 +198,12 @@ function selectUniqueLocation(
 
 async function createPendingJob(
   tx: Prisma.TransactionClient,
+  clientId: string,
   externalId: string,
   identity: { firstName: string; lastName: string; email: string; phone: string },
   location: FakeLocation,
   service: { id: string; durationMin: number }
 ) {
-  const clientId = await metroClientId(tx, OMAHA_METRO_ID);
   const customer = await tx.customer.create({ data: { clientId, externalId, ...identity } });
   const address = await tx.address.create({
     data: {
@@ -224,12 +243,18 @@ async function cleanupPendingJob(ids: { jobId: string; customerId: string; addre
   });
 }
 
-function exactTwoHourOffers(offers: SlotOffer[], date: string): SlotOffer[] {
+type BookableOffer = { offerId: string; date: string; windowStart: string; windowEnd: string };
+
+/**
+ * The offers on the date a call may take: the scheduler's two-hour windows on its own path, and whatever arrival
+ * windows the public API offers, whose length the scheduler decides.
+ */
+function bookableOffers<O extends BookableOffer>(offers: readonly O[], date: string, anyWindow: boolean): O[] {
   return offers
     .filter(
       (offer) =>
         offer.date === date &&
-        new Date(offer.windowEnd).getTime() - new Date(offer.windowStart).getTime() === TWO_HOURS_MS
+        (anyWindow || new Date(offer.windowEnd).getTime() - new Date(offer.windowStart).getTime() === TWO_HOURS_MS)
     )
     .sort((left, right) => {
       const byStart = left.windowStart.localeCompare(right.windowStart);
@@ -237,7 +262,25 @@ function exactTwoHourOffers(offers: SlotOffer[], date: string): SlotOffer[] {
     });
 }
 
+/** Searches the date and books one of its two-hour offers, through the scheduler's portal endpoints or the public API. */
+export async function bookFakeCall(clientId: string, jobId: string, date: string, random: () => number): Promise<"BOOKED" | "NO_OFFER" | "CONFLICT"> {
+  const api = publicApiEnabled();
+  const { offers } = api ? await searchApiOffers(clientId, jobId, date) : await requestSlots(jobId);
+  const candidates = bookableOffers(offers, date, api);
+  if (candidates.length === 0) return "NO_OFFER";
+  const selected = required(candidates[Math.floor(random() * candidates.length)], "Candidate offer");
+  try {
+    if (api) await bookApiOffer(clientId, jobId, selected.offerId);
+    else await confirmHold((await selectOffer(jobId, selected.offerId)).holdId);
+    return "BOOKED";
+  } catch (error) {
+    if ((error instanceof EngineError || error instanceof BookingRefused) && error.status === 409) return "CONFLICT";
+    throw error;
+  }
+}
+
 async function tryBookDate(args: {
+  clientId: string;
   date: string;
   seed: number;
   plan: ReturnType<typeof buildCallPlans>[number];
@@ -250,6 +293,7 @@ async function tryBookDate(args: {
   const ids = await prisma.$transaction((tx) =>
     createPendingJob(
       tx,
+      args.clientId,
       externalId,
       {
         firstName: args.plan.firstName,
@@ -264,23 +308,14 @@ async function tryBookDate(args: {
 
   try {
     for (let confirmAttempt = 0; confirmAttempt < CONFIRM_ATTEMPTS; confirmAttempt++) {
-      const { offers } = await requestSlots(ids.jobId);
-      const candidates = exactTwoHourOffers(offers, args.date);
-      if (candidates.length === 0) {
+      const outcome = await bookFakeCall(args.clientId, ids.jobId, args.date, args.random);
+      if (outcome === "NO_OFFER") {
         await cleanupPendingJob(ids);
         return false;
       }
-      const selected = required(candidates[Math.floor(args.random() * candidates.length)], "Candidate offer");
-      try {
-        const hold = await selectOffer(ids.jobId, selected.offerId);
-        const confirmation = await confirmHold(hold.holdId);
-        await prisma.appointment.update({
-          where: { id: confirmation.appointmentId },
-          data: { externalId },
-        });
+      if (outcome === "BOOKED") {
+        await prisma.appointment.update({ where: { jobId: ids.jobId }, data: { externalId } });
         return true;
-      } catch (error) {
-        if (!(error instanceof EngineError) || error.status !== 409) throw error;
       }
     }
     await cleanupPendingJob(ids);
@@ -291,15 +326,16 @@ async function tryBookDate(args: {
   }
 }
 
-export async function generateFakeData(rawInput: FakeDataInput): Promise<FakeDataSummary> {
+export async function generateFakeData(rawInput: FakeDataInput, client?: string): Promise<FakeDataSummary> {
   const input = validateFakeDataInput(rawInput);
   await ensureOmahaConfiguration(prisma);
+  const clientId = await fakeDataClient(client);
   const configuration = await loadOmahaConfiguration();
   const seed = input.seed ?? randomBytes(4).readUInt32LE(0);
   const random = createSeededRandom(seed);
   const plans = buildCallPlans(input, random);
 
-  await cleanupFakeDataValidated(input.startDate, input.endDate);
+  await cleanupFakeDataValidated(clientId, input.startDate, input.endDate);
 
   const scheduledAddresses = await prisma.appointment.findMany({
     select: {
@@ -342,7 +378,7 @@ export async function generateFakeData(rawInput: FakeDataInput): Promise<FakeDat
     for (const [dateAttempt, date] of dates.entries()) {
       const location = selectLocation(date, usedLocations, random);
       const uniqueLocation = selectUniqueLocation(location, usedAddresses, usedCoordinates, random);
-      booked = await tryBookDate({ date, seed, plan, dateAttempt, location: uniqueLocation, service, random });
+      booked = await tryBookDate({ clientId, date, seed, plan, dateAttempt, location: uniqueLocation, service, random });
       if (booked) {
         const used = required(usedLocations.get(date), "Used locations for date");
         used.add(location.slug);
