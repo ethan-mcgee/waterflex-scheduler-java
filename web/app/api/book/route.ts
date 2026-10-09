@@ -6,9 +6,7 @@ import { GeocoderError, searchAddress, type GeocodeResult } from "@/lib/geocode"
 import { bookingServiceArea, resolveMetroForLocation } from "@/lib/serviceArea";
 import { activeClient } from "@/lib/activeClient";
 import { notFound, ownsJob } from "@/lib/clientScope";
-import { startBookingSearch, requestSlots, validateBookingLocation, EngineError } from "@/lib/engineClient";
 import { bookingFingerprint } from "@/lib/bookingIdentity";
-import { publicApiEnabled } from "@/lib/schedulerApi";
 import { apiBookingStep } from "@/lib/apiBookingRoute";
 import { searchApiOffers } from "@/lib/apiBooking";
 
@@ -28,7 +26,7 @@ export async function POST(req: NextRequest) {
       const service = await prisma.serviceCatalog.findUnique({ where: { code: input.serviceCode } });
       if (!service?.active) return NextResponse.json({ error: "That service is not currently available." }, { status: 400 });
       const durationMin = Math.round(service.estDurationMin * (1 + service.bufferPct));
-      if (!Number.isSafeInteger(durationMin) || durationMin <= 0) throw new EngineError(503, "Service duration is unavailable.");
+      if (!Number.isSafeInteger(durationMin) || durationMin <= 0) return NextResponse.json({ error: "Service duration is unavailable." }, { status: 503 });
       let selected: GeocodeResult | null = null;
       const pin = input.confirmedPin;
       if (!input.followUp) {
@@ -41,15 +39,9 @@ export async function POST(req: NextRequest) {
             (Math.abs(c.lat - pin.lat) < 0.0001 && Math.abs(c.lng - pin.lng) < 0.0001))) ?? null;
         }
         if (!selected) return NextResponse.json({ status: "LOCATION_REQUIRED", error: "Review and explicitly confirm your service location, or request follow-up." }, { status: 422 });
-        // The engine checks coverage against every depot; the pin must also be inside this client's own area.
+        // The pin must be inside this client's own service area. A pin the scheduler cannot reach by road gets no offer.
         if ((await resolveMetroForLocation(selected.lat, selected.lng, client.id)) == null)
           return NextResponse.json({ status: "OUTSIDE_COVERAGE", error: "That pin is outside our service area." }, { status: 422 });
-        const validation = await validateBookingLocation(selected, req.signal);
-        if (validation.status !== "VALID") {
-          const messages = { OUTSIDE_COVERAGE: "That pin is outside our service area.", UNROUTABLE: "We cannot reach that pin by road. Place it at your driveway entrance.",
-            ROUTING_UNAVAILABLE: "Road validation is unavailable. Please retry." };
-          return NextResponse.json({ status: validation.status, error: messages[validation.status] }, { status: validation.status === "ROUTING_UNAVAILABLE" ? 503 : 422 });
-        }
       }
       try {
         job = await prisma.$transaction(async tx => {
@@ -72,18 +64,10 @@ export async function POST(req: NextRequest) {
       if (job.bookingRequestFingerprint !== fingerprint) return conflict();
     }
     if (input.followUp) return NextResponse.json({ status: "FOLLOW_UP", jobId: job.id, pendingReference: job.id });
-    if (publicApiEnabled()) {
-      const jobId = job.id;
-      return apiBookingStep(client.id, jobId, async () => ({ ...await searchApiOffers(client.id, jobId), searchMode: "DIRECT" }));
-    }
-    if (input.backgroundSearch) {
-      const search = await startBookingSearch(job.id, input.requestId, false);
-      return NextResponse.json({ jobId: job.id, searchRequestId: search.id });
-    }
-    return NextResponse.json(await requestSlots(job.id, false, 5000, req.signal));
+    const jobId = job.id;
+    return apiBookingStep(client.id, jobId, () => searchApiOffers(client.id, jobId));
   } catch (error) {
     if (error instanceof GeocoderError) return NextResponse.json({ status: "LOOKUP_FAILED", error: error.message }, { status: error.kind === "timeout" ? 504 : error.kind === "malformed" ? 502 : 503 });
-    if (error instanceof EngineError) return NextResponse.json({ error: error.message }, { status: error.status });
     throw error;
   }
 }

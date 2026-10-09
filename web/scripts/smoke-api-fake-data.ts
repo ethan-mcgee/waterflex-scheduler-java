@@ -5,10 +5,9 @@
 // placed there; smoke-fake-data covers the full generator against real routing. The Omaha metro must route to it:
 //   ROUTING_METRO_URLS=metro-omaha=http://127.0.0.1:18001   SCHEDULER_TEST_URL=http://127.0.0.1:18000
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
-import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
-import { storeSolverSettings } from "../lib/clientSettingsStore";
+import { required } from "../lib/contracts";
+import { connectSmokeClient } from "./smokeApiClient";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 import { bookFakeCall, clearFakeData } from "../lib/fakeData";
 import { createSeededRandom, dateFromFakeExternalId, fakeExternalId, FAKE_DATA_PREFIX, OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
@@ -16,14 +15,12 @@ import { purgeApiJobs } from "../lib/apiPurge";
 import { ChangeRefused } from "../lib/apiMasterDataCore";
 import { ensureOmahaConfiguration } from "../lib/omahaConfiguration";
 import { currentLastModified } from "../lib/apiReceipt";
-import { tokenVariable } from "../lib/schedulerApi";
 
 // Far ahead and outside the legacy fake-data smoke's dates, so neither the 6 a.m. cutoff nor that smoke interferes.
 const RANGE_START = "2037-05-04";
 const RANGE_END = "2037-05-04";
 const CLIENT = DEFAULT_CLIENT_ID;
-const base = process.env.SCHEDULER_TEST_URL;
-assert.ok(base, "SCHEDULER_TEST_URL must point at a running scheduler");
+const base = required(process.env.SCHEDULER_TEST_URL, "SCHEDULER_TEST_URL (a running scheduler)");
 
 const inRange = (externalId: string | null) => { const date = dateFromFakeExternalId(externalId); return date !== null && date >= RANGE_START && date <= RANGE_END; };
 const fakeJobs = async () => (await prisma.job.findMany({ where: { externalId: { startsWith: FAKE_DATA_PREFIX } },
@@ -32,21 +29,8 @@ const fakeJobs = async () => (await prisma.job.findMany({ where: { externalId: {
 
 async function main() {
   process.env.SCHEDULER_PUBLIC_API = "true";
-  process.env.SCHEDULER_API_URL = base;
   await ensureOmahaConfiguration(prisma);
-  // The Omaha client is connected for this run only: its token is removed and settings it lacked are removed again.
-  const hadSettings = await prisma.clientSolverSettings.findUnique({ where: { clientId: CLIENT } });
-  const hadTenant = await prisma.tenant.findUnique({ where: { id: CLIENT } });
-  const tokenId = randomUUID();
-  if (hadSettings === null) {
-    const saved = await storeSolverSettings(CLIENT, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-      travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 4, bookingHorizonWeekdays: 2 });
-    assert.ok("saved" in saved);
-  }
-  if (hadTenant === null) await prisma.tenant.create({ data: { id: CLIENT, name: CLIENT } });
-  const token = generateTenantToken();
-  await prisma.tenantApiToken.create({ data: { id: tokenId, tenantId: CLIENT, tokenSha256: tenantTokenSha256(token), label: "API fake data smoke" } });
-  process.env[tokenVariable(CLIENT)] = token;
+  const disconnect = await connectSmokeClient(CLIENT, base, "API fake data smoke");
   let manualJobId: string | null = null;
   try {
     await clearFakeData(RANGE_START, RANGE_END, CLIENT);
@@ -110,9 +94,7 @@ async function main() {
         await prisma.customer.delete({ where: { id: job.customerId } });
       }
     }
-    // The tenant stays: the scheduler's request records refer to it, and without a token it cannot call.
-    await prisma.tenantApiToken.delete({ where: { id: tokenId } });
-    if (hadSettings === null) await prisma.clientSolverSettings.delete({ where: { clientId: CLIENT } });
+    await disconnect();
   }
 }
 
