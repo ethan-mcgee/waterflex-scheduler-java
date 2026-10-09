@@ -134,10 +134,10 @@ def observe(config):
 
 
 def runtime_identity(config, observed):
-    # Instrumented/calibration/load-cache cohorts must never acquire an equal
+    # Instrumented and calibration cohorts must never acquire an equal
     # pairing identity merely because they used the same JDK and CPU.
     return digest({'observed': observed, 'warmup': config['warmup'], 'instrumentation': config['instrumentation'],
-                   'applicationLoad': config['applicationLoad'], 'resources': config['resources'],
+                   'resources': config['resources'],
                    'environmentMode': config['configurations'][0]['environmentMode']})
 
 
@@ -336,28 +336,6 @@ def benchmark_result(result, request):
             policy_metrics(result['policyMetrics'])
         cc.check(isinstance(result['operation'], dict) and isinstance(result['diagnostics'], dict), 'Policy receipts required')
         return candidate if result['accepted'] else baseline
-    if layer == 'workflow':
-        fields(result, ['layer', 'datasetHash', 'operation', 'deployment', 'observations', 'before', 'after', 'verification',
-                        'cleanupObservationMs', 'cleanupComplete', 'independentlyValid', 'warmup'])
-        cc.check(result['operation'] == request['applicationLoad']['operation'] and result['deployment'] == request['applicationLoad']['deployment'], 'Caller operation/deployment differs')
-        cc.choice(result['cleanupComplete'], True, False)
-        cc.choice(result['independentlyValid'], True, False)
-        cc.check(isinstance(result['observations'], list) and len(result['observations']) == request['applicationLoad']['requestsPerCase'], 'Every paced arrival needs an observation')
-        successful = True
-        for row in result['observations']:
-            fields(row, ['id', 'outcome', 'intendedArrivalNanos', 'startedNanos', 'responseCompletedNanos', 'completedNanos', 'status', 'response', 'failure', 'cancellation', 'cleanup'])
-            cc.text(row['id'])
-            cc.choice(row['outcome'], 'RESPONSE', 'UNEXPECTED_HTTP_STATUS', 'TRANSPORT_TIMEOUT', 'TRANSPORT_FAILURE', 'GENERATOR_CAPACITY', 'CLEANUP_FAILURE')
-            for key in ('intendedArrivalNanos', 'completedNanos'):
-                cc.integer(row[key], 0, 2**63 - 1)
-            for key in ('startedNanos', 'responseCompletedNanos'):
-                if row[key] is not None:
-                    cc.integer(row[key], 0, 2**63 - 1)
-            cc.check(isinstance(row['cleanup'], list), 'Caller cleanup receipts required')
-            successful &= row['outcome'] == 'RESPONSE' and type(row['status']) is int and 200 <= row['status'] < 300
-        cc.unique([row['id'] for row in result['observations']])
-        cc.check(not result['independentlyValid'] or successful and result['cleanupComplete'], 'Caller failures cannot become valid scheduling evidence')
-        return result['independentlyValid']
     raise ValueError('Unknown benchmark result layer')
 
 
@@ -428,7 +406,7 @@ def case_request(config, run, case, cpus, runtime_hash):
     result = {'protocol': config['adapter']['protocol'], 'case': case, 'layer': config['layer'], 'dataset': dataset,
         'configuration': next(c for c in config['configurations'] if c['id'] == case['configurationId']),
         'budget': next(b for b in config['budgets'] if b['id'] == case['budgetId']), 'warmup': config['warmup'],
-        'instrumentation': config['instrumentation'], 'applicationLoad': config['applicationLoad'],
+        'instrumentation': config['instrumentation'],
         'jvmFlags': java_flags(config), 'affinityCpus': cpus, 'runtimeHash': runtime_hash}
     if 'policy' in config:
         result['policy'] = config['policy']
@@ -452,9 +430,6 @@ def run_case(config, run, directory, case, cpus, runtime_hash, stop):
             cc.check(shutil.which('taskset') is not None, 'taskset required to enforce Linux affinity')
             args = ['taskset', '-c', ','.join(map(str, cpus)), *args]
         allowance = next(b['operationMs'] for b in config['budgets'] if b['id'] == case['budgetId'])
-        load = config['applicationLoad']
-        if load is not None:
-            allowance = (load['requestsPerCase'] - 1) / load['requestsPerSecond'] * 1000 + load['timeoutMs']
         timeout = (allowance + config['warmup']['millisecondsPerFreshJvm'] * len(config['warmup']['paths']) +
                    sum(config['estimation'][k] for k in ('startupMsPerJvm', 'preparationMsPerCase', 'validationMsPerCase', 'reportingMsPerCase')) +
                    config['execution']['processGraceMs']) / 1000

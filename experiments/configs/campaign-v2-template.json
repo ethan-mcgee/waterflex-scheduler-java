@@ -174,7 +174,6 @@
     "failureTolerance": 0,
     "costDifferenceUpperBoundCents": 0
   },
-  "applicationLoad": null,
   "execution": {
     "orderSeed": 99,
     "failurePolicy": "stop-new-blocks",

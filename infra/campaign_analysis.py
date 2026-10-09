@@ -40,12 +40,6 @@ def measurements(result):
                 values['moveEvaluationsPerSecond'] = native['moveEvaluationCount'] * 1000 / native['solveMs']
         proposal = result['proposal' if result['layer'] == 'solver' else 'retained']
         served = sorted(visit for route in proposal['routes'].values() for visit in route)
-    elif result['layer'] == 'workflow':
-        rows = result['observations']
-        values['latencyMs'] = statistics.mean((row['completedNanos'] - row['intendedArrivalNanos']) / 1e6 for row in rows)
-        # Audit totals alone do not identify the customers served by booking offers.
-        reasons['costCents'] = 'Caller receipts do not contain matched served customer identities and accepted cost deltas'
-        reasons['fairnessVariance'] = 'Caller workflow fairness is not an accepted matched treatment outcome'
     for name, value in values.items():
         if value is not None:
             cc.check(type(value) in (int, float, Decimal) and math.isfinite(value) and value >= 0, f'Invalid measurement: {name}')
