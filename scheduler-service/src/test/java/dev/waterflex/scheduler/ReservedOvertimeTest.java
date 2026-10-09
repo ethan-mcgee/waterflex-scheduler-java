@@ -74,7 +74,7 @@ class ReservedOvertimeTest {
             var hold = new ReservationState.Hold("job", "offer", Required.value(start.plusSeconds(600)), authorized);
             var policy = SchedulingPolicy.Rules.defaults();
             assertFalse(policy.authorizeOvertime(0, 0, 120, true), "Demand has fallen below the booking authorization threshold");
-            var facts = new BookingSnapshotLoader.Facts("metro", start, "configuration", "roads", policy,
+            var facts = new ReservationTransition.Facts("metro", start, "configuration", "roads", policy,
                     new Rates(30, 45, 0, 0, 0), Required.value(Map.of(date, day)), Required.value(Map.of(date, Map.of("hold", hold))));
             var routing = mock(SnapshotRouting.class, invocation -> {
                 assertEquals("arrangements", invocation.getMethod().getName());

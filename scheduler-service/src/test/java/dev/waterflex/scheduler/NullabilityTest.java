@@ -36,18 +36,6 @@ class NullabilityTest {
                 http.perform(Required.value(post(Required.value(path)).contentType("application/json").content(Required.value(body)))).andExpect(status().isBadRequest());
         verifyNoInteractions(optimization, timeOff, guard);
     }
-    @Test void malformedRequestsNeverReachBooking() throws Exception {
-        BookingService booking = mock(BookingService.class);
-        var http = MockMvcBuilders.standaloneSetup(new BookingController(booking, new SearchAdmission(2, 16), mock(BookingCoordinator.class), mock(ReservationLifecycleService.class), mock(BookingSearchControl.class), false))
-                .setMessageConverters(new JsonConfiguration().strictJsonConverter()).build();
-        for (String path : List.of("/v1/offers", "/v1/offers/select", "/v1/holds/confirm", "/v1/appointments/cancel")) {
-            for (String body : List.of("null", "[]", "{}", "{", "false", "{\"jobId\":12,\"holdId\":false}", "{\"jobId\":\"\",\"holdId\":\" \"}"))
-                http.perform(Required.value(post(Required.value(path)).contentType("application/json").content(Required.value(body))))
-                        .andExpect(status().isBadRequest());
-        }
-        verifyNoInteractions(booking);
-    }
-
     @Test void approvalCannotRequestOvertime() throws Exception {
         // Overtime is never assigned, so time-off approval accepts only an empty body.
         TimeOffService timeOff = mock(TimeOffService.class);

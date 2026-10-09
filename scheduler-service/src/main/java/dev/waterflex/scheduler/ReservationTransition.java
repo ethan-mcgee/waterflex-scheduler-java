@@ -2,16 +2,27 @@ package dev.waterflex.scheduler;
 
 import dev.waterflex.scheduler.BookingSnapshot.*;
 import dev.waterflex.scheduler.optimizer.RouteEvaluator;
+import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Prepares release/confirmation outside the commit transaction, including all sibling dates. */
-@Component
 public final class ReservationTransition {
+    /** The facts a hold or confirmation is validated against: the host's days with the scheduler's holds. */
+    public record Facts(String metroId, Instant capturedAt, String configurationFingerprint, String routingIdentity,
+            SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days,
+            Map<LocalDate, Map<String, ReservationState.Hold>> holds) {
+        public Facts {
+            days = Required.value(Map.copyOf(days));
+            Map<LocalDate, Map<String, ReservationState.Hold>> copy = new TreeMap<>();
+            holds.forEach((day, values) -> copy.put(day, Required.value(Map.copyOf(values))));
+            holds = Required.value(Collections.unmodifiableMap(copy));
+        }
+    }
     public record Confirmation(String holdId, String appointmentId, @Nullable Integer reservedOvertimeDelta) {
         public Confirmation(String holdId, String appointmentId) { this(holdId, appointmentId, null); }
     }
@@ -21,36 +32,7 @@ public final class ReservationTransition {
     private final SnapshotRouting routing;
     public ReservationTransition(SnapshotRouting routing) { this.routing = routing; }
 
-    public Map<LocalDate, Prepared> cancel(BookingSnapshotLoader.Facts snapshot, String appointmentId) {
-        Map<LocalDate, Prepared> result = new TreeMap<>();
-        boolean found = false;
-        for (var entry : snapshot.days().entrySet()) {
-            Day day = Required.value(entry.getValue());
-            Visit cancelled = day.visits().get(appointmentId);
-            if (cancelled == null || cancelled.reservation()) continue;
-            found = true;
-            Set<String> removed = new HashSet<>(); removed.add(appointmentId);
-            Arrangement common = ReservationOffers.without(day.baseline(), removed);
-            Arrangement actual = ReservationOffers.without(day.actualArrangement(), removed);
-            List<Arrangement> variants = new ArrayList<>();
-            variants.add(day.baseline()); variants.add(day.actualArrangement()); variants.add(common); variants.add(actual);
-            Day routed = routing.arrangements(Required.value(entry.getKey()), day, day.visits(), variants, snapshot.routingIdentity());
-            Map<String, Visit> remaining = new TreeMap<>(day.visits()); remaining.remove(appointmentId);
-            var before = routed.evaluate(day.baseline(), day.visits(), snapshot.rates());
-            var after = routed.evaluate(common, remaining, snapshot.rates());
-            var actualBefore = RouteEvaluator.evaluate(routed.plan(day.actualArrangement(), day.visits(), snapshot.rates(), true));
-            var actualAfter = RouteEvaluator.evaluate(routed.plan(actual, remaining, snapshot.rates(), true));
-            if (!before.feasible() || !after.feasible() || !actualBefore.feasible() || !actualAfter.feasible()
-                    || after.overtimeMinutes() > before.overtimeMinutes() || actualAfter.overtimeMinutes() > actualBefore.overtimeMinutes())
-                throw conflict("Cancellation requires repair of remaining appointments or reservations");
-            Day next = new Day(day.technicians(), remaining, common, day.reservationVersion(), routed.roads());
-            result.put(entry.getKey(), new Prepared(next, Required.value(snapshot.holds().get(entry.getKey())), after));
-        }
-        if (!found) throw conflict("Appointment changed before cancellation");
-        return Required.value(Map.copyOf(result));
-    }
-
-    public Map<LocalDate, Prepared> prepare(BookingSnapshotLoader.Facts snapshot, String jobId, @Nullable Confirmation confirmation) {
+    public Map<LocalDate, Prepared> prepare(Facts snapshot, String jobId, @Nullable Confirmation confirmation) {
         Map<LocalDate, Prepared> result = new TreeMap<>();
         boolean selected = false;
         for (var entry : snapshot.days().entrySet()) {

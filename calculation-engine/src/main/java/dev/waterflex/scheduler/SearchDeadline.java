@@ -19,7 +19,6 @@ public final class SearchDeadline {
     private long durationNanos;
     private final long reserveNanos;
     private boolean committing;
-    private boolean durable;
     private volatile @Nullable Long bestCostDeltaCents;
     public @Nullable Long bestCostDeltaCents() { return bestCostDeltaCents; }
     public static void incumbent(long costDeltaCents) {
@@ -37,11 +36,7 @@ public final class SearchDeadline {
         SearchDeadline value = CURRENT.get();
         if (value != null) { value.phase = phase; value.work.incrementAndGet(); }
     }
-    public SearchDeadline durable() { durable = true; return this; }
-    public static boolean isDurable() { SearchDeadline value = CURRENT.get(); return value != null && value.durable; }
     private volatile boolean cancelled;
-    private Runnable commitGuard = () -> { };
-    private java.util.function.Consumer<String> reservationRecorder = _ -> { };
 
     public SearchDeadline(Duration duration) { this(duration, System::nanoTime); }
     SearchDeadline(Duration duration, LongSupplier clock) {
@@ -65,14 +60,9 @@ public final class SearchDeadline {
         if (cancelled || remainingNanos() == 0 || Thread.currentThread().isInterrupted()) throw new Expired();
     }
     public void cancel() { cancelled = true; }
-    void cancellationGuard(Runnable guard, java.util.function.Consumer<String> recorder) { commitGuard = guard; reservationRecorder = recorder; }
     public static void beforeCommit() {
         SearchDeadline current = CURRENT.get();
-        if (current != null) { current.requireTime(); current.commitGuard.run(); current.requireTime(); }
-    }
-    public static void reservedSet(String id) {
-        SearchDeadline current = CURRENT.get();
-        if (current != null) { current.requireTime(); current.reservationRecorder.accept(id); }
+        if (current != null) current.requireTime();
     }
     public Duration timeout(Duration maximum) {
         requireTime();
@@ -113,7 +103,7 @@ public final class SearchDeadline {
     public static void policyLimit(int millis) {
         if (millis < 1000 || millis > 5000) throw new IllegalArgumentException("Invalid booking deadline policy");
         SearchDeadline current = CURRENT.get();
-        if (current != null && !current.durable) {
+        if (current != null) {
             current.durationNanos = Math.min(current.durationNanos, millis * 1_000_000L);
             current.requireTime();
         }
