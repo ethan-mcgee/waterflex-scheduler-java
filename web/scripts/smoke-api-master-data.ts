@@ -12,7 +12,7 @@ import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
 import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { addCalendarDays, todayInTz } from "../lib/date";
 import { localMinute } from "../lib/zonedTime";
-import { assignApiTechnicianDepot, MasterDataRefused, setApiDepotDetails, setApiDepotPolicy } from "../lib/apiMasterData";
+import { assignApiTechnicianDepot, ChangeRefused, setApiDepotDetails, setApiDepotPolicy } from "../lib/apiMasterData";
 import { currentLastModified } from "../lib/apiReceipt";
 import { tokenVariable } from "../lib/schedulerApi";
 
@@ -91,7 +91,7 @@ async function setUp() {
   process.env[tokenVariable(clientId)] = token;
 }
 
-const refused = (status: number) => (error: unknown) => error instanceof MasterDataRefused && error.status === status;
+const refused = (status: number) => (error: unknown) => error instanceof ChangeRefused && error.status === status;
 const appointment = () => prisma.appointment.findUniqueOrThrow({ where: { id: id("appt") }, select: { plannedStart: true, plannedEnd: true, sequence: true } });
 const policies = (depotId: string) => prisma.depotEndpointPolicy.findMany({ where: { depotId }, orderBy: { effectiveDate: "asc" }, select: { departure: true, returnTo: true } });
 const versionOf = async () => (await currentLastModified(prisma, [{ technicianId: id("tech"), serviceDate: DATE }])).get(`${id("tech")}|${DATE}`);

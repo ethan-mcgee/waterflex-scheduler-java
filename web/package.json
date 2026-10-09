@@ -32,6 +32,7 @@
     "test:shared-metro:integration": "tsx scripts/smoke-shared-metro.ts",
     "test:portal-overnight:integration": "tsx scripts/smoke-portal-overnight.ts",
     "test:api-master-data:integration": "tsx scripts/smoke-api-master-data.ts",
+    "test:api-cancel-geometry:integration": "tsx scripts/smoke-api-cancel-geometry.ts",
     "overnight:worker": "tsx scripts/overnight-worker.ts",
     "test:multi-depot:integration": "tsx scripts/smoke-multi-depot.ts",
     "test:depot-setup:integration": "tsx scripts/smoke-depot-setup.ts",

@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /** Public response bodies. Constructors enforce the guarantees the contract promises to WaterFlex Software. */
 public final class PublicResponses {
@@ -90,6 +91,62 @@ public final class PublicResponses {
             if (Input.present(costCents, "costCents") < 0) throw new IllegalArgumentException("costCents must not be negative");
             Input.integer(overtimeMinutes, "overtimeMinutes", 0, 1440);
         }
+    }
+
+    /** A located appointment on a drawn route. */
+    public record LocatedStop(String appointmentId, Integer sequence, Double lat, Double lng) {
+        public LocatedStop {
+            Input.id(appointmentId, "appointmentId");
+            Input.integer(sequence, "sequence", 0, Integer.MAX_VALUE);
+            coordinate(lat, 90, "lat");
+            coordinate(lng, 180, "lng");
+        }
+    }
+
+    /** One road leg of a route segment, as [lng, lat] positions. */
+    public record GeometryLeg(Integer segment, Integer legIndex, Long seconds, Long meters, List<List<Double>> coordinates) {
+        public GeometryLeg {
+            Input.integer(segment, "segment", 0, Integer.MAX_VALUE);
+            Input.integer(legIndex, "legIndex", 0, Integer.MAX_VALUE);
+            if (Input.present(seconds, "seconds") < 0 || Input.present(meters, "meters") < 0) throw new IllegalArgumentException("seconds and meters must not be negative");
+            coordinates = Input.list(coordinates, "coordinates");
+            if (coordinates.size() < 2) throw new IllegalArgumentException("A leg has at least two positions");
+            for (List<Double> position : coordinates) {
+                if (position.size() != 2) throw new IllegalArgumentException("A position is [lng, lat]");
+                coordinate(position.get(0), 180, "lng");
+                coordinate(position.get(1), 90, "lat");
+            }
+        }
+    }
+
+    /**
+     * A technician-day drawn on roads: its located stops in order, and the legs of each segment from start to end.
+     * Approved absences split the day into segments, numbered in time order.
+     */
+    public record GeometryRoute(String technicianId, LocalDate serviceDate, List<LocatedStop> stops, List<GeometryLeg> legs) {
+        public GeometryRoute {
+            Input.id(technicianId, "technicianId");
+            Input.present(serviceDate, "serviceDate");
+            stops = Input.list(stops, "stops");
+            legs = Input.list(legs, "legs");
+            if (stops.isEmpty() != legs.isEmpty()) throw new IllegalArgumentException("A route is drawn exactly when it has stops");
+        }
+    }
+
+    public record RouteGeometry(String routingIdentity, List<GeometryRoute> routes, List<SkippedTechnicianDay> skippedTechnicianDays) {
+        public RouteGeometry {
+            if (Input.present(routingIdentity, "routingIdentity").isBlank()) throw new IllegalArgumentException("Blank routingIdentity");
+            routes = Input.list(routes, "routes");
+            skippedTechnicianDays = Input.list(skippedTechnicianDays, "skippedTechnicianDays");
+            Set<String> drawn = new HashSet<>();
+            for (GeometryRoute route : routes) if (!drawn.add(route.technicianId())) throw new IllegalArgumentException("Duplicate route for " + route.technicianId());
+            for (SkippedTechnicianDay skipped : skippedTechnicianDays)
+                if (!drawn.add(skipped.technicianId())) throw new IllegalArgumentException("Technician " + skipped.technicianId() + " is both drawn and skipped");
+        }
+    }
+
+    private static void coordinate(@Nullable Double value, double limit, String field) {
+        if (value == null || !Double.isFinite(value) || Math.abs(value) > limit) throw new IllegalArgumentException("Invalid " + field);
     }
 
     public record Offer(String offerId, LocalDate serviceDate, Window window) {

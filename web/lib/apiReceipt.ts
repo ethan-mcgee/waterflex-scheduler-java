@@ -40,6 +40,11 @@ export interface ReceiptWrite {
 export interface ReceiptOptions {
   /** Technician-days that no receipt writes but that must still be as they were (locked and compared like the rest). */
   unchanged?: readonly TechnicianDayVersion[];
+  /**
+   * Runs after every listed technician-day is locked and compared, before any assignment is written: a change that
+   * must land with the receipts (a cancellation, a changed depot) and that the receipts are checked against.
+   */
+  before?: (tx: Prisma.TransactionClient) => Promise<void>;
   /** Records the receipts in the same transaction, so the writes and the record of them land together or not at all. */
   record?: (tx: Prisma.TransactionClient) => Promise<void>;
 }
@@ -81,6 +86,7 @@ export async function writeReceipts(clientId: string, writes: readonly ReceiptWr
       if (now === undefined || !sameInstant(now, listed.lastModified))
         throw new StaleReceipt(`Technician-day ${listed.technicianId} ${listed.serviceDate} changed since the snapshot`);
     }
+    await options.before?.(tx);
     for (const write of writes) await place(tx, clientId, write);
     for (const item of days)
       await tx.$executeRaw`UPDATE schedule_day SET version = version + 1 WHERE "technicianId" = ${item.technicianId} AND "serviceDate" = ${day(item.serviceDate)}`;
