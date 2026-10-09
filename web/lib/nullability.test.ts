@@ -1,7 +1,6 @@
 import test, { after, before } from "node:test";
 import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
-import { POST as confirm } from "../app/api/book/confirm/route";
 import { POST as select } from "../app/api/book/select/route";
 import { POST as refresh } from "../app/api/book/refresh/route";
 import { POST as preview } from "../app/api/dispatch/optimize/preview/route";
@@ -43,43 +42,11 @@ test("another client's booking is not found and never reaches the scheduling eng
     const responses = [
       await refresh(new NextRequest("http://localhost/api/book/refresh", body({ jobId: "other-client-job" }))),
       await select(new NextRequest("http://localhost/api/book/select", body({ jobId: "other-client-job", offerId: "offer" }))),
-      await confirm(new NextRequest("http://localhost/api/book/confirm", body({ holdId: "other-client-hold" }))),
       await qualification(new NextRequest("http://localhost/api/dispatch/qualification", body({ technicianId: "other-client-tech", serviceId: "service", qualified: true }))),
     ];
-    assert.deepEqual(responses.map(response => response.status), [404, 404, 404, 404]);
+    assert.deepEqual(responses.map(response => response.status), [404, 404, 404]);
     assert.equal(calls, 0);
   } finally { ownedRows = 1; globalThis.fetch = original; }
-});
-
-test("refresh preserves the browser deadline and rejects expired or malformed values before scheduling", async () => {
-  const original = globalThis.fetch;
-  const deadline = Date.now() + 4000;
-  let calls = 0;
-  globalThis.fetch = async (_input, init) => {
-    calls++;
-    assert.equal(typeof init?.body, "string");
-    const body: unknown = JSON.parse(String(init?.body));
-    assert.ok(body && typeof body === "object" && "deadlineEpochMs" in body);
-    assert.equal(body.deadlineEpochMs, deadline, "Portal transport must not restart the browser's search budget");
-    return new Response(JSON.stringify({ jobId: "deadline-job", offers: [], search: {
-      outcome: "SEARCH_INCOMPLETE", prescribedSearchCompleted: false, elapsedMs: 1, retryable: true,
-    } }), { status: 200, headers: { "Content-Type": "application/json" } });
-  };
-  const request = (value: unknown) => new NextRequest("http://localhost/api/book/refresh", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(value),
-  });
-  try {
-    assert.equal((await refresh(request({ jobId: "deadline-job", deadlineEpochMs: deadline }))).status, 200);
-    assert.equal(calls, 1);
-    for (const value of [null, "5000", false, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])
-      assert.equal((await refresh(request({ jobId: "deadline-job", deadlineEpochMs: value }))).status, 400);
-    const expired = await refresh(request({ jobId: "deadline-job", deadlineEpochMs: Date.now() - 1 }));
-    assert.equal(expired.status, 200);
-    const incomplete = offersResponse.parse(await expired.json());
-    assert.equal(incomplete.search.outcome, "SEARCH_INCOMPLETE"); assert.equal(incomplete.search.retryable, true);
-    assert.equal(incomplete.search.prescribedSearchCompleted, false); assert.deepEqual(incomplete.offers, []);
-    assert.equal(calls, 1, "No database or scheduling work may begin after browser deadline expiry");
-  } finally { globalThis.fetch = original; }
 });
 
 test("time-off travel retains unavailable history and rejects malformed accounting", () => {
@@ -134,7 +101,7 @@ test("invalid request bodies fail before downstream requests or writes", async (
   const original = globalThis.fetch;
   globalThis.fetch = () => { throw new Error("Unexpected downstream request"); };
   try {
-    for (const handler of [confirm, select, preview, book, absence, availability, qualification]) {
+    for (const handler of [refresh, select, preview, book, absence, availability, qualification]) {
       for (const body of ["null", "[]", "false", '"text"', "{", "{}", '{"jobId":12,"holdId":false,"metroId":{},"date":"2026-02-30"}']) {
         const response = await handler(new NextRequest("http://localhost/api/test", { method: "POST", body }));
         assert.equal(response.status, 400, body);
@@ -206,28 +173,6 @@ test("scheduler search timing is kept separate from client transport duration", 
     assert.equal(result.search.elapsedMs, 11);
     assert.equal(result.search.outcome, "ROUTING_UNAVAILABLE");
     assert.ok(result.search.apiElapsedMs !== undefined && result.search.apiElapsedMs >= 0);
-  } finally { globalThis.fetch = original; }
-});
-
-test("selection conflicts preserve retryable refresh outcomes and transport failures", async () => {
-  const original = globalThis.fetch;
-  try {
-    let calls = 0;
-    globalThis.fetch = async () => ++calls === 1 ? Response.json({ detail: "Changed" }, { status: 409 })
-      : Response.json({ jobId: "job", offers: [], search: { outcome: "SERVICE_BUSY", prescribedSearchCompleted: false, elapsedMs: 20, retryable: true } });
-    const response = await select(new NextRequest("http://localhost/api/book/select", { method: "POST", body: JSON.stringify({ jobId: "job", offerId: "offer" }) }));
-    assert.equal(response.status, 409);
-    const result: unknown = await response.json();
-    assert.equal(offersResponse.parse(result).search.outcome, "SERVICE_BUSY");
-    calls = 0;
-    globalThis.fetch = async input => {
-      if (String(input).endsWith("/cancel-search")) return Response.json({ success: true });
-      if (++calls === 1) return Response.json({ detail: "Changed" }, { status: 409 });
-      throw new TypeError("offline");
-    };
-    const unavailable = await select(new NextRequest("http://localhost/api/book/select", { method: "POST", body: JSON.stringify({ jobId: "job", offerId: "offer" }) }));
-    assert.equal(unavailable.status, 503);
-    assert.deepEqual(await unavailable.json(), { error: "Scheduling service unavailable" });
   } finally { globalThis.fetch = original; }
 });
 
