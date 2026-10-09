@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { activeClient } from "@/lib/activeClient";
 import { notFound, ownsAppointment } from "@/lib/clientScope";
-import { cancelAppointment, EngineError } from "@/lib/engineClient";
 import { cancelApiAppointment } from "@/lib/apiCancel";
 import { changeStep } from "@/lib/apiChangeRoute";
-import { publicApiEnabled } from "@/lib/schedulerApi";
 
 export async function DELETE(request: NextRequest) {
   let body: unknown;
@@ -27,14 +25,5 @@ export async function DELETE(request: NextRequest) {
 
   const clientId = (await activeClient(request)).id;
   if (!(await ownsAppointment(clientId, appointmentId))) return notFound("Appointment");
-  if (publicApiEnabled()) return changeStep(() => cancelApiAppointment(clientId, appointmentId, reason));
-  try {
-    return NextResponse.json(await cancelAppointment({ appointment_id: appointmentId, reason }));
-  } catch (error) {
-    if (error instanceof EngineError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error("Appointment cancellation failed", error);
-    return NextResponse.json({ error: "Appointment cancellation failed." }, { status: 500 });
-  }
+  return changeStep(() => cancelApiAppointment(clientId, appointmentId, reason));
 }
