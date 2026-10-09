@@ -3,12 +3,12 @@ import dev.waterflex.scheduler.BookingSnapshot.*;
 import dev.waterflex.scheduler.optimizer.*;
 import java.time.*;
 import java.util.*;
-final class CalculationFixture {
+public final class CalculationFixture {
     static final Instant CAPTURED = Required.value(Instant.parse("2026-10-25T17:00:00Z"));
     static final LocalDate DAY = Required.value(LocalDate.parse("2026-10-26"));
     static final Instant START = Required.value(ScheduleCutoff.localMinute(DAY,480,false));
     static final RoadPoint POINT = new RoadPoint(41.25,-95.93);
-    static BookingCalculation.Input booking() {
+    public static BookingCalculation.Input booking() {
         var tech = new Technician("a",START,Required.value(START.plusSeconds(21600)),360,0,Required.value(Set.of("service")),Required.value(List.of()),POINT,POINT,3);
         var visit = new Visit("old","old-job","service",START,Required.value(START.plusSeconds(14400)),60,POINT,"a",START,false);
         Map<String,DayPlan.RoadLeg> roads = new TreeMap<>();

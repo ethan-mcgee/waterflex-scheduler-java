@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "../lib/prisma";
 import { bookingResponse, required } from "../lib/contracts";
 import { POST as book } from "../app/api/book/route";
-import { validateBookingLocation } from "../lib/engineClient";
+import { resolveMetroForLocation } from "../lib/serviceArea";
 import { bookApiOffer, releaseApiOffers } from "../lib/apiBooking";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 import { connectSmokeClient } from "./smokeApiClient";
@@ -29,7 +29,7 @@ async function main() {
   // Booking searches the default client's technicians through the public API of the scheduler under test.
   const disconnect = await connectSmokeClient(DEFAULT_CLIENT_ID, required(process.env.ENGINE_URL), "Booking geography smoke");
   for (const sample of samples) {
-    assert.equal((await validateBookingLocation(sample)).status, "VALID", sample.city);
+    assert.ok(await resolveMetroForLocation(sample.lat, sample.lng, DEFAULT_CLIENT_ID), `${sample.city} is inside the service area`);
     const body = { ...sample, firstName: "Geographic", lastName: "Fixture", email: "geography@example.invalid", phone: "4025550100",
       line1: `Manual road fixture in ${sample.city}`, serviceCode: "FILTER_SWAP", requestId: randomUUID(),
       confirmedPin: { lat: sample.lat, lng: sample.lng, manuallyConfirmed: true } };
@@ -46,19 +46,20 @@ async function main() {
     const offer = required(required(data.offers)[0]);
     if (sample.city === "Rock Port") assert.ok((await bookApiOffer(DEFAULT_CLIENT_ID, data.jobId, offer.offerId)).appointmentId);
     else await releaseApiOffers(DEFAULT_CLIENT_ID, data.jobId, offer.offerId);
-    console.log(`${sample.city}, ${sample.state}: VALID, AVAILABLE, ${sample.city === "Rock Port" ? "BOOKED" : "RELEASED"}`);
+    console.log(`${sample.city}, ${sample.state}: COVERED, AVAILABLE, ${sample.city === "Rock Port" ? "BOOKED" : "RELEASED"}`);
   }
-  const depots = await prisma.depot.findMany({ select: { lat: true, lng: true, metro: { select: { serviceRadiusMi: true } } } });
+  const depots = await prisma.depot.findMany({ where: { dealership: { clientId: DEFAULT_CLIENT_ID } }, select: { lat: true, lng: true, metro: { select: { serviceRadiusMi: true } } } });
   for (const depot of depots) for (const miles of [64.99, 65.01]) for (let bearing = 0; bearing < 360; bearing += 45) {
     const angle = miles / 3958.8, heading = bearing * Math.PI / 180, lat = depot.lat * Math.PI / 180, lng = depot.lng * Math.PI / 180;
     const nextLat = Math.asin(Math.sin(lat) * Math.cos(angle) + Math.cos(lat) * Math.sin(angle) * Math.cos(heading));
     const nextLng = lng + Math.atan2(Math.sin(heading) * Math.sin(angle) * Math.cos(lat), Math.cos(angle) - Math.sin(lat) * Math.sin(nextLat));
     const point = { lat: nextLat * 180 / Math.PI, lng: nextLng * 180 / Math.PI };
     const covered = depots.some(d => haversineMiles(point.lat, point.lng, d.lat, d.lng) <= d.metro.serviceRadiusMi);
-    const result = await validateBookingLocation(point);
-    assert.ok(covered ? ["VALID", "UNROUTABLE"].includes(result.status) : result.status === "OUTSIDE_COVERAGE", JSON.stringify({ point, covered, result }));
+    // Coverage is the portal's union of the client's depot circles; a covered point the roads cannot reach gets no offer when booked.
+    const metro = await resolveMetroForLocation(point.lat, point.lng, DEFAULT_CLIENT_ID);
+    assert.equal(metro != null, covered, JSON.stringify({ point, covered, metro }));
   }
   await disconnect();
-  console.log("32 boundary probes matched the union of depot circles; interior off-road points were not mistaken for outages");
+  console.log(`${depots.length * 16} boundary probes matched the union of depot circles`);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

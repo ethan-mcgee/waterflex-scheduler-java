@@ -261,10 +261,10 @@ public class BookingOffers {
     }
 
     /** A search result and the snapshot holding every leg it was found with. */
-    private record Searched(BookingSnapshot snapshot, BoundedBookingSearch.Result result) { }
+    record Searched(BookingSnapshot snapshot, BoundedBookingSearch.Result result) { }
 
     /** The portal pipeline's insertion and optional bounded refinement (BookingSearchPipeline.prepare), without its overflow dates. */
-    private Searched calculate(RoadClient roads, BookingSnapshot snapshot, BoundedBookingSearch.Request job) {
+    Searched calculate(RoadClient roads, BookingSnapshot snapshot, BoundedBookingSearch.Request job) {
         var inserted = transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant,
                 Required.value(Set.of()), null, 0));
         BoundedBookingSearch.Result result = inserted.result();

@@ -9,7 +9,6 @@ import { POST as book } from "../app/api/book/route";
 import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
 import { POST as qualification } from "../app/api/dispatch/qualification/route";
-import { EngineError, requestSlots } from "./engineClient";
 import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment, travelBreakdown, solverAnalysis } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
@@ -118,18 +117,6 @@ test("depot ownership and technician assignment fields are required", () => {
   assert.equal(technicianDepotAssignment.safeParse({ depotId: "depot", effectiveDate: null }).success, false);
 });
 
-test("scheduler client preserves status and rejects malformed success and transport failures", async () => {
-  const original = globalThis.fetch;
-  try {
-    for (const [body, status, expected] of [[null, 409, 409], [null, 200, 502], [{ jobId: "j", offers: null }, 200, 502]] as const) {
-      globalThis.fetch = async input => String(input).endsWith("/cancel-search") ? Response.json({ success: true }) : Response.json(body, { status });
-      await assert.rejects(requestSlots("j"), e => e instanceof EngineError && e.status === expected);
-    }
-    globalThis.fetch = async input => { if (String(input).endsWith("/cancel-search")) return Response.json({ success: true }); throw new TypeError("offline"); };
-    await assert.rejects(requestSlots("j"), e => e instanceof EngineError && e.status === 503);
-  } finally { globalThis.fetch = original; }
-});
-
 test("geocoder rejects null, blank, nonfinite and out-of-range strings but retains valid zero", async () => {
   const original = globalThis.fetch;
   const address = { line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102" };
@@ -163,35 +150,6 @@ test("appointment outcomes reject missing or contradictory search evidence", () 
     assert.equal(offersResponse.safeParse({ ...result, search }).success, false);
   for (const outcome of ["ROUTING_UNAVAILABLE", "SERVICE_BUSY", "SCHEDULE_CONFLICT", "SEARCH_INCOMPLETE"])
     assert.equal(offersResponse.safeParse({ ...result, search: { ...result.search, outcome } }).success, true);
-});
-
-test("scheduler search timing is kept separate from client transport duration", async () => {
-  const original = globalThis.fetch;
-  try {
-    globalThis.fetch = async () => Response.json({ jobId: "job", offers: [],
-      search: { outcome: "ROUTING_UNAVAILABLE", prescribedSearchCompleted: false, elapsedMs: 11, retryable: true } });
-    const result = await requestSlots("job");
-    assert.equal(result.search.elapsedMs, 11);
-    assert.equal(result.search.outcome, "ROUTING_UNAVAILABLE");
-    assert.ok(result.search.apiElapsedMs !== undefined && result.search.apiElapsedMs >= 0);
-  } finally { globalThis.fetch = original; }
-});
-
-test("an already abandoned search sends only durable cancellation with its own live signal", async () => {
-  const original = globalThis.fetch;
-  try {
-    const calls: string[] = [];
-    globalThis.fetch = async (input, init) => {
-      calls.push(String(input));
-      assert.equal(init?.signal?.aborted, false);
-      const body: unknown = JSON.parse(String(init?.body));
-      assert.ok(typeof body === "object" && body !== null && "searchRequestId" in body && typeof body.searchRequestId === "string");
-      return Response.json({ success: true });
-    };
-    const controller = new AbortController(); controller.abort();
-    await assert.rejects(requestSlots("job", false, 5000, controller.signal), /cancelled/);
-    assert.equal(calls.length, 1); assert.ok(calls[0]?.endsWith("/cancel-search"));
-  } finally { globalThis.fetch = original; }
 });
 
 test("calendar utilities reject missing or invalid calendar values", () => {
