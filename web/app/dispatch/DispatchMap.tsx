@@ -7,14 +7,13 @@ import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import { isDispatchGeometry } from "@/lib/dispatchGeometry";
 import { errorMessage } from "@/lib/contracts";
 
-export default function DispatchMap({ technicians, appointments, timezone, metroId, date, runId, phase }: {
+/** The client's current routes for a metro day, drawn on the scheduler's road geometry. */
+export default function DispatchMap({ technicians, appointments, timezone, metroId, date }: {
   technicians: BoardTechnician[];
   appointments: BoardAppointment[];
   timezone: string;
   metroId: string;
   date: string;
-  runId?: string;
-  phase: "current" | "before" | "after";
 }) {
   const element = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +54,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
         .setPopup(new maplibregl.Popup().setText(`${tech.name}: home base`))
         .addTo(map)));
       stopMarkers = located.map(markerForStop);
-      const query = new URLSearchParams({ metroId, date, phase });
-      if (runId) query.set("runId", runId);
+      const query = new URLSearchParams({ metroId, date });
       void fetch(`/api/dispatch/geometry?${query}`, { cache: "no-store", signal: request.signal })
         .then(async (response) => {
           const raw: unknown = await response.json().catch(() => undefined);
@@ -65,7 +63,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
         })
         .then((geometry) => {
           if (cancelled) return;
-          if (!isDispatchGeometry(geometry, date, phase))
+          if (!isDispatchGeometry(geometry, date, "current"))
             throw new Error("Invalid road geometry");
           if (geometry.endpoints) {
             homeMarkers.forEach(marker => marker.remove());
@@ -105,7 +103,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
       homeMarkers.forEach((marker) => marker.remove());
       map.remove();
     };
-  }, [technicians, appointments, timezone, metroId, date, runId, phase]);
+  }, [technicians, appointments, timezone, metroId, date]);
   return <div style={{ width: "100%", height: "100%", position: "relative" }}>
     <div ref={element} style={{ width: "100%", height: "100%" }} />
     {error && <div role="status" style={{ position: "absolute", bottom: 12, left: 12, padding: 8, background: "white", color: "#8a1f11" }}>{error}</div>}

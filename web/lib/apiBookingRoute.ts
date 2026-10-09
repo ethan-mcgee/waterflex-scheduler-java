@@ -22,7 +22,3 @@ export async function apiBookingStep(clientId: string, jobId: string, step: () =
     throw error;
   }
 }
-
-export function notUsedWithApi(): NextResponse {
-  return NextResponse.json({ error: "Not used when scheduling runs through the scheduling API" }, { status: 404 });
-}

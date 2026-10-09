@@ -306,16 +306,13 @@ jobs:
       - name: Public API fake data smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:api-fake-data:integration npm run test:api-fake-data:integration
-      - name: Public API booking test runner smoke
-        working-directory: web
-        run: node ../infra/run-check.mjs test:api-booking-tests:integration npm run test:api-booking-tests:integration
       - name: Shared address matching smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:address-matching:integration npm run test:address-matching:integration
       - name: Technician home pin smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:technician-home:integration npm run test:technician-home:integration
-      - name: Sequential booking and preview smoke
+      - name: Sequential booking test runner smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:booking-tests:integration npm run test:booking-tests:integration
       - name: Print service logs on failure
