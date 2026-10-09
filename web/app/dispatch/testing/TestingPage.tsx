@@ -8,7 +8,6 @@ import { calendarDateInTz } from "@/lib/date";
 import { DEFAULT_TEST_CONFIG, TEST_RADIUS_PRESETS, type TestConfig, type TestConfigInput } from "@/lib/bookingTestCore";
 import { FAKE_SERVICE_CODES, OMAHA_TIMEZONE, type FakeLocation } from "@/lib/fakeDataCore";
 import type { OptimizationRun, SlotOffer } from "@/lib/engineClient";
-import OptimizationReview from "@/app/dispatch/OptimizationReview";
 import ApiProposalReview, { type ApiProposal } from "@/app/dispatch/ApiProposalReview";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import styles from "./testing.module.css";
@@ -26,7 +25,6 @@ interface Run extends RunSummary {
     offers: SlotOffer[]; selected: SlotOffer | null; elapsedMs: number; serviceDate: string | null;
     startedAt: string | null; error: string | null; attempts: unknown[] }>;
   previews: Array<{ id: string; serviceDate: string; optimizationId: string | null; result: OptimizationRun | ApiProposal | null; error: string | null }>;
-  applied: Array<{ id: string; status: string; appliedAt: string | null }>;
 }
 async function api<T>(schema: z.ZodType<T>, body?: object, id?: string) {
   const response = await fetch(`/api/dispatch/testing${id ? `?id=${encodeURIComponent(id)}` : ""}`, body ? {
@@ -93,7 +91,7 @@ export default function TestingPage() {
     catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
   }
   async function purge() {
-    if (!run || !window.confirm("Delete only the generated appointments and booking records for this saved run? Optimization history and any effects already applied to surviving appointments remain.")) return;
+    if (!run || !window.confirm("Delete only the generated appointments and booking records for this saved run? Proposals already applied keep their effects on surviving appointments, and open days are re-timed without the deleted visits.")) return;
     setBusy(true); setError(null);
     try { const current = await api(testRun, { id: run.id, action: "purge" }); setRun(current); await refreshHistory(); }
     catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
@@ -128,7 +126,7 @@ export default function TestingPage() {
           <button className={styles.danger} disabled={busy || driving || !["PAUSED", "STOPPED", "COMPLETED", "PURGED"].includes(run.status)} onClick={() => void purge()}>Delete generated appointments</button>
         </div>
         {run.purgedAt && <p>Purged {run.purgedCount ?? 0} generated appointment(s) at {new Date(run.purgedAt).toLocaleString()}. This cleanup is complete and idempotent.</p>}
-        <p>Pause and Stop finish the current operation. Stop is final. Purge removes only this run&apos;s generated booking records and does not reverse an already applied optimization.</p>
+        <p>Pause and Stop finish the current operation. Stop is final. Purge removes only this run&apos;s generated booking records and does not reverse an already applied proposal.</p>
         {run.generation && <section className={styles.generation} aria-labelledby="generation-heading"><h3 id="generation-heading">Finding routable addresses</h3>
           <progress aria-label="Finding routable addresses" max={run.generation.targetCount} value={run.generation.acceptedCount} />
           <p aria-live="polite"><strong>{run.generation.acceptedCount} of {run.generation.targetCount} addresses ready.</strong> {generationStatus(run)}</p>
@@ -142,24 +140,21 @@ export default function TestingPage() {
         <div className={styles.scroll}><table><thead><tr><th>#</th><th>Location</th><th>Service</th><th>Offered windows</th><th>Chosen window</th><th>Outcome</th><th>Elapsed</th></tr></thead><tbody>
           {run.requests.map(request => <tr key={request.id}><td>{request.ordinal + 1}</td><td>{request.input.location.line1}<br />{request.input.location.city}, {request.input.location.state} {request.input.location.postalCode}</td><td>{request.input.serviceCode.replaceAll("_", " ")}</td>
             <td>{request.offers.map(offer => <div key={offer.offerId}>{windowLabel(offer)}</div>)}</td><td>{request.selected ? windowLabel(request.selected) : "None"}</td><td>{request.status}{request.error && <div className={styles.error}>{request.error}</div>}</td><td>{(request.elapsedMs / 1000).toFixed(1)} s</td></tr>)}</tbody></table></div>
-        <h2>Optimization previews</h2><p>Each preview covers the whole affected day. Apply is available only while the exact saved result remains a current PREVIEW; the scheduler rechecks every guarded apply condition.</p>
+        <h2>Daily proposals</h2><p>Each proposal covers the whole affected day. Applying it writes the proposed routes only if every technician-day is still as proposed.</p>
         {!run.previews.length && <p>Previews start automatically after all requests finish while this page is progressing.</p>}
         {run.previews.map(preview => {
           const saved = preview.result;
-          // Through the public API a preview is the client's daily proposal for the day, applied as on the dispatch board.
+          // A preview is the client's daily proposal for the day, applied as on the dispatch board.
           if (saved !== null && "proposalId" in saved) return <article key={preview.id} className={styles.preview}><h3>{preview.serviceDate}</h3>
             {preview.error && <p className={styles.error}>{preview.error}</p>}
             <ApiProposalReview proposal={saved} timezone={OMAHA_TIMEZONE} technicianName={id => id} onApplied={async () => setRun(await api(testRun, undefined, run.id))} />
-            <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha" date={preview.serviceDate} phase="current" /></div>
+            <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha" date={preview.serviceDate} /></div>
             <a href={`/schedule?week=${preview.serviceDate}`}>View schedule</a>{" | "}<a href={`/dispatch?date=${preview.serviceDate}`}>Open the day in Dispatch</a>
           </article>;
-          const actual = run.applied.find(item => item.id === preview.optimizationId);
-          const result = saved && actual ? { ...saved, status: actual.status, applied_at: actual.appliedAt } : saved;
+          // A run saved before the public API holds an engine optimization run, which can no longer be applied.
           return <article key={preview.id} className={styles.preview}><h3>{preview.serviceDate}</h3>{preview.error && <p className={styles.error}>{preview.error}</p>}
-            {result && <OptimizationReview run={result} onApplied={async () => setRun(await api(testRun, undefined, run.id))}
-              routes={phase => <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha"
-                date={preview.serviceDate} runId={phase === "current" ? undefined : result.run_id} phase={phase} /></div>} />}
-            <a href={`/schedule?week=${preview.serviceDate}`}>View schedule</a>{" | "}<a href={`/dispatch?date=${preview.serviceDate}&run=${preview.optimizationId ?? ""}`}>Open exact run in Dispatch</a>
+            {saved && <p>Saved engine preview {saved.run_id}: {saved.status.toLowerCase()}, {saved.appointments_moved} appointment(s) moved. Engine previews can no longer be applied.</p>}
+            <a href={`/schedule?week=${preview.serviceDate}`}>View schedule</a>{" | "}<a href={`/dispatch?date=${preview.serviceDate}`}>Open the day in Dispatch</a>
           </article>;
         })}</>}
     </section>{error && <p role="alert" className={styles.error}>{error}</p>}

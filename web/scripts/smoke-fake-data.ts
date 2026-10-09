@@ -1,7 +1,15 @@
+// The full fake-data generator end to end: randomized Omaha addresses booked through the public API for the default
+// client, then cleared with the days they leave re-timed. The addresses are random, so this needs a scheduler with real
+// road routing for metro-omaha; smoke-api-fake-data covers the same booking and purge against the fixture router.
+//   SCHEDULER_TEST_URL=http://127.0.0.1:18000
 import assert from "node:assert/strict";
 import { clearFakeData, generateFakeData } from "../lib/fakeData";
 import { dateFromFakeExternalId, FAKE_DATA_PREFIX } from "../lib/fakeDataCore";
 import { prisma } from "../lib/prisma";
+import { required } from "../lib/contracts";
+import { DEFAULT_CLIENT_ID } from "../lib/clients";
+import { currentLastModified } from "../lib/apiReceipt";
+import { connectSmokeClient } from "./smokeApiClient";
 
 const RANGE_START = "2037-04-06";
 const RANGE_END = "2037-04-10";
@@ -16,7 +24,7 @@ async function fakeJobs() {
       address: true,
       service: true,
       appointment: { include: { technician: { include: { depotAssignments: { include: { depot: true }, orderBy: { effectiveDate: "asc" } } } } } },
-      slotHolds: true,
+      apiOfferSets: { select: { receiptId: true } },
     },
   });
 }
@@ -42,7 +50,6 @@ async function removeManualFixture(jobId: string) {
       await tx.outboundEvent.deleteMany({ where: { aggregateId: job.appointment.id } });
       await tx.appointment.delete({ where: { id: job.appointment.id } });
     }
-    await tx.slotHold.deleteMany({ where: { jobId } });
     await tx.job.delete({ where: { id: jobId } });
     await tx.address.delete({ where: { id: job.addressId } });
     await tx.customer.delete({ where: { id: job.customerId } });
@@ -50,6 +57,11 @@ async function removeManualFixture(jobId: string) {
 }
 
 async function main() {
+  const disconnect = await connectSmokeClient(DEFAULT_CLIENT_ID, required(process.env.SCHEDULER_TEST_URL, "SCHEDULER_TEST_URL (a running scheduler)"), "Fake data smoke");
+  try { await generated(); } finally { await disconnect(); }
+}
+
+async function generated() {
   await clearFakeData(RANGE_START, RANGE_END);
   await clearFakeData(OUTSIDE_DATE, OUTSIDE_DATE);
   await clearFakeData(CAPACITY_DATE, CAPACITY_DATE);
@@ -81,14 +93,8 @@ async function main() {
   ]);
   const manualJobId = source.id;
   const manualAppointmentId = source.appointment.id;
-  const scheduleDayBefore = await prisma.scheduleDay.findUnique({
-    where: {
-      technicianId_serviceDate: {
-        technicianId: source.appointment.technicianId,
-        serviceDate: source.appointment.serviceDate,
-      },
-    },
-  });
+  const manualDay = { technicianId: source.appointment.technicianId, serviceDate: source.appointment.serviceDate.toISOString().slice(0, 10) };
+  const dayKey = `${manualDay.technicianId}|${manualDay.serviceDate}`;
 
   try {
     const first = await generateFakeData({
@@ -117,14 +123,8 @@ async function main() {
       return appointment?.technician.depotAssignments
         .filter(assignment => assignment.effectiveDate <= appointment.serviceDate).at(-1)?.depot.metroId === "metro-omaha";
     }));
-    assert.ok(
-      inside.every(
-        (job) =>
-          job.appointment &&
-          job.appointment.windowEnd.getTime() - job.appointment.windowStart.getTime() === 2 * 60 * 60 * 1_000
-      )
-    );
-    assert.ok(inside.every((job) => job.slotHolds.every((hold) => hold.releasedAt !== null)));
+    assert.ok(inside.every((job) => job.appointment && job.appointment.windowEnd > job.appointment.windowStart), "Each call keeps its offered window");
+    assert.ok(inside.every((job) => job.apiOfferSets.filter((set) => set.receiptId !== null).length === 1), "Each call was booked through one confirmed API hold");
     assert.equal(new Set(inside.map(addressKey)).size, inside.length);
     assert.equal(new Set(inside.map(coordinateKey)).size, inside.length);
     const outsideAddresses = new Set(
@@ -134,7 +134,7 @@ async function main() {
     assert.equal(await prisma.job.count({ where: { externalId: { startsWith: FAKE_DATA_PREFIX }, status: "PENDING" } }), 0);
     assert.ok(await prisma.appointment.findUnique({ where: { id: manualAppointmentId } }));
     const removedAppointmentIds = inside.flatMap((job) => job.appointment ? [job.appointment.id] : []);
-    const removedHoldIds = inside.flatMap((job) => job.slotHolds.map((hold) => hold.id));
+    const removedJobIds = inside.map((job) => job.id);
 
     const second = await generateFakeData({
       startDate: RANGE_START,
@@ -150,11 +150,12 @@ async function main() {
     });
     assert.equal(secondInside.length, second.created);
     assert.equal(jobs.filter((job) => dateFromFakeExternalId(job.externalId) === OUTSIDE_DATE).length, 1);
-    assert.equal(await prisma.slotHold.count({ where: { id: { in: removedHoldIds } } }), 0);
+    assert.equal(await prisma.portalApiOfferSet.count({ where: { jobId: { in: removedJobIds } } }), 0);
     assert.equal(await prisma.outboundEvent.count({ where: { aggregateId: { in: removedAppointmentIds } } }), 0);
     assert.ok(await prisma.appointment.findUnique({ where: { id: manualAppointmentId } }));
     const secondAppointmentIds = secondInside.flatMap((job) => job.appointment ? [job.appointment.id] : []);
-    const secondHoldIds = secondInside.flatMap((job) => job.slotHolds.map((hold) => hold.id));
+    const secondJobIds = secondInside.map((job) => job.id);
+    const lastModifiedBefore = (await currentLastModified(prisma, [manualDay])).get(dayKey);
 
     const cleared = await clearFakeData(RANGE_START, RANGE_END);
     assert.equal(cleared.removed, second.created);
@@ -167,7 +168,7 @@ async function main() {
       0
     );
     assert.equal(jobs.filter((job) => dateFromFakeExternalId(job.externalId) === OUTSIDE_DATE).length, 1);
-    assert.equal(await prisma.slotHold.count({ where: { id: { in: secondHoldIds } } }), 0);
+    assert.equal(await prisma.portalApiOfferSet.count({ where: { jobId: { in: secondJobIds } } }), 0);
     assert.equal(await prisma.outboundEvent.count({ where: { aggregateId: { in: secondAppointmentIds } } }), 0);
     const remainingFakeCustomers = await prisma.customer.findMany({
       where: { externalId: { startsWith: FAKE_DATA_PREFIX } },
@@ -183,19 +184,12 @@ async function main() {
     const manual = await prisma.appointment.findUnique({ where: { id: manualAppointmentId } });
     assert.ok(manual);
     const survivors = await prisma.appointment.findMany({
-      where: { technicianId: manual.technicianId, serviceDate: manual.serviceDate },
+      where: { technicianId: manual.technicianId, serviceDate: manual.serviceDate, cancelledAt: null },
       orderBy: { plannedStart: "asc" },
     });
     assert.deepEqual(survivors.map((appointment) => appointment.sequence), survivors.map((_, index) => index));
-    const scheduleDayAfter = await prisma.scheduleDay.findUnique({
-      where: {
-        technicianId_serviceDate: {
-          technicianId: manual.technicianId,
-          serviceDate: manual.serviceDate,
-        },
-      },
-    });
-    assert.ok(scheduleDayAfter && scheduleDayBefore && scheduleDayAfter.version > scheduleDayBefore.version);
+    if (secondInside.some((job) => job.appointment?.technicianId === manual.technicianId && job.appointment.serviceDate.getTime() === manual.serviceDate.getTime()))
+      assert.notEqual((await currentLastModified(prisma, [manualDay])).get(dayKey), lastModifiedBefore, "The manual visit's day is re-timed without the purged calls");
 
     const capacity = await generateFakeData({
       startDate: CAPACITY_DATE,
