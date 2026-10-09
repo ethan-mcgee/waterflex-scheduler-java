@@ -34,6 +34,17 @@ class ParallelCiContractTest(unittest.TestCase):
                     self.assertNotIn("    needs:", self.jobs[key])
                     self.assertNotIn("continue-on-error:", self.jobs[key])
 
+    def test_postgres_service_pulls_are_authenticated(self):
+        # Anonymous Docker Hub pulls share a rate limit with every job on the runner's IP; logged-in pulls use the account's own limit.
+        services = self.text.count("image: postgres:16\n")
+        self.assertGreater(services, 0)
+        login = """image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+"""
+        self.assertEqual(self.text.count(login), services)
+
     def test_integration_isolation_and_unique_diagnostics(self):
         artifacts = []
         for key in ["integration-core", "integration-time-off", "integration-remote"]:
