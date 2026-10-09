@@ -160,6 +160,14 @@ const dateKey = (value: Date) => value.toISOString().slice(0, 10);
 
 /** Loads one client's rows for a metro and dates in a single repeatable-read transaction, then assembles the snapshot. */
 export async function buildClientSnapshot(clientId: string, metroId: string, dates: readonly string[]): Promise<PublicSnapshot> {
+  return assembleSnapshot(await loadSnapshotFacts(clientId, metroId, dates));
+}
+
+/**
+ * The rows a snapshot is assembled from, read in one repeatable-read transaction. A change to the client's own facts
+ * can be applied to them before assembling, to see the snapshot as it would be after the change.
+ */
+export async function loadSnapshotFacts(clientId: string, metroId: string, dates: readonly string[]): Promise<SnapshotFacts> {
   if (dates.length === 0) throw new Error("A snapshot covers at least one date");
   for (const date of dates) dateContract.parse(date);
   const days = [...new Set(dates)].sort();
@@ -201,7 +209,7 @@ export async function buildClientSnapshot(clientId: string, metroId: string, dat
     return { settings, metro, technicians, intervals, appointments, changes };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
 
-  return assembleSnapshot({
+  return {
     metro: facts.metro, settings: facts.settings, dates: [...dates],
     technicians: facts.technicians.map(technician => ({
       id: technician.id, active: technician.active, homeLat: technician.homeLat, homeLng: technician.homeLng,
@@ -221,5 +229,5 @@ export async function buildClientSnapshot(clientId: string, metroId: string, dat
       windowEnd: appointment.windowEnd, sequence: appointment.sequence, plannedStart: appointment.plannedStart, address: appointment.job.address,
     })),
     lastModified: new Map(facts.changes.map(change => [key(change.technicianId, change.serviceDate), change.lastModified])),
-  });
+  };
 }

@@ -125,6 +125,38 @@ paths:
         '409': { $ref: '#/components/responses/CommitConflict' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+  /api/v1/routes/evaluate:
+    post:
+      operationId: evaluateRoutes
+      tags: [Daily]
+      summary: Time one metro day's routes in their current order.
+      description: >-
+        Times every technician-day of the snapshot exactly in the order its appointments give, from its start to its
+        end point, and reports whether the day holds every window, shift and paid limit. Nothing is optimized or
+        stored, so a host can check a change to its own facts (a depot's location or route endpoints, a technician's
+        depot) by sending the snapshot as it would be after the change. Technician-days whose locations cannot be
+        resolved are listed in skippedTechnicianDays and not timed.
+      x-implementation: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RouteEvaluationRequest' }
+            examples:
+              oneDay: { $ref: '#/components/examples/RouteEvaluationRequest' }
+      responses:
+        '200':
+          description: The routes as timed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RouteEvaluation' }
+              examples:
+                timed: { $ref: '#/components/examples/RouteEvaluation' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/IncompleteFacts' }
+        '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/offers:
     post:
       operationId: createBookingOffers
@@ -603,6 +635,36 @@ components:
           items: { $ref: '#/components/schemas/SkippedTechnicianDay' }
         costCents: { type: integer, minimum: 0 }
         overtimeMinutes: { type: integer, const: 0 }
+    RouteEvaluationRequest:
+      type: object
+      additionalProperties: false
+      required: [serviceDate, snapshot]
+      properties:
+        serviceDate: { $ref: '#/components/schemas/ServiceDate' }
+        snapshot: { $ref: '#/components/schemas/Snapshot' }
+    RouteEvaluation:
+      type: object
+      additionalProperties: false
+      required: [feasible, routes, skippedTechnicianDays, costCents, overtimeMinutes]
+      properties:
+        feasible:
+          type: boolean
+          description: True when every timed route holds its windows, shifts, absences and paid limits.
+        routes:
+          type: array
+          description: Every routed technician-day with its appointments timed in order; empty when feasible is false.
+          items: { $ref: '#/components/schemas/PlannedRoute' }
+        skippedTechnicianDays:
+          type: array
+          items: { $ref: '#/components/schemas/SkippedTechnicianDay' }
+        costCents:
+          type: integer
+          minimum: 0
+          description: Modeled fleet cost of the timed routes.
+        overtimeMinutes:
+          type: integer
+          minimum: 0
+          maximum: 1440
     SkippedTechnicianDay:
       type: object
       additionalProperties: false
@@ -850,6 +912,25 @@ components:
             stops:
               - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
         unresolvedAppointmentIds: []
+        skippedTechnicianDays: []
+        costCents: 18942
+        overtimeMinutes: 0
+    RouteEvaluationRequest:
+      value:
+        serviceDate: '2026-10-12'
+        snapshot: *snapshot
+    RouteEvaluation:
+      value:
+        feasible: true
+        routes:
+          - technicianId: tech-1
+            serviceDate: '2026-10-12'
+            stops:
+              - { appointmentId: appt-7, sequence: 0, plannedStart: '2026-10-12T08:24:00-05:00', plannedEnd: '2026-10-12T09:24:00-05:00' }
+          - technicianId: tech-2
+            serviceDate: '2026-10-12'
+            stops:
+              - { appointmentId: appt-8, sequence: 0, plannedStart: '2026-10-12T13:10:00-05:00', plannedEnd: '2026-10-12T13:55:00-05:00' }
         skippedTechnicianDays: []
         costCents: 18942
         overtimeMinutes: 0
