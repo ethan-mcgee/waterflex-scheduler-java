@@ -11,7 +11,10 @@ import re
 from statistics import mean, median
 import uuid
 
-from experiment_config import DAILY, BOOKING, canonical, read_json, unique_object, digest, expand, validate
+from experiment_config import DAILY, canonical, read_json, unique_object, digest, expand, validate
+
+# Booking experiments are retired; archived booking evidence still names these variants.
+BOOKING = ['INSERTION', 'BOUNDED', 'EXPANDED', 'RUIN_RECREATE', 'SHARED']
 
 COLORS = dict(zip(dict.fromkeys(DAILY + BOOKING),
     ['#777777', '#444444', '#a58d3d', '#c37e12', '#2363a0', '#9171ad', '#b34f75', '#608642', '#00959b', '#d56033', '#86743e', '#516170']))
@@ -171,17 +174,9 @@ def load_raw(path, expected=None, cohort='current'):
                             raise ValueError('Missing provenance')
                         row = normalize(raw, provenance, cohort)
                         if expected:
-                            for key in ('kind', 'solver', 'fleet', 'workload', 'seed', 'budget_ms', 'concurrency', 'cache', 'requests'):
-                                if key in expected and row.get(key) != expected[key]:
+                            for key in ('kind', 'solver', 'fleet', 'workload', 'seed', 'budget_ms'):
+                                if row.get(key) != expected[key]:
                                     raise ValueError(f'Unexpected {key}')
-                            if expected['kind'] == 'booking':
-                                for phase in ('processBefore', 'processAfter'):
-                                    observation = raw.get(phase)
-                                    settings = observation.get('configuration') if isinstance(observation, dict) else None
-                                    if not isinstance(settings, dict):
-                                        raise ValueError('Actual booking configuration unavailable')
-                                    if settings.get('booking.search.variant') != expected['solver'] or settings.get('booking.search.bounded') != 'true' or settings.get('booking.reservations.enabled') != 'true':
-                                        raise ValueError('Actual booking configuration unavailable or mismatched')
                         row['source'] = str(path)
                         row['line'] = line_index
                         rows.append(row)
