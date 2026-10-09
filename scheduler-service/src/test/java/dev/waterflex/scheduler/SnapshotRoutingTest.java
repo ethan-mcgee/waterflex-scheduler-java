@@ -107,7 +107,7 @@ class SnapshotRoutingTest {
         assertTrue(bundle.offers().stream().noneMatch(offer -> offer.overtimeAuthorized()));
         Map<LocalDate, Day> reservedDays = new TreeMap<>(); reservedDays.put(DATE, common.day());
         Map<LocalDate, Map<String, ReservationState.Hold>> reservedHolds = new TreeMap<>(); reservedHolds.put(DATE, common.state().holds());
-        var facts = new BookingSnapshotLoader.Facts(snapshot.metroId(), CAPTURED, snapshot.configurationFingerprint(), snapshot.routingIdentity(),
+        var facts = new ReservationTransition.Facts(snapshot.metroId(), CAPTURED, snapshot.configurationFingerprint(), snapshot.routingIdentity(),
                 snapshot.policy(), RATES, reservedDays, reservedHolds);
         var transition = new ReservationTransition(routing);
         var selected = Required.value(bundle.offers().getFirst());

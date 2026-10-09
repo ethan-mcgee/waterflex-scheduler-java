@@ -44,11 +44,6 @@ export const offersResponse = z.object({ jobId: text, offers: z.array(offer), se
   if ((value.search.outcome === "AVAILABLE") !== (value.offers.length > 0))
     context.addIssue({ code: "custom", message: "Search outcome does not match committed offers" });
 });
-export const durableSearchStatus = z.object({ id: z.uuid(), jobId: text,
-  state: z.enum(["QUEUED", "RUNNING", "AVAILABLE", "NO_CANDIDATE", "INCOMPLETE", "FAILED", "CANCELLED"]),
-  phase: text, elapsedMs: z.int().nonnegative(), queueMs: z.int().nonnegative().nullable(),
-  completedWork: z.int().nonnegative(), bestCostDeltaCents: z.int().nullable().optional(), stopReason: text.nullable(), offers: z.array(offer).max(1),
-}).refine(v => (v.state === "AVAILABLE") === (v.offers.length > 0), "Invalid search result");
 export const confirmation = z.object({ appointmentId: text, windowStart: instant, windowEnd: instant });
 export const selection = confirmation.extend({ holdId: text, expiresAt: instant });
 export const success = z.object({ success: z.boolean() });
@@ -166,7 +161,6 @@ export const serviceAreaCircle = point.extend({ radiusMi: finite.positive() });
 export const bookingLocationResponse = z.object({ status: z.enum(["MATCHED", "NEEDS_PLACEMENT", "NO_MATCH"]),
   candidates: z.array(point.extend({ precision: z.enum(["ROOFTOP", "APPROXIMATE"]), bounds: locationBounds.optional() })),
   serviceArea: z.object({ circles: z.array(serviceAreaCircle).min(1), bounds: locationBounds }) });
-export const locationValidation = z.object({ status: z.enum(["VALID", "OUTSIDE_COVERAGE", "UNROUTABLE", "ROUTING_UNAVAILABLE"]) });
 export const jobRequest = z.object({ jobId: text });
 export const refreshRequest = jobRequest;
 export const selectRequest = jobRequest.extend({ offerId: text });

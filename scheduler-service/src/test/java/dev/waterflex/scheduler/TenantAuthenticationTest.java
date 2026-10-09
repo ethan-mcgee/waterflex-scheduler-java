@@ -90,8 +90,8 @@ class TenantAuthenticationTest {
 
     @Test void internalRoutesAreOutsideThePublicFilterAndHandlersFailClosedWithoutIt() {
         var filter = new TenantAuthentication(mock(TenantTokens.class));
-        var internal = new org.springframework.mock.web.MockHttpServletRequest("GET", "/v1/offers");
-        internal.setRequestURI("/v1/offers");
+        var internal = new org.springframework.mock.web.MockHttpServletRequest("GET", "/health");
+        internal.setRequestURI("/health");
         assertDoesNotThrow(() -> filter.doFilter(internal, new org.springframework.mock.web.MockHttpServletResponse(), new org.springframework.mock.web.MockFilterChain()));
         assertThrows(IllegalStateException.class, () -> TenantAuthentication.tenant(new org.springframework.mock.web.MockHttpServletRequest()));
     }

@@ -81,7 +81,7 @@ Integration verification uses PostgreSQL 16 with an isolated `waterflex_test` da
 
 ```powershell
 npm run test:schema-contract
-npm run test:booking:integration
+npm run test:api-booking:integration
 npm run test:optimizer:integration
 npm run test:time-off:integration
 npm run test:booking-tests:integration

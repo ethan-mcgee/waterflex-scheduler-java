@@ -18,7 +18,7 @@ class ParallelCiContractTest(unittest.TestCase):
     def test_aggregates_require_success_from_every_dependency(self):
         groups = {
             "build-and-unit": ["java-javac", "java-nullability", "portal-checks", "infrastructure-evidence"],
-            "booking-and-optimizer-integration": ["integration-core", "integration-reservations", "integration-time-off", "integration-remote"],
+            "booking-and-optimizer-integration": ["integration-core", "integration-time-off", "integration-remote"],
         }
         for gate, dependencies in groups.items():
             with self.subTest(gate=gate):
@@ -36,7 +36,7 @@ class ParallelCiContractTest(unittest.TestCase):
 
     def test_integration_isolation_and_unique_diagnostics(self):
         artifacts = []
-        for key in ["integration-core", "integration-reservations", "integration-time-off", "integration-remote"]:
+        for key in ["integration-core", "integration-time-off", "integration-remote"]:
             job = self.jobs[key]
             self.assertIn("image: postgres:16", job)
             self.assertIn("npm ci && npm run prisma:generate", job)
@@ -44,19 +44,24 @@ class ParallelCiContractTest(unittest.TestCase):
             self.assertIn("infra/fixture-routing.mjs", job)
             self.assertIn("if: failure()", job)
             artifacts.extend(re.findall(r"          name: (.*-diagnostics)", job))
-        self.assertEqual(len(artifacts), 4)
-        self.assertEqual(len(set(artifacts)), 4)
+        self.assertEqual(len(artifacts), 3)
+        self.assertEqual(len(set(artifacts)), 3)
 
-    def test_repetitions_and_cross_instance_contracts_remain(self):
+    def test_repetitions_and_remote_calculation_contracts_remain(self):
         self.assertIn("for repetition in 1 2 3; do", self.jobs["integration-time-off"])
-        reservations = self.jobs["integration-reservations"]
-        for command in ["infra/test-booking-offer-limits.mjs", "cancellation-forward", "cancellation-reverse",
-                        "SCHEDULER_CANCEL_PENDING_TEST: 'true'", "test:bounded-booking:integration"]:
-            self.assertIn(command, reservations)
         remote = self.jobs["integration-remote"]
-        for scenario in ["booking", "optimizer", "time-off", "bounded", "cancellation"]:
+        for scenario in ["booking", "optimizer", "time-off"]:
             self.assertIn(f"remote-{scenario} npm run", remote)
+        # Remote calculation keeps booking coverage through the public API, which needs its smoke metro routed.
+        self.assertIn("remote-booking npm run test:api-booking:integration", remote)
+        self.assertIn("ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001", remote)
         self.assertNotIn("Start fixture routing and scheduler", remote)
+
+    def test_retired_portal_booking_endpoints_are_not_exercised(self):
+        self.assertNotIn("integration-reservations", self.jobs)
+        for retired in ["test:booking:integration", "test:bounded-booking:integration", "test:search-cancellation:integration",
+                        "test:reservation:integration", "test-booking-offer-limit", "BOOKING_OFFER_LIMIT"]:
+            self.assertNotIn(retired, self.text)
 
     def test_evidence_job_has_java_for_real_process_regressions(self):
         self.assertIn("actions/setup-java@v6", self.jobs["infrastructure-evidence"])

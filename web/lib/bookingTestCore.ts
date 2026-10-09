@@ -1,7 +1,6 @@
 import { testConfig, testConfigInput, required } from "./contracts";
 import { addCalendarDays, calendarDateInTz } from "./date";
 import { createSeededRandom, FAKE_SERVICE_CODES, isWeekday, OMAHA_TIMEZONE } from "./fakeDataCore";
-import type { SlotOffer } from "./engineClient";
 
 export const TEST_RADIUS_PRESETS = [10, 20, 30, 45, 65] as const;
 export type TestRadiusMi = typeof TEST_RADIUS_PRESETS[number];
@@ -32,6 +31,15 @@ export function generateTestInputPlans(config: TestConfig) {
     return { ordinal, serviceCode: required(FAKE_SERVICE_CODES[serviceIndex], "Test service"), selectionUnit: random() };
   });
 }
+/** One offered window as a test run records it. */
+export interface SlotOffer {
+  offerId: string;
+  date: string;
+  windowStart: string;
+  windowEnd: string;
+  expiresAt: string;
+}
+
 export function chooseTestOffer(offers: SlotOffer[], policy: TestConfig["policy"], unit: number): SlotOffer | null {
   if (!offers.length) return null;
   if (policy === "first") return required(offers[0]);

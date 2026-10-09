@@ -137,8 +137,6 @@ jobs:
           "$RUNNER_TEMP/actionlint" -color
       - name: Validate Compose configuration
         run: docker compose --profile map-import config --quiet
-      - name: Verify offer limit interpolation
-        run: node infra/test-booking-offer-limit-compose.mjs
       - name: Verify retained field evidence and generated reports
         run: |
           python3 infra/report-field-validation.py --require-complete
@@ -205,7 +203,7 @@ jobs:
       - name: Immutable snapshot, reservation and database admission gates
         run: |
           ./mvnw -Pnullability -pl calculation-engine -DskipTests install --batch-mode --no-transfer-progress
-          ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT,!DurableBookingSearchIT,!BookingSnapshotDatabaseIT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
+          ./mvnw -Pnullability -pl scheduler-service clean package '-Dtest=*IT' -DfailIfNoTests=true --batch-mode --no-transfer-progress
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
@@ -219,34 +217,20 @@ jobs:
           done
           echo "Services did not become healthy" >&2
           exit 1
-      - name: Durable search and snapshot database contracts
+      - name: Policy settings migration contract
         env:
-          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=durable_contracts
-          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=durable_contracts
+          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=policy_migration
+          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=policy_migration
         run: |
           node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
           node web/node_modules/tsx/dist/cli.mjs web/scripts/smoke-policy-migration.ts
-          ./mvnw -pl scheduler-service '-Dtest=DurableBookingSearchIT' test --batch-mode --no-transfer-progress
-      - name: Frozen service calendar database contracts
-        env:
-          DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=benchmark_calendar_it
-          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=benchmark_calendar_it
-        run: |
-          node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
-          ./mvnw -pl scheduler-service '-Dtest=BookingSnapshotDatabaseIT,MonetaryMigrationDatabaseIT' test --batch-mode --no-transfer-progress
-      - name: Booking smoke
-        working-directory: web
-        run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration
-      - name: Booking location contracts with reservations and isolated data
+      - name: Booking location contracts with isolated data
         working-directory: web
         env:
           DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=booking_location_it
           JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=booking_location_it
           ENGINE_URL: http://127.0.0.1:18002
           SERVER_PORT: '18002'
-          BOOKING_RESERVATIONS_ENABLED: 'true'
-          BOOKING_OFFER_LIMIT: '1'
-          BOOKING_SEARCH_BOUNDED: 'true'
           SCHEDULER_SEARCH_CAPACITY: '2'
           ROUTING_PREWARM_ENABLED: 'true'
         run: |
@@ -259,9 +243,6 @@ jobs:
             sleep 2
           done
           node ../infra/run-check.mjs test:booking-location:integration npx tsx scripts/smoke-booking-location.ts
-      - name: Pending reservation dependency guards
-        working-directory: web
-        run: node ../infra/run-check.mjs test:reservation:integration npm run test:reservation:integration
       - name: Optimizer smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:optimizer:integration npm run test:optimizer:integration
@@ -331,126 +312,6 @@ jobs:
           path: |
             scheduler-service/target/surefire-reports/
             ${{ runner.temp }}/*.log
-            ${{ runner.temp }}/booking-offer-limits-*/
-          retention-days: 7
-
-  integration-reservations:
-    name: Reservation and cancellation
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: waterflex
-          POSTGRES_PASSWORD: waterflex
-          POSTGRES_DB: waterflex_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U waterflex -d waterflex_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test
-      JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
-      DATABASE_USER: waterflex
-      DATABASE_PASSWORD: waterflex
-      ROUTING_URL: http://127.0.0.1:18001
-      SCHEDULER_TEST_URL: http://127.0.0.1:18000
-      ENGINE_URL: http://127.0.0.1:18000
-      SERVER_PORT: '18000'
-      TIME_OFF_POLL_DELAY_MS: '1000'
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Install portal dependencies and generate Prisma client
-        working-directory: web
-        run: npm ci && npm run prisma:generate
-      - name: Migrate, seed, and check schema
-        working-directory: web
-        run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
-      - name: Build isolated integration services
-        run: ./mvnw -Pnullability -pl scheduler-service -am -DskipTests package --batch-mode --no-transfer-progress
-      - name: Start fixture routing and scheduler
-        run: |
-          node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
-          java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/scheduler.log" 2>&1 &
-          for _attempt in {1..60}; do
-            if curl --fail --silent http://127.0.0.1:18001/health > /dev/null &&
-               curl --fail --silent http://127.0.0.1:18000/health > /dev/null; then
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Services did not become healthy" >&2
-          exit 1
-      - name: Configurable offer limits across both booking paths
-        run: node infra/run-check.mjs offer-limits node infra/test-booking-offer-limits.mjs
-      - name: Start common-reservation rollout test instance
-        run: |
-          java -Xmx512m -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --server.port=18002 --booking.reservations.enabled=true --booking.search.bounded=true > "$RUNNER_TEMP/reservation-scheduler.log" 2>&1 &
-          for _attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:18002/health > /dev/null; then exit 0; fi
-            sleep 1
-          done
-          exit 1
-      - name: Common reservation booking lifecycle
-        working-directory: web
-        env:
-          SCHEDULER_TEST_URL: http://127.0.0.1:18002
-          SCHEDULER_RESERVATIONS_TEST: 'true'
-        run: node ../infra/run-check.mjs test:booking:integration npm run test:booking:integration
-      - name: Cross-instance search cancellation and lost response cleanup
-        working-directory: web
-        env:
-          SCHEDULER_TEST_URL: http://127.0.0.1:18002
-          SCHEDULER_CANCEL_URL: http://127.0.0.1:18000
-        run: |
-          node ../infra/run-check.mjs cancellation-forward npm run test:search-cancellation:integration
-          SCHEDULER_TEST_URL=http://127.0.0.1:18000 SCHEDULER_CANCEL_URL=http://127.0.0.1:18002 node ../infra/run-check.mjs cancellation-reverse npm run test:search-cancellation:integration
-      - name: Bounded rearrangement and concurrency with rollout disabled at confirmation
-        working-directory: web
-        env:
-          SCHEDULER_TEST_URL: http://127.0.0.1:18002
-          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
-        run: node ../infra/run-check.mjs test:bounded-booking:integration npm run test:bounded-booking:integration
-      - name: Cancellation preserves a pending rearranged reservation
-        working-directory: web
-        env:
-          SCHEDULER_TEST_URL: http://127.0.0.1:18002
-          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18000
-          SCHEDULER_CANCEL_PENDING_TEST: 'true'
-        run: node ../infra/run-check.mjs test:bounded-booking:integration npm run test:bounded-booking:integration
-      - name: Print service logs on failure
-        if: failure()
-        run: |
-          echo 'Fixture routing log:'
-          cat "$RUNNER_TEMP/fixture-routing.log" 2>/dev/null || true
-          echo 'Scheduler log:'
-          cat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true
-          cat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true
-          cat "$RUNNER_TEMP/remote-solver.log" 2>/dev/null || true
-          cat "$RUNNER_TEMP/remote-scheduler.log" 2>/dev/null || true
-      - name: Upload integration diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: integration-reservations-diagnostics
-          path: |
-            scheduler-service/target/surefire-reports/
-            ${{ runner.temp }}/*.log
-            ${{ runner.temp }}/booking-offer-limits-*/
           retention-days: 7
 
   integration-time-off:
@@ -539,7 +400,6 @@ jobs:
           path: |
             scheduler-service/target/surefire-reports/
             ${{ runner.temp }}/*.log
-            ${{ runner.temp }}/booking-offer-limits-*/
           retention-days: 7
 
   integration-remote:
@@ -601,11 +461,7 @@ jobs:
           JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=remote_calculation_it
           ENGINE_URL: http://127.0.0.1:18003
           SCHEDULER_TEST_URL: http://127.0.0.1:18003
-          SCHEDULER_CONFIRM_URL: http://127.0.0.1:18003
-          SCHEDULER_CANCEL_URL: http://127.0.0.1:18003
-          BOOKING_RESERVATIONS_ENABLED: 'true'
-          BOOKING_SEARCH_BOUNDED: 'true'
-          SCHEDULER_RESERVATIONS_TEST: 'true'
+          ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001
         run: |
           node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
           token=$(openssl rand -hex 32)
@@ -620,11 +476,9 @@ jobs:
           done
           cd web
           npx prisma db seed
-          node ../infra/run-check.mjs remote-booking npm run test:booking:integration
+          node ../infra/run-check.mjs remote-booking npm run test:api-booking:integration
           node ../infra/run-check.mjs remote-optimizer npm run test:optimizer:integration
           node ../infra/run-check.mjs remote-time-off npm run test:time-off:integration
-          node ../infra/run-check.mjs remote-bounded npm run test:bounded-booking:integration
-          node ../infra/run-check.mjs remote-cancellation npm run test:search-cancellation:integration
       - name: Print service logs on failure
         if: failure()
         run: |
@@ -643,7 +497,6 @@ jobs:
           path: |
             scheduler-service/target/surefire-reports/
             ${{ runner.temp }}/*.log
-            ${{ runner.temp }}/booking-offer-limits-*/
           retention-days: 7
 
   build-and-unit:
@@ -660,14 +513,14 @@ jobs:
 
   booking-and-optimizer-integration:
     name: Booking and optimizer integration
-    needs: [integration-core, integration-reservations, integration-time-off, integration-remote]
+    needs: [integration-core, integration-time-off, integration-remote]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every check to succeed
         env:
-          ALL_SUCCEEDED: ${{ needs.integration-core.result == 'success' && needs.integration-reservations.result == 'success' && needs.integration-time-off.result == 'success' && needs.integration-remote.result == 'success' }}
+          ALL_SUCCEEDED: ${{ needs.integration-core.result == 'success' && needs.integration-time-off.result == 'success' && needs.integration-remote.result == 'success' }}
         run: test "$ALL_SUCCEEDED" = true
 
   browser-regressions:

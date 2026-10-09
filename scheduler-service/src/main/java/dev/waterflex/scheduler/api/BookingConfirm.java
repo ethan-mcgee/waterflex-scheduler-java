@@ -1,7 +1,6 @@
 package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.BookingSnapshot;
-import dev.waterflex.scheduler.BookingSnapshotLoader;
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
@@ -198,7 +197,7 @@ public class BookingConfirm {
 
         Map<LocalDate, BookingSnapshot.Day> days = new TreeMap<>(); days.put(date, placed);
         Map<LocalDate, Map<String, dev.waterflex.scheduler.ReservationState.Hold>> holds = new TreeMap<>(); holds.put(date, reconciled.holds());
-        var transition = new BookingSnapshotLoader.Facts(metro, snapshot.capturedAt(), snapshot.configurationFingerprint(), identity, snapshot.policy(),
+        var transition = new ReservationTransition.Facts(metro, snapshot.capturedAt(), snapshot.configurationFingerprint(), identity, snapshot.policy(),
                 snapshot.rates(), days, holds);
         ReservationTransition.Prepared prepared;
         try {
