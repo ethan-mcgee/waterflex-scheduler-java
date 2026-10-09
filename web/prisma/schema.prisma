@@ -87,6 +87,7 @@ model Client {
   apiDailyProposals PortalApiDailyProposal[]
   overnightTimes ClientOvernightTime[]
   overnightRuns  PortalOvernightRun[]
+  bookingTestRuns BookingTestRun[]
 
   @@map("client")
 }
@@ -745,6 +746,9 @@ model DailyCalculationAttempt {
 // Local sequential booking harness. Jobs use stable IDs derived from request IDs.
 model BookingTestRun {
   id String @id
+  /// The client a public-API run books for; null for runs that book through the scheduler's portal endpoints.
+  clientId String?
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
   config Json
   horizon Json
   status String @default("PAUSED")
