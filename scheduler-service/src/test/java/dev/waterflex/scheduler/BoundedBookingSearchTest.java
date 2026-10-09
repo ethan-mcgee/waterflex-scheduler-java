@@ -388,7 +388,7 @@ class BoundedBookingSearchTest {
         Day empty = new Day(Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0,
                 new Roads(Required.value(Map.of()), Required.value(Set.of())));
         Map<LocalDate, Day> days = new HashMap<>();
-        for (LocalDate date : BookingService.bookingDates(CAPTURED)) days.put(date, date.equals(DAY) ? day : empty);
+        for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date, date.equals(DAY) ? day : empty);
         return new BookingSnapshot("metro", CAPTURED, "configuration", "roads", SchedulingPolicy.Rules.defaults(), RATES, days);
     }
 }
