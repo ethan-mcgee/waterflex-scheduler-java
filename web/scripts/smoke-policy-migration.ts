@@ -6,7 +6,7 @@ import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const database = new URL(process.env.DATABASE_URL ?? "");
 assert.equal(database.pathname, "/waterflex_test");
-assert.equal(database.searchParams.get("schema"), "durable_contracts");
+assert.equal(database.searchParams.get("schema"), "policy_migration");
 const prisma = new PrismaClient();
 const rollback = new Error("Expected fixture rollback");
 const prefix = `policy-migration-${randomUUID()}`;
