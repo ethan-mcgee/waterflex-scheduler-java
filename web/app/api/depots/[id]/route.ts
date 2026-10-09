@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { activeClient } from "@/lib/activeClient";
 import { notFound, ownsDepot } from "@/lib/clientScope";
 import { depotDetails, readBody } from "@/lib/contracts";
-import { updateDepotDetails, EngineError } from "@/lib/engineClient";
 import { setApiDepotDetails } from "@/lib/apiMasterData";
 import { changeStep } from "@/lib/apiChangeRoute";
-import { publicApiEnabled } from "@/lib/schedulerApi";
 import { GeocoderError, searchAddress } from "@/lib/geocode";
 import { nearbyCandidate } from "@/lib/depotPin";
 import { prisma } from "@/lib/prisma";
@@ -37,12 +35,5 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!nearby) return NextResponse.json({ error: "Pin must be within 250 meters of the located address. Confirm the address and pin again." }, { status: 422 });
     candidate = nearby;
   }
-  if (publicApiEnabled())
-    return changeStep(() => setApiDepotDetails(clientId, id, name, address && confirmedPin && candidate ? { address, confirmedPin, candidate } : null));
-  try {
-    return NextResponse.json(await updateDepotDetails(id, { name, ...(address && confirmedPin && candidate ? { address, confirmedPin, candidate } : {}) }));
-  } catch (error) {
-    if (error instanceof EngineError) return NextResponse.json({ error: error.message }, { status: error.status });
-    throw error;
-  }
+  return changeStep(() => setApiDepotDetails(clientId, id, name, address && confirmedPin && candidate ? { address, confirmedPin, candidate } : null));
 }

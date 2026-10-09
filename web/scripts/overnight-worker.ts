@@ -1,10 +1,9 @@
 // The portal's overnight worker: queues each client's due run times and works through queued runs ("Run now" and
 // scheduled), one at a time, asking the scheduling API for a proposal of every day ahead. Proposals wait for a
 // dispatcher; nothing is applied. Any number of workers may run; the database hands each run to one of them.
-//   SCHEDULER_PUBLIC_API=true DATABASE_URL=... SCHEDULER_API_URL=... SCHEDULER_API_TOKEN_<CLIENT ID>=... npm run overnight:worker
+//   DATABASE_URL=... SCHEDULER_API_URL=... SCHEDULER_API_TOKEN_<CLIENT ID>=... npm run overnight:worker
 // On SIGTERM or SIGINT the worker stops after the day in progress and abandons its run; the days done stay recorded.
 import { prisma } from "../lib/prisma";
-import { publicApiEnabled } from "../lib/schedulerApi";
 import { abandonStaleRuns, claimRun, enqueueDueRuns, executeRun } from "../lib/overnight";
 
 function tickMs(): number {
@@ -43,7 +42,6 @@ async function tick() {
 }
 
 async function main() {
-  if (!publicApiEnabled()) throw new Error("The overnight worker schedules through the public scheduling API; set SCHEDULER_PUBLIC_API=true");
   const interval = tickMs();
   console.log(`Overnight worker started, checking every ${interval / 1000} s`);
   while (!stopping) {

@@ -2,8 +2,8 @@ import { z } from "zod";
 import type { PublicSnapshot } from "./publicApi";
 
 /**
- * The portal's client for the public scheduling API (/api/v1), acting as WaterFlex Software for one client at a time.
- * Turned on with SCHEDULER_PUBLIC_API=true. Each client's bearer token is read from the environment as
+ * The portal's client for the public scheduling API (/api/v1), acting as WaterFlex Software for one client at a time;
+ * the portal schedules through nothing else. Each client's bearer token is read from the environment as
  * SCHEDULER_API_TOKEN_<CLIENT ID> (uppercase, hyphens as underscores) and is never stored in the database. Before a
  * client's first call, the token's tenant is checked to be that client, so a misplaced token cannot act for another.
  */
@@ -73,14 +73,6 @@ export class SchedulerApiError extends Error {
 const TOKEN = /^wfs_[A-Za-z0-9_-]{43}$/;
 
 type Environment = Readonly<Record<string, string | undefined>>;
-
-/** Whether booking runs through the public API. Anything but "true", "false" or unset is a configuration error. */
-export function publicApiEnabled(env: Environment = process.env): boolean {
-  const value = env.SCHEDULER_PUBLIC_API;
-  if (value === undefined || value === "" || value === "false") return false;
-  if (value === "true") return true;
-  throw new Error(`SCHEDULER_PUBLIC_API must be "true" or "false", not "${value}"`);
-}
 
 export function tokenVariable(clientId: string): string {
   return `SCHEDULER_API_TOKEN_${clientId.toUpperCase().replaceAll("-", "_")}`;

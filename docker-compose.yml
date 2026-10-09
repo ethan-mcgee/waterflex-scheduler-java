@@ -103,10 +103,8 @@ services:
       ENGINE_URL: http://scheduler-service:8000
       NOMINATIM_URL: http://nominatim:8080
       LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-true}
-      # Booking, dispatch proposals, road geometry, fake data and the booking test runner always run through the public
-      # scheduling API; with SCHEDULER_PUBLIC_API=true time off, depot changes and cancellations do too. Each client's token is SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env
-      # (ignored by git), never in the database.
-      SCHEDULER_PUBLIC_API: ${SCHEDULER_PUBLIC_API:-false}
+      # The portal schedules only through the public scheduling API. Each client's token is
+      # SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env (ignored by git), never in the database.
       SCHEDULER_API_URL: http://scheduler-service:8000
     env_file:
       - path: portal-api-tokens.env
@@ -116,16 +114,15 @@ services:
       schema-migrate: { condition: service_completed_successfully }
     ports: ["127.0.0.1:3001:3000"]
   # Each client's overnight optimization through the public scheduling API, at the client's run times and on "Run
-  # now". Only with SCHEDULER_PUBLIC_API=true: docker compose --profile public-api up. Proposals wait for a dispatcher.
+  # now": docker compose --profile overnight up. Proposals wait for a dispatcher.
   overnight-worker:
-    profiles: ["public-api"]
+    profiles: ["overnight"]
     image: waterflex-scheduler-web:local
     pull_policy: build
     build: ./web
     command: ["npm", "run", "overnight:worker"]
     environment:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
-      SCHEDULER_PUBLIC_API: "true"
       SCHEDULER_API_URL: http://scheduler-service:8000
     env_file:
       - path: portal-api-tokens.env
