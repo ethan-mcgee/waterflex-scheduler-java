@@ -9,6 +9,7 @@ import { DEFAULT_TEST_CONFIG, TEST_RADIUS_PRESETS, type TestConfig, type TestCon
 import { FAKE_SERVICE_CODES, OMAHA_TIMEZONE, type FakeLocation } from "@/lib/fakeDataCore";
 import type { OptimizationRun, SlotOffer } from "@/lib/engineClient";
 import OptimizationReview from "@/app/dispatch/OptimizationReview";
+import ApiProposalReview, { type ApiProposal } from "@/app/dispatch/ApiProposalReview";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import styles from "./testing.module.css";
 
@@ -24,7 +25,7 @@ interface Run extends RunSummary {
   requests: Array<{ id: string; ordinal: number; input: { location: FakeLocation; serviceCode: string }; status: string;
     offers: SlotOffer[]; selected: SlotOffer | null; elapsedMs: number; serviceDate: string | null;
     startedAt: string | null; error: string | null; attempts: unknown[] }>;
-  previews: Array<{ id: string; serviceDate: string; optimizationId: string | null; result: OptimizationRun | null; error: string | null }>;
+  previews: Array<{ id: string; serviceDate: string; optimizationId: string | null; result: OptimizationRun | ApiProposal | null; error: string | null }>;
   applied: Array<{ id: string; status: string; appliedAt: string | null }>;
 }
 async function api<T>(schema: z.ZodType<T>, body?: object, id?: string) {
@@ -144,8 +145,16 @@ export default function TestingPage() {
         <h2>Optimization previews</h2><p>Each preview covers the whole affected day. Apply is available only while the exact saved result remains a current PREVIEW; the scheduler rechecks every guarded apply condition.</p>
         {!run.previews.length && <p>Previews start automatically after all requests finish while this page is progressing.</p>}
         {run.previews.map(preview => {
+          const saved = preview.result;
+          // Through the public API a preview is the client's daily proposal for the day, applied as on the dispatch board.
+          if (saved !== null && "proposalId" in saved) return <article key={preview.id} className={styles.preview}><h3>{preview.serviceDate}</h3>
+            {preview.error && <p className={styles.error}>{preview.error}</p>}
+            <ApiProposalReview proposal={saved} timezone={OMAHA_TIMEZONE} technicianName={id => id} onApplied={async () => setRun(await api(testRun, undefined, run.id))} />
+            <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha" date={preview.serviceDate} phase="current" /></div>
+            <a href={`/schedule?week=${preview.serviceDate}`}>View schedule</a>{" | "}<a href={`/dispatch?date=${preview.serviceDate}`}>Open the day in Dispatch</a>
+          </article>;
           const actual = run.applied.find(item => item.id === preview.optimizationId);
-          const result = preview.result && actual ? { ...preview.result, status: actual.status, applied_at: actual.appliedAt } : preview.result;
+          const result = saved && actual ? { ...saved, status: actual.status, applied_at: actual.appliedAt } : saved;
           return <article key={preview.id} className={styles.preview}><h3>{preview.serviceDate}</h3>{preview.error && <p className={styles.error}>{preview.error}</p>}
             {result && <OptimizationReview run={result} onApplied={async () => setRun(await api(testRun, undefined, run.id))}
               routes={phase => <div className={styles.testMap}><DispatchMap technicians={NO_TECHNICIANS} appointments={NO_APPOINTMENTS} timezone={OMAHA_TIMEZONE} metroId="metro-omaha"
