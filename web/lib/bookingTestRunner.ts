@@ -4,16 +4,13 @@ import { testInput, testConfig, offer, testAttempt, errorMessage, optimization, 
 import { appointmentSearchMessage } from "./appointmentSearch";
 import { Prisma, type BookingTestGeneration } from "@prisma/client";
 import { prisma } from "./prisma";
-import { lockPurgeDays, purgeHasReservations, preparePurgeRoutes, applyPurgeRoutes } from "./reservationGuards";
 import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestConfig, validateTestConfigInput, type TestConfig, type TestConfigInput } from "./bookingTestCore";
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
 import { metroClientId } from "./metroClient";
-import { EngineError, previewOptimization, requestSlots, selectOffer, checkTestAddressRoutability, type OptimizationRun } from "./engineClient";
 import { bookApiOffer, BookingRefused, searchApiOffers } from "./apiBooking";
 import { proposeApiDay, view, type ApiProposalView } from "./apiDispatch";
 import { purgeApiJobs } from "./apiPurge";
 import { ChangeRefused } from "./apiMasterDataCore";
-import { publicApiEnabled } from "./schedulerApi";
 import { servesMetro } from "./clientScope";
 import { addressKey, coordinateKey, createAddressCandidateBatch, evaluateAddressCandidateBatch, initialAddressRandomState,
   reverseTestAddress, type AddressGenerationDependencies, type PendingAddressCandidate, type TestServiceArea } from "./bookingTestAddresses";
@@ -28,18 +25,13 @@ const include = { requests: { orderBy: { ordinal: "asc" as const } }, previews: 
 export class TestRunError extends Error {
   constructor(message: string, public status = 409) { super(message); }
 }
-/** How a run books and previews: the scheduler's portal endpoints, or the public API for the run's client. */
+/** How a run books and previews; tests replace single steps to inject failures. */
 export interface TestEngine {
   offers: (jobId: string) => Promise<z.infer<typeof offersResponse>>;
   select: (jobId: string, offerId: string) => Promise<unknown>;
-  /** A whole-day preview: an engine optimization run, or a public-API daily proposal. */
-  preview: (date: string, key: string) => Promise<OptimizationRun | ApiProposalView>;
+  /** A whole-day preview: the client's daily proposal for the date. */
+  preview: (date: string, key: string) => Promise<ApiProposalView>;
 }
-export const testEngine: TestEngine = {
-  offers: (jobId: string) => requestSlots(jobId, false, 45_000),
-  select: (jobId: string, offerId: string) => selectOffer(jobId, offerId, 45_000),
-  preview: (date: string, key: string) => previewOptimization({ metro_id: OMAHA_METRO_ID, date, request_key: key }, 45_000),
-};
 /** Booking as a customer does through the public API, and previewing each day as the client's daily proposal. */
 export function apiTestEngine(clientId: string): TestEngine {
   return {
@@ -48,35 +40,27 @@ export function apiTestEngine(clientId: string): TestEngine {
     preview: date => proposeApiDay(clientId, OMAHA_METRO_ID, date),
   };
 }
-const generationDependencies: AddressGenerationDependencies = {
-  reverse: reverseTestAddress,
-  routable: (candidates, signal) => checkTestAddressRoutability(candidates, 30_000, signal),
-};
-// Through the public API every reverse-geocoded address is tried: one the scheduler cannot reach gets no offer.
+// Every reverse-geocoded address is tried: one the scheduler cannot reach gets no offer.
 export const apiGenerationDependencies: AddressGenerationDependencies = {
   reverse: reverseTestAddress,
   routable: async candidates => new Set(candidates.map(candidate => candidate.id)),
 };
-/** A preview's result as saved: an engine optimization run or a public-API proposal. */
+/** A preview's result as saved: a daily proposal, or an engine optimization run for runs made before the public API. */
 const previewResult = z.union([optimization, apiProposal]);
-const previewKey = (result: OptimizationRun | ApiProposalView) => "proposalId" in result ? result.proposalId : result.run_id;
 /** Only an explicit conflict discards a chosen offer; anything else may have booked it and is retried as is. */
-const conflict = (error: unknown) => (error instanceof EngineError || error instanceof BookingRefused) && error.status === 409;
+const conflict = (error: unknown) => error instanceof BookingRefused && error.status === 409;
 function resolvedSeed(): number { return randomBytes(4).readUInt32BE(0); }
 function sameRequestedConfig(saved: TestConfig, requested: TestConfigInput): boolean {
   return saved.count === requested.count && saved.policy === requested.policy && JSON.stringify(saved.weights) === JSON.stringify(requested.weights)
     && saved.radiusMi === requested.radiusMi && (requested.seed == null || saved.seed === requested.seed);
 }
-/**
- * The client a run books for. A public-API run names its client when created; an older run, or one through the
- * scheduler's portal endpoints, books for the Omaha metro's only client.
- */
+/** The client a run books for: the one named when it was created, or for older runs the Omaha metro's only client. */
 async function runClient(db: Prisma.TransactionClient, run: { clientId: string | null }): Promise<string> {
   return run.clientId ?? metroClientId(db, OMAHA_METRO_ID);
 }
 
-/** Creates a run; through the public API it books for `clientId`, which must serve Omaha. */
-export async function createTestRun(id: string, value: unknown, clientId: string | null = null) {
+/** Creates a run that books for `clientId`, which must serve Omaha. */
+export async function createTestRun(id: string, value: unknown, clientId: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new TestRunError("A UUID run identity is required.", 400);
   let requested: TestConfigInput;
   try { requested = validateTestConfigInput(value); } catch (error) { throw new TestRunError(errorMessage(error), 400); }
@@ -86,15 +70,13 @@ export async function createTestRun(id: string, value: unknown, clientId: string
     return readTestRun(id);
   }
   const config = validateTestConfig({ ...requested, seed: requested.seed ?? resolvedSeed() });
-  const api = publicApiEnabled();
-  if (api && clientId === null) throw new TestRunError("A public-API run needs the client it books for.", 400);
-  if (api && clientId !== null && !(await servesMetro(clientId, OMAHA_METRO_ID))) throw new TestRunError("The active client has no depot in the Omaha metro.", 422);
+  if (!(await servesMetro(clientId, OMAHA_METRO_ID))) throw new TestRunError("The active client has no depot in the Omaha metro.", 422);
   const metro = await prisma.metro.findUnique({ where: { id: OMAHA_METRO_ID }, include: { depots: { select: { lat: true, lng: true } } } });
   if (metro?.timezone !== OMAHA_TIMEZONE) throw new TestRunError("Configure the existing Omaha metro first.", 422);
   if (!Number.isFinite(metro.serviceRadiusMi) || metro.serviceRadiusMi <= 0 || !metro.depots.length || !metro.stateCode) throw new TestRunError("Configure the Omaha service area and state code first.", 422);
   if (config.radiusMi > metro.serviceRadiusMi) throw new TestRunError("Test radius cannot exceed the configured Omaha service radius.", 422);
   const saved = await prisma.bookingTestRun.upsert({ where: { id }, update: {}, create: {
-    id, clientId: api ? clientId : null, config: json(config), horizon: bookingHorizon(),
+    id, clientId, config: json(config), horizon: bookingHorizon(),
     generation: { create: { acceptedInputs: [], randomState: BigInt(initialAddressRandomState(config)) } },
   }, include }).catch(async error => {
     // Prisma's nested upsert may lose a concurrent create race; read its winner.
@@ -107,14 +89,12 @@ export async function createTestRun(id: string, value: unknown, clientId: string
 export async function readTestRun(id: string) {
   const run = await prisma.bookingTestRun.findUnique({ where: { id }, include });
   if (!run) throw new TestRunError("Test run not found.", 404);
-  // Report current applied status separately from the saved proposal metrics.
-  const applied = await prisma.optimizationRun.findMany({ where: { id: { in: run.previews.flatMap(p => p.optimizationId ? [p.optimizationId] : []) } }, select: { id: true, status: true, appliedAt: true } });
   // A public-API proposal is shown as it is now, so one applied from the page reads as applied.
   const proposals = new Map((await prisma.portalApiDailyProposal.findMany({ where: { id: { in: run.previews.flatMap(p => p.optimizationId ? [p.optimizationId] : []) } } }))
     .map(row => [row.id, view(row, null)]));
   const previews = run.previews.map(preview => ({ ...preview, result: (preview.optimizationId === null ? undefined : proposals.get(preview.optimizationId)) ?? preview.result }));
   const { generation, ...visible } = run;
-  return { ...visible, previews, config: validateTestConfig(run.config), generation: publicGeneration(generation, run.config), applied, currentHorizon: bookingHorizon() };
+  return { ...visible, previews, config: validateTestConfig(run.config), generation: publicGeneration(generation, run.config), currentHorizon: bookingHorizon() };
 }
 export async function listTestRuns() {
   const runs = await prisma.bookingTestRun.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, status: true, config: true, createdAt: true,
@@ -167,36 +147,11 @@ export async function purgeTestRun(id: string) {
     });
     const jobs = candidates.filter(job => /^\d+$/.test(job.id.slice(prefix.length)));
     const jobIds = jobs.map(job => job.id);
-    if (run.clientId !== null) {
-      // Through the public API the open days the run leaves are re-timed with the purge; frozen days keep their times.
-      const appointments = await prisma.appointment.count({ where: { jobId: { in: jobIds } } });
-      try { await purgeApiJobs(run.clientId, OMAHA_METRO_ID, jobIds); }
-      catch (error) { if (error instanceof ChangeRefused) throw new TestRunError(error.message, error.status); throw error; }
-      await prisma.bookingTestRun.update({ where: { id }, data: { status: "PURGED", purgedAt: new Date(), purgedCount: appointments, error: null, revision: { increment: 1 } } });
-      return readTestRun(id);
-    }
-    const customerIds = [...new Set(jobs.map(job => job.customerId))];
-    const addressIds = [...new Set(jobs.map(job => job.addressId))];
-    await prisma.$transaction(async tx => {
-      const lockedDays = await lockPurgeDays(tx, jobIds);
-      if (await purgeHasReservations(tx, jobIds, lockedDays))
-        throw new TestRunError("Active reservations depend on this schedule. Release or expire the offers before purging.");
-      const preparedRoutes = await preparePurgeRoutes(tx, jobIds, lockedDays);
-      const appointmentIds = (await tx.appointment.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } })).map(item => item.id);
-      if (jobIds.length) {
-        await tx.outboundEvent.deleteMany({ where: { aggregateId: { in: [...jobIds, ...appointmentIds, ...customerIds] } } });
-        await tx.slotHold.deleteMany({ where: { jobId: { in: jobIds } } });
-        await tx.bookingOffer.deleteMany({ where: { jobId: { in: jobIds } } });
-        await tx.bookingOfferSet.deleteMany({ where: { jobId: { in: jobIds } } });
-        await tx.bookingOptimization.deleteMany({ where: { jobId: { in: jobIds } } });
-        await tx.appointment.deleteMany({ where: { jobId: { in: jobIds } } });
-        await tx.job.deleteMany({ where: { id: { in: jobIds } } });
-        await tx.address.deleteMany({ where: { id: { in: addressIds } } });
-        await tx.customer.deleteMany({ where: { id: { in: customerIds } } });
-      }
-    await applyPurgeRoutes(tx, preparedRoutes);
-      await tx.bookingTestRun.update({ where: { id }, data: { status: "PURGED", purgedAt: new Date(), purgedCount: appointmentIds.length, error: null, revision: { increment: 1 } } });
-    }, { timeout: 180_000, maxWait: 5_000 });
+    // The open days the run leaves are re-timed with the purge; frozen days keep their times.
+    const appointments = await prisma.appointment.count({ where: { jobId: { in: jobIds } } });
+    try { await purgeApiJobs(await runClient(prisma, run), OMAHA_METRO_ID, jobIds); }
+    catch (error) { if (error instanceof ChangeRefused) throw new TestRunError(error.message, error.status); throw error; }
+    await prisma.bookingTestRun.update({ where: { id }, data: { status: "PURGED", purgedAt: new Date(), purgedCount: appointments, error: null, revision: { increment: 1 } } });
     return readTestRun(id);
   });
 }
@@ -323,8 +278,7 @@ async function advanceGeneration(id: string, config: TestConfig, generation: Ret
 export async function advanceTestRun(id: string, revision: number, dependencies?: AdvanceDependencies) {
   return exclusively(async () => {
     const run = await readTestRun(id);
-    const engine: AdvanceDependencies = dependencies ?? (run.clientId === null ? testEngine
-      : { ...apiTestEngine(run.clientId), generation: apiGenerationDependencies });
+    const engine: AdvanceDependencies = dependencies ?? { ...apiTestEngine(await runClient(prisma, run)), generation: apiGenerationDependencies };
     if (run.status !== "RUNNING" || run.revision !== revision) return run;
     const raw = await prisma.bookingTestRun.findUnique({ where: { id }, include });
     if (!raw) throw new TestRunError("Test run not found.", 404);
@@ -349,7 +303,7 @@ export async function advanceTestRun(id: string, revision: number, dependencies?
     if (!claim.count) return readTestRun(id);
     if (raw.generation && !raw.generation.completedAt) {
       if (!generation) throw new Error("Validated generation journal is missing.");
-      await advanceGeneration(id, validateTestConfig(run.config), generation, engine.generation ?? generationDependencies);
+      await advanceGeneration(id, validateTestConfig(run.config), generation, engine.generation ?? apiGenerationDependencies);
       return readTestRun(id);
     }
     const request = run.requests.find(r => !["BOOKED", "NO_OFFER"].includes(r.status));
@@ -407,7 +361,7 @@ export async function advanceTestRun(id: string, revision: number, dependencies?
         await prisma.bookingTestPreview.upsert({ where: { id: previewId }, create: { id: previewId, runId: id, serviceDate: date }, update: {} });
         try {
           const result = await engine.preview(date, previewId);
-          await prisma.bookingTestPreview.update({ where: { id: previewId }, data: { optimizationId: previewKey(result), result: json(result), error: null } });
+          await prisma.bookingTestPreview.update({ where: { id: previewId }, data: { optimizationId: result.proposalId, result: json(result), error: null } });
         } catch (error) {
           const message = error instanceof Error ? error.message : "Preview failed";
           await prisma.bookingTestPreview.update({ where: { id: previewId }, data: { error: message } });

@@ -5,14 +5,13 @@ import { tomorrowInTz } from "@/lib/date";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
 import Link from "next/link";
 import { currentRouteTiming } from "@/lib/currentRouteTiming";
-import { publicApiEnabled } from "@/lib/schedulerApi";
 
 export const dynamic = "force-dynamic";
 
 export default async function DispatchPage({
   searchParams,
 }: {
-  searchParams: { date?: string; run?: string; metroId?: string };
+  searchParams: { date?: string; metroId?: string };
 }) {
   const clientId = (await activeClient()).id;
   const metros = await prisma.metro.findMany({ where: { depots: { some: { dealership: { clientId } } } }, orderBy: { name: "asc" } });
@@ -90,13 +89,11 @@ export default async function DispatchPage({
       {metros.map(item => <Link key={item.id} href={`/dispatch?metroId=${encodeURIComponent(item.id)}&date=${date}`} aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
     </nav>}
     <DispatchBoard
-      apiMode={publicApiEnabled()}
       metroId={metro.id}
       timezone={metro.timezone}
       date={date}
       technicians={boardTechnicians}
       appointments={boardAppointments}
-      initialRunId={searchParams.run}
     />
   </>;
 }

@@ -24,7 +24,6 @@ test("dispatch and weekly schedule use the depot metro effective on each date", 
       void route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ type: "FeatureCollection", routingIdentity: "fixture",
         serviceDate: date, phase: "current", features: [], stops: [], endpoints: [] }) });
     });
-    await page.route("**/api/dispatch/optimize/history?**", route => route.fulfill({ status: 200, contentType: "application/json", body: '{"runs":[]}' }));
     await page.goto(`/dispatch?metroId=${firstMetro.id}&date=2026-10-07`);
     await expect(page.getByText("Moving browser technician")).toBeVisible();
     await page.goto(`/dispatch?metroId=${firstMetro.id}&date=2026-10-08`);

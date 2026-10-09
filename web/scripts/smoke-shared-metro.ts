@@ -17,7 +17,7 @@ import { bookApiOffer, searchApiOffers } from "../lib/apiBooking";
 import { proposeApiDay } from "../lib/apiDispatch";
 import { analyzeApiTimeOff, approveApiTimeOff, submitApiTimeOff } from "../lib/apiTimeOff";
 import { currentLastModified } from "../lib/apiReceipt";
-import { servesMetro, servesMetroAlone } from "../lib/clientScope";
+import { servesMetro } from "../lib/clientScope";
 import { metroClientId } from "../lib/metroClient";
 import { tokenVariable } from "../lib/schedulerApi";
 
@@ -108,10 +108,7 @@ async function main() {
   try {
     await client(A);
     await client(B);
-    for (const owner of [A, B]) {
-      assert.equal(await servesMetro(owner, METRO), true);
-      assert.equal(await servesMetroAlone(owner, METRO), false, "Neither client owns the metro alone");
-    }
+    for (const owner of [A, B]) assert.equal(await servesMetro(owner, METRO), true);
     await assert.rejects(prisma.$transaction(tx => metroClientId(tx, METRO)), /more than one client/, "No single owner is guessed");
 
     // Each snapshot holds only its own client's technicians and appointments.

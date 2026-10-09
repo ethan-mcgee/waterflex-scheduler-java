@@ -3,10 +3,8 @@ import { required } from "./contracts";
 import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { metroClientId } from "./metroClient";
-import { confirmHold, selectOffer, EngineError, requestSlots } from "./engineClient";
 import { bookApiOffer, BookingRefused, searchApiOffers } from "./apiBooking";
 import { purgeApiJobs } from "./apiPurge";
-import { publicApiEnabled } from "./schedulerApi";
 import { servesMetro } from "./clientScope";
 import { addCalendarDays, todayInTz } from "./date";
 import {
@@ -28,9 +26,7 @@ import {
 } from "./fakeDataCore";
 import { ensureOmahaConfiguration } from "./omahaConfiguration";
 import { prisma } from "./prisma";
-import { lockPurgeDays, purgeHasReservations, preparePurgeRoutes, applyPurgeRoutes } from "./reservationGuards";
 
-const TWO_HOURS_MS = 2 * 60 * 60 * 1_000;
 const CONFIRM_ATTEMPTS = 4;
 
 interface OmahaConfiguration {
@@ -84,8 +80,8 @@ async function loadOmahaConfiguration(): Promise<OmahaConfiguration> {
 }
 
 /**
- * The client the generated calls belong to: the one named, or the Omaha metro's only client. Through the public API a
- * metro may be shared, so the client must serve Omaha and only its own generated calls are touched.
+ * The client the generated calls belong to: the one named, or the Omaha metro's only client. A metro may be shared, so
+ * the client must serve Omaha and only its own generated calls are touched.
  */
 async function fakeDataClient(clientId: string | undefined): Promise<string> {
   if (clientId === undefined) return metroClientId(prisma, OMAHA_METRO_ID);
@@ -100,9 +96,8 @@ function inRange(date: string, startDate: string, endDate: string): boolean {
 async function cleanupFakeDataValidated(clientId: string, startDate: string, endDate: string): Promise<number> {
   const dayStart = new Date(`${startDate}T00:00:00.000Z`);
   const dayAfterEnd = new Date(`${addCalendarDays(endDate, 1)}T00:00:00.000Z`);
-  const api = publicApiEnabled();
   const candidates = await prisma.job.findMany({
-    where: { externalId: { startsWith: FAKE_DATA_PREFIX }, ...(api ? { customer: { clientId } } : {}) },
+    where: { externalId: { startsWith: FAKE_DATA_PREFIX }, customer: { clientId } },
     select: {
       id: true,
       externalId: true,
@@ -121,33 +116,8 @@ async function cleanupFakeDataValidated(clientId: string, startDate: string, end
     return encodedDate !== null && inRange(encodedDate, startDate, endDate);
   });
   if (jobs.length === 0) return 0;
-  if (api) {
-    await purgeApiJobs(clientId, OMAHA_METRO_ID, jobs.map(job => job.id));
-    return jobs.length;
-  }
-
-  const jobIds = jobs.map((job) => job.id);
-  const addressIds = [...new Set(jobs.map((job) => job.addressId))];
-  const customerIds = [...new Set(jobs.map((job) => job.customerId))];
-  await prisma.$transaction(async (tx) => {
-    const lockedDays = await lockPurgeDays(tx, jobIds);
-    if (await purgeHasReservations(tx, jobIds, lockedDays))
-      throw new Error("Active reservations depend on this schedule. Release or expire the offers before purging.");
-    const preparedRoutes = await preparePurgeRoutes(tx, jobIds, lockedDays);
-      const appointmentIds = (await tx.appointment.findMany({ where: { jobId: { in: jobIds } }, select: { id: true } })).map(item => item.id);
-    const aggregateIds = [...jobIds, ...appointmentIds, ...customerIds];
-    await tx.outboundEvent.deleteMany({ where: { aggregateId: { in: aggregateIds } } });
-    await tx.slotHold.deleteMany({ where: { jobId: { in: jobIds } } });
-    await tx.bookingOffer.deleteMany({ where: { jobId: { in: jobIds } } });
-    await tx.bookingOfferSet.deleteMany({ where: { jobId: { in: jobIds } } });
-    await tx.bookingOptimization.deleteMany({ where: { jobId: { in: jobIds } } });
-    await tx.appointment.deleteMany({ where: { jobId: { in: jobIds } } });
-    await tx.job.deleteMany({ where: { id: { in: jobIds } } });
-    await tx.address.deleteMany({ where: { id: { in: addressIds } } });
-    await tx.customer.deleteMany({ where: { id: { in: customerIds } } });
-
-    await applyPurgeRoutes(tx, preparedRoutes);
-  }, { timeout: 60_000, maxWait: 5_000 });
+  // The open days the purge leaves are re-timed; frozen days keep their times.
+  await purgeApiJobs(clientId, OMAHA_METRO_ID, jobs.map(job => job.id));
   return jobs.length;
 }
 
@@ -245,16 +215,11 @@ async function cleanupPendingJob(ids: { jobId: string; customerId: string; addre
 
 type BookableOffer = { offerId: string; date: string; windowStart: string; windowEnd: string };
 
-/**
- * The offers on the date a call may take: the scheduler's two-hour windows on its own path, and whatever arrival
- * windows the public API offers, whose length the scheduler decides.
- */
-function bookableOffers<O extends BookableOffer>(offers: readonly O[], date: string, anyWindow: boolean): O[] {
+/** The offers on the date a call may take, in start order; the scheduler decides each arrival window's length. */
+function bookableOffers<O extends BookableOffer>(offers: readonly O[], date: string): O[] {
   return offers
     .filter(
-      (offer) =>
-        offer.date === date &&
-        (anyWindow || new Date(offer.windowEnd).getTime() - new Date(offer.windowStart).getTime() === TWO_HOURS_MS)
+      (offer) => offer.date === date
     )
     .sort((left, right) => {
       const byStart = left.windowStart.localeCompare(right.windowStart);
@@ -262,19 +227,17 @@ function bookableOffers<O extends BookableOffer>(offers: readonly O[], date: str
     });
 }
 
-/** Searches the date and books one of its two-hour offers, through the scheduler's portal endpoints or the public API. */
+/** Searches the date through the public API and books one of its offers as the customer would. */
 export async function bookFakeCall(clientId: string, jobId: string, date: string, random: () => number): Promise<"BOOKED" | "NO_OFFER" | "CONFLICT"> {
-  const api = publicApiEnabled();
-  const { offers } = api ? await searchApiOffers(clientId, jobId, date) : await requestSlots(jobId);
-  const candidates = bookableOffers(offers, date, api);
+  const { offers } = await searchApiOffers(clientId, jobId, date);
+  const candidates = bookableOffers(offers, date);
   if (candidates.length === 0) return "NO_OFFER";
   const selected = required(candidates[Math.floor(random() * candidates.length)], "Candidate offer");
   try {
-    if (api) await bookApiOffer(clientId, jobId, selected.offerId);
-    else await confirmHold((await selectOffer(jobId, selected.offerId)).holdId);
+    await bookApiOffer(clientId, jobId, selected.offerId);
     return "BOOKED";
   } catch (error) {
-    if ((error instanceof EngineError || error instanceof BookingRefused) && error.status === 409) return "CONFLICT";
+    if (error instanceof BookingRefused && error.status === 409) return "CONFLICT";
     throw error;
   }
 }
