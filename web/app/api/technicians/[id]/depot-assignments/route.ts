@@ -4,7 +4,7 @@ import { notFound, ownsDepot, ownsTechnician } from "@/lib/clientScope";
 import { technicianDepotAssignment, readBody } from "@/lib/contracts";
 import { assignTechnicianDepot, EngineError } from "@/lib/engineClient";
 import { assignApiTechnicianDepot } from "@/lib/apiMasterData";
-import { masterDataStep } from "@/lib/apiMasterDataRoute";
+import { changeStep } from "@/lib/apiChangeRoute";
 import { publicApiEnabled } from "@/lib/schedulerApi";
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const clientId = (await activeClient(request)).id;
   if (!(await ownsTechnician(clientId, params.id))) return notFound("Technician");
   if (!(await ownsDepot(clientId, parsed.data.depotId))) return notFound("Depot");
-  if (publicApiEnabled()) return masterDataStep(() => assignApiTechnicianDepot(clientId, params.id, parsed.data.depotId, parsed.data.effectiveDate));
+  if (publicApiEnabled()) return changeStep(() => assignApiTechnicianDepot(clientId, params.id, parsed.data.depotId, parsed.data.effectiveDate));
   try {
     return NextResponse.json(await assignTechnicianDepot(params.id, parsed.data.depotId, parsed.data.effectiveDate));
   } catch (error) {

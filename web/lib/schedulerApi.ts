@@ -42,6 +42,14 @@ export const dailyProposal = z.object({ proposalId: id, inputRevision: z.string(
 export const routeEvaluation = z.object({ feasible: z.boolean(), routes: z.array(plannedRoute), skippedTechnicianDays: z.array(skippedTechnicianDay),
   costCents: z.int().min(0), overtimeMinutes: z.int().min(0).max(1440),
 }).strict().refine(value => value.feasible || value.routes.length === 0, "A day that does not hold has no timed routes");
+const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
+const geometryRoute = z.object({ technicianId: id, serviceDate,
+  stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0), lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict()),
+  legs: z.array(z.object({ segment: z.int().min(0), legIndex: z.int().min(0), seconds: z.int().min(0), meters: z.int().min(0),
+    coordinates: z.array(position).min(2) }).strict()),
+}).strict().refine(value => (value.stops.length === 0) === (value.legs.length === 0), "A route is drawn exactly when it has stops");
+/** A day's routes drawn on roads in their given order; a technician-day that could not be located is skipped. */
+export const routeGeometry = z.object({ routingIdentity: z.string().min(1), routes: z.array(geometryRoute), skippedTechnicianDays: z.array(skippedTechnicianDay) }).strict();
 const whoami = z.object({ tenantId: z.string().min(1) }).strict();
 
 export type OfferSet = z.infer<typeof offerSet>;
@@ -49,6 +57,7 @@ export type Hold = z.infer<typeof hold>;
 export type CommitReceipt = z.infer<typeof commitReceipt>;
 export type DailyProposal = z.infer<typeof dailyProposal>;
 export type RouteEvaluation = z.infer<typeof routeEvaluation>;
+export type RouteGeometry = z.infer<typeof routeGeometry>;
 export type TechnicianDayVersion = z.infer<typeof technicianDayVersion>;
 export type ProblemCode = z.infer<typeof problem>["error"];
 
@@ -171,6 +180,11 @@ export function commitDailyProposal(clientId: string, proposalId: string, reques
 export function evaluateRoutes(clientId: string, request: { serviceDate: string; snapshot: PublicSnapshot }): Promise<RouteEvaluation> {
   // Routing only, inside the scheduler's 20-second deadline; the rest covers the upload and the network.
   return tenantCall(clientId, "/api/v1/routes/evaluate", request, routeEvaluation, 25000);
+}
+
+export function drawRoutes(clientId: string, request: { serviceDate: string; snapshot: PublicSnapshot }): Promise<RouteGeometry> {
+  // Drawing calls the routing service once per 65 points under the scheduler's 20-second limit.
+  return tenantCall(clientId, "/api/v1/routes/geometry", request, routeGeometry, 25000);
 }
 
 export function createRepairProposal(clientId: string, request: { requestId: string; absence: { technicianId: string; serviceDate: string; window: { start: string; end: string } };

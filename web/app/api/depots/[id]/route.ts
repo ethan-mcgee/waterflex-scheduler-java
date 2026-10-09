@@ -4,7 +4,7 @@ import { notFound, ownsDepot } from "@/lib/clientScope";
 import { depotDetails, readBody } from "@/lib/contracts";
 import { updateDepotDetails, EngineError } from "@/lib/engineClient";
 import { setApiDepotDetails } from "@/lib/apiMasterData";
-import { masterDataStep } from "@/lib/apiMasterDataRoute";
+import { changeStep } from "@/lib/apiChangeRoute";
 import { publicApiEnabled } from "@/lib/schedulerApi";
 import { GeocoderError, searchAddress } from "@/lib/geocode";
 import { nearbyCandidate } from "@/lib/depotPin";
@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     candidate = nearby;
   }
   if (publicApiEnabled())
-    return masterDataStep(() => setApiDepotDetails(clientId, id, name, address && confirmedPin && candidate ? { address, confirmedPin, candidate } : null));
+    return changeStep(() => setApiDepotDetails(clientId, id, name, address && confirmedPin && candidate ? { address, confirmedPin, candidate } : null));
   try {
     return NextResponse.json(await updateDepotDetails(id, { name, ...(address && confirmedPin && candidate ? { address, confirmedPin, candidate } : {}) }));
   } catch (error) {

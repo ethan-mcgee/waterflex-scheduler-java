@@ -179,7 +179,7 @@ jobs:
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://127.0.0.1:18001
       # The public API booking smoke's metro routes through the fixture router.
-      ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001,api-shared-smoke=http://127.0.0.1:18001,api-overnight-smoke=http://127.0.0.1:18001,api-master-smoke=http://127.0.0.1:18001,api-master-smoke-far=http://127.0.0.1:18001
+      ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001,api-shared-smoke=http://127.0.0.1:18001,api-overnight-smoke=http://127.0.0.1:18001,api-master-smoke=http://127.0.0.1:18001,api-master-smoke-far=http://127.0.0.1:18001,api-cancel-smoke=http://127.0.0.1:18001
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
@@ -300,6 +300,9 @@ jobs:
       - name: Public API depot and assignment changes smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:api-master-data:integration npm run test:api-master-data:integration
+      - name: Public API cancellation and road geometry smoke
+        working-directory: web
+        run: node ../infra/run-check.mjs test:api-cancel-geometry:integration npm run test:api-cancel-geometry:integration
       - name: Shared address matching smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:address-matching:integration npm run test:address-matching:integration
