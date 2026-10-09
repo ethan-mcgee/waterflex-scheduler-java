@@ -59,7 +59,6 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(len(daily), 1280)
         self.assertEqual(sum(r['budget_ms'] for r in daily), 163200000)
         self.assertEqual((len(shipped['seeds']), shipped['parallel_cases']), (10, 10))
-        self.assertEqual(len(expand(read_json(root / 'booking-comparison.json'))), 120)
 
     def test_planned_three_workload_matrices(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
@@ -69,13 +68,10 @@ class ConfigurationTests(unittest.TestCase):
                               budgets_seconds=[15, 30, 60, 90, 120, 240])
         self.assertEqual(len(expand(daily)), 1440)
         self.assertEqual(sum(c['budget_ms'] for c in expand(daily)), 133200000)
-        booking = read_json(root / 'booking-comparison.json')
-        booking['booking'].update(concurrency=[1, 5, 10], caches=['cold', 'warm'])
-        self.assertEqual(len(expand(booking)), 720)
 
     def test_reject_bad_configuration(self):
         modifications = [lambda c: c.update(unknown=True), lambda c: c.update(version=True),
-            lambda c: c.update(daily=None), lambda c: c['daily'].update(count=4),
+            lambda c: c.update(daily=None), lambda c: c.pop('daily'), lambda c: c['daily'].update(count=4),
             lambda c: c['daily'].update(solvers=[]), lambda c: c['daily'].update(solvers=['NOPE']),
             lambda c: c['daily'].update(seeds=[17, 17]), lambda c: c['daily'].update(seeds=[True]),
             lambda c: c['daily'].update(fleets=[7]), lambda c: c['daily'].update(control='SUBLIST'),
@@ -107,14 +103,13 @@ class ConfigurationTests(unittest.TestCase):
             case = next(c for c in cases if c['budget_ms'] == budget)
             self.assertIn(f'-Dbenchmark.durationMs={budget}', rt.daily_command(Path('frozen'), case, 'rev', 'raw', 'java'))
 
-    def test_parallel_cases_rejected_in_booking_and_shipped_configs_valid(self):
+    def test_retired_booking_experiments_rejected_and_shipped_configs_valid(self):
         root = Path(__file__).resolve().parents[1] / 'experiments/configs'
-        booking = {'version': 1, 'name': 'b', 'booking': {'solvers': ['INSERTION'], 'control': 'INSERTION', 'seeds': [17],
-            'fleets': [5], 'workloads': ['DISPERSED'], 'concurrency': [1], 'caches': ['warm'], 'requests': 2}}
-        validate(copy.deepcopy(booking))
-        booking['booking']['parallel_cases'] = 2
-        with self.assertRaises(ValueError):
-            validate(booking)
+        booking = {'solvers': ['INSERTION'], 'control': 'INSERTION', 'seeds': [17],
+            'fleets': [5], 'workloads': ['DISPERSED'], 'concurrency': [1], 'caches': ['warm'], 'requests': 2}
+        for c in ({'version': 1, 'name': 'b', 'booking': booking}, {**config(), 'booking': booking}):
+            with self.assertRaises(ValueError):
+                validate(c)
         for name, parallel in [('daily-smoke', 1), ('daily-budget', 10), ('daily-contention-1', 1), ('daily-contention-6', 6)]:
             self.assertEqual(validate(read_json(root / f'{name}.json'))['daily']['parallel_cases'], parallel)
         one, six = (read_json(root / f'daily-contention-{n}.json') for n in (1, 6))
@@ -141,7 +136,7 @@ class LauncherTests(unittest.TestCase):
     def test_modes_select_expected_config_and_skip_setup_for_dry_run(self):
         for experiment, mode, name in [('daily', 'dry-run', 'daily-budget.json'),
                                        ('daily', 'smoke', 'daily-smoke.json'),
-                                       ('booking', 'full', 'booking-comparison.json')]:
+                                       ('daily', 'full', 'daily-budget.json')]:
             with self.subTest(experiment=experiment, mode=mode), \
                  patch.object(launcher, 'setup') as setup, patch.object(launcher.subprocess, 'run') as run:
                 run.return_value.returncode = 0
@@ -151,26 +146,11 @@ class LauncherTests(unittest.TestCase):
                 self.assertEqual('--dry-run' in argv, mode == 'dry-run')
                 self.assertEqual(setup.call_count, 0 if mode == 'dry-run' else 1)
 
-    def test_custom_config_cannot_silently_launch_other_kind(self):
-        with patch.object(launcher, 'setup') as setup:
-            with self.assertRaisesRegex(ValueError, 'selected daily'):
-                launcher.main(['daily', 'full', '--config', str(launcher.ROOT / 'experiments/configs/booking-smoke.json')])
-            setup.assert_not_called()
-
-    def test_booking_requires_explicit_test_database_before_setup(self):
-        booking = read_json(launcher.ROOT / 'experiments/configs/booking-smoke.json')
-        with patch.object(launcher, 'check_tools'), patch.dict(os.environ, {}, clear=True):
-            with self.assertRaisesRegex(ValueError, 'DATABASE_URL'):
-                launcher.setup(booking)
-
-    def test_booking_setup_installs_missing_node_dependencies(self):
-        booking = read_json(launcher.ROOT / 'experiments/configs/booking-smoke.json')
-        with tempfile.TemporaryDirectory() as folder, patch.object(launcher, 'ROOT', Path(folder)), \
-             patch.object(launcher, 'check_tools'), patch.object(launcher, 'database_env'), \
-             patch.object(launcher, 'routing_identity'), patch.object(launcher.subprocess, 'run') as run:
-            launcher.setup(booking)
-        self.assertEqual([call.args[0][-2:] for call in run.call_args_list],
-                         [['web', 'ci'], ['run', 'prisma:generate']])
+    def test_retired_booking_experiment_cannot_be_launched(self):
+        with patch.object(launcher, 'setup') as setup, patch.object(launcher.subprocess, 'run') as run,              patch('sys.stderr', io.StringIO()), self.assertRaises(SystemExit):
+            launcher.main(['booking', 'smoke'])
+        setup.assert_not_called()
+        run.assert_not_called()
 
     def test_launcher_finds_jdk_home_when_java_is_on_path(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -182,7 +162,7 @@ class LauncherTests(unittest.TestCase):
             javac.touch()
             version = SimpleNamespace(stderr='java version "25.0.1"\n', stdout='')
             settings = SimpleNamespace(stderr=f'    java.home = {home}\n', stdout='')
-            with patch.dict(os.environ, {}, clear=True), patch.object(launcher.shutil, 'which', side_effect=[str(java), 'node']), \
+            with patch.dict(os.environ, {}, clear=True), patch.object(launcher.shutil, 'which', side_effect=[str(java)]), \
                  patch.object(launcher.subprocess, 'run', side_effect=[version, settings]):
                 launcher.check_tools()
                 self.assertEqual(os.environ['JAVA_HOME'], str(home))
@@ -384,38 +364,10 @@ class ArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Completed evidence changed'):
             rt.completed_attempt(run, case)
 
-    def test_changed_booking_identity_rejected_before_launch(self):
-        c = {'version': 1, 'name': 'booking', 'booking': {'solvers': ['INSERTION'], 'control': 'INSERTION',
-            'seeds': [17], 'fleets': [5], 'workloads': ['DISPERSED'], 'concurrency': [1], 'caches': ['warm'], 'requests': 2}}
-        run = rt.new_run(self.base, c, json.dumps(c).encode())
-        (run / 'frozen').mkdir()
-        rt.write_new(run / 'manifest.json', {'config_hash': digest(c), 'cases_hash': digest(expand(c)),
-            'files': {}, 'runtime': {'java': 'java'}, 'toolkit_hashes': rt.toolkit_hashes(), 'booking': {'dates': ['old'], 'calendar_reference': '2026-09-30T04:59:59.000Z'}})
-        with patch.object(rt, 'runtime', return_value={'java': 'java'}), patch.object(rt, 'booking_identity', return_value={'dates': ['new']}):
-            with self.assertRaisesRegex(ValueError, 'no longer valid'):
-                rt.execute(run)
-
-    def test_booking_identity_reuses_saved_reference_on_resume(self):
-        reference = '2026-09-30T04:59:59.000Z'
-        env = {'DATABASE_URL': 'postgresql://user:secret@localhost/waterflex_test'}
-        with patch.object(rt, 'horizon', return_value=['saved']) as horizon, patch.object(rt, 'routing_identity', return_value={'identity': 'roads'}):
-            first = rt.booking_identity(Path('frozen'), env, reference)
-            second = rt.booking_identity(Path('frozen'), env, first['calendar_reference'])
-            self.assertEqual(first, second)
-            horizon.assert_called_with(Path('frozen'), reference)
-
     def test_environment_blocks_case_insensitive_isolation_overrides(self):
         with patch.dict(os.environ, {'routing_prewarm_enabled': 'true', 'TIME_OFF_ANALYSIS_ENABLED': 'true',
                                     'ROUTING_CACHE_CLEANUP_CRON': '* * * * * *', 'spring_profiles_active': 'production'}, clear=True):
             self.assertEqual(rt.environment(), {})
-
-    def test_database_scope_and_credential_metadata(self):
-        for url in ('postgresql://user:secret@localhost/waterflex', 'postgresql://user:secret@remote/waterflex_test'):
-            with self.assertRaises(ValueError):
-                rt.database_env({'DATABASE_URL': url}, 'benchmark_test')
-        env = rt.database_env({'DATABASE_URL': 'postgresql://user:secret@localhost/waterflex_test'}, 'benchmark_test')
-        self.assertNotIn('secret', env['JDBC_DATABASE_URL'])
-        self.assertIn('connection_limit=4', env['DATABASE_URL'])
 
     def test_interruption_resume_keeps_prior_attempts_and_completed_evidence(self):
         run = self.make_run()

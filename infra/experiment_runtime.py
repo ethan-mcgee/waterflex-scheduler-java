@@ -16,14 +16,12 @@ import subprocess
 import sys
 import threading
 import time
-from urllib.parse import urlsplit, urlunsplit, urlencode, unquote
-from urllib.request import urlopen
 import uuid
 
 from experiment_config import digest, expand, read_json, validate
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'scheduler-service', 'routing-service', 'web', 'infra', 'experiments/configs']
+SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'scheduler-service', 'routing-service', 'infra', 'experiments/configs']
 
 
 class Progress:
@@ -374,14 +372,9 @@ def verify_files(root, hashes):
 def prepare_run(run, config):
     import matplotlib  # Fail prerequisites before starting any measurement.
     info = runtime()
-    parallelism = None
-    if 'daily' in config:
-        count = config['daily']['parallel_cases']
-        parallelism = {'parallel_cases': count, 'slot_masks': slot_masks(count, info['topology']),
-                       'jvm_flags': [*DAILY_JVM_FLAGS, '-Xlog:gc:file=<attempt>/gc.log']}
-    if 'booking' in config:
-        database_env(environment(), 'benchmark_preflight')
-        routing_identity(environment())
+    count = config['daily']['parallel_cases']
+    parallelism = {'parallel_cases': count, 'slot_masks': slot_masks(count, info['topology']),
+                   'jvm_flags': [*DAILY_JVM_FLAGS, '-Xlog:gc:file=<attempt>/gc.log']}
     source_names = capture(['git', 'ls-files', '--', *SOURCE_PATHS]).splitlines()
     if capture(['git', 'status', '--porcelain', '--', *SOURCE_PATHS]):
         raise ValueError('Commit experiment source changes before measurement (AGENTS.md and docs are not harness inputs)')
@@ -408,73 +401,17 @@ def prepare_run(run, config):
     if not resolved_target.is_relative_to(run.resolve()):
         raise ValueError('Build output escaped run archive')
     shutil.rmtree(resolved_target)
-    booking = None
-    if 'booking' in config:
-        if not (ROOT / 'web/node_modules/.prisma/client').is_dir():
-            raise ValueError('Run npm ci and npm run prisma:generate in web first')
-        print('Freezing booking Node dependencies...', flush=True)
-        shutil.copytree(ROOT / 'web/node_modules', source / 'web/node_modules')
-        web_sources = {name[4:]: sha(source / name) for name in source_names if name.startswith('web/')}
-        write_new(artifacts / 'web-manifest.json', {'revision': revision, 'sources': web_sources})
-        booking = booking_identity(artifacts, env)
     hashes = tree_hashes(artifacts)
     write_new(run / 'manifest.json', {'format': 1, 'revision': revision, 'config_hash': digest(config),
         'cases_hash': digest(read_json(run / 'cases.json')), 'files': hashes, 'runtime': info,
-        'matplotlib': matplotlib.__version__, 'booking': booking, 'parallelism': parallelism,
+        'matplotlib': matplotlib.__version__, 'parallelism': parallelism,
         'source_hashes': {name: sha(source / name) for name in source_names},
-        'warmup': 'Daily: 200 ms SPARSE/20 for the selected solver in each fresh JVM; booking: fresh JVM, migration, health, independent audit and specified cache preparation',
+        'warmup': 'Daily: 200 ms SPARSE/20 for the selected solver in each fresh JVM',
         'toolkit_hashes': {name: sha(source / 'infra' / name) for name in toolkit_hashes()},
-        'order': 'Independent cyclic rotations of solvers and budget/concurrency/cache settings across fixture/seed blocks',
+        'order': 'Independent cyclic rotations of solvers and budgets across fixture/seed blocks',
         'limitations': 'Local shared workstation; toolkit lock excludes other toolkit runs, not unrelated PC activity. '
                        'Concurrent daily cases run on dedicated physical cores but share memory bandwidth, L3 cache and boost clocks; '
                        'compare move evaluations per second across parallel_cases settings before trusting parallel timings'})
-
-
-def database_env(env, schema):
-    raw = env.get('DATABASE_URL')
-    if not raw:
-        raise ValueError('DATABASE_URL must identify local waterflex_test; credentials are never archived')
-    db = urlsplit(raw)
-    if db.scheme not in ('postgres', 'postgresql') or db.path != '/waterflex_test' or db.hostname not in ('localhost', '127.0.0.1', '::1'):
-        raise ValueError('Booking requires a local waterflex_test database')
-    result = dict(env)
-    result['DATABASE_URL'] = urlunsplit((db.scheme, db.netloc, db.path, urlencode({'schema': schema, 'connection_limit': 4}), ''))
-    host = f'[{db.hostname}]' if ':' in db.hostname else db.hostname
-    result.update(JDBC_DATABASE_URL=f'jdbc:postgresql://{host}:{db.port or 5432}/waterflex_test?currentSchema={schema}',
-                  DATABASE_USER=unquote(db.username or ''), DATABASE_PASSWORD=unquote(db.password or ''))
-    if not result['DATABASE_USER']:
-        raise ValueError('DATABASE_URL requires an explicit user')
-    return result
-
-
-def routing_identity(env):
-    url = env.get('ROUTING_URL')
-    if not url:
-        raise ValueError('ROUTING_URL is required for booking road evidence')
-    parsed = urlsplit(url)
-    if parsed.scheme not in ('http', 'https') or parsed.username or parsed.password or parsed.query or parsed.fragment:
-        raise ValueError('ROUTING_URL must be an HTTP provider URL without credentials/query')
-    with urlopen(url.rstrip('/') + '/health', timeout=5) as response:
-        health = json.load(response)
-    if health.get('ready') is not True or not isinstance(health.get('routingIdentity'), str) or not health['routingIdentity']:
-        raise ValueError('Road provider must be ready with a routingIdentity')
-    return {'url': url, 'identity': health['routingIdentity']}
-
-
-def horizon(artifacts, reference):
-    web = artifacts / 'source/web'
-    value = capture(['node', web / 'node_modules/tsx/dist/cli.mjs', '-e',
-        "import {bookingHorizon} from './lib/bookingTestCore'; console.log(JSON.stringify(bookingHorizon(new Date(process.argv[1]))))", reference], web)
-    dates = json.loads(value)
-    if not isinstance(dates, list) or len(dates) != 10 or any(not isinstance(d, str) for d in dates):
-        raise ValueError('Invalid booking horizon')
-    return dates
-
-
-def booking_identity(artifacts, env, reference=None):
-    database_env(env, 'benchmark_preflight')
-    reference = reference or datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-    return {'calendar_reference': reference, 'dates': horizon(artifacts, reference), 'routing': routing_identity(env), 'transport': 'direct-durable-client'}
 
 
 DAILY_JVM_FLAGS = ['-XX:ActiveProcessorCount=2', '-XX:+UseSerialGC']
@@ -488,51 +425,6 @@ def daily_command(artifacts, case, revision, output, java):
         f'-Dbenchmark.durationMs={case["budget_ms"]}', f'-Dbenchmark.sizes={case["fleet"]}',
         f'-Dbenchmark.workloads={case["workload"]}', f'-Dbenchmark.variants={case["solver"]}',
         f'-Dbenchmark.seeds={case["seed"]}', '-cp', cp, 'dev.waterflex.scheduler.optimizer.SolverBenchmark']
-
-
-def booking_case(run, attempt, case, manifest, env):
-    artifacts = run / 'frozen'
-    web = artifacts / 'source/web'
-    saved = manifest['booking']
-    if booking_identity(artifacts, env, saved['calendar_reference']) != saved:
-        raise ValueError('Booking horizon or routing identity changed; start a new run')
-    schema = 'benchmark_exp_' + uuid.uuid4().hex
-    env = database_env(env, schema)
-    # Reserve an unused local port, then verify only our child reaches startup.
-    with socket.socket() as candidate:
-        candidate.bind(('127.0.0.1', 0))
-        port = candidate.getsockname()[1]
-    server_log = attempt / 'server.log'
-    env.update(ENGINE_URL=f'http://127.0.0.1:{port}', BENCHMARK_REVISION=manifest['revision'],
-        BENCHMARK_VARIANT=case['solver'], BENCHMARK_EXPECT_VARIANT=case['solver'],
-        BENCHMARK_ARTIFACT_SHA256=sha(artifacts / 'scheduler.jar'), BENCHMARK_OUTPUT=str(attempt / 'raw.jsonl'),
-        BENCHMARK_LOG_PATH=str(server_log), BENCHMARK_SIZES=str(case['fleet']), BENCHMARK_WORKLOADS=case['workload'],
-        BENCHMARK_SEED=str(case['seed']), BENCHMARK_CONCURRENCY=str(case['concurrency']), BENCHMARK_CACHES=case['cache'],
-        BENCHMARK_CALENDAR_REFERENCE=saved['calendar_reference'], BENCHMARK_REQUESTS=str(case['requests']), BENCHMARK_DURABLE='true', BENCHMARK_DATES=json.dumps(saved['dates']),
-        BENCHMARK_ROUTING_IDENTITY=saved['routing']['identity'], BENCHMARK_FROZEN_MANIFEST=str(artifacts / 'web-manifest.json'))
-    write_new(attempt / 'booking.json', {'schema': schema, 'port': port, 'dates': saved['dates'], 'calendar_reference': saved['calendar_reference'], 'routing': saved['routing']})
-    command(['node', web / 'node_modules/prisma/build/index.js', 'migrate', 'deploy'], web, env, attempt / 'migrate.log')
-    args = [manifest['runtime']['java'], '-Xmx1536m', '-jar', artifacts / 'scheduler.jar',
-        f'--server.port={port}', '--server.address=127.0.0.1', '--spring.profiles.active=benchmark',
-        '--spring.datasource.hikari.maximum-pool-size=4', '--spring.datasource.hikari.minimum-idle=1',
-        f'--benchmark.calendar-reference={saved["calendar_reference"]}',
-        '--scheduler.optimizer.cron=-', '--routing.cache.cleanup-cron=-', '--routing.prewarm.enabled=false',
-        '--time-off.analysis.enabled=false', '--booking.reservations.enabled=true', '--booking.search.bounded=true', f'--booking.search.variant={case["solver"]}']
-    with launch(args, artifacts, env, server_log) as server:
-        for _ in range(90):
-            if server.poll() is not None:
-                raise RuntimeError(f'Scheduler exited; inspect {server_log}')
-            try:
-                with urlopen(env['ENGINE_URL'] + '/health', timeout=1) as response:
-                    if response.status == 200:
-                        break
-            except OSError:
-                pass
-            time.sleep(1)
-        else:
-            raise RuntimeError(f'Scheduler did not become ready; inspect {server_log}')
-        command(['node', web / 'node_modules/tsx/dist/cli.mjs', 'scripts/benchmark-scheduling.ts'], web, env,
-                attempt / 'client.log', timeout=300 + case['requests'] * 150)
 
 
 def completed_attempt(run, case):
@@ -580,17 +472,12 @@ def run_case(run, manifest, env, progress, occupancy, stop, number, total, case,
     attempt.mkdir(parents=True)
     neighbors = occupancy.start(case['id'])
     write_new(attempt / 'started.json', {'case': case, 'at': stamp(), 'slot': slot, 'mask': mask, 'in_flight_at_start': neighbors})
-    detail = (f'{case["budget_ms"] / 1000:g}s' if case['kind'] == 'daily' else
-              f'c{case["concurrency"]} {case["cache"]} {case["requests"]}req')
     progress.start_case(case['id'], f'#{number} {case["solver"]} f{case["fleet"]} '
-                                     f'{case["workload"]} s{case["seed"]} {detail}')
+                                     f'{case["workload"]} s{case["seed"]} {case["budget_ms"] / 1000:g}s')
     try:
-        if case['kind'] == 'daily':
-            command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
-                    run / 'frozen', env, attempt / 'solver.log', timeout=case['budget_ms'] / 1000 + 120,
-                    affinity=mask, stop=stop)
-        else:
-            booking_case(run, attempt, case, manifest, env)
+        command(daily_command(run / 'frozen', case, manifest['revision'], attempt / 'raw.jsonl', manifest['runtime']['java']),
+                run / 'frozen', env, attempt / 'solver.log', timeout=case['budget_ms'] / 1000 + 120,
+                affinity=mask, stop=stop)
         from experiment_analysis import load_raw
         rows, issues = load_raw(attempt / 'raw.jsonl', expected=case)
         if len(rows) != 1 or issues:
@@ -627,16 +514,12 @@ def execute(run, prepare=False):
         info = runtime()
         if info != manifest['runtime']:
             raise ValueError('Runtime/hardware provenance mismatch; start a new run')
-        masks = [None]
-        if 'daily' in config:
-            workers = config['daily']['parallel_cases']
-            masks = slot_masks(workers, info.get('topology'))
-            saved = manifest.get('parallelism')
-            if not isinstance(saved, dict) or saved.get('parallel_cases') != workers or saved.get('slot_masks') != masks:
-                raise ValueError('Saved parallelism provenance mismatch; start a new run')
+        workers = config['daily']['parallel_cases']
+        masks = slot_masks(workers, info.get('topology'))
+        saved = manifest.get('parallelism')
+        if not isinstance(saved, dict) or saved.get('parallel_cases') != workers or saved.get('slot_masks') != masks:
+            raise ValueError('Saved parallelism provenance mismatch; start a new run')
         env = environment()
-        if 'booking' in config and booking_identity(run / 'frozen', env, manifest['booking']['calendar_reference']) != manifest['booking']:
-            raise ValueError('Frozen booking dates/routing no longer valid; start a new run')
         completed = {case['id']: completed_attempt(run, case) is not None for case in cases}
         progress.update('Checking completed cases', completed=sum(completed.values()))
         queue = collections.deque()
@@ -649,15 +532,12 @@ def execute(run, prepare=False):
             queue.append((index + 1, case))
         free = collections.deque(enumerate(masks))
         occupancy, stop, running, failure = Occupancy(), threading.Event(), {}, None
-        # Daily cases fan out over the dedicated slots; booking cases always run alone and in saved order.
+        # Daily cases fan out over the dedicated slots in saved order.
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(masks)) as pool:
             try:
                 while (queue and failure is None) or running:
                     while queue and failure is None and free:
-                        number, case = queue[0]
-                        if (case['kind'] != 'daily' and running) or any(c['kind'] != 'daily' for c, _ in running.values()):
-                            break
-                        queue.popleft()
+                        number, case = queue.popleft()
                         slot, mask = free.popleft()
                         future = pool.submit(run_case, run, manifest, env, progress, occupancy, stop, number, len(cases), case, slot, mask)
                         running[future] = (case, (slot, mask))

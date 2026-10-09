@@ -1,5 +1,7 @@
 # Booking benchmark protocol
 
+> Retired 2026-10-09. The booking benchmark harness (`npm run benchmark:scheduling`, the experiment toolkit's booking runs, `infra/run-field-booking-benchmarks.mjs` and the scheduler's `benchmark` profile endpoints under `/internal/benchmark`) has been removed, because it measured the scheduler's internal booking endpoints, which the portal no longer uses. This page records how the archived measurements were taken. A future booking benchmark would measure the public `/api/v1` booking flow.
+
 The [configurable experiment toolkit](configurable-experiments.md) supplies isolated processes/schemas, verified strategy settings, frozen dates, checkpoints, and automatic analysis for new comparisons. Existing manual entry points remain available below.
 
 `npm run benchmark:scheduling` extends the sequential booking workflow's seeded selection and scheduling client with isolated fleet datasets and concurrent request rounds. It measures search HTTP time including cancellation/acknowledgement, separately from subsequent customer selection. It does not include address entry, geocoding or browser transport. Do not label these samples browser-visible end-to-end latency.
