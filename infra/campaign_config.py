@@ -54,7 +54,7 @@ def artifact(value):
 def validate(config):
     base_fields = ['version', 'name', 'purpose', 'edition', 'layer', 'controlId', 'datasets',
         'configurations', 'solverSeeds', 'forks', 'budgets', 'warmup', 'runtime', 'resources',
-        'instrumentation', 'analysis', 'applicationLoad', 'execution', 'estimation', 'outputLocation', 'adapter']
+        'instrumentation', 'analysis', 'execution', 'estimation', 'outputLocation', 'adapter']
     fields(config, base_fields + (['policy'] if 'policy' in config else []))
     if 'policy' in config:
         policy = config['policy']
@@ -73,10 +73,7 @@ def validate(config):
     slug(config['name'])
     text(config['purpose'])
     choice(config['edition'], 'COMMUNITY')
-    choice(config['layer'], 'solver', 'policy', 'workflow')
-    if config['layer'] == 'workflow':
-        fields(config['applicationLoad'], ['operation', 'mode', 'requestsPerCase', 'requestsPerSecond', 'concurrency', 'schedulerCache', 'providerCache', 'timeoutMs', 'observeCancellation', 'deployment', 'endpointIdentity'])
-        choice(config['applicationLoad']['operation'], 'daily-preview', 'booking-offer')
+    choice(config['layer'], 'solver', 'policy')
     for key in ('datasets', 'configurations', 'solverSeeds', 'budgets'):
         check(isinstance(config[key], list) and bool(config[key]), f'Nonempty {key} required')
         unique(config[key])
@@ -102,7 +99,7 @@ def validate(config):
         if dataset['target'] is not None:
             artifact(dataset['target'])
         check(config['layer'] == 'solver' or dataset['target'] is None,
-              'Policy/workflow layers create their own reference, never a frozen target')
+              'The policy layer creates its own reference, never a frozen target')
     unique([d['id'] for d in config['datasets']])
     unique([d['input']['sha256'] for d in config['datasets']])
     cohorts = {d['cohort'] for d in config['datasets']}
@@ -151,29 +148,25 @@ def validate(config):
                         'repairMs', 'validationReserveMs', 'transferUnusedToFairness'])
         slug(budget['id'])
         choice(budget['purpose'], 'production', 'longer-budget', 'contract-test')
-        choice(budget['phase'], 'reference', 'fairness', 'repair', 'pipeline', 'booking')
+        choice(budget['phase'], 'reference', 'fairness', 'repair', 'pipeline')
         for key in ('operationMs', 'searchMs', 'validationReserveMs'):
             integer(budget[key])
         for key in ('referenceMs', 'fairnessMs', 'repairMs'):
             integer(budget[key], 0)
         choice(budget['transferUnusedToFairness'], True, False)
         phase_total = budget['referenceMs'] + budget['fairnessMs'] + budget['repairMs']
-        check(phase_total == (0 if budget['phase'] == 'booking' else budget['searchMs']), 'Phase allowances must sum to search allowance')
+        check(phase_total == budget['searchMs'], 'Phase allowances must sum to search allowance')
         check(budget['searchMs'] + budget['validationReserveMs'] <= budget['operationMs'], 'Search plus reserve exceeds operation')
         if config['layer'] == 'solver':
-            check(budget['phase'] not in ('pipeline', 'booking'), 'Solver layer selects one daily phase')
+            check(budget['phase'] != 'pipeline', 'Solver layer selects one daily phase')
             check(budget[budget['phase'] + 'Ms'] == budget['searchMs'] and not budget['transferUnusedToFairness'], 'Solver phase allocation mismatch')
             if budget['phase'] == 'fairness':
                 check(all(d['target'] is not None for d in config['datasets']), 'Solver fairness needs frozen targets')
         else:
-            booking = config['layer'] == 'workflow' and config['applicationLoad']['operation'] == 'booking-offer' and 'policy' in config
-            check(budget['phase'] == ('booking' if booking else 'repair' if cohorts == {'repair'} else 'pipeline'), 'Policy/workflow phase mismatch')
+            check(budget['phase'] == ('repair' if cohorts == {'repair'} else 'pipeline'), 'Policy phase mismatch')
             if budget['phase'] == 'pipeline':
                 check(budget['referenceMs'] > 0 and budget['fairnessMs'] > 0 and budget['repairMs'] == 0, 'Pipeline needs reference and fairness')
-        if budget['phase'] == 'booking':
-            check(not budget['transferUnusedToFairness'] and budget['operationMs'] == config['policy']['bookingDeadlineMs'], 'Booking allowance must match explicit policy')
-            check(budget['operationMs'] == 5000, 'Caller booking workflows preserve the public five-second operation cap')
-        elif budget['purpose'] == 'production' and config['layer'] != 'solver':
+        if budget['purpose'] == 'production' and config['layer'] != 'solver':
             check(budget['operationMs'] == 20000 and budget['searchMs'] == 15000 and
                   (budget['referenceMs'] == 10000 if budget['phase'] == 'pipeline' else budget['repairMs'] == 15000),
                   'Production daily allowances must be preserved')
@@ -182,7 +175,7 @@ def validate(config):
     fields(warm, ['millisecondsPerFreshJvm', 'paths', 'disposableInputs', 'calibrationMs', 'calibrationRepetitions', 'stabilityTolerancePercent'])
     integer(warm['millisecondsPerFreshJvm'], 0)
     strings(warm['paths'])
-    check(set(warm['paths']) <= {'reference', 'fairness', 'repair', 'daily-policy', 'daily-preview', 'booking-offer', 'input-contract'}, 'Unsupported warmup path')
+    check(set(warm['paths']) <= {'reference', 'fairness', 'repair', 'daily-policy', 'input-contract'}, 'Unsupported warmup path')
     if cohorts == {'invalid-input'}:
         check(warm['paths'] == ['input-contract'] and config['layer'] == 'solver', 'Invalid inputs require contract-only warmup')
     elif config['layer'] == 'solver':
@@ -248,22 +241,6 @@ def validate(config):
     for key in ('latencyNoninferiorityPercent', 'failureTolerance'):
         number(analysis[key])
     check(type(analysis['costDifferenceUpperBoundCents']) is int, 'Signed integer cents required')
-    load = config['applicationLoad']
-    if config['layer'] == 'workflow':
-        fields(load, ['operation', 'mode', 'requestsPerCase', 'requestsPerSecond', 'concurrency', 'schedulerCache', 'providerCache', 'timeoutMs', 'observeCancellation', 'deployment', 'endpointIdentity'])
-        choice(load['operation'], 'daily-preview', 'booking-offer')
-        check(load['operation'] in warm['paths'], 'Warmup must cover the application path')
-        choice(load['mode'], 'paced-arrival')
-        for key in ('requestsPerCase', 'concurrency', 'timeoutMs'):
-            integer(load[key])
-        number(load['requestsPerSecond'], .000001)
-        for key in ('schedulerCache', 'providerCache'):
-            choice(load[key], 'cold', 'warm')
-        choice(load['observeCancellation'], True)
-        choice(load['deployment'], 'embedded', 'remote')
-        text(load['endpointIdentity'])
-    else:
-        check(load is None, 'Inapplicable applicationLoad must be null')
     execution = config['execution']
     fields(execution, ['orderSeed', 'failurePolicy', 'automaticRetries', 'resumePolicy', 'campaignCutoffUtc', 'processGraceMs'])
     integer(execution['orderSeed'], 0)
@@ -332,11 +309,7 @@ def estimate(config):
     budgets = {b['id']: b for b in config['budgets']}
     warm = config['warmup']['millisecondsPerFreshJvm'] * len(config['warmup']['paths'])
     def allowance(case):
-        budget = budgets[case['budgetId']]
-        load = config['applicationLoad']
-        if load is not None:
-            return (load['requestsPerCase'] - 1) / load['requestsPerSecond'] * 1000 + load['timeoutMs']
-        return budget['operationMs']
+        return budgets[case['budgetId']]['operationMs']
     serial, parallel, measured = 0, 0, 0
     workers = config['resources']['parallelCases']
     for block in blocks:
