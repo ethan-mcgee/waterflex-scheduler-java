@@ -1,4 +1,4 @@
-"""Set up and launch a daily or booking experiment from one command.
+"""Set up and launch a daily solver experiment from one command.
 
 Run without arguments for a short terminal menu, or pass EXPERIMENT MODE.
 """
@@ -18,13 +18,11 @@ INFRA = ROOT / 'infra'
 sys.path.insert(0, str(INFRA))
 
 from experiment_config import expand, read_json, validate  # noqa: E402
-from experiment_runtime import Progress, database_env, routing_identity  # noqa: E402
+from experiment_runtime import Progress  # noqa: E402
 
 
 DEFAULTS = {
     'daily': {'smoke': 'daily-smoke.json', 'dry-run': 'daily-budget.json', 'full': 'daily-budget.json'},
-    'booking': {'smoke': 'booking-smoke.json', 'dry-run': 'booking-comparison.json',
-                'full': 'booking-comparison.json'},
 }
 
 
@@ -72,15 +70,10 @@ def check_tools():
     javac = Path(os.environ['JAVA_HOME']) / 'bin' / ('javac.exe' if os.name == 'nt' else 'javac')
     if not javac.is_file():
         raise RuntimeError('JAVA_HOME must point to a Java 25 JDK with javac')
-    if not shutil.which('node'):
-        raise RuntimeError('Node.js is required on PATH')
 
 
 def setup(config):
     check_tools()
-    if 'booking' in config:
-        database_env(os.environ, 'benchmark_preflight')
-        routing_identity(os.environ)
     try:
         import matplotlib
         match = re.match(r'^(\d+)\.(\d+)', matplotlib.__version__)
@@ -91,15 +84,6 @@ def setup(config):
         print('Installing Python graph dependencies...', flush=True)
         subprocess.run([sys.executable, '-m', 'pip', 'install', '-r', str(INFRA / 'requirements-experiments.txt')],
                        cwd=ROOT, check=True)
-    if 'booking' in config:
-        modules = ROOT / 'web/node_modules'
-        npm = 'npm.cmd' if os.name == 'nt' else 'npm'
-        if not (modules / 'prisma/build/index.js').is_file() or not (modules / 'tsx/dist/cli.mjs').is_file():
-            print('Installing booking Node dependencies...', flush=True)
-            subprocess.run([npm, '--prefix', 'web', 'ci'], cwd=ROOT, check=True)
-        if not (modules / '.prisma/client').is_dir():
-            print('Generating Prisma client...', flush=True)
-            subprocess.run([npm, '--prefix', 'web', 'run', 'prisma:generate'], cwd=ROOT, check=True)
 
 
 def main(argv=None):
@@ -107,8 +91,6 @@ def main(argv=None):
     path = (args.config if args.config is not None else
             ROOT / 'experiments/configs' / DEFAULTS[args.experiment][args.mode]).resolve()
     config = validate(read_json(path))
-    if set(config).intersection(('daily', 'booking')) != {args.experiment}:
-        raise ValueError(f'{path} must contain only the selected {args.experiment} experiment')
     cases = expand(config)
     print(f'{args.experiment} {args.mode}: {len(cases)} cases from {path}', flush=True)
     started = time.monotonic()
