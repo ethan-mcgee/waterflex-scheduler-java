@@ -30,19 +30,25 @@ export const commitReceipt = z.object({ receiptId: id,
   assignments: z.array(z.object({ appointmentId: id, technicianId: id, serviceDate, sequence: z.int().min(0), plannedStart: instant, plannedEnd: instant }).strict()),
   technicianDays: z.array(technicianDayVersion),
 }).strict();
+const plannedRoute = z.object({ technicianId: id, serviceDate, stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0),
+  plannedStart: instant, plannedEnd: instant }).strict()) }).strict();
 export const dailyProposal = z.object({ proposalId: id, inputRevision: z.string().regex(/^[0-9a-f]{64}$/),
   decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]), reason: z.string().min(1),
-  routes: z.array(z.object({ technicianId: id, serviceDate, stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0),
-    plannedStart: instant, plannedEnd: instant }).strict()) }).strict()),
+  routes: z.array(plannedRoute),
   unresolvedAppointmentIds: z.array(id), skippedTechnicianDays: z.array(skippedTechnicianDay),
   costCents: z.int().min(0), overtimeMinutes: z.literal(0),
 }).strict();
+/** A day's routes timed in their given order; a day that does not hold has no routes. */
+export const routeEvaluation = z.object({ feasible: z.boolean(), routes: z.array(plannedRoute), skippedTechnicianDays: z.array(skippedTechnicianDay),
+  costCents: z.int().min(0), overtimeMinutes: z.int().min(0).max(1440),
+}).strict().refine(value => value.feasible || value.routes.length === 0, "A day that does not hold has no timed routes");
 const whoami = z.object({ tenantId: z.string().min(1) }).strict();
 
 export type OfferSet = z.infer<typeof offerSet>;
 export type Hold = z.infer<typeof hold>;
 export type CommitReceipt = z.infer<typeof commitReceipt>;
 export type DailyProposal = z.infer<typeof dailyProposal>;
+export type RouteEvaluation = z.infer<typeof routeEvaluation>;
 export type TechnicianDayVersion = z.infer<typeof technicianDayVersion>;
 export type ProblemCode = z.infer<typeof problem>["error"];
 
@@ -159,6 +165,12 @@ export function createDailyProposal(clientId: string, request: { requestId: stri
 
 export function commitDailyProposal(clientId: string, proposalId: string, request: { requestId: string; technicianDays: TechnicianDayVersion[] }): Promise<CommitReceipt> {
   return tenantCall(clientId, `/api/v1/daily/proposals/${encodeURIComponent(proposalId)}/commit`, request, commitReceipt, 10000);
+}
+
+/** Times one metro day's routes in their given order, from the snapshot's start and end points. Nothing is stored. */
+export function evaluateRoutes(clientId: string, request: { serviceDate: string; snapshot: PublicSnapshot }): Promise<RouteEvaluation> {
+  // Routing only, inside the scheduler's 20-second deadline; the rest covers the upload and the network.
+  return tenantCall(clientId, "/api/v1/routes/evaluate", request, routeEvaluation, 25000);
 }
 
 export function createRepairProposal(clientId: string, request: { requestId: string; absence: { technicianId: string; serviceDate: string; window: { start: string; end: string } };

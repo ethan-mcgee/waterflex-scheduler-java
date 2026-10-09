@@ -7,7 +7,7 @@ import { currentLastModified, StaleReceipt, writeReceipts, type ReceiptWrite } f
 import { absenceWindow, analysisProgress, apiTimeOffReport, automaticallyApproved, AWAITING_ANALYSIS, feasible, frozen, initialApiReport,
   nextPendingDay, reportMatches, requestDates, submissionProblem, unchangedDay, type ApiTimeOffDay, type ApiTimeOffReport, type Interval } from "./apiTimeOffCore";
 import { todayInTz } from "./date";
-import type { TechnicianDayVersion } from "./schedulerApi";
+import type { CommitReceipt, TechnicianDayVersion } from "./schedulerApi";
 
 /**
  * Time off, availability and qualifications when the portal schedules through the public API. The portal is the host:
@@ -203,7 +203,7 @@ export async function approveApiTimeOff(clientId: string, id: string): Promise<{
     }
   }
   const writes: ReceiptWrite[] = [];
-  const receipts: Array<{ proposalId: string; write: ReceiptWrite }> = [];
+  const receipts: Array<{ proposalId: string; receipt: CommitReceipt }> = [];
   const unchanged: TechnicianDayVersion[] = [];
   for (const item of request.report.days) {
     if (unchangedDay(item.status)) {
@@ -226,11 +226,11 @@ export async function approveApiTimeOff(clientId: string, id: string): Promise<{
     }
     const write = { receipt: committed.receipt, complete: committed.routed };
     writes.push(write);
-    receipts.push({ proposalId: row.id, write });
+    receipts.push({ proposalId: row.id, receipt: committed.receipt });
   }
   try {
     await writeReceipts(clientId, writes, { unchanged, record: async tx => {
-      for (const { proposalId, write } of receipts) await recordReceipt(tx, proposalId, write.receipt);
+      for (const { proposalId, receipt } of receipts) await recordReceipt(tx, proposalId, receipt);
       const approved = await tx.timeOffRequest.updateMany({ where: { id, status: "READY" }, data: { status: "APPROVED", decidedAt: new Date() } });
       if (approved.count !== 1) throw new StaleReceipt(`Time-off request ${id} is no longer ready`);
       await tx.timeOffReport.update({ where: { requestId: id }, data: { status: "APPLIED" } });
