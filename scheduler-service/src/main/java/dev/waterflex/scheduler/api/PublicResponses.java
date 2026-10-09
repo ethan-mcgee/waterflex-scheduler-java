@@ -71,6 +71,27 @@ public final class PublicResponses {
         }
     }
 
+    /**
+     * The snapshot's routes timed in their current order: every appointment's planned start and end, and whether the
+     * day holds every window, shift and paid limit. A day that does not hold has no routes, since it cannot be timed as
+     * given. Technician-days that could not be located are skipped, not timed.
+     */
+    public record RouteEvaluation(Boolean feasible, List<PlannedRoute> routes, List<SkippedTechnicianDay> skippedTechnicianDays,
+                                  Long costCents, Integer overtimeMinutes) {
+        public RouteEvaluation {
+            Input.present(feasible, "feasible");
+            routes = Input.list(routes, "routes");
+            if (!feasible && !routes.isEmpty()) throw new IllegalArgumentException("A day that does not hold has no timed routes");
+            skippedTechnicianDays = Input.list(skippedTechnicianDays, "skippedTechnicianDays");
+            Set<String> routed = new HashSet<>();
+            for (PlannedRoute route : routes) if (!routed.add(route.technicianId())) throw new IllegalArgumentException("Duplicate route for " + route.technicianId());
+            for (SkippedTechnicianDay skipped : skippedTechnicianDays)
+                if (!routed.add(skipped.technicianId())) throw new IllegalArgumentException("Technician " + skipped.technicianId() + " is both routed and skipped");
+            if (Input.present(costCents, "costCents") < 0) throw new IllegalArgumentException("costCents must not be negative");
+            Input.integer(overtimeMinutes, "overtimeMinutes", 0, 1440);
+        }
+    }
+
     public record Offer(String offerId, LocalDate serviceDate, Window window) {
         public Offer {
             Input.id(offerId, "offerId");

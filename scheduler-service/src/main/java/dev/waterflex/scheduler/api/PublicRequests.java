@@ -41,6 +41,16 @@ public final class PublicRequests {
     }
 
     /** The snapshot holds the absence's date only, as a daily request does, and includes the absent technician-day. */
+    /** POST /api/v1/routes/evaluate: one metro day's routes, timed in their current order. Nothing is stored. */
+    public record RouteEvaluationRequest(LocalDate serviceDate, Snapshot snapshot) {
+        public RouteEvaluationRequest {
+            Input.present(serviceDate, "serviceDate");
+            Input.present(snapshot, "snapshot");
+            for (TechnicianDay day : snapshot.technicianDays())
+                if (!day.serviceDate().equals(serviceDate)) throw new IllegalArgumentException("Technician-day " + day.key() + " is outside serviceDate");
+        }
+    }
+
     public record RepairProposalRequest(String requestId, Absence absence, Snapshot snapshot) {
         public RepairProposalRequest {
             Input.requestId(requestId);
