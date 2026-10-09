@@ -6,19 +6,16 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
+import { connectSmokeClient } from "./smokeApiClient";
 import { required, testRun } from "../lib/contracts";
-import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
-import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 import { OMAHA_FAKE_LOCATIONS } from "../lib/fakeDataCore";
 import { ensureOmahaConfiguration } from "../lib/omahaConfiguration";
 import { advanceTestRun, apiTestEngine, controlTestRun, createTestRun, purgeTestRun, readTestRun, TestRunError } from "../lib/bookingTestRunner";
 import type { AddressGenerationDependencies } from "../lib/bookingTestAddresses";
-import { tokenVariable } from "../lib/schedulerApi";
 
 const CLIENT = DEFAULT_CLIENT_ID;
-const base = process.env.SCHEDULER_TEST_URL;
-assert.ok(base, "SCHEDULER_TEST_URL must point at a running scheduler");
+const base = required(process.env.SCHEDULER_TEST_URL, "SCHEDULER_TEST_URL (a running scheduler)");
 const config = { count: 3, seed: 4242, policy: "earliest", weights: [1, 0, 0, 0], radiusMi: 30 };
 let fixtureLocation = 0;
 // The Omaha sample locations, which the fixture router routes; every one is accepted, as through the public API.
@@ -32,20 +29,8 @@ const wire = (run: unknown) => testRun.parse(JSON.parse(JSON.stringify(run)));
 
 async function main() {
   process.env.SCHEDULER_PUBLIC_API = "true";
-  process.env.SCHEDULER_API_URL = base;
   await ensureOmahaConfiguration(prisma);
-  // The Omaha client is connected for this run only: its token is removed and settings it lacked are removed again.
-  const hadSettings = await prisma.clientSolverSettings.findUnique({ where: { clientId: CLIENT } });
-  if (hadSettings === null) {
-    const saved = await storeSolverSettings(CLIENT, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-      travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 4, bookingHorizonWeekdays: 3 });
-    assert.ok("saved" in saved);
-  }
-  await prisma.tenant.upsert({ where: { id: CLIENT }, create: { id: CLIENT, name: CLIENT }, update: {} });
-  const tokenId = randomUUID();
-  const token = generateTenantToken();
-  await prisma.tenantApiToken.create({ data: { id: tokenId, tenantId: CLIENT, tokenSha256: tenantTokenSha256(token), label: "API booking tests smoke" } });
-  process.env[tokenVariable(CLIENT)] = token;
+  const disconnect = await connectSmokeClient(CLIENT, base, "API booking tests smoke");
   const id = randomUUID();
   try {
     await assert.rejects(createTestRun(randomUUID(), config, null), (error: unknown) => error instanceof TestRunError && error.status === 400,
@@ -91,8 +76,7 @@ async function main() {
       if (!["PAUSED", "STOPPED", "COMPLETED"].includes(run.status)) await controlTestRun(id, "stop");
       await purgeTestRun(id).catch(error => console.error("Purge failed", error));
     }
-    await prisma.tenantApiToken.delete({ where: { id: tokenId } });
-    if (hadSettings === null) await prisma.clientSolverSettings.delete({ where: { clientId: CLIENT } });
+    await disconnect();
   }
 }
 

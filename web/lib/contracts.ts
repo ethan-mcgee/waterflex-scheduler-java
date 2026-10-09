@@ -45,13 +45,11 @@ export const offersResponse = z.object({ jobId: text, offers: z.array(offer), se
   if ((value.search.outcome === "AVAILABLE") !== (value.offers.length > 0))
     context.addIssue({ code: "custom", message: "Search outcome does not match committed offers" });
 });
-export const durableSearchStart = z.object({ jobId: text, requestId: z.uuid(), refresh: z.boolean() });
 export const durableSearchStatus = z.object({ id: z.uuid(), jobId: text,
   state: z.enum(["QUEUED", "RUNNING", "AVAILABLE", "NO_CANDIDATE", "INCOMPLETE", "FAILED", "CANCELLED"]),
   phase: text, elapsedMs: z.int().nonnegative(), queueMs: z.int().nonnegative().nullable(),
   completedWork: z.int().nonnegative(), bestCostDeltaCents: z.int().nullable().optional(), stopReason: text.nullable(), offers: z.array(offer).max(1),
 }).refine(v => (v.state === "AVAILABLE") === (v.offers.length > 0), "Invalid search result");
-export const savedBookingSearch = z.object({ id: z.uuid(), jobId: text });
 export const confirmation = z.object({ appointmentId: text, windowStart: instant, windowEnd: instant });
 export const selection = confirmation.extend({ holdId: text, expiresAt: instant });
 export const success = z.object({ success: z.boolean() });
@@ -162,7 +160,7 @@ export const overnightRunRequested = z.object({ run: overnightRun, alreadyActive
 export const commitProposalRequest = z.object({ proposalId: text }).strict();
 export const bookingRequest = z.object({ requestId: text.min(16), firstName: text, lastName: text, email: text,
   phone: text, line1: text, line2: z.string().optional(), city: text, state: text, postalCode: text, serviceCode: text,
-  confirmedPin: point.extend({ manuallyConfirmed: z.boolean().optional() }).optional(), followUp: z.boolean().optional(), backgroundSearch: z.boolean().optional() })
+  confirmedPin: point.extend({ manuallyConfirmed: z.boolean().optional() }).optional(), followUp: z.boolean().optional() })
   .refine(v => !v.followUp || !v.confirmedPin, "Follow-up cannot include a confirmed pin");
 export const bookingAddress = z.object({ line1: text, city: text, state: text, postalCode: text });
 export const locationBounds = z.object({ south: finite.min(-90).max(90), north: finite.min(-90).max(90),
@@ -173,9 +171,8 @@ export const bookingLocationResponse = z.object({ status: z.enum(["MATCHED", "NE
   serviceArea: z.object({ circles: z.array(serviceAreaCircle).min(1), bounds: locationBounds }) });
 export const locationValidation = z.object({ status: z.enum(["VALID", "OUTSIDE_COVERAGE", "UNROUTABLE", "ROUTING_UNAVAILABLE"]) });
 export const jobRequest = z.object({ jobId: text });
-export const refreshRequest = jobRequest.extend({ deadlineEpochMs: z.int().positive().optional() });
+export const refreshRequest = jobRequest;
 export const selectRequest = jobRequest.extend({ offerId: text });
-export const confirmRequest = z.object({ holdId: text });
 export const previewRequest = z.object({ metroId: text, date });
 export const applyRequest = z.object({ runId: text });
 export const qualificationRequest = z.object({ technicianId: text, serviceId: text, qualified: z.boolean() });
@@ -243,12 +240,11 @@ export function required<T>(value: T | undefined | null, label = "Required value
   return value;
 }
 
-// searchMode DIRECT marks a search through the public scheduling API: refreshing searches again directly instead of
-// starting the scheduler's background search.
+// A booking request answers with the offers its search found, a follow-up reference, or the pin candidates to confirm.
 export const bookingResponse = z.object({ jobId: text, offers: z.array(offer).optional(), pendingReference: text.optional(),
-  search: appointmentSearch.optional(), searchRequestId: z.uuid().optional(), searchMode: z.literal("DIRECT").optional(),
+  search: appointmentSearch.optional(),
   pinRequired: z.boolean().optional(), candidates: z.array(point.extend({ precision: z.enum(["ROOFTOP", "APPROXIMATE"]) })).optional()
-}).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || v.searchRequestId !== undefined || offersResponse.safeParse(v).success, "Incomplete booking response");
+}).refine(v => v.pinRequired ? !!v.candidates?.length : v.pendingReference !== undefined || offersResponse.safeParse(v).success, "Incomplete booking response");
 export const bookingFailure = z.object({ error: text.optional(), pendingReference: text.optional(), offers: z.array(offer).optional(), search: appointmentSearch.optional() });
 export const testAttempt = z.object({ at: instant, horizon: z.array(date), elapsedMs: finite.nonnegative(), offers: z.array(offer),
   selected: offer.nullable(), outcome: text, error: z.string().nullable(), search: appointmentSearch.nullish() });

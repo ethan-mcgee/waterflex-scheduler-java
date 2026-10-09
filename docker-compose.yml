@@ -51,7 +51,8 @@ services:
       DATABASE_PASSWORD: waterflex
       ROUTING_URL: http://routing-service:8001
       # Public API routing per WaterFlex metro ID, for example omaha=http://routing-service:8001
-      ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:-}
+      # The public API routes only the metros listed here; the seeded Omaha metro is listed by default.
+      ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:-metro-omaha=http://routing-service:8001}
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
       SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
       SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}
@@ -102,8 +103,9 @@ services:
       ENGINE_URL: http://scheduler-service:8000
       NOMINATIM_URL: http://nominatim:8080
       LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-true}
-      # Booking through the public scheduling API. Each client's token is SCHEDULER_API_TOKEN_<CLIENT ID> in
-      # portal-api-tokens.env (ignored by git), never in the database.
+      # Booking always runs through the public scheduling API; with SCHEDULER_PUBLIC_API=true dispatch, time off and
+      # depot changes do too. Each client's token is SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env
+      # (ignored by git), never in the database.
       SCHEDULER_PUBLIC_API: ${SCHEDULER_PUBLIC_API:-false}
       SCHEDULER_API_URL: http://scheduler-service:8000
     env_file:
