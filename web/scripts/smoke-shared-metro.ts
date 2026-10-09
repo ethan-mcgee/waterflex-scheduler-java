@@ -1,12 +1,11 @@
 // Two clients in one metro, end to end against a running scheduler and the fixture router. Each client has its own
 // dealership, depot, technicians, customers and appointments in the same metro. Booking, daily optimization and
 // time-off repair through the public API read and write only the acting client's rows, the other client's
-// technician-days keep their timestamps, and the scheduler's own metro-wide paths refuse the shared metro. The
+// technician-days keep their timestamps, and current routes are drawn per client. The
 // scheduler must route this smoke's metro to the fixture router:
 //   ROUTING_METRO_URLS=api-shared-smoke=http://127.0.0.1:18001   SCHEDULER_TEST_URL=http://127.0.0.1:18000
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
 import { storeSolverSettings } from "../lib/clientSettingsStore";
@@ -15,6 +14,7 @@ import { localMinute } from "../lib/zonedTime";
 import { buildClientSnapshot } from "../lib/clientSnapshot";
 import { bookApiOffer, searchApiOffers } from "../lib/apiBooking";
 import { proposeApiDay } from "../lib/apiDispatch";
+import { apiDispatchGeometry } from "../lib/apiGeometry";
 import { analyzeApiTimeOff, approveApiTimeOff, submitApiTimeOff } from "../lib/apiTimeOff";
 import { currentLastModified } from "../lib/apiReceipt";
 import { servesMetro } from "../lib/clientScope";
@@ -145,15 +145,8 @@ async function main() {
     assert.deepEqual(await state(A), untouched, "B's repair leaves A's appointments and timestamps as they were");
     await assert.rejects(approveApiTimeOff(A, request.requestId), /not found/, "A cannot see B's time off");
 
-    // The scheduler's own paths read whole metros, so they refuse this one; current routes can be read per client.
-    const engine = (path: string, init?: RequestInit) => fetch(`${base}${path}`, { ...init,
-      headers: { "Content-Type": "application/json", "x-internal-secret": process.env.INTERNAL_API_SECRET ?? "dev-only-change-me" } });
-    const preview = await engine("/v1/optimize/day/preview", { method: "POST", body: JSON.stringify({ metro_id: METRO, date: DATE }) });
-    assert.equal(preview.status, 409, await preview.text());
-    assert.equal((await engine(`/v1/dispatch/geometry?metro_id=${METRO}&date=${DATE}`)).status, 409);
-    const scoped = await engine(`/v1/dispatch/geometry?metro_id=${METRO}&date=${DATE}&client_id=${A}`);
-    assert.equal(scoped.status, 200, await scoped.clone().text());
-    const { stops } = z.object({ stops: z.array(z.object({ technicianId: z.string() })) }).parse(await scoped.json());
+    // Current routes are drawn per client through the public API: only A's stops for A.
+    const { stops } = await apiDispatchGeometry(A, METRO, DATE);
     assert.ok(stops.length > 0 && stops.every(stop => stop.technicianId.startsWith(A)), "Only A's stops are drawn for A");
     console.log("Shared metro smoke passed");
   } finally {

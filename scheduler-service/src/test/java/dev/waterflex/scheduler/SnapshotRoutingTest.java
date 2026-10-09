@@ -138,7 +138,7 @@ class SnapshotRoutingTest {
         Day populated = new Day(technicians, visits, new Arrangement(routes), 0, emptyRoads);
         Day empty = new Day(Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, emptyRoads);
         Map<LocalDate, Day> days = new TreeMap<>();
-        for (LocalDate date : BookingService.bookingDates(CAPTURED)) days.put(date, date.equals(DATE) ? populated : empty);
+        for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date, date.equals(DATE) ? populated : empty);
         return new BookingSnapshot("metro", CAPTURED, "config", "roads", SchedulingPolicy.Rules.defaults(), RATES, days);
     }
 }

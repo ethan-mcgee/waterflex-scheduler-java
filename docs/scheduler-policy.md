@@ -1,5 +1,7 @@
 # Scheduling policy, reservations and operations
 
+> The interfaces, rollout settings and rollback steps on this page describe the scheduler's internal booking and optimization paths, which were removed in October 2026 (P7c in [the stateless API design](stateless-api-design.md)). The scheduling policy itself is unchanged and is what the public `/api/v1` calculations apply. `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `ROUTING_PREWARM_ENABLED` and `SCHEDULER_OPTIMIZER_CRON` no longer exist.
+
 This describes the implemented consolidated policy. Release acceptance and measured limitations are tracked separately in [the original-plan checklist](scheduler-plan-checklist.md), [booking benchmarks](booking-benchmarks.md) and [solver experiments](solver-benchmarks.md). The dispatcher still previews and manually applies optimization proposals. No same-day replanning, paid service migration or automatic dispatch apply is introduced.
 
 The new booking path, including booking fairness and common reservation arrangements, requires `booking.reservations.enabled=true`. Its bounded rearrangement search additionally requires `booking.search.bounded=true`. Both remain disabled by default for staged rollout. No booking path authorizes new overtime (see below), and previously issued managed offers retain their confirmation path when either flag is disabled. Daily optimization policy operates independently of these booking flags.
