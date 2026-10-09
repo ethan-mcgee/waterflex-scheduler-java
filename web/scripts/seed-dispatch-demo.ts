@@ -17,7 +17,8 @@ async function main() {
   const endDate = argument("end-date") ?? startDate;
   const totalCalls = optionalNumber("total") ?? 11;
   const seed = optionalNumber("seed");
-  const result = await generateFakeData({ startDate, endDate, totalCalls, seed });
+  // Without --client the Omaha metro's only client gets the calls; a shared metro must name one.
+  const result = await generateFakeData({ startDate, endDate, totalCalls, seed }, argument("client"));
 
   console.log(JSON.stringify(result, null, 2));
   console.log(`Open http://localhost:3001/schedule?week=${result.startDate} to review the schedule.`);
