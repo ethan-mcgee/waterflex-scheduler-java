@@ -15,7 +15,7 @@ public final class PolicyBenchmark {
             Required.value(id); Required.value(purpose); Required.value(phase);
             if (operationMs < 1 || operationMs > 120_000 || searchMs < 1 || referenceMs < 0 || fairnessMs < 0 || repairMs < 0
                     || validationReserveMs < 0 || Math.addExact(searchMs,validationReserveMs) > operationMs
-                    || Math.addExact(Math.addExact(referenceMs,fairnessMs),repairMs) != (phase.equals("booking") ? 0 : searchMs))
+                    || Math.addExact(Math.addExact(referenceMs,fairnessMs),repairMs) != searchMs)
                 throw new IllegalArgumentException("Invalid campaign budgets");
         }
     }

@@ -30,7 +30,7 @@ public final class CampaignMain {
             return;
         }
         fields(request,"protocol","case","layer","dataset","configuration","budget","warmup","instrumentation",
-                "applicationLoad","jvmFlags","affinityCpus","runtimeHash","policy");
+                "jvmFlags","affinityCpus","runtimeHash","policy");
         if (!text(get(request,"protocol")).equals("waterflex-campaign-jvm-v1")) throw new IllegalArgumentException("Campaign protocol");
         JsonNode identity = get(request,"case"), source = get(request,"dataset");
         fields(identity,"datasetId","datasetHash","targetHash","budgetId","budgetHash","solverSeed","fork","scoreVersion",
@@ -101,12 +101,6 @@ public final class CampaignMain {
                 receipt.put("warmup",Map.of("paths",paths,"disposableInputs",true,"elapsedMsByPath",Map.of("input-contract",(System.nanoTime()-started)/1e6)));
                 receipt.put("result",Map.of("layer","input-contract","expectedFailure",true,"failureType",rejected.getClass().getName(),"failureMessage",String.valueOf(rejected.getMessage())));
                 receipt.put("state","SUCCEEDED");SnapshotFileIO.writeText(Path.of(args[1]).toFile(),CalculationJson.write(receipt));return;
-            }
-            if (layer.equals("workflow")) {
-                var result=WorkflowBenchmark.run(request,input,directory);
-                receipt.put("warmup",Required.value(result.get("warmup")));receipt.put("result",result);receipt.put("state","SUCCEEDED");
-                SnapshotFileIO.writeText(Path.of(args[1]).toFile(),CalculationJson.write(receipt));
-                return;
             }
             if (!Set.of("solver","policy").contains(layer)) throw new IllegalArgumentException("Unsupported campaign layer");
             DailyDataset dataset=DailyDataset.parse(input);

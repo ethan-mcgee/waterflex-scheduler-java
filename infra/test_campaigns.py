@@ -49,7 +49,6 @@ def configuration():
                     'scoreVersion', 'modelVersion', 'routingIdentity', 'runtimeHash'], 'draws': 10000, 'seed': 20261006,
                     'confidenceLevel': .95, 'selection': 'tuning-only', 'latencyNoninferiorityPercent': 5,
                     'failureTolerance': 0, 'costDifferenceUpperBoundCents': 0},
-        'applicationLoad': None,
         'execution': {'orderSeed': 99, 'failurePolicy': 'stop-new-blocks', 'automaticRetries': False,
                       'resumePolicy': 'hash-verified-missing-cases', 'campaignCutoffUtc': None, 'processGraceMs': 5000},
         'estimation': {'startupMsPerJvm': 1, 'preparationMsPerCase': 2, 'validationMsPerCase': 3,
@@ -159,20 +158,6 @@ class CampaignConfigurationTests(unittest.TestCase):
         config['datasets'].append(second)
         with self.assertRaises(ValueError):
             cc.validate(config)
-
-    def test_workflow_paced_arrival_estimate_and_explicit_load(self):
-        config = configuration()
-        config['layer'] = 'workflow'
-        config['warmup']['paths'] = ['daily-preview']
-        config['budgets'][0].update(phase='pipeline', referenceMs=40, fairnessMs=40)
-        config['applicationLoad'] = {'operation': 'daily-preview', 'mode': 'paced-arrival', 'requestsPerCase': 3,
-            'requestsPerSecond': 2, 'concurrency': 2, 'schedulerCache': 'warm', 'providerCache': 'cold',
-            'timeoutMs': 20000, 'observeCancellation': True, 'deployment': 'embedded', 'endpointIdentity': 'fixture'}
-        self.assertEqual(cc.estimate(config)['operationAllowanceMs'], 84000)
-        config['applicationLoad']['requestsPerSecond'] = 0
-        with self.assertRaises(ValueError):
-            cc.validate(config)
-
 
 OBSERVED = {'affinity': {'slots': [[1]]}, 'hardware': {'memoryBytes': 64 * 1048576}, 'fixture': True}
 
@@ -370,12 +355,11 @@ class CampaignLifecycleTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cr.analyze(run)
 
-    def test_warmup_instrumentation_and_cache_cohorts_have_distinct_runtime_identity(self):
+    def test_warmup_and_instrumentation_cohorts_have_distinct_runtime_identity(self):
         config = configuration()
         control = cr.runtime_identity(config, OBSERVED)
         for mutate in (lambda c: c['warmup'].update(millisecondsPerFreshJvm=30),
-                       lambda c: c['instrumentation'].update(cohort='diagnostic', jfr='profile'),
-                       lambda c: c.update(applicationLoad={'schedulerCache': 'cold'})):
+                       lambda c: c['instrumentation'].update(cohort='diagnostic', jfr='profile')):
             changed = configuration()
             mutate(changed)
             self.assertNotEqual(control, cr.runtime_identity(changed, OBSERVED))
@@ -433,7 +417,7 @@ class AdapterContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cr.benchmark_result(rejection, request)
 
-    def test_real_policy_is_explicit_and_booking_has_its_own_allowance(self):
+    def test_real_policy_is_explicit(self):
         config = configuration()
         config['datasets'][0].update(origin='historical', datasetSeed=None)
         with self.assertRaises(ValueError):
@@ -445,18 +429,6 @@ class AdapterContractTests(unittest.TestCase):
             cc.validate(config)
         config['policy']['fairnessAllowance'] = '0.02'
         config['layer'] = 'workflow'
-        config['applicationLoad'] = {'operation': 'booking-offer', 'mode': 'paced-arrival', 'requestsPerCase': 2, 'requestsPerSecond': 1,
-            'concurrency': 1, 'schedulerCache': 'cold', 'providerCache': 'cold', 'timeoutMs': 10000, 'observeCancellation': True,
-            'deployment': 'embedded', 'endpointIdentity': 'fixture'}
-        config['warmup']['paths'] = ['booking-offer']
-        config['budgets'] = [{'id': 'booking', 'purpose': 'production', 'phase': 'booking', 'operationMs': 5000,
-            'searchMs': 4000, 'referenceMs': 0, 'fairnessMs': 0, 'repairMs': 0, 'validationReserveMs': 1000, 'transferUnusedToFairness': False}]
-        cc.validate(config)
-        config['budgets'][0]['operationMs'] = 6000
-        with self.assertRaises(ValueError):
-            cc.validate(config)
-        config['policy']['bookingDeadlineMs'] = 3000
-        config['budgets'][0].update(operationMs=3000,searchMs=2000)
         with self.assertRaises(ValueError):
             cc.validate(config)
 
