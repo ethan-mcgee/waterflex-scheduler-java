@@ -103,8 +103,8 @@ services:
       ENGINE_URL: http://scheduler-service:8000
       NOMINATIM_URL: http://nominatim:8080
       LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-true}
-      # Booking always runs through the public scheduling API; with SCHEDULER_PUBLIC_API=true dispatch, time off and
-      # depot changes do too. Each client's token is SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env
+      # Booking, dispatch proposals, road geometry, fake data and the booking test runner always run through the public
+      # scheduling API; with SCHEDULER_PUBLIC_API=true time off, depot changes and cancellations do too. Each client's token is SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env
       # (ignored by git), never in the database.
       SCHEDULER_PUBLIC_API: ${SCHEDULER_PUBLIC_API:-false}
       SCHEDULER_API_URL: http://scheduler-service:8000

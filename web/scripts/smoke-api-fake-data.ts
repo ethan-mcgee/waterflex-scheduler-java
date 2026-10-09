@@ -1,5 +1,5 @@
 // Fake data through the public scheduling API, end to end against a running scheduler and the fixture router: each
-// call is booked by the generator's step (search the chosen date, select a two-hour offer, confirm its hold), and
+// call is booked by the generator's step (search the chosen date, select an offer, confirm its hold), and
 // cleared by deleting the generated jobs while the visits left on an open day are re-timed in the same write. The
 // fixture router knows only the Omaha sample locations, not the generator's randomized addresses, so the calls are
 // placed there; smoke-fake-data covers the full generator against real routing. The Omaha metro must route to it:
@@ -16,7 +16,7 @@ import { ChangeRefused } from "../lib/apiMasterDataCore";
 import { ensureOmahaConfiguration } from "../lib/omahaConfiguration";
 import { currentLastModified } from "../lib/apiReceipt";
 
-// Far ahead and outside the legacy fake-data smoke's dates, so neither the 6 a.m. cutoff nor that smoke interferes.
+// Far ahead and outside smoke-fake-data's dates, so neither the 6 a.m. cutoff nor that smoke interferes.
 const RANGE_START = "2037-05-04";
 const RANGE_END = "2037-05-04";
 const CLIENT = DEFAULT_CLIENT_ID;
@@ -28,7 +28,6 @@ const fakeJobs = async () => (await prisma.job.findMany({ where: { externalId: {
   .filter(job => inRange(job.externalId));
 
 async function main() {
-  process.env.SCHEDULER_PUBLIC_API = "true";
   await ensureOmahaConfiguration(prisma);
   const disconnect = await connectSmokeClient(CLIENT, base, "API fake data smoke");
   let manualJobId: string | null = null;

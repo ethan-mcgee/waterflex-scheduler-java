@@ -174,7 +174,6 @@ export const jobRequest = z.object({ jobId: text });
 export const refreshRequest = jobRequest;
 export const selectRequest = jobRequest.extend({ offerId: text });
 export const previewRequest = z.object({ metroId: text, date });
-export const applyRequest = z.object({ runId: text });
 export const qualificationRequest = z.object({ technicianId: text, serviceId: text, qualified: z.boolean() });
 export const availabilityRequest = z.object({ technicianId: text, date, available: z.boolean(),
   shiftStartMin: minute.nullish(), shiftEndMin: minute.nullish() }).refine(v => !v.available ||
@@ -256,9 +255,8 @@ export const testRun = runSummary.extend({ revision: z.int().nonnegative(), erro
   requests: z.array(z.object({ id: text, ordinal: z.int().nonnegative(), input: testInput, status: text, offers: z.array(offer),
     selected: offer.nullable(), elapsedMs: finite.nonnegative(), serviceDate: date.nullable(), startedAt: instant.nullable(),
     error: z.string().nullable(), attempts: z.array(testAttempt) })),
-  // A preview is an engine optimization run, or through the public API the client's daily proposal for the day.
+  // A preview is the client's daily proposal for the day; runs saved before the public API hold an engine optimization run.
   previews: z.array(z.object({ id: text, serviceDate: date, optimizationId: text.nullable(), result: z.union([optimization, apiProposal]).nullable(), error: z.string().nullable() })),
-  applied: z.array(z.object({ id: text, status: text, appliedAt: instant.nullable() })),
 });
 export const testHistory = z.object({ runs: z.array(runSummary), horizon: z.array(date) });
 export async function readResponse<T>(response: Response, schema: z.ZodType<T>): Promise<T> {

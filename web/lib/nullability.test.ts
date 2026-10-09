@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { NextRequest } from "next/server";
 import { POST as select } from "../app/api/book/select/route";
 import { POST as refresh } from "../app/api/book/refresh/route";
-import { POST as preview } from "../app/api/dispatch/optimize/preview/route";
+import { POST as propose } from "../app/api/dispatch/proposals/route";
+import { POST as commitProposal } from "../app/api/dispatch/proposals/commit/route";
 import { POST as book } from "../app/api/book/route";
 import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
@@ -101,7 +102,7 @@ test("invalid request bodies fail before downstream requests or writes", async (
   const original = globalThis.fetch;
   globalThis.fetch = () => { throw new Error("Unexpected downstream request"); };
   try {
-    for (const handler of [refresh, select, preview, book, absence, availability, qualification]) {
+    for (const handler of [refresh, select, propose, commitProposal, book, absence, availability, qualification]) {
       for (const body of ["null", "[]", "false", '"text"', "{", "{}", '{"jobId":12,"holdId":false,"metroId":{},"date":"2026-02-30"}']) {
         const response = await handler(new NextRequest("http://localhost/api/test", { method: "POST", body }));
         assert.equal(response.status, 400, body);

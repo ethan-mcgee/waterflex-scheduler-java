@@ -163,7 +163,7 @@ test("sequential runs default to a fixed 30-mile radius and submit the selected 
       .parse(submittedConfig);
     const run = { id, status: "STOPPED", createdAt: "2026-09-21T12:00:00Z", config: { ...parsed, seed: parsed.seed ?? 123 },
       purgedAt: null, purgedCount: null, generation: null, revision: 1, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"],
-      requests: [], previews: [], applied: [] };
+      requests: [], previews: [] };
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(run) });
   });
   await page.goto("/dispatch/testing");
@@ -176,23 +176,24 @@ test("sequential runs default to a fixed 30-mile radius and submit the selected 
   await expect(page.getByText(/45-mile generation radius/)).toBeVisible();
 });
 
-test("running sequential polling retains its preview map and refetches only on phase changes", async ({ page }) => {
-  const id = "22222222-2222-4222-8222-222222222222", optimizationId = "preview-poll-test";
-  const preview = { run_id: optimizationId, metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
-    solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 100,
-    churn_penalty_minutes: 0, optimized: false, appointments_moved: 0, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
-    route_summary_before: [], route_summary_after: [], changes: [] };
+/** A daily proposal as the testing page receives it. */
+const proposalFixture = (overrides: Record<string, unknown> = {}) => ({ proposalId: "proposal-ui-test", serviceDate: "2026-10-05",
+  createdAt: "2026-09-21T12:00:00Z", decision: "IMPROVED", reason: "Lower modeled cost", costCents: 12345, state: "OPEN", committedAt: null,
+  refusal: null, routes: [], unresolvedAppointmentIds: [], skippedTechnicianDays: [], changes: [], overnightRunId: null, ...overrides });
+
+test("running sequential polling retains its proposal map and does not refetch roads", async ({ page }) => {
+  const id = "22222222-2222-4222-8222-222222222222";
+  const proposal = proposalFixture();
   const run = { id, status: "RUNNING", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
     purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
-    previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }], applied: [] };
+    previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId: proposal.proposalId, result: proposal, error: null }] };
   let runReads = 0;
-  const geometryPhases: string[] = [];
+  const geometryQueries: string[] = [];
   await page.route("http://localhost:8083/**", route => route.fulfill({ status: 404 }));
   await page.route("**/api/dispatch/geometry**", route => {
-    const phase = new URL(route.request().url()).searchParams.get("phase") ?? "";
-    geometryPhases.push(phase);
+    geometryQueries.push(new URL(route.request().url()).search);
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
-      type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase, features: [], stops: [],
+      type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase: "current", features: [], stops: [],
     }) });
   });
   await page.route("**/api/dispatch/testing**", route => {
@@ -203,17 +204,15 @@ test("running sequential polling retains its preview map and refetches only on p
   });
 
   await page.goto(`/dispatch/testing?run=${id}`);
-  await expect.poll(() => geometryPhases.length).toBe(1);
+  await expect.poll(() => geometryQueries.length).toBe(1);
+  expect(geometryQueries).toEqual(["?metroId=metro-omaha&date=2026-10-05"]);
   const canvas = page.locator(".maplibregl-canvas");
   await expect(canvas).toHaveCount(1);
   await canvas.evaluate(element => { element.dataset.pollingMap = "retained"; });
   await page.waitForTimeout(2200);
   await expect.poll(() => runReads, { timeout: 5000 }).toBeGreaterThanOrEqual(2);
-  expect(geometryPhases).toEqual(["after"]);
+  expect(geometryQueries).toHaveLength(1);
   await expect(canvas).toHaveAttribute("data-polling-map", "retained");
-
-  await page.getByRole("button", { name: "Before preview" }).click();
-  await expect.poll(() => geometryPhases).toEqual(["after", "before"]);
 });
 
 test("address generation progress survives pause, reload, and resume into booking", async ({ page }) => {
@@ -226,7 +225,7 @@ test("address generation progress survives pause, reload, and resume into bookin
   const responseRun = () => ({ id, status, createdAt: "2026-09-21T12:00:00Z",
     config: { count: 3, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 }, purgedAt: null, purgedCount: null,
     generation: { ...progress }, revision: status === "RUNNING" ? 3 : 4, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"],
-    requests: [], previews: [], applied: [] });
+    requests: [], previews: [] });
   await page.route("**/api/dispatch/testing**", async route => {
     const url = new URL(route.request().url());
     if (route.request().method() === "GET") return route.fulfill({ status: 200, contentType: "application/json",
@@ -256,55 +255,48 @@ test("address generation progress survives pause, reload, and resume into bookin
   await expect(page.getByText(/Address generation complete/)).toBeVisible();
 });
 
-test("partial preview diagnostics cannot enable application", async ({ page }) => {
+test("saved engine previews and unresolved proposals cannot be applied", async ({ page }) => {
   const id = "33333333-3333-4333-8333-333333333333";
-  const preview = { run_id: "partial-preview", metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
+  // A run saved before the public API holds an engine optimization run.
+  const engine = { run_id: "engine-preview", metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
     solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 0,
-    churn_penalty_minutes: 0, optimized: false, appointments_moved: 0, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
-    route_summary_before: [], route_summary_after: [], changes: [], score_model_version: "bendable-decimal-repair-v2",
-    calculation_outcome: { mode: "REPAIR", scoreModelVersion: "bendable-decimal-repair-v2", assignedVisitIds: [], unassignedVisitIds: ["unplaced"],
-      complete: false, assignedWorkFeasible: true, scoringMatchesValidation: true, policyEligible: false } };
+    churn_penalty_minutes: 0, optimized: false, appointments_moved: 2, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
+    route_summary_before: [], route_summary_after: [], changes: [] };
+  const unresolved = proposalFixture({ proposalId: "proposal-unresolved", serviceDate: "2026-10-06", decision: "REJECTED_BY_POLICY",
+    reason: "Some appointments could not be placed", state: "NOT_COMMITTABLE", unresolvedAppointmentIds: ["unplaced"] });
   const run = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
-    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
-    previews: [{ id: "partial", serviceDate: "2026-10-05", optimizationId: "partial-preview", result: preview, error: null }], applied: [] };
+    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05", "2026-10-06"], currentHorizon: ["2026-10-05", "2026-10-06"], requests: [],
+    previews: [{ id: "engine", serviceDate: "2026-10-05", optimizationId: "engine-preview", result: engine, error: null },
+      { id: "unresolved", serviceDate: "2026-10-06", optimizationId: unresolved.proposalId, result: unresolved, error: null }] };
   await page.route("http://localhost:8083/**", route => route.fulfill({ status: 404 }));
   await page.route("**/api/dispatch/geometry**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
-    type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase: "after", features: [], stops: [],
+    type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: new URL(route.request().url()).searchParams.get("date"), phase: "current", features: [], stops: [],
   }) }));
   await page.route("**/api/dispatch/testing**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(
-    new URL(route.request().url()).searchParams.has("id") ? run : { runs: [run], horizon: ["2026-10-05"] }) }));
+    new URL(route.request().url()).searchParams.has("id") ? run : { runs: [run], horizon: ["2026-10-05", "2026-10-06"] }) }));
   await page.goto(`/dispatch/testing?run=${id}`);
-  await expect(page.getByRole("button", { name: "Apply proposal" })).toBeDisabled();
-  await expect(page.getByText(/1 unresolved/)).toBeVisible();
+  await expect(page.getByText(/Saved engine preview engine-preview: preview, 2 appointment\(s\) moved. Engine previews can no longer be applied./)).toBeVisible();
+  await expect(page.getByText("Unresolved appointments: unplaced.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Nothing to apply", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apply proposal" })).toHaveCount(0);
 });
 
-test("sequential review confirms guarded apply, reports conflicts, refreshes routes, and confirms purge", async ({ page }) => {
-  const id = "11111111-1111-4111-8111-111111111111", optimizationId = "preview-ui-test";
-  const preview = { run_id: optimizationId, metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
-    solver_status: "SOLVED", solve_ms: 10, routing_identity: "routing-test", configuration_version: "config-test", objective_improvement: 100,
-    churn_penalty_minutes: 0, optimized: false, appointments_moved: 1, created_at: "2026-09-21T12:00:00Z", applied_at: null, warnings: [],
-    route_summary_before: [], route_summary_after: [], changes: [], score_model_version: "bendable-decimal-repair-v2",
-    calculation_outcome: { mode: "ASSIGNED", scoreModelVersion: "bendable-decimal-repair-v2", assignedVisitIds: [], unassignedVisitIds: [],
-      complete: true, assignedWorkFeasible: true, scoringMatchesValidation: true, policyEligible: true } };
+test("sequential review confirms guarded apply, reports conflicts, and confirms purge", async ({ page }) => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  const proposal = proposalFixture();
   const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
-    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
-    previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId, result: preview, error: null }],
-    applied: [{ id: optimizationId, status: "PREVIEW", appliedAt: null }] };
+    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [] };
   let applied = false, purged = false, applyCalls = 0, runReads = 0;
-  const geometryPhases: string[] = [];
+  const committed = () => ({ ...proposal, state: "COMMITTED", committedAt: "2026-09-21T13:00:00Z" });
   await page.route("http://localhost:8083/**", route => route.fulfill({ status: 404 }));
-  await page.route("**/api/dispatch/geometry**", route => {
-    const phase = new URL(route.request().url()).searchParams.get("phase") ?? "";
-    geometryPhases.push(phase);
-    if (phase === "before") return route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ detail: "Saved route technician is unavailable" }) });
-    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
-      type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase, features: [], stops: [],
-    }) });
-  });
-  await page.route("**/api/dispatch/optimize/apply", async route => {
+  await page.route("**/api/dispatch/geometry**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    type: "FeatureCollection", routingIdentity: "routing-test", serviceDate: "2026-10-05", phase: "current", features: [], stops: [],
+  }) }));
+  await page.route("**/api/dispatch/proposals/commit", async route => {
     applyCalls++;
+    expect(route.request().postDataJSON()).toEqual({ proposalId: proposal.proposalId });
     if (applyCalls === 1) return route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Schedule version changed" }) });
-    applied = true; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...preview, status: "APPLIED", optimized: true, applied_at: "2026-09-21T13:00:00Z" }) });
+    applied = true; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(committed()) });
   });
   await page.route("**/api/dispatch/testing**", async route => {
     if (route.request().method() === "POST") {
@@ -312,30 +304,24 @@ test("sequential review confirms guarded apply, reports conflicts, refreshes rou
       if (body.success && body.data.action === "purge") purged = true;
     }
     const run = { ...baseRun, status: purged ? "PURGED" : "COMPLETED", purgedAt: purged ? "2026-09-21T14:00:00Z" : null, purgedCount: purged ? 1 : null,
-      applied: [{ id: optimizationId, status: applied ? "APPLIED" : "PREVIEW", appliedAt: applied ? "2026-09-21T13:00:00Z" : null }] };
+      previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId: proposal.proposalId, result: applied ? committed() : proposal, error: null }] };
     const url = new URL(route.request().url());
     if (route.request().method() === "GET" && url.searchParams.has("id")) runReads++;
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(route.request().method() === "GET" && !url.searchParams.has("id") ? { runs: [run], horizon: ["2026-10-05"] } : run) });
   });
   await page.goto(`/dispatch/testing?run=${id}`);
   await expect(page.getByRole("button", { name: "Apply proposal" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Proposed roads" })).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(() => geometryPhases).toEqual(["after"]);
   const readsAfterLoad = runReads;
   await page.waitForTimeout(2200);
   expect(runReads).toBe(readsAfterLoad);
   await page.getByRole("button", { name: "Reload progress" }).click();
   await expect.poll(() => runReads).toBe(readsAfterLoad + 1);
-  await page.getByRole("button", { name: "Before preview" }).click();
-  await expect(page.getByText("Saved route technician is unavailable Stop markers remain visible.", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Proposed roads" }).click();
-  await expect.poll(() => geometryPhases).toEqual(["after", "before", "after"]);
   page.once("dialog", dialog => dialog.dismiss()); await page.getByRole("button", { name: "Apply proposal" }).click(); expect(applyCalls).toBe(0);
   page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Apply proposal" }).click();
   await expect(page.getByText("Schedule version changed", { exact: true })).toBeVisible();
   page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Apply proposal" }).click();
   await expect(page.getByRole("button", { name: "Apply proposal" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Current roads" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Applied", { exact: true })).toBeVisible();
   page.once("dialog", dialog => dialog.accept()); await page.getByRole("button", { name: "Delete generated appointments" }).click();
   await expect(page.getByText(/Purged 1 generated appointment/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Delete generated appointments" })).toBeEnabled();
