@@ -58,14 +58,10 @@ services:
       SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}
       SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_SEARCH_CAPACITY:-0}
-      ROUTING_PREWARM_ENABLED: ${ROUTING_PREWARM_ENABLED:-false}
       # Public API locations sent with an address only: COORDINATES_REQUIRED never locates them; NOMINATIM looks
       # them up in the scheduler's own Nominatim and accepts only an exact house.
       GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
       NOMINATIM_URL: http://nominatim:8080
-      # The scheduler's own overnight batch for metros with one client. "-" turns it off, for example when the portal's
-      # overnight-worker runs each client's overnight optimization through the public API instead.
-      SCHEDULER_OPTIMIZER_CRON: ${SCHEDULER_OPTIMIZER_CRON:-0 0 2 * * *}
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }

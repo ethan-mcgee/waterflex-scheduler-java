@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 class ReservedOvertimeTest {
     @Test void bookingCannotTransferExistingOvertimeToNewWork() {
         var captured = Required.value(Instant.parse("2026-10-23T12:00:00Z"));
-        var date = Required.value(BookingService.bookingDates(captured).getFirst());
+        var date = Required.value(BookingCalendar.bookingDates(captured).getFirst());
         var start = Required.value(date.atStartOfDay(ZoneOffset.UTC).toInstant().plusSeconds(14 * 3600));
         var hour = Required.value(start.plusSeconds(3600));
         var twoHours = Required.value(start.plusSeconds(7200));
@@ -48,7 +48,7 @@ class ReservedOvertimeTest {
         var candidate = new BoundedBookingSearch.Candidate(new BoundedBookingSearch.Window(date, hour, threeHours), "a", proposal,
                 after.overtimeMinutes() - before.overtimeMinutes(), after.costCents() - before.costCents(), Required.value(BigDecimal.ZERO), 1, 1, "REARRANGEMENT", after);
         Map<LocalDate, Day> days = new TreeMap<>();
-        for (LocalDate item : BookingService.bookingDates(captured)) days.put(item, item.equals(date) ? day : new Day(
+        for (LocalDate item : BookingCalendar.bookingDates(captured)) days.put(item, item.equals(date) ? day : new Day(
                 Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, roads));
         var snapshot = new BookingSnapshot("metro", captured, "configuration", "roads", SchedulingPolicy.Rules.defaults(), rates, days);
         var result = new BoundedBookingSearch.Result(Required.value(List.of(candidate)), Required.value(List.of()), true, 1, 60, 240, false, "COMPLETED");
