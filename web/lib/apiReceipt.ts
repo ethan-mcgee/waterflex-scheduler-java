@@ -29,7 +29,8 @@ export async function currentLastModified(db: Prisma.TransactionClient, days: re
 }
 
 export interface ReceiptWrite {
-  receipt: CommitReceipt;
+  /** The scheduler's receipt, or a re-timing the portal derived from the scheduler's route evaluation. */
+  receipt: Pick<CommitReceipt, "assignments" | "technicianDays">;
   /** Technician-days whose every live appointment the receipt places; after writing, any other one there is an error. */
   complete: readonly TechnicianDayKey[];
   /** A booking's new appointment, created under the job's ID with the offered window; the job becomes SCHEDULED. */

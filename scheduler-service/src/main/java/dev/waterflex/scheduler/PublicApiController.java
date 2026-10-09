@@ -5,6 +5,7 @@ import dev.waterflex.scheduler.api.BookingHolds;
 import dev.waterflex.scheduler.api.BookingOffers;
 import dev.waterflex.scheduler.api.DailyCommits;
 import dev.waterflex.scheduler.api.DailyProposals;
+import dev.waterflex.scheduler.api.RouteEvaluations;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -23,14 +24,16 @@ public class PublicApiController {
     private final BookingOffers bookingOffers;
     private final BookingHolds bookingHolds;
     private final BookingConfirm bookingConfirm;
+    private final RouteEvaluations routeEvaluations;
 
     public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers, BookingHolds bookingHolds,
-                               BookingConfirm bookingConfirm) {
+                               BookingConfirm bookingConfirm, RouteEvaluations routeEvaluations) {
         this.dailyProposals = dailyProposals;
         this.dailyCommits = dailyCommits;
         this.bookingOffers = bookingOffers;
         this.bookingHolds = bookingHolds;
         this.bookingConfirm = bookingConfirm;
+        this.routeEvaluations = routeEvaluations;
     }
 
     /** Lets an integrator confirm which tenant a token belongs to. */
@@ -52,6 +55,11 @@ public class PublicApiController {
     @PostMapping("/api/v1/daily/proposals/{proposalId}/commit")
     public void commitDailyProposal(HttpServletRequest request, @PathVariable String proposalId, HttpServletResponse response) throws IOException {
         reply(response, dailyCommits.commit(TenantAuthentication.tenant(request), proposalId, body(request)));
+    }
+
+    @PostMapping("/api/v1/routes/evaluate")
+    public void evaluateRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        reply(response, routeEvaluations.evaluate(TenantAuthentication.tenant(request), body(request)));
     }
 
     @PostMapping("/api/v1/booking/offers")
