@@ -1,19 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { connection, createBookingOffers, publicApiEnabled, SchedulerApiError, tokenVariable } from "./schedulerApi";
+import { connection, createBookingOffers, SchedulerApiError, tokenVariable } from "./schedulerApi";
 
 const TOKEN = `wfs_${"a".repeat(43)}`;
 const code = (run: () => unknown) => {
   try { run(); } catch (error) { if (error instanceof SchedulerApiError) return error.code; throw error; }
   return "CONNECTED";
 };
-
-test("the public API is off unless explicitly turned on, and a typo is an error rather than off", () => {
-  assert.equal(publicApiEnabled({}), false);
-  assert.equal(publicApiEnabled({ SCHEDULER_PUBLIC_API: "false" }), false);
-  assert.equal(publicApiEnabled({ SCHEDULER_PUBLIC_API: "true" }), true);
-  assert.throws(() => publicApiEnabled({ SCHEDULER_PUBLIC_API: "yes" }));
-});
 
 test("each client's token comes from its own variable and is never shared or guessed", () => {
   assert.equal(tokenVariable("acme-water"), "SCHEDULER_API_TOKEN_ACME_WATER");

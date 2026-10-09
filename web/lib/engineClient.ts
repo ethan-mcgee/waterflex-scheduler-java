@@ -1,14 +1,12 @@
-import { durableSearchStatus } from "./contracts";
+// Server-only client for the Java scheduling service's internal portal endpoints. Never import this from a Client
+// Component; it carries the shared internal secret. The portal schedules only through the public API (schedulerApi.ts);
+// what is left here is used by the benchmark harness and by smokes of those Java endpoints, which go with them in P7c.
 import { z } from "zod";
-import { locationValidation } from "./contracts";
+import { durableSearchStatus, errorMessage, locationValidation, offersResponse, selection, success, dailyOutcome, policyAnalysis, solverAnalysis } from "./contracts";
 
 export function validateBookingLocation(point: { lat: number; lng: number }, signal?: AbortSignal) {
   return request("/v1/book/location/validate", locationValidation, point, 8000, signal);
 }
-import { offersResponse, selection, confirmation, optimization, optimizationRuns, success, timeOffResult, errorMessage, routabilityResponse, depotPolicyResult, policyAnalysis, solverAnalysis, dailyOutcome } from "./contracts";
-import { isDispatchGeometry, type GeometryResponse } from "./dispatchGeometry";
-// Server-only client for the Java scheduling service. Never import
-// this from a Client Component; it carries the shared internal secret.
 
 const ENGINE_URL = process.env.ENGINE_URL ?? "http://localhost:8000";
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET ?? "dev-only-change-me";
@@ -19,18 +17,6 @@ export class EngineError extends Error {
     super(message);
     this.status = status;
   }
-}
-
-export function updateDepotPolicy(id: string, departure: "HOME" | "DEPOT", returnTo: "HOME" | "DEPOT"): Promise<{ success: true; effectiveDate: string }> {
-  return request(`/v1/depots/${encodeURIComponent(id)}/policy`, depotPolicyResult, { departure, returnTo });
-}
-
-export function updateDepotDetails(id: string, details: { name: string; address?: { line1: string; city: string; state: string; postalCode: string }; confirmedPin?: { lat: number; lng: number }; candidate?: { lat: number; lng: number; precision: string } }): Promise<{ success: boolean }> {
-  return request(`/v1/depots/${encodeURIComponent(id)}/details`, success, details);
-}
-
-export function assignTechnicianDepot(id: string, depotId: string, effectiveDate: string): Promise<{ success: boolean }> {
-  return request(`/v1/technicians/${encodeURIComponent(id)}/depot-assignments`, success, { depotId, effectiveDate });
 }
 
 async function request<T>(path: string, schema: z.ZodType<T>, body?: unknown, timeoutMs = 30000, externalSignal?: AbortSignal, method?: "GET" | "POST" | "DELETE"): Promise<T> {
@@ -104,10 +90,6 @@ export function releaseOffers(jobId: string, offerId: string): Promise<{ success
   return request("/v1/offers/release", success, { jobId, offerId });
 }
 
-export function confirmHold(holdId: string): Promise<{ appointmentId: string; windowStart: string; windowEnd: string }> {
-  return request("/v1/holds/confirm", confirmation, { holdId });
-}
-
 const purgeRoute = z.object({ technicianId: z.string().min(1), serviceDate: z.iso.date(), version: z.int().nonnegative(),
   routingIdentity: z.string().min(1).nullable(),
   stops: z.array(z.object({ id: z.string().min(1), plannedStart: z.iso.datetime(), plannedEnd: z.iso.datetime() })),
@@ -117,6 +99,7 @@ export function validatePurgeRoutes(jobIds: string[], days: Array<{ technicianId
   return request("/v1/purge/validate-routes", z.array(purgeRoute), { jobIds, days });
 }
 
+/** An engine optimization run, as saved in booking test runs made before the public API. */
 export interface OptimizationRun {
   score_model_version?: "hard-medium-soft-decimal-v1" | "bendable-decimal-repair-v2" | null;
   calculation_outcome?: z.infer<typeof dailyOutcome> | null;
@@ -179,74 +162,6 @@ export interface OptimizationRun {
     to_planned_arrival_min: number;
   }>;
 }
-
-export function previewOptimization(params: {
-  metro_id: string;
-  date: string;
-  request_key?: string;
-}, timeoutMs?: number): Promise<OptimizationRun> {
-  return request("/v1/optimize/day/preview", optimization, params, timeoutMs);
-}
-
-export function applyOptimization(runId: string): Promise<OptimizationRun> {
-  return request(`/v1/optimize/runs/${encodeURIComponent(runId)}/apply`, optimization, {});
-}
-
-export function optimizationHistory(metroId: string, date: string): Promise<{ runs: OptimizationRun[] }> {
-  const query = new URLSearchParams({ metro_id: metroId, date });
-  return request(`/v1/optimize/runs?${query}`, optimizationRuns);
-}
-
-export function optimizationRun(runId: string): Promise<OptimizationRun> {
-  return request(`/v1/optimize/runs/${encodeURIComponent(runId)}`, optimization);
-}
-
-export async function checkTestAddressRoutability(candidates: Array<{ id: string; serviceCode: string; lat: number; lng: number }>, timeoutMs?: number, signal?: AbortSignal): Promise<Set<string>> {
-  const response = await request("/internal/test-address-routability", routabilityResponse, { candidates }, timeoutMs, signal);
-  return new Set(response.results.filter(result => result.routable).map(result => result.id));
-}
-
-export function cancelAppointment(params: { appointment_id: string; reason: string }): Promise<{ success: boolean }> {
-  return request("/v1/appointments/cancel", success, params);
-}
-
-/** Current routes are limited to the client's technicians when clientId is given, which a metro shared by several clients needs. */
-export function dispatchGeometry(metroId: string, date: string, runId?: string, phase = "current", clientId?: string) {
-  const query = new URLSearchParams({ metro_id: metroId, date, phase });
-  if (clientId !== undefined) query.set("client_id", clientId);
-  if (runId) query.set("run_id", runId);
-  return request(`/v1/dispatch/geometry?${query}`, z.custom<GeometryResponse>(v => isDispatchGeometry(v, date, phase)));
-}
-
-export function submitTimeOff(request: { technicianId: string; firstDate: string; lastDate: string; startMin: number; endMin: number; category: string; reason: string }): Promise<{ requestId: string; status: string }> {
-  return requestEngine("/v1/time-off/request", timeOffResult, request);
-}
-
-export function approveTimeOff(id: string): Promise<{ requestId: string; status: string }> {
-  return request(`/v1/time-off/${encodeURIComponent(id)}/approve`, timeOffResult, {});
-}
-
-export function retryTimeOff(id: string): Promise<{ requestId: string; status: string }> {
-  return request(`/v1/time-off/${encodeURIComponent(id)}/retry`, timeOffResult, {});
-}
-
-export function denyTimeOff(id: string): Promise<{ requestId: string; status: string }> {
-  return request(`/v1/time-off/${encodeURIComponent(id)}/deny`, timeOffResult, {});
-}
-
-export function updateAvailability(request: { technicianId: string; date: string; available: boolean; shiftStartMin?: number | null; shiftEndMin?: number | null }): Promise<{ success: boolean }> {
-  return requestEngine("/v1/dispatch/availability", success, request);
-}
-
-export function deleteAvailabilityOverride(request: { technicianId: string; date: string }): Promise<{ success: boolean }> {
-  return requestEngine("/v1/dispatch/availability", success, request, 30000, undefined, "DELETE");
-}
-
-export function updateQualification(request: { technicianId: string; serviceId: string; qualified: boolean }): Promise<{ success: boolean }> {
-  return requestEngine("/v1/dispatch/qualification", success, request);
-}
-
-const requestEngine = request;
 
 export function startBookingSearch(jobId: string, requestId: string, refresh: boolean) {
   return request("/v1/booking-searches", durableSearchStatus, { jobId, requestId, refresh }, 10000);

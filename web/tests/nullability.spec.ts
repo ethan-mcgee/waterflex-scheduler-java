@@ -78,7 +78,8 @@ test("shift drafts follow the selected technician and time-off modal preserves f
     await page.getByRole("button", { name: "Pending" }).click();
     await expect(page.getByRole("button", { name: "Pending" })).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Analysis 0% complete")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Refresh analysis" })).toBeVisible();
+    // A partly analyzed request is continued from the page, one day per call to the scheduling API.
+    await expect(page.getByRole("button", { name: "Continue analysis" })).toBeVisible();
     await page.getByRole("button", { name: "Ada Shift" }).click();
     await expect(page.getByText("The saved analysis report is malformed.", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Ready for review" }).click();

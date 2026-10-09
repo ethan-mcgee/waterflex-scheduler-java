@@ -10,7 +10,3 @@ export async function apiDispatchStep(step: () => Promise<unknown>): Promise<Nex
     throw error;
   }
 }
-
-export function onlyWithApi(): NextResponse {
-  return NextResponse.json({ error: "Used only when scheduling runs through the scheduling API" }, { status: 404 });
-}
