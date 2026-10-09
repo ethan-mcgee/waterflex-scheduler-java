@@ -9,6 +9,8 @@ import { PATCH as editDepot } from "../app/api/depots/[id]/route";
 import { POST as createTechnician } from "../app/api/technicians/route";
 import { POST as book } from "../app/api/book/route";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
+import { connectSmokeClient } from "./smokeApiClient";
+import { required } from "../lib/contracts";
 
 if (!process.env.DATABASE_URL || new URL(process.env.DATABASE_URL).pathname !== "/waterflex_test") throw new Error("Requires waterflex_test");
 if (process.env.ENGINE_URL !== (process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000")) throw new Error("Requires isolated test engine");
@@ -22,6 +24,8 @@ const geocoder = createServer((_, response) => {
   } }]));
 });
 const request = (body: unknown) => new NextRequest("http://localhost/api/test", { method: "POST", body: JSON.stringify(body) });
+// Booking searches through the public API, which routes only listed metros: CI lists this one with the fixture router.
+const METRO = "address-matching-smoke";
 async function main() {
   await new Promise<void>(resolve => geocoder.listen(0, "127.0.0.1", resolve));
   const location = geocoder.address();
@@ -29,7 +33,9 @@ async function main() {
   process.env.NOMINATIM_URL = `http://127.0.0.1:${location.port}`;
   const suffix = randomUUID();
   const dealer = await prisma.dealership.create({ data: { clientId: DEFAULT_CLIENT_ID, name: `Address fixture ${suffix}` } });
-  const metro = await prisma.metro.create({ data: { name: `Address fixture ${suffix}`, timezone: "America/Chicago" } });
+  await prisma.metro.deleteMany({ where: { id: METRO, depots: { none: {} } } });
+  const metro = await prisma.metro.create({ data: { id: METRO, name: `Address fixture ${suffix}`, timezone: "America/Chicago" } });
+  const disconnect = await connectSmokeClient(DEFAULT_CLIENT_ID, required(process.env.ENGINE_URL), "Address matching smoke");
   const service = await prisma.serviceCatalog.create({ data: { code: suffix, name: "Address fixture", estDurationMin: 60 } });
   const address = { line1: "2825 S 170th Plz", city: "Omaha", state: "NE", postalCode: "68130" };
   const confirmedPin = { lat: 41.26088, lng: -96.18435 };
@@ -86,6 +92,7 @@ async function main() {
   } finally {
     const jobs = await prisma.job.findMany({ where: { serviceId: service.id } });
     const ids = jobs.map(job => job.id);
+    await prisma.portalApiOfferSet.deleteMany({ where: { jobId: { in: ids } } });
     await prisma.slotHold.deleteMany({ where: { jobId: { in: ids } } });
     await prisma.reservationArrangement.deleteMany({ where: { metroId: metro.id } });
     await prisma.bookingOffer.deleteMany({ where: { jobId: { in: ids } } });
@@ -101,6 +108,7 @@ async function main() {
     await prisma.dealership.delete({ where: { id: dealer.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
     await prisma.serviceCatalog.delete({ where: { id: service.id } });
+    await disconnect();
     geocoder.close(); await prisma.$disconnect();
   }
 }
