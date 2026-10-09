@@ -159,6 +159,9 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: waterflex
           POSTGRES_PASSWORD: waterflex
@@ -307,6 +310,97 @@ jobs:
             ${{ runner.temp }}/*.log
           retention-days: 7
 
+  integration-time-off:
+    name: Time-off repair
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          POSTGRES_USER: waterflex
+          POSTGRES_PASSWORD: waterflex
+          POSTGRES_DB: waterflex_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U waterflex -d waterflex_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test
+      JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
+      DATABASE_USER: waterflex
+      DATABASE_PASSWORD: waterflex
+      ROUTING_URL: http://127.0.0.1:18001
+      SCHEDULER_TEST_URL: http://127.0.0.1:18000
+      ENGINE_URL: http://127.0.0.1:18000
+      SERVER_PORT: '18000'
+      TIME_OFF_POLL_DELAY_MS: '1000'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install portal dependencies and generate Prisma client
+        working-directory: web
+        run: npm ci && npm run prisma:generate
+      - name: Migrate, seed, and check schema
+        working-directory: web
+        run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+      - name: Build isolated integration services
+        run: ./mvnw -Pnullability -pl scheduler-service -am -DskipTests package --batch-mode --no-transfer-progress
+      - name: Start fixture routing and scheduler
+        run: |
+          node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
+          java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/scheduler.log" 2>&1 &
+          for _attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:18001/health > /dev/null &&
+               curl --fail --silent http://127.0.0.1:18000/health > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Services did not become healthy" >&2
+          exit 1
+      - name: Time-off repair smoke
+        working-directory: web
+        run: |
+          for repetition in 1 2 3; do
+            echo "Time-off smoke repetition $repetition"
+            node ../infra/run-check.mjs time-off-$repetition npm run test:time-off:integration
+          done
+      - name: Print service logs on failure
+        if: failure()
+        run: |
+          echo 'Fixture routing log:'
+          cat "$RUNNER_TEMP/fixture-routing.log" 2>/dev/null || true
+          echo 'Scheduler log:'
+          cat "$RUNNER_TEMP/scheduler.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/reservation-scheduler.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/remote-solver.log" 2>/dev/null || true
+          cat "$RUNNER_TEMP/remote-scheduler.log" 2>/dev/null || true
+      - name: Upload integration diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-time-off-diagnostics
+          path: |
+            scheduler-service/target/surefire-reports/
+            ${{ runner.temp }}/*.log
+          retention-days: 7
+
   integration-remote:
     name: Remote calculation
     runs-on: ubuntu-latest
@@ -314,6 +408,9 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: waterflex
           POSTGRES_PASSWORD: waterflex
@@ -435,6 +532,9 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: waterflex
           POSTGRES_PASSWORD: waterflex
