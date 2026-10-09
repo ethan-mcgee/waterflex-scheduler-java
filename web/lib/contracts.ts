@@ -16,7 +16,6 @@ export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-1
 export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();
 export const depotSetup = dealershipPolicy.extend({ dealershipId: text, metroId: text, name: text.max(120),
   address: z.object({ line1: text, city: text, state: text, postalCode: text }).strict(), confirmedPin: point }).strict();
-export const depotPolicyResult = z.object({ success: z.literal(true), effectiveDate: date });
 export const dealershipSetup = z.object({ name: text.max(120) }).strict();
 export const dealershipDetails = dealershipSetup;
 export const depotDetails = z.object({ name: text.max(120), address: depotSetup.shape.address.optional(),
@@ -55,7 +54,6 @@ export const selection = confirmation.extend({ holdId: text, expiresAt: instant 
 export const success = z.object({ success: z.boolean() });
 export const timeOffResult = z.object({ requestId: text, status: text });
 export const timeOffAnalysis = z.object({ requestId: text, status: text, progress: z.int().min(0).max(100), done: z.boolean() }).strict();
-export const routabilityResponse = z.object({ results: z.array(z.object({ id: text, routable: z.boolean() })) });
 export const travelBreakdown = z.object({ road_seconds: z.int().nonnegative(), configured_buffer_seconds: finite.nonnegative(),
   rounding_seconds: finite.nonnegative(), modeled_travel_minutes: z.int().nonnegative(), leg_count: z.int().nonnegative(),
 }).refine(value => Math.abs(value.road_seconds + value.configured_buffer_seconds + value.rounding_seconds - value.modeled_travel_minutes * 60) < 0.000001,
@@ -134,7 +132,6 @@ export const optimization = z.object({
   || (value.fleet_cost_before_cents != null && value.fleet_cost_after_cents != null), "Current cost model requires recorded fleet costs")
   .refine(value => value.score_model_version !== "bendable-decimal-repair-v2" || value.calculation_outcome != null,
     "Current score model requires calculation coverage and validation");
-export const optimizationRuns = z.object({ runs: z.array(optimization) });
 // A daily proposal from the public scheduling API, as the portal keeps it (lib/apiDispatch.ts).
 export const apiProposal = z.object({ proposalId: text, serviceDate: date, createdAt: instant,
   decision: z.enum(["IMPROVED", "NO_IMPROVEMENT", "REJECTED_BY_POLICY"]), reason: text, costCents: z.int().nonnegative(),

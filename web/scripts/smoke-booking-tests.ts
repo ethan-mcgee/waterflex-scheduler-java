@@ -16,7 +16,8 @@ import type { AddressGenerationDependencies } from "../lib/bookingTestAddresses"
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 import { connectSmokeClient } from "./smokeApiClient";
 
-// Intentionally retains run history in the disposable test database for inspection.
+// Intentionally retains run history in the disposable test database for inspection. Earlier runs' bookings are purged
+// first: the fixture has only ten addresses, and an address with an active appointment is never generated again.
 if (!new URL(process.env.DATABASE_URL ?? "").pathname.endsWith("/waterflex_test")) throw new Error("Use isolated waterflex_test database only.");
 const CLIENT = DEFAULT_CLIENT_ID;
 const base = required(process.env.SCHEDULER_TEST_URL, "SCHEDULER_TEST_URL (a running scheduler)");
@@ -44,7 +45,13 @@ async function resumed(id: string) { return controlTestRun(id, "resume"); }
 async function main() {
   await ensureOmahaConfiguration(prisma);
   const disconnect = await connectSmokeClient(CLIENT, base, "Booking tests smoke");
-  try { await runs(); } finally { await disconnect(); }
+  try {
+    for (const earlier of await prisma.bookingTestRun.findMany({ where: { purgedAt: null }, select: { id: true, status: true } })) {
+      if (earlier.status === "RUNNING") await controlTestRun(earlier.id, "stop");
+      await purgeTestRun(earlier.id);
+    }
+    await runs();
+  } finally { await disconnect(); }
 }
 async function runs() {
   await assert.rejects(createTestRun(randomUUID(), config, `missing-${randomUUID()}`),
