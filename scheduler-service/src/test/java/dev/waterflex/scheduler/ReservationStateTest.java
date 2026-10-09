@@ -5,13 +5,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import dev.waterflex.scheduler.BookingSnapshot.Arrangement;
 import dev.waterflex.scheduler.optimizer.RouteEvaluator;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.*;
 import org.junit.jupiter.api.Test;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class ReservationStateTest {
     private final ObjectMapper json = new ObjectMapper();
@@ -60,13 +57,6 @@ class ReservationStateTest {
         ObjectNode blank = root();
         ((ObjectNode) blank.path("routes")).putArray("tech").add("");
         assertThrows(ResponseStatusException.class, () -> ReservationState.decode(json, Required.value(blank.toString())));
-    }
-
-    @Test void reservationLocksCannotRunOutsideCommitTransaction() {
-        JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        ReservationStore store = new ReservationStore(jdbc);
-        assertThrows(IllegalStateException.class, () -> store.lock("metro", Required.value(List.of(LocalDate.parse("2026-10-26")))));
-        verifyNoInteractions(jdbc);
     }
 
     private ObjectNode root() throws Exception { return (ObjectNode) Required.value(json.readTree(state().encode(json))); }

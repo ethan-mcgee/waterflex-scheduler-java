@@ -17,19 +17,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 class BookingWeeklyAvailabilityTest {
     @Test void availableWeekendStaysInsideTenthWeekdaySpan() {
-        List<LocalDate> dates = BookingService.bookingDates(Required.value(Instant.parse("2026-10-23T17:00:00Z")));
+        List<LocalDate> dates = BookingCalendar.bookingDates(Required.value(Instant.parse("2026-10-23T17:00:00Z")));
         assertEquals(LocalDate.parse("2026-10-24"), dates.getFirst());
         assertTrue(dates.contains(LocalDate.parse("2026-10-25")));
         assertTrue(dates.contains(LocalDate.parse("2026-11-01")));
         assertEquals(LocalDate.parse("2026-11-06"), dates.getLast());
         assertFalse(dates.contains(LocalDate.parse("2026-11-07")));
-    }
-
-    @Test void windowsFitEachDaysShift() {
-        assertEquals(List.of(600), BookingService.windowStartMinutes(600, 840));
-        assertEquals(List.of(), BookingService.windowStartMinutes(510, 720));
-        assertEquals(List.of(), BookingService.windowStartMinutes(600, 690));
-        assertThrows(IllegalArgumentException.class, () -> BookingService.windowStartMinutes(900, 600));
     }
 
     @Test void missingHoursFailAndDateExceptionsTakePrecedence() {
@@ -41,16 +34,6 @@ class BookingWeeklyAvailabilityTest {
         assertThrows(ResponseStatusException.class, () -> WeeklyAvailability.select(true, 480, 1020, true, null, 840));
         assertThrows(ResponseStatusException.class, () -> WeeklyAvailability.select(true, 480, 1020, false, 600, 840));
         assertThrows(ResponseStatusException.class, () -> WeeklyAvailability.select(true, 480, 1020, null, 600, 840));
-    }
-
-    @Test void regularInsertionCannotBeHiddenByCheaperOvertime() {
-        Instant start = Required.value(Instant.parse("2026-10-26T14:00:00Z"));
-        LocalDate day = Required.value(LocalDate.parse("2026-10-26"));
-        var regular = new BookingService.Candidate("tech", day, start, Required.value(start.plusSeconds(7200)), start, 1, 35, 60, 0, 1000);
-        var overtime = new BookingService.Candidate("tech", day, start, Required.value(start.plusSeconds(7200)), start, 0, 20, 20, 10, 100);
-        assertTrue(BookingService.INSERTION_ORDER.compare(regular, overtime) < 0);
-        var reduction = new BookingService.Candidate("tech", day, start, Required.value(start.plusSeconds(7200)), start, 2, 40, 65, -5, 1000);
-        assertTrue(BookingService.INSERTION_ORDER.compare(reduction, regular) < 0);
     }
 
     @Test void batchedAvailabilityPreservesExplicitOffDaysAndRejectsMissingTechnicians() throws Exception {

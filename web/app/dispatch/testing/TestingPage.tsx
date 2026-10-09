@@ -5,9 +5,9 @@ import { readResponse, testRun, testHistory, testConfig, testRadiusMi, errorMess
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { calendarDateInTz } from "@/lib/date";
-import { DEFAULT_TEST_CONFIG, TEST_RADIUS_PRESETS, type TestConfig, type TestConfigInput } from "@/lib/bookingTestCore";
+import { DEFAULT_TEST_CONFIG, TEST_RADIUS_PRESETS, type SlotOffer, type TestConfig, type TestConfigInput } from "@/lib/bookingTestCore";
 import { FAKE_SERVICE_CODES, OMAHA_TIMEZONE, type FakeLocation } from "@/lib/fakeDataCore";
-import type { OptimizationRun, SlotOffer } from "@/lib/engineClient";
+import type { OptimizationRun } from "@/lib/savedEngineRun";
 import ApiProposalReview, { type ApiProposal } from "@/app/dispatch/ApiProposalReview";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import styles from "./testing.module.css";
