@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MasterDataRefused, policyEffectiveDate, retimedWrite, withAssignment, withDepotLocation, withPolicy, type TimedDay } from "./apiMasterDataCore";
+import { ChangeRefused, policyEffectiveDate, RouteRefused, retimedWrite, withAssignment, withDepotLocation, withPolicy, type TimedDay } from "./apiMasterDataCore";
 import type { DepotFacts, TechnicianFacts } from "./clientSnapshot";
 import type { RouteEvaluation } from "./schedulerApi";
 
@@ -59,7 +59,7 @@ test("timed routes become receipt writes compared against the technician-days th
 
 test("a change the booked routes cannot absorb is refused, and a timing that does not match the day is an error", () => {
   const refused = (evaluation: RouteEvaluation, snapshot = changed) => assert.throws(() => retimedWrite(DATE, ["a"], snapshot, evaluation),
-    (error: unknown) => error instanceof MasterDataRefused && error.status === 409);
+    (error: unknown) => error instanceof RouteRefused && error instanceof ChangeRefused && error.status === 409);
   refused(timed({ feasible: false, routes: [] }));
   refused(timed({ routes: [], skippedTechnicianDays: [{ technicianId: "a", serviceDate: DATE, reason: "LOCATION_UNRESOLVED", message: "No coordinates" }] }));
   refused(timed(), { ...changed, technicianDays: [] });

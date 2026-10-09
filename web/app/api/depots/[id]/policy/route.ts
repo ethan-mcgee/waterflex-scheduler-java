@@ -4,7 +4,7 @@ import { notFound, ownsDepot } from "@/lib/clientScope";
 import { dealershipPolicy, readBody } from "@/lib/contracts";
 import { updateDepotPolicy, EngineError } from "@/lib/engineClient";
 import { setApiDepotPolicy } from "@/lib/apiMasterData";
-import { masterDataStep } from "@/lib/apiMasterDataRoute";
+import { changeStep } from "@/lib/apiChangeRoute";
 import { publicApiEnabled } from "@/lib/schedulerApi";
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
@@ -12,7 +12,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   if (!parsed.success) return NextResponse.json({ error: "Invalid route endpoints" }, { status: 400 });
   const clientId = (await activeClient(request)).id;
   if (!(await ownsDepot(clientId, params.id))) return notFound("Depot");
-  if (publicApiEnabled()) return masterDataStep(() => setApiDepotPolicy(clientId, params.id, parsed.data.departure, parsed.data.returnTo));
+  if (publicApiEnabled()) return changeStep(() => setApiDepotPolicy(clientId, params.id, parsed.data.departure, parsed.data.returnTo));
   try {
     return NextResponse.json(await updateDepotPolicy(params.id, parsed.data.departure, parsed.data.returnTo));
   } catch (error) {
