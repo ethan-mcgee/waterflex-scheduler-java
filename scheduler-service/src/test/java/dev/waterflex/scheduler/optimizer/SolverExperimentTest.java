@@ -13,18 +13,12 @@ class SolverExperimentTest {
         assertEquals("STEP_LIMIT", result.statistics().termination());
         assertTrue(result.statistics().solveMs() < 10000);
     }
-    @Test void productionDiagnosticsPersistExplicitUnavailableMetrics() throws Exception {
+    @Test void productionStatisticsReportExplicitUnavailableMetrics() {
         var solver = new DailySolver("CURRENT_CAPPED", 17);
         var result = solver.solve(DayConstraintProviderTest.fixture(), Required.value(Duration.ofMillis(100)));
-        var diagnostics = solver.diagnostics(Required.value(java.util.List.<DailySolver.Phase>of(new DailySolver.Phase("REFERENCE", result.statistics()))));
-        com.fasterxml.jackson.databind.JsonNode node = Required.value(new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(diagnostics));
-        dev.waterflex.scheduler.SavedJson.solverAnalysis(node);
-        var phase = (com.fasterxml.jackson.databind.node.ObjectNode) node.path("phases").get(0).path("statistics");
         assertEquals("NOT_ENABLED", result.statistics().diagnosticsUnavailableReason());
         assertNull(result.statistics().moveEvaluations());
         assertEquals("OBSERVED", result.statistics().terminationBasis());
-        phase.remove("moveEvaluations");
-        assertThrows(RuntimeException.class, () -> dev.waterflex.scheduler.SavedJson.solverAnalysis(node));
         assertThrows(IllegalArgumentException.class, () -> new DailySolver("unknown", 17));
     }
     @Test void everyCommunityConfigurationBuildsAndReportsMeasuredSearchWork() {

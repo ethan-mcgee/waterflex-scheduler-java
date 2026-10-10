@@ -24,13 +24,7 @@ public final class CalculationTransport {
         BookingCalculation.validate(input.snapshot(),input.request(),output.result());
         return output;
     }
-    public DailyCalculation.Result daily(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,
-            java.util.Map<String,RoadPoint> points,String snapshotId,String revision,String routing,String configuration,java.util.Map<String,Integer> schedule) {
-        java.util.Map<String,String> tokens = new java.util.LinkedHashMap<>();
-        schedule.forEach((technician,version) -> tokens.put(Required.value(technician),Integer.toString(Required.value(version))));
-        return dailyTokens(plan,policy,solver,points,snapshotId,revision,routing,configuration,tokens);
-    }
-    /** As {@link #daily}, with opaque per-technician revision tokens such as host last-modified timestamps. */
+    /** A daily calculation keyed by opaque per-technician revision tokens such as host last-modified timestamps. */
     public DailyCalculation.Result dailyTokens(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,
             java.util.Map<String,RoadPoint> points,String snapshotId,String revision,String routing,String configuration,java.util.Map<String,String> schedule) {
         if (remote == null) return DailyCalculation.run(plan,policy,solver);

@@ -174,8 +174,7 @@ public class DailyProposals {
     private record Outcome(DailyPreparation.Prepared prepared, DayPlan chosen, Decision decision, String reason) { }
 
     /**
-     * The portal path's preview decision (OptimizationService.createPreview), applied to request-fed facts; with an
-     * absence, the portal's repair (OptimizationService.createRepair) of the same facts.
+     * The daily preview decision applied to request-fed facts; with an absence, the repair of the same facts.
      */
     private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, String proposalId, String revision, Map<String, String> tokens,
                               PublicRequests.@Nullable Absence absence) {

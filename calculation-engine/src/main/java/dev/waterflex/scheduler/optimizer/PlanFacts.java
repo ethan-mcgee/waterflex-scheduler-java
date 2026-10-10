@@ -104,6 +104,5 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
     public static void roadKey(String key) {
         int split = key.indexOf('>'); check(split > 0 && split == key.lastIndexOf('>') && split < key.length() - 1, "invalid legacy directed road key: " + key);
     }
-    public static void number(double value, String field) { check(Double.isFinite(value) && value >= 0, field + " must be finite and nonnegative"); }
     public static void check(boolean valid, String message) { if (!valid) throw new IllegalArgumentException(message); }
 }

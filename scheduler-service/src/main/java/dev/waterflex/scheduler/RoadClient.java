@@ -77,7 +77,6 @@ public class RoadClient {
 
     public String currentVersion() { return routingIdentity; }
     public String activeIdentity() { return healthIdentity(); }
-    void clearMemoryForIsolatedBenchmark() { memory.clear(); }
 
     public JsonNode routeGeometry(List<RoadPoint> points, String expectedIdentity) {
         String identity = healthIdentity();
