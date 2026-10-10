@@ -44,14 +44,14 @@ class SolverReplayTest {
         for (String from : List.of("a","b","old","new")) for (String to : List.of("old","new","a:return","b:return")) if (!from.equals(to)) roads.put(from+">"+to,new DayPlan.RoadLeg(60,100));
         var day = new BookingSnapshot.Day(Required.value(Map.of("a",a,"b",b)),Required.value(Map.of("old",visit)),new BookingSnapshot.Arrangement(Required.value(Map.of("a",List.of("old"),"b",List.of()))),2,new BookingSnapshot.Roads(roads,Required.value(Set.of())));
         Map<LocalDate,BookingSnapshot.Day> days = new TreeMap<>(original.snapshot().days()); days.put(ReplayFixture.DAY,day);
-        var snapshot = new BookingSnapshot("metro",ReplayFixture.CAPTURED,"config-rev","roads-rev",original.snapshot().policy(),original.snapshot().rates(),days);
+        var snapshot = new BookingSnapshot("metro",ReplayFixture.CAPTURED,ReplayFixture.CAPTURED,"config-rev","roads-rev",original.snapshot().policy(),original.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
         var request = new BoundedBookingSearch.Request("new","service",60,ReplayFixture.POINT);
-        var insertionInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.INSERTION,"BOUNDED",Required.value(Set.of()),null,0);
+        var insertionInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.INSERTION,"BOUNDED",null,0);
         BookingDataset.parse(BookingDataset.encode(insertionInput,BookingDataset.Encoding.SPARSE));
         var inserted = post(CalculationProtocol.Request.of("BOOKING",5000,insertionInput),TOKEN); assertEquals(200,inserted.statusCode(),inserted.body());
         var insertion = CalculationJson.read(CalculationJson.read(Required.value(inserted.body()),CalculationProtocol.Response.class).payload(),BookingCalculation.Output.class);
         assertTrue(insertion.result().candidates().isEmpty());
-        var refinementInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.REFINEMENT,"BOUNDED",Required.value(Set.of()),insertion.result(),0);
+        var refinementInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.REFINEMENT,"BOUNDED",insertion.result(),0);
         var decodedRefinement = BookingDataset.parse(BookingDataset.encode(refinementInput,BookingDataset.Encoding.SPARSE));
         new SearchDeadline(Required.value(Duration.ofSeconds(5))).within(() -> BookingCalculation.run(decodedRefinement));
         var refined = post(CalculationProtocol.Request.of("BOOKING",5000,refinementInput),TOKEN); assertEquals(200,refined.statusCode(),refined.body());
@@ -105,8 +105,8 @@ class SolverReplayTest {
         Map<String,DayPlan.RoadLeg> roads = new HashMap<>(day.roads().legs()); roads.remove("a>new");
         var changed = new BookingSnapshot.Day(day.technicians(),day.visits(),day.baseline(),day.reservationVersion(),new BookingSnapshot.Roads(roads,Required.value(Set.of())));
         Map<java.time.LocalDate,BookingSnapshot.Day> days = new TreeMap<>(input.snapshot().days()); days.put(ReplayFixture.DAY,changed);
-        var snapshot = new BookingSnapshot(input.snapshot().metroId(),input.snapshot().capturedAt(),input.snapshot().configurationFingerprint(),input.snapshot().routingIdentity(),input.snapshot().policy(),input.snapshot().rates(),days);
-        var missing = new BookingCalculation.Input(snapshot,input.request(),input.stage(),input.variant(),input.dates(),null,0);
+        var snapshot = new BookingSnapshot(input.snapshot().metroId(),input.snapshot().capturedAt(),input.snapshot().capturedAt(),input.snapshot().configurationFingerprint(),input.snapshot().routingIdentity(),input.snapshot().policy(),input.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
+        var missing = new BookingCalculation.Input(snapshot,input.request(),input.stage(),input.variant(),null,0);
         assertThrows(BookingSnapshot.Incomplete.class,() -> BookingCalculation.run(missing));
         var result = BookingCalculation.run(input).result(); var original = result.candidates().getFirst();
         var forged = new BoundedBookingSearch.Candidate(original.window(),original.technicianId(),original.arrangement(),original.overtimeDelta(),

@@ -178,18 +178,11 @@ public final class BoundedBookingSearch {
         return search(windows, rearrangementEnabled, null);
     }
 
-    Result searchDates(Set<LocalDate> dates, boolean rearrangement) {
-        return search(Required.value(windows().stream().filter(window -> dates.contains(window.day())).toList()), rearrangement, null, false);
-    }
-
     Result refine(Result insertion) { return search(windows(), true, insertion); }
 
     private Result search(List<Window> windows, boolean rearrangementEnabled, @Nullable Result insertion) {
-        return search(windows, rearrangementEnabled, insertion, true);
-    }
-    private Result search(List<Window> windows, boolean rearrangementEnabled, @Nullable Result insertion, boolean fullHorizon) {
         if (new HashSet<>(windows).size() != windows.size()) throw new IllegalArgumentException("Duplicate booking window");
-        if (fullHorizon && !new HashSet<>(windows).equals(new HashSet<>(windows())))
+        if (!new HashSet<>(windows).equals(new HashSet<>(windows())))
             throw new BookingSnapshot.Incomplete("Search does not cover every eligible customer window");
         List<State> states = new ArrayList<>();
         boolean complete = false;
