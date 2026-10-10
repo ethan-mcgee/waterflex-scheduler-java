@@ -450,24 +450,48 @@ def toolkit_hashes():
 
 
 class Occupancy:
-    """Tracks concurrent cases so each attempt records the fewest neighbors it ever had."""
+    """Tracks concurrent cases so each attempt records the fewest neighbors it ever had and the share of its
+    wall time spent with every slot busy. The fewest-neighbors count drops for the milliseconds between one case
+    finishing and its replacement starting, so it marks almost every case of a saturated pool as partially
+    loaded; the full-load share is what separates the real ramp-up and tail from steady state."""
 
-    def __init__(self):
+    def __init__(self, capacity=None, clock=time.monotonic):
         self.lock = threading.Lock()
         self.lowest = {}
+        self.capacity, self.clock = capacity, clock
+        self.started, self.full, self.changed = {}, {}, None
+
+    def _advance(self):
+        now = self.clock()
+        if self.changed is not None and self.capacity is not None and len(self.lowest) >= self.capacity:
+            for key in self.lowest:
+                self.full[key] += now - self.changed
+        self.changed = now
+        return now
 
     def start(self, key):
         with self.lock:
+            now = self._advance()
             others = len(self.lowest)
             self.lowest[key] = others
+            self.started[key], self.full[key] = now, 0.0
             return others
 
     def finish(self, key):
+        return self.finish_receipt(key)['in_flight_min']
+
+    def finish_receipt(self, key):
+        """Fewest neighbors and full-load share (None without a capacity or a measurable duration)."""
         with self.lock:
+            now = self._advance()
             low = self.lowest.pop(key, None)  # Idempotent: a failed receipt write finishes the case again.
+            started, full = self.started.pop(key, None), self.full.pop(key, None)
             for other in self.lowest:
                 self.lowest[other] = min(self.lowest[other], len(self.lowest) - 1)
-            return low
+            share = None
+            if self.capacity is not None and started is not None and full is not None and now > started:
+                share = min(1.0, full / (now - started))
+            return {'in_flight_min': low, 'full_load_fraction': share}
 
 
 def run_case(run, manifest, env, progress, occupancy, stop, number, total, case, slot, mask):
@@ -487,7 +511,7 @@ def run_case(run, manifest, env, progress, occupancy, stop, number, total, case,
         if len(rows) != 1 or issues:
             raise ValueError(f'Raw output is incomplete or invalid: {issues}')
         write_new(attempt / 'completed.json', {'case': case, 'raw_sha256': sha(attempt / 'raw.jsonl'), 'at': stamp(),
-                                               'slot': slot, 'mask': mask, 'in_flight_min': occupancy.finish(case['id'])})
+                                               'slot': slot, 'mask': mask, **occupancy.finish_receipt(case['id'])})
         progress.finish_case(case['id'], f'Finished case {number}/{total}')
     except BaseException as error:
         occupancy.finish(case['id'])
@@ -535,7 +559,7 @@ def execute(run, prepare=False):
                     write_new(old / 'interrupted.json', {'reason': 'Previous orchestrator stopped without a completion receipt'})
             queue.append((index + 1, case))
         free = collections.deque(enumerate(masks))
-        occupancy, stop, running, failure = Occupancy(), threading.Event(), {}, None
+        occupancy, stop, running, failure = Occupancy(len(masks)), threading.Event(), {}, None
         # Daily cases fan out over the dedicated slots in saved order.
         with concurrent.futures.ThreadPoolExecutor(max_workers=len(masks)) as pool:
             try:
