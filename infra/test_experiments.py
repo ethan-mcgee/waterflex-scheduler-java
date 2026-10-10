@@ -69,6 +69,37 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(len(expand(daily)), 1440)
         self.assertEqual(sum(c['budget_ms'] for c in expand(daily)), 133200000)
 
+    def test_tabu_variant_study_matrix_and_contention_ten(self):
+        root = Path(__file__).resolve().parents[1] / 'experiments/configs'
+        study = validate(read_json(root / 'daily-tabu-variants.json'))
+        self.assertEqual(study['daily']['control'], 'TABU')
+        self.assertEqual(set(study['daily']['solvers']), {'TABU', 'KOPT', 'LATE_ACCEPTANCE', 'SUBLIST',
+                                                          'TABU_SIZE_3', 'TABU_SIZE_15', 'TABU_KOPT'})
+        cases = expand(study)
+        self.assertEqual(len(cases), 4480)
+        self.assertEqual(sum(c['budget_ms'] for c in cases), 571200000)
+        smoke = expand(validate(read_json(root / 'daily-tabu-smoke.json')))
+        self.assertEqual(sorted(c['solver'] for c in smoke), sorted(study['daily']['solvers']))
+        six, ten = (read_json(root / f'daily-contention-{n}.json') for n in (6, 10))
+        self.assertEqual(ten['daily']['parallel_cases'], 10)
+        for c in (six, ten):
+            c.pop('name')
+            c['daily'].pop('parallel_cases')
+        self.assertEqual(six, ten)
+
+    def test_every_solver_has_a_stable_color(self):
+        from experiment_analysis import BOOKING, COLORS
+        from experiment_config import DAILY
+        self.assertEqual(set(COLORS), set(DAILY + BOOKING))
+        self.assertEqual((COLORS['TABU'], COLORS['SHARED']), ('#2363a0', '#516170'))
+
+    def test_frozen_source_contains_every_reactor_module(self):
+        import re
+        pom = (Path(__file__).resolve().parents[1] / 'pom.xml').read_text(encoding='utf-8')
+        default_modules = re.search(r'<modules>(.*?)</modules>', pom).group(1)
+        for module in re.findall(r'<module>([^<]+)</module>', default_modules):
+            self.assertIn(module, rt.SOURCE_PATHS)
+
     def test_reject_bad_configuration(self):
         modifications = [lambda c: c.update(unknown=True), lambda c: c.update(version=True),
             lambda c: c.update(daily=None), lambda c: c.pop('daily'), lambda c: c['daily'].update(count=4),

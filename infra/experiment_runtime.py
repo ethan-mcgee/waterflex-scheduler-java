@@ -21,7 +21,10 @@ import uuid
 from experiment_config import digest, expand, read_json, validate
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'scheduler-service', 'routing-service', 'infra', 'experiments/configs']
+# Every reactor module listed in pom.xml must be present for Maven to load the frozen tree; the solver itself
+# lives in calculation-engine, so it is frozen and built from source rather than resolved from ~/.m2.
+SOURCE_PATHS = ['pom.xml', 'mvnw', 'mvnw.cmd', '.mvn', '.settings', 'calculation-engine', 'solver-service', 'scheduler-service',
+                'routing-service', 'infra', 'experiments/configs']
 
 
 class Progress:
@@ -390,17 +393,18 @@ def prepare_run(run, config):
         raise ValueError('Source changed while freezing; start a new run')
     env = environment()
     wrapper = source / ('mvnw.cmd' if os.name == 'nt' else 'mvnw')
-    command([wrapper, '-B', '-pl', 'scheduler-service', '-Pnullability', '-DskipTests', 'package',
+    command([wrapper, '-B', '-pl', 'scheduler-service', '-am', '-Pnullability', '-DskipTests', 'package',
              'dependency:copy-dependencies', '-DincludeScope=test'], source, env, run / 'build.log')
     target = source / 'scheduler-service/target'
     for name in ('classes', 'test-classes', 'dependency'):
         shutil.copytree(target / name, artifacts / name)
     shutil.copy2(target / 'scheduler-service-0.1.0-SNAPSHOT.jar', artifacts / 'scheduler.jar')
     # Build products stay in the build log and canonical executable copies, not duplicated source.
-    resolved_target = target.resolve()
-    if not resolved_target.is_relative_to(run.resolve()):
-        raise ValueError('Build output escaped run archive')
-    shutil.rmtree(resolved_target)
+    for module in ('scheduler-service', 'calculation-engine'):
+        resolved_target = (source / module / 'target').resolve()
+        if not resolved_target.is_relative_to(run.resolve()):
+            raise ValueError('Build output escaped run archive')
+        shutil.rmtree(resolved_target)
     hashes = tree_hashes(artifacts)
     write_new(run / 'manifest.json', {'format': 1, 'revision': revision, 'config_hash': digest(config),
         'cases_hash': digest(read_json(run / 'cases.json')), 'files': hashes, 'runtime': info,

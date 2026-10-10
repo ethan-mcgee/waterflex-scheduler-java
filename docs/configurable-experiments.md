@@ -54,7 +54,7 @@ JSON has `version: 1`, a lowercase slug `name`, and a `daily` object, which requ
 
 | Field | Daily |
 | --- | --- |
-| `solvers` | Any of CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE, TABU, SUBLIST, KOPT, RUIN_RECREATE |
+| `solvers` | Any of CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE, TABU, SUBLIST, KOPT, RUIN_RECREATE, TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT |
 | `control` | One selected solver |
 | `seeds` | Distinct integers 0..2147483647 |
 | `fleets` | Any of 5, 10, 20, 30, 50 |
@@ -65,6 +65,12 @@ JSON has `version: 1`, a lowercase slug `name`, and a `daily` object, which requ
 `parallel_cases` is the number of independent daily cases, each a fresh solver JVM, that run at the same time. Each running case is confined to one dedicated physical core (both SMT threads), so the setting also decides how many cores the study occupies: `parallel_cases` cores, plus core 0, which stays free for Windows and the orchestrator. There is no cores-per-case setting because the solver search is single threaded. `1` runs one case at a time. The value is part of the saved configuration, so the config and case hashes bind it to the run and a resume cannot change it. Running more than one case at a time needs Windows, and a value above the usable physical cores (11 on the 12-core workstation) fails before any measurement.
 
 The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU is the control. Ten seeds (17, 23, 41, 59, 83, 101, 127, 149, 173, 199), four fleets (5, 10, 20, 50), CLUSTERED and DISPERSED fixtures, and four budgets (60, 90, 120, 240 seconds) produce **1,280 cases** and **163,200 seconds (45 hours 20 minutes)** of search allowance. With `parallel_cases` 10, the dry run estimates about **4 hours 38 minutes** of wall time, including about 2.5 seconds of per-case overhead. Run sequentially the same study takes more than 45 hours 20 minutes. The estimate is a greedy slot simulation in saved dispatch order. Startup, warmup, validation, copying, building and plotting add overhead. Capped/early terminating variants can use less than their allowance. `daily-smoke.json` uses `parallel_cases` 1.
+
+### TABU variant study
+
+`daily-tabu-variants.json` tests TABU tuning against the unchanged TABU control. The three experiment-only variants are TABU_SIZE_3 and TABU_SIZE_15 (entity tabu size 3 or 15 instead of 7, everything else identical) and TABU_KOPT (TABU's acceptor and forager with KOPT's move set: change, swap, sublist and 2-3-opt). A test pins the TABU configuration byte for byte, so the control and the production comparison stay unchanged. The study runs TABU, KOPT, LATE_ACCEPTANCE, SUBLIST and the three variants over the ten seeds, fleets 5, 10, 20 and 50, CLUSTERED, DISPERSED, MIXED_SKILL and TIGHT_WINDOW, and budgets of 60, 90, 120 and 240 seconds: **4,480 cases** and **571,200 seconds** of search allowance, about 16 hours at `parallel_cases` 10. `daily-tabu-smoke.json` runs every solver of the study once at 0.5 seconds as a harness check. `daily-contention-10.json` is the ten-case contention check the next section requires before trusting 10 parallel cases.
+
+The frozen build includes `calculation-engine` (where the solver lives) and every other reactor module, and builds with `-am`, so a run measures the solver from its own frozen source rather than a jar left in the local Maven repository.
 
 ## Measurement protocol
 
