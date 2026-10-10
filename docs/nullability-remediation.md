@@ -41,6 +41,12 @@ The schema-contract script now compares scalar column types and nullability with
 * Timefold score, shadow assignments, and uninitialized facts remain nullable during framework construction. Required facts are checked when accessed, preserving no-argument constructors.
 * Missing settings retain established documented configuration defaults; missing scheduling facts never receive fabricated zero, false, or empty replacements.
 
+### Generic element nullness under ECJ
+
+ECJ 3.46.100 applies `@NullMarked` like a parameterless `@NonNullByDefault`: parameters, return types, and fields are non-null at the top level, but type arguments are not defaulted. A declared `List<PlannedStop>` is therefore a list of unspecified-nullness elements to ECJ, while values built by `Input.list`, `stream().toList()`, or `List.of` are inferred as `List<@NonNull PlannedStop>`. Passing the more precise value into the less precise declaration produces the `annotatedTypeArgumentToUnannotated` diagnostic ("Unsafe null type conversion ... made accessible using the less-annotated type").
+
+That option stays at ECJ's default `info` level, so it appears in the editor but does not fail the gate. Raising it to `error` was evaluated in October 2026: about 40 sites failed, and annotating the element types at those declarations moved the failures one layer outward each time. The check only converges when every collection declaration carries explicit element annotations, which is a codebase-wide change with no runtime benefit. Element presence remains enforced at runtime by `Input.list` and the JSON decoders. Revisit this if a later ECJ release defaults type arguments for JSpecify.
+
 Mockito matcher methods return null sentinels that Mockito consumes while configuring a mock. `MockArguments` contains method-scoped `@SuppressWarnings("null")` only for these framework sentinels, with an explanation. No production class or package disables null analysis. The shared ECJ option permits those narrow suppressions; all unsuppressed diagnostics remain fatal.
 
 ## Required gates
@@ -76,6 +82,8 @@ After the command-line gates pass, refresh VS Code Java 1.56.0 so its Problems p
 5. Confirm that the Problems panel contains no application nullability or type-safety errors.
 
 A missing log tab or a prior `package-info.java` event is stale local editor state unless it recurs after this clean import.
+
+`.vscode/settings.json` excludes `.scratch/`, `.claude/` worktrees, and `experiments/` run snapshots from the Java import. Those directories hold frozen copies of the Maven modules with the same coordinates. Without the exclusion, the editor reports diagnostics for deleted classes and fails to resolve `calculation-engine` for the real modules.
 
 Integration verification uses PostgreSQL 16 with an isolated `waterflex_test` database and `infra/fixture-routing.mjs`. Local verification used PostgreSQL on port 15432, the scheduler on 18000, and fixture routing on 18001. Set `DATABASE_URL`, `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `ROUTING_URL`, `SERVER_PORT`, `SCHEDULER_TEST_URL`, and `ENGINE_URL` to that isolated stack, apply migrations, seed it, and start the services before running:
 
