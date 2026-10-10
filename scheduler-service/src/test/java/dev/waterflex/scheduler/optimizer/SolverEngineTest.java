@@ -8,6 +8,25 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SolverEngineTest {
+    /** The production-comparison TABU control must stay byte-identical while experiment-only variants are added beside it. */
+    @Test void tabuControlIsPinnedAndTabuVariantsChangeOnlyTheirIntendedElements() {
+        String tabu = SolverEngine.configuration(SolverEngine.Variant.TABU, 17).configurationXml();
+        assertEquals("<solver xmlns=\"https://timefold.ai/xsd/solver\"><environmentMode>NO_ASSERT</environmentMode>"
+                + "<solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass><entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass><entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>"
+                + "<scoreDirectorFactory><constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass></scoreDirectorFactory>"
+                + "<termination><spentLimit>PT15S</spentLimit></termination><localSearch><unionMoveSelector><selectedCountLimit>10000</selectedCountLimit>"
+                + "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>"
+                + "<listSwapMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listSwapMoveSelector>"
+                + "</unionMoveSelector><acceptor><entityTabuSize>7</entityTabuSize></acceptor><forager><acceptedCountLimit>1000</acceptedCountLimit></forager></localSearch></solver>", tabu);
+        assertEquals(tabu.replace("<entityTabuSize>7<", "<entityTabuSize>3<"),
+                SolverEngine.configuration(SolverEngine.Variant.TABU_SIZE_3, 17).configurationXml());
+        assertEquals(tabu.replace("<entityTabuSize>7<", "<entityTabuSize>15<"),
+                SolverEngine.configuration(SolverEngine.Variant.TABU_SIZE_15, 17).configurationXml());
+        assertEquals(SolverEngine.configuration(SolverEngine.Variant.KOPT, 17).configurationXml()
+                        .replace("<lateAcceptanceSize>400</lateAcceptanceSize>", "<entityTabuSize>7</entityTabuSize>")
+                        .replace("<acceptedCountLimit>1</acceptedCountLimit>", "<acceptedCountLimit>1000</acceptedCountLimit>"),
+                SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17).configurationXml());
+    }
     @Test void knownPinnedRuinRecreateFailureIsRejectedBeforeEveryExecutionMode() {
         for (var mode : List.of(ai.timefold.solver.core.config.solver.EnvironmentMode.NO_ASSERT,
                 ai.timefold.solver.core.config.solver.EnvironmentMode.FULL_ASSERT,
