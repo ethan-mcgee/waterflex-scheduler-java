@@ -16,7 +16,7 @@ assert.equal(url.searchParams.get("schema"), "booking_location_it", "Use the iso
 const originalFetch = globalThis.fetch;
 const request = (body: unknown) => new NextRequest("http://localhost/api/book", { method: "POST", body: JSON.stringify(body) });
 const base = { firstName: "Location", lastName: "Fixture", email: "location@example.invalid", phone: "4025550100", city: "Omaha", state: "NE", postalCode: "68130", serviceCode: "FILTER_SWAP" };
-async function counts() { return Promise.all([prisma.customer.count(), prisma.address.count(), prisma.job.count(), prisma.bookingOffer.count(), prisma.slotHold.count()]); }
+async function counts() { return Promise.all([prisma.customer.count(), prisma.address.count(), prisma.job.count(), prisma.portalApiOfferSet.count()]); }
 
 async function main() {
   assert.equal(await prisma.job.count(), 0, "Start with an empty isolated fixture schema");

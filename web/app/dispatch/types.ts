@@ -6,7 +6,6 @@ export interface BoardTechnician {
   homeLng: number;
   shiftStartMin: number;
   shiftEndMin: number;
-  routeTiming?: import("@/lib/currentRouteTiming").CurrentRouteTiming;
 }
 
 export interface BoardAppointment {

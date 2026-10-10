@@ -21,10 +21,6 @@ export async function ownsJob(clientId: string, id: string): Promise<boolean> {
   return (await prisma.job.count({ where: { id, customer: { clientId } } })) === 1;
 }
 
-export async function ownsHold(clientId: string, id: string): Promise<boolean> {
-  return (await prisma.slotHold.count({ where: { id, job: { customer: { clientId } } } })) === 1;
-}
-
 export async function ownsAppointment(clientId: string, id: string): Promise<boolean> {
   return (await prisma.appointment.count({ where: { id, job: { customer: { clientId } } } })) === 1;
 }
