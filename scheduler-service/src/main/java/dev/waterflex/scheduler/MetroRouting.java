@@ -13,7 +13,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 /**
  * One routing service per metro for the public API. Each metro's client keeps its own in-memory cache and routing
  * identity; all share the road_route_cache table, which is keyed by routing identity. A metro that is not configured
- * has no routing: the public API never falls back to the internal portal's single {@code routing.url}.
+ * has no routing: the public API never falls back to the single {@code routing.url} client, which only runs the road
+ * cache cleanup.
  */
 @Component
 public class MetroRouting {
