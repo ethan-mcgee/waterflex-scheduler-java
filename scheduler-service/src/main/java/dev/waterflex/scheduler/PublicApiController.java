@@ -15,10 +15,12 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Public scheduling API for WaterFlex Software. Every route is under /api/v1 and tenant-authenticated. */
 @RestController
+@RequestMapping("/api/v1")
 public class PublicApiController {
     private final DailyProposals dailyProposals;
     private final DailyCommits dailyCommits;
@@ -40,52 +42,52 @@ public class PublicApiController {
     }
 
     /** Lets an integrator confirm which tenant a token belongs to. */
-    @GetMapping("/api/v1/whoami")
+    @GetMapping("/whoami")
     public dev.waterflex.scheduler.api.PublicResponses.WhoAmI whoami(HttpServletRequest request) {
         return new dev.waterflex.scheduler.api.PublicResponses.WhoAmI(TenantAuthentication.tenant(request));
     }
 
-    @PostMapping("/api/v1/daily/proposals")
+    @PostMapping("/daily/proposals")
     public void createDailyProposal(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, dailyProposals.create(TenantAuthentication.tenant(request), body(request)));
     }
 
-    @PostMapping("/api/v1/repairs/proposals")
+    @PostMapping("/repairs/proposals")
     public void createRepairProposal(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, dailyProposals.repair(TenantAuthentication.tenant(request), body(request)));
     }
 
-    @PostMapping("/api/v1/daily/proposals/{proposalId}/commit")
+    @PostMapping("/daily/proposals/{proposalId}/commit")
     public void commitDailyProposal(HttpServletRequest request, @PathVariable String proposalId, HttpServletResponse response) throws IOException {
         reply(response, dailyCommits.commit(TenantAuthentication.tenant(request), proposalId, body(request)));
     }
 
-    @PostMapping("/api/v1/routes/evaluate")
+    @PostMapping("/routes/evaluate")
     public void evaluateRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, routeEvaluations.evaluate(TenantAuthentication.tenant(request), body(request)));
     }
 
-    @PostMapping("/api/v1/routes/geometry")
+    @PostMapping("/routes/geometry")
     public void drawRoutes(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, routeGeometries.draw(TenantAuthentication.tenant(request), body(request)));
     }
 
-    @PostMapping("/api/v1/booking/offers")
+    @PostMapping("/booking/offers")
     public void createBookingOffers(HttpServletRequest request, HttpServletResponse response) throws IOException {
         reply(response, bookingOffers.create(TenantAuthentication.tenant(request), body(request)));
     }
 
-    @PostMapping("/api/v1/booking/offers/{offerId}/select")
+    @PostMapping("/booking/offers/{offerId}/select")
     public void selectBookingOffer(HttpServletRequest request, @PathVariable String offerId, HttpServletResponse response) throws IOException {
         reply(response, bookingHolds.select(TenantAuthentication.tenant(request), offerId, body(request)));
     }
 
-    @PostMapping("/api/v1/booking/offers/{offerId}/release")
+    @PostMapping("/booking/offers/{offerId}/release")
     public void releaseBookingOffer(HttpServletRequest request, @PathVariable String offerId, HttpServletResponse response) throws IOException {
         reply(response, bookingHolds.release(TenantAuthentication.tenant(request), offerId, body(request)));
     }
 
-    @PostMapping("/api/v1/booking/holds/{holdId}/confirm")
+    @PostMapping("/booking/holds/{holdId}/confirm")
     public void confirmBookingHold(HttpServletRequest request, @PathVariable String holdId, HttpServletResponse response) throws IOException {
         reply(response, bookingConfirm.confirm(TenantAuthentication.tenant(request), holdId, body(request)));
     }

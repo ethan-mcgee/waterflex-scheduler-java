@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler;
 import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.math.BigDecimal;
@@ -17,7 +18,7 @@ public final class CalculationJson {
     private CalculationJson() { }
     private static ObjectMapper create(boolean everyPropertyPresent) {
         var factory = new JsonFactory(); factory.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
-        var mapper = new ObjectMapper(factory);
+        ObjectMapper mapper = Required.value(JsonMapper.builder(factory).disable(MapperFeature.ALLOW_COERCION_OF_SCALARS).build());
         mapper.registerModule(new JavaTimeModule());
         var decimal = new SimpleModule();
         // Protocol decimals also include signed fairness deltas, which are not monetary rates.
@@ -42,7 +43,6 @@ public final class CalculationJson {
         mapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
                 DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
         if (everyPropertyPresent) mapper.enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
-        mapper.disable(MapperFeature.ALLOW_COERCION_OF_SCALARS);
         return mapper;
     }
     public static String write(Object value) {
