@@ -48,9 +48,9 @@ public final class SolveController {
     public void solve(@PathVariable String operation,HttpServletRequest http,HttpServletResponse response) throws IOException {
         long entered = System.nanoTime(); authenticate(http);
         if (!operation.equals("daily") && !operation.equals("booking")) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        if (http.getContentLengthLong() > CalculationJson.MAX_BYTES) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE);
+        if (http.getContentLengthLong() > CalculationJson.MAX_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
         byte[] bytes = http.getInputStream().readNBytes(CalculationJson.MAX_BYTES+1);
-        if (bytes.length > CalculationJson.MAX_BYTES) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE);
+        if (bytes.length > CalculationJson.MAX_BYTES) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
         var request = CalculationJson.read(new String(bytes,StandardCharsets.UTF_8),CalculationProtocol.Request.class);
         if (!request.operation().equals(operation.toUpperCase(java.util.Locale.ROOT))) throw new IllegalArgumentException("Endpoint operation mismatch");
         requireRoutingKey(http,request.requestId());
@@ -108,6 +108,6 @@ public final class SolveController {
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public java.util.Map<String,String> unavailable(RuntimeException failure) { return Required.value(java.util.Map.of("error","CALCULATION_UNAVAILABLE")); }
     @ExceptionHandler(BookingSnapshot.Incomplete.class)
-    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_CONTENT)
     public java.util.Map<String,String> incomplete(BookingSnapshot.Incomplete failure) { return Required.value(java.util.Map.of("error","INCOMPLETE_CALCULATION_FACTS")); }
 }
