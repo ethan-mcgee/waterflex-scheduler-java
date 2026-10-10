@@ -22,8 +22,6 @@ model Metro {
   createdAt       DateTime @default(now())
 
   depots           Depot[]
-  optimizationRuns OptimizationRun[]
-  reservationArrangements ReservationArrangement[]
   apiOfferSets     PortalApiOfferSet[]
   apiDailyProposals PortalApiDailyProposal[]
   overnightDays PortalOvernightDay[]
@@ -150,7 +148,6 @@ model Technician {
   updatedAt          DateTime    @updatedAt
 
   appointments Appointment[]
-  slotHolds    SlotHold[]
   scheduleDays ScheduleDay[]
   dayChanges   TechnicianDayChange[]
   qualifications TechnicianQualification[]
@@ -158,7 +155,6 @@ model Technician {
   availabilityVersions TechnicianAvailabilityVersion[]
   timeOffRequests TimeOffRequest[]
   depotAssignments TechnicianDepotAssignment[]
-  reservationDependencies ReservationDependency[]
 
   @@index([active])
   @@index([clientId], map: "technician_client")
@@ -211,7 +207,6 @@ model ServiceCatalog {
   description    String?
   estDurationMin Int
   bufferPct      Float    @default(0.15) // confidence buffer, e.g. 0.15 = +15%
-  startsAtDepot  Boolean  @default(false) // needs parts pickup before first stop
   active         Boolean  @default(true)
   sortOrder      Int      @default(0)
   createdAt      DateTime @default(now())
@@ -220,7 +215,6 @@ model ServiceCatalog {
   jobs Job[]
   qualifications TechnicianQualification[]
 
-  reservationDependencies ReservationDependency[]
 
   @@map("service_catalog")
 }
@@ -285,7 +279,6 @@ model Job {
   service          ServiceCatalog @relation(fields: [serviceId], references: [id])
   durationMin      Int // snapshot of service.estDurationMin * (1 + bufferPct) at booking time
   status           JobStatus      @default(PENDING)
-  priority         Int            @default(0)
   externalId       String?        @unique
   bookingRequestId String?        @unique // client retry key for the slot-search attempt
   bookingRequestFingerprint String?
@@ -293,11 +286,6 @@ model Job {
   updatedAt        DateTime       @updatedAt
 
   appointment          Appointment?
-  slotHolds            SlotHold[]
-  bookingOptimizations BookingOptimization[]
-  bookingOffers BookingOffer[]
-  offerSets BookingOfferSet[]
-  searchRequests BookingSearchRequest[]
   apiOfferSets   PortalApiOfferSet[]
   manualFollowUpStatus String?
   manualFollowUpReason String?
@@ -340,7 +328,6 @@ model ScheduleDay {
   technician   Technician @relation(fields: [technicianId], references: [id])
   serviceDate  DateTime
   version      Int        @default(0) // bumped on every committed change; the lock row
-  routeTiming  Json?      // independently validated current segment timing at the recorded version
 
   @@unique([technicianId, serviceDate])
   @@map("schedule_day")
@@ -422,110 +409,6 @@ model PortalApiDailyProposal {
   @@map("portal_api_daily_proposal")
 }
 
-model SlotHold {
-  id                    String               @id @default(cuid())
-  offerToken            String // groups the 3-4 offers shown together; confirming one releases siblings
-  jobId                 String // the job this hold would become an Appointment for, if confirmed
-  job                   Job                  @relation(fields: [jobId], references: [id])
-  technicianId          String
-  technician            Technician           @relation(fields: [technicianId], references: [id])
-  serviceDate           DateTime
-  windowStart           DateTime // customer-facing promise, copied onto Appointment on confirm
-  windowEnd             DateTime
-  plannedStart          DateTime // internal arrival estimate at offer time; re-validated on confirm
-  plannedEnd            DateTime
-  insertPosition        Int // position among the tech's existing stops at offer time; re-validated on confirm
-  locationLat           Float? // snapshot used to account for active holds during offer generation
-  locationLng           Float?
-  expiresAt             DateTime
-  releasedAt            DateTime?
-  createdAt             DateTime             @default(now())
-  bookingOptimizationId String?
-  bookingOptimization   BookingOptimization? @relation(fields: [bookingOptimizationId], references: [id])
-  offerSetId String?
-  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
-  reservationDependencies ReservationDependency[]
-
-  @@index([technicianId, serviceDate])
-  @@index([expiresAt])
-  @@index([jobId])
-  @@index([bookingOptimizationId])
-  @@map("slot_hold")
-}
-
-model ReservationArrangement {
-  id String @id @default(cuid())
-  metroId String
-  metro Metro @relation(fields: [metroId], references: [id])
-  serviceDate DateTime
-  version Int @default(0)
-  state Json? // null means the lock row has not yet received a validated arrangement
-  updatedAt DateTime @updatedAt
-  dependencies ReservationDependency[]
-
-  @@unique([metroId, serviceDate])
-  @@map("reservation_arrangement")
-}
-
-model ReservationDependency {
-  arrangementId String
-  arrangement ReservationArrangement @relation(fields: [arrangementId], references: [id], onDelete: Cascade)
-  holdId String
-  hold SlotHold @relation(fields: [holdId], references: [id], onDelete: Cascade)
-  technicianId String
-  technician Technician @relation(fields: [technicianId], references: [id])
-  serviceId String
-  service ServiceCatalog @relation(fields: [serviceId], references: [id])
-  serviceDate DateTime
-
-  @@id([holdId, technicianId, serviceId])
-  @@index([technicianId, serviceDate])
-  @@index([arrangementId])
-  @@map("reservation_dependency")
-}
-
-model BookingOffer {
-  costModelVersion String @default("exact-fleet-half-up-v3")
-  policyVersion String @default("zero-overtime-four-hour-v2")
-  id String @id @default(cuid())
-  jobId String
-  job Job @relation(fields: [jobId], references: [id])
-  serviceDate DateTime
-  windowStart DateTime
-  windowEnd DateTime
-  expiresAt DateTime
-  incrementalRegularMinutes Int?
-  incrementalOvertimeMinutes Int?
-  overtimeAuthorized Boolean @default(false)
-  incrementalRoadMeters Int?
-  incrementalCostDollars Decimal? @db.Decimal(65, 30)
-  createdAt DateTime @default(now())
-  offerSetId String?
-  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id])
-
-  @@index([jobId, expiresAt])
-  @@map("booking_offer")
-}
-
-model BookingOfferSet {
-  costModelVersion String @default("exact-fleet-half-up-v3")
-  policyVersion String @default("zero-overtime-four-hour-v2")
-  id String @id @default(cuid())
-  jobId String
-  job Job @relation(fields: [jobId], references: [id])
-  expiresAt DateTime
-  supersededAt DateTime?
-  selectedOfferId String?
-  searchDiagnostics Json?
-  searchRequests BookingSearchRequest[]
-  createdAt DateTime @default(now())
-  offers BookingOffer[]
-  holds SlotHold[]
-
-  @@index([jobId, expiresAt])
-  @@map("booking_offer_set")
-}
-
 model TimeOffRequest {
   id String @id @default(cuid())
   technicianId String
@@ -535,7 +418,6 @@ model TimeOffRequest {
   status String @default("PENDING")
   createdAt DateTime @default(now())
   decidedAt DateTime?
-  additionalOvertimeApproved Boolean @default(false)
   intervals TimeOffInterval[]
   report TimeOffReport?
   apiRepairProposals PortalApiDailyProposal[]
@@ -616,71 +498,6 @@ model OmahaSetting {
   @@map("omaha_setting")
 }
 
-// Immutable numeric migration evidence. Original float bits and decimal rendering are retained.
-model MonetaryMigrationReceipt {
-  sourceTable String
-  sourceIdentity String
-  sourceColumn String
-  legacyRendering String
-  legacyBits String
-  decimalValue Decimal @db.Decimal(65, 30)
-  costModelVersion String
-  migratedAt DateTime @default(now()) @db.Timestamptz(6)
-
-  @@id([sourceTable, sourceIdentity, sourceColumn])
-  @@map("monetary_migration_receipt")
-}
-
-model BookingOptimization {
-  id                   String     @id @default(cuid())
-  jobId                String
-  job                  Job        @relation(fields: [jobId], references: [id])
-  offerToken           String     @unique
-  algorithmVersion     String
-  strategy             String
-  candidateCount       Int
-  qualifyingOfferCount Int
-  returnedOffers       Json
-  solverMs             Int        @default(0)
-  fallbackStatus       String?
-  travelWarnings       Json
-  confirmedHoldId      String?
-  createdAt            DateTime   @default(now()) @db.Timestamptz(6)
-  slotHolds            SlotHold[]
-
-  @@index([jobId, createdAt])
-  @@map("booking_optimization")
-}
-
-model OptimizationRun {
-  id                   String               @id @default(cuid())
-  requestKey           String?              @unique
-  metroId              String
-  metro                Metro                @relation(fields: [metroId], references: [id])
-  serviceDate          DateTime @db.Timestamptz(6)
-  scheduleVersions     Json
-  weights              Json
-  solverStatus         String
-  solveMs              Int
-  routeSummaryBefore   Json
-  routeSummaryAfter    Json
-  warnings             Json
-  proposedAssignments  Json
-  baselineAssignments  Json                 @default("[]")
-  endpointSnapshots    Json?
-  policyAnalysis       Json?
-  objectiveImprovement BigInt
-  churnCost            Int
-  status               String
-  reason               String?
-  createdAt            DateTime             @default(now()) @db.Timestamptz(6)
-  appliedAt            DateTime? @db.Timestamptz(6)
-  changes              OptimizationChange[]
-
-  @@index([metroId, serviceDate, createdAt])
-  @@map("optimization_run")
-}
-
 /// Client of the public scheduling API (/api/v1).
 model Tenant {
   id         String           @id
@@ -704,43 +521,6 @@ model TenantApiToken {
   tenant      Tenant    @relation(fields: [tenantId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   @@index([tenantId], map: "tenant_api_token_tenant")
   @@map("tenant_api_token")
-}
-
-model OvernightOptimizationAttempt {
-  id String @id
-  metroId String
-  serviceDate DateTime @db.Date
-  state String
-  previewKey String @unique
-  resultRunId String?
-  resultReason String?
-  failureContext Json?
-  startedAt DateTime @default(now()) @db.Timestamptz(6)
-  finishedAt DateTime? @db.Timestamptz(6)
-  /// Chicago date the overnight run fired; NULL only for rows written before per-night claims.
-  nightOf DateTime? @db.Date
-  @@unique([metroId, serviceDate, nightOf], map: "overnight_optimization_attempt_night_claim")
-  @@index([metroId, serviceDate, startedAt], map: "overnight_optimization_attempt_metro_day")
-  @@index([state, startedAt], map: "overnight_optimization_attempt_state_started")
-  @@map("overnight_optimization_attempt")
-}
-
-model DailyCalculationAttempt {
-  id                 String @id
-  requestKey         String @unique
-  requestFingerprint String
-  ownerToken         String
-  state              String
-  expiresAt          DateTime @db.Timestamptz(6)
-  snapshotRevision   String?
-  routingIdentity    String?
-  resultRunId        String?
-  resultJson         Json?
-  failureReason      String?
-  createdAt          DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt          DateTime @default(now()) @db.Timestamptz(6)
-  @@index([state, expiresAt], map: "daily_calculation_attempt_state_expiry")
-  @@map("daily_calculation_attempt")
 }
 
 // Local sequential booking harness. Jobs use stable IDs derived from request IDs.
@@ -811,110 +591,17 @@ model BookingTestPreview {
   @@map("booking_test_preview")
 }
 
-model OptimizationChange {
-  id                    String          @id @default(cuid())
-  runId                 String
-  run                   OptimizationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  appointmentId         String
-  fromTechnicianId      String
-  toTechnicianId        String
-  fromSequence          Int
-  toSequence            Int
-  fromPlannedArrivalMin Int
-  toPlannedArrivalMin   Int
-
-  @@index([runId])
-  @@map("optimization_change")
-}
-
 // ---------------------------------------------------------------------------
 // Travel time cache
 // ---------------------------------------------------------------------------
-
-enum TimeBucket {
-  AM_PEAK
-  MIDDAY
-  PM_PEAK
-}
-
-enum DayType {
-  WEEKDAY
-  WEEKEND
-}
-
-model TravelTime {
-  id            String     @id @default(cuid())
-  originGeohash String // geohash precision 7 (~150m cells)
-  destGeohash   String
-  timeBucket    TimeBucket
-  dayType       DayType
-  seconds       Int
-  meters        Int
-  source        String     @default("google_distance_matrix") // or "haversine_fallback"
-  fetchedAt     DateTime   @default(now())
-
-  @@unique([originGeohash, destGeohash, timeBucket, dayType])
-  @@index([fetchedAt])
-  @@map("travel_time")
-}
 
 // ---------------------------------------------------------------------------
 // Scoring config (ops-tunable, no deploy required)
 // ---------------------------------------------------------------------------
 
-model ScoringWeight {
-  id        String   @id @default(cuid())
-  key       String   @unique // "w_drive" | "w_days" | "w_util" | "w_window"
-  value     Float
-  updatedAt DateTime @updatedAt
-
-  @@map("scoring_weight")
-}
-
 // ---------------------------------------------------------------------------
 // Integration seam
 // ---------------------------------------------------------------------------
-
-model OutboundEvent {
-  id          String    @id @default(cuid())
-  aggregate   String // "job" | "appointment" | "customer" | "technician"
-  aggregateId String
-  eventType   String // "created" | "updated" | "cancelled"
-  payload     Json
-  createdAt   DateTime  @default(now())
-  deliveredAt DateTime?
-
-  @@index([deliveredAt])
-  @@map("outbound_event")
-}
-
-model BookingSearchRequest {
-  bestCostDeltaCents BigInt?
-  state String?
-  refresh Boolean @default(false)
-  owner String?
-  leaseUntil DateTime?
-  startedAt DateTime?
-  finishedAt DateTime?
-  stopReason String?
-  queueMs BigInt?
-  completedWork BigInt @default(0)
-  phase String @default("QUEUED")
-  id String @id
-  jobId String
-  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  deadlineAt DateTime
-  cancelledAt DateTime?
-  acknowledgedAt DateTime?
-  offerSetId String?
-  offerSet BookingOfferSet? @relation(fields: [offerSetId], references: [id], onDelete: SetNull)
-  cleanedAt DateTime?
-  createdAt DateTime @default(now())
-
-  @@index([cancelledAt, cleanedAt], map: "booking_search_request_cleanup_idx")
-  @@index([deadlineAt], map: "booking_search_request_deadline_idx")
-  @@map("booking_search_request")
-}
 
 /// Public API request idempotency. Row-level security limits the scheduler_tenant role to app.tenant_id.
 model ApiRequest {

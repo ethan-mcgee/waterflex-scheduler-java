@@ -297,7 +297,6 @@ async function runs() {
   assert.equal(await prisma.job.count({ where: { id: { in: created.requests.map(request => request.id) } } }), 0);
   assert.equal(await prisma.portalApiOfferSet.count({ where: { jobId: { in: created.requests.map(request => request.id) } } }), 0);
   assert.equal(await prisma.customer.count({ where: { id: { in: created.requests.map(request => request.id) } } }), 0);
-  assert.equal(await prisma.outboundEvent.count({ where: { aggregateId: { in: created.requests.map(request => request.id) } } }), 0);
   assert.ok(await prisma.appointment.findUnique({ where: { id: priorAppointment.id } }), "Another run survives purge");
   assert.ok(await prisma.appointment.findUnique({ where: { id: manualAppointment.id } }), "Manual appointment survives purge");
   assert.equal(await prisma.portalApiDailyProposal.count(), proposalCount, "Proposal history survives purge");

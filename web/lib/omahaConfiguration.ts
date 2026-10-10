@@ -20,7 +20,6 @@ const OMAHA_SERVICES = [
     description: "Install a new whole-home water softener system.",
     estDurationMin: 180,
     bufferPct: 0.2,
-    startsAtDepot: true,
     sortOrder: 1,
   },
   {
@@ -29,7 +28,6 @@ const OMAHA_SERVICES = [
     description: "Swap filter cartridges on an existing system.",
     estDurationMin: 45,
     bufferPct: 0.1,
-    startsAtDepot: false,
     sortOrder: 2,
   },
   {
@@ -38,7 +36,6 @@ const OMAHA_SERVICES = [
     description: "Routine inspection and water quality test.",
     estDurationMin: 60,
     bufferPct: 0.1,
-    startsAtDepot: false,
     sortOrder: 3,
   },
   {
@@ -47,19 +44,8 @@ const OMAHA_SERVICES = [
     description: "Diagnose and repair a malfunctioning system.",
     estDurationMin: 90,
     bufferPct: 0.25,
-    startsAtDepot: true,
     sortOrder: 4,
   },
-] as const;
-
-const SCORING_WEIGHTS = [
-  { key: "w_drive", value: 1.0 },
-  { key: "w_days", value: 0.5 },
-  { key: "w_util", value: 0.2 },
-  { key: "w_window", value: 0.1 },
-  { key: "w_opt_drive", value: 1.0 },
-  { key: "w_opt_balance", value: 1.0 },
-  { key: "w_opt_overtime", value: 10.0 },
 ] as const;
 
 export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<void> {
@@ -141,12 +127,4 @@ export async function ensureOmahaConfiguration(prisma: PrismaClient): Promise<vo
     }))),
     skipDuplicates: true,
   });
-
-  for (const weight of SCORING_WEIGHTS) {
-    await prisma.scoringWeight.upsert({
-      where: { key: weight.key },
-      update: { value: weight.value },
-      create: weight,
-    });
-  }
 }
