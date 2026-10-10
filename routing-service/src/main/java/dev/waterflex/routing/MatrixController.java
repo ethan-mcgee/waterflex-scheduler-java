@@ -147,10 +147,10 @@ public class MatrixController {
         List<RouteLeg> legs = new ArrayList<>();
         for (int i = 1; i < request.points().size(); i++) {
             var response = Objects.requireNonNull(hopper, "Road graph not imported").route(new GHRequest(toGh(Required.value(request.points().get(i - 1))), toGh(Required.value(request.points().get(i)))).setProfile("car"));
-            if (response.hasErrors()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "No road route");
+            if (response.hasErrors()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "No road route");
             var path = response.getBest();
             if (!snapped(Required.value(request.points().get(i - 1)), Required.value(request.points().get(i)), Required.value(path.getWaypoints())))
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Endpoint outside road graph");
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "Endpoint outside road graph");
             List<List<Double>> coordinates = new ArrayList<>();
             var points = path.getPoints();
             for (int n = 0; n < points.size(); n++) coordinates.add(List.of(points.getLon(n), points.getLat(n)));

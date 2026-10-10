@@ -141,8 +141,13 @@ function javaRoutes(directory: string): string[] {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) return javaRoutes(path);
     if (!entry.name.endsWith(".java")) return [];
-    return [...readFileSync(path, "utf8").matchAll(/@(Get|Post|Put|Patch|Delete)Mapping\("(\/api\/v1\/[^"]*)"\)/g)]
-      .map(match => `${(match[1] ?? "").toLowerCase()} ${(match[2] ?? "").replace(/\{[^}]+\}/g, "{}")}`);
+    const source = readFileSync(path, "utf8");
+    // A class-level @RequestMapping prefixes every method mapping in the controller.
+    const prefix = /@RequestMapping\("([^"]*)"\)\s*(?:@\w+\s*)*public\s+(?:final\s+)?class\b/.exec(source)?.[1] ?? "";
+    return [...source.matchAll(/@(Get|Post|Put|Patch|Delete)Mapping\("([^"]*)"\)/g)]
+      .map(match => ({ method: (match[1] ?? "").toLowerCase(), path: prefix + (match[2] ?? "") }))
+      .filter(({ path }) => path.startsWith("/api/v1/"))
+      .map(({ method, path }) => `${method} ${path.replace(/\{[^}]+\}/g, "{}")}`);
   });
 }
 

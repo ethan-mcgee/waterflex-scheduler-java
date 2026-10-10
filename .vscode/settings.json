@@ -2,6 +2,15 @@
   "java.compile.nullAnalysis.mode": "automatic",
   "java.configuration.updateBuildConfiguration": "automatic",
   "java.settings.url": ".settings/org.eclipse.jdt.core.prefs",
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/.metadata/**",
+    "**/archetype-resources/**",
+    "**/META-INF/maven/**",
+    "**/.scratch/**",
+    "**/.claude/**",
+    "**/experiments/**"
+  ],
   "java.compile.nullAnalysis.nonnull": [
     "org.jspecify.annotations.NonNull"
   ],
