@@ -4,10 +4,8 @@ import dev.waterflex.scheduler.BookingSnapshot.*;
 import dev.waterflex.scheduler.optimizer.DayPlan;
 import java.time.LocalDate;
 import java.util.*;
-import org.springframework.stereotype.Component;
 
-/** Fetches directed legs between search phases. Candidate scoring never calls this component. */
-@Component
+/** Fetches directed legs between search phases through one metro's routing client. Candidate scoring never calls this. */
 public final class SnapshotRouting {
     private record PairKey(LocalDate day, String from, String to) { }
     private final RoadClient roads;

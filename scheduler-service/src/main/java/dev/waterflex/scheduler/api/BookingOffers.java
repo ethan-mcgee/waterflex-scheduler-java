@@ -47,13 +47,13 @@ import org.springframework.stereotype.Service;
 
 /**
  * POST /api/v1/booking/offers. Parses strictly, claims the request ID, reconciles each date's stored holds with the
- * host's snapshot, runs the portal's bounded booking search on the host's horizon, and publishes up to the offer limit
+ * host's snapshot, runs the bounded booking search on the host's horizon, and publishes up to the offer limit
  * with a 10 minute hold each. See "Booking (Decided 2026-10-08)" in docs/stateless-api-design.md.
  */
 @Service
 public class BookingOffers {
     private static final Logger LOG = Required.value(LoggerFactory.getLogger(BookingOffers.class));
-    /** The portal's offer expiry. */
+    /** How long an offer holds its slot. */
     static final Duration HOLD = Required.value(Duration.ofMinutes(10));
     private static final Set<String> VARIANTS = Required.value(Set.of("INSERTION", "BOUNDED", "EXPANDED", "RUIN_RECREATE", "SHARED"));
 
@@ -119,7 +119,7 @@ public class BookingOffers {
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
                     try { return search(tenantId, request, owner, shared); }
                     catch (BookingStore.DayMoved moved) {
-                        // One retry within the same deadline, as the portal does after a concurrent change.
+                        // One retry within the same deadline after a concurrent change.
                         LOG.info("Retrying booking search for job {}: {}", request.job().id(), moved.getMessage());
                         SearchDeadline.beginExploration();
                         return search(tenantId, request, owner, shared);
