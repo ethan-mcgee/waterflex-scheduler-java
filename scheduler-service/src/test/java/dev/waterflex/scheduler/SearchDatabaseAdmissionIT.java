@@ -10,7 +10,7 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Explicit real-pool gate, alongside BookingSnapshotDatabaseIT, against waterflex_test only. */
+/** Explicit real-pool gate against waterflex_test only. */
 class SearchDatabaseAdmissionIT {
     @Test void exhaustedPoolHasBoundedWaitAndLateAdmissionDoesNotBorrow() throws Exception {
         String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");

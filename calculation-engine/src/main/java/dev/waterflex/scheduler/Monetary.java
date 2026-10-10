@@ -54,8 +54,4 @@ public final class Monetary {
                 .divide(SIXTY, 0, RoundingMode.CEILING).longValueExact();
         return Math.addExact(minutes, extraMinutes);
     }
-    public static BigDecimal dollars(long cents) {
-        if (cents < -MAX_CENTS || cents > MAX_CENTS) throw new ArithmeticException("Cents out of range");
-        return Required.value(BigDecimal.valueOf(cents, 2));
-    }
 }

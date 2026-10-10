@@ -91,8 +91,7 @@ class RequestBookingTest {
             return legs;
         });
         BookingSnapshot routed = new SnapshotRouting(roads).insertion(built.snapshot(), built.request());
-        var input = new BookingCalculation.Input(routed, built.request(), BookingCalculation.Stage.INSERTION, "INSERTION",
-                Required.value(Set.of()), null, 0);
+        var input = new BookingCalculation.Input(routed, built.request(), BookingCalculation.Stage.INSERTION, "INSERTION", null, 0);
         var result = BookingCalculation.run(input).result();
         assertTrue(result.complete());
         assertFalse(result.candidates().isEmpty());
@@ -107,9 +106,6 @@ class RequestBookingTest {
         BookingSnapshot snapshot = build(request(request -> object(request.get("horizon")).put("lastDate", "2026-10-13"))).snapshot();
         assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot(snapshot.metroId(), snapshot.capturedAt(), snapshot.calendarReference(),
                 snapshot.configurationFingerprint(), snapshot.routingIdentity(), snapshot.policy(), snapshot.rates(), snapshot.days(), Required.value(Set.of(DAY))));
-        assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot(snapshot.metroId(), snapshot.capturedAt(), snapshot.calendarReference(),
-                snapshot.configurationFingerprint(), snapshot.routingIdentity(), snapshot.policy(), snapshot.rates(), snapshot.days()),
-                "the portal constructor still requires the scheduler calendar");
     }
 
     @Test void anUnlocatableTechnicianDayIsLeftOutAndAnUnlocatableJobIsRefused() {

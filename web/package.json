@@ -44,19 +44,16 @@
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
-    "leaflet": "^1.9.4",
     "lucide-react": "^1.47.0",
     "maplibre-gl": "^5.18.0",
     "next": "^14.2.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-leaflet": "^4.2.1",
     "zod": "4.1.12"
   },
   "devDependencies": {
     "@playwright/test": "1.55.1",
     "@types/js-yaml": "4.0.9",
-    "@types/leaflet": "^1.9.22",
     "@types/node": "^20.16.9",
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.0",

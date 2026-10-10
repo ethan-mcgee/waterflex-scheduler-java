@@ -4,20 +4,17 @@ import dev.waterflex.scheduler.optimizer.*;
 import java.time.*;
 import java.util.*;
 import org.jspecify.annotations.Nullable;
-/** Each stage has all immutable facts and roads. The caller orchestrates routing and overflow. */
+/** Each stage has all immutable facts and roads. The caller orchestrates routing. */
 public final class BookingCalculation {
-    public enum Stage { INSERTION, REFINEMENT, OVERFLOW }
+    public enum Stage { INSERTION, REFINEMENT }
     public record Input(BookingSnapshot snapshot, BoundedBookingSearch.Request request, Stage stage, String variant,
-                        Set<LocalDate> dates, BoundedBookingSearch.@Nullable Result insertion, int refinementMillis) {
+                        BoundedBookingSearch.@Nullable Result insertion, int refinementMillis) {
         public Input {
             Required.value(snapshot); Required.value(request); Required.value(stage);
             if (!Set.of("INSERTION","BOUNDED","EXPANDED","RUIN_RECREATE","SHARED").contains(variant)) throw new IllegalArgumentException("Unknown booking variant");
-            dates = Required.value(Set.copyOf(dates));
             if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid refinement cap");
             if (stage == Stage.REFINEMENT && insertion == null || stage != Stage.REFINEMENT && insertion != null)
                 throw new IllegalArgumentException("Invalid insertion seed for booking stage");
-            if (stage == Stage.OVERFLOW ? dates.size() != 1 || !BookingCalendar.overflowDates(snapshot.calendarReference()).containsAll(dates) : !dates.isEmpty())
-                throw new IllegalArgumentException("Invalid declared booking dates");
         }
     }
     public record Output(BoundedBookingSearch.Result result, Map<LocalDate,Set<String>> neighborhoods,
@@ -51,7 +48,6 @@ public final class BookingCalculation {
         var result = switch(input.stage()) {
             case INSERTION -> engine.search(false);
             case REFINEMENT -> engine.refine(Required.value(insertion));
-            case OVERFLOW -> engine.searchDates(input.dates(), !input.variant().equals("INSERTION"));
         };
         // Shortlist acquisition is orchestration data, never a routing callback from the engine.
         Map<LocalDate,Set<String>> neighborhoods = Required.value(Map.of());
@@ -86,7 +82,7 @@ public final class BookingCalculation {
             day.plan(day.baseline(),day.visits(),input.snapshot().rates(),false);
             day.plan(day.actualArrangement(),day.visits(),input.snapshot().rates(),true);
         }
-        if (input.stage() == Stage.REFINEMENT || input.stage() == Stage.OVERFLOW && !input.variant().equals("INSERTION")) {
+        if (input.stage() == Stage.REFINEMENT) {
             var selected = engine(input, SearchDeadline::checkpoint).neighborhoodRoutes();
             for (var entry : selected.entrySet()) {
                 Day day = Required.value(input.snapshot().days().get(entry.getKey())); Set<String> stops = new HashSet<>();

@@ -184,7 +184,6 @@ jobs:
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
-      TIME_OFF_POLL_DELAY_MS: '1000'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -333,7 +332,6 @@ jobs:
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
-      TIME_OFF_POLL_DELAY_MS: '1000'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6

@@ -37,9 +37,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * POST /api/v1/daily/proposals and POST /api/v1/repairs/proposals. Parses strictly, claims the request ID, routes through the metro's routing service,
- * runs the same daily calculation as the portal path, and stores the proposal with the host timestamps it was
+ * runs the daily calculation, and stores the proposal with the host timestamps it was
  * computed from. A failure that would repeat on retry is stored and replayed; a passing one releases the claim. A repair
- * is the same calculation with the absence added to the technician's day, in the portal's repair mode: it is accepted
+ * is the same calculation with the absence added to the technician's day, in repair mode: it is accepted
  * only when every appointment is placed, every constraint holds and no overtime is added. It is committed like any
  * daily proposal.
  */
@@ -174,8 +174,7 @@ public class DailyProposals {
     private record Outcome(DailyPreparation.Prepared prepared, DayPlan chosen, Decision decision, String reason) { }
 
     /**
-     * The portal path's preview decision (OptimizationService.createPreview), applied to request-fed facts; with an
-     * absence, the portal's repair (OptimizationService.createRepair) of the same facts.
+     * The daily preview decision applied to request-fed facts; with an absence, the repair of the same facts.
      */
     private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, String proposalId, String revision, Map<String, String> tokens,
                               PublicRequests.@Nullable Absence absence) {

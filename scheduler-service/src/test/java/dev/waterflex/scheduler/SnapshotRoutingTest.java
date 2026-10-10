@@ -139,6 +139,6 @@ class SnapshotRoutingTest {
         Day empty = new Day(Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, emptyRoads);
         Map<LocalDate, Day> days = new TreeMap<>();
         for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date, date.equals(DATE) ? populated : empty);
-        return new BookingSnapshot("metro", CAPTURED, "config", "roads", SchedulingPolicy.Rules.defaults(), RATES, days);
+        return new BookingSnapshot("metro", CAPTURED, CAPTURED, "config", "roads", SchedulingPolicy.Rules.defaults(), RATES, days, Required.value(Set.copyOf(days.keySet())));
     }
 }

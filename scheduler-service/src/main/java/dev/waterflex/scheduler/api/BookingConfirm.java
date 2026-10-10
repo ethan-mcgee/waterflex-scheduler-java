@@ -44,7 +44,7 @@ import org.springframework.web.server.ResponseStatusException;
 /**
  * POST /api/v1/booking/holds/{holdId}/confirm. The host sends its current snapshot of the hold's date. The scheduler
  * reconciles the day with it, turns the selected hold into the job's appointment (the appointment ID is the job ID) with
- * the portal's checks (ReservationTransition), and answers with a receipt of every appointment on each technician-day
+ * the hold transition's checks (ReservationTransition), and answers with a receipt of every appointment on each technician-day
  * whose route or planned times change. See "Booking (Decided 2026-10-08)" in docs/stateless-api-design.md.
  */
 @Service

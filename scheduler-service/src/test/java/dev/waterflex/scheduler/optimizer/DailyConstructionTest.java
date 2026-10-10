@@ -1,7 +1,6 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
-import dev.waterflex.scheduler.SavedJson;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import java.time.Instant;
 import java.time.Duration;
@@ -139,15 +138,8 @@ class DailyConstructionTest {
         reference.setScoringFacts(target); SolutionManager.create(SolverEngine.configuration(SolverEngine.Variant.TABU, 17).factory()).update(reference);
         assertEquals(0, Required.value(reference.getScore()).hardScore(DayScores.OVERTIME_TARGET).compareTo(BigDecimal.ZERO));
     }
-    @Test void nullableOriginalPairsAndPersistedCoverageAreValidatedBeforeUse() throws Exception {
+    @Test void nullableOriginalPairsAreValidatedBeforeUse() {
         assertThrows(IllegalArgumentException.class, () -> new DayPlan(Required.value(List.of()),
                 Required.value(List.of(new PlanVisit("v", "s", at(8), at(16), 30, "t", null))), Required.value(Map.of()), 30, 45, 0, 0, 0));
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        com.fasterxml.jackson.databind.JsonNode node = Required.value(mapper.valueToTree(solve(fixture(0, 1, 0, 0, DayPlan.Mode.COLD)).outcome()));
-        SavedJson.dailyOutcome(node);
-        ((com.fasterxml.jackson.databind.node.ObjectNode) node).put("complete", true);
-        assertThrows(RuntimeException.class, () -> SavedJson.dailyOutcome(node));
-        for (String json : new String[]{"{}", "{\"scoreModelVersion\":null}", "{\"scoreModelVersion\":\"hard-medium-soft-decimal-v1\"}"})
-            assertThrows(RuntimeException.class, () -> SavedJson.currentScoreModel(Required.value(mapper.readTree(json))));
     }
 }
