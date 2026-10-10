@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "daily-tabu-smoke",
+  "daily": {
+    "solvers": [
+      "TABU",
+      "KOPT",
+      "LATE_ACCEPTANCE",
+      "SUBLIST",
+      "TABU_SIZE_3",
+      "TABU_SIZE_15",
+      "TABU_KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      17
+    ],
+    "fleets": [
+      5
+    ],
+    "workloads": [
+      "CLUSTERED"
+    ],
+    "budgets_seconds": [
+      0.5
+    ],
+    "parallel_cases": 1
+  }
+}

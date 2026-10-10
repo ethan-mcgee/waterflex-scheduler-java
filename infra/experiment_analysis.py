@@ -16,8 +16,11 @@ from experiment_config import DAILY, canonical, read_json, unique_object, digest
 # Booking experiments are retired; archived booking evidence still names these variants.
 BOOKING = ['INSERTION', 'BOUNDED', 'EXPANDED', 'RUIN_RECREATE', 'SHARED']
 
-COLORS = dict(zip(dict.fromkeys(DAILY + BOOKING),
-    ['#777777', '#444444', '#a58d3d', '#c37e12', '#2363a0', '#9171ad', '#b34f75', '#608642', '#00959b', '#d56033', '#86743e', '#516170']))
+# Colors are assigned by name so adding a solver never shifts an existing (archived) series' color.
+COLORS = {'CURRENT_CAPPED': '#777777', 'CURRENT_UNCAPPED': '#444444', 'LATE_ACCEPTANCE_CHANGE': '#a58d3d',
+          'LATE_ACCEPTANCE': '#c37e12', 'TABU': '#2363a0', 'SUBLIST': '#9171ad', 'KOPT': '#b34f75',
+          'RUIN_RECREATE': '#608642', 'INSERTION': '#00959b', 'BOUNDED': '#d56033', 'EXPANDED': '#86743e',
+          'SHARED': '#516170', 'TABU_SIZE_3': '#6fa8dc', 'TABU_SIZE_15': '#0b3a66', 'TABU_KOPT': '#3c9a8f'}
 
 
 def number(value):
