@@ -19,23 +19,6 @@ public final class SearchDeadline {
     private long durationNanos;
     private final long reserveNanos;
     private boolean committing;
-    private volatile @Nullable Long bestCostDeltaCents;
-    public @Nullable Long bestCostDeltaCents() { return bestCostDeltaCents; }
-    public static void incumbent(long costDeltaCents) {
-        SearchDeadline value = CURRENT.get();
-        if (value != null) {
-            Long previous = value.bestCostDeltaCents;
-            if (previous == null || costDeltaCents < previous) value.bestCostDeltaCents = costDeltaCents;
-        }
-    }
-    private final java.util.concurrent.atomic.AtomicLong work = new java.util.concurrent.atomic.AtomicLong();
-    private volatile String phase = "SNAPSHOT";
-    public long completedWork() { return work.get(); }
-    public String phase() { return phase; }
-    public static void progress(String phase) {
-        SearchDeadline value = CURRENT.get();
-        if (value != null) { value.phase = phase; value.work.incrementAndGet(); }
-    }
     private volatile boolean cancelled;
 
     public SearchDeadline(Duration duration) { this(duration, System::nanoTime); }
@@ -98,14 +81,6 @@ public final class SearchDeadline {
     }
     public static void beginExploration() {
         SearchDeadline current = CURRENT.get();
-        if (current != null) { current.committing = false; current.bestCostDeltaCents = null; checkpoint(); }
-    }
-    public static void policyLimit(int millis) {
-        if (millis < 1000 || millis > 5000) throw new IllegalArgumentException("Invalid booking deadline policy");
-        SearchDeadline current = CURRENT.get();
-        if (current != null) {
-            current.durationNanos = Math.min(current.durationNanos, millis * 1_000_000L);
-            current.requireTime();
-        }
+        if (current != null) { current.committing = false; checkpoint(); }
     }
 }

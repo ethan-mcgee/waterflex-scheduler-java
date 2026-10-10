@@ -7,7 +7,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.jspecify.annotations.Nullable;
 
 /** Bounded instance-wide expensive-work admission. Queued bookings precede background work. */
 @Component
@@ -30,15 +29,6 @@ public final class SearchAdmission {
         lock.lock();
         try { return new State(active, bookings.size(), background.size(), backgroundActive); }
         finally { lock.unlock(); }
-    }
-
-    /** Speculative cache work never queues or takes capacity from an active customer search. */
-    public @Nullable Lease tryIdleBackground() {
-        if (!lock.tryLock()) return null;
-        try {
-            if (active != 0 || !bookings.isEmpty() || !background.isEmpty()) return null;
-            return start(Kind.BACKGROUND, System.nanoTime());
-        } finally { lock.unlock(); }
     }
 
     public SearchAdmission(@Value("${scheduler.search.capacity:0}") int configuredCapacity,

@@ -327,7 +327,6 @@ public final class BoundedBookingSearch {
                 for (int position = 0; position <= route.size(); position++) {
                     checkpoint.run();
                     evaluations++;
-                    SearchDeadline.progress("CANDIDATE_EVALUATION");
                     if (!evaluation.possibleInsertion(Required.value(tech), route, visit, position)) continue;
                     Arrangement proposal = arrangement.insert(Required.value(tech), visit.id(), position);
                     var result = evaluation.metrics(proposal, facts, false);
@@ -369,7 +368,6 @@ public final class BoundedBookingSearch {
             if (overtimeDelta < overtime) candidates.clear();
             candidates.removeIf(item -> item.costDeltaCents() > ceiling);
             candidates.removeIf(item -> dominates(merit, Merit.of(Required.value(item))));
-            SearchDeadline.incumbent(merit.cost());
             candidates.add(new Candidate(window, merit.technician(), merit.arrangement(), overtimeDelta, merit.cost(),
                     merit.fairness(), merit.changes(), merit.position(), source, validation));
         }
@@ -596,7 +594,7 @@ public final class BoundedBookingSearch {
                             if (!Required.value(day.technicians().get(technician)).services().contains(visit.serviceId())) continue;
                             List<String> route = Required.value(arrangement.routes().get(technician));
                             for (int position = 0; position <= route.size(); position++) {
-                                checkpoint.run(); reconstructionEvaluations++; SearchDeadline.progress("RECONSTRUCTION");
+                                checkpoint.run(); reconstructionEvaluations++;
                                 Arrangement proposal = arrangement.insert(Required.value(technician), visit.id(), position);
                                 var metrics = evaluation.metrics(proposal, nextFacts, false);
                                 if (metrics.feasible() && regularChanges(proposal, nextFacts))

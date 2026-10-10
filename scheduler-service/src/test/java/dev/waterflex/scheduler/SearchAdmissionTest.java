@@ -12,24 +12,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class SearchAdmissionTest {
     private static SearchDeadline deadline(long millis) { return new SearchDeadline(Required.value(Duration.ofMillis(millis))); }
 
-    @Test void speculativeWorkNeverQueuesOrStartsAlongsideCustomerWork() {
-        var admission = new SearchAdmission(2, 16);
-        try (var booking = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(1000))) {
-            assertTrue(booking.queueMillis() >= 0);
-            assertNull(admission.tryIdleBackground());
-            assertEquals(0, admission.state().queuedBackground());
-        }
-        try (var warm = Required.value(admission.tryIdleBackground())) {
-            assertTrue(warm.queueMillis() >= 0);
-            assertNull(admission.tryIdleBackground());
-            try (var booking = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(1000))) {
-                assertTrue(booking.queueMillis() >= 0);
-                assertEquals(2, admission.state().active());
-            }
-        }
-        assertEquals(0, admission.state().active());
-    }
-
     @Test void cancellationStopsQueuedWorkAndCommitWithoutReleasingAnotherPermit() throws Exception {
         SearchAdmission admission = new SearchAdmission(1, 16);
         SearchDeadline cancelled = deadline(5000);
@@ -114,17 +96,5 @@ class SearchAdmissionTest {
         }));
         assertNull(SearchDeadline.current());
         SearchDeadline.checkpoint();
-    }
-
-    @Test void policyShorteningIncludesAlreadySpentTime() {
-        AtomicLong time = new AtomicLong(0);
-        SearchDeadline budget = new SearchDeadline(Required.value(Duration.ofSeconds(5)), time::get);
-        budget.within(() -> {
-            time.set(TimeUnit.SECONDS.toNanos(2));
-            SearchDeadline.policyLimit(3000);
-            assertEquals(TimeUnit.SECONDS.toNanos(1), budget.remainingNanos());
-            assertThrows(SearchDeadline.Expired.class, SearchDeadline::checkpoint);
-            return true;
-        });
     }
 }

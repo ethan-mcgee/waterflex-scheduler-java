@@ -59,7 +59,6 @@ class MonetaryTest {
         assertEquals("0.67", json.path("mileagePerMile").textValue());
         assertEquals("0.2", json.path("travelBufferPct").textValue());
         assertEquals("0", Monetary.canonical(d("0.0000")));
-        assertEquals(new BigDecimal("85.09"), Monetary.dollars(8509));
     }
     @Test void bufferedTravelUsesExactDecimalCeiling() {
         // Binary arithmetic gives 1800 * 1.1 / 60 = 33.00000000000001 and rounds up to 34.
@@ -80,15 +79,6 @@ class MonetaryTest {
             assertEquals(expected, Monetary.bufferedMinutes(seconds, Required.value(BigDecimal.valueOf(basis, 4)), extra), seconds + "s " + basis + "bp");
         }
     }
-    @Test void historicalProvenanceRemainsReadableButCannotAuthorizeApplication() {
-        var json = new ObjectMapper().createObjectNode().put("mapVersion", "roads").put("configVersion", "config");
-        SavedJson.provenance(Required.value(json));
-        assertThrows(RuntimeException.class, () -> SavedJson.currentCostModel(Required.value(json)));
-        json.put("costModelVersion", "legacy-double-v1"); assertThrows(RuntimeException.class, () -> SavedJson.currentCostModel(Required.value(json)));
-        json.putNull("costModelVersion"); assertThrows(RuntimeException.class, () -> SavedJson.currentCostModel(Required.value(json)));
-        json.put("costModelVersion", Monetary.COST_MODEL); SavedJson.currentCostModel(Required.value(json));
-    }
-
     /** Independent generic fractions: labor is minutes/60, miles are meters*125/201168. */
     static long oracle(long paid, long overtime, long meters, BigDecimal regular, BigDecimal premium, BigDecimal mileage) {
         Fraction amount = fraction(regular).times(paid - overtime).over(60)

@@ -57,8 +57,8 @@ function weekday(date: string): boolean {
 }
 
 /**
- * The days an overnight run proposes, exactly as the scheduler's OptimizationService.overnightDates: from today, every
- * day not yet frozen by the 6 a.m. cutoff, until ten weekdays are covered. Weekend days in between are included.
+ * The days an overnight run proposes: from today, every day not yet frozen by the 6 a.m. cutoff, until ten weekdays
+ * are covered. Weekend days in between are included.
  */
 export function overnightDates(now: Date): string[] {
   const dates: string[] = [];
