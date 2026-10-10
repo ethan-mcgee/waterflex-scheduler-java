@@ -301,8 +301,17 @@ def run_rows(run):
         receipt = read_json(attempt / 'completed.json')
         for row in rs:
             row['in_flight_min'] = receipt.get('in_flight_min')
+            row['full_load_fraction'] = receipt.get('full_load_fraction')  # Absent before it was recorded.
         rows.extend(rs)
     return rows, issues
+
+
+def fully_loaded(row, parallel_cases, share=.95):
+    """Steady state: every slot busy for at least `share` of the case's wall time. Archives without the
+    recorded share fall back to the fewest-neighbors count."""
+    if row.get('full_load_fraction') is not None:
+        return row['full_load_fraction'] >= share
+    return row.get('in_flight_min') is not None and row['in_flight_min'] >= parallel_cases - 1
 
 
 def contention_report(sequential_run, parallel_run, threshold=.95):
@@ -318,7 +327,7 @@ def contention_report(sequential_run, parallel_run, threshold=.95):
         other = sequential.get(key(r))
         if other is None:
             excluded['no_sequential_twin'] += 1
-        elif r.get('in_flight_min') is None or r['in_flight_min'] < parallel_cases - 1:
+        elif not fully_loaded(r, parallel_cases):
             excluded['not_fully_loaded'] += 1  # Pool ramp-up and tail run with fewer neighbors.
         else:
             ratios = {phase: (r[f'{phase}_move_rate'] / other[f'{phase}_move_rate']
@@ -342,7 +351,9 @@ def contention_report(sequential_run, parallel_run, threshold=.95):
             'parallel_cases': parallel_cases, 'threshold': threshold, 'groups': groups,
             'excluded_pairs': dict(excluded), 'issues': seq_issues + par_issues,
             'accepted': accepted,
-            'rule': 'Accepted when every solver and fleet median reference-phase throughput ratio is at least the threshold'}
+            'rule': 'Accepted when every solver and fleet median reference-phase throughput ratio is at least the threshold',
+            'loaded_rule': 'A pair counts when every slot was busy for at least 95% of the parallel case wall time '
+                           '(older archives: fewest neighbors at least parallel_cases - 1)'}
 
 
 def plots(output, rows, controls, budgets):
@@ -485,8 +496,10 @@ def analyze(run):
             else:
                 path = attempt / 'raw.jsonl'
                 rs, errors = load_raw(path, expected=case)
+                receipt = read_json(attempt / 'completed.json')
                 for row in rs:
-                    row['in_flight_min'] = read_json(attempt / 'completed.json').get('in_flight_min')
+                    row['in_flight_min'] = receipt.get('in_flight_min')
+                    row['full_load_fraction'] = receipt.get('full_load_fraction')
                 rows.extend(rs)
                 issues.extend(errors)
                 inputs.append({'name': str(path.relative_to(run)), 'sha256': sha(path)})

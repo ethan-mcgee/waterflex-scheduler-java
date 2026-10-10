@@ -536,6 +536,39 @@ class TopologyTests(unittest.TestCase):
         self.assertEqual(occupancy.finish('a'), 0)
         self.assertIsNone(occupancy.finish('a'))
 
+    def test_full_load_share_ignores_instant_refills_and_marks_ramp_and_tail(self):
+        now = [0.0]
+        occupancy = rt.Occupancy(2, clock=lambda: now[0])
+        occupancy.start('a'); occupancy.start('b')
+        now[0] = 100.0
+        occupancy.finish_receipt('a')
+        now[0] = 100.001; occupancy.start('c')  # Replacement a millisecond later: b stays at full load.
+        now[0] = 120.0
+        b = occupancy.finish_receipt('b')
+        self.assertEqual(b['in_flight_min'], 0)  # The fewest-neighbors count alone would exclude b.
+        self.assertGreater(b['full_load_fraction'], .99)
+        now[0] = 220.0
+        c = occupancy.finish_receipt('c')  # Tail: alone for 100 of its 120 seconds.
+        self.assertAlmostEqual(c['full_load_fraction'], 19.999 / 119.999, places=6)
+        self.assertEqual(rt.Occupancy().finish_receipt('x'), {'in_flight_min': None, 'full_load_fraction': None})
+
+    def test_saturated_pool_of_equal_budgets_leaves_steady_state_pairs(self):
+        import heapq
+        now, running = [0.0], []
+        occupancy, pending, receipts = rt.Occupancy(10, clock=lambda: now[0]), list(range(24)), {}
+        def start(key):
+            occupancy.start(key)
+            heapq.heappush(running, (now[0] + 120 + key * .01, key))
+        for _ in range(10):
+            start(pending.pop(0))
+        while running:
+            now[0], key = heapq.heappop(running)
+            receipts[key] = occupancy.finish_receipt(key)
+            if pending:
+                start(pending.pop(0))
+        self.assertLessEqual(sum(r['in_flight_min'] >= 9 for r in receipts.values()), 1)
+        self.assertGreaterEqual(sum(r['full_load_fraction'] >= .95 for r in receipts.values()), 20)
+
     def test_progress_counts_concurrent_completions_exactly(self):
         with rt.Progress(400, stream=io.StringIO()) as progress:
             for key in range(400):
@@ -737,9 +770,9 @@ class ThroughputTests(unittest.TestCase):
 
 
 class ContentionTests(unittest.TestCase):
-    def row(self, rate, in_flight, solver='TABU', fleet=20, seed=17):
+    def row(self, rate, in_flight, solver='TABU', fleet=20, seed=17, share=None):
         return dict(solver=solver, seed=seed, fleet=fleet, workload='CLUSTERED', budget_ms=120000, fixture='f', kind='daily',
-                    reference_move_rate=rate, fairness_move_rate=rate, in_flight_min=in_flight)
+                    reference_move_rate=rate, fairness_move_rate=rate, in_flight_min=in_flight, full_load_fraction=share)
 
     def report(self, sequential, parallel):
         import experiment_analysis as analysis
@@ -756,6 +789,14 @@ class ContentionTests(unittest.TestCase):
         self.assertEqual(report['excluded_pairs'], {'not_fully_loaded': 1, 'throughput_unavailable': 1})
         self.assertAlmostEqual(report['groups'][0]['reference_median_ratio'], .97)
         self.assertEqual(report['groups'][0]['pairs'], 2)
+        self.assertTrue(report['accepted'])
+
+    def test_recorded_full_load_share_decides_pairing_over_fewest_neighbors(self):
+        seq = [self.row(1000, 0, seed=s) for s in (17, 23)]
+        par = [self.row(970, 4, seed=17, share=.99), self.row(500, 5, seed=23, share=.5)]
+        report = self.report(seq, par)
+        self.assertEqual(report['excluded_pairs'], {'not_fully_loaded': 1})
+        self.assertEqual(report['groups'][0]['pairs'], 1)
         self.assertTrue(report['accepted'])
 
     def test_slowdown_beyond_threshold_is_not_accepted_and_empty_is_never_accepted(self):
