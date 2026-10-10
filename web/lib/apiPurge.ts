@@ -42,14 +42,7 @@ export async function purgeApiJobs(clientId: string, metroId: string, jobIds: re
     facts => ({ ...facts, appointments: facts.appointments.filter(item => !purgedAppointments.has(item.id)) }),
     tx => survivingDays(tx, ids),
     async tx => {
-      const appointmentIds = (await tx.appointment.findMany({ where: { jobId: { in: ids } }, select: { id: true } })).map(item => item.id);
-      await tx.outboundEvent.deleteMany({ where: { aggregateId: { in: [...ids, ...appointmentIds, ...customerIds] } } });
       await tx.appointment.deleteMany({ where: { jobId: { in: ids } } });
-      // The scheduler's own booking records hold nothing for API-mode jobs; they are cleared only in case a job predates API mode.
-      await tx.slotHold.deleteMany({ where: { jobId: { in: ids } } });
-      await tx.bookingOffer.deleteMany({ where: { jobId: { in: ids } } });
-      await tx.bookingOfferSet.deleteMany({ where: { jobId: { in: ids } } });
-      await tx.bookingOptimization.deleteMany({ where: { jobId: { in: ids } } });
       await tx.job.deleteMany({ where: { id: { in: ids } } });
       await tx.address.deleteMany({ where: { id: { in: addressIds }, jobs: { none: {} } } });
       await tx.customer.deleteMany({ where: { id: { in: customerIds }, jobs: { none: {} } } });

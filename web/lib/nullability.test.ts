@@ -27,7 +27,7 @@ function stub(target: object, method: string, value: unknown) {
 }
 before(() => {
   stub(prisma.client, "findMany", async () => [{ id: DEFAULT_CLIENT_ID, name: "Default client" }]);
-  for (const delegate of [prisma.job, prisma.slotHold, prisma.technician, prisma.depot, prisma.dealership, prisma.appointment, prisma.timeOffRequest])
+  for (const delegate of [prisma.job, prisma.technician, prisma.depot, prisma.dealership, prisma.appointment, prisma.timeOffRequest])
     stub(delegate, "count", async () => ownedRows);
 });
 after(() => { for (const restore of restores.splice(0).reverse()) restore(); });

@@ -174,15 +174,12 @@ test("weekly edits reject malformed payloads and conflicts with an appointment",
       ? { ...day, available: false, shiftStartMin: null, shiftEndMin: null } : day);
     const response = await request.put(url, { data: { days } });
     expect(response.status()).toBe(409);
-    await prisma.appointment.delete({ where: { id: appointment.id } });
-    await prisma.slotHold.create({ data: { id: `profile-hold-${technician.id}`, offerToken: `profile-offer-${technician.id}`,
-      jobId: job.id, technicianId: technician.id, serviceDate: new Date(`${date}T00:00:00Z`),
-      windowStart: start, windowEnd: end, plannedStart: start, plannedEnd: end, insertPosition: 0,
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
-    expect((await request.put(url, { data: { days } })).status()).toBe(409);
     expect(await prisma.technicianAvailabilityVersion.count({ where: { technicianId: technician.id } })).toBe(1);
+    // Booking holds live at the scheduler and are rechecked at confirm, so only appointments block the edit.
+    await prisma.appointment.delete({ where: { id: appointment.id } });
+    expect((await request.put(url, { data: { days } })).status()).toBe(200);
+    expect(await prisma.technicianAvailabilityVersion.count({ where: { technicianId: technician.id } })).toBe(2);
   } finally {
-    await prisma.slotHold.deleteMany({ where: { jobId: job.id } });
     await prisma.appointment.deleteMany({ where: { id: appointment.id } });
     await prisma.job.delete({ where: { id: job.id } });
     await prisma.address.delete({ where: { id: address.id } });

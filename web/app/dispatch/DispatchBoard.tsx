@@ -45,11 +45,6 @@ function Columns({ technicians, appointments, timezone }: { technicians: BoardTe
       const color = tech.color;
       const stops = appointments.filter(item => item.technicianId === tech.id).sort((left, right) => left.sequence - right.sequence);
       return <div className={styles.column} key={tech.id}><div className={styles.columnHeader} style={{ borderColor: color }}>{tech.name}<div className={styles.columnMeta}>{stops.length} stop{stops.length === 1 ? "" : "s"}</div></div>
-        {tech.routeTiming?.status === "AVAILABLE" && tech.routeTiming.segments.map((segment, index) => <div className={styles.cardMeta} key={segment.departure}>
-          Segment {index + 1}: depart {formatTime(segment.departure, timezone)}, return {formatTime(segment.returnedAt, timezone)}
-        </div>)}
-        {stops.length > 0 && tech.routeTiming?.status === "UNAVAILABLE" && <p className={styles.cardMeta}>Departure and return times unavailable until this route is replanned.</p>}
-        {tech.routeTiming?.status === "INVALID" && <p role="alert">Saved route timing is invalid. Replan this day before using departure times.</p>}
         {stops.map(appointment => <AppointmentCard key={appointment.id} appointment={appointment} timezone={timezone} />)}
         {stops.length === 0 && <div className={styles.empty}>No visits scheduled.</div>}</div>;
     })}
