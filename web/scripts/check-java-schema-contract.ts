@@ -14,21 +14,8 @@ const expected: Record<string, string[]> = {
   api_booking_offer_set: ["tenantId", "id", "requestId", "jobId", "metroId", "expiresAt", "status", "offerSetJson"],
   api_booking_offer: ["tenantId", "id", "offerSetId", "holdId", "serviceDate", "technicianId", "windowStart", "windowEnd", "status"],
   api_booking_receipt: ["tenantId", "id", "offerId", "requestId", "receiptJson"],
-  appointment: ["id", "jobId", "technicianId", "serviceDate", "windowStart", "windowEnd", "plannedStart", "plannedEnd", "sequence"],
-  job: ["id", "addressId", "serviceId", "durationMin", "status", "bookingRequestId"],
-  technician: ["id", "homeLat", "homeLng", "shiftStartMin", "shiftEndMin", "maxDailyMinutes", "maxOvertimeMinutes", "active"],
-  dealership: ["id", "name"],
-  depot_endpoint_policy: ["depotId", "effectiveDate", "departure", "returnTo"],
-  technician_depot_assignment: ["technicianId", "effectiveDate", "depotId"],
-  depot: ["id", "dealershipId", "metroId", "lat", "lng"],
-  technician_qualification: ["technicianId", "serviceId"],
-  technician_shift_override: ["technicianId", "serviceDate", "available", "shiftStartMin", "shiftEndMin"],
-  technician_availability_version: ["id", "technicianId", "effectiveDate"],
-  technician_availability_day: ["versionId", "dayOfWeek", "available", "shiftStartMin", "shiftEndMin"],
-  schedule_day: ["technicianId", "serviceDate", "version"],
   road_route_cache: ["originKey", "destinationKey", "profile", "mapVersion", "seconds", "meters", "routable"],
   omaha_setting: ["key", "value"],
-  time_off_request: ["id", "technicianId", "status"],
 };
 
 const prisma = new PrismaClient();

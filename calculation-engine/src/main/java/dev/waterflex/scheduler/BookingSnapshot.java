@@ -21,29 +21,12 @@ public record BookingSnapshot(String metroId, Instant capturedAt, Instant calend
     /** The most dates one search may cover; the remote dataset accepts no more. */
     public static final int MAX_HORIZON_DAYS = 32;
 
-    public BookingSnapshot(String metroId, Instant capturedAt, String configurationFingerprint,
-            String routingIdentity, SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days) {
-        this(metroId, capturedAt, capturedAt, configurationFingerprint, routingIdentity, policy, rates, days);
-    }
-    /** A portal snapshot: its days must be the scheduler calendar's booking dates, with or without the overflow dates. */
-    public BookingSnapshot(String metroId, Instant capturedAt, Instant calendarReference, String configurationFingerprint,
-            String routingIdentity, SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days) {
-        this(metroId, capturedAt, calendarReference, configurationFingerprint, routingIdentity, policy, rates, days, calendarHorizon(calendarReference, days));
-    }
     public BookingSnapshot {
         text(metroId); text(configurationFingerprint); text(routingIdentity);
         days = Required.value(Map.copyOf(days));
         horizon = Required.value(Set.copyOf(horizon));
         if (horizon.isEmpty() || horizon.size() > MAX_HORIZON_DAYS) throw new IllegalArgumentException("A booking horizon covers 1 to " + MAX_HORIZON_DAYS + " dates");
         if (!days.keySet().equals(horizon)) throw new Incomplete("Snapshot does not cover the complete booking horizon");
-    }
-
-    private static Set<LocalDate> calendarHorizon(Instant calendarReference, Map<LocalDate, Day> days) {
-        Set<LocalDate> normal = new HashSet<>(BookingCalendar.bookingDates(calendarReference));
-        Set<LocalDate> extended = new HashSet<>(normal); extended.addAll(BookingCalendar.overflowDates(calendarReference));
-        if (!days.keySet().equals(normal) && !days.keySet().equals(extended))
-            throw new Incomplete("Snapshot does not cover the complete booking horizon");
-        return Required.value(Set.copyOf(days.keySet()));
     }
 
     public record Rates(@JsonSerialize(using = DecimalStringSerializer.class) BigDecimal regularHourly,

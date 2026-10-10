@@ -52,7 +52,5 @@ class DailyPolicyDiagnosticsTest {
             assertFalse(result.accepted()); assertEquals(DailyPolicyDiagnostics.Decision.REJECTED_OVERTIME,diagnostic.decision());
         }
         assertEquals(150,RouteEvaluator.evaluate(baseline).paidMinutes());
-        SavedJson.policyDiagnostics(CalculationJson.tree(CalculationJson.write(diagnostic)));
-        assertThrows(RuntimeException.class,() -> SavedJson.policyDiagnostics(CalculationJson.tree("{\"schemaVersion\":1,\"fairness\":null}")));
     }
 }

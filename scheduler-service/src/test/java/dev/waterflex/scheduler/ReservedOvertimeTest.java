@@ -50,7 +50,7 @@ class ReservedOvertimeTest {
         Map<LocalDate, Day> days = new TreeMap<>();
         for (LocalDate item : BookingCalendar.bookingDates(captured)) days.put(item, item.equals(date) ? day : new Day(
                 Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, roads));
-        var snapshot = new BookingSnapshot("metro", captured, "configuration", "roads", SchedulingPolicy.Rules.defaults(), rates, days);
+        var snapshot = new BookingSnapshot("metro", captured, captured, "configuration", "roads", SchedulingPolicy.Rules.defaults(), rates, days, Required.value(Set.copyOf(days.keySet())));
         var result = new BoundedBookingSearch.Result(Required.value(List.of(candidate)), Required.value(List.of()), true, 1, 60, 240, false, "COMPLETED");
         var bundle = ReservationOffers.prepare(snapshot, new BoundedBookingSearch.Request("new-job", "new", 30, point),
                 Required.value(Map.of(date, Map.of())), result, Required.value(captured.plusSeconds(600)), 4, () -> { });

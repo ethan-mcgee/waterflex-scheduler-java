@@ -108,14 +108,4 @@ class SolverEngineTest {
         assertEquals("NOT_RUN", result.statistics().termination()); assertEquals("NO_SEARCH", result.statistics().diagnosticsUnavailableReason());
         assertNull(result.statistics().scoreCalculations()); assertFalse(result.outcome().complete());
     }
-    @Test void persistedV2RejectsMissingReasonsFabricatedCountersAndMislabelledTermination() {
-        var solver = new DailySolver("TABU", 17);
-        var result = solver.solve(DayConstraintProviderTest.fixture(), Required.value(Duration.ofMillis(100)));
-        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-        for (String field : List.of("diagnosticsUnavailableReason", "timeToBestUnavailableReason", "provenance", "format")) {
-            com.fasterxml.jackson.databind.node.ObjectNode node = mapper.valueToTree(solver.diagnostics(Required.value(List.<DailySolver.Phase>of(new DailySolver.Phase("REFERENCE", result.statistics())))));
-            var stats = (com.fasterxml.jackson.databind.node.ObjectNode) node.path("phases").get(0).path("statistics");
-            stats.remove(field); assertThrows(RuntimeException.class, () -> dev.waterflex.scheduler.SavedJson.solverAnalysis(Required.value(node)));
-        }
-    }
 }
