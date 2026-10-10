@@ -265,8 +265,7 @@ public class BookingOffers {
 
     /** The portal pipeline's insertion and optional bounded refinement (BookingSearchPipeline.prepare), without its overflow dates. */
     Searched calculate(RoadClient roads, BookingSnapshot snapshot, BoundedBookingSearch.Request job) {
-        var inserted = transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant,
-                Required.value(Set.of()), null, 0));
+        var inserted = transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant, null, 0));
         BoundedBookingSearch.Result result = inserted.result();
         if (variant.equals("INSERTION") || "DEADLINE".equals(result.stopReason())) return new Searched(snapshot, result);
         boolean optional = result.complete() && result.distinctRegularWindows() > snapshot.policy().regularWindowThreshold();
@@ -280,8 +279,7 @@ public class BookingOffers {
             checkpoint.run();
             widened = new SnapshotRouting(roads).neighborhoods(snapshot, inserted.neighborhoods(), checkpoint);
             int remaining = optional ? Math.max(1, refinementMillis - (int) ((System.nanoTime() - started) / 1_000_000)) : 0;
-            var refined = transport.booking(new BookingCalculation.Input(widened, job, BookingCalculation.Stage.REFINEMENT, variant,
-                    Required.value(Set.of()), result, remaining));
+            var refined = transport.booking(new BookingCalculation.Input(widened, job, BookingCalculation.Stage.REFINEMENT, variant, result, remaining));
             return new Searched(widened, BookingSearchPipeline.combine(result, refined.result(), snapshot.policy()));
         } catch (BoundedBookingSearch.RefinementLimit limit) { return new Searched(widened, incomplete(result, "REFINEMENT_TIME_LIMIT")); }
         catch (SearchDeadline.Expired expired) { return new Searched(widened, incomplete(result, "DEADLINE")); }

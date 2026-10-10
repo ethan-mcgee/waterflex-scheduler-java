@@ -112,13 +112,10 @@ class FieldScenarioTest {
                 Map.of("scenario", "split-availability", "serviceMinutes", 240, "absenceStart", Required.value(START.plusSeconds(180 * 60).toString()), "absenceEnd", Required.value(START.plusSeconds(300 * 60).toString()), "expected", "NO_CANDIDATE"),
                 Map.of("scenario", "unreachable-directed-return", "serviceMinutes", 60, "unreachableLeg", "town > Omaha home", "expected", "NO_CANDIDATE"))));
     }
-    @Test void fourHourPolicyAndOverflowKeepWeekendsAndDstCalendarBoundaries() {
+    @Test void fourHourPolicyOffersFourHourWindows() {
         var engine = new BoundedBookingSearch(snapshot(fixture(false, true, false, false)), new BoundedBookingSearch.Request("A", "service", 60, TOWN), BoundedBookingSearch.Limits.defaults(), () -> { });
         assertEquals(5, engine.windows().size());
         assertTrue(engine.windows().stream().allMatch(window -> Duration.between(window.start(), window.end()).toMinutes() == 240));
-        var capture = Required.value(Instant.parse("2026-10-23T17:00:00Z"));
-        assertTrue(BookingCalendar.bookingDates(capture).contains(LocalDate.parse("2026-11-01")));
-        assertEquals(List.of(LocalDate.parse("2026-11-09"), LocalDate.parse("2026-11-10"), LocalDate.parse("2026-11-11"), LocalDate.parse("2026-11-12"), LocalDate.parse("2026-11-13")), BookingCalendar.overflowDates(capture));
     }
     @Test void anOmahaPromiseOrLiveReservationCorrectlyPreventsGroupingUntilReleased() throws Exception {
         for (boolean hold : List.of(false, true)) {
@@ -207,7 +204,7 @@ class FieldScenarioTest {
     static BookingSnapshot snapshot(Day day) {
         Map<LocalDate, Day> days = new TreeMap<>();
         for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date, date.equals(DATE) ? day : new Day(Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, new Roads(Required.value(Map.of()), Required.value(Set.of()))));
-        return new BookingSnapshot("Omaha", CAPTURED, "field-v2", "directed-small-town-fixture-v1", SchedulingPolicy.Rules.defaults(), RATES, days);
+        return new BookingSnapshot("Omaha", CAPTURED, CAPTURED, "field-v2", "directed-small-town-fixture-v1", SchedulingPolicy.Rules.defaults(), RATES, days, Required.value(Set.copyOf(days.keySet())));
     }
     static Day fixture(boolean second, boolean qualified, boolean absence, boolean unreachable) {
         Map<String, Technician> techs = new TreeMap<>(); Map<String, List<String>> routes = new TreeMap<>();

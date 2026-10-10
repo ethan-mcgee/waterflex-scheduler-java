@@ -70,7 +70,7 @@ class BoundedBookingSearchTest {
                 Required.value(START.plusSeconds(21600)), 360, 0, tech.services(), tech.absences(), tech.departure(), tech.returnTo(), tech.scheduleVersion())));
         var day = new Day(technicians, oldDay.visits(), oldDay.baseline(), oldDay.reservationVersion(), oldDay.roads());
         Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
-        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days, Required.value(Set.copyOf(days.keySet())));
         var request = new BoundedBookingSearch.Request("new", "new-service", 30, POINT);
         var search = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { });
         var first = search.search(true);
@@ -221,7 +221,7 @@ class BoundedBookingSearchTest {
                 Required.value(Set.of("old-service", "new-service")), idle.absences(), idle.departure(), idle.returnTo(), idle.scheduleVersion()));
         var day = new Day(technicians, before.visits(), before.baseline(), before.reservationVersion(), before.roads());
         Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
-        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days, Required.value(Set.copyOf(days.keySet())));
         long existingOvertime = day.evaluate(day.baseline(), day.visits(), RATES).overtimeMinutes();
         assertTrue(existingOvertime > 0);
         var result = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 10, POINT),
@@ -248,7 +248,7 @@ class BoundedBookingSearchTest {
             assertFalse(day.evaluate(both, visits, RATES).feasible(), "An intermediate single relocation exceeds the shift");
         }
         Map<LocalDate, Day> days = new HashMap<>(original.days()); days.put(DAY, day);
-        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), RATES, days, Required.value(Set.copyOf(days.keySet())));
         var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 50, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { });
         assertTrue(search.search(false).candidates().isEmpty());
@@ -271,7 +271,7 @@ class BoundedBookingSearchTest {
         Map<String, DayPlan.RoadLeg> legs = new HashMap<>(day.roads().legs());
         legs.remove("a>new");
         days.put(DAY, new Day(day.technicians(), day.visits(), day.baseline(), 0, new Roads(legs, Required.value(Set.of()))));
-        BookingSnapshot incomplete = new BookingSnapshot("metro", CAPTURED, "configuration", "roads", snapshot.policy(), RATES, days);
+        BookingSnapshot incomplete = new BookingSnapshot("metro", CAPTURED, CAPTURED, "configuration", "roads", snapshot.policy(), RATES, days, Required.value(Set.copyOf(days.keySet())));
         assertThrows(BookingSnapshot.Incomplete.class, () -> historicalSearch(incomplete, request,
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(true));
         assertThrows(BookingSnapshot.Incomplete.class, () -> historicalSearch(snapshot, request,
@@ -285,7 +285,7 @@ class BoundedBookingSearchTest {
         routes.put("a", Required.value(List.of())); routes.put("b", Required.value(List.of("old")));
         Map<LocalDate, Day> days = new TreeMap<>(original.days());
         days.put(DAY, new Day(before.technicians(), before.visits(), new Arrangement(routes), before.reservationVersion(), before.roads()));
-        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), original.rates(), days);
+        var snapshot = new BookingSnapshot(original.metroId(), original.capturedAt(), original.capturedAt(), original.configurationFingerprint(), original.routingIdentity(), original.policy(), original.rates(), days, Required.value(Set.copyOf(days.keySet())));
         var result = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 13, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(true);
         assertTrue(result.complete());
@@ -316,8 +316,8 @@ class BoundedBookingSearchTest {
         assertEquals(List.of("old"), arrangement.routes().get("a"));
         assertThrows(UnsupportedOperationException.class, () -> Required.value(arrangement.routes().get("a")).clear());
         assertThrows(RuntimeException.class, () -> Rates.read(Required.value(Map.of())));
-        assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot("metro", CAPTURED, "configuration", "roads",
-                SchedulingPolicy.Rules.defaults(), RATES, Required.value(Map.of())));
+        assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot("metro", CAPTURED, CAPTURED, "configuration", "roads",
+                SchedulingPolicy.Rules.defaults(), RATES, Required.value(Map.of()), Required.value(Set.of(DAY))));
     }
 
     @Test void duplicateTechnicianChoicesCountOnceAndIdleEligibleCapacityImprovesFairness() {
@@ -330,7 +330,7 @@ class BoundedBookingSearchTest {
         Map<String, DayPlan.RoadLeg> zeroRoads = new HashMap<>();
         day.roads().legs().keySet().forEach(key -> zeroRoads.put(key, new DayPlan.RoadLeg(0, 0)));
         days.put(DAY, new Day(technicians, day.visits(), day.baseline(), 1, new Roads(zeroRoads, Required.value(Set.of()))));
-        var snapshot = new BookingSnapshot("metro", CAPTURED, "configuration", "roads", original.policy(), RATES, days);
+        var snapshot = new BookingSnapshot("metro", CAPTURED, CAPTURED, "configuration", "roads", original.policy(), RATES, days, Required.value(Set.copyOf(days.keySet())));
         var search = historicalSearch(snapshot, new BoundedBookingSearch.Request("new", "new-service", 20, POINT),
                 BoundedBookingSearch.Limits.defaults(), () -> { });
         assertEquals(1, search.windows().size());
@@ -389,6 +389,6 @@ class BoundedBookingSearchTest {
                 new Roads(Required.value(Map.of()), Required.value(Set.of())));
         Map<LocalDate, Day> days = new HashMap<>();
         for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date, date.equals(DAY) ? day : empty);
-        return new BookingSnapshot("metro", CAPTURED, "configuration", "roads", SchedulingPolicy.Rules.defaults(), RATES, days);
+        return new BookingSnapshot("metro", CAPTURED, CAPTURED, "configuration", "roads", SchedulingPolicy.Rules.defaults(), RATES, days, Required.value(Set.copyOf(days.keySet())));
     }
 }
