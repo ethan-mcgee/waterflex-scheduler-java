@@ -47,7 +47,6 @@ async function removeManualFixture(jobId: string) {
   if (!job) return;
   await prisma.$transaction(async (tx) => {
     if (job.appointment) {
-      await tx.outboundEvent.deleteMany({ where: { aggregateId: job.appointment.id } });
       await tx.appointment.delete({ where: { id: job.appointment.id } });
     }
     await tx.job.delete({ where: { id: jobId } });
@@ -151,7 +150,6 @@ async function generated() {
     assert.equal(secondInside.length, second.created);
     assert.equal(jobs.filter((job) => dateFromFakeExternalId(job.externalId) === OUTSIDE_DATE).length, 1);
     assert.equal(await prisma.portalApiOfferSet.count({ where: { jobId: { in: removedJobIds } } }), 0);
-    assert.equal(await prisma.outboundEvent.count({ where: { aggregateId: { in: removedAppointmentIds } } }), 0);
     assert.ok(await prisma.appointment.findUnique({ where: { id: manualAppointmentId } }));
     const secondAppointmentIds = secondInside.flatMap((job) => job.appointment ? [job.appointment.id] : []);
     const secondJobIds = secondInside.map((job) => job.id);
@@ -169,7 +167,6 @@ async function generated() {
     );
     assert.equal(jobs.filter((job) => dateFromFakeExternalId(job.externalId) === OUTSIDE_DATE).length, 1);
     assert.equal(await prisma.portalApiOfferSet.count({ where: { jobId: { in: secondJobIds } } }), 0);
-    assert.equal(await prisma.outboundEvent.count({ where: { aggregateId: { in: secondAppointmentIds } } }), 0);
     const remainingFakeCustomers = await prisma.customer.findMany({
       where: { externalId: { startsWith: FAKE_DATA_PREFIX } },
       select: { externalId: true },

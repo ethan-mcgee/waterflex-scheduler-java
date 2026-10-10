@@ -93,10 +93,6 @@ async function main() {
     const jobs = await prisma.job.findMany({ where: { serviceId: service.id } });
     const ids = jobs.map(job => job.id);
     await prisma.portalApiOfferSet.deleteMany({ where: { jobId: { in: ids } } });
-    await prisma.slotHold.deleteMany({ where: { jobId: { in: ids } } });
-    await prisma.reservationArrangement.deleteMany({ where: { metroId: metro.id } });
-    await prisma.bookingOffer.deleteMany({ where: { jobId: { in: ids } } });
-    await prisma.bookingOfferSet.deleteMany({ where: { jobId: { in: ids } } });
     await prisma.job.deleteMany({ where: { id: { in: ids } } });
     await prisma.address.deleteMany({ where: { customerId: { in: jobs.map(job => job.customerId) } } });
     await prisma.customer.deleteMany({ where: { id: { in: jobs.map(job => job.customerId) } } });

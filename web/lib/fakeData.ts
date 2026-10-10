@@ -204,9 +204,6 @@ async function createPendingJob(
 
 async function cleanupPendingJob(ids: { jobId: string; customerId: string; addressId: string }) {
   await prisma.$transaction(async (tx) => {
-    await tx.slotHold.deleteMany({ where: { jobId: ids.jobId } });
-    await tx.bookingOffer.deleteMany({ where: { jobId: ids.jobId } });
-    await tx.bookingOptimization.deleteMany({ where: { jobId: ids.jobId } });
     await tx.job.deleteMany({ where: { id: ids.jobId, status: "PENDING" } });
     await tx.address.deleteMany({ where: { id: ids.addressId, jobs: { none: {} } } });
     await tx.customer.deleteMany({ where: { id: ids.customerId, jobs: { none: {} } } });
