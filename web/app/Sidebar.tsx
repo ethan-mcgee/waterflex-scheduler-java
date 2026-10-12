@@ -16,6 +16,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import type { ClientSummary } from "@/lib/clients";
 import ClientSwitcher from "./ClientSwitcher";
+import ConnectionBadge from "./ConnectionBadge";
 
 type NavItem = {
   href: string;
@@ -58,6 +59,7 @@ export default function Sidebar({ showBookingTests, clients, activeClientId }: {
         </span>
       </Link>
       <ClientSwitcher clients={clients} activeClientId={activeClientId} />
+      <ConnectionBadge activeClientId={activeClientId} />
       <nav className="sidebar-nav" aria-label="Scheduler sections">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;

@@ -185,6 +185,41 @@ button:disabled {
   font-size: 12px;
 }
 
+.sidebar-connection {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 8px;
+  margin: -10px 6px 18px;
+  color: #c9d6d0;
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 3px solid #92a69e;
+  border-radius: 6px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.sidebar-connection[data-state="CONNECTED"] {
+  border-left-color: #4fc38a;
+}
+
+.sidebar-connection[data-state="NOT_CONNECTED"] {
+  border-left-color: #ff8a75;
+}
+
+.sidebar-connection[data-state="UNREACHABLE"] {
+  border-left-color: #f2c14e;
+}
+
+.sidebar-connection span {
+  font-weight: 700;
+}
+
+.sidebar-connection small {
+  color: #ffd2c8;
+  font-size: 11px;
+}
+
 .sidebar-nav {
   display: flex;
   flex-direction: column;
