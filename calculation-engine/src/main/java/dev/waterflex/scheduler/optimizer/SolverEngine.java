@@ -18,7 +18,9 @@ public final class SolverEngine {
     public enum Variant { CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE,
                           TABU, SUBLIST, KOPT, RUIN_RECREATE,
                           /** TABU tuning: entity tabu size 3 or 15 (experiment-only), or TABU with the KOPT move set (a client choice, see DailySearch). */
-                          TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT }
+                          TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT,
+                          /** Experiment-only: TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined. */
+                          TABU_KOPT_SIZE_3 }
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
     public record Definition(Variant variant, long seed, EnvironmentMode environmentMode, boolean construction,
@@ -75,8 +77,9 @@ public final class SolverEngine {
             } catch (java.io.IOException failure) { throw new IllegalStateException("Solver configuration unavailable", failure); }
             if (variant == Variant.CURRENT_UNCAPPED) xml = xml.replace("<stepCountLimit>1000</stepCountLimit>", "");
         } else {
-            boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT;
-            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT;
+            boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT
+                    || variant == Variant.TABU_KOPT_SIZE_3;
+            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3;
             boolean advanced = variant == Variant.SUBLIST || kOpt;
             String moves = "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>";
             if (variant != Variant.LATE_ACCEPTANCE_CHANGE)
@@ -86,7 +89,7 @@ public final class SolverEngine {
                 moves += "<kOptListMoveSelector><fixedProbabilityWeight>5</fixedProbabilityWeight><minimumK>2</minimumK><maximumK>3</maximumK></kOptListMoveSelector>";
             if (variant == Variant.RUIN_RECREATE)
                 moves += "<listRuinRecreateMoveSelector><fixedProbabilityWeight>1</fixedProbabilityWeight><minimumRuinedCount>2</minimumRuinedCount><maximumRuinedCount>3</maximumRuinedCount></listRuinRecreateMoveSelector>";
-            int tabuSize = variant == Variant.TABU_SIZE_3 ? 3 : variant == Variant.TABU_SIZE_15 ? 15 : 7;
+            int tabuSize = variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_KOPT_SIZE_3 ? 3 : variant == Variant.TABU_SIZE_15 ? 15 : 7;
             String acceptor = tabu ? "<entityTabuSize>" + tabuSize + "</entityTabuSize>" : "<lateAcceptanceSize>400</lateAcceptanceSize>";
             int accepted = tabu ? 1000 : 1;
             xml = "<solver xmlns=\"https://timefold.ai/xsd/solver\"><environmentMode>NO_ASSERT</environmentMode>"

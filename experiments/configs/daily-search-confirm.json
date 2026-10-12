@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "name": "daily-search-confirm",
+  "daily": {
+    "solvers": [
+      "TABU",
+      "TABU_KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      211,
+      223
+    ],
+    "fleets": [
+      20,
+      50
+    ],
+    "workloads": [
+      "CLUSTERED",
+      "DISPERSED",
+      "MIXED_SKILL",
+      "TIGHT_WINDOW"
+    ],
+    "fixture_seeds": [
+      1
+    ],
+    "budgets_seconds": [
+      120
+    ],
+    "phases": "COST_ONLY",
+    "parallel_cases": 1
+  }
+}

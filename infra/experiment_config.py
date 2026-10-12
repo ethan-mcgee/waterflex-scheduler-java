@@ -7,7 +7,11 @@ import re
 
 WORKLOADS = ['SPARSE', 'CLUSTERED', 'DISPERSED', 'MIXED_SKILL', 'TIGHT_WINDOW', 'ABSENCE', 'NEAR_CAPACITY']
 DAILY = ['CURRENT_CAPPED', 'CURRENT_UNCAPPED', 'LATE_ACCEPTANCE_CHANGE', 'LATE_ACCEPTANCE', 'TABU', 'SUBLIST', 'KOPT', 'RUIN_RECREATE',
-         'TABU_SIZE_3', 'TABU_SIZE_15', 'TABU_KOPT']
+         'TABU_SIZE_3', 'TABU_SIZE_15', 'TABU_KOPT', 'TABU_KOPT_SIZE_3']
+# COST_AND_FAIRNESS: two thirds of the budget for the cost search, the rest for fairness within the 2% ceiling.
+# COST_ONLY: the whole budget for the cost search and no fairness phase, measuring the search algorithm alone.
+PHASES = ['COST_AND_FAIRNESS', 'COST_ONLY']
+MAX_BUDGET_SECONDS = 900
 
 
 def canonical(value):
@@ -52,14 +56,20 @@ def validate(config):
     if not isinstance(config['name'], str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,59}', config['name']):
         raise ValueError('name must be a short lowercase slug')
     section = config['daily']
-    fields(section, ['solvers', 'control', 'seeds', 'fleets', 'workloads', 'budgets_seconds', 'parallel_cases'])
+    # fixture_seeds and phases are optional so earlier configs keep their exact cases and case ids. Fixture seed 0 is
+    # the canonical fixture of each fleet and workload; others draw new fixtures of the same shape.
+    fields(section, ['solvers', 'control', 'seeds', 'fleets', 'workloads', 'budgets_seconds', 'parallel_cases'], ['fixture_seeds', 'phases'])
     selection(section, 'solvers', lambda x: isinstance(x, str) and x in DAILY)
     if section['control'] not in section['solvers']:
         raise ValueError('control must be a selected solver')
     selection(section, 'seeds', lambda x: type(x) is int and 0 <= x <= 2147483647)
     selection(section, 'fleets', lambda x: type(x) is int and x in [5, 10, 20, 30, 50])
     selection(section, 'workloads', lambda x: isinstance(x, str) and x in WORKLOADS)
-    selection(section, 'budgets_seconds', lambda x: type(x) in (int, float) and .1 <= x <= 240 and x * 1000 == int(x * 1000))
+    selection(section, 'budgets_seconds', lambda x: type(x) in (int, float) and .1 <= x <= MAX_BUDGET_SECONDS and x * 1000 == int(x * 1000))
+    if 'fixture_seeds' in section:
+        selection(section, 'fixture_seeds', lambda x: type(x) is int and 0 <= x <= 2147483647)
+    if 'phases' in section and section['phases'] not in PHASES:
+        raise ValueError(f'phases must be one of {PHASES}')
     # Concurrent fresh solver JVMs, one dedicated physical core each. The usable core
     # count is hardware evidence, so the upper bound is checked at run time.
     if type(section['parallel_cases']) is not int or section['parallel_cases'] < 1:
@@ -75,7 +85,8 @@ def expand(config):
     # Independently rotate solvers and budgets, interleaving solvers at each budget.
     # This balances first/last solver exposure even with fewer blocks than treatments.
     # The saved order is authoritative; never shuffle again on resume.
-    for block, (fleet, workload, seed) in enumerate(itertools.product(s['fleets'], s['workloads'], s['seeds'])):
+    fixture_seeds = s.get('fixture_seeds', [None])
+    for block, (fleet, workload, fixture_seed, seed) in enumerate(itertools.product(s['fleets'], s['workloads'], fixture_seeds, s['seeds'])):
         offset = block % len(budgets)
         ordered_budgets = budgets[offset:] + budgets[:offset]
         offset = block % len(s['solvers'])
@@ -83,6 +94,10 @@ def expand(config):
         for budget in ordered_budgets:
             for solver in solvers:
                 row = dict(kind='daily', fleet=fleet, workload=workload, seed=seed, solver=solver, budget_ms=round(budget * 1000))
+                if fixture_seed is not None:
+                    row['fixture_seed'] = fixture_seed
+                if 'phases' in s:
+                    row['phases'] = s['phases']
                 row['id'] = digest(row)[:20]
                 cases.append(row)
     return cases

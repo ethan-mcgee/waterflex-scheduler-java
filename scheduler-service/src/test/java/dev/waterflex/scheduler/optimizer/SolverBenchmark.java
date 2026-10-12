@@ -13,6 +13,12 @@ import org.jspecify.annotations.Nullable;
 
 /** Explicit standalone benchmark, not a timing assertion in the unit suite. */
 public final class SolverBenchmark {
+    /**
+     * COST_AND_FAIRNESS spends two thirds of the budget on the cost search and the rest on fairness within the 2%
+     * ceiling, as the daily calculation did. COST_ONLY spends the whole budget on the cost search and has no fairness
+     * phase, so it measures the search algorithm alone.
+     */
+    enum Phases { COST_AND_FAIRNESS, COST_ONLY }
     private SolverBenchmark() { }
     public static void main(String[] args) throws Exception {
         String revision = Required.value(System.getProperty("benchmark.revision"), "exact benchmark revision");
@@ -25,6 +31,8 @@ public final class SolverBenchmark {
         var variants = values("benchmark.variants", "CURRENT_CAPPED,CURRENT_UNCAPPED,LATE_ACCEPTANCE_CHANGE,LATE_ACCEPTANCE,TABU,SUBLIST,KOPT,RUIN_RECREATE")
                 .stream().map(value -> SolverEngine.Variant.valueOf(Required.value(value))).toList();
         var seeds = values("benchmark.seeds", "17").stream().mapToLong(Long::parseLong).toArray();
+        var fixtureSeeds = values("benchmark.fixtureSeeds", "0").stream().mapToLong(Long::parseLong).toArray();
+        Phases phases = Phases.valueOf(Required.value(System.getProperty("benchmark.phases", Phases.COST_AND_FAIRNESS.name())));
         ObjectMapper json = new ObjectMapper();
         @Nullable Path parent = output.toAbsolutePath().getParent(); if (parent != null) Files.createDirectories(parent);
         try (var writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
@@ -34,6 +42,7 @@ public final class SolverBenchmark {
             provenance.put("os", Required.value(System.getProperty("os.name")) + " " + Required.value(System.getProperty("os.version")));
             provenance.put("processors", Runtime.getRuntime().availableProcessors()); provenance.put("maxHeapBytes", Runtime.getRuntime().maxMemory());
             provenance.put("budgetMs", budget); provenance.put("routingIdentity", "deterministic-directed-fixtures-v1");
+            provenance.put("phases", phases.name());
             provenance.put("engine", EngineProvenance.loaded());
             provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", "TIMEFOLD_INTERNAL_2_6_0");
             provenance.put("roadEvidence", false); provenance.put("travelBufferPct", .2); provenance.put("travelBufferMinutes", 5);
@@ -52,23 +61,24 @@ public final class SolverBenchmark {
                 }
             }
             writer.flush(); int round = 0;
-            for (int size : sizes) for (var workload : workloads) for (long seed : seeds) {
-                DayPlan fixture = SolverBenchmarkData.create(size, Required.value(workload));
+            for (int size : sizes) for (var workload : workloads) for (long fixtureSeed : fixtureSeeds) for (long seed : seeds) {
+                DayPlan fixture = SolverBenchmarkData.create(size, Required.value(workload), fixtureSeed);
                 String fingerprint = fingerprint(fixture);
                 var ordered = new ArrayList<>(variants); Collections.rotate(ordered, round++ % ordered.size());
                 for (var variant : ordered) {
                     var definition = Required.value(definitions.get(variant + ":" + seed));
                     Map<String, Object> row;
-                    try { row = run(definition, PlanCopies.copy(fixture), budget); }
+                    try { row = run(definition, PlanCopies.copy(fixture), budget, phases); }
                     catch (SolverEngine.DiagnosticsFailure failure) {
                         writeDiagnosticFailure(writer, json, failure, "measurement", definition, fingerprint); throw failure;
                     }
                     if (!fingerprint.equals(fingerprint(fixture))) throw new IllegalStateException("Starting fixture changed");
                     row.put("type", "result"); row.put("technicians", size); row.put("workload", workload.name());
                     row.put("datasetFingerprint", fingerprint); row.put("appointments", fixture.getVisits().size());
+                    row.put("fixtureSeed", fixtureSeed); row.put("phases", phases.name());
                     row.put("completedAt", Instant.now().toString());
                     writer.write(json.writeValueAsString(row)); writer.newLine(); writer.flush();
-                    System.out.println(size + "/" + workload + "/" + variant + "/" + seed + " " + row.get("acceptanceReason"));
+                    System.out.println(size + "/" + workload + "/" + fixtureSeed + "/" + variant + "/" + seed + " " + row.get("acceptanceReason"));
                 }
             }
         }
@@ -85,13 +95,17 @@ public final class SolverBenchmark {
     }
 
     static Map<String, Object> run(SolverEngine.Definition definition, DayPlan fixture, long budgetMs) {
+        return run(definition, fixture, budgetMs, Phases.COST_AND_FAIRNESS);
+    }
+    static Map<String, Object> run(SolverEngine.Definition definition, DayPlan fixture, long budgetMs, Phases phases) {
         validateBudget(budgetMs);
         var beforeValidation = validate(fixture);
         var before = SchedulingPolicy.measure(fixture);
         var rules = SchedulingPolicy.Rules.defaults();
         for (var pool : ManagementFactory.getMemoryPoolMXBeans()) pool.resetPeakUsage();
         long cpuBefore = cpuNanos(); long started = System.nanoTime();
-        var cost = SolverExperiment.solve(definition, fixture, Required.value(Duration.ofMillis(Math.max(1, budgetMs * 2 / 3))));
+        long costBudget = phases == Phases.COST_ONLY ? budgetMs : Math.max(1, budgetMs * 2 / 3);
+        var cost = SolverExperiment.solve(definition, fixture, Required.value(Duration.ofMillis(costBudget)));
         validate(cost.plan());
         var costMetrics = SchedulingPolicy.measure(cost.plan());
         DayPlan reference = costMetrics.overtimeMinutes() < before.overtimeMinutes()
@@ -100,7 +114,7 @@ public final class SolverBenchmark {
         DayPlan chosen = reference;
         SolverEngine.@Nullable Statistics fairStatistics = null;
         long remaining = budgetMs - (System.nanoTime() - started) / 1_000_000;
-        if (remaining > 0) {
+        if (phases == Phases.COST_AND_FAIRNESS && remaining > 0) {
             DayPlan fairnessSeed = PlanCopies.copy(reference);
             fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(reference, rules.costCeiling(referenceMetrics.costCents())));
             var fair = SolverExperiment.solve(definition, fairnessSeed, Required.value(Duration.ofMillis(remaining)));
@@ -140,7 +154,7 @@ public final class SolverBenchmark {
         return row;
     }
     static void validateBudget(long budgetMs) {
-        if (budgetMs < 100 || budgetMs > 240000) throw new IllegalArgumentException("Benchmark budget must be 100..240000 ms");
+        if (budgetMs < 100 || budgetMs > 900000) throw new IllegalArgumentException("Benchmark budget must be 100..900000 ms");
     }
     private static RouteEvaluator.Result validate(DayPlan plan) {
         var independent = RouteEvaluator.evaluate(plan); var scored = DayScoreCalculator.evaluate(plan);
@@ -156,7 +170,7 @@ public final class SolverBenchmark {
     private static List<String> values(String key, String fallback) {
         return Required.value(Arrays.stream(Required.value(System.getProperty(key, fallback)).split(",")).map(value -> Required.value(value.trim())).toList());
     }
-    private static String fingerprint(DayPlan plan) throws Exception {
+    static String fingerprint(DayPlan plan) throws Exception {
         StringBuilder raw = new StringBuilder();
         for (TechRoute route : plan.getRoutes()) raw.append(route.getId()).append(route.getShiftStart()).append(route.getShiftEnd())
                 .append(route.getMaxDailyMinutes()).append(route.getMaxOvertimeMinutes()).append(new TreeSet<>(route.getQualifiedServiceIds())).append(route.getUnavailable());

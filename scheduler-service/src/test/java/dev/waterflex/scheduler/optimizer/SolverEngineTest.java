@@ -26,6 +26,8 @@ class SolverEngineTest {
                         .replace("<lateAcceptanceSize>400</lateAcceptanceSize>", "<entityTabuSize>7</entityTabuSize>")
                         .replace("<acceptedCountLimit>1</acceptedCountLimit>", "<acceptedCountLimit>1000</acceptedCountLimit>"),
                 SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17).configurationXml());
+        assertEquals(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17).configurationXml().replace("<entityTabuSize>7<", "<entityTabuSize>3<"),
+                SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_SIZE_3, 17).configurationXml());
     }
     /** TABU_KOPT is a client choice, so its XML is pinned byte for byte like the TABU control. */
     @Test void clientSelectableTabuKoptIsPinned() {
