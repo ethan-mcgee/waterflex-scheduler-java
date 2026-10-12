@@ -9,6 +9,7 @@ infra/map-data/
 infra/fixtures/
 optimizer-start.log
 .env
+.env.before-*
 web/playwright-report/
 .scratch/
 **/__pycache__/

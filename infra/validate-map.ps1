@@ -2,6 +2,8 @@ param([Parameter(Mandatory=$true)][ValidatePattern('^[A-Za-z0-9._-]+$')][string]
 if ($Version -in @('.', '..')) { throw 'Invalid version' }
 if (-not $env:DATABASE_URL) { throw 'Set DATABASE_URL for current depot coverage validation' }
 $env:PREVIEW_MAP_VERSION = $Version
+# validate-map.py calls routing's token-protected endpoints; use the same local-only default as Compose when unset.
+if (-not $env:ROUTING_AUTH_TOKEN) { $env:ROUTING_AUTH_TOKEN = 'local-compose-routing-token-not-for-production' }
 docker compose --profile map-import run --rm map-import verify $Version
 if ($LASTEXITCODE -ne 0) { throw 'Prepared artifact checksums failed' }
 $previewId = docker compose -f docker-compose.yml -f docker-compose.map-preview.yml ps -q routing-preview
