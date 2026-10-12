@@ -168,7 +168,7 @@ async function tenantCall<T>(clientId: string, path: string, body: unknown, sche
   return call(clientId, "POST", path, body, schema, timeoutMs);
 }
 
-export function createBookingOffers(clientId: string, request: { requestId: string; offerLimit: number;
+export function createBookingOffers(clientId: string, request: { requestId: string; offerLimit: number; windowHours: number;
   job: { id: string; serviceId: string; durationMinutes: number; location: { lat: number; lng: number } };
   horizon: { firstDate: string; lastDate: string }; snapshot: PublicSnapshot }): Promise<OfferSet> {
   // The API answers within five seconds; the extra time covers the snapshot upload and the network.

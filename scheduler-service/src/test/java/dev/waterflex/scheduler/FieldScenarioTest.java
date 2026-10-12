@@ -27,7 +27,7 @@ class FieldScenarioTest {
           for (int width : List.of(120, 240)) for (String variant : List.of("INSERTION", "BOUNDED", "EXPANDED", "RUIN_RECREATE", "SHARED")) {
             Day day = fixture(false, true, false, false);
             for (String id : order) {
-                var request = new BoundedBookingSearch.Request(Required.value(id), "service", 60, id.equals("B") ? OMAHA : TOWN);
+                var request = new BoundedBookingSearch.Request(Required.value(id), "service", 60, 240, id.equals("B") ? OMAHA : TOWN);
                 var snapshot = snapshot(day);
                 var engine = engine(snapshot, request, width, Required.value(variant));
                 long started = System.nanoTime();
@@ -86,7 +86,7 @@ class FieldScenarioTest {
     @Test void skillsReturnTravelAbsencesAndDirectedUnreachableLegsRemainHard() throws Exception {
         for (boolean nearbyQualified : List.of(false, true)) {
             Day day = fixture(true, nearbyQualified, false, false);
-            var request = new BoundedBookingSearch.Request("A", "service", 60, TOWN);
+            var request = new BoundedBookingSearch.Request("A", "service", 60, 240, TOWN);
             var result = engine(snapshot(day), request, 240, "SHARED").search(true);
             var chosen = Required.value(BoundedBookingSearch.choose(result.candidates(), SchedulingPolicy.Rules.defaults()));
             assertEquals(nearbyQualified ? "nearby" : "omaha", chosen.technicianId());
@@ -96,9 +96,9 @@ class FieldScenarioTest {
             recordCompanion("nearby-qualified-" + nearbyQualified, day, chosen, facts);
         }
         Day split = fixture(false, true, true, false);
-        assertTrue(engine(snapshot(split), new BoundedBookingSearch.Request("A", "service", 240, TOWN), 240, "SHARED").search(true).candidates().isEmpty());
+        assertTrue(engine(snapshot(split), new BoundedBookingSearch.Request("A", "service", 240, 240, TOWN), 240, "SHARED").search(true).candidates().isEmpty());
         Day unreachable = fixture(false, true, false, true);
-        assertTrue(engine(snapshot(unreachable), new BoundedBookingSearch.Request("A", "service", 60, TOWN), 240, "BOUNDED").search(true).candidates().isEmpty());
+        assertTrue(engine(snapshot(unreachable), new BoundedBookingSearch.Request("A", "service", 60, 240, TOWN), 240, "BOUNDED").search(true).candidates().isEmpty());
         Day regular = fixture(false, true, false, false);
         Map<String, Visit> longVisit = Required.value(Map.of("A", new Visit("A", "A", "service", START, Required.value(START.plusSeconds(240 * 60)),
                 420, TOWN, "omaha", Required.value(START.plusSeconds(40 * 60)), false)));
@@ -106,14 +106,14 @@ class FieldScenarioTest {
         assertTrue(legacy.feasible(), "The historical configured overtime allowance alone permits this route");
         assertEquals(25, legacy.overtimeMinutes());
         assertNull(SmallCaseOracle.best(regular, longVisit, RATES), "No independent zero-overtime schedule exists");
-        assertTrue(engine(snapshot(regular), new BoundedBookingSearch.Request("A", "service", 420, TOWN), 240, "SHARED").search(true).candidates().isEmpty(), "Service plus directed return exceeds eight hours");
+        assertTrue(engine(snapshot(regular), new BoundedBookingSearch.Request("A", "service", 420, 240, TOWN), 240, "SHARED").search(true).candidates().isEmpty(), "Service plus directed return exceeds eight hours");
         new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(Path.of("target", "field-rejections.json").toFile(), Map.of("rejections", List.of(
                 Map.of("scenario", "long-rural-return", "serviceMinutes", 420, "regularMinutes", 480, "maximumPaidMinutes", 600, "legacyOvertimeMinutes", 25, "directedReturnMinutes", 45, "expected", "NO_CANDIDATE"),
                 Map.of("scenario", "split-availability", "serviceMinutes", 240, "absenceStart", Required.value(START.plusSeconds(180 * 60).toString()), "absenceEnd", Required.value(START.plusSeconds(300 * 60).toString()), "expected", "NO_CANDIDATE"),
                 Map.of("scenario", "unreachable-directed-return", "serviceMinutes", 60, "unreachableLeg", "town > Omaha home", "expected", "NO_CANDIDATE"))));
     }
     @Test void fourHourPolicyOffersFourHourWindows() {
-        var engine = new BoundedBookingSearch(snapshot(fixture(false, true, false, false)), new BoundedBookingSearch.Request("A", "service", 60, TOWN), BoundedBookingSearch.Limits.defaults(), () -> { });
+        var engine = new BoundedBookingSearch(snapshot(fixture(false, true, false, false)), new BoundedBookingSearch.Request("A", "service", 60, 240, TOWN), BoundedBookingSearch.Limits.defaults(), () -> { });
         assertEquals(5, engine.windows().size());
         assertTrue(engine.windows().stream().allMatch(window -> Duration.between(window.start(), window.end()).toMinutes() == 240));
     }
@@ -123,7 +123,7 @@ class FieldScenarioTest {
             var a = new Visit("A", "A", "service", Required.value(START.plusSeconds(40 * 60)), Required.value(START.plusSeconds(60 * 60)), 10, TOWN, "omaha", Required.value(START.plusSeconds(40 * 60)), false);
             var b = new Visit("B", "B", "service", Required.value(START.plusSeconds(120 * 60)), Required.value(START.plusSeconds(130 * 60)), 10, OMAHA, "omaha", Required.value(START.plusSeconds(120 * 60)), hold);
             Day day = new Day(empty.technicians(), Required.value(Map.of("A", a, "B", b)), new Arrangement(Required.value(Map.of("omaha", List.of("A", "B")))), 0, empty.roads());
-            var request = new BoundedBookingSearch.Request("C", "service", 60, TOWN);
+            var request = new BoundedBookingSearch.Request("C", "service", 60, 240, TOWN);
             var chosen = Required.value(BoundedBookingSearch.choose(engine(snapshot(day), request, 240, "SHARED").search(true).candidates(), SchedulingPolicy.Rules.defaults()));
             assertEquals(List.of("A", "B", "C"), chosen.arrangement().routes().get("omaha"));
             assertEquals(4, crossings(chosen.arrangement()));
@@ -150,7 +150,7 @@ class FieldScenarioTest {
             var a = new Visit("A", "A", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 90, TOWN, "omaha", Required.value(START.plusSeconds(40 * 60)), false);
             var b = new Visit("B", "B", "old", START, Required.value(START.plusSeconds(oldWidth * 60L)), 60, OMAHA, "nearby", Required.value(START.plusSeconds(45 * 60)), false);
             Day day = new Day(techs, Required.value(Map.of("A", a, "B", b)), new Arrangement(Required.value(Map.of("omaha", List.of("A"), "nearby", List.of("B")))), 0, empty.roads());
-            var request = new BoundedBookingSearch.Request("C", "new", 50, TOWN);
+            var request = new BoundedBookingSearch.Request("C", "new", 50, 240, TOWN);
             assertTrue(engine(snapshot(day), request, 240, "INSERTION").search(false).candidates().isEmpty());
             for (String variant : List.of("BOUNDED", "EXPANDED", "RUIN_RECREATE", "SHARED")) {
                 var chosen = Required.value(BoundedBookingSearch.choose(engine(snapshot(day), request, 240, Required.value(variant)).search(true).candidates(), SchedulingPolicy.Rules.defaults()));
@@ -167,7 +167,7 @@ class FieldScenarioTest {
         for (int width : List.of(120, 240)) {
             Day day = fixture(false, true, false, false);
             for (String id : List.of("A", "B", "C", "D", "E")) {
-                var request = new BoundedBookingSearch.Request(Required.value(id), "service", 30, rural(Required.value(id)) ? TOWN : OMAHA);
+                var request = new BoundedBookingSearch.Request(Required.value(id), "service", 30, 240, rural(Required.value(id)) ? TOWN : OMAHA);
                 var chosen = Required.value(BoundedBookingSearch.choose(engine(snapshot(day), request, width, "SHARED").search(true).candidates(), SchedulingPolicy.Rules.defaults()));
                 Map<String, Visit> facts = new TreeMap<>(day.visits());
                 facts.put(id, new Visit(Required.value(id), Required.value(id), "service", chosen.window().start(), chosen.window().end(), 30, request.location(), chosen.technicianId(), chosen.window().start(), false));
@@ -196,7 +196,8 @@ class FieldScenarioTest {
         new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(target.toFile(), row);
     }
     static BoundedBookingSearch engine(BookingSnapshot snapshot, BoundedBookingSearch.Request request, int width, String variant) {
-        var engine = new BoundedBookingSearch(snapshot, request, variant.equals("INSERTION") || variant.equals("BOUNDED") ? BoundedBookingSearch.Limits.defaults() : BoundedBookingSearch.Limits.expanded(), () -> { }, width);
+        var widened = new BoundedBookingSearch.Request(request.jobId(), request.serviceId(), request.durationMinutes(), width, request.location());
+        var engine = new BoundedBookingSearch(snapshot, widened, variant.equals("INSERTION") || variant.equals("BOUNDED") ? BoundedBookingSearch.Limits.defaults() : BoundedBookingSearch.Limits.expanded(), () -> { });
         if (variant.equals("SHARED") || variant.equals("RUIN_RECREATE")) engine.withRuinRecreate();
         if (variant.equals("EXPANDED") || variant.equals("RUIN_RECREATE")) engine.withoutSharedWindowEvaluation();
         return engine;

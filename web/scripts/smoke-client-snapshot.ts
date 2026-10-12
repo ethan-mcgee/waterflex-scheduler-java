@@ -50,7 +50,7 @@ async function setUp() {
       plannedEnd: new Date(`${DATE}T15:30:00Z`), sequence: 0 } });
   }
   const saved = await storeSolverSettings(clients.a, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-    travelBufferPercent: "20", travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, bookingHorizonWeekdays: 10 });
+    travelBufferPercent: "20", travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10 });
   assert.ok("saved" in saved);
 }
 

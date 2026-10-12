@@ -12,17 +12,17 @@ const savedView = z.object({ version: z.int().nonnegative(), updatedAt: z.iso.da
 
 type Draft = {
   regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPercent: string;
-  travelBufferMinutes: string; fairnessBudgetPercent: string; offerLimit: string; bookingHorizonWeekdays: string;
+  travelBufferMinutes: string; fairnessBudgetPercent: string; offerLimit: string; windowHours: string; bookingHorizonWeekdays: string;
 };
 
 const EMPTY: Draft = { regularHourly: "", overtimeHourly: "", mileagePerMile: "", travelBufferPercent: "",
-  travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", bookingHorizonWeekdays: "" };
+  travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "" };
 
 function draftOf(view: SolverSettingsView | null): Draft {
   if (view === null) return EMPTY;
   return { regularHourly: view.regularHourly, overtimeHourly: view.overtimeHourly, mileagePerMile: view.mileagePerMile,
     travelBufferPercent: view.travelBufferPercent, travelBufferMinutes: String(view.travelBufferMinutes),
-    fairnessBudgetPercent: view.fairnessBudgetPercent, offerLimit: String(view.offerLimit),
+    fairnessBudgetPercent: view.fairnessBudgetPercent, offerLimit: String(view.offerLimit), windowHours: String(view.windowHours),
     bookingHorizonWeekdays: String(view.bookingHorizonWeekdays) };
 }
 
@@ -56,7 +56,7 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
         body: JSON.stringify({ expectedVersion: version, settings: {
           regularHourly: draft.regularHourly, overtimeHourly: draft.overtimeHourly, mileagePerMile: draft.mileagePerMile,
           travelBufferPercent: draft.travelBufferPercent, travelBufferMinutes: whole(draft.travelBufferMinutes),
-          fairnessBudgetPercent: draft.fairnessBudgetPercent, offerLimit: whole(draft.offerLimit),
+          fairnessBudgetPercent: draft.fairnessBudgetPercent, offerLimit: whole(draft.offerLimit), windowHours: whole(draft.windowHours),
           bookingHorizonWeekdays: whole(draft.bookingHorizonWeekdays),
         } }) });
       const saved = await readResponse(response, savedView);
@@ -88,6 +88,12 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
               {draft.offerLimit === "" && <option value="">Choose</option>}
               {[1, 2, 3, 4].map(limit => <option key={limit} value={String(limit)}>{limit}</option>)}
             </select>
+          </Row>
+          <Row label="Arrival window" hint="How long each offered arrival window is, 1 to 8 hours. Windows start on the hour.">
+            <select {...field("windowHours")} required>
+              {draft.windowHours === "" && <option value="">Choose</option>}
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(hours => <option key={hours} value={String(hours)}>{hours}</option>)}
+            </select> <span>hours</span>
           </Row>
           <Row label="Booking horizon" hint="How many weekdays ahead customers can book, starting tomorrow, 1 to 15.">
             <input inputMode="numeric" {...field("bookingHorizonWeekdays")} required /> <span>weekdays</span>
