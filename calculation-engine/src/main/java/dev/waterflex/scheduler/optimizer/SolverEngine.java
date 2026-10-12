@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
 public final class SolverEngine {
     public enum Variant { CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE,
                           TABU, SUBLIST, KOPT, RUIN_RECREATE,
-                          /** Experiment-only TABU tuning: entity tabu size 3, 15, or TABU with the KOPT move set. */
+                          /** TABU tuning: entity tabu size 3 or 15 (experiment-only), or TABU with the KOPT move set (a client choice, see DailySearch). */
                           TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT,
                           /** Experiment-only: TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined. */
                           TABU_KOPT_SIZE_3 }
