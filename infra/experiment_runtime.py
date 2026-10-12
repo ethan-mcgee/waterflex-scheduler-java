@@ -428,7 +428,11 @@ def daily_command(artifacts, case, revision, output, java):
         f'-Dbenchmark.revision={revision}', f'-Dbenchmark.output={output}',
         f'-Dbenchmark.durationMs={case["budget_ms"]}', f'-Dbenchmark.sizes={case["fleet"]}',
         f'-Dbenchmark.workloads={case["workload"]}', f'-Dbenchmark.variants={case["solver"]}',
-        f'-Dbenchmark.seeds={case["seed"]}', '-cp', cp, 'dev.waterflex.scheduler.optimizer.SolverBenchmark']
+        f'-Dbenchmark.seeds={case["seed"]}',
+        # Optional study settings; a case without them runs the canonical fixture with both phases, as before.
+        *([f'-Dbenchmark.fixtureSeeds={case["fixture_seed"]}'] if 'fixture_seed' in case else []),
+        *([f'-Dbenchmark.phases={case["phases"]}'] if 'phases' in case else []),
+        '-cp', cp, 'dev.waterflex.scheduler.optimizer.SolverBenchmark']
 
 
 def completed_attempt(run, case):
