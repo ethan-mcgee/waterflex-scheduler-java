@@ -8,7 +8,9 @@ import dev.waterflex.scheduler.RoadClient;
 import dev.waterflex.scheduler.RoadPoint;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.api.PublicResponses.*;
+import dev.waterflex.scheduler.optimizer.DailySearch;
 import dev.waterflex.scheduler.optimizer.DailySolver;
+import dev.waterflex.scheduler.optimizer.DailySolvers;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
@@ -39,7 +41,8 @@ class DailyProposalsDatabaseIT {
     private final PublicApiStore store;
     private final AtomicInteger solves = new AtomicInteger();
     private final AtomicBoolean routingDown = new AtomicBoolean();
-    private final DailySolver solver;
+    private final DailySolvers solvers;
+    private final List<DailySearch> searched = Required.value(java.util.Collections.synchronizedList(new java.util.ArrayList<>()));
     private final RoadClient omaha;
     private final DataSourceTransactionManager manager;
 
@@ -51,13 +54,23 @@ class DailyProposalsDatabaseIT {
         manager = new DataSourceTransactionManager(source);
         store = new PublicApiStore(jdbc, manager);
         jdbc.update("INSERT INTO tenant (id,name) VALUES (?,?)", tenant, "Daily IT");
-        DailySolver actual = new DailySolver("TABU", 17);
-        solver = mock(DailySolver.class, invocation -> {
-            String method = invocation.getMethod().getName();
-            if (method.equals("diagnostics")) return actual.diagnostics(Required.value(invocation.getArgument(0)));
-            if (!method.equals("solve")) return org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation);
-            solves.incrementAndGet();
-            return actual.solve(Required.value(invocation.getArgument(0)), Required.value(Duration.ofMillis(200)));
+        // Each client search keeps its own solver; every phase is shortened to 200 ms and counted.
+        Map<DailySearch, DailySolver> shortened = new java.util.EnumMap<>(DailySearch.class);
+        for (DailySearch search : DailySearch.values()) {
+            DailySolver actual = new DailySolver(Required.value(search.variant().name()), 17);
+            shortened.put(search, mock(DailySolver.class, invocation -> {
+                String method = invocation.getMethod().getName();
+                if (method.equals("diagnostics")) return actual.diagnostics(Required.value(invocation.getArgument(0)));
+                if (!method.equals("solve")) return org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation);
+                solves.incrementAndGet();
+                return actual.solve(Required.value(invocation.getArgument(0)), Required.value(Duration.ofMillis(200)));
+            }));
+        }
+        solvers = mock(DailySolvers.class, invocation -> {
+            if (!invocation.getMethod().getName().equals("get")) return org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation);
+            DailySearch search = Required.value(invocation.getArgument(0));
+            searched.add(search);
+            return shortened.get(search);
         });
         omaha = mock(RoadClient.class, invocation -> {
             if (routingDown.get()) throw new RoadClient.RoadUnavailable("Injected routing outage");
@@ -80,7 +93,7 @@ class DailyProposalsDatabaseIT {
 
     private DailyProposals proposals(Instant now, Map<String, String> metros) {
         return new DailyProposals(store, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                solver, new SearchAdmission(2, 16), jdbc, Required.value(Clock.fixed(now, ZoneOffset.UTC)));
+                solvers, new SearchAdmission(2, 16), jdbc, Required.value(Clock.fixed(now, ZoneOffset.UTC)));
     }
 
     private static final Instant BEFORE_CUTOFF = Required.value(Instant.parse("2026-10-11T12:00:00Z"));
@@ -89,7 +102,13 @@ class DailyProposalsDatabaseIT {
 
     /** The spec example with a fresh request ID and, unless kept as an address, coordinates for appt-8. */
     private static String request(boolean appointmentAddressOnly) {
+        return request(appointmentAddressOnly, _ -> { });
+    }
+
+    /** The spec example with coordinates for appt-8 unless kept as an address, and the policy changed by the caller. */
+    private static String request(boolean appointmentAddressOnly, java.util.function.Consumer<ObjectNode> policy) {
         ObjectNode request = object(CalculationJson.tree(PublicApiContractTest.example("DailyProposalRequest")));
+        policy.accept(object(object(request.get("snapshot")).get("policy")));
         request.put("requestId", UUID.randomUUID().toString());
         if (!appointmentAddressOnly) {
             ArrayNode appointments = (ArrayNode) Required.value(object(request.get("snapshot")).get("appointments"));
@@ -262,5 +281,33 @@ class DailyProposalsDatabaseIT {
         assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant));
         routingDown.set(false);
         proposal(proposals().create(tenant, body));
+    }
+    @Test void eachProposalRunsTheClientsChosenSearchMethod() {
+        proposal(proposals().create(tenant, request(false, policy -> policy.put("dailySearch", "TABU"))));
+        assertEquals(List.of(DailySearch.TABU), List.copyOf(searched));
+        searched.clear();
+        proposal(proposals().create(tenant, request(false, policy -> policy.put("dailySearch", "TABU_KOPT"))));
+        assertEquals(List.of(DailySearch.TABU_KOPT), List.copyOf(searched));
+    }
+
+    @Test void aZeroFairnessTimeSearchesOnlyForCostAndAFairnessTimeAddsTheFairnessPhase() {
+        proposal(proposals().create(tenant, request(false, policy -> policy.put("costSearchSeconds", 5).put("fairnessSearchSeconds", 0))));
+        assertEquals(1, solves.get());
+        solves.set(0);
+        proposal(proposals().create(tenant, request(false, policy -> policy.put("costSearchSeconds", 5).put("fairnessSearchSeconds", 5))));
+        assertEquals(2, solves.get());
+    }
+
+    @Test void aLongSearchClaimsTheRequestForItsWholeAllowance() {
+        // A 240 second search must not let another replica take the request over after the standard 60 second lease.
+        String body = request(false, policy -> policy.put("costSearchSeconds", 240).put("fairnessSearchSeconds", 0));
+        var request = PublicRequests.read(body, PublicRequests.DailyProposalRequest.class);
+        var claim = store.claim(tenant, request.requestId(), PublicApiStore.Operation.DAILY_PROPOSAL, DailyProposals.sha256(body), DailyProposals.lease(request.snapshot()));
+        assertInstanceOf(PublicApiStore.Started.class, claim);
+        Long seconds = jdbc.queryForObject("SELECT extract(epoch FROM \"leaseExpiresAt\"-clock_timestamp())::bigint FROM api_request WHERE \"tenantId\"=? AND \"requestId\"=?",
+                Long.class, tenant, request.requestId());
+        assertTrue(Required.value(seconds) > 270, "lease seconds " + seconds);
+        assertThrows(IllegalArgumentException.class, () -> store.claim(tenant, Required.value(UUID.randomUUID().toString()), PublicApiStore.Operation.DAILY_PROPOSAL,
+                DailyProposals.sha256(body), Required.value(Duration.ofSeconds(30))));
     }
 }

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { DispatchRefused, NO_TECHNICIANS, proposeApiDay } from "./apiDispatch";
 import { frozen } from "./apiTimeOffCore";
-import { dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, timeOf } from "./overnightCore";
+import { ABANDON_AFTER_MINUTES, dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, timeOf } from "./overnightCore";
 
 /**
  * The portal's overnight optimization, acting as the host for each client: a run asks the scheduling API for a daily
@@ -11,8 +11,7 @@ import { dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, timeOf } from "./overnigh
  * is applied. Runs are queued in the database, by "Run now" or by the client's run times, and a worker claims them.
  */
 
-/** A running run whose worker has not reported for this long is abandoned; one day takes well under a minute. */
-export const ABANDON_AFTER_MINUTES = 10;
+export { ABANDON_AFTER_MINUTES } from "./overnightCore";
 
 export type RunTrigger = "SCHEDULED" | "MANUAL";
 export type RunStatus = "QUEUED" | "RUNNING" | "FINISHED" | "ABANDONED";

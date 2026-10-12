@@ -12,6 +12,8 @@ public final class SearchDeadline {
         private static final long serialVersionUID = 1L;
         public Expired() { super("Appointment search deadline exhausted"); }
     }
+    /** The longest request clock: a client's longest daily search with its reserve fits, as do two minute bookings. */
+    static final Duration MAXIMUM = Required.value(Duration.ofMinutes(5));
     private final LongSupplier clock;
     private final long started;
     private final SearchTelemetry telemetry = new SearchTelemetry();
@@ -28,7 +30,7 @@ public final class SearchDeadline {
     /** Explicit offline campaign reserve; normal requests retain their one second reserve. */
     public SearchDeadline(Duration duration, Duration reserve) { this(duration, reserve, System::nanoTime); }
     private SearchDeadline(Duration duration, Duration reserve, LongSupplier clock) {
-        if (duration.isNegative() || duration.isZero() || duration.compareTo(Duration.ofMinutes(2)) > 0)
+        if (duration.isNegative() || duration.isZero() || duration.compareTo(MAXIMUM) > 0)
             throw new IllegalArgumentException("Invalid search duration");
         this.clock = clock;
         this.started = clock.getAsLong();

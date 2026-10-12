@@ -10,8 +10,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Value;
 import static org.junit.jupiter.api.Assertions.*;
-@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"solver.auth-token=fixture-private-token-at-least-32-characters","solver.variant=CURRENT_CAPPED"})
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={"solver.auth-token=fixture-private-token-at-least-32-characters"})
 class SolverReplayTest {
+    @org.springframework.boot.test.context.TestConfiguration
+    static class Capped {
+        @org.springframework.context.annotation.Bean @org.springframework.context.annotation.Primary DailySolvers cappedSolvers() { return ReplayFixture.capped(); }
+    }
     static final String TOKEN = "fixture-private-token-at-least-32-characters";
     @Value("${local.server.port}") int port;
     private URI uri(String path) { return Required.value(URI.create("http://127.0.0.1:"+port+path)); }
@@ -24,7 +28,7 @@ class SolverReplayTest {
         var request = ReplayFixture.bookingRequest(); assertEquals(401,post(request,"wrong-token").statusCode());
         var http = post(request,TOKEN); assertEquals(200,http.statusCode(),http.body());
         var remote = CalculationJson.read(Required.value(http.body()),CalculationProtocol.Response.class); remote.match(request);
-        var embedded = new SearchDeadline(Required.value(Duration.ofSeconds(5))).within(() -> new EmbeddedCalculation(new DailySolver("CURRENT_CAPPED",17)).calculate(request));
+        var embedded = new SearchDeadline(Required.value(Duration.ofSeconds(5))).within(() -> new EmbeddedCalculation(ReplayFixture.capped()).calculate(request));
         var actual = CalculationJson.read(remote.payload(),BookingCalculation.Output.class);
         var expected = CalculationJson.read(embedded.payload(),BookingCalculation.Output.class);
         assertEquals(expected,actual); assertFalse(actual.result().candidates().isEmpty());
@@ -64,7 +68,7 @@ class SolverReplayTest {
         var request = ReplayFixture.dailyRequest(); var http = post(request,TOKEN); assertEquals(200,http.statusCode(),http.body());
         var remote = CalculationJson.read(Required.value(http.body()),CalculationProtocol.Response.class); remote.match(request);
         var embedded = DailyOperation.execute(new SearchAdmission(2,16),Required.value(Duration.ofSeconds(20)),
-                () -> new EmbeddedCalculation(new DailySolver("CURRENT_CAPPED",17)).calculate(request),_ -> { });
+                () -> new EmbeddedCalculation(ReplayFixture.capped()).calculate(request),_ -> { });
         var actual = CalculationJson.read(remote.payload(),CalculationProtocol.DailyOutput.class);
         var expected = CalculationJson.read(embedded.payload(),CalculationProtocol.DailyOutput.class);
         assertEquals(expected.proposal(),actual.proposal()); assertEquals(expected.reference(),actual.reference());
@@ -77,9 +81,9 @@ class SolverReplayTest {
     @Test void malformedNullMissingDuplicateAndConflictingWireFactsFailClosed() throws Exception {
         var request = ReplayFixture.bookingRequest(); String json = CalculationJson.write(request);
         assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"remainingMillis\":5000","\"remainingMillis\":null")),CalculationProtocol.Request.class));
-        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"schemaVersion\":1,","")),CalculationProtocol.Request.class));
-        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"schemaVersion\":1","\"schemaVersion\":1,\"schemaVersion\":1")),CalculationProtocol.Request.class));
-        assertThrows(IllegalArgumentException.class,() -> new CalculationProtocol.Request(1,request.requestId(),"BOOKING",5000,"wrong",request.payload()));
+        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"schemaVersion\":2,","")),CalculationProtocol.Request.class));
+        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"schemaVersion\":2","\"schemaVersion\":2,\"schemaVersion\":2")),CalculationProtocol.Request.class));
+        assertThrows(IllegalArgumentException.class,() -> new CalculationProtocol.Request(CalculationProtocol.VERSION,request.requestId(),"BOOKING",5000,"wrong",request.payload()));
         String facts=CalculationJson.write(ReplayFixture.booking());
         assertTrue(facts.contains("\"durationMinutes\":30")); assertTrue(facts.contains("\"regularHourly\":\"30\""));
         assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(facts.replace("\"durationMinutes\":30","\"durationMinutes\":null")),BookingCalculation.Input.class));
@@ -144,12 +148,31 @@ class SolverReplayTest {
         for (var technician : root.path("technicians")) { var value=(com.fasterxml.jackson.databind.node.ObjectNode)technician; value.putArray("assigned"); value.put("pinnedPrefix",0); }
         for (var visit : root.path("visits")) { var value=(com.fasterxml.jackson.databind.node.ObjectNode)visit; value.putNull("originalTechnician").putNull("originalPlannedStart"); }
         root.putArray("unassigned").add(0).add(1);
-        var input=new CalculationProtocol.DailyInput(DailyDataset.seal(CalculationJson.write(root)),original.policy());
+        var input=new CalculationProtocol.DailyInput(DailyDataset.seal(CalculationJson.write(root)),original.policy(),original.allocation());
         var request=CalculationProtocol.Request.of("DAILY",20000,input); var http=post(request,TOKEN); assertEquals(200,http.statusCode(),http.body());
         var response=CalculationJson.read(Required.value(http.body()),CalculationProtocol.Response.class); response.match(request);
         var output=CalculationJson.read(response.payload(),CalculationProtocol.DailyOutput.class); var outcome=output.outcome();
         assertEquals(2,outcome.assignedVisitIds().size()+outcome.unassignedVisitIds().size());
         var restored=output.proposal().restore(DailyDataset.parse(input.dataset()).toDayPlan()); assertEquals(outcome,DailyOutcome.assess(restored));
         if (output.accepted()) { assertTrue(outcome.complete()); assertTrue(outcome.assignedWorkFeasible()); assertTrue(outcome.scoringMatchesValidation()); assertTrue(outcome.policyEligible()); }
+    }
+    @Test void dailyRequestsForAnUnselectableSearchOrAnotherSeedAreRefused() throws Exception {
+        var template=ReplayFixture.dailyRequest(); var original=CalculationJson.read(template.payload(),CalculationProtocol.DailyInput.class);
+        for (String[] change : List.of(new String[]{"\"variant\":\"CURRENT_CAPPED\"","\"variant\":\"KOPT\""},new String[]{"\"seed\":17","\"seed\":18"})) {
+            var root=(com.fasterxml.jackson.databind.node.ObjectNode)CalculationJson.tree(Required.value(original.dataset().replace(change[0],change[1])));
+            root.putNull("contentHash");
+            var input=new CalculationProtocol.DailyInput(DailyDataset.seal(CalculationJson.write(root)),original.policy(),original.allocation());
+            var http=post(CalculationProtocol.Request.of("DAILY",20000,input),TOKEN);
+            assertEquals(400,http.statusCode(),change[1]+": "+http.body());
+        }
+    }
+    @Test void aLongerClientAllocationIsCarriedAndAZeroFairnessTimeRunsOnlyTheReference() throws Exception {
+        var template=ReplayFixture.dailyRequest(); var original=CalculationJson.read(template.payload(),CalculationProtocol.DailyInput.class);
+        var input=new CalculationProtocol.DailyInput(original.dataset(),original.policy(),DailyCalculation.Allocation.client(5,0));
+        var request=CalculationProtocol.Request.of("DAILY",20000,input); var http=post(request,TOKEN); assertEquals(200,http.statusCode(),http.body());
+        var output=CalculationJson.read(CalculationJson.read(Required.value(http.body()),CalculationProtocol.Response.class).payload(),CalculationProtocol.DailyOutput.class);
+        List<String> phases = new ArrayList<>(); for (DailySolver.Phase phase : output.diagnostics().phases()) phases.add(phase.name());
+        assertEquals(List.of("REFERENCE"),phases);
+        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(template.payload().replace("\"allocation\":","\"ignored\":")),CalculationProtocol.DailyInput.class));
     }
 }

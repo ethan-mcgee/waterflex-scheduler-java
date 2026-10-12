@@ -2,8 +2,8 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 /**
- * A client's booking and routing settings: what the portal sends as `rates`, `policy`, `offerLimit`, `windowHours` and
- * the booking horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
+ * A client's booking and routing settings: what the portal sends as `rates`, `policy` (including the daily search method
+ * and times), `offerLimit`, `windowHours` and the booking horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
  * Percentages are what people edit; the API takes fractions ("20" percent is "0.2").
  */
 
@@ -12,6 +12,13 @@ const dollars = z.string().trim().regex(/^(0|[1-9][0-9]{0,9})(\.[0-9]{1,4})?$/, 
 /** A percentage from 0 to 100 with at most two decimal places, so the fraction fits four places. */
 const percent = z.string().trim().regex(/^(0|[1-9][0-9]{0,2})(\.[0-9]{1,2})?$/, "Enter a percentage, for example 20 or 2.5")
   .refine(value => new Prisma.Decimal(value).lte(100), "A percentage is at most 100");
+
+/** The daily search methods a client may choose; the scheduler accepts exactly these. */
+export const DAILY_SEARCHES = ["TABU_KOPT", "TABU"] as const;
+export const dailySearch = z.enum(DAILY_SEARCHES);
+export type DailySearch = z.infer<typeof dailySearch>;
+/** Cost and fairness search seconds together may be at most this. */
+export const MAX_SEARCH_SECONDS = 240;
 
 export const solverSettingsInput = z.object({
   regularHourly: dollars,
@@ -23,7 +30,11 @@ export const solverSettingsInput = z.object({
   offerLimit: z.int().min(1).max(4),
   windowHours: z.int().min(1).max(8),
   bookingHorizonWeekdays: z.int().min(1).max(15),
-}).strict();
+  dailySearch,
+  costSearchSeconds: z.int().min(5).max(MAX_SEARCH_SECONDS),
+  fairnessSearchSeconds: z.int().min(0).max(MAX_SEARCH_SECONDS),
+}).strict().refine(settings => settings.costSearchSeconds + settings.fairnessSearchSeconds <= MAX_SEARCH_SECONDS,
+  { message: `Cost and fairness search time together must be at most ${MAX_SEARCH_SECONDS} seconds`, path: ["fairnessSearchSeconds"] });
 export type SolverSettingsInput = z.infer<typeof solverSettingsInput>;
 
 /** A save carries the version it was edited from; null means the client has no settings yet. */
@@ -33,7 +44,9 @@ export const saveSolverSettings = z.object({ expectedVersion: z.int().nonnegativ
 export interface StoredSolverSettings {
   regularHourly: Prisma.Decimal; overtimeHourly: Prisma.Decimal; mileagePerMile: Prisma.Decimal;
   travelBufferPct: Prisma.Decimal; travelBufferMinutes: number; fairnessBudget: Prisma.Decimal;
-  offerLimit: number; windowHours: number; bookingHorizonWeekdays: number; version: number; updatedAt: Date;
+  offerLimit: number; windowHours: number; bookingHorizonWeekdays: number;
+  /** Stored as text under a CHECK constraint; validated with `dailySearch` before use. */
+  dailySearch: string; costSearchSeconds: number; fairnessSearchSeconds: number; version: number; updatedAt: Date;
 }
 
 export interface SolverSettingsView extends SolverSettingsInput { version: number; updatedAt: string }
@@ -56,7 +69,15 @@ export function toStored(input: SolverSettingsInput) {
     offerLimit: input.offerLimit,
     windowHours: input.windowHours,
     bookingHorizonWeekdays: input.bookingHorizonWeekdays,
+    dailySearch: input.dailySearch,
+    costSearchSeconds: input.costSearchSeconds,
+    fairnessSearchSeconds: input.fairnessSearchSeconds,
   };
+}
+
+/** The stored search method, checked: a value outside the allowed set fails instead of being sent or shown. */
+function storedSearch(stored: StoredSolverSettings): DailySearch {
+  return dailySearch.parse(stored.dailySearch);
 }
 
 export function toView(stored: StoredSolverSettings): SolverSettingsView {
@@ -70,6 +91,9 @@ export function toView(stored: StoredSolverSettings): SolverSettingsView {
     offerLimit: stored.offerLimit,
     windowHours: stored.windowHours,
     bookingHorizonWeekdays: stored.bookingHorizonWeekdays,
+    dailySearch: storedSearch(stored),
+    costSearchSeconds: stored.costSearchSeconds,
+    fairnessSearchSeconds: stored.fairnessSearchSeconds,
     version: stored.version,
     updatedAt: stored.updatedAt.toISOString(),
   };
@@ -88,5 +112,10 @@ export function publicRates(stored: StoredSolverSettings) {
 
 /** The public API's `Snapshot.policy` for this client. */
 export function publicPolicy(stored: StoredSolverSettings) {
-  return { fairnessBudget: canonicalDecimal(stored.fairnessBudget) };
+  return {
+    fairnessBudget: canonicalDecimal(stored.fairnessBudget),
+    dailySearch: storedSearch(stored),
+    costSearchSeconds: stored.costSearchSeconds,
+    fairnessSearchSeconds: stored.fairnessSearchSeconds,
+  };
 }

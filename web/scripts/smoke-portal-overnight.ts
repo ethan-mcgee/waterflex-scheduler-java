@@ -87,7 +87,7 @@ async function setUp() {
   await technician("a");
   await technician("b");
   const saved = await storeSolverSettings(clientId, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-    travelBufferPercent: "10", travelBufferMinutes: 2, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2 });
+    travelBufferPercent: "10", travelBufferMinutes: 2, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 });
   assert.ok("saved" in saved);
   const token = generateTenantToken();
   await prisma.tenant.create({ data: { id: clientId, name: clientId } });

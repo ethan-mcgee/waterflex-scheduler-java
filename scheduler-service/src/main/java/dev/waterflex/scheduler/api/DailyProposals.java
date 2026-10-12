@@ -64,28 +64,28 @@ public class DailyProposals {
     private final MetroRouting routing;
     private final DailyPreparation.AddressLocator locator;
     private final CalculationTransport transport;
-    private final DailySolver solver;
+    private final DailySolvers solvers;
     private final SearchAdmission admission;
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
     @Autowired
     public DailyProposals(PublicApiStore store, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                          DailySolver solver, SearchAdmission admission, JdbcTemplate jdbc) {
-        this(store, routing, locator, transport, solver, admission, jdbc, Required.value(Clock.systemUTC()));
+                          DailySolvers solvers, SearchAdmission admission, JdbcTemplate jdbc) {
+        this(store, routing, locator, transport, solvers, admission, jdbc, Required.value(Clock.systemUTC()));
     }
 
     public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                          DailySolver solver, SearchAdmission admission, JdbcTemplate jdbc, Clock clock) {
+                          DailySolvers solvers, SearchAdmission admission, JdbcTemplate jdbc, Clock clock) {
         this.store = store; this.routing = routing; this.locator = locator; this.transport = transport;
-        this.solver = solver; this.admission = admission; this.jdbc = jdbc; this.clock = clock;
+        this.solvers = solvers; this.admission = admission; this.jdbc = jdbc; this.clock = clock;
     }
 
     public Reply create(String tenantId, String body) {
         DailyProposalRequest request;
         try { request = PublicRequests.read(body, DailyProposalRequest.class); }
         catch (IllegalArgumentException invalid) { return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, invalidRequest(invalid))); }
-        Claim claim = store.claim(tenantId, request.requestId(), Operation.DAILY_PROPOSAL, sha256(CalculationJson.write(request)));
+        Claim claim = store.claim(tenantId, request.requestId(), Operation.DAILY_PROPOSAL, sha256(CalculationJson.write(request)), lease(request.snapshot()));
         return switch (claim) {
             case Replay replay -> replayed(replay);
             case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
@@ -98,7 +98,7 @@ public class DailyProposals {
         PublicRequests.RepairProposalRequest request;
         try { request = PublicRequests.read(body, PublicRequests.RepairProposalRequest.class); }
         catch (IllegalArgumentException invalid) { return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, invalidRequest(invalid))); }
-        Claim claim = store.claim(tenantId, request.requestId(), Operation.REPAIR_PROPOSAL, sha256(CalculationJson.write(request)));
+        Claim claim = store.claim(tenantId, request.requestId(), Operation.REPAIR_PROPOSAL, sha256(CalculationJson.write(request)), lease(request.day().snapshot()));
         return switch (claim) {
             case Replay replay -> replayed(replay);
             case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
@@ -162,7 +162,9 @@ public class DailyProposals {
         SchedulingPolicy.Rules policy = rules(sharedPolicy(jdbc), snapshot.policy());
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
-        Outcome outcome = DailyOperation.execute(admission, Required.value(Duration.ofSeconds(20)), () -> calculate(request, policy, proposalId, revision, tokens, absence),
+        DailyCalculation.Allocation allocation = allocation(snapshot.policy());
+        Outcome outcome = DailyOperation.execute(admission, DailyOperation.Allowance.forSearch(allocation),
+                () -> calculate(request, policy, snapshot.policy().dailySearch(), allocation, proposalId, revision, tokens, absence),
                 receipt -> LOG.info("Public daily operation {}", receipt));
         DailyProposal proposal = response(request, proposalId, revision, outcome);
         List<TechnicianDayVersion> days = new ArrayList<>();
@@ -176,8 +178,8 @@ public class DailyProposals {
     /**
      * The daily preview decision applied to request-fed facts; with an absence, the repair of the same facts.
      */
-    private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, String proposalId, String revision, Map<String, String> tokens,
-                              PublicRequests.@Nullable Absence absence) {
+    private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation,
+                              String proposalId, String revision, Map<String, String> tokens, PublicRequests.@Nullable Absence absence) {
         DailyPreparation.Prepared prepared;
         try { prepared = DailyPreparation.prepare(request, routing, locator); }
         catch (MetroRouting.UnknownMetro unknown) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, message(unknown)); }
@@ -194,10 +196,10 @@ public class DailyProposals {
             return new Outcome(prepared, baseline, Decision.NO_IMPROVEMENT, "The current routes are infeasible or cannot be scored consistently; nothing was proposed");
         Map<String, String> kept = new LinkedHashMap<>();
         for (TechRoute route : baseline.getRoutes()) kept.put(route.getId(), Required.value(tokens.get(route.getId()), "technician-day token"));
-        String configuration = sha256(CalculationJson.write(policy));
+        String configuration = configuration(policy, search, allocation);
         DayPlan searched = absence == null ? baseline : PlanCopies.withAbsence(baseline, absence.technicianId(),
                 new TechRoute.Unavailable(absence.window().start(), absence.window().end()));
-        var calculation = transport.dailyTokens(searched, policy, solver, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
+        var calculation = transport.dailyTokens(searched, policy, solvers.get(search), allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
         SearchDeadline.checkpoint();
         if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, calculation.reason());
         Decision decision = DailyCalculation.valid(calculation.plan()) ? Decision.REJECTED_BY_POLICY : Decision.NO_IMPROVEMENT;
@@ -220,6 +222,24 @@ public class DailyProposals {
         }
         return new DailyProposal(proposalId, revision, outcome.decision(), outcome.reason(), Required.value(List.copyOf(routes)),
                 plan.getUnassignedVisitIds(), outcome.prepared().skipped(), evaluation.costCents(), 0);
+    }
+
+    /** The phase budgets of the client's chosen search times. */
+    static DailyCalculation.Allocation allocation(PublicTypes.Policy client) {
+        return DailyCalculation.Allocation.client(client.costSearchSeconds(), client.fairnessSearchSeconds());
+    }
+
+    /** The identity of everything that shapes the search besides the snapshot: policy rules, method and phase budgets. */
+    record Configuration(SchedulingPolicy.Rules policy, DailySearch dailySearch, DailyCalculation.Allocation allocation) { }
+
+    static String configuration(SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation) {
+        return sha256(CalculationJson.write(new Configuration(policy, search, allocation)));
+    }
+
+    /** A claim must outlive the calculation it guards, so another replica never takes over a running request. */
+    static Duration lease(PublicTypes.Snapshot snapshot) {
+        Duration running = Required.value(DailyOperation.Allowance.forSearch(allocation(snapshot.policy())).total().plus(PublicApiStore.LEASE_MARGIN));
+        return running.compareTo(PublicApiStore.LEASE) > 0 ? running : PublicApiStore.LEASE;
     }
 
     /** The scheduler's policy settings with the client's own fairness budget in place of the shared one. */

@@ -9,7 +9,7 @@ import { loadSolverSettings, storeSolverSettings } from "../lib/clientSettingsSt
 
 const clientId = `settings-it-${randomUUID()}`;
 const input = { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5 };
 
 async function main() {
   await prisma.client.create({ data: { id: clientId, name: "Settings smoke" } });
@@ -21,7 +21,7 @@ async function main() {
     assert.equal(created.saved.version, 0);
     assert.deepEqual(publicRates(created.saved), { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
       travelBufferPct: "0.2", travelBufferMinutes: 5 });
-    assert.deepEqual(publicPolicy(created.saved), { fairnessBudget: "0.02" });
+    assert.deepEqual(publicPolicy(created.saved), { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 });
     assert.deepEqual(await storeSolverSettings(clientId, null, input), { stale: true }, "A second first save is stale");
 
     const updated = await storeSolverSettings(clientId, 0, { ...input, offerLimit: 2 });
@@ -36,10 +36,15 @@ async function main() {
     assert.equal((await loadSolverSettings(clientId))?.version, 2);
 
     for (const [column, value] of [["offerLimit", 5], ["windowHours", 0], ["windowHours", 9], ["bookingHorizonWeekdays", 16], ["travelBufferMinutes", 121],
-      ["travelBufferPct", 1.5], ["fairnessBudget", 1.01], ["regularHourly", -1]] as const) {
+      ["travelBufferPct", 1.5], ["fairnessBudget", 1.01], ["regularHourly", -1], ["dailySearch", "KOPT"], ["dailySearch", "tabu_kopt"],
+      ["costSearchSeconds", 4], ["costSearchSeconds", 241], ["fairnessSearchSeconds", -1], ["fairnessSearchSeconds", 241]] as const) {
       await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = ${value} WHERE "clientId" = ${clientId}`,
         `The database rejects ${column} = ${value}`);
     }
+    await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "costSearchSeconds" = 200, "fairnessSearchSeconds" = 41 WHERE "clientId" = ${clientId}`,
+      "The database rejects search times over 240 seconds together");
+    await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "dailySearch" = NULL WHERE "clientId" = ${clientId}`,
+      "The database rejects a missing search method");
     console.log("Client solver settings smoke passed");
   } finally {
     await prisma.clientSolverSettings.deleteMany({ where: { clientId } });

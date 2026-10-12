@@ -187,9 +187,17 @@ export function confirmBookingHold(clientId: string, holdId: string, requestId: 
   return tenantCall(clientId, `/api/v1/booking/holds/${encodeURIComponent(holdId)}/confirm`, { requestId, snapshot }, commitReceipt, 15000);
 }
 
+/**
+ * How long to wait for a daily or repair proposal: the scheduler runs the client's cost and fairness search time plus a
+ * 5-second reserve, and the rest covers the snapshot upload, routing and the network. The client's earlier fixed 15
+ * seconds of search waits 30 seconds; the longest, 240 seconds, waits 255.
+ */
+export function proposalTimeoutMs(policy: PublicSnapshot["policy"]): number {
+  return (policy.costSearchSeconds + policy.fairnessSearchSeconds + 5) * 1000 + 10000;
+}
+
 export function createDailyProposal(clientId: string, request: { requestId: string; serviceDate: string; snapshot: PublicSnapshot }): Promise<DailyProposal> {
-  // The calculation stops at its own 20-second deadline; the rest covers the snapshot upload, routing and the network.
-  return tenantCall(clientId, "/api/v1/daily/proposals", request, dailyProposal, 30000);
+  return tenantCall(clientId, "/api/v1/daily/proposals", request, dailyProposal, proposalTimeoutMs(request.snapshot.policy));
 }
 
 export function commitDailyProposal(clientId: string, proposalId: string, request: { requestId: string; technicianDays: TechnicianDayVersion[] }): Promise<CommitReceipt> {
@@ -209,6 +217,6 @@ export function drawRoutes(clientId: string, request: { serviceDate: string; sna
 
 export function createRepairProposal(clientId: string, request: { requestId: string; absence: { technicianId: string; serviceDate: string; window: { start: string; end: string } };
   snapshot: PublicSnapshot }): Promise<DailyProposal> {
-  // The same 20-second calculation as a daily proposal.
-  return tenantCall(clientId, "/api/v1/repairs/proposals", request, dailyProposal, 30000);
+  // The same calculation as a daily proposal; a repair spends both search times in its one phase.
+  return tenantCall(clientId, "/api/v1/repairs/proposals", request, dailyProposal, proposalTimeoutMs(request.snapshot.policy));
 }
