@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "name": "daily-search-long-budget",
+  "daily": {
+    "solvers": [
+      "TABU_KOPT",
+      "TABU",
+      "KOPT",
+      "LATE_ACCEPTANCE"
+    ],
+    "control": "TABU_KOPT",
+    "seeds": [
+      211,
+      223
+    ],
+    "fleets": [
+      30,
+      50
+    ],
+    "workloads": [
+      "CLUSTERED",
+      "DISPERSED",
+      "MIXED_SKILL",
+      "TIGHT_WINDOW"
+    ],
+    "fixture_seeds": [
+      3
+    ],
+    "budgets_seconds": [
+      240,
+      480,
+      600
+    ],
+    "phases": "COST_ONLY",
+    "parallel_cases": 6
+  }
+}

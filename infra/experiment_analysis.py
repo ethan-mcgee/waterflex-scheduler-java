@@ -20,7 +20,8 @@ BOOKING = ['INSERTION', 'BOUNDED', 'EXPANDED', 'RUIN_RECREATE', 'SHARED']
 COLORS = {'CURRENT_CAPPED': '#777777', 'CURRENT_UNCAPPED': '#444444', 'LATE_ACCEPTANCE_CHANGE': '#a58d3d',
           'LATE_ACCEPTANCE': '#c37e12', 'TABU': '#2363a0', 'SUBLIST': '#9171ad', 'KOPT': '#b34f75',
           'RUIN_RECREATE': '#608642', 'INSERTION': '#00959b', 'BOUNDED': '#d56033', 'EXPANDED': '#86743e',
-          'SHARED': '#516170', 'TABU_SIZE_3': '#6fa8dc', 'TABU_SIZE_15': '#0b3a66', 'TABU_KOPT': '#3c9a8f'}
+          'SHARED': '#516170', 'TABU_SIZE_3': '#6fa8dc', 'TABU_SIZE_15': '#0b3a66', 'TABU_KOPT': '#3c9a8f',
+          'TABU_KOPT_SIZE_3': '#7fc8a9'}
 
 
 def number(value):
@@ -98,6 +99,15 @@ def normalize(raw, provenance, cohort):
             fairness_move_rate=rate(measurement(raw, 'fairnessPhase', 'moveEvaluations'), measurement(raw, 'fairnessPhase', 'solveMs')))
         if row['budget_ms'] is None:
             raise ValueError('Daily budget unavailable')
+        # Receipts from before fixture seeds and phase modes carry neither; they stay absent, never assumed.
+        fixture_seed, phases = raw.get('fixtureSeed'), raw.get('phases')
+        if fixture_seed is not None and (type(fixture_seed) is not int or fixture_seed < 0):
+            raise ValueError('Invalid fixture seed')
+        if phases is not None and phases not in ('COST_AND_FAIRNESS', 'COST_ONLY'):
+            raise ValueError('Invalid phases')
+        if phases == 'COST_ONLY' and raw.get('fairnessPhase') is not None:
+            raise ValueError('A cost-only case reported a fairness phase')
+        row.update(fixture_seed=fixture_seed, phases=phases)
     else:
         if raw.get('independentlyValidated') is not True or raw.get('promiseViolations') != 0:
             raise ValueError('Booking independent validation absent/failed')
@@ -180,6 +190,9 @@ def load_raw(path, expected=None, cohort='current'):
                             for key in ('kind', 'solver', 'fleet', 'workload', 'seed', 'budget_ms'):
                                 if row.get(key) != expected[key]:
                                     raise ValueError(f'Unexpected {key}')
+                            for key in ('fixture_seed', 'phases'):
+                                if row['kind'] == 'daily' and row.get(key) != expected.get(key):
+                                    raise ValueError(f'Unexpected {key}')
                         row['source'] = str(path)
                         row['line'] = line_index
                         rows.append(row)
@@ -196,7 +209,7 @@ def load_raw(path, expected=None, cohort='current'):
 
 def pair_key(row, budget=True):
     fields = ['kind', 'cohort', 'fixture', 'routing', 'fleet', 'workload', 'seed']
-    fields += (['budget_ms'] if budget else []) if row['kind'] == 'daily' else ['concurrency', 'cache', 'requests', 'dates', 'calendar_reference']
+    fields += (['budget_ms'] if budget else []) + ['fixture_seed', 'phases'] if row['kind'] == 'daily' else ['concurrency', 'cache', 'requests', 'dates', 'calendar_reference']
     return canonical([row.get(f) for f in fields])
 
 

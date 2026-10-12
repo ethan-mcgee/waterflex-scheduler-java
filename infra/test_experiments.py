@@ -47,6 +47,10 @@ PROVENANCE = {'type': 'provenance', 'routingIdentity': 'fixtures-v1', 'budgetMs'
               'seed': 17, 'requests': 2, 'dates': ['2026-09-30']}
 
 
+def evidence_text(raw):
+    return json.dumps(PROVENANCE) + '\n' + json.dumps(raw) + '\n'
+
+
 def evidence(path, case):
     path.write_text(json.dumps(PROVENANCE) + '\n' + json.dumps(raw_daily(case)) + '\n', encoding='utf-8')
 
@@ -87,6 +91,42 @@ class ConfigurationTests(unittest.TestCase):
             c['daily'].pop('parallel_cases')
         self.assertEqual(six, ten)
 
+    def test_earlier_configs_keep_their_archived_case_ids(self):
+        # Fixture seeds and phases are optional, so the 5d15129b study expands to exactly the cases it ran.
+        root = Path(__file__).resolve().parents[1] / 'experiments/configs'
+        cases = expand(read_json(root / 'daily-tabu-variants.json'))
+        self.assertEqual([c['id'] for c in cases[:3]], ['e7e7ba398e6b04f2d274', 'd9963da588c31e1eb7fb', 'efe9c13a430a45d245e9'])
+        self.assertTrue(all('fixture_seed' not in c and 'phases' not in c for c in cases))
+        command = rt.daily_command(Path('frozen'), cases[0], 'rev', 'raw', 'java')
+        self.assertFalse(any(a.startswith(('-Dbenchmark.fixtureSeeds', '-Dbenchmark.phases')) for a in command))
+
+    def test_daily_search_followup_matrices(self):
+        root = Path(__file__).resolve().parents[1] / 'experiments/configs'
+        main = validate(read_json(root / 'daily-search-followup.json'))
+        self.assertEqual(main['daily']['control'], 'TABU')
+        self.assertEqual(set(main['daily']['solvers']), {'TABU', 'TABU_KOPT', 'TABU_KOPT_SIZE_3', 'TABU_SIZE_3', 'KOPT'})
+        cases = expand(main)
+        self.assertEqual(len(cases), 1200)
+        self.assertEqual(sum(c['budget_ms'] for c in cases), 108000000)
+        self.assertEqual({c['fixture_seed'] for c in cases}, {1, 2})
+        self.assertEqual({c['phases'] for c in cases}, {'COST_ONLY'})
+        self.assertEqual(len({c['id'] for c in cases}), 1200)
+        command = rt.daily_command(Path('frozen'), cases[0], 'rev', 'raw', 'java')
+        self.assertIn(f'-Dbenchmark.fixtureSeeds={cases[0]["fixture_seed"]}', command)
+        self.assertIn('-Dbenchmark.phases=COST_ONLY', command)
+        long = expand(validate(read_json(root / 'daily-search-long-budget.json')))
+        self.assertEqual(len(long), 192)
+        self.assertEqual(sum(c['budget_ms'] for c in long), 84480000)
+        self.assertEqual({c['fixture_seed'] for c in long}, {3})
+        confirm = validate(read_json(root / 'daily-search-confirm.json'))
+        self.assertEqual(confirm['daily']['parallel_cases'], 1)
+        self.assertEqual(len(expand(confirm)), 32)
+        smoke = expand(validate(read_json(root / 'daily-search-smoke.json')))
+        self.assertEqual({c['solver'] for c in smoke} - {'LATE_ACCEPTANCE'}, set(main['daily']['solvers']))
+        # Main and long arms use disjoint fixture seeds, and neither reuses the canonical fixture the old study chose on.
+        self.assertFalse({c['fixture_seed'] for c in cases} & {c['fixture_seed'] for c in long})
+        self.assertNotIn(0, {c['fixture_seed'] for c in cases + long})
+
     def test_every_solver_has_a_stable_color(self):
         from experiment_analysis import BOOKING, COLORS
         from experiment_config import DAILY
@@ -106,7 +146,10 @@ class ConfigurationTests(unittest.TestCase):
             lambda c: c['daily'].update(solvers=[]), lambda c: c['daily'].update(solvers=['NOPE']),
             lambda c: c['daily'].update(seeds=[17, 17]), lambda c: c['daily'].update(seeds=[True]),
             lambda c: c['daily'].update(fleets=[7]), lambda c: c['daily'].update(control='SUBLIST'),
-            lambda c: c['daily'].update(budgets_seconds=[241]), lambda c: c['daily'].pop('workloads'),
+            lambda c: c['daily'].update(budgets_seconds=[901]), lambda c: c['daily'].pop('workloads'),
+            lambda c: c['daily'].update(fixture_seeds=[]), lambda c: c['daily'].update(fixture_seeds=[1, 1]),
+            lambda c: c['daily'].update(fixture_seeds=[-1]), lambda c: c['daily'].update(fixture_seeds=[True]),
+            lambda c: c['daily'].update(phases='FAIRNESS_ONLY'), lambda c: c['daily'].update(phases=None),
             lambda c: c['daily'].pop('parallel_cases'), lambda c: c['daily'].update(parallel_cases=0),
             lambda c: c['daily'].update(parallel_cases=True), lambda c: c['daily'].update(parallel_cases=2.0),
             lambda c: c['daily'].update(parallel_cases=None), lambda c: c['daily'].update(parallel_cases='6')]
@@ -253,6 +296,45 @@ class AnalysisTests(unittest.TestCase):
         raw['after']['costCents'] = False
         with self.assertRaises(ValueError):
             normalize(raw, PROVENANCE, 'current')
+
+    def test_fixture_seeds_and_cost_only_receipts(self):
+        raw = raw_daily()
+        raw.update(fixtureSeed=1, phases='COST_ONLY')
+        row = normalize(raw, PROVENANCE, 'current')
+        self.assertEqual((row['fixture_seed'], row['phases']), (1, 'COST_ONLY'))
+        self.assertIsNone(row['fairness_ms'])
+        legacy = normalize(raw_daily(), PROVENANCE, 'current')
+        self.assertEqual((legacy['fixture_seed'], legacy['phases']), (None, None))  # Absent, never assumed.
+        for change in ({'fixtureSeed': -1}, {'fixtureSeed': True}, {'phases': 'FAIRNESS_ONLY'},
+                       {'phases': 'COST_ONLY', 'fairnessPhase': {'solveMs': 5}}):
+            with self.subTest(change=change):
+                with self.assertRaises(ValueError):
+                    normalize({**raw_daily(), **change}, PROVENANCE, 'current')
+        # Two fixture seeds with the same search seed are two cases, not duplicates, and pair within their fixture.
+        a = self.daily(fixture='f1'); a['fixture_seed'] = 1
+        b = self.daily('KOPT', 90, fixture='f1'); b['fixture_seed'] = 1
+        c = self.daily(fixture='f2'); c['fixture_seed'] = 2
+        d = self.daily('KOPT', 80, fixture='f2'); d['fixture_seed'] = 2
+        rows, issues = compare([a, b, c, d], {'daily': 'TABU'})
+        self.assertFalse(issues)
+        self.assertEqual([r['control_savings_cents'] for r in rows if r['solver'] == 'KOPT'], [10, 20])
+
+    def test_receipts_must_match_the_case_fixture_seed_and_phases(self):
+        study = config()
+        study['daily'].update(fixture_seeds=[4], phases='COST_ONLY')
+        case = expand(study)[0]
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / 'raw.jsonl'
+            raw = raw_daily(case)
+            raw.update(fixtureSeed=4, phases='COST_ONLY')
+            path.write_text(evidence_text(raw), encoding='utf-8')
+            rows, issues = load_raw(path, case)
+            self.assertEqual((len(rows), issues), (1, []))
+            raw.update(fixtureSeed=5)
+            path.write_text(evidence_text(raw), encoding='utf-8')
+            rows, issues = load_raw(path, case)
+            self.assertEqual(rows, [])
+            self.assertIn('Unexpected fixture_seed', issues[0]['reason'])
 
     def test_equal_seed_weighting(self):
         rows = [self.daily(cost=100), self.daily(cost=200), self.daily(cost=300, seed=23)]
