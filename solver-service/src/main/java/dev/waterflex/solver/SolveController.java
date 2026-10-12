@@ -67,7 +67,10 @@ public final class SolveController {
             byte[] result;
             if (daily) {
                 // The worker owns removal, including when its HTTP caller expires before solver cleanup.
-                result = DailyOperation.executePrepared(admission,Required.value(Duration.ofMillis(remaining)),() -> {
+                // The caller's allocation bounds the solver phases; the rest of its remaining time covers validation.
+                long search = Math.min(remaining,CalculationJson.read(request.payload(),CalculationProtocol.DailyInput.class).allocation().searchMs());
+                var allowance = new DailyOperation.Allowance(Required.value(Duration.ofMillis(remaining)),Required.value(Duration.ofMillis(search)));
+                result = DailyOperation.executePrepared(admission,allowance,() -> {
                     state.daily = DailyOperation.current(); state.deadline = SearchDeadline.current();
                     if (state.cancelled.get()) state.cancel();
                     return new DailyOperation.Preparation<>(() -> encode(request,entered,response),true,_ -> { });

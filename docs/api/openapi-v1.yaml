@@ -29,6 +29,8 @@ info:
     - `DailyProposal` now has `reason` and `skippedTechnicianDays`; a skipped technician-day is not in `routes` and stays as it is.
     - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
     - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
+    - `Snapshot.policy.dailySearch` (`TABU` or `TABU_KOPT`), `costSearchSeconds` (5 to 240) and `fairnessSearchSeconds`
+      (0 to 240, at most 240 together) are required; send the client's chosen daily search method and times.
     - A booking horizon covers at most 21 dates, and `job.id` must differ from every appointment and technician ID.
     - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
     - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
@@ -523,8 +525,11 @@ components:
     Policy:
       type: object
       additionalProperties: false
-      required: [fairnessBudget]
-      description: The client's own scheduling choices, sent with every calculation.
+      required: [fairnessBudget, dailySearch, costSearchSeconds, fairnessSearchSeconds]
+      description: >-
+        The client's own scheduling choices, sent with every calculation. The daily search method and times apply
+        to daily and repair proposals; costSearchSeconds and fairnessSearchSeconds together may be at most 240. A
+        proposal request takes about the search time plus up to 5 seconds.
       properties:
         fairnessBudget:
           $ref: '#/components/schemas/Decimal'
@@ -532,6 +537,24 @@ components:
             How much the daily plan's cost may rise, as a share of the lowest-cost plan, to spread work more evenly
             across technicians. "0" means no fairness budget (fairness only chooses between plans of equal cost);
             "0.02" allows up to 2 percent. At most "1".
+        dailySearch:
+          type: string
+          enum: [TABU, TABU_KOPT]
+          description: >-
+            The daily search method. TABU_KOPT is Tabu search that also tries moving runs of visits and
+            reconnecting route segments (K opt); TABU tries only single-visit moves and swaps.
+        costSearchSeconds:
+          type: integer
+          minimum: 5
+          maximum: 240
+          description: Seconds the search spends looking for the lowest-cost plan. A repair (one phase) spends both times.
+        fairnessSearchSeconds:
+          type: integer
+          minimum: 0
+          maximum: 240
+          description: >-
+            Seconds then spent spreading work more evenly within the fairness budget. 0 skips that search; the
+            lowest-cost plan is still checked against the policy.
     Technician:
       type: object
       additionalProperties: false
@@ -952,7 +975,7 @@ components:
           metroId: omaha
           timeZone: America/Chicago
           rates: { regularHourly: '20', overtimeHourly: '30', mileagePerMile: '0.67', travelBufferPct: '0.2', travelBufferMinutes: 2 }
-          policy: { fairnessBudget: '0.02' }
+          policy: { fairnessBudget: '0.02', dailySearch: TABU_KOPT, costSearchSeconds: 10, fairnessSearchSeconds: 5 }
           technicians:
             - { id: tech-1, qualifications: [softener-install, softener-service] }
             - { id: tech-2, qualifications: [softener-service] }

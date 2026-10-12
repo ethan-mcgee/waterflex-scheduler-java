@@ -119,7 +119,7 @@ public final class DailyDataset {
             for (String field : List.of("provider", "profile", "identity")) string(routing, Required.value(field));
             ObjectNode search = object(required(root, "search"), "search", "variant", "seed", "remainingMillis");
             SolverEngine.Variant.valueOf(string(search, "variant")); integer(search, "seed", Long.MIN_VALUE, Long.MAX_VALUE);
-            integer(search, "remainingMillis", 1, 20000);
+            integer(search, "remainingMillis", 1, DailyOperation.Allowance.MAXIMUM.toMillis());
             ObjectNode rates = object(required(root, "rates"), "rates", "regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "travelBufferMinutes");
             BigDecimal regular = money(rates, "regularHourly"), overtime = money(rates, "overtimeHourly"), mileage = money(rates, "mileagePerMile");
             BigDecimal pct = money(rates, "travelBufferPct");

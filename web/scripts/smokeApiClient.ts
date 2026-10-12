@@ -13,7 +13,7 @@ export async function connectSmokeClient(clientId: string, baseUrl: string, labe
   const hadSettings = (await prisma.clientSolverSettings.findUnique({ where: { clientId } })) !== null;
   if (!hadSettings) {
     const saved = await storeSolverSettings(clientId, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-      travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 3 });
+      travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 3, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 });
     if (!("saved" in saved)) throw new Error(`Solver settings for ${clientId} were refused`);
   }
   await prisma.tenant.upsert({ where: { id: clientId }, create: { id: clientId, name: clientId }, update: {} });

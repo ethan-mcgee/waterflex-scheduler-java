@@ -3,11 +3,8 @@ package dev.waterflex.scheduler.optimizer;
 import dev.waterflex.scheduler.Required;
 import java.time.Duration;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
-/** One immutable configuration, with a new solver and copied planning solution for every phase. */
-@Service
+/** One immutable configuration, with a new solver and copied planning solution for every phase. Services hold one per DailySearch in DailySolvers. */
 public final class DailySolver {
     public record Phase(String name, SolverEngine.Statistics statistics) { }
     public record Diagnostics(String engine, String configurationXml, List<Phase> phases,
@@ -23,9 +20,7 @@ public final class DailySolver {
     }
     private final SolverEngine.Definition definition;
     private final SolverEngine.Definition constructionDefinition;
-    @org.springframework.beans.factory.annotation.Autowired
-    public DailySolver(@Value("${scheduler.optimizer.variant:TABU}") String variant,
-                       @Value("${scheduler.optimizer.seed:17}") long seed) {
+    public DailySolver(String variant, long seed) {
         definition = SolverEngine.configuration(SolverEngine.Variant.valueOf(variant), seed);
         constructionDefinition = SolverEngine.configuration(SolverEngine.Variant.valueOf(variant), seed, false, true);
     }
