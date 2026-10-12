@@ -23,6 +23,8 @@ services:
       ROUTING_GRAPH_DIR: /maps/versions/${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}/graph
       ROUTING_CH_ENABLED: "false"
       ROUTING_MAP_VERSION: ${PREVIEW_MAP_VERSION:?Set PREVIEW_MAP_VERSION}
+      # Same local-only default as routing-service; routing refuses to start without a token.
+      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
     volumes: ["map-data:/maps"]
     ports: ["127.0.0.1:18001:8001"]
   tiles-preview:
