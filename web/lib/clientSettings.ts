@@ -2,8 +2,8 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 /**
- * A client's booking and routing settings: what the portal sends as `rates`, `policy`, `offerLimit` and the booking
- * horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
+ * A client's booking and routing settings: what the portal sends as `rates`, `policy`, `offerLimit`, `windowHours` and
+ * the booking horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
  * Percentages are what people edit; the API takes fractions ("20" percent is "0.2").
  */
 
@@ -21,6 +21,7 @@ export const solverSettingsInput = z.object({
   travelBufferMinutes: z.int().min(0).max(120),
   fairnessBudgetPercent: percent,
   offerLimit: z.int().min(1).max(4),
+  windowHours: z.int().min(1).max(8),
   bookingHorizonWeekdays: z.int().min(1).max(15),
 }).strict();
 export type SolverSettingsInput = z.infer<typeof solverSettingsInput>;
@@ -32,7 +33,7 @@ export const saveSolverSettings = z.object({ expectedVersion: z.int().nonnegativ
 export interface StoredSolverSettings {
   regularHourly: Prisma.Decimal; overtimeHourly: Prisma.Decimal; mileagePerMile: Prisma.Decimal;
   travelBufferPct: Prisma.Decimal; travelBufferMinutes: number; fairnessBudget: Prisma.Decimal;
-  offerLimit: number; bookingHorizonWeekdays: number; version: number; updatedAt: Date;
+  offerLimit: number; windowHours: number; bookingHorizonWeekdays: number; version: number; updatedAt: Date;
 }
 
 export interface SolverSettingsView extends SolverSettingsInput { version: number; updatedAt: string }
@@ -53,6 +54,7 @@ export function toStored(input: SolverSettingsInput) {
     travelBufferMinutes: input.travelBufferMinutes,
     fairnessBudget: new Prisma.Decimal(input.fairnessBudgetPercent).div(100),
     offerLimit: input.offerLimit,
+    windowHours: input.windowHours,
     bookingHorizonWeekdays: input.bookingHorizonWeekdays,
   };
 }
@@ -66,6 +68,7 @@ export function toView(stored: StoredSolverSettings): SolverSettingsView {
     travelBufferMinutes: stored.travelBufferMinutes,
     fairnessBudgetPercent: canonicalDecimal(stored.fairnessBudget.mul(100)),
     offerLimit: stored.offerLimit,
+    windowHours: stored.windowHours,
     bookingHorizonWeekdays: stored.bookingHorizonWeekdays,
     version: stored.version,
     updatedAt: stored.updatedAt.toISOString(),

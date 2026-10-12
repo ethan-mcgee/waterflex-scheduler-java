@@ -33,6 +33,7 @@ info:
     - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
     - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
     - `BookingOffersRequest.offerLimit` (1 to 4) is required; send the client's own cap on offers per search.
+    - `BookingOffersRequest.windowHours` (1 to 8) is required; send the client's own arrival window length in whole hours.
     - `POST /api/v1/repairs/proposals` is served; commit an IMPROVED repair like a daily proposal.
     - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
       confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
@@ -768,7 +769,7 @@ components:
     BookingOffersRequest:
       type: object
       additionalProperties: false
-      required: [requestId, job, horizon, offerLimit, snapshot]
+      required: [requestId, job, horizon, offerLimit, windowHours, snapshot]
       properties:
         requestId: { $ref: '#/components/schemas/RequestId' }
         offerLimit:
@@ -776,6 +777,13 @@ components:
           minimum: 1
           maximum: 4
           description: The client's own cap on offers per search. Required; never assumed.
+        windowHours:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: >-
+            The client's own arrival window length in whole hours. Every offered window is this long and starts on the
+            hour. Required; never assumed.
         job:
           type: object
           additionalProperties: false
@@ -1052,6 +1060,7 @@ components:
           location: { lat: 41.2350, lng: -96.0420 }
         horizon: { firstDate: '2026-10-12', lastDate: '2026-10-12' }
         offerLimit: 4
+        windowHours: 4
         snapshot: *snapshot
     OfferSet:
       value:

@@ -5,7 +5,7 @@ import { assembleSnapshot, SnapshotError, type AppointmentFacts, type SnapshotFa
 
 const DATE = "2026-10-12"; // a Monday
 const settings = { regularHourly: new Prisma.Decimal("30"), overtimeHourly: new Prisma.Decimal("45"), mileagePerMile: new Prisma.Decimal("0.67"),
-  travelBufferPct: new Prisma.Decimal("0.2"), travelBufferMinutes: 5, fairnessBudget: new Prisma.Decimal("0.02"), offerLimit: 4,
+  travelBufferPct: new Prisma.Decimal("0.2"), travelBufferMinutes: 5, fairnessBudget: new Prisma.Decimal("0.02"), offerLimit: 4, windowHours: 4,
   bookingHorizonWeekdays: 10, version: 0, updatedAt: new Date("2026-10-01T00:00:00Z") };
 const week = Array.from({ length: 7 }, (_, dayOfWeek) => ({ dayOfWeek, available: dayOfWeek >= 1 && dayOfWeek <= 5,
   shiftStartMin: dayOfWeek >= 1 && dayOfWeek <= 5 ? 480 : null, shiftEndMin: dayOfWeek >= 1 && dayOfWeek <= 5 ? 1020 : null }));

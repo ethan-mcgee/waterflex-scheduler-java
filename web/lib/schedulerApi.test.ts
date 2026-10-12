@@ -30,7 +30,7 @@ test("a token for another tenant is refused before any booking call, and API ref
   const paths: string[] = [];
   try {
     globalThis.fetch = async input => { paths.push(new URL(String(input)).pathname); return Response.json({ tenantId: "someone-else" }); };
-    const request = { requestId: "7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10", offerLimit: 1, horizon: { firstDate: "2026-10-12", lastDate: "2026-10-12" },
+    const request = { requestId: "7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10", offerLimit: 1, windowHours: 4, horizon: { firstDate: "2026-10-12", lastDate: "2026-10-12" },
       job: { id: "job", serviceId: "svc", durationMinutes: 60, location: { lat: 1, lng: 1 } },
       snapshot: { metroId: "m", timeZone: "America/Chicago", rates: { regularHourly: "1", overtimeHourly: "1", mileagePerMile: "1", travelBufferPct: "0", travelBufferMinutes: 0 },
         policy: { fairnessBudget: "0" }, technicians: [], technicianDays: [], appointments: [] } };
