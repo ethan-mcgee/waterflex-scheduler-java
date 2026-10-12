@@ -44,18 +44,19 @@ If interrupted after PBF preparation, retain the version folder and resume the r
 
 ## Reviewed cutover and rollback
 
-Do not run this section before PR review and an agreed cutover. Save the prior Compose invocation and map version, and keep the old Nominatim volume and map files. Stop accepting booking searches during the switch. Stop the preview Nominatim container before attaching its volume to the active service; two PostgreSQL instances must never share a writable data directory.
+Do not run this section before PR review and an agreed cutover. Keep the old Nominatim volume and map files. Stop accepting booking searches during the switch.
+
+The 2026-09-29 version predates TIGER preparation (its manifest has no `tiger` entry), so it cannot be activated; prepare a new version, which includes TIGER, and activate that:
 
 ```powershell
-$env:PREVIEW_MAP_VERSION = '2026-09-29-booking-coverage'
-docker compose -f docker-compose.yml -f docker-compose.map-preview.yml stop nominatim-preview routing-preview tiles-preview
-$env:ACTIVE_MAP_VERSION = '2026-09-29-booking-coverage'
-docker compose -f docker-compose.yml -f docker-compose.map-active.yml up -d --no-deps nominatim routing-service tiles
+./infra/activate-map.ps1 -Version <version>
 ```
+
+The script runs `map-import check-activation` (artifacts, TIGER file and a validation report matching the manifest), removes the preview containers so two PostgreSQL servers never share the versioned Nominatim volume, records the version and the `docker-compose.map-active.yml` override in the root `.env` so later plain `docker compose` commands keep it, and restarts `nominatim`, `routing-service` and `tiles`. The override also points Nominatim at the version's TIGER file.
 
 Verify all three active endpoints, rerun service-area booking acceptance, and then reopen booking. Deploy the new application separately with its migration. The five selected reservation/search settings require no change. The existing local Compose edits must remain intact and are intentionally excluded from this PR.
 
-For rollback to the pre-change base configuration, stop the three active map services and run the base Compose invocation with `up -d --no-deps nominatim routing-service tiles`. For a previously versioned deployment, use its saved `ACTIVE_MAP_VERSION` and versioned override instead. Never use `down -v` or delete the application or old Nominatim volumes.
+For rollback, restore the `.env.before-<version>` backup the script printed (or delete `.env` when there was none) and run `docker compose up -d --no-deps nominatim routing-service tiles`. Never use `down -v` or delete the application or old Nominatim volumes.
 
 ## Verification scope
 

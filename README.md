@@ -25,7 +25,17 @@ Use `docker compose up -d` for normal updates and startup. The local images are 
 
 Use `docker compose up --no-build` only when intentionally restarting with the existing local images. For a restart that neither rebuilds nor runs migrations, use `docker compose restart db routing-service scheduler-service nominatim tiles web`. Do not use an unqualified `docker compose restart`: Compose restarts stopped one-shot services too, so it would rerun `schema-migrate` without startup dependency checks. `docker compose down` removes containers and networks but preserves the named data volumes. `docker compose down -v` deletes the PostgreSQL, map, and Nominatim named volumes and is destructive, so it is not part of the normal workflow.
 
-Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh must prepare a new version first, rebuild the Nominatim database separately, pause booking, activate the matching graph and tiles, and restart the map services. The Nominatim volume is currently a single active database, so back it up before a refresh. Do not activate a new map version while an old Nominatim import is serving bookings.
+Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh uses a new version and its own Nominatim volume, so the serving map is never rebuilt in place:
+
+1. `./infra/prepare-map.ps1 -Version <version>` (with `DATABASE_URL` set) prepares the version and starts the preview services, whose Nominatim imports into `waterflex-nominatim-preview-<version>` with that version's TIGER file.
+2. After the preview Nominatim finishes importing, `./infra/validate-map.ps1 -Version <version>` writes the validation report that activation requires.
+3. Pause booking, then `./infra/activate-map.ps1 -Version <version>`. It checks the artifacts and report (`map-import check-activation`), removes the preview containers, records `ACTIVE_MAP_VERSION` and `COMPOSE_FILE=docker-compose.yml;docker-compose.map-active.yml` in the root `.env` (ignored by git) so later plain `docker compose` commands keep serving the version, and restarts `nominatim`, `routing-service` and `tiles` on it.
+
+To roll back, restore the `.env.before-<version>` backup the script made (or delete `.env` when there was none), then run `docker compose up -d --no-deps nominatim routing-service tiles`. Keep earlier map versions and Nominatim volumes until the new version has served bookings.
+
+## Known harmless log lines
+
+These come from upstream images or tools and need no action: Nominatim's `ASGI app factory detected` warnings (one per worker) and its `Website setup is no longer required` notice, and a PostgreSQL `could not receive data from client: Connection reset by peer` logged when the `prisma migrate deploy` CLI in `schema-migrate` exits.
 
 ## Routing service token
 

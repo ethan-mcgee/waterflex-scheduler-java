@@ -3,6 +3,7 @@ services:
   nominatim:
     environment:
       PBF_PATH: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/omaha.osm.pbf
+      IMPORT_TIGER_ADDRESSES: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/tiger-nominatim-preprocessed.csv.tar.gz
     volumes:
       - map-data:/maps:ro
       - nominatim-active-db:/var/lib/postgresql/16/main
