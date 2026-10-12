@@ -25,12 +25,12 @@ public final class CalculationTransport {
         return output;
     }
     /** A daily calculation keyed by opaque per-technician revision tokens such as host last-modified timestamps. */
-    public DailyCalculation.Result dailyTokens(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,
+    public DailyCalculation.Result dailyTokens(DayPlan plan,SchedulingPolicy.Rules policy,DailySolver solver,DailyCalculation.Allocation allocation,
             java.util.Map<String,RoadPoint> points,String snapshotId,String revision,String routing,String configuration,java.util.Map<String,String> schedule) {
-        if (remote == null) return DailyCalculation.run(plan,policy,solver);
-        long remaining = allowance(20000);
+        if (remote == null) return DailyCalculation.run(plan,policy,solver,allocation);
+        long remaining = allowance(DailyOperation.Allowance.forSearch(allocation).total().toMillis());
         var dataset = DailyDataset.captureTokens(plan,points,snapshotId,revision,routing,configuration,schedule,solver.variant(),solver.seed(),remaining);
-        var request = CalculationProtocol.Request.of("DAILY",remaining,new CalculationProtocol.DailyInput(dataset.json(DailyDataset.Encoding.SPARSE),policy));
+        var request = CalculationProtocol.Request.of("DAILY",remaining,new CalculationProtocol.DailyInput(dataset.json(DailyDataset.Encoding.SPARSE),policy,allocation));
         var response = Required.value(remote).calculate(request); var output = CalculationJson.read(response.payload(),CalculationProtocol.DailyOutput.class);
         DayPlan proposed = output.proposal().restore(plan), reference = output.reference().restore(plan);
         if (!DailyOutcome.assess(proposed).equals(output.outcome())) throw new IllegalArgumentException("Remote daily outcome differs from caller validation");

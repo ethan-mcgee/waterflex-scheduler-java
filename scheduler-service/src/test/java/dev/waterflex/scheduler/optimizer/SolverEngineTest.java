@@ -27,6 +27,20 @@ class SolverEngineTest {
                         .replace("<acceptedCountLimit>1</acceptedCountLimit>", "<acceptedCountLimit>1000</acceptedCountLimit>"),
                 SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17).configurationXml());
     }
+    /** TABU_KOPT is a client choice, so its XML is pinned byte for byte like the TABU control. */
+    @Test void clientSelectableTabuKoptIsPinned() {
+        assertEquals("<solver xmlns=\"https://timefold.ai/xsd/solver\"><environmentMode>NO_ASSERT</environmentMode>"
+                + "<solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass><entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass><entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>"
+                + "<scoreDirectorFactory><constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass></scoreDirectorFactory>"
+                + "<termination><spentLimit>PT15S</spentLimit></termination><localSearch><unionMoveSelector><selectedCountLimit>10000</selectedCountLimit>"
+                + "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>"
+                + "<listSwapMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listSwapMoveSelector>"
+                + "<subListChangeMoveSelector><fixedProbabilityWeight>5</fixedProbabilityWeight><selectReversingMoveToo>true</selectReversingMoveToo>"
+                + "<subListSelector><minimumSubListSize>2</minimumSubListSize><maximumSubListSize>4</maximumSubListSize></subListSelector></subListChangeMoveSelector>"
+                + "<kOptListMoveSelector><fixedProbabilityWeight>5</fixedProbabilityWeight><minimumK>2</minimumK><maximumK>3</maximumK></kOptListMoveSelector>"
+                + "</unionMoveSelector><acceptor><entityTabuSize>7</entityTabuSize></acceptor><forager><acceptedCountLimit>1000</acceptedCountLimit></forager></localSearch></solver>",
+                SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17).configurationXml());
+    }
     @Test void knownPinnedRuinRecreateFailureIsRejectedBeforeEveryExecutionMode() {
         for (var mode : List.of(ai.timefold.solver.core.config.solver.EnvironmentMode.NO_ASSERT,
                 ai.timefold.solver.core.config.solver.EnvironmentMode.FULL_ASSERT,

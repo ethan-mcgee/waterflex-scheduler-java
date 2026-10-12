@@ -26,6 +26,6 @@ public final class CalculationFixture {
         String draft;
         try (var stream = Required.value(CalculationFixture.class.getResourceAsStream("/daily-dataset-v1.json"))) { draft = new String(stream.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8); }
         draft = Required.value(draft.replace("TABU","CURRENT_CAPPED"));
-        return CalculationProtocol.Request.of("DAILY",20000,new CalculationProtocol.DailyInput(DailyDataset.seal(draft),SchedulingPolicy.Rules.defaults()));
+        return CalculationProtocol.Request.of("DAILY",20000,new CalculationProtocol.DailyInput(DailyDataset.seal(draft),SchedulingPolicy.Rules.defaults(),DailyCalculation.Allocation.DEFAULT));
     }
 }
