@@ -77,6 +77,8 @@ services:
       IMPORT_WIKIPEDIA: "false"
       UPDATE_MODE: none
       THREADS: "4"
+      # The image starts gunicorn as the nominatim user with HOME=/root, where it cannot create its control socket.
+      GUNICORN_CMD_ARGS: "--no-control-socket"
     shm_size: 1g
     volumes:
       - map-data:/maps:ro

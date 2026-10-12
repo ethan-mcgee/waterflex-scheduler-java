@@ -10,21 +10,31 @@ if [ "${1:-}" = finalize ]; then
   case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
   exec python3 /usr/local/bin/finalize-map.py "$version"
 fi
-if [ "${1:-}" = activate ]; then
-  version="${2:?Pass the prepared map version}"
-  case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
-  target="/maps/versions/$version"
-  test -f "$target/manifest.json"
-  test -f "$target/omaha.pmtiles"
-  test -f "$target/graph/properties"
-  test -f "$target/tiger-nominatim-preprocessed.csv.tar.gz"
+# Everything a version needs before it may serve: its artifacts, TIGER data, and a validation report for this manifest.
+check_activation() {
+  target="/maps/versions/$1"
+  for file in manifest.json omaha.pmtiles graph/properties tiger-nominatim-preprocessed.csv.tar.gz; do
+    test -f "$target/$file" || { echo "Missing $file in $1" >&2; exit 1; }
+  done
   test -f "$target/validated.json" || { echo 'Validate all three preview services before activation' >&2; exit 1; }
-  python3 /usr/local/bin/verify-map.py "$version"
+  python3 /usr/local/bin/verify-map.py "$1"
   python3 - "$target" <<'PY'
 import hashlib,json,pathlib,sys
 p=pathlib.Path(sys.argv[1]); v=json.loads((p/'validated.json').read_text())
 assert v['manifestSha256']==hashlib.sha256((p/'manifest.json').read_bytes()).hexdigest(), 'Validation no longer matches prepared manifest'
 PY
+}
+if [ "${1:-}" = check-activation ]; then
+  version="${2:?Pass the prepared map version}"
+  case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
+  check_activation "$version"
+  echo "Ready to activate $version"
+  exit 0
+fi
+if [ "${1:-}" = activate ]; then
+  version="${2:?Pass the prepared map version}"
+  case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
+  check_activation "$version"
   ln -s "versions/$version/omaha.osm.pbf" /maps/omaha.osm.pbf.next
   ln -s "versions/$version/omaha.pmtiles" /maps/omaha.pmtiles.next
   ln -s "versions/$version/graph" /maps/graph.next

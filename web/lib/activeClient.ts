@@ -12,8 +12,17 @@ export async function listClients(): Promise<ClientSummary[]> {
  * their request; pages and layouts read the cookie from the request being rendered.
  */
 export async function activeClient(request?: NextRequest): Promise<ClientSummary> {
+  return (await activeClientAndList(request)).active;
+}
+
+/**
+ * The active client and every client, from one lookup. The cookie is read before the query so a build-time render
+ * stops at cookies() without querying a database it does not have.
+ */
+export async function activeClientAndList(request?: NextRequest): Promise<{ active: ClientSummary; clients: ClientSummary[] }> {
   const remembered = (request ? request.cookies : cookies()).get(CLIENT_COOKIE)?.value;
-  const chosen = chooseClient(remembered, await listClients());
-  if (chosen == null) throw new Error("No clients exist; create one with web/scripts/create-client.ts");
-  return chosen;
+  const clients = await listClients();
+  const active = chooseClient(remembered, clients);
+  if (active == null) throw new Error("No clients exist; create one with web/scripts/create-client.ts");
+  return { active, clients };
 }
