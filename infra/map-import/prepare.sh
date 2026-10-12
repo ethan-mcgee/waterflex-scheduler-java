@@ -51,7 +51,7 @@ version="${1:?Pass a map version such as 2026-09-16}"
 case "$version" in *[!A-Za-z0-9._-]*|''|.|..) echo 'Invalid version' >&2; exit 2;; esac
 target="/maps/versions/$version"
 if [ -e "$target/manifest.json" ]; then
-  if python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); assert "missouri" in m["sources"] and "coverage" in m and "tiger" in m' "$target/manifest.json" 2>/dev/null; then
+  if python3 -c 'import json,sys; m=json.load(open(sys.argv[1])); assert "missouri" in m["sources"] and "coverage" in m and "filter" in m["tiger"]' "$target/manifest.json" 2>/dev/null; then
     echo "Version already prepared: $version"; exit 0
   fi
 fi
@@ -72,15 +72,32 @@ for state in nebraska iowa missouri; do
   test "$expected" = "$actual" || { echo "Checksum failed: $state" >&2; exit 1; }
 done
 # US Census TIGER address ranges, preprocessed by the Nominatim project, place house numbers OpenStreetMap lacks
-# along their street. The versioned file is downloaded from nominatim.org directly; its SHA-256 is recorded in the
-# manifest and verified before activation. The Nominatim image's own TIGER download is never used.
+# along their street. The national file is downloaded from nominatim.org directly (the Nominatim image's own TIGER
+# download is never used), filtered to the depot circles plus margin, and then deleted; Nominatim imports each row
+# with its own query, so ranges outside the service area only cost import time. The source and filtered SHA-256 are
+# recorded in the manifest and the filtered file is verified before activation.
 tiger_year="${TIGER_YEAR:-2025}"
 case "$tiger_year" in [0-9][0-9][0-9][0-9]) ;; *) echo 'Invalid TIGER_YEAR' >&2; exit 2;; esac
 tiger_url="https://nominatim.org/data/tiger${tiger_year}-nominatim-preprocessed.csv.tar.gz"
-if [ ! -f "$target/tiger-nominatim-preprocessed.csv.tar.gz" ]; then
-  curl --fail --location --retry 3 --silent --show-error --user-agent "waterflex-map-import" "$tiger_url" --output "$target/tiger-nominatim-preprocessed.csv.tar.gz.part"
-  tar -tzf "$target/tiger-nominatim-preprocessed.csv.tar.gz.part" >/dev/null
-  mv "$target/tiger-nominatim-preprocessed.csv.tar.gz.part" "$target/tiger-nominatim-preprocessed.csv.tar.gz"
+tiger="$target/tiger-nominatim-preprocessed.csv.tar.gz"
+national="$target/tiger-national.csv.tar.gz"
+coverage_sha="$(sha256sum "$target/coverage.json" | cut -d ' ' -f 1)"
+if [ -f "$tiger" ]; then
+  python3 -c 'import json,sys; assert json.load(open(sys.argv[1]))["coverageSha256"]==sys.argv[2]' "$target/tiger-filter.json" "$coverage_sha" \
+    || { echo 'Depot coverage changed since TIGER was filtered; prepare a new version' >&2; exit 1; }
+else
+  if [ ! -f "$national" ]; then
+    curl --fail --location --retry 3 --silent --show-error --user-agent "waterflex-map-import" "$tiger_url" --output "$national.part"
+    tar -tzf "$national.part" >/dev/null
+    mv "$national.part" "$national"
+  fi
+  source_sha="$(sha256sum "$national" | cut -d ' ' -f 1)"
+  stats="$(python3 /usr/local/bin/filter-tiger.py "$target/coverage.json" "$national" "$tiger.part")"
+  python3 -c 'import json,sys; print(json.dumps({"sourceSha256": sys.argv[1], "coverageSha256": sys.argv[2], "filter": json.loads(sys.argv[3])}, indent=2))' \
+    "$source_sha" "$coverage_sha" "$stats" > "$target/tiger-filter.json"
+  mv "$tiger.part" "$tiger"
+  rm -f "$national"
+  echo "Filtered TIGER: $stats"
 fi
 osmium merge "$target/nebraska.osm.pbf" "$target/iowa.osm.pbf" "$target/missouri.osm.pbf" --overwrite -o "$target/omaha.osm.pbf"
 osmium fileinfo "$target/omaha.osm.pbf" >/dev/null
@@ -100,7 +117,9 @@ for state in ['nebraska', 'iowa', 'missouri']:
         'sourceTimestamp': subprocess.check_output(['osmium', 'fileinfo', '-e', '-g', 'data.timestamp.last', str(target / f'{state}.osm.pbf')], text=True).strip(),
         'sha256': checksum(target / f'{state}.osm.pbf'),
     }
-manifest['tiger'] = {'year': sys.argv[3], 'url': sys.argv[4], 'sha256': checksum(target / 'tiger-nominatim-preprocessed.csv.tar.gz')}
+tiger_filter = json.loads((target / 'tiger-filter.json').read_text())
+manifest['tiger'] = {'year': sys.argv[3], 'url': sys.argv[4], 'sourceSha256': tiger_filter['sourceSha256'],
+                     'sha256': checksum(target / 'tiger-nominatim-preprocessed.csv.tar.gz'), 'filter': tiger_filter['filter']}
 (target / 'manifest.json.next').write_text(json.dumps(manifest, indent=2) + '\n')
 (target / 'manifest.json.next').replace(target / 'manifest.json')
 PY
