@@ -44,6 +44,8 @@ public final class CalculationJson {
                 DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
         // A fraction for a whole-number field fails instead of being truncated (2.5 hours is not 2).
         mapper.disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
+        // An enum is named, never given by its position (1 is not TABU_KOPT).
+        mapper.enable(DeserializationFeature.FAIL_ON_NUMBERS_FOR_ENUMS);
         if (everyPropertyPresent) mapper.enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
         return mapper;
     }

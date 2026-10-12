@@ -6,14 +6,32 @@ import java.util.*;
 public final class DailyCalculation {
     public record Result(DayPlan plan, DayPlan reference, boolean accepted, String reason, int solveMs, DailySolver.Diagnostics diagnostics) { }
     private DailyCalculation() { }
+    /** Phase budgets. A fairness allocation of zero skips the fairness phase; reference and repair must search. */
     public record Allocation(long referenceMs, long fairnessMs, long repairMs, boolean transferUnusedReference) {
+        /** Bounds of a client's chosen search times, in whole seconds. */
+        public static final int MIN_COST_SECONDS = 5, MAX_SEARCH_SECONDS = 240;
+        /** The allocation used before clients chose their own times: 10 s cost, 5 s fairness, 15 s repair. */
+        public static final Allocation DEFAULT = client(10, 5);
         public Allocation {
-            if (referenceMs < 1 || fairnessMs < 1 || repairMs < 1) throw new IllegalArgumentException("Positive phase allocations required");
+            if (referenceMs < 1 || fairnessMs < 0 || repairMs < 1) throw new IllegalArgumentException("Positive reference and repair allocations required");
             Math.addExact(referenceMs, fairnessMs);
         }
+        /** A client's cost and fairness search seconds. A repair has one phase, so it may spend both. */
+        public static Allocation client(int costSeconds, int fairnessSeconds) {
+            if (costSeconds < MIN_COST_SECONDS || costSeconds > MAX_SEARCH_SECONDS)
+                throw new IllegalArgumentException("Cost search time must be between " + MIN_COST_SECONDS + " and " + MAX_SEARCH_SECONDS + " seconds");
+            if (fairnessSeconds < 0 || fairnessSeconds > MAX_SEARCH_SECONDS)
+                throw new IllegalArgumentException("Fairness search time must be between 0 and " + MAX_SEARCH_SECONDS + " seconds");
+            if (costSeconds + fairnessSeconds > MAX_SEARCH_SECONDS)
+                throw new IllegalArgumentException("Cost and fairness search time together must be at most " + MAX_SEARCH_SECONDS + " seconds");
+            long cost = costSeconds * 1000L, fairness = fairnessSeconds * 1000L;
+            return new Allocation(cost, fairness, cost + fairness, true);
+        }
+        /** The most search time any mode of this allocation may spend. */
+        public long searchMs() { return Math.max(Math.addExact(referenceMs, fairnessMs), repairMs); }
     }
     public static Result run(DayPlan baseline, SchedulingPolicy.Rules policy, DailySolver solver) {
-        return run(baseline, policy, solver, new Allocation(10_000, 5_000, 15_000, true));
+        return run(baseline, policy, solver, Allocation.DEFAULT);
     }
     public static Result run(DayPlan baseline, SchedulingPolicy.Rules policy, DailySolver solver, Allocation allocation) {
         long started = System.nanoTime();
@@ -46,7 +64,7 @@ public final class DailyCalculation {
             if (fairnessSeed.getMode() == DayPlan.Mode.COLD) fairnessSeed.setMode(DayPlan.Mode.PARTIAL);
             fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(referencePlan,policy.costCeiling(reference.costCents())));
             DailyOperation operation = DailyOperation.current();
-            if (operation != null && operation.canSearch()) {
+            if (allocation.fairnessMs() > 0 && operation != null && operation.canSearch()) {
                 fairnessStatus = DailyPolicyDiagnostics.Fairness.SEARCHED;
                 var fairnessSearch = solver.solve(fairnessSeed,Required.value(Duration.ofMillis(allocation.transferUnusedReference()
                         ? Math.addExact(allocation.referenceMs(),allocation.fairnessMs()) : allocation.fairnessMs())));

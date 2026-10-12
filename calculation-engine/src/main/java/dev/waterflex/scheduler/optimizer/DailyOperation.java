@@ -37,11 +37,40 @@ public final class DailyOperation {
     private boolean cancelled;
     private boolean resultReturned;
 
-    private DailyOperation(Duration allowance, Consumer<Receipt> recorder) {
-        if (allowance.compareTo(Duration.ofSeconds(20)) > 0) throw new IllegalArgumentException("Daily allowance exceeds 20 seconds");
-        deadline = new SearchDeadline(allowance);
-        searchLimitNanos = Duration.ofSeconds(15).toNanos();
+    /**
+     * A request's whole allowance and the part of it solver phases may spend. The rest covers admission, preparation
+     * (routing) and validation.
+     */
+    public record Allowance(Duration total, Duration search) {
+        /** Time beyond the search for admission, routing and validation. */
+        public static final Duration RESERVE = Required.value(Duration.ofSeconds(5));
+        /** The longest request: the longest client search plus the reserve. */
+        public static final Duration MAXIMUM = Required.value(Duration.ofSeconds(DailyCalculation.Allocation.MAX_SEARCH_SECONDS).plus(RESERVE));
+        /** The allowance used before clients chose their own search times. */
+        public static final Allowance DEFAULT = new Allowance(Required.value(Duration.ofSeconds(20)), Required.value(Duration.ofSeconds(15)));
+        public Allowance {
+            if (search.isNegative() || search.isZero() || search.compareTo(total) > 0 || total.compareTo(MAXIMUM) > 0)
+                throw new IllegalArgumentException("Daily search must be positive and fit within an allowance of at most " + MAXIMUM.toSeconds() + " seconds");
+        }
+        /** The allowance for a calculation that may search this long. */
+        public static Allowance forSearch(DailyCalculation.Allocation allocation) {
+            Duration search = Required.value(Duration.ofMillis(allocation.searchMs()));
+            return new Allowance(Required.value(search.plus(RESERVE)), search);
+        }
+    }
+    private DailyOperation(Allowance allowance, Consumer<Receipt> recorder) {
+        deadline = new SearchDeadline(allowance.total());
+        searchLimitNanos = allowance.search().toNanos();
         this.recorder = recorder;
+    }
+    private DailyOperation(Duration allowance, Consumer<Receipt> recorder) {
+        this(legacy(allowance), recorder);
+    }
+    /** Callers that pass only a total keep the original limits: at most 20 seconds, of which up to 15 may search. */
+    private static Allowance legacy(Duration allowance) {
+        if (allowance.compareTo(Allowance.DEFAULT.total()) > 0) throw new IllegalArgumentException("Daily allowance exceeds 20 seconds");
+        Duration search = Allowance.DEFAULT.search();
+        return new Allowance(allowance, search.compareTo(allowance) > 0 ? allowance : search);
     }
     private DailyOperation(Duration allowance, Duration searchAllowance, Duration reserve, Consumer<Receipt> recorder) {
         if (searchAllowance.isNegative() || searchAllowance.isZero() || reserve.isNegative()
@@ -66,6 +95,12 @@ public final class DailyOperation {
     }
     public static <T> T execute(SearchAdmission admission, Duration allowance, Supplier<T> work, Consumer<Receipt> recorder) {
         return launch(admission, allowance, () -> new Preparation<>(work, true, _ -> { }), recorder);
+    }
+    public static <T> T execute(SearchAdmission admission, Allowance allowance, Supplier<T> work, Consumer<Receipt> recorder) {
+        return launch(admission, () -> new Preparation<>(work, true, _ -> { }), new DailyOperation(allowance, recorder));
+    }
+    public static <T> T executePrepared(SearchAdmission admission, Allowance allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
+        return launch(admission, prepare, new DailyOperation(allowance, recorder));
     }
     private static <T> T launch(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
         DailyOperation operation = new DailyOperation(allowance, recorder);
