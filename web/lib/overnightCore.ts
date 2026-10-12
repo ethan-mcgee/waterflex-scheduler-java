@@ -10,6 +10,13 @@ import { localMinute } from "./zonedTime";
 
 export const OVERNIGHT_TIME_ZONE = "America/Chicago";
 export const MAX_RUN_TIMES = 8;
+/**
+ * A running run whose worker has not reported for this long is abandoned. The worker reports after every metro day, and
+ * one day's proposal waits at most the client's longest search (240 seconds) plus its reserve and network allowance, so
+ * this must stay above schedulerApi.proposalTimeoutMs for the longest search.
+ */
+export const ABANDON_AFTER_MINUTES = 10;
+
 /** A scheduled run still starts this long after its time, for a worker that was briefly down; later it is skipped. */
 export const SCHEDULE_GRACE_MS = 60 * 60_000;
 /** Weekdays a run covers, as the scheduler's own overnight batch does. */
