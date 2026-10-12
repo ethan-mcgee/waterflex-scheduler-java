@@ -1,10 +1,14 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { z } from "zod";
 import type { PublicSnapshot } from "./publicApi";
+import { TENANT_ID_PATTERN, TENANT_TOKEN_PATTERN } from "./tenantTokens";
 
 /**
  * The portal's client for the public scheduling API (/api/v1), acting as WaterFlex Software for one client at a time;
  * the portal schedules through nothing else. Each client's bearer token is read from the environment as
- * SCHEDULER_API_TOKEN_<CLIENT ID> (uppercase, hyphens as underscores) and is never stored in the database. Before a
+ * SCHEDULER_API_TOKEN_<CLIENT ID> (uppercase, hyphens as underscores) or, when that is unset, from the file named after
+ * the client in SCHEDULER_API_TOKEN_DIR; it is never stored in the database. Before a
  * client's first call, the token's tenant is checked to be that client, so a misplaced token cannot act for another.
  */
 
@@ -70,16 +74,40 @@ export class SchedulerApiError extends Error {
   }
 }
 
-const TOKEN = /^wfs_[A-Za-z0-9_-]{43}$/;
-
 type Environment = Readonly<Record<string, string | undefined>>;
+/** A token file's contents, or null when the file does not exist. Any other failure throws. */
+export type TokenFileReader = (path: string) => string | null;
 
 export function tokenVariable(clientId: string): string {
   return `SCHEDULER_API_TOKEN_${clientId.toUpperCase().replaceAll("-", "_")}`;
 }
 
+const readTokenFile: TokenFileReader = path => {
+  try { return readFileSync(path, "utf8"); }
+  catch (error) { if (error instanceof Error && "code" in error && error.code === "ENOENT") return null; throw error; }
+};
+
+/**
+ * The client's token: SCHEDULER_API_TOKEN_<CLIENT ID> when set, otherwise the file named after the client in
+ * SCHEDULER_API_TOKEN_DIR (local Compose provisions these). Never another client's token, never a default.
+ */
+function clientToken(clientId: string, env: Environment, readToken: TokenFileReader): { token: string; source: string } {
+  const variable = tokenVariable(clientId);
+  const fromEnv = env[variable];
+  if (fromEnv !== undefined && fromEnv !== "") return { token: fromEnv, source: variable };
+  const dir = env.SCHEDULER_API_TOKEN_DIR;
+  if (dir === undefined || dir === "") throw new SchedulerApiError(503, "NOT_CONNECTED", `Client ${clientId} has no scheduling API token (${variable})`);
+  if (!TENANT_ID_PATTERN.test(clientId)) throw new SchedulerApiError(503, "NOT_CONNECTED", `Client ${clientId} cannot have a token file`);
+  const file = join(dir, clientId);
+  let contents: string | null;
+  try { contents = readToken(file); }
+  catch { throw new SchedulerApiError(503, "NOT_CONNECTED", `Token file ${file} cannot be read`); }
+  if (contents === null) throw new SchedulerApiError(503, "NOT_CONNECTED", `Client ${clientId} has no scheduling API token (${variable} or ${file})`);
+  return { token: contents.trim(), source: file };
+}
+
 /** The client's connection settings, or a NOT_CONNECTED error naming exactly what is missing. */
-export function connection(clientId: string, env: Environment = process.env): { baseUrl: string; token: string } {
+export function connection(clientId: string, env: Environment = process.env, readToken: TokenFileReader = readTokenFile): { baseUrl: string; token: string } {
   const baseUrl = env.SCHEDULER_API_URL;
   if (baseUrl === undefined || baseUrl === "") throw new SchedulerApiError(503, "NOT_CONNECTED", "SCHEDULER_API_URL is not set");
   let parsed: URL;
@@ -88,10 +116,8 @@ export function connection(clientId: string, env: Environment = process.env): { 
   const internal = !parsed.hostname.includes(".");
   if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && (loopback || internal)))
     throw new SchedulerApiError(503, "NOT_CONNECTED", "SCHEDULER_API_URL must use https outside the local network");
-  const variable = tokenVariable(clientId);
-  const token = env[variable];
-  if (token === undefined || token === "") throw new SchedulerApiError(503, "NOT_CONNECTED", `Client ${clientId} has no scheduling API token (${variable})`);
-  if (!TOKEN.test(token)) throw new SchedulerApiError(503, "NOT_CONNECTED", `${variable} is not a scheduling API token`);
+  const { token, source } = clientToken(clientId, env, readToken);
+  if (!TENANT_TOKEN_PATTERN.test(token)) throw new SchedulerApiError(503, "NOT_CONNECTED", `${source} is not a scheduling API token`);
   return { baseUrl: baseUrl.replace(/\/+$/, ""), token };
 }
 
@@ -106,6 +132,8 @@ async function call<T>(clientId: string, method: "GET" | "POST", path: string, b
     const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
     throw new SchedulerApiError(timedOut ? 504 : 503, "TRANSPORT", timedOut ? "The scheduling service did not answer in time" : "The scheduling service is unreachable");
   }
+  // The tenant filter answers an unknown, revoked or disabled token with a bare 401, not an API problem.
+  if (response.status === 401) throw new SchedulerApiError(503, "NOT_CONNECTED", `The scheduling service does not accept client ${clientId}'s token`);
   let payload: unknown;
   try { payload = await response.json(); }
   catch { throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unreadable ${response.status} response`); }

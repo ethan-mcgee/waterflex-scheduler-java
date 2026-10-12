@@ -9,6 +9,7 @@ import { POST as book } from "../app/api/book/route";
 import { POST as absence } from "../app/api/time-off/route";
 import { POST as availability } from "../app/api/dispatch/availability/route";
 import { POST as qualification } from "../app/api/dispatch/qualification/route";
+import { GET as connectionStatus } from "../app/api/clients/connection/route";
 import { availabilityRequest, readResponse, offersResponse, testInput, testAttempt, timeOffRequest, depotSetup, createTechnicianRequest, technicianDepotAssignment, travelBreakdown, solverAnalysis } from "./contracts";
 import { addCalendarDays, mondayOfWeek, todayInTz } from "./date";
 import { searchAddress } from "./geocode";
@@ -47,6 +48,27 @@ test("another client's booking is not found and never reaches the scheduling eng
     assert.deepEqual(responses.map(response => response.status), [404, 404, 404]);
     assert.equal(calls, 0);
   } finally { ownedRows = 1; globalThis.fetch = original; }
+});
+
+test("a client without a scheduling token reports not connected instead of failing or guessing", async () => {
+  const original = globalThis.fetch;
+  const saved = { url: process.env.SCHEDULER_API_URL, token: process.env.SCHEDULER_API_TOKEN_DEFAULT, dir: process.env.SCHEDULER_API_TOKEN_DIR };
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return Response.json({ tenantId: DEFAULT_CLIENT_ID }); };
+  process.env.SCHEDULER_API_URL = "http://127.0.0.1:18999";
+  delete process.env.SCHEDULER_API_TOKEN_DEFAULT;
+  delete process.env.SCHEDULER_API_TOKEN_DIR;
+  try {
+    const response = await connectionStatus(new NextRequest("http://localhost/api/clients/connection"));
+    assert.equal(response.status, 200);
+    const reply: unknown = await response.json();
+    assert.ok(typeof reply === "object" && reply !== null && "state" in reply && reply.state === "NOT_CONNECTED" && "reason" in reply);
+    assert.equal(calls, 0, "No call is made without a token");
+  } finally {
+    globalThis.fetch = original;
+    for (const [key, value] of [["SCHEDULER_API_URL", saved.url], ["SCHEDULER_API_TOKEN_DEFAULT", saved.token], ["SCHEDULER_API_TOKEN_DIR", saved.dir]] as const)
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  }
 });
 
 test("time-off travel retains unavailable history and rejects malformed accounting", () => {
