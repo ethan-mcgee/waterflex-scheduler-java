@@ -97,14 +97,18 @@ services:
       NOMINATIM_URL: http://nominatim:8080
       LOCAL_BOOKING_TESTS: ${LOCAL_BOOKING_TESTS:-true}
       # The portal schedules only through the public scheduling API. Each client's token is
-      # SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env (ignored by git), never in the database.
+      # SCHEDULER_API_TOKEN_<CLIENT ID> in portal-api-tokens.env (ignored by git) or, when that is unset, the file
+      # token-bootstrap wrote for the client in SCHEDULER_API_TOKEN_DIR; never in the database.
       SCHEDULER_API_URL: http://scheduler-service:8000
+      SCHEDULER_API_TOKEN_DIR: /run/portal-api-tokens
     env_file:
       - path: portal-api-tokens.env
         required: false
+    volumes: ["portal-api-tokens:/run/portal-api-tokens:ro"]
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
+      token-bootstrap: { condition: service_completed_successfully }
     ports: ["127.0.0.1:3001:3000"]
   # Each client's overnight optimization through the public scheduling API, at the client's run times and on "Run
   # now": docker compose --profile overnight up. Proposals wait for a dispatcher.
@@ -117,13 +121,33 @@ services:
     environment:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
       SCHEDULER_API_URL: http://scheduler-service:8000
+      SCHEDULER_API_TOKEN_DIR: /run/portal-api-tokens
     env_file:
       - path: portal-api-tokens.env
         required: false
+    volumes: ["portal-api-tokens:/run/portal-api-tokens:ro"]
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
+      token-bootstrap: { condition: service_completed_successfully }
     restart: unless-stopped
+  # Local Compose only: issues a public API token for each existing client without one and writes it to the
+  # portal-api-tokens volume (the plaintext never reaches the database). Existing files are never rotated. For a client
+  # created later: docker compose run --rm token-bootstrap. Production never sets LOCAL_TOKEN_BOOTSTRAP.
+  token-bootstrap:
+    image: waterflex-scheduler-web:local
+    pull_policy: build
+    build: ./web
+    command: ["npx", "tsx", "scripts/bootstrap-local-tokens.ts"]
+    environment:
+      DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
+      LOCAL_TOKEN_BOOTSTRAP: ${LOCAL_TOKEN_BOOTSTRAP:-true}
+      SCHEDULER_API_TOKEN_DIR: /run/portal-api-tokens
+    volumes: ["portal-api-tokens:/run/portal-api-tokens"]
+    depends_on:
+      db: { condition: service_healthy }
+      schema-migrate: { condition: service_completed_successfully }
+    restart: "no"
   schema-migrate:
     image: waterflex-scheduler-schema-migrate:local
     pull_policy: build
@@ -146,5 +170,6 @@ services:
     volumes: ["map-data:/maps"]
 volumes:
   app-db:
+  portal-api-tokens:
   map-data:
   nominatim-db:

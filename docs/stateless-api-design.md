@@ -322,6 +322,8 @@ The portal stays, keeps its pages, and is a client of the public API, standing i
 
 Each client's public API token lives in the portal's environment or secret file, never in the portal database. Clients are created with `npx tsx scripts/create-client.ts <clientId> "<client name>"`.
 
+9. Connection visibility and local tokens (2026-10-12). Without a token the portal correctly refuses to schedule, but a fresh local Compose stack had none, so booking and the booking test runner failed only when tried. The sidebar now shows whether the active client can reach the public API (`GET /api/clients/connection`: connected only after the token's tenant is verified; otherwise not connected or unreachable, with the reason). The scheduler's bare 401 for an unknown or revoked token now counts as not connected rather than a malformed reply. The portal reads a client's token from `SCHEDULER_API_TOKEN_<CLIENT ID>`, or when that is unset from the file named after the client in `SCHEDULER_API_TOKEN_DIR`. Local Compose runs a one-shot `token-bootstrap` service (only with `LOCAL_TOKEN_BOOTSTRAP=true`) that issues a token labelled `local-compose` for each client without a file and writes it, mode 0600, to the `portal-api-tokens` volume that the portal and overnight worker mount read-only. Existing files are never rotated; a lost file is reissued and the client's earlier `local-compose` tokens are revoked. The database still holds only token digests.
+
 ## Migration
 
 What was done:

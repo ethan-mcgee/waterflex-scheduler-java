@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { connection, createBookingOffers, SchedulerApiError, tokenVariable } from "./schedulerApi";
+import { join } from "node:path";
+import { connection, createBookingOffers, SchedulerApiError, tokenVariable, verifyTenant } from "./schedulerApi";
 
 const TOKEN = `wfs_${"a".repeat(43)}`;
 const code = (run: () => unknown) => {
@@ -50,5 +51,45 @@ test("a token for another tenant is refused before any booking call, and API ref
     globalThis.fetch = original;
     if (saved.url === undefined) delete process.env.SCHEDULER_API_URL; else process.env.SCHEDULER_API_URL = saved.url;
     if (saved.token === undefined) delete process.env.SCHEDULER_API_TOKEN_STUB_CLIENT; else process.env.SCHEDULER_API_TOKEN_STUB_CLIENT = saved.token;
+  }
+});
+
+test("a client's token file is read only when its variable is unset, and a missing or bad file never connects", () => {
+  const env = { SCHEDULER_API_URL: "http://scheduler-service:8000", SCHEDULER_API_TOKEN_DIR: "/run/tokens" };
+  const files = new Map<string, string>([[join("/run/tokens", "acme"), `${TOKEN}\n`], [join("/run/tokens", "bad"), "secret"],
+    [join("/run/tokens", "empty"), ""]]);
+  const read: string[] = [];
+  const reader = (path: string) => { read.push(path); return files.get(path) ?? null; };
+  assert.deepEqual(connection("acme", env, reader), { baseUrl: "http://scheduler-service:8000", token: TOKEN }, "File token, trailing newline trimmed");
+  const other = `wfs_${"b".repeat(43)}`;
+  read.length = 0;
+  assert.equal(connection("acme", { ...env, SCHEDULER_API_TOKEN_ACME: other }, reader).token, other, "The variable wins");
+  assert.deepEqual(read, [], "The file is not read when the variable is set");
+  assert.equal(code(() => connection("brook", env, reader)), "NOT_CONNECTED", "No file for this client; another client's file is not used");
+  assert.deepEqual(read, [join("/run/tokens", "brook")]);
+  assert.equal(code(() => connection("bad", env, reader)), "NOT_CONNECTED", "Malformed token in the file");
+  assert.equal(code(() => connection("empty", env, reader)), "NOT_CONNECTED", "Empty file");
+  assert.equal(code(() => connection("acme", env, () => { throw new Error("EACCES"); })), "NOT_CONNECTED", "Unreadable file");
+  read.length = 0;
+  assert.equal(code(() => connection("../acme", env, reader)), "NOT_CONNECTED", "A client ID is never used as a path outside the directory");
+  assert.deepEqual(read, []);
+  assert.equal(code(() => connection("acme", { SCHEDULER_API_URL: env.SCHEDULER_API_URL }, reader)), "NOT_CONNECTED", "No directory configured");
+  try { connection("bad", env, reader); } catch (error) {
+    assert.ok(error instanceof SchedulerApiError && !error.message.includes("secret"), "The message never repeats file contents");
+  }
+});
+
+test("a token the scheduling service does not accept is not connected, not a malformed reply", async () => {
+  const original = globalThis.fetch;
+  const saved = { url: process.env.SCHEDULER_API_URL, token: process.env.SCHEDULER_API_TOKEN_REVOKED_CLIENT };
+  process.env.SCHEDULER_API_URL = "http://127.0.0.1:18999";
+  process.env.SCHEDULER_API_TOKEN_REVOKED_CLIENT = TOKEN;
+  try {
+    globalThis.fetch = async () => new Response("<html>Unauthorized</html>", { status: 401, headers: { "Content-Type": "text/html" } });
+    await assert.rejects(verifyTenant("revoked-client"), (error: unknown) => error instanceof SchedulerApiError && error.code === "NOT_CONNECTED");
+  } finally {
+    globalThis.fetch = original;
+    if (saved.url === undefined) delete process.env.SCHEDULER_API_URL; else process.env.SCHEDULER_API_URL = saved.url;
+    if (saved.token === undefined) delete process.env.SCHEDULER_API_TOKEN_REVOKED_CLIENT; else process.env.SCHEDULER_API_TOKEN_REVOKED_CLIENT = saved.token;
   }
 });
