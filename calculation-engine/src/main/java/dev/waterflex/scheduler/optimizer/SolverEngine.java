@@ -16,7 +16,9 @@ import org.jspecify.annotations.Nullable;
 /** Public Community API boundary. Cached factories never share mutable solver or planning state. */
 public final class SolverEngine {
     public enum Variant { CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE,
-                          TABU, SUBLIST, KOPT, RUIN_RECREATE }
+                          TABU, SUBLIST, KOPT, RUIN_RECREATE,
+                          /** Experiment-only TABU tuning: entity tabu size 3, 15, or TABU with the KOPT move set. */
+                          TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT }
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
     public record Definition(Variant variant, long seed, EnvironmentMode environmentMode, boolean construction,
@@ -73,17 +75,20 @@ public final class SolverEngine {
             } catch (java.io.IOException failure) { throw new IllegalStateException("Solver configuration unavailable", failure); }
             if (variant == Variant.CURRENT_UNCAPPED) xml = xml.replace("<stepCountLimit>1000</stepCountLimit>", "");
         } else {
-            boolean advanced = variant == Variant.SUBLIST || variant == Variant.KOPT || variant == Variant.RUIN_RECREATE;
+            boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT;
+            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT;
+            boolean advanced = variant == Variant.SUBLIST || kOpt;
             String moves = "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>";
             if (variant != Variant.LATE_ACCEPTANCE_CHANGE)
                 moves += "<listSwapMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listSwapMoveSelector>";
             if (advanced) moves += "<subListChangeMoveSelector><fixedProbabilityWeight>5</fixedProbabilityWeight><selectReversingMoveToo>true</selectReversingMoveToo><subListSelector><minimumSubListSize>2</minimumSubListSize><maximumSubListSize>4</maximumSubListSize></subListSelector></subListChangeMoveSelector>";
-            if (variant == Variant.KOPT || variant == Variant.RUIN_RECREATE)
+            if (kOpt)
                 moves += "<kOptListMoveSelector><fixedProbabilityWeight>5</fixedProbabilityWeight><minimumK>2</minimumK><maximumK>3</maximumK></kOptListMoveSelector>";
             if (variant == Variant.RUIN_RECREATE)
                 moves += "<listRuinRecreateMoveSelector><fixedProbabilityWeight>1</fixedProbabilityWeight><minimumRuinedCount>2</minimumRuinedCount><maximumRuinedCount>3</maximumRuinedCount></listRuinRecreateMoveSelector>";
-            String acceptor = variant == Variant.TABU ? "<entityTabuSize>7</entityTabuSize>" : "<lateAcceptanceSize>400</lateAcceptanceSize>";
-            int accepted = variant == Variant.TABU ? 1000 : 1;
+            int tabuSize = variant == Variant.TABU_SIZE_3 ? 3 : variant == Variant.TABU_SIZE_15 ? 15 : 7;
+            String acceptor = tabu ? "<entityTabuSize>" + tabuSize + "</entityTabuSize>" : "<lateAcceptanceSize>400</lateAcceptanceSize>";
+            int accepted = tabu ? 1000 : 1;
             xml = "<solver xmlns=\"https://timefold.ai/xsd/solver\"><environmentMode>NO_ASSERT</environmentMode>"
                     + "<solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass><entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass><entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>"
                     + "<scoreDirectorFactory><constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass></scoreDirectorFactory>"
