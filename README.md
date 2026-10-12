@@ -4,7 +4,7 @@ Local booking and dispatch prototype with Omaha map data and support for dealers
 
 ## Requirements
 
-- Docker Desktop with space for Nebraska, Iowa and Missouri OSM extracts, the US Census TIGER address file (about 1.9 GB per map version), a GraphHopper graph, Nominatim, and PMTiles.
+- Docker Desktop with space for Nebraska, Iowa and Missouri OSM extracts, the US Census TIGER address file (about 1.9 GB downloaded temporarily per map version; only the ranges near the depots are kept), a GraphHopper graph, Nominatim, and PMTiles.
 - Java 25 for running Maven outside Docker. The checked-in Maven Wrapper downloads Maven 3.9.16.
 - Node 22 for portal checks outside Docker.
 
@@ -12,7 +12,7 @@ All published Compose ports bind to `127.0.0.1`. The portal is at `http://localh
 
 ## First local setup
 
-1. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, downloads the US Census TIGER address ranges preprocessed by the Nominatim project (`TIGER_YEAR`, default 2025, recorded with its SHA-256 in the manifest), merges the extracts, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
+1. Prepare a dated map version: `./infra/prepare-map.ps1 -Version YYYY-MM-DD`. It downloads and checksum checks the state extracts, downloads the US Census TIGER address ranges preprocessed by the Nominatim project (`TIGER_YEAR`, default 2025), keeps only the ranges within the depot circles plus the 10-mile margin (`infra/map-import/filter_tiger.py`), deletes the national file, and records both SHA-256 values and the filter counts in the manifest, merges the extracts, and builds tiles and a road graph in the `map-data` volume. The manifest is at `/maps/versions/<version>/manifest.json` in that volume.
 2. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf -e IMPORT_TIGER_ADDRESSES=/maps/versions/<version>/tiger-nominatim-preprocessed.csv.tar.gz nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space. The TIGER ranges let Nominatim place a house number OpenStreetMap lacks along its street; a match still needs the house number, street and ZIP to agree. Never set `IMPORT_TIGER_ADDRESSES=true`, which makes the image download TIGER data from a third-party server. Activation links the version's TIGER file to `/maps/tiger-nominatim-preprocessed.csv.tar.gz`, and the running Nominatim searches TIGER ranges only while that file exists, so a Nominatim database imported without TIGER must be reimported before activating a TIGER version.
 3. Activate the prepared map with `docker compose --profile map-import run --rm map-import activate <version>`.
 4. Before upgrading an existing database to multi-depot dealerships, run the [depot owner audit](docs/dealerships.md). Resolve every ownerless or multiply owned depot explicitly. The migration stops if the audit has unresolved rows.
@@ -25,7 +25,17 @@ Use `docker compose up -d` for normal updates and startup. The local images are 
 
 Use `docker compose up --no-build` only when intentionally restarting with the existing local images. For a restart that neither rebuilds nor runs migrations, use `docker compose restart db routing-service scheduler-service nominatim tiles web`. Do not use an unqualified `docker compose restart`: Compose restarts stopped one-shot services too, so it would rerun `schema-migrate` without startup dependency checks. `docker compose down` removes containers and networks but preserves the named data volumes. `docker compose down -v` deletes the PostgreSQL, map, and Nominatim named volumes and is destructive, so it is not part of the normal workflow.
 
-Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh must prepare a new version first, rebuild the Nominatim database separately, pause booking, activate the matching graph and tiles, and restart the map services. The Nominatim volume is currently a single active database, so back it up before a refresh. Do not activate a new map version while an old Nominatim import is serving bookings.
+Normal startup preserves the existing `app-db`, `map-data`, and `nominatim-db` volumes and does not repeat map or Nominatim imports. A map refresh uses a new version and its own Nominatim volume, so the serving map is never rebuilt in place:
+
+1. `./infra/prepare-map.ps1 -Version <version>` (with `DATABASE_URL` set) prepares the version and starts the preview services, whose Nominatim imports into `waterflex-nominatim-preview-<version>` with that version's TIGER file.
+2. After the preview Nominatim finishes importing, `./infra/validate-map.ps1 -Version <version>` writes the validation report that activation requires.
+3. Pause booking, then `./infra/activate-map.ps1 -Version <version>`. It checks the artifacts and report (`map-import check-activation`), removes the preview containers, records `ACTIVE_MAP_VERSION` and `COMPOSE_FILE=docker-compose.yml;docker-compose.map-active.yml` in the root `.env` (ignored by git) so later plain `docker compose` commands keep serving the version, and restarts `nominatim`, `routing-service` and `tiles` on it.
+
+To roll back, restore the `.env.before-<version>` backup the script made (or delete `.env` when there was none), then run `docker compose up -d --no-deps nominatim routing-service tiles`. Keep earlier map versions and Nominatim volumes until the new version has served bookings.
+
+## Known harmless log lines
+
+These come from upstream images or tools and need no action: Nominatim's `ASGI app factory detected` warnings (one per worker) and its `Website setup is no longer required` notice, and a PostgreSQL `could not receive data from client: Connection reset by peer` logged when the `prisma migrate deploy` CLI in `schema-migrate` exits.
 
 ## Routing service token
 
