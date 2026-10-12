@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "name": "daily-tabu-variants",
+  "daily": {
+    "solvers": [
+      "TABU",
+      "KOPT",
+      "LATE_ACCEPTANCE",
+      "SUBLIST",
+      "TABU_SIZE_3",
+      "TABU_SIZE_15",
+      "TABU_KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      17,
+      23,
+      41,
+      59,
+      83,
+      101,
+      127,
+      149,
+      173,
+      199
+    ],
+    "fleets": [
+      5,
+      10,
+      20,
+      50
+    ],
+    "workloads": [
+      "CLUSTERED",
+      "DISPERSED",
+      "MIXED_SKILL",
+      "TIGHT_WINDOW"
+    ],
+    "budgets_seconds": [
+      60,
+      90,
+      120,
+      240
+    ],
+    "parallel_cases": 10
+  }
+}
