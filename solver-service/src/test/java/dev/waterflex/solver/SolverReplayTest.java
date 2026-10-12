@@ -45,7 +45,7 @@ class SolverReplayTest {
         var day = new BookingSnapshot.Day(Required.value(Map.of("a",a,"b",b)),Required.value(Map.of("old",visit)),new BookingSnapshot.Arrangement(Required.value(Map.of("a",List.of("old"),"b",List.of()))),2,new BookingSnapshot.Roads(roads,Required.value(Set.of())));
         Map<LocalDate,BookingSnapshot.Day> days = new TreeMap<>(original.snapshot().days()); days.put(ReplayFixture.DAY,day);
         var snapshot = new BookingSnapshot("metro",ReplayFixture.CAPTURED,ReplayFixture.CAPTURED,"config-rev","roads-rev",original.snapshot().policy(),original.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
-        var request = new BoundedBookingSearch.Request("new","service",60,ReplayFixture.POINT);
+        var request = new BoundedBookingSearch.Request("new","service",60,240,ReplayFixture.POINT);
         var insertionInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.INSERTION,"BOUNDED",null,0);
         BookingDataset.parse(BookingDataset.encode(insertionInput,BookingDataset.Encoding.SPARSE));
         var inserted = post(CalculationProtocol.Request.of("BOOKING",5000,insertionInput),TOKEN); assertEquals(200,inserted.statusCode(),inserted.body());

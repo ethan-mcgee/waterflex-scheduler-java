@@ -40,7 +40,7 @@ class SnapshotRoutingTest {
         var roads = new DirectedRoads();
         var routing = new SnapshotRouting(roads);
         BookingSnapshot original = snapshot();
-        var request = new BoundedBookingSearch.Request("new", "service", 15, point(4));
+        var request = new BoundedBookingSearch.Request("new", "service", 15, 240, point(4));
         var routed = routing.insertion(original, request);
         Day day = Required.value(routed.days().get(DATE));
         assertTrue(day.roads().unreachable().contains("a>new"));
@@ -57,7 +57,7 @@ class SnapshotRoutingTest {
     @Test void neighborhoodAndRemovalFetchRequiredCrossRouteAndShortcutLegs() {
         var roads = new DirectedRoads();
         var routing = new SnapshotRouting(roads);
-        var request = new BoundedBookingSearch.Request("new", "service", 15, point(4));
+        var request = new BoundedBookingSearch.Request("new", "service", 15, 240, point(4));
         var inserted = routing.insertion(snapshot(), request);
         Map<LocalDate, Set<String>> selected = new TreeMap<>();
         selected.put(DATE, Required.value(Set.of("a", "b")));
@@ -80,7 +80,7 @@ class SnapshotRoutingTest {
     @ParameterizedTest @ValueSource(ints = {1, 2, 4})
     void offerBundleReservesSiblingAlternativesTogetherWithoutMutatingConfirmedAssignments(int limit) {
         var routing = new SnapshotRouting(new DirectedRoads());
-        var request = new BoundedBookingSearch.Request("new", "service", 15, point(3));
+        var request = new BoundedBookingSearch.Request("new", "service", 15, 240, point(3));
         var snapshot = routing.insertion(snapshot(), request);
         var result = new BoundedBookingSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).search(false);
         Map<LocalDate, Map<String, ReservationState.Hold>> holds = new TreeMap<>();

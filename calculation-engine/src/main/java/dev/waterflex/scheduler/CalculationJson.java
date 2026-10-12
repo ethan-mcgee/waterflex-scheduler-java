@@ -42,6 +42,8 @@ public final class CalculationJson {
         mapper.enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
         mapper.enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
                 DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+        // A fraction for a whole-number field fails instead of being truncated (2.5 hours is not 2).
+        mapper.disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT);
         if (everyPropertyPresent) mapper.enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES);
         return mapper;
     }

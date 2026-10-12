@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { canonicalDecimal, publicPolicy, publicRates, saveSolverSettings, solverSettingsInput, toStored, toView } from "./clientSettings";
 
 const input = { regularHourly: "30", overtimeHourly: "45.50", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, bookingHorizonWeekdays: 10 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10 };
 
 function stored() {
   return { ...toStored(solverSettingsInput.parse(input)), version: 3, updatedAt: new Date("2026-10-08T12:00:00Z") };
@@ -22,10 +22,12 @@ test("the view round-trips what was entered", () => {
   assert.equal(view.fairnessBudgetPercent, "2.5");
   assert.equal(view.overtimeHourly, "45.5");
   assert.equal(view.version, 3);
+  assert.equal(view.windowHours, 4);
   const { version: _version, updatedAt: _updatedAt, ...edited } = view;
   const again = toStored(solverSettingsInput.parse(edited));
   for (const key of ["regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "fairnessBudget"] as const)
     assert.ok(again[key].equals(stored()[key]), key);
+  assert.equal(again.windowHours, 4);
 });
 
 test("canonical decimals match the public API pattern, including database scale padding", () => {
@@ -40,7 +42,8 @@ test("canonical decimals match the public API pattern, including database scale 
 
 test("out-of-range or malformed settings are rejected, never clamped or defaulted", () => {
   const bad: Array<Record<string, unknown>> = [
-    { offerLimit: 0 }, { offerLimit: 5 }, { offerLimit: 2.5 }, { bookingHorizonWeekdays: 0 }, { bookingHorizonWeekdays: 16 },
+    { offerLimit: 0 }, { offerLimit: 5 }, { offerLimit: 2.5 }, { windowHours: 0 }, { windowHours: 9 }, { windowHours: 2.5 },
+    { windowHours: "4" }, { windowHours: undefined }, { windowHours: null }, { bookingHorizonWeekdays: 0 }, { bookingHorizonWeekdays: 16 },
     { travelBufferMinutes: 121 }, { travelBufferMinutes: -1 }, { travelBufferPercent: "100.01" }, { fairnessBudgetPercent: "2.555" },
     { regularHourly: "-1" }, { regularHourly: "30.12345" }, { regularHourly: "1e3" }, { regularHourly: "" }, { mileagePerMile: "abc" },
     { regularHourly: undefined }, { extra: true },

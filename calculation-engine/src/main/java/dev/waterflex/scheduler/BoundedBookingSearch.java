@@ -21,12 +21,16 @@ public final class BoundedBookingSearch {
         public static Limits defaults() { return new Limits(6, 2, 8, 500); }
         public static Limits expanded() { return new Limits(12, 3, 16, 2000); }
     }
-    public record Request(String jobId, String serviceId, int durationMinutes, RoadPoint location) {
+    /** {@code windowMinutes} is the client's arrival window width: whole hours from one to eight. */
+    public record Request(String jobId, String serviceId, int durationMinutes, int windowMinutes, RoadPoint location) {
+        public static final int MIN_WINDOW_MINUTES = 60, MAX_WINDOW_MINUTES = 480;
         public Request {
             Required.value(location); dev.waterflex.scheduler.optimizer.PlanFacts.identity(jobId,"request job");
             dev.waterflex.scheduler.optimizer.PlanFacts.identity(serviceId,"request service");
             if (jobId.isBlank() || serviceId.isBlank() || durationMinutes <= 0)
                 throw new IllegalArgumentException("Invalid booking request");
+            if (windowMinutes < MIN_WINDOW_MINUTES || windowMinutes > MAX_WINDOW_MINUTES || windowMinutes % 60 != 0)
+                throw new IllegalArgumentException("Invalid arrival window width");
         }
     }
     public record Window(LocalDate day, Instant start, Instant end) {
@@ -93,7 +97,6 @@ public final class BoundedBookingSearch {
     private final Request request;
     private final Limits limits;
     private final Runnable checkpoint;
-    private final int windowMinutes;
     private boolean ruinRecreate;
     private boolean sharedWindows = true;
     private final List<BookingEvaluation> windowEvaluations = new ArrayList<>();
@@ -134,13 +137,7 @@ public final class BoundedBookingSearch {
     public long prunedArrangements() { return contexts.values().stream().mapToLong(value -> value.evaluation.pruned()).sum(); }
 
     public BoundedBookingSearch(BookingSnapshot snapshot, Request request, Limits limits, Runnable checkpoint) {
-        this(snapshot, request, limits, checkpoint, 240);
-    }
-    /** Explicit historical promise width is for controlled experiments only. */
-    public BoundedBookingSearch(BookingSnapshot snapshot, Request request, Limits limits, Runnable checkpoint, int windowMinutes) {
-        if (windowMinutes != 120 && windowMinutes != 240) throw new IllegalArgumentException("Invalid promise width");
         this.snapshot = snapshot; this.request = request; this.limits = limits; this.checkpoint = checkpoint;
-        this.windowMinutes = windowMinutes;
     }
 
     public List<Window> windows() {
@@ -152,9 +149,9 @@ public final class BoundedBookingSearch {
             var end = technician.shiftEnd().atZone(chicago);
             int first = start.getHour() * 60 + start.getMinute();
             int last = end.toLocalDate().isAfter(entry.getKey()) ? 1440 : end.getHour() * 60 + end.getMinute();
-            for (int minute = first; minute + windowMinutes <= last; minute += 60) {
+            for (int minute = first; minute + request.windowMinutes() <= last; minute += 60) {
                 Instant instant = ScheduleCutoff.localMinute(Required.value(entry.getKey()), minute, false);
-                windows.add(new Window(Required.value(entry.getKey()), instant, Required.value(instant.plusSeconds(windowMinutes * 60L))));
+                windows.add(new Window(Required.value(entry.getKey()), instant, Required.value(instant.plusSeconds(request.windowMinutes() * 60L))));
             }
         }
         return Required.value(windows.stream().sorted(Comparator.comparing((Window window) -> window.day())

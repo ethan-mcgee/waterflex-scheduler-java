@@ -101,6 +101,7 @@ model ClientSolverSettings {
   travelBufferMinutes    Int
   fairnessBudget         Decimal  @db.Decimal(6, 4)
   offerLimit             Int
+  windowHours            Int
   bookingHorizonWeekdays Int
   version                Int      @default(0)
   updatedAt              DateTime @default(now()) @db.Timestamptz(6)
