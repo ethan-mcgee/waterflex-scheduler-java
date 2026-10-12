@@ -168,10 +168,14 @@ public class BookingConfirm {
         if (state == null || held == null) throw refuse(tenantId, request, owner, 409, ErrorCode.HOLD_UNAVAILABLE, "The hold no longer stands");
 
         // The host's day, built exactly as a search for the held job on this one date would build it.
+        // The held window's own length, which the client chose when it searched.
+        long heldMinutes = java.time.Duration.between(held.windowStart(), held.windowEnd()).toMinutes();
+        if (heldMinutes <= 0 || heldMinutes % 60 != 0) throw new IllegalStateException("Hold " + holdId + " has a window that is not whole hours");
         PublicRequests.BookingOffersRequest search;
         try {
             search = new PublicRequests.BookingOffersRequest(request.requestId(), new PublicRequests.Job(held.jobId(), held.serviceId(), held.durationMinutes(),
-                    new PublicTypes.Location(held.lat(), held.lng(), null)), new PublicRequests.Horizon(date, date), 1, facts);
+                    new PublicTypes.Location(held.lat(), held.lng(), null)), new PublicRequests.Horizon(date, date), 1,
+                    Math.toIntExact(heldMinutes / 60), facts);
         } catch (IllegalArgumentException invalid) {
             throw refuse(tenantId, request, owner, 400, ErrorCode.INVALID_REQUEST, Required.value(invalid.getMessage()));
         }

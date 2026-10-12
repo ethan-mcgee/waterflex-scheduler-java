@@ -139,7 +139,7 @@ class BookingOffersDatabaseIT {
     /** A confirm body from a booking request: its snapshot with a fresh request ID. */
     private static ObjectNode confirmation(String bookingRequest) {
         ObjectNode body = object(CalculationJson.tree(bookingRequest));
-        body.remove("job"); body.remove("horizon"); body.remove("offerLimit");
+        body.remove("job"); body.remove("horizon"); body.remove("offerLimit"); body.remove("windowHours");
         body.put("requestId", UUID.randomUUID().toString());
         return body;
     }
@@ -276,6 +276,16 @@ class BookingOffersDatabaseIT {
         problem(offers().create(tenant, request(request -> request.remove("offerLimit"))), 400, ErrorCode.INVALID_REQUEST);
         problem(offers().create(tenant, request(request -> request.put("offerLimit", 5))), 400, ErrorCode.INVALID_REQUEST);
         assertEquals(requests, count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant), "a missing limit claims nothing");
+    }
+
+    @Test void everyOfferIsTheClientsWindowLength() {
+        OfferSet two = offerSet(offers().create(tenant, request(request -> request.put("windowHours", 2))));
+        assertFalse(two.offers().isEmpty());
+        for (var offer : two.offers()) assertEquals(java.time.Duration.ofHours(2), java.time.Duration.between(offer.window().start(), offer.window().end()));
+        long requests = count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant);
+        problem(offers().create(tenant, request(request -> request.remove("windowHours"))), 400, ErrorCode.INVALID_REQUEST);
+        problem(offers().create(tenant, request(request -> request.put("windowHours", 9))), 400, ErrorCode.INVALID_REQUEST);
+        assertEquals(requests, count("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", tenant), "a missing length claims nothing");
     }
 
     @Test void anotherJobSearchesAroundTheHoldsAlreadyGiven() {

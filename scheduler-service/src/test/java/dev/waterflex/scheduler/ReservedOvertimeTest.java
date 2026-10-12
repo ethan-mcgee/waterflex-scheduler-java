@@ -52,7 +52,7 @@ class ReservedOvertimeTest {
                 Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, roads));
         var snapshot = new BookingSnapshot("metro", captured, captured, "configuration", "roads", SchedulingPolicy.Rules.defaults(), rates, days, Required.value(Set.copyOf(days.keySet())));
         var result = new BoundedBookingSearch.Result(Required.value(List.of(candidate)), Required.value(List.of()), true, 1, 60, 240, false, "COMPLETED");
-        var bundle = ReservationOffers.prepare(snapshot, new BoundedBookingSearch.Request("new-job", "new", 30, point),
+        var bundle = ReservationOffers.prepare(snapshot, new BoundedBookingSearch.Request("new-job", "new", 30, 240, point),
                 Required.value(Map.of(date, Map.of())), result, Required.value(captured.plusSeconds(600)), 4, () -> { });
         assertTrue(bundle.offers().isEmpty(), "Reducing existing overtime does not authorize new overtime work");
     }

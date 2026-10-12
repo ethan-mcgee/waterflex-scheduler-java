@@ -19,7 +19,7 @@ public final class CalculationFixture {
         Map<LocalDate,Day> days = new TreeMap<>();
         for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date,date.equals(DAY) ? day : empty);
         var snapshot = new BookingSnapshot("metro",CAPTURED,CAPTURED,"config-rev","roads-rev",SchedulingPolicy.Rules.defaults(),new Rates(30,45,0,0,0),days,Required.value(Set.copyOf(days.keySet())));
-        return new BookingCalculation.Input(snapshot,new BoundedBookingSearch.Request("new","service",30,POINT),BookingCalculation.Stage.INSERTION,"INSERTION",null,0);
+        return new BookingCalculation.Input(snapshot,new BoundedBookingSearch.Request("new","service",30,240,POINT),BookingCalculation.Stage.INSERTION,"INSERTION",null,0);
     }
     static CalculationProtocol.Request bookingRequest() { return CalculationProtocol.Request.of("BOOKING",5000,booking()); }
     static CalculationProtocol.Request dailyRequest() throws Exception {

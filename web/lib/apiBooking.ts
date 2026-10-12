@@ -61,7 +61,7 @@ export async function searchApiOffers(clientId: string, jobId: string, onlyDate?
   let set;
   try {
     const snapshot = await buildClientSnapshot(clientId, metroId, dates);
-    set = await createBookingOffers(clientId, { requestId, offerLimit: settings.offerLimit, snapshot,
+    set = await createBookingOffers(clientId, { requestId, offerLimit: settings.offerLimit, windowHours: settings.windowHours, snapshot,
       job: { id: job.id, serviceId: job.serviceId, durationMinutes: job.durationMin, location: { lat, lng } },
       horizon: { firstDate, lastDate } });
   } catch (error) {

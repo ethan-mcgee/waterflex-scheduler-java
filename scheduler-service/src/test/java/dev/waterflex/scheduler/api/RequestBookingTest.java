@@ -76,7 +76,7 @@ class RequestBookingTest {
         assertEquals(Instant.parse("2026-10-12T17:30:00Z"), appt8.plannedStart());
         assertFalse(appt8.reservation());
         assertEquals(new RoadPoint(41.2587, -95.9378), appt8.location());
-        assertEquals(new dev.waterflex.scheduler.BoundedBookingSearch.Request("job-311", "softener-install", 90, new RoadPoint(41.2350, -96.0420)), built.request());
+        assertEquals(new dev.waterflex.scheduler.BoundedBookingSearch.Request("job-311", "softener-install", 90, 240, new RoadPoint(41.2350, -96.0420)), built.request());
         assertEquals(new java.math.BigDecimal("0.02"), snapshot.policy().fairnessAllowance(), "the client's fairness budget");
         assertEquals(List.of(), built.skipped());
     }
@@ -145,6 +145,19 @@ class RequestBookingTest {
         assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", 0)));
         assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", 5)));
         assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", "4")));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("offerLimit", 2.5)), "never truncated");
+    }
+
+    @Test void theClientSendsItsOwnWindowLength() {
+        assertEquals(4, request(_ -> { }).windowHours());
+        assertEquals(60, build(request(request -> request.put("windowHours", 1))).request().windowMinutes());
+        assertEquals(480, build(request(request -> request.put("windowHours", 8))).request().windowMinutes());
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.remove("windowHours")), "never assumed");
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.putNull("windowHours")));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("windowHours", 0)));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("windowHours", 9)));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("windowHours", 2.5)));
+        assertThrows(IllegalArgumentException.class, () -> request(request -> request.put("windowHours", "4")));
     }
 
     @Test void theScheduleVersionIsTheExactLastModifiedInstant() {

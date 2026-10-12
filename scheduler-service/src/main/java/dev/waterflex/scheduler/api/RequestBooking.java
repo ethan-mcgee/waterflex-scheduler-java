@@ -117,7 +117,8 @@ public final class RequestBooking {
         var built = new BookingSnapshot(snapshot.metroId(), capturedAt, capturedAt, configuration, routingIdentity,
                 DailyProposals.rules(policy, snapshot.policy()), bookingRates, days, Required.value(days.keySet()));
         var job = request.job();
-        return new Built(built, new BoundedBookingSearch.Request(job.id(), job.serviceId(), job.durationMinutes(), jobPoint), skipped);
+        return new Built(built, new BoundedBookingSearch.Request(job.id(), job.serviceId(), job.durationMinutes(),
+                Required.value(request.windowHours()) * 60, jobPoint), skipped);
     }
 
     /**

@@ -9,7 +9,7 @@ import { loadSolverSettings, storeSolverSettings } from "../lib/clientSettingsSt
 
 const clientId = `settings-it-${randomUUID()}`;
 const input = { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, bookingHorizonWeekdays: 10 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10 };
 
 async function main() {
   await prisma.client.create({ data: { id: clientId, name: "Settings smoke" } });
@@ -35,7 +35,7 @@ async function main() {
     assert.equal(racing.filter(outcome => "saved" in outcome).length, 1, "Exactly one of two saves of the same version wins");
     assert.equal((await loadSolverSettings(clientId))?.version, 2);
 
-    for (const [column, value] of [["offerLimit", 5], ["bookingHorizonWeekdays", 16], ["travelBufferMinutes", 121],
+    for (const [column, value] of [["offerLimit", 5], ["windowHours", 0], ["windowHours", 9], ["bookingHorizonWeekdays", 16], ["travelBufferMinutes", 121],
       ["travelBufferPct", 1.5], ["fairnessBudget", 1.01], ["regularHourly", -1]] as const) {
       await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = ${value} WHERE "clientId" = ${clientId}`,
         `The database rejects ${column} = ${value}`);
