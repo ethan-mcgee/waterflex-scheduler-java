@@ -3,11 +3,12 @@ import dev.waterflex.scheduler.optimizer.*;
 import java.util.*;
 /** Versioned calculation envelopes. A proposal never conveys persistence or apply authority. */
 public final class CalculationProtocol {
-    public static final int VERSION = 1;
+    /** Version 2 carries the caller's phase allocation with each daily request. */
+    public static final int VERSION = 2;
     private CalculationProtocol() { }
     public record Request(int schemaVersion, String requestId, String operation, long remainingMillis, String contentHash, String payload) {
         public Request {
-            if (schemaVersion != VERSION || !Set.of("DAILY","BOOKING").contains(operation) || remainingMillis < 1 || remainingMillis > (operation.equals("DAILY") ? 20000 : 120000))
+            if (schemaVersion != VERSION || !Set.of("DAILY","BOOKING").contains(operation) || remainingMillis < 1 || remainingMillis > (operation.equals("DAILY") ? DailyOperation.Allowance.MAXIMUM.toMillis() : 120000))
                 throw new IllegalArgumentException("Invalid calculation envelope");
             UUID.fromString(requestId); CalculationJson.text(contentHash); CalculationJson.text(payload);
             if (!CalculationJson.hash(payload).equals(contentHash)) throw new IllegalArgumentException("Calculation content hash mismatch");
@@ -36,8 +37,8 @@ public final class CalculationProtocol {
                     || !version.equals(expected.version()) || !hash.equals(expected.sha256())) throw new IllegalArgumentException("Remote engine artifact mismatch or unavailable identity");
         }
     }
-    public record DailyInput(String dataset, SchedulingPolicy.Rules policy) {
-        public DailyInput { CalculationJson.text(dataset); Required.value(policy); }
+    public record DailyInput(String dataset, SchedulingPolicy.Rules policy, DailyCalculation.Allocation allocation) {
+        public DailyInput { CalculationJson.text(dataset); Required.value(policy); Required.value(allocation); }
     }
     public record Proposal(Map<String,List<String>> routes, List<String> unassigned) {
         public Proposal {

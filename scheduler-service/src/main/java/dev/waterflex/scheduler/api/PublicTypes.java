@@ -1,5 +1,7 @@
 package dev.waterflex.scheduler.api;
 
+import dev.waterflex.scheduler.optimizer.DailyCalculation;
+import dev.waterflex.scheduler.optimizer.DailySearch;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,11 +63,21 @@ public final class PublicTypes {
         }
     }
 
-    /** The client's own scheduling choices. A fairness budget of zero means fairness may never add cost. */
-    public record Policy(BigDecimal fairnessBudget) {
+    /**
+     * The client's own scheduling choices. A fairness budget of zero means fairness may never add cost. The daily
+     * search method and its cost and fairness search seconds apply to daily and repair proposals; a fairness time of
+     * zero skips the fairness phase, and a repair (one phase) may spend both times.
+     */
+    public record Policy(BigDecimal fairnessBudget, DailySearch dailySearch, Integer costSearchSeconds, Integer fairnessSearchSeconds) {
         public Policy {
             if (Input.nonNegative(fairnessBudget, "policy.fairnessBudget").compareTo(BigDecimal.ONE) > 0)
                 throw new IllegalArgumentException("policy.fairnessBudget must be at most 1");
+            Input.present(dailySearch, "policy.dailySearch");
+            int cost = Input.integer(costSearchSeconds, "policy.costSearchSeconds", DailyCalculation.Allocation.MIN_COST_SECONDS, DailyCalculation.Allocation.MAX_SEARCH_SECONDS);
+            int fairness = Input.integer(fairnessSearchSeconds, "policy.fairnessSearchSeconds", 0, DailyCalculation.Allocation.MAX_SEARCH_SECONDS);
+            if (cost + fairness > DailyCalculation.Allocation.MAX_SEARCH_SECONDS)
+                throw new IllegalArgumentException("policy.costSearchSeconds and policy.fairnessSearchSeconds together must be at most "
+                        + DailyCalculation.Allocation.MAX_SEARCH_SECONDS);
         }
     }
 

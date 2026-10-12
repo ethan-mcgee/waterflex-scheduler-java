@@ -4,7 +4,7 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "reac
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { readResponse, errorMessage } from "@/lib/contracts";
-import type { SolverSettingsView } from "@/lib/clientSettings";
+import { DAILY_SEARCHES, MAX_SEARCH_SECONDS, type DailySearch, type SolverSettingsView } from "@/lib/clientSettings";
 import ui from "../components/ui.module.css";
 import styles from "./settings.module.css";
 
@@ -13,17 +13,22 @@ const savedView = z.object({ version: z.int().nonnegative(), updatedAt: z.iso.da
 type Draft = {
   regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPercent: string;
   travelBufferMinutes: string; fairnessBudgetPercent: string; offerLimit: string; windowHours: string; bookingHorizonWeekdays: string;
+  dailySearch: string; costSearchSeconds: string; fairnessSearchSeconds: string;
 };
 
+const SEARCH_LABELS: Record<DailySearch, string> = { TABU_KOPT: "Tabu + K opt (recommended)", TABU: "Tabu (previous default)" };
+
 const EMPTY: Draft = { regularHourly: "", overtimeHourly: "", mileagePerMile: "", travelBufferPercent: "",
-  travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "" };
+  travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "",
+  dailySearch: "", costSearchSeconds: "", fairnessSearchSeconds: "" };
 
 function draftOf(view: SolverSettingsView | null): Draft {
   if (view === null) return EMPTY;
   return { regularHourly: view.regularHourly, overtimeHourly: view.overtimeHourly, mileagePerMile: view.mileagePerMile,
     travelBufferPercent: view.travelBufferPercent, travelBufferMinutes: String(view.travelBufferMinutes),
     fairnessBudgetPercent: view.fairnessBudgetPercent, offerLimit: String(view.offerLimit), windowHours: String(view.windowHours),
-    bookingHorizonWeekdays: String(view.bookingHorizonWeekdays) };
+    bookingHorizonWeekdays: String(view.bookingHorizonWeekdays), dailySearch: view.dailySearch,
+    costSearchSeconds: String(view.costSearchSeconds), fairnessSearchSeconds: String(view.fairnessSearchSeconds) };
 }
 
 /** Whole numbers only; anything else is sent as typed so the server rejects it instead of the form guessing. */
@@ -57,7 +62,8 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           regularHourly: draft.regularHourly, overtimeHourly: draft.overtimeHourly, mileagePerMile: draft.mileagePerMile,
           travelBufferPercent: draft.travelBufferPercent, travelBufferMinutes: whole(draft.travelBufferMinutes),
           fairnessBudgetPercent: draft.fairnessBudgetPercent, offerLimit: whole(draft.offerLimit), windowHours: whole(draft.windowHours),
-          bookingHorizonWeekdays: whole(draft.bookingHorizonWeekdays),
+          bookingHorizonWeekdays: whole(draft.bookingHorizonWeekdays), dailySearch: draft.dailySearch,
+          costSearchSeconds: whole(draft.costSearchSeconds), fairnessSearchSeconds: whole(draft.fairnessSearchSeconds),
         } }) });
       const saved = await readResponse(response, savedView);
       setVersion(saved.version);
@@ -113,6 +119,25 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           </Row>
           <Row label="Fairness budget" hint="How much a daily plan's cost may rise to spread work more evenly. 0 means fairness only breaks ties.">
             <input inputMode="decimal" {...field("fairnessBudgetPercent")} required /> <span>%</span>
+          </Row>
+        </section>
+        <section className={ui.card}>
+          <h2>Daily search</h2>
+          <p className={ui.sectionLabel}>
+            Used for dispatch proposals, overnight runs and time-off repairs. A proposal waits for the whole search time,
+            and an overnight run spends it on each day. Together the two times may be at most {MAX_SEARCH_SECONDS} seconds.
+          </p>
+          <Row label="Search method" hint="Tabu + K opt also moves runs of visits and untangles routes; it found cheaper plans in the Tabu variant study.">
+            <select {...field("dailySearch")} required>
+              {draft.dailySearch === "" && <option value="">Choose</option>}
+              {DAILY_SEARCHES.map(search => <option key={search} value={search}>{SEARCH_LABELS[search]}</option>)}
+            </select>
+          </Row>
+          <Row label="Cost search time" hint="Seconds spent looking for the lowest-cost plan, 5 to 240. A repair spends both times here.">
+            <input inputMode="numeric" {...field("costSearchSeconds")} required /> <span>seconds</span>
+          </Row>
+          <Row label="Fairness search time" hint="Seconds then spent spreading work more evenly within the fairness budget. 0 skips it.">
+            <input inputMode="numeric" {...field("fairnessSearchSeconds")} required /> <span>seconds</span>
           </Row>
         </section>
         <div className={styles.actions}>

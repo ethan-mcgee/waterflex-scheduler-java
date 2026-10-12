@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
-import { connection, createBookingOffers, SchedulerApiError, tokenVariable, verifyTenant } from "./schedulerApi";
+import { connection, createBookingOffers, proposalTimeoutMs, SchedulerApiError, tokenVariable, verifyTenant } from "./schedulerApi";
+import { ABANDON_AFTER_MINUTES } from "./overnightCore";
 
 const TOKEN = `wfs_${"a".repeat(43)}`;
 const code = (run: () => unknown) => {
@@ -33,7 +34,7 @@ test("a token for another tenant is refused before any booking call, and API ref
     const request = { requestId: "7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10", offerLimit: 1, windowHours: 4, horizon: { firstDate: "2026-10-12", lastDate: "2026-10-12" },
       job: { id: "job", serviceId: "svc", durationMinutes: 60, location: { lat: 1, lng: 1 } },
       snapshot: { metroId: "m", timeZone: "America/Chicago", rates: { regularHourly: "1", overtimeHourly: "1", mileagePerMile: "1", travelBufferPct: "0", travelBufferMinutes: 0 },
-        policy: { fairnessBudget: "0" }, technicians: [], technicianDays: [], appointments: [] } };
+        policy: { fairnessBudget: "0", dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5 }, technicians: [], technicianDays: [], appointments: [] } };
     await assert.rejects(createBookingOffers("stub-client", request), (error: unknown) => error instanceof SchedulerApiError && error.code === "NOT_CONNECTED");
     assert.deepEqual(paths, ["/api/v1/whoami"], "No booking call is made with a mismatched token");
 
@@ -92,4 +93,11 @@ test("a token the scheduling service does not accept is not connected, not a mal
     if (saved.url === undefined) delete process.env.SCHEDULER_API_URL; else process.env.SCHEDULER_API_URL = saved.url;
     if (saved.token === undefined) delete process.env.SCHEDULER_API_TOKEN_REVOKED_CLIENT; else process.env.SCHEDULER_API_TOKEN_REVOKED_CLIENT = saved.token;
   }
+});
+
+test("a proposal waits for the client's whole search, and an overnight day never outlasts the abandon window", () => {
+  const policy = (cost: number, fairness: number) => ({ fairnessBudget: "0", dailySearch: "TABU_KOPT" as const, costSearchSeconds: cost, fairnessSearchSeconds: fairness });
+  assert.equal(proposalTimeoutMs(policy(10, 5)), 30000, "The earlier fixed 15 seconds of search keeps its 30-second wait");
+  assert.equal(proposalTimeoutMs(policy(240, 0)), 255000);
+  assert.ok(proposalTimeoutMs(policy(200, 40)) < ABANDON_AFTER_MINUTES * 60000, "A worker on its longest day is not abandoned");
 });

@@ -103,6 +103,10 @@ model ClientSolverSettings {
   offerLimit             Int
   windowHours            Int
   bookingHorizonWeekdays Int
+  // TABU or TABU_KOPT (CHECK constraint); read through clientSettings.ts, which validates it.
+  dailySearch            String
+  costSearchSeconds      Int
+  fairnessSearchSeconds  Int
   version                Int      @default(0)
   updatedAt              DateTime @default(now()) @db.Timestamptz(6)
 

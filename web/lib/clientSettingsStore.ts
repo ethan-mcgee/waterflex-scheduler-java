@@ -4,7 +4,8 @@ import { toStored, type SolverSettingsInput, type StoredSolverSettings } from ".
 
 const columns = {
   regularHourly: true, overtimeHourly: true, mileagePerMile: true, travelBufferPct: true, travelBufferMinutes: true,
-  fairnessBudget: true, offerLimit: true, windowHours: true, bookingHorizonWeekdays: true, version: true, updatedAt: true,
+  fairnessBudget: true, offerLimit: true, windowHours: true, bookingHorizonWeekdays: true,
+  dailySearch: true, costSearchSeconds: true, fairnessSearchSeconds: true, version: true, updatedAt: true,
 } as const;
 
 /** The client's settings, or null when the client has not configured them. */

@@ -59,6 +59,8 @@ public class PublicApiStore {
     private static final Pattern SHA256 = Required.value(Pattern.compile("[0-9a-f]{64}"));
     /** Long enough for routing plus the 20 second daily solve; an abandoned claim can be taken over after it. */
     static final Duration LEASE = Required.value(Duration.ofSeconds(60));
+    /** Extra lease beyond a calculation's own allowance, for storing its result. */
+    static final Duration LEASE_MARGIN = Required.value(Duration.ofSeconds(30));
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
@@ -106,13 +108,19 @@ public class PublicApiStore {
     public interface CommitDecision { CommitOutcome decide(@Nullable Locked locked); }
 
     public Claim claim(String tenantId, String requestId, Operation operation, String requestSha256) {
+        return claim(tenantId, requestId, operation, requestSha256, LEASE);
+    }
+
+    /** A claim whose lease covers a calculation that may run longer than the standard lease. */
+    public Claim claim(String tenantId, String requestId, Operation operation, String requestSha256, Duration lease) {
+        if (lease.compareTo(LEASE) < 0) throw new IllegalArgumentException("A claim lease may not be shorter than " + LEASE.toSeconds() + " seconds");
         Input.requestId(requestId);
         if (!SHA256.matcher(requestSha256).matches()) throw new IllegalArgumentException("requestSha256 must be a SHA-256 hex digest");
         String owner = Required.value(UUID.randomUUID().toString());
         return asTenant(tenantId, () -> {
             int inserted = jdbc.update("INSERT INTO api_request (\"tenantId\",\"requestId\",operation,\"requestSha256\",state,\"ownerToken\",\"leaseExpiresAt\") "
                     + "VALUES (?,?,?,?,'IN_PROGRESS',?,clock_timestamp()+?::interval) ON CONFLICT DO NOTHING",
-                    tenantId, requestId, operation.name(), requestSha256, owner, LEASE.toSeconds() + " seconds");
+                    tenantId, requestId, operation.name(), requestSha256, owner, lease.toSeconds() + " seconds");
             if (inserted == 1) return new Started(owner);
             List<Claim> existing = jdbc.query("SELECT operation,\"requestSha256\",state,\"responseStatus\",\"responseJson\"::text,\"leaseExpiresAt\"<clock_timestamp() "
                     + "FROM api_request WHERE \"tenantId\"=? AND \"requestId\"=? FOR UPDATE", (rs, _) -> {
@@ -125,7 +133,7 @@ public class PublicApiStore {
             Claim found = Required.value(existing.getFirst());
             if (found instanceof Started)
                 jdbc.update("UPDATE api_request SET \"ownerToken\"=?,\"leaseExpiresAt\"=clock_timestamp()+?::interval WHERE \"tenantId\"=? AND \"requestId\"=?",
-                        owner, LEASE.toSeconds() + " seconds", tenantId, requestId);
+                        owner, lease.toSeconds() + " seconds", tenantId, requestId);
             return found;
         });
     }
