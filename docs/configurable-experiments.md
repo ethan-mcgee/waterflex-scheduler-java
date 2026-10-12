@@ -50,16 +50,18 @@ py -3 infra/experiments.py import-history docs/evidence/scheduler-field-2026-09-
 
 ## Configuration contract
 
-JSON has `version: 1`, a lowercase slug `name`, and a `daily` object, which requires all its fields; unknown fields, duplicate JSON keys, duplicate values, nulls, empty selections and invalid values are rejected before execution. Counts derive exclusively from the lists.
+JSON has `version: 1`, a lowercase slug `name`, and a `daily` object, which requires all its fields except the two optional ones below; unknown fields, duplicate JSON keys, duplicate values, nulls, empty selections and invalid values are rejected before execution. Counts derive exclusively from the lists.
 
 | Field | Daily |
 | --- | --- |
-| `solvers` | Any of CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE, TABU, SUBLIST, KOPT, RUIN_RECREATE, TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT |
+| `solvers` | Any of CURRENT_CAPPED, CURRENT_UNCAPPED, LATE_ACCEPTANCE_CHANGE, LATE_ACCEPTANCE, TABU, SUBLIST, KOPT, RUIN_RECREATE, TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT, TABU_KOPT_SIZE_3 |
 | `control` | One selected solver |
 | `seeds` | Distinct integers 0..2147483647 |
 | `fleets` | Any of 5, 10, 20, 30, 50 |
 | `workloads` | SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY |
-| `budgets_seconds` | 0.1..240, whole millisecond resolution |
+| `budgets_seconds` | 0.1..900, whole millisecond resolution |
+| `fixture_seeds` | Optional. Distinct integers 0..2147483647. 0 is the canonical fixture of each fleet and workload (the only one earlier studies used); any other seed draws a new fixture of the same shape |
+| `phases` | Optional. COST_AND_FAIRNESS (two thirds of the budget for the cost search, the rest for fairness within the 2% ceiling, as before) or COST_ONLY (the whole budget for the cost search, no fairness phase) |
 | `parallel_cases` | Required integer, at least 1. Booleans, decimals, strings and null are rejected. The usable core count is checked at run time |
 
 `parallel_cases` is the number of independent daily cases, each a fresh solver JVM, that run at the same time. Each running case is confined to one dedicated physical core (both SMT threads), so the setting also decides how many cores the study occupies: `parallel_cases` cores, plus core 0, which stays free for Windows and the orchestrator. There is no cores-per-case setting because the solver search is single threaded. `1` runs one case at a time. The value is part of the saved configuration, so the config and case hashes bind it to the run and a resume cannot change it. Running more than one case at a time needs Windows, and a value above the usable physical cores (11 on the 12-core workstation) fails before any measurement.
@@ -69,6 +71,15 @@ The supplied daily study selects LATE_ACCEPTANCE, TABU, SUBLIST and KOPT; TABU i
 ### TABU variant study
 
 `daily-tabu-variants.json` tests TABU tuning against the unchanged TABU control. The three variants are TABU_SIZE_3 and TABU_SIZE_15 (entity tabu size 3 or 15 instead of 7, everything else identical; experiment-only) and TABU_KOPT (TABU's acceptor and forager with KOPT's move set: change, swap, sublist and 2-3-opt). After this study TABU_KOPT became a client choice beside TABU (`Snapshot.policy.dailySearch`). Tests pin the TABU and TABU_KOPT configurations byte for byte, so the control and both production methods stay unchanged. The study runs TABU, KOPT, LATE_ACCEPTANCE, SUBLIST and the three variants over the ten seeds, fleets 5, 10, 20 and 50, CLUSTERED, DISPERSED, MIXED_SKILL and TIGHT_WINDOW, and budgets of 60, 90, 120 and 240 seconds: **4,480 cases** and **571,200 seconds** of search allowance, about 16 hours at `parallel_cases` 10. `daily-tabu-smoke.json` runs every solver of the study once at 0.5 seconds as a harness check. `daily-contention-10.json` is the ten-case contention check the next section requires before trusting 10 parallel cases.
+
+### Daily search follow-up
+
+The follow-up to the TABU variant study (docs/daily-tabu-variants-5d15129b, section 14) answers its open questions on fixtures that study never saw. Every arm is COST_ONLY, so each case measures the search algorithm alone; the fairness variance of the result is still recorded as an outcome. Leaving `fixture_seeds` and `phases` out keeps a config's cases and case ids exactly as before, so earlier archives still resume and reproduce.
+
+- `daily-search-followup.json` (main arm): TABU (control), TABU_KOPT, TABU_KOPT_SIZE_3 (both improvements combined), TABU_SIZE_3 and KOPT; fleets 5, 10, 20, 30 and 50 (30 locates the K opt to Tabu + K opt crossover); all four workloads; fixture seeds 1 and 2; search seeds 211, 223 and 227; budgets 60 and 120 seconds: **1,200 cases** and **108,000 seconds**, about 5 hours at `parallel_cases` 6. The fleet-size rule (K opt up to 20 technicians, Tabu + K opt above) is scored afterwards from these rows; it was chosen on the canonical fixtures, so the new fixtures are a fair test of it.
+- `daily-search-long-budget.json`: TABU_KOPT (control), TABU, KOPT and LATE_ACCEPTANCE on 30 and 50 technicians, fixture seed 3, seeds 211 and 223, budgets 240, 480 and 600 seconds: **192 cases** and **84,480 seconds**, about 4 hours. It shows whether late acceptance catches up on large fleets when given more time.
+- `daily-search-confirm.json`: TABU against the main arm's best candidate, one case at a time (32 cases, about 1 hour). The driver substitutes the candidate.
+- `daily-search-smoke.json`: every solver of the study at 1 second on the canonical and a drawn fixture, as a harness check.
 
 The frozen build includes `calculation-engine` (where the solver lives) and every other reactor module, and builds with `-am`, so a run measures the solver from its own frozen source rather than a jar left in the local Maven repository.
 

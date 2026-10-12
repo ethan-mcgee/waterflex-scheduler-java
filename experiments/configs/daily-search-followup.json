@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "name": "daily-search-followup",
+  "daily": {
+    "solvers": [
+      "TABU",
+      "TABU_KOPT",
+      "TABU_KOPT_SIZE_3",
+      "TABU_SIZE_3",
+      "KOPT"
+    ],
+    "control": "TABU",
+    "seeds": [
+      211,
+      223,
+      227
+    ],
+    "fleets": [
+      5,
+      10,
+      20,
+      30,
+      50
+    ],
+    "workloads": [
+      "CLUSTERED",
+      "DISPERSED",
+      "MIXED_SKILL",
+      "TIGHT_WINDOW"
+    ],
+    "fixture_seeds": [
+      1,
+      2
+    ],
+    "budgets_seconds": [
+      60,
+      120
+    ],
+    "phases": "COST_ONLY",
+    "parallel_cases": 6
+  }
+}
