@@ -60,7 +60,7 @@ async function runs() {
     prisma.technician.findMany({ orderBy: { id: "asc" } }),
     prisma.technicianQualification.findMany({ orderBy: [{ technicianId: "asc" }, { serviceId: "asc" }] }),
     prisma.technicianShiftOverride.findMany({ orderBy: { id: "asc" } }),
-    prisma.omahaSetting.findMany({ orderBy: { key: "asc" } }),
+    prisma.clientSolverSettings.findMany({ orderBy: { clientId: "asc" } }),
   ]);
   const configurationBefore = await configuration();
   const legacyId = randomUUID();

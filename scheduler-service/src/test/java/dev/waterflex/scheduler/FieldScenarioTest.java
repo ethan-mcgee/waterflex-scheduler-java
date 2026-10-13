@@ -205,7 +205,7 @@ class FieldScenarioTest {
     static BookingSnapshot snapshot(Day day) {
         Map<LocalDate, Day> days = new TreeMap<>();
         for (LocalDate date : BookingCalendar.bookingDates(CAPTURED)) days.put(date, date.equals(DATE) ? day : new Day(Required.value(Map.of()), Required.value(Map.of()), new Arrangement(Required.value(Map.of())), 0, new Roads(Required.value(Map.of()), Required.value(Set.of()))));
-        return new BookingSnapshot("Omaha", CAPTURED, CAPTURED, "field-v2", "directed-small-town-fixture-v1", SchedulingPolicy.Rules.defaults(), RATES, days, Required.value(Set.copyOf(days.keySet())));
+        return new BookingSnapshot("Omaha", CAPTURED, "field-v2", "directed-small-town-fixture-v1", SchedulingPolicy.Rules.defaults(), RATES, days, Required.value(Set.copyOf(days.keySet())));
     }
     static Day fixture(boolean second, boolean qualified, boolean absence, boolean unreachable) {
         Map<String, Technician> techs = new TreeMap<>(); Map<String, List<String>> routes = new TreeMap<>();

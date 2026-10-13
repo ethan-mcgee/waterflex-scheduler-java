@@ -15,7 +15,6 @@ const expected: Record<string, string[]> = {
   api_booking_offer: ["tenantId", "id", "offerSetId", "holdId", "serviceDate", "technicianId", "windowStart", "windowEnd", "status"],
   api_booking_receipt: ["tenantId", "id", "offerId", "requestId", "receiptJson"],
   road_route_cache: ["originKey", "destinationKey", "profile", "mapVersion", "seconds", "meters", "routable"],
-  omaha_setting: ["key", "value"],
 };
 
 const prisma = new PrismaClient();

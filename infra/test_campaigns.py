@@ -423,6 +423,9 @@ class AdapterContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cc.validate(config)
         config['policy'] = {'regularWindowThreshold': 2, 'utilizationThreshold': '0.9', 'fairnessAllowance': '0.02', 'bookingDeadlineMs': 5000}
+        with self.assertRaises(ValueError):
+            cc.validate(config)
+        del config['policy']['utilizationThreshold']
         cc.validate(config)
         config['policy']['fairnessAllowance'] = None
         with self.assertRaises(ValueError):

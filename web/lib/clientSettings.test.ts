@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { canonicalDecimal, publicPolicy, publicRates, saveSolverSettings, solverSettingsInput, toStored, toView } from "./clientSettings";
 
 const input = { regularHourly: "30", overtimeHourly: "45.50", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
 
 function stored() {
   return { ...toStored(solverSettingsInput.parse(input)), version: 3, updatedAt: new Date("2026-10-08T12:00:00Z") };
@@ -13,7 +13,7 @@ function stored() {
 test("percentages become exact API fractions and money stays canonical", () => {
   assert.deepEqual(publicRates(stored()), { regularHourly: "30", overtimeHourly: "45.5", mileagePerMile: "0.67",
     travelBufferPct: "0.2", travelBufferMinutes: 5 });
-  assert.deepEqual(publicPolicy(stored()), { fairnessBudget: "0.025", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 });
+  assert.deepEqual(publicPolicy(stored()), { fairnessBudget: "0.025", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
 });
 
 test("the view round-trips what was entered", () => {
@@ -31,6 +31,8 @@ test("the view round-trips what was entered", () => {
   assert.equal(again.dailySearch, "TABU_KOPT");
   assert.equal(again.costSearchSeconds, 10);
   assert.equal(again.fairnessSearchSeconds, 5);
+  assert.equal(again.bookingDeadlineMs, 5000);
+  assert.equal(again.regularWindowThreshold, 2);
 });
 
 test("a stored search method outside the allowed set is never shown or sent", () => {
@@ -60,11 +62,17 @@ test("out-of-range or malformed settings are rejected, never clamped or defaulte
     { costSearchSeconds: 4 }, { costSearchSeconds: 241 }, { costSearchSeconds: 2.5 }, { costSearchSeconds: "10" }, { costSearchSeconds: null },
     { fairnessSearchSeconds: -1 }, { fairnessSearchSeconds: 241 }, { fairnessSearchSeconds: undefined },
     { costSearchSeconds: 200, fairnessSearchSeconds: 41 },
+    { bookingDeadlineMs: 999 }, { bookingDeadlineMs: 5001 }, { bookingDeadlineMs: 4000.5 }, { bookingDeadlineMs: "5000" },
+    { bookingDeadlineMs: undefined }, { bookingDeadlineMs: null },
+    { regularWindowThreshold: -1 }, { regularWindowThreshold: 1001 }, { regularWindowThreshold: 2.5 }, { regularWindowThreshold: undefined },
+    { regularWindowThreshold: null }, { utilizationThreshold: "0.9" },
   ];
   for (const change of bad) assert.equal(solverSettingsInput.safeParse({ ...input, ...change }).success, false, JSON.stringify(change));
   assert.equal(solverSettingsInput.safeParse({ ...input, travelBufferPercent: "100", fairnessBudgetPercent: "0" }).success, true);
   assert.equal(solverSettingsInput.safeParse({ ...input, dailySearch: "TABU", costSearchSeconds: 240, fairnessSearchSeconds: 0 }).success, true);
   assert.equal(solverSettingsInput.safeParse({ ...input, costSearchSeconds: 200, fairnessSearchSeconds: 40 }).success, true);
+  assert.equal(solverSettingsInput.safeParse({ ...input, bookingDeadlineMs: 1000, regularWindowThreshold: 0 }).success, true);
+  assert.equal(solverSettingsInput.safeParse({ ...input, bookingDeadlineMs: 5000, regularWindowThreshold: 1000 }).success, true);
 });
 
 test("a save must say which version it edits, or null for a client without settings", () => {

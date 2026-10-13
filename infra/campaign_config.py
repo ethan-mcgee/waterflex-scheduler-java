@@ -58,10 +58,10 @@ def validate(config):
     fields(config, base_fields + (['policy'] if 'policy' in config else []))
     if 'policy' in config:
         policy = config['policy']
-        fields(policy, ['regularWindowThreshold', 'utilizationThreshold', 'fairnessAllowance', 'bookingDeadlineMs'])
+        fields(policy, ['regularWindowThreshold', 'fairnessAllowance', 'bookingDeadlineMs'])
         integer(policy['regularWindowThreshold'], 0)
         integer(policy['bookingDeadlineMs'], 1000, 5000)
-        for name in ('utilizationThreshold', 'fairnessAllowance'):
+        for name in ('fairnessAllowance',):
             text(policy[name])
             try:
                 value = Decimal(policy[name])

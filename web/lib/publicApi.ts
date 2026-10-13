@@ -25,7 +25,8 @@ export const publicSnapshot = z.object({
   rates: z.object({ regularHourly: decimal, overtimeHourly: decimal, mileagePerMile: decimal, travelBufferPct: decimal,
     travelBufferMinutes: z.int().min(0).max(120) }).strict(),
   policy: z.object({ fairnessBudget: decimal, dailySearch: z.enum(["TABU", "TABU_KOPT"]), costSearchSeconds: z.int().min(5).max(240),
-    fairnessSearchSeconds: z.int().min(0).max(240) }).strict()
+    fairnessSearchSeconds: z.int().min(0).max(240), bookingDeadlineMs: z.int().min(1000).max(5000),
+    regularWindowThreshold: z.int().min(0).max(1000) }).strict()
     .refine(policy => policy.costSearchSeconds + policy.fairnessSearchSeconds <= 240, "search times together exceed 240 seconds"),
   technicians: z.array(z.object({ id, qualifications: z.array(id) }).strict()),
   technicianDays: z.array(z.object({ technicianId: id, serviceDate, lastModified: instant, shift: window,
