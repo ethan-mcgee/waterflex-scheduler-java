@@ -110,6 +110,17 @@ class PublicApiContractTest {
         assertMatches("BookingOffersRequest.horizon", map(map(map(SCHEMAS.get("BookingOffersRequest")).get("properties")).get("horizon")), PublicRequests.Horizon.class);
     }
 
+    /** The error codes the scheduler answers are exactly the ones the spec lists, so a host can switch on every one. */
+    @Test void everyErrorCodeIsInTheSpecAndNoOther() {
+        Object listed = map(map(map(SCHEMAS.get("Problem")).get("properties")).get("error")).get("enum");
+        assertInstanceOf(List.class, listed);
+        Set<String> spec = new TreeSet<>();
+        for (Object code : (List<?>) Required.value(listed)) spec.add(String.valueOf(code));
+        Set<String> java = new TreeSet<>();
+        for (PublicResponses.ErrorCode code : PublicResponses.ErrorCode.values()) java.add(code.name());
+        assertEquals(spec, java);
+    }
+
     static String example(String name) {
         return CalculationJson.write(Required.value(map(EXAMPLES.get(name)).get("value")));
     }

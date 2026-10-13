@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
-import { connection, createBookingOffers, proposalTimeoutMs, SchedulerApiError, tokenVariable, verifyTenant } from "./schedulerApi";
+import { cancelRequest, connection, createBookingOffers, proposalTimeoutMs, SchedulerApiError, tokenVariable, verifyTenant } from "./schedulerApi";
 import { ABANDON_AFTER_MINUTES } from "./overnightCore";
 
 const TOKEN = `wfs_${"a".repeat(43)}`;
@@ -100,4 +100,34 @@ test("a proposal waits for the client's whole search, and an overnight day never
   assert.equal(proposalTimeoutMs(policy(10, 5)), 30000, "The earlier fixed 15 seconds of search keeps its 30-second wait");
   assert.equal(proposalTimeoutMs(policy(240, 0)), 255000);
   assert.ok(proposalTimeoutMs(policy(200, 40)) < ABANDON_AFTER_MINUTES * 60000, "A worker on its longest day is not abandoned");
+});
+
+test("cancelling answers whether the scheduler is stopping the call, and an empty 202 is not malformed", async () => {
+  const original = globalThis.fetch;
+  const saved = { url: process.env.SCHEDULER_API_URL, token: process.env.SCHEDULER_API_TOKEN_CANCEL_CLIENT };
+  process.env.SCHEDULER_API_URL = "http://127.0.0.1:18999";
+  process.env.SCHEDULER_API_TOKEN_CANCEL_CLIENT = TOKEN;
+  const id = "7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10";
+  const calls: string[] = [];
+  let answer: () => Response = () => new Response(null, { status: 202 });
+  try {
+    globalThis.fetch = async (input, init) => {
+      const path = new URL(String(input)).pathname;
+      if (path === "/api/v1/whoami") return Response.json({ tenantId: "cancel-client" });
+      calls.push(`${init?.method} ${path}`);
+      return answer();
+    };
+    assert.equal(await cancelRequest("cancel-client", id), "CANCELLING");
+    assert.deepEqual(calls, [`DELETE /api/v1/requests/${id}`]);
+    answer = () => Response.json({ error: "NOT_FOUND", message: "No calculation with this requestId is running on this scheduler" }, { status: 404 });
+    assert.equal(await cancelRequest("cancel-client", id), "NOT_RUNNING");
+    answer = () => Response.json({ error: "INVALID_REQUEST", message: "requestId must be a lowercase canonical UUID" }, { status: 400 });
+    await assert.rejects(cancelRequest("cancel-client", id), (error: unknown) => error instanceof SchedulerApiError && error.code === "INVALID_REQUEST");
+    answer = () => new Response("oops", { status: 500 });
+    await assert.rejects(cancelRequest("cancel-client", id), (error: unknown) => error instanceof SchedulerApiError && error.code === "MALFORMED");
+  } finally {
+    globalThis.fetch = original;
+    if (saved.url === undefined) delete process.env.SCHEDULER_API_URL; else process.env.SCHEDULER_API_URL = saved.url;
+    if (saved.token === undefined) delete process.env.SCHEDULER_API_TOKEN_CANCEL_CLIENT; else process.env.SCHEDULER_API_TOKEN_CANCEL_CLIENT = saved.token;
+  }
 });

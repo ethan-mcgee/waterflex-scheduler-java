@@ -22,6 +22,7 @@ export class DispatchRefused extends Error {
 
 export const CHANGED = "The schedule changed since this proposal was made. Preview the day again.";
 export const NO_TECHNICIANS = "No technician of this client works in this metro on that day.";
+export const OPTIMIZATION_CANCELLED = "Optimization cancelled. Nothing was changed.";
 
 export type ProposalState = "OPEN" | "COMMITTED" | "REFUSED" | "NOT_COMMITTABLE";
 
@@ -76,6 +77,7 @@ export function refusedFor(error: unknown): never {
   if (error instanceof SchedulerApiError) {
     if (error.code === "NOT_CONNECTED") { console.error("Scheduling API not connected", error.message); throw new DispatchRefused(503, "Scheduling is not connected for this client."); }
     if (error.code === "BUSY") throw new DispatchRefused(429, "The scheduler is busy. Try again shortly.");
+    if (error.code === "CANCELLED") throw new DispatchRefused(409, OPTIMIZATION_CANCELLED);
     if (error.code === "INCOMPLETE_FACTS") throw new DispatchRefused(422, error.message);
     if (error.code === "ROUTING_UNAVAILABLE" || error.code === "CALCULATION_UNAVAILABLE" || error.code === "TRANSPORT")
       throw new DispatchRefused(503, `${error.message}. Try again shortly.`);
@@ -87,11 +89,11 @@ export function refusedFor(error: unknown): never {
 
 /**
  * Asks the scheduler for an optimized day of the client's technicians in the metro, and keeps the proposal. An
- * overnight run passes `record`, which links the proposal to the run in the transaction that stores it.
+ * overnight run passes `record`, which links the proposal to the run in the transaction that stores it. A dispatcher
+ * passes the `requestId` the board can cancel with; anything else gets a new one.
  */
 export async function proposeApiDay(clientId: string, metroId: string, serviceDate: string,
-  record?: (tx: Prisma.TransactionClient, proposalId: string) => Promise<string>): Promise<ApiProposalView> {
-  const requestId = randomUUID();
+  record?: (tx: Prisma.TransactionClient, proposalId: string) => Promise<string>, requestId: string = randomUUID()): Promise<ApiProposalView> {
   let proposal: DailyProposal;
   let snapshot: PublicSnapshot;
   try {

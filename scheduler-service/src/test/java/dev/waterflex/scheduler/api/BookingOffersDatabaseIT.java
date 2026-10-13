@@ -42,6 +42,7 @@ class BookingOffersDatabaseIT {
     private final JdbcTemplate jdbc;
     private final DataSourceTransactionManager manager;
     private final PublicApiStore store;
+    private final RunningRequests running = new RunningRequests();
     private final BookingStore bookings;
     private final AtomicBoolean routingDown = new AtomicBoolean();
     private final AtomicReference<@Nullable Runnable> routingHook = new AtomicReference<>();
@@ -86,7 +87,7 @@ class BookingOffersDatabaseIT {
             @Override public Instant instant() { return Required.value(now.get()); }
         };
         return new BookingOffers(store, bookings, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                new SearchAdmission(2, 16), "BOUNDED", 250, clock);
+                new SearchAdmission(2, 16), running, "BOUNDED", 250, clock);
     }
 
     private BookingOffers offers() { return offers(Required.value(Map.of("omaha", "http://routing-omaha:8001"))); }
@@ -129,7 +130,7 @@ class BookingOffersDatabaseIT {
 
     private BookingConfirm confirms() {
         return new BookingConfirm(store, bookings, new MetroRouting(Required.value(Map.of("omaha", "http://routing-omaha:8001")), _ -> omaha), _ -> null,
-                new SearchAdmission(2, 16), new Clock() {
+                new SearchAdmission(2, 16), running, new Clock() {
                     @Override public ZoneId getZone() { return Required.value(java.time.ZoneOffset.UTC); }
                     @Override public Clock withZone(@Nullable ZoneId zone) { return this; }
                     @Override public Instant instant() { return Required.value(now.get()); }
@@ -576,5 +577,30 @@ class BookingOffersDatabaseIT {
             return jdbc.queryForObject(sql, Long.class);
         });
         return Required.value(count).longValue();
+    }
+
+    @Test void aHostCancelEndsARunningSearchWithCancelledAndFreesTheRequestId() throws Exception {
+        var routing = new java.util.concurrent.CountDownLatch(1);
+        routingHook.set(() -> {
+            routing.countDown();
+            // Routing that takes as long as the deadline allows, so only a cancel ends it early.
+            while (true) {
+                dev.waterflex.scheduler.SearchDeadline.checkpoint();
+                try { Thread.sleep(10); } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return; }
+            }
+        });
+        String body = request();
+        String requestId = PublicRequests.read(body, PublicRequests.BookingOffersRequest.class).requestId();
+        var cancellation = new RequestCancellation(running);
+        var reply = java.util.concurrent.CompletableFuture.supplyAsync(() -> offers().create(tenant, body));
+        assertTrue(routing.await(10, java.util.concurrent.TimeUnit.SECONDS), "the search started routing");
+        assertEquals(404, Required.value(cancellation.cancel(other, requestId)).status(), "another tenant cannot cancel it");
+        assertNull(cancellation.cancel(tenant, requestId));
+        problem(Required.value(reply.get(10, java.util.concurrent.TimeUnit.SECONDS)), 409, ErrorCode.CANCELLED);
+        assertEquals(0, running.size());
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "the claim was released");
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_booking_offer WHERE \"tenantId\"=?", Long.class, tenant), "nothing was offered");
+        routingHook.set(null);
+        offerSet(offers().create(tenant, body));
     }
 }
