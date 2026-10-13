@@ -2,6 +2,7 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.DatabaseFacts;
+import dev.waterflex.scheduler.DeadlineSignals;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDayVersion;
 import java.sql.Date;
@@ -74,11 +75,15 @@ public class PublicApiStore {
 
     /** Runs {@code work} in one transaction as scheduler_tenant with app.tenant_id set to {@code tenantId}. */
     <T extends Object> T asTenant(String tenantId, Work<T> work) {
-        return Required.value(transactions.execute(_ -> {
-            DatabaseFacts.query(jdbc, "SELECT set_config('app.tenant_id', ?, true)", String.class, tenantId);
-            jdbc.execute("SET LOCAL ROLE scheduler_tenant");
-            return work.run();
-        }));
+        try {
+            return Required.value(transactions.execute(_ -> {
+                DatabaseFacts.query(jdbc, "SELECT set_config('app.tenant_id', ?, true)", String.class, tenantId);
+                jdbc.execute("SET LOCAL ROLE scheduler_tenant");
+                return work.run();
+            }));
+        } catch (org.springframework.transaction.TransactionException | org.springframework.dao.DataAccessException failure) {
+            throw DeadlineSignals.unwrap(failure);
+        }
     }
 
     public static String newProposalId() { return "prop-" + UUID.randomUUID(); }
