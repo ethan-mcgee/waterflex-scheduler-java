@@ -98,7 +98,7 @@ public class RouteGeometries {
                 RoadPoint point = locate(visit.location(), located);
                 if (point == null) { unresolved.add("appointment " + visit.id()); continue; }
                 points.put(visit.id(), point);
-                stops.add(new LocatedStop(visit.id(), visit.sequence(), point.lat(), point.lng()));
+                stops.add(new LocatedStop(visit.id(), visit.sequence(), point.lat(), point.lng(), visit.location().source()));
             }
             if (!unresolved.isEmpty()) {
                 skipped.add(new SkippedTechnicianDay(day.technicianId(), day.serviceDate(), SkipReason.LOCATION_UNRESOLVED,

@@ -110,9 +110,10 @@ class BookingOffersDatabaseIT {
         Map<String, BookingDayState.TechnicianState> technicians = new java.util.TreeMap<>();
         technicians.put("tech-1", new BookingDayState.TechnicianState(1L, Required.value(List.of("appt-7", "appt-8")), Required.value(List.of("appt-7", firstHold, "appt-8"))));
         technicians.put("tech-2", new BookingDayState.TechnicianState(1L, Required.value(List.of()), Required.value(List.of(secondHold))));
+        // The first hold was stored before holds recorded a coordinate source.
         Map<String, BookingDayState.HoldState> held = new java.util.TreeMap<>();
-        held.put(firstHold, new BookingDayState.HoldState("job-311", first, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-1"));
-        held.put(secondHold, new BookingDayState.HoldState("job-311", second, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-2"));
+        held.put(firstHold, new BookingDayState.HoldState("job-311", first, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-1", null));
+        held.put(secondHold, new BookingDayState.HoldState("job-311", second, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-2", PublicTypes.CoordinateSource.HOST));
         var body = new OfferSet(setId, expiresAt, Required.value(List.of(new Offer(first, DAY, new PublicTypes.Window(start, end)), new Offer(second, DAY, new PublicTypes.Window(start, end)))),
                 true, Required.value(List.of()));
         var started = assertInstanceOf(PublicApiStore.Started.class, store.claim(tenant, requestId, PublicApiStore.Operation.BOOKING_OFFERS, Required.value("c".repeat(64))));
@@ -258,6 +259,7 @@ class BookingOffersDatabaseIT {
         for (var hold : state.holds().values()) {
             assertEquals("job-311", hold.jobId());
             assertEquals("tech-1", hold.technicianId(), "only tech-1 installs softeners");
+            assertEquals(PublicTypes.CoordinateSource.HOST, hold.source(), "the host sent the job's coordinates");
         }
         assertEquals(set.offers().size(), offerStatuses(set.offerSetId()).values().stream().filter("HELD"::equals).count());
         assertEquals(reply, offers().create(tenant, body), "the same requestId replays the offer set");

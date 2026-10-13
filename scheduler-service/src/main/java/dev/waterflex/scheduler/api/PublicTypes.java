@@ -35,6 +35,9 @@ public final class PublicTypes {
         }
     }
 
+    /** Where a located point's coordinates came from: the host's own, or the scheduler's address lookup. */
+    public enum CoordinateSource { HOST, NOMINATIM }
+
     /** Coordinates are authoritative when present; an address alone is geocoded by the scheduler. */
     public record Location(@Nullable Double lat, @Nullable Double lng, @Nullable Address address) {
         public Location {
@@ -43,6 +46,12 @@ public final class PublicTypes {
             if (lat != null && (!Double.isFinite(lat) || Math.abs(lat) > 90)) throw new IllegalArgumentException("Invalid lat");
             if (lng != null && (!Double.isFinite(lng) || Math.abs(lng) > 180)) throw new IllegalArgumentException("Invalid lng");
         }
+
+        /**
+         * The source of this location's point once it is located: the host's coordinates when sent, otherwise the
+         * scheduler's address lookup, the only way an address-only location is ever located.
+         */
+        public CoordinateSource source() { return lat == null ? CoordinateSource.NOMINATIM : CoordinateSource.HOST; }
     }
 
     public record Window(Instant start, Instant end) {

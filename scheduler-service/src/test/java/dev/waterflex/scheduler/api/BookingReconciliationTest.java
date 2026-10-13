@@ -45,7 +45,7 @@ class BookingReconciliationTest {
     }
 
     private static HoldState hold(String job, String technician, Instant expiresAt) {
-        return new HoldState(job, "offer-" + job, "set-" + job, expiresAt, "service", DAY, Required.value(DAY.plusSeconds(7200)), 60, 41.26, -95.94, DAY, technician);
+        return new HoldState(job, "offer-" + job, "set-" + job, expiresAt, "service", DAY, Required.value(DAY.plusSeconds(7200)), 60, 41.26, -95.94, DAY, technician, PublicTypes.CoordinateSource.HOST);
     }
 
     private static final Instant LATER = Required.value(NOW.plusSeconds(300));
