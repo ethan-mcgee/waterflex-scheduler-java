@@ -184,6 +184,13 @@ jobs:
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
+      # Required by the scheduler; each jar in a job gets its own management (metrics) port.
+      SCHEDULER_RETENTION_DAYS: '30'
+      MANAGEMENT_PORT: '19000'
+      # The scheduler jars log in as a member of scheduler_app, as deployments do; DATABASE_USER stays the owner for
+      # migrations and the database integration tests.
+      SCHEDULER_DB_LOGIN: scheduler_ci
+      SCHEDULER_DB_PASSWORD: scheduler-ci-login-password
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -209,7 +216,8 @@ jobs:
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
-          java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/scheduler.log" 2>&1 &
+          (cd web && npm run -s db:scheduler-login)
+          DATABASE_USER="$SCHEDULER_DB_LOGIN" DATABASE_PASSWORD="$SCHEDULER_DB_PASSWORD" java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/scheduler.log" 2>&1 &
           for _attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:18001/health > /dev/null &&
                curl --fail --silent http://127.0.0.1:18000/health > /dev/null; then
@@ -226,10 +234,11 @@ jobs:
           JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=booking_location_it
           ENGINE_URL: http://127.0.0.1:18002
           SERVER_PORT: '18002'
+          MANAGEMENT_PORT: '19002'
           SCHEDULER_SEARCH_CAPACITY: '2'
         run: |
           npx prisma migrate deploy
-          java -jar ../scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/location-scheduler.log" 2>&1 &
+          DATABASE_USER="$SCHEDULER_DB_LOGIN" DATABASE_PASSWORD="$SCHEDULER_DB_PASSWORD" java -jar ../scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/location-scheduler.log" 2>&1 &
           location_pid=$!
           trap 'kill "$location_pid"' EXIT
           for _attempt in {1..60}; do
@@ -332,6 +341,13 @@ jobs:
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
+      # Required by the scheduler; each jar in a job gets its own management (metrics) port.
+      SCHEDULER_RETENTION_DAYS: '30'
+      MANAGEMENT_PORT: '19000'
+      # The scheduler jars log in as a member of scheduler_app, as deployments do; DATABASE_USER stays the owner for
+      # migrations and the database integration tests.
+      SCHEDULER_DB_LOGIN: scheduler_ci
+      SCHEDULER_DB_PASSWORD: scheduler-ci-login-password
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -366,10 +382,11 @@ jobs:
           ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001
         run: |
           node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
+          (cd web && npm run -s db:scheduler-login)
           token=$(openssl rand -hex 32)
           SOLVER_AUTH_TOKEN="$token" SERVER_PORT=18004 java -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-solver.log" 2>&1 &
           solver_pid=$!
-          SCHEDULER_CALCULATION_AUTH_TOKEN="$token" SCHEDULER_CALCULATION_MODE=REMOTE SCHEDULER_CALCULATION_URL=http://127.0.0.1:18004 SERVER_PORT=18003 java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-scheduler.log" 2>&1 &
+          SCHEDULER_CALCULATION_AUTH_TOKEN="$token" SCHEDULER_CALCULATION_MODE=REMOTE SCHEDULER_CALCULATION_URL=http://127.0.0.1:18004 SERVER_PORT=18003 MANAGEMENT_PORT=19003 DATABASE_USER="$SCHEDULER_DB_LOGIN" DATABASE_PASSWORD="$SCHEDULER_DB_PASSWORD" java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-scheduler.log" 2>&1 &
           remote_pid=$!
           trap 'kill "$remote_pid" "$solver_pid"' EXIT
           for _attempt in {1..60}; do

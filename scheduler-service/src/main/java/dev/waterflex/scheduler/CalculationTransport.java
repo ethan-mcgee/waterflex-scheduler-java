@@ -13,6 +13,13 @@ public final class CalculationTransport {
         if (!mode.equals("EMBEDDED") && !mode.equals("REMOTE")) throw new IllegalArgumentException("Unknown calculation mode");
         remote = mode.equals("REMOTE") ? new HttpCalculation(url,token) : null;
     }
+    /** Whether calculations run on a remote solver pool, which readiness then checks. */
+    public boolean remote() { return remote != null; }
+    /** Readiness of the remote solver pool; a no-op when calculations are embedded. */
+    public void checkRemote(java.time.Duration timeout) {
+        HttpCalculation current = remote;
+        if (current != null) current.checkHealth(timeout);
+    }
     public BookingCalculation.Output booking(BookingCalculation.Input input) {
         if (remote == null) {
             return BookingCalculation.run(input);

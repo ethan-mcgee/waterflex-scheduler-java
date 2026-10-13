@@ -114,8 +114,14 @@ public final class DailyOperation {
     private static <T> T launch(SearchAdmission admission, Supplier<Preparation<T>> prepare, DailyOperation operation) {
         if (CURRENT.get() != null) throw new IllegalStateException("Nested daily operation would reset the allowance");
         CompletableFuture<T> completion = new CompletableFuture<>();
+        // The worker logs with the caller's context (tenant, host request ID), so its receipt line correlates with the call.
+        java.util.Map<String, String> context = org.slf4j.MDC.getCopyOfContextMap();
         // Admission bounds active work and its waiting queue. No application thread pool queue resets the clock.
-        Thread.ofVirtual().name("daily-" + operation.id).start(() -> operation.run(admission, prepare, completion));
+        Thread.ofVirtual().name("daily-" + operation.id).start(() -> {
+            if (context != null) org.slf4j.MDC.setContextMap(context);
+            try { operation.run(admission, prepare, completion); }
+            finally { org.slf4j.MDC.clear(); }
+        });
         try {
             T result = Required.value(completion.get(operation.deadline.remainingNanos(), TimeUnit.NANOSECONDS));
             operation.deadline.requireTime();

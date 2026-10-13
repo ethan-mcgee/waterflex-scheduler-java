@@ -25,6 +25,13 @@ services:
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
     volumes: ["map-data:/maps"]
     ports: ["127.0.0.1:8001:8001"]
+    # The JRE image has no curl; bash's /dev/tcp reads the status line. Loading the road graph can take minutes.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8001 && printf 'GET /health HTTP/1.0\r\n\r\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 300s
   solver-service:
     profiles: ["remote-solver"]
     image: waterflex-calculation-solver:local
@@ -47,8 +54,12 @@ services:
       dockerfile: scheduler-service/Dockerfile
     environment:
       JDBC_DATABASE_URL: jdbc:postgresql://db:5432/waterflex
-      DATABASE_USER: waterflex
-      DATABASE_PASSWORD: waterflex
+      # The least-privilege login schema-migrate creates (a member of scheduler_app); never the schema owner.
+      DATABASE_USER: scheduler
+      DATABASE_PASSWORD: ${SCHEDULER_DB_PASSWORD:-local-compose-scheduler-db-password-not-for-production}
+      # Required, no default: days the thin store keeps requests, proposals, offers and receipts. The scheduler refuses
+      # to start without it; set it in .env.
+      SCHEDULER_RETENTION_DAYS: ${SCHEDULER_RETENTION_DAYS:-}
       ROUTING_URL: http://routing-service:8001
       # Public API routing per WaterFlex metro ID, for example omaha=http://routing-service:8001
       # The public API routes only the metros listed here; the seeded Omaha metro is listed by default.
@@ -65,7 +76,15 @@ services:
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
-    ports: ["127.0.0.1:8000:8000"]
+    # 8000 is the API; 9000 serves /actuator/health and /actuator/prometheus and stays on a private interface.
+    ports: ["127.0.0.1:8000:8000", "127.0.0.1:9000:9000"]
+    # Readiness: 503 until the database, each metro's routing and any remote solver or address lookup answer.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\r\n\r\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
   nominatim:
     image: mediagis/nominatim:5.3
     environment:
@@ -154,9 +173,12 @@ services:
     image: waterflex-scheduler-schema-migrate:local
     pull_policy: build
     build: ./web
-    command: ["npx", "prisma", "migrate", "deploy"]
+    # Migrates, then creates or updates the scheduler's least-privilege login (scripts/scheduler-db-login.ts).
+    command: ["sh", "-c", "npx prisma migrate deploy && npx tsx scripts/scheduler-db-login.ts"]
     environment:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
+      SCHEDULER_DB_LOGIN: scheduler
+      SCHEDULER_DB_PASSWORD: ${SCHEDULER_DB_PASSWORD:-local-compose-scheduler-db-password-not-for-production}
     depends_on:
       db: { condition: service_healthy }
     restart: "no"
