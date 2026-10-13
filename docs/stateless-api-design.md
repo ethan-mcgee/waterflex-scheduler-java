@@ -22,7 +22,7 @@ The product has no end-user screens of its own. WaterFlex Software renders all m
 | Strict booking dataset | `BookingDataset` encodes a complete booking snapshot the same way. |
 | Calculation service | `solver-service` accepts a hashed `CalculationProtocol.Request` (`DAILY` or `BOOKING`), runs the shared `calculation-engine`, and returns a proposal. No database. Bearer token auth, admission limits, `DELETE /v1/solves/{id}` cancellation. |
 | Routing service | `routing-service` turns points into directed legs (`/internal/matrix`, `/internal/legs`) with a routing identity hash. No database; in-memory cache only. Computation endpoints require the `ROUTING_AUTH_TOKEN` bearer token; `/health` is open. |
-| Scheduler | `scheduler-service` serves `/api/v1`. Every calculating call carries a snapshot of the facts it needs; the scheduler routes it through the metro's routing service, calls the engine (embedded by default, remote optional), revalidates the result, and keeps only holds, offers, proposals and receipts. Java reads 11 tables: `tenant`, `tenant_api_token`, the eight `api_*` tables and `road_route_cache` (`web/scripts/check-java-schema-contract.ts` checks exactly these). It reads no master data and holds no policy settings. |
+| Scheduler | `scheduler-service` serves `/api/v1`. Every calculating call carries a snapshot of the facts it needs; the scheduler routes it through the metro's routing service, calls the engine (embedded by default, remote optional), revalidates the result, and keeps only holds, offers, proposals and receipts. Java reads 11 tables: `tenant`, `tenant_api_token`, the eight `api_*` tables and `road_route_cache`. They live in the scheduler's own database, which it creates and migrates itself (Flyway, `--command=migrate`); `SchemaContractIT` checks the columns, policies and grants Java relies on. It reads no master data and holds no policy settings. |
 | Geocoding | Self-hosted Nominatim (`NOMINATIM_URL`) over OpenStreetMap. The portal matches and validates addresses itself; the scheduler can locate address-only locations (`geocoding.mode=NOMINATIM`, see "Locations and geocoding"). No paid geocoding or matrix API. |
 | Portal | `web/` owns the master data (clients, dealerships, depots, technicians, customers, jobs, appointments, time off) and calls only `/api/v1`, as WaterFlex Software will (see "Portal as a client"). |
 
@@ -46,7 +46,7 @@ The scheduler API is the only public surface. Calculation and routing stay priva
 - The scheduler and routing services run on their own VMs on the same private network as the rest of WaterFlex Software. Nothing is exposed to the public internet.
 - The solver stays embedded in `scheduler-service` (`SCHEDULER_CALCULATION_MODE=EMBEDDED`, the default today). Moving it out is a configuration change, not a redesign; see "Scaling".
 - Each served metro has its own private routing service, loaded with that metro's road graph. Routing sees only coordinates, never client data, so every client in a metro shares that metro's routing service.
-- One thin Postgres database serves all clients (see "Multiple clients").
+- One thin Postgres database, the scheduler's own, serves all clients (see "Multiple clients"). The scheduler creates and migrates its schema itself and nothing else connects to it; the portal and WaterFlex Software reach the scheduler only through `/api/v1`. `deploy/vm/docker-compose.yml` is this VM's shape.
 
 ## Public contract v1
 
@@ -231,7 +231,7 @@ The retention period is the deployment's `SCHEDULER_RETENTION_DAYS` (1 to 3650 d
 ### Tenant isolation
 
 - One Postgres database and one set of tables for all clients. Every client-owned table has a `tenant_id` column, and every primary key, unique constraint and index starts with it, for example `(tenant_id, technician_id, service_date)`. Host IDs are unique only within a client, so two clients can both have technician `42`.
-- Each client has its own API tokens. The server maps the token to `tenant_id`; requests cannot choose a tenant. Exists today: `tenant` and `tenant_api_token` tables, tokens of the form `wfs_` plus 32 random bytes (base64url), stored only as SHA-256 digests, issued and revoked with `web/scripts/issue-tenant-token.ts`. A revoked token or a disabled tenant gets 401.
+- Each client has its own API tokens. The server maps the token to `tenant_id`; requests cannot choose a tenant. Exists today: `tenant` and `tenant_api_token` tables, tokens of the form `wfs_` plus 32 random bytes (base64url), stored only as SHA-256 digests, issued, revoked, listed and disabled with the scheduler's own command line (`java -jar scheduler-service.jar --command=issue-token`, `revoke-token`, `list-tenants`, `disable-tenant`). A revoked token or a disabled tenant gets 401.
 - Postgres row-level security is the second guard: each transaction sets `app.tenant_id`, and policies restrict every client-owned table to that tenant. A missed filter in application code then fails closed instead of reading another client's rows.
 - Schema-per-client or database-per-client gives stronger isolation but multiplies migrations and operations. Keep it as an option for a client that contractually requires it. Because every row already carries `tenant_id`, that client's rows can be moved into a dedicated database without an API change.
 
@@ -277,7 +277,7 @@ Implications for the target design:
 
 The public API got its own tables instead of a tenant column on the portal's booking and optimization tables, because those referenced master data (appointments, jobs, technicians) the thin store must not hold, and the portal path had to keep running while it was moved over (see "Migration").
 
-Exists today (migrations `20261009120000_public_api_store`, `20261010120000_public_api_commit`, `20261011120000_public_api_booking`, `20261012120000_public_api_booking_select`, `20261013120000_public_api_booking_confirm` and `20261014120000_public_api_repair`):
+Exists today, created by the scheduler's own migration `V1__thin_store.sql` (until 2026-10-29 these tables were created by the portal's Prisma migrations `20261009120000_public_api_store` to `20261014120000_public_api_repair`, in the portal's database):
 
 | Table | Holds |
 | --- | --- |
@@ -291,7 +291,7 @@ Exists today (migrations `20261009120000_public_api_store`, `20261010120000_publ
 
 Every key starts with `tenantId`. Row-level security is on for all of them: `PublicApiStore` runs each transaction as the `scheduler_tenant` database role with `app.tenant_id` set, so even a query without a tenant filter sees only the caller's rows, an unset tenant sees none, and that role cannot read any other table. Persisted proposal and booking state JSON is validated again on every read, and a stored answer is validated again before it is replayed.
 
-The tables of the retired paths are dropped (migration `20261024120000_drop_legacy_scheduler_tables`): the scheduler's optimization runs and changes, its daily and overnight attempt receipts, the internal holds, offers, offer sets, searches, reservation arrangements and dependencies with their obligation view, and the monetary migration receipts, along with columns nothing read. The master data tables stay because the portal owns its clients' records, as WaterFlex Software owns its own; the scheduler does not read them. In a deployment beside WaterFlex Software, the scheduler's database holds only the thin store, the tenant tables and the route cache.
+The tables of the retired paths are dropped (migration `20261024120000_drop_legacy_scheduler_tables`): the scheduler's optimization runs and changes, its daily and overnight attempt receipts, the internal holds, offers, offer sets, searches, reservation arrangements and dependencies with their obligation view, and the monetary migration receipts, along with columns nothing read. The master data tables stay because the portal owns its clients' records, as WaterFlex Software owns its own; the scheduler does not read them. The scheduler's database holds only the thin store, the tenant tables and the route cache, and the portal's database holds none of them (portal migration `20261029120000_scheduler_owns_thin_store` dropped its copies).
 
 ## Operations owned by the host
 
@@ -331,7 +331,7 @@ The portal stays, keeps its pages, and is a client of the public API, standing i
 
 Each client's public API token lives in the portal's environment or secret file, never in the portal database. Clients are created with `npx tsx scripts/create-client.ts <clientId> "<client name>"`.
 
-9. Connection visibility and local tokens (2026-10-12). Without a token the portal correctly refuses to schedule, but a fresh local Compose stack had none, so booking and the booking test runner failed only when tried. The sidebar now shows whether the active client can reach the public API (`GET /api/clients/connection`: connected only after the token's tenant is verified; otherwise not connected or unreachable, with the reason). The scheduler's bare 401 for an unknown or revoked token now counts as not connected rather than a malformed reply. The portal reads a client's token from `SCHEDULER_API_TOKEN_<CLIENT ID>`, or when that is unset from the file named after the client in `SCHEDULER_API_TOKEN_DIR`. Local Compose runs a one-shot `token-bootstrap` service (only with `LOCAL_TOKEN_BOOTSTRAP=true`) that issues a token labelled `local-compose` for each client without a file and writes it, mode 0600, to the `portal-api-tokens` volume that the portal and overnight worker mount read-only. Existing files are never rotated; a lost file is reissued and the client's earlier `local-compose` tokens are revoked. The database still holds only token digests.
+9. Connection visibility and local tokens (2026-10-12). Without a token the portal correctly refuses to schedule, but a fresh local Compose stack had none, so booking and the booking test runner failed only when tried. The sidebar now shows whether the active client can reach the public API (`GET /api/clients/connection`: connected only after the token's tenant is verified; otherwise not connected or unreachable, with the reason). The scheduler's bare 401 for an unknown or revoked token now counts as not connected rather than a malformed reply. The portal reads a client's token from `SCHEDULER_API_TOKEN_<CLIENT ID>`, or when that is unset from the file named after the client in `SCHEDULER_API_TOKEN_DIR`. Local Compose runs a one-shot `token-bootstrap` service (only with `LOCAL_TOKEN_BOOTSTRAP=true`) that issues a token labelled `local-compose` for each client without a file and writes it, mode 0600, to the `portal-api-tokens` volume that the portal and overnight worker mount read-only. Existing files are never rotated; a lost file is reissued and the client's earlier `local-compose` tokens are revoked. The database still holds only token digests. Since the scheduler owns its database (2026-10-29), the bootstrap is the scheduler's own `--command=bootstrap-local-tokens`, fed a client list the portal writes, and a token file the scheduler's database does not accept is reissued too.
 
 ## Migration
 
@@ -345,7 +345,7 @@ What remains, on the WaterFlex Software side:
 
 - Build snapshots from its own records, including a `lastModified` per technician-day that follows the rules in "Commit ownership and concurrency".
 - Write receipts with a compare-and-set on those timestamps, and treat `STALE` and `HOLD_UNAVAILABLE` as "ask again".
-- Hold one tenant token per client (`web/scripts/issue-tenant-token.ts` issues them) and route each served metro (`ROUTING_METRO_URLS`).
+- Hold one tenant token per client (the scheduler's `--command=issue-token` issues them) and route each served metro (`ROUTING_METRO_URLS`).
 - Run its own overnight schedule against `POST /api/v1/daily/proposals`.
 
 The portal is the worked example of each of these (`web/lib/clientSnapshot.ts`, `web/lib/apiReceipt.ts`, `web/lib/overnightCore.ts`, `web/scripts/overnight-worker.ts`).

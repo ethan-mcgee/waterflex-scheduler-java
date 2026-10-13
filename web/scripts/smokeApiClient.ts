@@ -1,10 +1,10 @@
 // Connects an existing portal client to a running scheduler's public API for one smoke run, as an operator would: a
-// tenant with the client's ID, a token in the client's environment variable, and solver settings if it has none. The
-// returned cleanup revokes the token and removes settings the run added. The tenant stays: the scheduler's request
-// records refer to it, and without a token it cannot call.
-import { randomUUID } from "node:crypto";
+// token from the scheduler's command line for a tenant with the client's ID, put in the client's environment
+// variable, and solver settings if it has none. The returned cleanup revokes the token and removes settings the run
+// added. The tenant stays in the scheduler's database: its request records refer to it, and without a token it
+// cannot call.
 import { prisma } from "../lib/prisma";
-import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
+import { issueToken, revokeToken } from "./smokeTokens";
 import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { tokenVariable } from "../lib/schedulerApi";
 
@@ -16,13 +16,10 @@ export async function connectSmokeClient(clientId: string, baseUrl: string, labe
       travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 3, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
     if (!("saved" in saved)) throw new Error(`Solver settings for ${clientId} were refused`);
   }
-  await prisma.tenant.upsert({ where: { id: clientId }, create: { id: clientId, name: clientId }, update: {} });
-  const tokenId = randomUUID();
-  const token = generateTenantToken();
-  await prisma.tenantApiToken.create({ data: { id: tokenId, tenantId: clientId, tokenSha256: tenantTokenSha256(token), label } });
+  const { id: tokenId, token } = await issueToken(clientId, clientId, label);
   process.env[tokenVariable(clientId)] = token;
   return async () => {
-    await prisma.tenantApiToken.delete({ where: { id: tokenId } });
+    await revokeToken(tokenId);
     if (!hadSettings) await prisma.clientSolverSettings.delete({ where: { clientId } });
   };
 }

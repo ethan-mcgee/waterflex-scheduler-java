@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
-import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
+import { issueToken } from "./smokeTokens";
 import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { addCalendarDays, todayInTz } from "../lib/date";
 import { localMinute } from "../lib/zonedTime";
@@ -33,10 +33,6 @@ assert.ok(base, "SCHEDULER_TEST_URL must point at a running scheduler");
 
 async function removeMetro() {
   const like = "api-repair-%";
-  for (const table of ["api_commit_receipt", "api_proposal_technician_day", "api_daily_proposal", "api_request"])
-    await prisma.$executeRawUnsafe(`DELETE FROM ${table} WHERE "tenantId" LIKE $1`, like);
-  await prisma.$executeRaw`DELETE FROM tenant_api_token WHERE "tenantId" LIKE ${like}`;
-  await prisma.$executeRaw`DELETE FROM tenant WHERE id LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM portal_api_daily_proposal WHERE "clientId" LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM time_off_request WHERE "technicianId" LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM technician_shift_override WHERE "technicianId" LIKE ${like}`;
@@ -79,9 +75,7 @@ async function setUp() {
   const saved = await storeSolverSettings(clientId, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
     travelBufferPercent: "10", travelBufferMinutes: 2, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
   assert.ok("saved" in saved);
-  const token = generateTenantToken();
-  await prisma.tenant.create({ data: { id: clientId, name: clientId } });
-  await prisma.tenantApiToken.create({ data: { id: randomUUID(), tenantId: clientId, tokenSha256: tenantTokenSha256(token), label: "API repair smoke" } });
+  const { token } = await issueToken(clientId, clientId, "API repair smoke");
   process.env.SCHEDULER_API_URL = base;
   process.env[tokenVariable(clientId)] = token;
   await prisma.customer.create({ data: { id: id("customer"), clientId, firstName: "Repair", lastName: "Smoke", email: "repair@example.invalid", phone: "0000000000" } });
