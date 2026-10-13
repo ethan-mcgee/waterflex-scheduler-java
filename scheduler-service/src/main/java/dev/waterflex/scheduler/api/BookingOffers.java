@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.LongAdder;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +76,8 @@ public class BookingOffers {
     private final String variant;
     private final int refinementMillis;
     private final Clock clock;
+    /** Refinement results that failed validation since this process started; each one kept the insertion offers. */
+    private final LongAdder invalidRefinements = new LongAdder();
 
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
@@ -279,13 +282,28 @@ public class BookingOffers {
             checkpoint.run();
             widened = new SnapshotRouting(roads).neighborhoods(snapshot, inserted.neighborhoods(), checkpoint);
             int remaining = optional ? Math.max(1, refinementMillis - (int) ((System.nanoTime() - started) / 1_000_000)) : 0;
-            var refined = transport.booking(new BookingCalculation.Input(widened, job, BookingCalculation.Stage.REFINEMENT, variant, result, remaining));
-            return new Searched(widened, BookingSearchPipeline.combine(result, refined.result(), snapshot.policy()));
+            BoundedBookingSearch.Result refined;
+            try {
+                refined = transport.booking(new BookingCalculation.Input(widened, job, BookingCalculation.Stage.REFINEMENT, variant, result, remaining)).result();
+                refined = BookingSearchPipeline.combine(result, refined, snapshot.policy());
+            } catch (IllegalArgumentException invalid) {
+                // The refinement answered with a plan that fails validation (a remote engine drift or a bug). The insertion
+                // result was validated on its own and is validated again before publishing, so it is kept; the refinement's
+                // improvements are the only loss. The insertion stage above is not covered: an invalid insertion must fail.
+                invalidRefinements.increment();
+                LOG.error("Refinement result for job {} failed validation ({} since this process started); keeping the insertion offers: {}",
+                        job.jobId(), invalidRefinements.sum(), invalid.getMessage(), invalid);
+                return new Searched(widened, incomplete(result, "REFINEMENT_INVALID"));
+            }
+            return new Searched(widened, refined);
         } catch (BoundedBookingSearch.RefinementLimit limit) { return new Searched(widened, incomplete(result, "REFINEMENT_TIME_LIMIT")); }
         catch (SearchDeadline.Expired expired) { return new Searched(widened, incomplete(result, "DEADLINE")); }
         catch (RoadClient.RoadUnavailable unavailable) { return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE")); }
         catch (HttpCalculation.Unavailable unavailable) { return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE")); }
     }
+
+    /** How many refinement results failed validation since this process started. */
+    long invalidRefinements() { return invalidRefinements.sum(); }
 
     private static BoundedBookingSearch.Result incomplete(BoundedBookingSearch.Result result, String reason) {
         return new BoundedBookingSearch.Result(result.candidates(), result.coverage(), false, result.distinctRegularWindows(),
