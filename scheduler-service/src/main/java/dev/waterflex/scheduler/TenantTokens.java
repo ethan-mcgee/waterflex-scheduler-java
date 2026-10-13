@@ -3,6 +3,8 @@ package dev.waterflex.scheduler;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HexFormat;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
@@ -12,15 +14,24 @@ import org.springframework.stereotype.Component;
 /** Resolves a public API token to its tenant. Only SHA-256 digests are stored, never plaintext tokens. */
 @Component
 public class TenantTokens {
-    /** "wfs_" plus 32 random bytes in unpadded base64url, as issued by web/scripts/issue-tenant-token.ts. */
-    static final Pattern FORMAT = Required.value(Pattern.compile("wfs_[A-Za-z0-9_-]{43}"));
+    /** "wfs_" plus 32 random bytes in unpadded base64url, as issued by {@link #generate()}. */
+    public static final Pattern FORMAT = Required.value(Pattern.compile("wfs_[A-Za-z0-9_-]{43}"));
     private final JdbcTemplate jdbc;
 
     public TenantTokens(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    static boolean wellFormed(String token) { return FORMAT.matcher(token).matches(); }
+    private static final SecureRandom RANDOM = new SecureRandom();
 
-    static String sha256(String token) {
+    /** A new token; only its {@link #sha256} digest is ever stored. */
+    public static String generate() {
+        byte[] bytes = new byte[32];
+        RANDOM.nextBytes(bytes);
+        return "wfs_" + Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    public static boolean wellFormed(String token) { return FORMAT.matcher(token).matches(); }
+
+    public static String sha256(String token) {
         try {
             return Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8))));
         } catch (NoSuchAlgorithmException missing) { throw new IllegalStateException("SHA-256 unavailable", missing); }

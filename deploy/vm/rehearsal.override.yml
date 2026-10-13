@@ -1,0 +1,14 @@
+# Local rehearsal of the scheduler VM on the development machine, as its own Compose project beside the development
+# stack. The VM's routing is replaced by the development stack's routing service (reached through the Docker host),
+# so the Omaha graph is not loaded twice; everything else runs as on the VM, with the same compute limits.
+#
+#   docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/rehearsal.override.yml --env-file deploy/vm/rehearsal.env up -d
+#
+# rehearsal.env (ignored by git) holds local secrets and, for this file:
+#   SCHEDULER_API_BIND=127.0.0.1, SCHEDULER_API_PORT=18080, SCHEDULER_MANAGEMENT_PORT=19090,
+#   ROUTING_METRO_URLS=metro-omaha=http://host.docker.internal:8001, and the development stack's ROUTING_AUTH_TOKEN.
+services:
+  routing-omaha:
+    profiles: ["vm-routing"]
+  scheduler-service:
+    extra_hosts: ["host.docker.internal:host-gateway"]

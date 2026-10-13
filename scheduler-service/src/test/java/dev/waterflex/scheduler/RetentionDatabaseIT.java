@@ -1,7 +1,6 @@
 package dev.waterflex.scheduler;
 
 import dev.waterflex.scheduler.api.PublicApiStore;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
@@ -25,9 +24,8 @@ class RetentionDatabaseIT {
     private final DataSourceTransactionManager appTransactions;
 
     RetentionDatabaseIT() {
-        String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
-        assertEquals("/waterflex_test", URI.create(url.substring(5)).getPath());
-        owner = new JdbcTemplate(new DriverManagerDataSource(url, "waterflex", "waterflex"));
+        String url = TestDatabase.url();
+        owner = new JdbcTemplate(TestDatabase.owner());
         owner.execute("CREATE ROLE " + login + " LOGIN PASSWORD 'retention-it' IN ROLE scheduler_app");
         var appSource = new DriverManagerDataSource(url, login, "retention-it");
         app = new JdbcTemplate(appSource);

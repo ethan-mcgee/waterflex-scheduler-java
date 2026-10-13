@@ -136,7 +136,10 @@ jobs:
           tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -color
       - name: Validate Compose configuration
-        run: docker compose --profile map-import config --quiet
+        run: |
+          docker compose --profile map-import config --quiet
+          # The scheduler VM file refuses to render without its required settings; dummy values prove the file is valid.
+          SCHEDULER_DB_OWNER_PASSWORD=x SCHEDULER_DB_PASSWORD=x SCHEDULER_RETENTION_DAYS=30 SCHEDULER_API_BIND=127.0.0.1             ROUTING_METRO_URLS=metro-omaha=http://routing-omaha:8001 ROUTING_AUTH_TOKEN=x ACTIVE_MAP_VERSION=x             docker compose -f deploy/vm/docker-compose.yml --profile nominatim --profile remote-solver --profile monitoring config --quiet
       - name: Verify retained field evidence and generated reports
         run: |
           python3 infra/report-field-validation.py --require-complete
@@ -173,11 +176,31 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # The scheduler's own database, apart from the portal's, as on the scheduler VM.
+      scheduler-db:
+        image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          POSTGRES_USER: scheduler_owner
+          POSTGRES_PASSWORD: scheduler-owner-ci
+          POSTGRES_DB: scheduler_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U scheduler_owner -d scheduler_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
+      # The portal's database (Prisma) ...
       DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test
-      JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
-      DATABASE_USER: waterflex
-      DATABASE_PASSWORD: waterflex
+      # ... and the scheduler's, as its owner: the database integration tests migrate it, --command=migrate and the
+      # smokes' token commands use it, and the scheduler jars serve from it as SCHEDULER_DB_LOGIN.
+      JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5434/scheduler_test
+      DATABASE_USER: scheduler_owner
+      DATABASE_PASSWORD: scheduler-owner-ci
       ROUTING_URL: http://127.0.0.1:18001
       # The public API booking smoke's metro routes through the fixture router.
       ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001,api-shared-smoke=http://127.0.0.1:18001,api-overnight-smoke=http://127.0.0.1:18001,api-master-smoke=http://127.0.0.1:18001,api-master-smoke-far=http://127.0.0.1:18001,api-cancel-smoke=http://127.0.0.1:18001,metro-omaha=http://127.0.0.1:18001,address-matching-smoke=http://127.0.0.1:18001
@@ -187,8 +210,7 @@ jobs:
       # Required by the scheduler; each jar in a job gets its own management (metrics) port.
       SCHEDULER_RETENTION_DAYS: '30'
       MANAGEMENT_PORT: '19000'
-      # The scheduler jars log in as a member of scheduler_app, as deployments do; DATABASE_USER stays the owner for
-      # migrations and the database integration tests.
+      # The scheduler jars log in as a member of scheduler_app, as deployments do.
       SCHEDULER_DB_LOGIN: scheduler_ci
       SCHEDULER_DB_PASSWORD: scheduler-ci-login-password
     steps:
@@ -208,7 +230,7 @@ jobs:
         run: npm ci && npm run prisma:generate
       - name: Migrate, seed, and check schema
         working-directory: web
-        run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract
+        run: npx prisma migrate deploy && npx prisma db seed && npm run test:schema-contract && npm run test:client-boundaries:integration
       - name: Immutable snapshot, reservation and database admission gates
         run: |
           ./mvnw -Pnullability -pl calculation-engine -DskipTests install --batch-mode --no-transfer-progress
@@ -216,7 +238,7 @@ jobs:
       - name: Start fixture routing and scheduler
         run: |
           node infra/fixture-routing.mjs > "$RUNNER_TEMP/fixture-routing.log" 2>&1 &
-          (cd web && npm run -s db:scheduler-login)
+          java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --command=migrate
           DATABASE_USER="$SCHEDULER_DB_LOGIN" DATABASE_PASSWORD="$SCHEDULER_DB_PASSWORD" java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/scheduler.log" 2>&1 &
           for _attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:18001/health > /dev/null &&
@@ -231,7 +253,6 @@ jobs:
         working-directory: web
         env:
           DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=booking_location_it
-          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=booking_location_it
           ENGINE_URL: http://127.0.0.1:18002
           SERVER_PORT: '18002'
           MANAGEMENT_PORT: '19002'
@@ -332,11 +353,31 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # The scheduler's own database, apart from the portal's, as on the scheduler VM.
+      scheduler-db:
+        image: postgres:16
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          POSTGRES_USER: scheduler_owner
+          POSTGRES_PASSWORD: scheduler-owner-ci
+          POSTGRES_DB: scheduler_test
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U scheduler_owner -d scheduler_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
+      # The portal's database (Prisma) ...
       DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test
-      JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test
-      DATABASE_USER: waterflex
-      DATABASE_PASSWORD: waterflex
+      # ... and the scheduler's, as its owner: the database integration tests migrate it, --command=migrate and the
+      # smokes' token commands use it, and the scheduler jars serve from it as SCHEDULER_DB_LOGIN.
+      JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5434/scheduler_test
+      DATABASE_USER: scheduler_owner
+      DATABASE_PASSWORD: scheduler-owner-ci
       ROUTING_URL: http://127.0.0.1:18001
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
@@ -344,8 +385,7 @@ jobs:
       # Required by the scheduler; each jar in a job gets its own management (metrics) port.
       SCHEDULER_RETENTION_DAYS: '30'
       MANAGEMENT_PORT: '19000'
-      # The scheduler jars log in as a member of scheduler_app, as deployments do; DATABASE_USER stays the owner for
-      # migrations and the database integration tests.
+      # The scheduler jars log in as a member of scheduler_app, as deployments do.
       SCHEDULER_DB_LOGIN: scheduler_ci
       SCHEDULER_DB_PASSWORD: scheduler-ci-login-password
     steps:
@@ -376,13 +416,12 @@ jobs:
       - name: Remote calculation business workflows in an isolated database schema
         env:
           DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=remote_calculation_it
-          JDBC_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/waterflex_test?currentSchema=remote_calculation_it
           ENGINE_URL: http://127.0.0.1:18003
           SCHEDULER_TEST_URL: http://127.0.0.1:18003
           ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001
         run: |
           node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
-          (cd web && npm run -s db:scheduler-login)
+          java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --command=migrate
           token=$(openssl rand -hex 32)
           SOLVER_AUTH_TOKEN="$token" SERVER_PORT=18004 java -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-solver.log" 2>&1 &
           solver_pid=$!

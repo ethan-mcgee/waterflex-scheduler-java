@@ -11,6 +11,36 @@ services:
       test: ["CMD-SHELL", "pg_isready -U waterflex"]
       interval: 5s
       retries: 10
+  # The scheduler's own database (tenants, tokens, thin store, route cache), apart from the portal's, as on the VM.
+  scheduler-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scheduler_owner
+      POSTGRES_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:-local-compose-scheduler-owner-not-for-production}
+      POSTGRES_DB: scheduler
+    ports: ["127.0.0.1:5434:5432"]
+    volumes: ["scheduler-db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler_owner -d scheduler"]
+      interval: 5s
+      retries: 10
+  # Migrates the scheduler's database as its owner, then creates or updates the login the scheduler serves with.
+  scheduler-admin:
+    image: waterflex-scheduler-engine:local
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: scheduler-service/Dockerfile
+    command: ["--command=migrate"]
+    environment:
+      JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
+      DATABASE_USER: scheduler_owner
+      DATABASE_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:-local-compose-scheduler-owner-not-for-production}
+      SCHEDULER_DB_LOGIN: scheduler
+      SCHEDULER_DB_PASSWORD: ${SCHEDULER_DB_PASSWORD:-local-compose-scheduler-db-password-not-for-production}
+    depends_on:
+      scheduler-db: { condition: service_healthy }
+    restart: "no"
   routing-service:
     image: waterflex-scheduler-routing:local
     pull_policy: build
@@ -53,8 +83,8 @@ services:
       context: .
       dockerfile: scheduler-service/Dockerfile
     environment:
-      JDBC_DATABASE_URL: jdbc:postgresql://db:5432/waterflex
-      # The least-privilege login schema-migrate creates (a member of scheduler_app); never the schema owner.
+      JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
+      # The least-privilege login scheduler-admin creates (a member of scheduler_app); never the schema owner.
       DATABASE_USER: scheduler
       DATABASE_PASSWORD: ${SCHEDULER_DB_PASSWORD:-local-compose-scheduler-db-password-not-for-production}
       # Required, no default: days the thin store keeps requests, proposals, offers and receipts. The scheduler refuses
@@ -74,8 +104,8 @@ services:
       GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
       NOMINATIM_URL: http://nominatim:8080
     depends_on:
-      db: { condition: service_healthy }
-      schema-migrate: { condition: service_completed_successfully }
+      scheduler-db: { condition: service_healthy }
+      scheduler-admin: { condition: service_completed_successfully }
     # 8000 is the API; 9000 serves /actuator/health and /actuator/prometheus and stays on a private interface.
     ports: ["127.0.0.1:8000:8000", "127.0.0.1:9000:9000"]
     # Readiness: 503 until the database, each metro's routing and any remote solver or address lookup answer.
@@ -152,33 +182,49 @@ services:
       schema-migrate: { condition: service_completed_successfully }
       token-bootstrap: { condition: service_completed_successfully }
     restart: unless-stopped
-  # Local Compose only: issues a public API token for each existing client without one and writes it to the
-  # portal-api-tokens volume (the plaintext never reaches the database). Existing files are never rotated. For a client
-  # created later: docker compose run --rm token-bootstrap. Production never sets LOCAL_TOKEN_BOOTSTRAP.
-  token-bootstrap:
+  # Local Compose only, in two steps because the scheduler never reads the portal's database: portal-clients writes the
+  # portal's client list to the portal-api-tokens volume, and token-bootstrap (the scheduler's own command, as its
+  # database owner) gives each client a token file there. A working token file is kept; a missing one, or one this
+  # scheduler database does not accept, is reissued. For a client created later:
+  #   docker compose run --rm portal-clients && docker compose run --rm token-bootstrap
+  # Production never sets LOCAL_TOKEN_BOOTSTRAP; there, tokens are issued with --command=issue-token.
+  portal-clients:
     image: waterflex-scheduler-web:local
     pull_policy: build
     build: ./web
-    command: ["npx", "tsx", "scripts/bootstrap-local-tokens.ts"]
+    command: ["npx", "tsx", "scripts/write-client-list.ts", "/run/portal-api-tokens/clients.json"]
     environment:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
-      LOCAL_TOKEN_BOOTSTRAP: ${LOCAL_TOKEN_BOOTSTRAP:-true}
-      SCHEDULER_API_TOKEN_DIR: /run/portal-api-tokens
     volumes: ["portal-api-tokens:/run/portal-api-tokens"]
     depends_on:
       db: { condition: service_healthy }
       schema-migrate: { condition: service_completed_successfully }
     restart: "no"
+  token-bootstrap:
+    image: waterflex-scheduler-engine:local
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: scheduler-service/Dockerfile
+    command: ["--command=bootstrap-local-tokens", "/run/portal-api-tokens/clients.json", "/run/portal-api-tokens"]
+    environment:
+      JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
+      DATABASE_USER: scheduler_owner
+      DATABASE_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:-local-compose-scheduler-owner-not-for-production}
+      LOCAL_TOKEN_BOOTSTRAP: ${LOCAL_TOKEN_BOOTSTRAP:-true}
+    volumes: ["portal-api-tokens:/run/portal-api-tokens"]
+    depends_on:
+      portal-clients: { condition: service_completed_successfully }
+      scheduler-admin: { condition: service_completed_successfully }
+    restart: "no"
   schema-migrate:
     image: waterflex-scheduler-schema-migrate:local
     pull_policy: build
     build: ./web
-    # Migrates, then creates or updates the scheduler's least-privilege login (scripts/scheduler-db-login.ts).
-    command: ["sh", "-c", "npx prisma migrate deploy && npx tsx scripts/scheduler-db-login.ts"]
+    # The portal's own database only; the scheduler migrates its database itself (scheduler-admin).
+    command: ["npx", "prisma", "migrate", "deploy"]
     environment:
       DATABASE_URL: postgresql://waterflex:waterflex@db:5432/waterflex
-      SCHEDULER_DB_LOGIN: scheduler
-      SCHEDULER_DB_PASSWORD: ${SCHEDULER_DB_PASSWORD:-local-compose-scheduler-db-password-not-for-production}
     depends_on:
       db: { condition: service_healthy }
     restart: "no"
@@ -194,6 +240,7 @@ services:
     volumes: ["map-data:/maps"]
 volumes:
   app-db:
+  scheduler-db:
   portal-api-tokens:
   map-data:
   nominatim-db:
