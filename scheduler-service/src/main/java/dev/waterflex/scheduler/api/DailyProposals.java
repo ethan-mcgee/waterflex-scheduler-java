@@ -2,7 +2,6 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
-import dev.waterflex.scheduler.DatabaseFacts;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
@@ -15,7 +14,6 @@ import dev.waterflex.scheduler.api.PublicResponses.*;
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDay;
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDayVersion;
 import dev.waterflex.scheduler.optimizer.*;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
@@ -23,7 +21,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +29,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -66,19 +62,18 @@ public class DailyProposals {
     private final CalculationTransport transport;
     private final DailySolvers solvers;
     private final SearchAdmission admission;
-    private final JdbcTemplate jdbc;
     private final Clock clock;
 
     @Autowired
     public DailyProposals(PublicApiStore store, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                          DailySolvers solvers, SearchAdmission admission, JdbcTemplate jdbc) {
-        this(store, routing, locator, transport, solvers, admission, jdbc, Required.value(Clock.systemUTC()));
+                          DailySolvers solvers, SearchAdmission admission) {
+        this(store, routing, locator, transport, solvers, admission, Required.value(Clock.systemUTC()));
     }
 
     public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                          DailySolvers solvers, SearchAdmission admission, JdbcTemplate jdbc, Clock clock) {
+                          DailySolvers solvers, SearchAdmission admission, Clock clock) {
         this.store = store; this.routing = routing; this.locator = locator; this.transport = transport;
-        this.solvers = solvers; this.admission = admission; this.jdbc = jdbc; this.clock = clock;
+        this.solvers = solvers; this.admission = admission; this.clock = clock;
     }
 
     public Reply create(String tenantId, String body) {
@@ -159,7 +154,7 @@ public class DailyProposals {
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Routes for " + request.serviceDate() + " are frozen from 6 a.m. local time");
         String revision = revision(snapshot, absence);
         String proposalId = PublicApiStore.newProposalId();
-        SchedulingPolicy.Rules policy = rules(sharedPolicy(jdbc), snapshot.policy());
+        SchedulingPolicy.Rules policy = snapshot.policy().rules();
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
         DailyCalculation.Allocation allocation = allocation(snapshot.policy());
@@ -240,19 +235,6 @@ public class DailyProposals {
     static Duration lease(PublicTypes.Snapshot snapshot) {
         Duration running = Required.value(DailyOperation.Allowance.forSearch(allocation(snapshot.policy())).total().plus(PublicApiStore.LEASE_MARGIN));
         return running.compareTo(PublicApiStore.LEASE) > 0 ? running : PublicApiStore.LEASE;
-    }
-
-    /** The scheduler's policy settings with the client's own fairness budget in place of the shared one. */
-    static SchedulingPolicy.Rules rules(SchedulingPolicy.Rules shared, PublicTypes.Policy client) {
-        return new SchedulingPolicy.Rules(shared.regularWindowThreshold(), shared.utilizationThreshold(), client.fairnessBudget(), shared.bookingDeadlineMs());
-    }
-
-    /** The scheduler's own policy settings, the same ones the portal path reads. */
-    static SchedulingPolicy.Rules sharedPolicy(JdbcTemplate jdbc) {
-        Map<String, BigDecimal> settings = new HashMap<>();
-        jdbc.query("SELECT key,value FROM omaha_setting", (org.springframework.jdbc.core.RowCallbackHandler) rs ->
-                settings.put(DatabaseFacts.string(rs, 1), DatabaseFacts.decimal(rs, 2)));
-        return PolicySettings.read(settings);
     }
 
     /** The parser's own first line for malformed JSON, since the wrapper's message alone says only that it was invalid. */

@@ -2,6 +2,7 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.optimizer.DailyCalculation;
 import dev.waterflex.scheduler.optimizer.DailySearch;
+import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -67,8 +68,17 @@ public final class PublicTypes {
      * The client's own scheduling choices. A fairness budget of zero means fairness may never add cost. The daily
      * search method and its cost and fairness search seconds apply to daily and repair proposals; a fairness time of
      * zero skips the fairness phase, and a repair (one phase) may spend both times.
+     * Every policy rule is the client's own; the scheduler holds none. {@code bookingDeadlineMs} bounds a booking search
+     * or confirm end to end at the scheduler; when the insertion pass finds more distinct regular arrival windows than
+     * {@code regularWindowThreshold}, the refinement is optional and kept short, otherwise it may use the whole deadline.
      */
-    public record Policy(BigDecimal fairnessBudget, DailySearch dailySearch, Integer costSearchSeconds, Integer fairnessSearchSeconds) {
+    public record Policy(BigDecimal fairnessBudget, DailySearch dailySearch, Integer costSearchSeconds, Integer fairnessSearchSeconds,
+                         Integer bookingDeadlineMs, Integer regularWindowThreshold) {
+        /** Bounds of a client's booking deadline, in milliseconds; the upper one is the latency target. */
+        public static final int MIN_BOOKING_DEADLINE_MS = 1000, MAX_BOOKING_DEADLINE_MS = 5000;
+        /** A threshold above every window a 21-date horizon of whole-hour windows can hold, so any real choice fits. */
+        public static final int MAX_REGULAR_WINDOW_THRESHOLD = 1000;
+
         public Policy {
             if (Input.nonNegative(fairnessBudget, "policy.fairnessBudget").compareTo(BigDecimal.ONE) > 0)
                 throw new IllegalArgumentException("policy.fairnessBudget must be at most 1");
@@ -78,6 +88,13 @@ public final class PublicTypes {
             if (cost + fairness > DailyCalculation.Allocation.MAX_SEARCH_SECONDS)
                 throw new IllegalArgumentException("policy.costSearchSeconds and policy.fairnessSearchSeconds together must be at most "
                         + DailyCalculation.Allocation.MAX_SEARCH_SECONDS);
+            Input.integer(bookingDeadlineMs, "policy.bookingDeadlineMs", MIN_BOOKING_DEADLINE_MS, MAX_BOOKING_DEADLINE_MS);
+            Input.integer(regularWindowThreshold, "policy.regularWindowThreshold", 0, MAX_REGULAR_WINDOW_THRESHOLD);
+        }
+
+        /** The calculation's policy rules, all from this client. */
+        public SchedulingPolicy.Rules rules() {
+            return new SchedulingPolicy.Rules(regularWindowThreshold, fairnessBudget, bookingDeadlineMs);
         }
     }
 

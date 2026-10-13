@@ -9,7 +9,6 @@ import dev.waterflex.scheduler.api.PublicResponses.SkippedTechnicianDay;
 import dev.waterflex.scheduler.api.PublicTypes.Appointment;
 import dev.waterflex.scheduler.api.PublicTypes.Location;
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDay;
-import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import dev.waterflex.scheduler.optimizer.TechRoute;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -51,10 +50,10 @@ public final class RequestBooking {
 
     /**
      * A technician-day whose own location, or one of whose appointments' locations, cannot be located with certainty is
-     * left out, as in the daily path, so one bad address never stops the rest of the horizon. The scheduler's own
-     * policy settings come in {@code policy}; the client's fairness budget replaces the shared one.
+     * left out, as in the daily path, so one bad address never stops the rest of the horizon. Every policy rule is the
+     * client's own, from {@code snapshot.policy}.
      */
-    public static Built build(BookingOffersRequest request, SchedulingPolicy.Rules policy, String routingIdentity, Instant capturedAt,
+    public static Built build(BookingOffersRequest request, String routingIdentity, Instant capturedAt,
                               DailyPreparation.AddressLocator locator) {
         PublicTypes.Snapshot snapshot = request.snapshot();
         Map<PublicTypes.Address, @Nullable RoadPoint> located = new HashMap<>();
@@ -114,8 +113,8 @@ public final class RequestBooking {
         var bookingRates = new BookingSnapshot.Rates(rates.regularHourly(), rates.overtimeHourly(), rates.mileagePerMile(), rates.travelBufferPct(),
                 rates.travelBufferMinutes());
         String configuration = DailyProposals.sha256(dev.waterflex.scheduler.CalculationJson.write(snapshot));
-        var built = new BookingSnapshot(snapshot.metroId(), capturedAt, capturedAt, configuration, routingIdentity,
-                DailyProposals.rules(policy, snapshot.policy()), bookingRates, days, Required.value(days.keySet()));
+        var built = new BookingSnapshot(snapshot.metroId(), capturedAt, configuration, routingIdentity,
+                snapshot.policy().rules(), bookingRates, days, Required.value(days.keySet()));
         var job = request.job();
         return new Built(built, new BoundedBookingSearch.Request(job.id(), job.serviceId(), job.durationMinutes(),
                 Required.value(request.windowHours()) * 60, jobPoint), skipped);

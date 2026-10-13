@@ -13,10 +13,9 @@ import java.util.*;
 
 /**
  * Immutable search facts. Creating mutable evaluator plans never mutates this snapshot. {@code horizon} is every date
- * the search covers, and {@code days} has exactly those dates. The scheduler's own calendar sets the horizon for the
- * portal path; a host request declares it explicitly.
+ * the search covers, as the host's request declares it, and {@code days} has exactly those dates.
  */
-public record BookingSnapshot(String metroId, Instant capturedAt, Instant calendarReference, String configurationFingerprint,
+public record BookingSnapshot(String metroId, Instant capturedAt, String configurationFingerprint,
         String routingIdentity, SchedulingPolicy.Rules policy, Rates rates, Map<LocalDate, Day> days, Set<LocalDate> horizon) {
     /** The most dates one search may cover; the remote dataset accepts no more. */
     public static final int MAX_HORIZON_DAYS = 32;
