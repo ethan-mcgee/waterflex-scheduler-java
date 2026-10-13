@@ -84,7 +84,7 @@ packaging moves to setup and time-off uses three repetitions on PRs as well.
 | Shared address matching smoke | `integration-core` |
 | Technician home pin smoke | `integration-core` |
 | Time-off repair smoke | `integration-time-off` |
-| Sequential booking and preview smoke | `integration-core` |
+| Sequential booking smoke | `integration-core` |
 | Start common-reservation rollout test instance | `integration-reservations` |
 | Common reservation booking lifecycle | `integration-reservations` |
 | Cross-instance search cancellation and lost response cleanup | `integration-reservations` |
