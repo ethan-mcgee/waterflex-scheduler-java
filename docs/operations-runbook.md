@@ -106,7 +106,7 @@ Lines to act on:
 | Metric | Watch for |
 | --- | --- |
 | `http_server_requests_seconds` by `uri` and `status` | Latency per operation; booking offers should stay within the client's `bookingDeadlineMs` plus network time. |
-| `scheduler_admission_rejections_total` | Rising: replicas are saturated and hosts see 429. Add capacity. |
+| `scheduler_admission_rejections_total` | Rising: replicas are saturated and hosts see 429 (including daily proposals refused because the calculations ahead would not finish in time, and requests whose deadline passed in the queue). Add capacity. |
 | `scheduler_admission_active`, `scheduler_admission_queued` | Sustained queue: searches wait for a slot. |
 | `scheduler_routing_leg_requests_total`, `scheduler_routing_leg_pairs_total` by `metro` | Routing load per metro; a jump after a map change is the cold cache filling. |
 | `scheduler_booking_refinement_invalid_total` | Should stay 0. |

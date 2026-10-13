@@ -17,7 +17,8 @@ import { commitDailyProposal, createDailyProposal, createRepairProposal, Schedul
 
 /** A dispatch step the dispatcher sees: an HTTP status and a message. 429 and 503 can be retried. */
 export class DispatchRefused extends Error {
-  constructor(readonly status: number, message: string) { super(message); this.name = "DispatchRefused"; }
+  /** `retryAfterMs`: for a 429, how long the scheduler asked to wait before trying again, or null when it did not say. */
+  constructor(readonly status: number, message: string, readonly retryAfterMs: number | null = null) { super(message); this.name = "DispatchRefused"; }
 }
 
 export const CHANGED = "The schedule changed since this proposal was made. Preview the day again.";
@@ -76,7 +77,7 @@ export function refusedFor(error: unknown): never {
   }
   if (error instanceof SchedulerApiError) {
     if (error.code === "NOT_CONNECTED") { console.error("Scheduling API not connected", error.message); throw new DispatchRefused(503, "Scheduling is not connected for this client."); }
-    if (error.code === "BUSY") throw new DispatchRefused(429, "The scheduler is busy. Try again shortly.");
+    if (error.code === "BUSY") throw new DispatchRefused(429, "The scheduler is busy. Try again shortly.", error.retryAfterMs);
     if (error.code === "CANCELLED") throw new DispatchRefused(409, OPTIMIZATION_CANCELLED);
     if (error.code === "INCOMPLETE_FACTS") throw new DispatchRefused(422, error.message);
     if (error.code === "ROUTING_UNAVAILABLE" || error.code === "CALCULATION_UNAVAILABLE" || error.code === "TRANSPORT")

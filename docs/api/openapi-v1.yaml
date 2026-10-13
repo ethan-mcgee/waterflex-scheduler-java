@@ -468,7 +468,11 @@ components:
           examples:
             unroutable: { value: { error: INCOMPLETE_FACTS, message: No road route to appointment appt-7 } }
     Busy:
-      description: Admission limit reached, or a call with the same requestId is still running; retry with backoff.
+      description: >-
+        Admission limit reached, or a call with the same requestId is still running; retry with backoff. A daily or
+        repair proposal is refused at once, before anything is routed, when the calculations ahead of it on this
+        replica would not finish within its allowance; Retry-After is then their estimated remaining time in seconds
+        (at most 300). Otherwise Retry-After is 1.
       headers:
         Retry-After:
           schema: { type: integer, minimum: 1 }
