@@ -1,0 +1,22 @@
+{
+  "name": "waterflex-scheduler-host-conformance",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Proves a host's snapshot builder and call sequences against a running WaterFlex scheduler, over its public API only.",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "conformance": "tsx conformance.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "tsx": "^4.19.1",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.2",
+    "yaml": "^2.8.1"
+  }
+}
