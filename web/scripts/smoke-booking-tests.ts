@@ -1,9 +1,9 @@
 // The sequential booking test runner end to end against a running scheduler and the fixture router: each request is
-// searched, held and confirmed through the public API as a customer booking for the run's client, each booked day is
-// previewed as the client's daily proposal, and purging deletes the run's jobs with the days they leave re-timed.
+// searched, held and confirmed through the public API as a customer booking for the run's client, which routes its day,
+// the run completes without any optimization, and purging deletes the run's jobs with the days they leave re-timed.
 // Addresses come from the Omaha sample locations the fixture router knows.
 //   ROUTING_METRO_URLS=metro-omaha=http://127.0.0.1:18001   SCHEDULER_TEST_URL=http://127.0.0.1:18000
-import { apiProposal, offer, required, testAttempt, testRun } from "../lib/contracts";
+import { offer, required, testAttempt, testRun } from "../lib/contracts";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
@@ -215,27 +215,20 @@ async function runs() {
   assert.equal(required(run.requests[2]).status, "NO_OFFER"); assert.equal(run.status, "RUNNING");
   const appointments = () => prisma.appointment.findMany({ orderBy: { id: "asc" } });
   const before = await appointments();
-  const nextPreview = await advanceTestRun(id, run.revision, { ...engine, preview: async (date, key) => {
-    await engine.preview(date, key); throw new Error("Injected lost preview response");
-  } });
-  assert.equal(nextPreview.status, "PAUSED");
-  run = await resumed(id);
-  for (let i = 0; i < 12 && run.status === "RUNNING"; i++) run = await advanceTestRun(id, run.revision);
-  assert.equal(run.status, "COMPLETED");
-  assert.deepEqual(await appointments(), before, "Previews preserve every promise and assignment, including pre-existing appointments");
-  // A retried preview replaces the lost one: one preview per day, each the client's daily proposal.
-  assert.equal(new Set(run.previews.map(p => p.serviceDate)).size, run.previews.length, "Ambiguous preview retry keeps one preview per day");
-  const proposals = new Map<string, ReturnType<typeof apiProposal.parse>>();
-  for (const p of wire(run).previews) {
-    const proposal = apiProposal.parse(p.result);
-    assert.equal(p.optimizationId, proposal.proposalId); assert.ok(proposal.reason.length > 0);
-    assert.equal((await prisma.portalApiDailyProposal.findUniqueOrThrow({ where: { id: proposal.proposalId } })).clientId, CLIENT);
-    proposals.set(p.serviceDate, proposal);
+  const proposalsBefore = await prisma.portalApiDailyProposal.count();
+  run = await advanceTestRun(id, run.revision);
+  assert.equal(run.status, "COMPLETED", "The run completes with its last booking");
+  assert.deepEqual(await appointments(), before, "Completing a run preserves every promise and assignment, including pre-existing appointments");
+  assert.equal(await prisma.portalApiDailyProposal.count(), proposalsBefore, "A run never asks for an optimization");
+  assert.equal(wire(run).previews.length, 0, "A run saves no daily proposals");
+  // Each booking placed its visit on a technician's route, timed within the window the customer accepted.
+  for (const request of run.requests.filter(r => r.status === "BOOKED")) {
+    const appointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId: request.id } });
+    assert.equal(appointment.cancelledAt, null);
+    assert.ok(appointment.plannedStart >= appointment.windowStart && appointment.plannedStart <= appointment.windowEnd, "Booked visits are routed within their windows");
+    assert.equal(request.serviceDate, appointment.serviceDate.toISOString().slice(0, 10));
   }
-  const stopsOf = (date: Date) => required(proposals.get(date.toISOString().slice(0, 10)), "preview for the day").routes.flatMap(route => route.stops.map(stop => stop.appointmentId));
   const priorAppointment = await prisma.appointment.findUniqueOrThrow({ where: { jobId: required(priorBooked.requests[0]).id } });
-  assert.ok(stopsOf(priorAppointment.serviceDate).includes(priorAppointment.id), "Entire-day preview contains appointments from earlier runs");
-  assert.ok(stopsOf(first.serviceDate).includes(first.id), "The day's preview routes the run's own booking");
 
   const errors = await createRun(randomUUID(), { ...config, count: 2 });
   run = await resumed(errors.id);
@@ -300,8 +293,6 @@ async function runs() {
   assert.ok(await prisma.appointment.findUnique({ where: { id: priorAppointment.id } }), "Another run survives purge");
   assert.ok(await prisma.appointment.findUnique({ where: { id: manualAppointment.id } }), "Manual appointment survives purge");
   assert.equal(await prisma.portalApiDailyProposal.count(), proposalCount, "Proposal history survives purge");
-  assert.ok(stopsOf(first.serviceDate).includes(first.id), "A saved proposal keeps the purged appointment it routed");
-  assert.ok(wire(await readTestRun(id)).previews.every(p => p.result !== null && "proposalId" in p.result), "Saved proposals still read after purge");
   const survivors = await prisma.appointment.findMany({ where: { technicianId: first.technicianId, serviceDate: first.serviceDate, cancelledAt: null }, orderBy: [{ plannedStart: "asc" }, { id: "asc" }] });
   assert.deepEqual(survivors.map(item => item.sequence), survivors.map((_, index) => index), "Surviving appointments are resequenced");
   for (const survivor of survivors)
@@ -311,6 +302,6 @@ async function runs() {
   const purgedAgain = await purgeTestRun(id);
   assert.equal(purgedAgain.purgedAt?.toISOString(), purged.purgedAt?.toISOString()); assert.equal(purgedAgain.purgedCount, purged.purgedCount);
   assert.deepEqual(await configuration(), configurationBefore, "Runs never rewrite Omaha configuration");
-  console.log("Sequential runner through the public API: ordering, policies, idempotency, pause/stop, concurrency, routing/conflict recovery, preview immutability, and run-scoped purge passed.");
+  console.log("Sequential runner through the public API: ordering, policies, idempotency, pause/stop, concurrency, routing/conflict recovery, booking-only completion, and run-scoped purge passed.");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

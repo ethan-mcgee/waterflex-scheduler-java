@@ -63,8 +63,6 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     expect(saved.email).toBeNull();
     expect(saved.phone).toBeNull();
 
-    await page.goto("/dispatch");
-    await expect(page.locator('[class*="columnHeader"]').filter({ hasText: "Updated Fixture" })).toHaveCSS("border-top-color", "rgb(220, 38, 38)");
     await page.goto("/schedule");
     await expect(page.locator('[class*="techHeader"]').filter({ hasText: "Updated Fixture" })).toHaveCSS("border-left-color", "rgb(220, 38, 38)");
     await page.goto("/technicians");

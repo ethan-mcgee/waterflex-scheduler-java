@@ -246,7 +246,7 @@ export const testRun = runSummary.extend({ revision: z.int().nonnegative(), erro
   requests: z.array(z.object({ id: text, ordinal: z.int().nonnegative(), input: testInput, status: text, offers: z.array(offer),
     selected: offer.nullable(), elapsedMs: finite.nonnegative(), serviceDate: date.nullable(), startedAt: instant.nullable(),
     error: z.string().nullable(), attempts: z.array(testAttempt) })),
-  // A preview is the client's daily proposal for the day; runs saved before the public API hold an engine optimization run.
+  // Only older runs saved previews: the client's daily proposal for the day, or before the public API an engine optimization run.
   previews: z.array(z.object({ id: text, serviceDate: date, optimizationId: text.nullable(), result: z.union([optimization, apiProposal]).nullable(), error: z.string().nullable() })),
 });
 export const testHistory = z.object({ runs: z.array(runSummary), horizon: z.array(date) });

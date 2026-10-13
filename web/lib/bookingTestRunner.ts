@@ -8,7 +8,7 @@ import { bookingHorizon, chooseTestOffer, generateTestInputPlans, validateTestCo
 import { OMAHA_METRO_ID, OMAHA_TIMEZONE } from "./fakeDataCore";
 import { metroClientId } from "./metroClient";
 import { bookApiOffer, BookingRefused, searchApiOffers } from "./apiBooking";
-import { proposeApiDay, view, type ApiProposalView } from "./apiDispatch";
+import { view } from "./apiDispatch";
 import { purgeApiJobs } from "./apiPurge";
 import { ChangeRefused } from "./apiMasterDataCore";
 import { servesMetro } from "./clientScope";
@@ -25,19 +25,16 @@ const include = { requests: { orderBy: { ordinal: "asc" as const } }, previews: 
 export class TestRunError extends Error {
   constructor(message: string, public status = 409) { super(message); }
 }
-/** How a run books and previews; tests replace single steps to inject failures. */
+/** How a run books; tests replace single steps to inject failures. */
 export interface TestEngine {
   offers: (jobId: string) => Promise<z.infer<typeof offersResponse>>;
   select: (jobId: string, offerId: string) => Promise<unknown>;
-  /** A whole-day preview: the client's daily proposal for the date. */
-  preview: (date: string, key: string) => Promise<ApiProposalView>;
 }
-/** Booking as a customer does through the public API, and previewing each day as the client's daily proposal. */
+/** Booking as a customer does through the public API. Each booking routes its day; a run never optimizes. */
 export function apiTestEngine(clientId: string): TestEngine {
   return {
     offers: jobId => searchApiOffers(clientId, jobId),
     select: (jobId, offerId) => bookApiOffer(clientId, jobId, offerId),
-    preview: date => proposeApiDay(clientId, OMAHA_METRO_ID, date),
   };
 }
 // Every reverse-geocoded address is tried: one the scheduler cannot reach gets no offer.
@@ -45,7 +42,7 @@ export const apiGenerationDependencies: AddressGenerationDependencies = {
   reverse: reverseTestAddress,
   routable: async candidates => new Set(candidates.map(candidate => candidate.id)),
 };
-/** A preview's result as saved: a daily proposal, or an engine optimization run for runs made before the public API. */
+/** A preview saved by an older run: a daily proposal, or an engine optimization run from before the public API. New runs save none. */
 const previewResult = z.union([optimization, apiProposal]);
 /** Only an explicit conflict discards a chosen offer; anything else may have booked it and is retried as is. */
 const conflict = (error: unknown) => error instanceof BookingRefused && error.status === 409;
@@ -353,21 +350,8 @@ export async function advanceTestRun(id: string, revision: number, dependencies?
           attempts: json([...z.array(testAttempt).parse(request.attempts), { at: new Date(started).toISOString(), horizon: bookingHorizon(new Date(started)), elapsedMs, offers, selected, outcome, error: errorMessage, search }]) } });
       }
     } else {
-      const dates = [...new Set(run.requests.flatMap(r => r.serviceDate ? [r.serviceDate] : []))].sort();
-      const date = dates.find(date => !run.previews.some(p => p.serviceDate === date && p.optimizationId));
-      if (!date) await prisma.bookingTestRun.updateMany({ where: { id, status: "RUNNING" }, data: { status: "COMPLETED" } });
-      else {
-        const previewId = `${id}:${date}`;
-        await prisma.bookingTestPreview.upsert({ where: { id: previewId }, create: { id: previewId, runId: id, serviceDate: date }, update: {} });
-        try {
-          const result = await engine.preview(date, previewId);
-          await prisma.bookingTestPreview.update({ where: { id: previewId }, data: { optimizationId: result.proposalId, result: json(result), error: null } });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Preview failed";
-          await prisma.bookingTestPreview.update({ where: { id: previewId }, data: { error: message } });
-          await prisma.bookingTestRun.updateMany({ where: { id, status: "RUNNING" }, data: { status: "PAUSED", error: message } });
-        }
-      }
+      // Booking already routed every day; a run ends with its last booking and never asks for an optimization.
+      await prisma.bookingTestRun.updateMany({ where: { id, status: "RUNNING" }, data: { status: "COMPLETED" } });
     }
     return readTestRun(id);
   });

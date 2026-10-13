@@ -43,7 +43,8 @@ export interface ApiProposalView {
   overnightRunId: string | null;
 }
 
-function stored(row: PortalApiDailyProposal) {
+/** A stored proposal row's JSON, validated against its row. */
+export function storedProposalOf(row: PortalApiDailyProposal) {
   const parsed = storedProposal.safeParse({ proposal: row.proposal, technicianDays: row.technicianDays, baseline: row.baseline });
   if (!parsed.success) throw new Error(`Stored proposal ${row.id} is not valid: ${parsed.error.message}`);
   if (parsed.data.proposal.proposalId !== row.id || parsed.data.proposal.decision !== row.decision) throw new Error(`Stored proposal ${row.id} does not match its row`);
@@ -51,7 +52,7 @@ function stored(row: PortalApiDailyProposal) {
 }
 
 export function view(row: PortalApiDailyProposal, overnightRunId: string | null): ApiProposalView {
-  const { proposal, baseline } = stored(row);
+  const { proposal, baseline } = storedProposalOf(row);
   const state: ProposalState = row.receiptId !== null ? "COMMITTED" : row.commitRefusal !== null ? "REFUSED"
     : proposal.decision === "IMPROVED" ? "OPEN" : "NOT_COMMITTABLE";
   return { proposalId: row.id, serviceDate: row.serviceDate.toISOString().slice(0, 10), createdAt: row.createdAt.toISOString(),
@@ -142,7 +143,8 @@ export async function apiProposalHistory(clientId: string, metroId: string, serv
   return rows.map(dailyView);
 }
 
-async function load(clientId: string, proposalId: string): Promise<DailyRow> {
+/** One of the client's daily proposals; a repair proposal or another client's is not found. */
+export async function loadDailyProposal(clientId: string, proposalId: string): Promise<DailyRow> {
   // A repair proposal is applied only by approving its time-off request.
   const row = await prisma.portalApiDailyProposal.findFirst({ where: { id: proposalId, clientId, kind: "DAILY" }, include: withOvernight });
   if (row === null) throw new DispatchRefused(404, "Proposal not found");
@@ -158,7 +160,7 @@ export type SchedulerCommit = { receipt: CommitReceipt; routed: TechnicianDayKey
  */
 export async function commitAtScheduler(clientId: string, proposalRow: PortalApiDailyProposal): Promise<SchedulerCommit> {
   const proposalId = proposalRow.id;
-  const { proposal, technicianDays } = stored(proposalRow);
+  const { proposal, technicianDays } = storedProposalOf(proposalRow);
   if (proposal.decision !== "IMPROVED") return { refused: "Only an improved proposal can be applied." };
   // The commit's request ID is fixed before the first call, so a retry after a lost answer replays the same commit.
   await prisma.portalApiDailyProposal.updateMany({ where: { id: proposalId, commitRequestId: null }, data: { commitRequestId: randomUUID() } });
@@ -202,7 +204,7 @@ export async function markRefused(proposalId: string, message: string): Promise<
 /** Records that the proposal can no longer be applied, unless a concurrent commit already applied it. */
 async function refuse(clientId: string, proposalId: string, message: string): Promise<ApiProposalView> {
   const marked = await markRefused(proposalId, message);
-  const row = await load(clientId, proposalId);
+  const row = await loadDailyProposal(clientId, proposalId);
   if (row.receiptId !== null) return dailyView(row);
   throw new DispatchRefused(409, marked ? message : row.commitRefusal ?? message);
 }
@@ -213,7 +215,7 @@ async function refuse(clientId: string, proposalId: string, message: string): Pr
  * and nothing is written. Applying a proposal that is already applied returns it unchanged.
  */
 export async function commitApiProposal(clientId: string, proposalId: string): Promise<ApiProposalView> {
-  const row = await load(clientId, proposalId);
+  const row = await loadDailyProposal(clientId, proposalId);
   if (row.receiptId !== null) return dailyView(row);
   if (row.commitRefusal !== null) throw new DispatchRefused(409, row.commitRefusal);
   const committed = await commitAtScheduler(clientId, row);
@@ -225,5 +227,5 @@ export async function commitApiProposal(clientId: string, proposalId: string): P
     if (error instanceof StaleReceipt) return refuse(clientId, proposalId, CHANGED);
     throw error;
   }
-  return dailyView(await load(clientId, proposalId));
+  return dailyView(await loadDailyProposal(clientId, proposalId));
 }
