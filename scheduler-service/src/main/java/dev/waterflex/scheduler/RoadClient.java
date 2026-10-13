@@ -101,7 +101,7 @@ public class RoadClient {
                     || !leg.path("geometry").path("coordinates").isArray())
                 throw new RoadUnavailable("Malformed road geometry");
             return data;
-        } catch (RoadUnavailable e) { throw e; }
+        } catch (RoadUnavailable | SearchAdmission.Busy | SearchDeadline.Expired e) { throw e; }
           catch (org.springframework.dao.DataAccessException e) { throw e; }
           catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
           catch (Exception e) { throw requestFailure(e, "Road geometry unavailable"); }
@@ -212,7 +212,7 @@ public class RoadClient {
                 }
                 cache(() -> jdbc.batchUpdate("INSERT INTO road_route_cache (id,\"originKey\",\"destinationKey\",profile,\"mapVersion\",seconds,meters,routable) VALUES (?,?,?,'car',?,?,?,?) ON CONFLICT (\"originKey\",\"destinationKey\",profile,\"mapVersion\") DO UPDATE SET seconds=EXCLUDED.seconds,meters=EXCLUDED.meters,routable=EXCLUDED.routable,\"fetchedAt\"=CURRENT_TIMESTAMP", writes));
                 for (Pair pair : requested) memory.put(pair.id() + ":" + identity, Required.value(found.get(pair.id()), "resolved road pair"));
-            } catch (RoadUnavailable e) { throw e; }
+            } catch (RoadUnavailable | SearchAdmission.Busy | SearchDeadline.Expired e) { throw e; }
               catch (org.springframework.dao.DataAccessException e) { throw e; }
           catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
           catch (Exception e) { throw requestFailure(e, "Sparse routing unavailable"); }
@@ -253,7 +253,7 @@ public class RoadClient {
             if (identity.isBlank()) throw new RoadUnavailable("Road routing identity unavailable");
             if (!identity.equals(routingIdentity)) { memory.clear(); routingIdentity = identity; }
             return identity;
-        } catch (RoadUnavailable e) { throw e; }
+        } catch (RoadUnavailable | SearchAdmission.Busy | SearchDeadline.Expired e) { throw e; }
           catch (org.springframework.dao.DataAccessException e) { throw e; }
           catch (InterruptedException e) { Thread.currentThread().interrupt(); SearchDeadline.checkpoint(); throw new RoadUnavailable("Road request interrupted"); }
           catch (Exception e) { throw requestFailure(e, "Road routing unavailable"); }
@@ -284,11 +284,15 @@ public class RoadClient {
     }
 
     private void cache(Runnable operation) {
-        cacheTransactions.executeWithoutResult(_ -> {
-            dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
-            operation.run();
-            SearchDeadline.checkpoint();
-        });
+        try {
+            cacheTransactions.executeWithoutResult(_ -> {
+                dev.waterflex.scheduler.DatabaseDeadline.apply(jdbc);
+                operation.run();
+                SearchDeadline.checkpoint();
+            });
+        } catch (org.springframework.transaction.TransactionException | org.springframework.dao.DataAccessException failure) {
+            throw DeadlineSignals.unwrap(failure);
+        }
     }
 
     @Scheduled(cron = "${routing.cache.cleanup-cron:0 30 3 * * SUN}", zone = "America/Chicago")
