@@ -49,6 +49,7 @@ TLS is not set up (deferred by owner decision). Terminate TLS in front of the AP
    ```
 
    `curl -H "Authorization: Bearer <token>" http://<SCHEDULER_API_BIND>:8000/api/v1/whoami` answers the tenant.
+7. Prove the install end to end with the [host conformance kit](../../infra/host-conformance/README.md), from the host's network, with a token for a dedicated `conformance` tenant (never a client's). Run it again after every upgrade.
 
 ## Upgrade
 
