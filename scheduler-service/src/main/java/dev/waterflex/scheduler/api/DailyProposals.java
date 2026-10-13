@@ -201,9 +201,9 @@ public class DailyProposals {
                 new TechRoute.Unavailable(absence.window().start(), absence.window().end()));
         var calculation = transport.dailyTokens(searched, policy, solvers.get(search), allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
         SearchDeadline.checkpoint();
-        if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, calculation.reason());
+        if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, ReasonText.describe(calculation.reason()));
         Decision decision = DailyCalculation.valid(calculation.plan()) ? Decision.REJECTED_BY_POLICY : Decision.NO_IMPROVEMENT;
-        return new Outcome(prepared, baseline, decision, calculation.reason());
+        return new Outcome(prepared, baseline, decision, ReasonText.describe(calculation.reason()));
     }
 
     private static DailyProposal response(DailyProposalRequest request, String proposalId, String revision, Outcome outcome) {
