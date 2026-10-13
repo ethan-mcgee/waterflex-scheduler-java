@@ -23,7 +23,7 @@ export class SnapshotError extends Error {
   constructor(readonly code: SnapshotErrorCode, message: string) { super(message); this.name = "SnapshotError"; }
 }
 
-type Anchor = "HOME" | "DEPOT";
+export type Anchor = "HOME" | "DEPOT";
 export interface DepotFacts { id: string; metroId: string; lat: number; lng: number; policies: Array<{ effectiveDate: string; departure: Anchor; returnTo: Anchor }> }
 export interface TechnicianFacts {
   id: string; active: boolean; homeLat: number; homeLng: number; maxDailyMinutes: number; qualifications: string[];
@@ -82,6 +82,20 @@ export function shiftOn(technician: TechnicianFacts, date: string): { startMin: 
 /** The latest row effective on or before a date. */
 function effective<T extends { effectiveDate: string }>(rows: readonly T[], date: string): T | undefined {
   return rows.filter(row => row.effectiveDate <= date).sort((a, b) => a.effectiveDate.localeCompare(b.effectiveDate)).at(-1);
+}
+
+/**
+ * Where a technician leaves from and returns to on a date: their depot's endpoint policy effective that day, as
+ * `assembleSnapshot` applies it. A technician with no assignment or a depot with no policy that day is an error.
+ */
+export function effectiveEndpointPolicy(facts: SnapshotFacts, technicianId: string, date: string): { departure: Anchor; returnTo: Anchor } {
+  const technician = facts.technicians.find(item => item.id === technicianId);
+  if (technician === undefined) throw inconsistent(`Technician ${technicianId} is not in the snapshot facts`);
+  const assignment = effective(technician.assignments, date);
+  if (assignment === undefined) throw inconsistent(`Technician ${technicianId} has no depot on ${date}`);
+  const policy = effective(assignment.depot.policies, date);
+  if (policy === undefined) throw inconsistent(`Depot ${assignment.depot.id} has no route endpoint policy on ${date}`);
+  return { departure: policy.departure, returnTo: policy.returnTo };
 }
 
 function appointmentLocation(address: AppointmentFacts["address"]): PublicLocation {

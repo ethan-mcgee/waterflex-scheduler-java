@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Prisma } from "@prisma/client";
-import { assembleSnapshot, SnapshotError, type AppointmentFacts, type SnapshotFacts, type TechnicianFacts } from "./clientSnapshot";
+import { assembleSnapshot, effectiveEndpointPolicy, SnapshotError, type AppointmentFacts, type SnapshotFacts, type TechnicianFacts } from "./clientSnapshot";
 
 const DATE = "2026-10-12"; // a Monday
 const settings = { regularHourly: new Prisma.Decimal("30"), overtimeHourly: new Prisma.Decimal("45"), mileagePerMile: new Prisma.Decimal("0.67"),
@@ -89,4 +89,20 @@ test("missing or contradictory facts stop the build instead of being filled in",
   assert.equal(code(() => assembleSnapshot(facts({ appointments: [appointment("appt-1", "tech-a", {
     address: { line1: "1 Main St", line2: null, city: "Omaha", state: "NE", postalCode: "68102", lat: 41.2, lng: null } })] }))), "INCONSISTENT");
   assert.equal(code(() => assembleSnapshot(facts({ metro: { id: "metro", timezone: "America/Denver" } }))), "UNSUPPORTED_TIME_ZONE");
+});
+
+test("the effective endpoint policy is the depot's latest policy on or before the date", () => {
+  const changing = { ...depot, policies: [{ effectiveDate: "1900-01-01", departure: "DEPOT" as const, returnTo: "HOME" as const },
+    { effectiveDate: "2026-10-13", departure: "HOME" as const, returnTo: "HOME" as const }] };
+  const loaded = facts({ technicians: [technician("tech-a", { assignments: [{ effectiveDate: "1900-01-01", depot: changing }] })] });
+  assert.deepEqual(effectiveEndpointPolicy(loaded, "tech-a", DATE), { departure: "DEPOT", returnTo: "HOME" });
+  assert.deepEqual(effectiveEndpointPolicy(loaded, "tech-a", "2026-10-13"), { departure: "HOME", returnTo: "HOME" });
+});
+
+test("a missing endpoint policy, assignment or technician is an error, never a default anchor", () => {
+  const unplanned = facts({ technicians: [technician("tech-a", { assignments: [{ effectiveDate: "1900-01-01", depot: { ...depot, policies: [] } }] })] });
+  assert.equal(code(() => effectiveEndpointPolicy(unplanned, "tech-a", DATE)), "INCONSISTENT");
+  const unassigned = facts({ technicians: [technician("tech-a", { assignments: [] })] });
+  assert.equal(code(() => effectiveEndpointPolicy(unassigned, "tech-a", DATE)), "INCONSISTENT");
+  assert.equal(code(() => effectiveEndpointPolicy(facts(), "nobody", DATE)), "INCONSISTENT");
 });

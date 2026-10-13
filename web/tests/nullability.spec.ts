@@ -125,7 +125,7 @@ test("dispatch retains missing-location appointments and shows malformed-history
     await page.goto("/dispatch?date=2026-10-05");
     await expect(page.getByText("Missing Location", { exact: true })).toBeVisible();
     await expect(page.getByText("Location data missing. Routing is blocked.", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Preview optimization" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Optimize routes" })).toBeDisabled();
     await expect(page.getByText("Invalid response. Reload before continuing.", { exact: true })).toBeVisible();
   } finally {
     await prisma.appointment.delete({ where: { id: appointment.id } }); await prisma.job.delete({ where: { id: job.id } });
@@ -167,12 +167,21 @@ const proposalFixture = (overrides: Record<string, unknown> = {}) => ({ proposal
   createdAt: "2026-09-21T12:00:00Z", decision: "IMPROVED", reason: "Lower modeled cost", costCents: 12345, state: "OPEN", committedAt: null,
   refusal: null, routes: [], unresolvedAppointmentIds: [], skippedTechnicianDays: [], changes: [], overnightRunId: null, ...overrides });
 
-test("running sequential polling retains its proposal map and does not refetch roads", async ({ page }) => {
+/** A booked sequential request on 2026-10-05 as the testing page receives it. */
+const bookedRequestFixture = (runId: string, ordinal: number) => {
+  const slot = { offerId: `offer-${ordinal}`, date: "2026-10-05", windowStart: "2026-10-05T14:00:00Z", windowEnd: "2026-10-05T18:00:00Z", expiresAt: "2026-09-21T12:10:00Z" };
+  return { id: `booking-test:${runId}:${ordinal}`, ordinal, status: "BOOKED", offers: [slot], selected: slot, elapsedMs: 1200, serviceDate: "2026-10-05",
+    startedAt: "2026-09-21T12:00:00Z", error: null, attempts: [],
+    input: { ordinal, serviceCode: "SOFTENER_INSTALL", selectionUnit: 0.5, location: { slug: `fixture-${ordinal}`, neighborhood: "Downtown",
+      line1: `${100 + ordinal} Fixture St`, city: "Omaha", state: "NE", postalCode: "68102", lat: 41.2565, lng: -95.9345 } } };
+};
+
+test("running sequential polling retains each booked day's route map and does not refetch roads", async ({ page }) => {
   const id = "22222222-2222-4222-8222-222222222222";
-  const proposal = proposalFixture();
-  const run = { id, status: "RUNNING", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
-    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"], requests: [],
-    previews: [{ id: `${id}:2026-10-05`, serviceDate: "2026-10-05", optimizationId: proposal.proposalId, result: proposal, error: null }] };
+  // Two bookings on one day share one route map; a run has no proposals.
+  const run = { id, status: "RUNNING", createdAt: "2026-09-21T12:00:00Z", config: { count: 2, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },
+    purgedAt: null, purgedCount: null, generation: null, revision: 2, error: null, horizon: ["2026-10-05"], currentHorizon: ["2026-10-05"],
+    requests: [bookedRequestFixture(id, 0), bookedRequestFixture(id, 1)], previews: [] };
   let runReads = 0;
   const geometryQueries: string[] = [];
   await page.route("http://localhost:8083/**", route => route.fulfill({ status: 404 }));
@@ -190,6 +199,8 @@ test("running sequential polling retains its proposal map and does not refetch r
   });
 
   await page.goto(`/dispatch/testing?run=${id}`);
+  await expect(page.getByRole("article", { name: "Routes for 2026-10-05" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Saved proposals" })).toHaveCount(0);
   await expect.poll(() => geometryQueries.length).toBe(1);
   expect(geometryQueries).toEqual(["?metroId=metro-omaha&date=2026-10-05"]);
   const canvas = page.locator(".maplibregl-canvas");
@@ -241,7 +252,7 @@ test("address generation progress survives pause, reload, and resume into bookin
   await expect(page.getByText(/Address generation complete/)).toBeVisible();
 });
 
-test("saved engine previews and unresolved proposals cannot be applied", async ({ page }) => {
+test("older runs' saved engine previews and unresolved proposals cannot be applied", async ({ page }) => {
   const id = "33333333-3333-4333-8333-333333333333";
   // A run saved before the public API holds an engine optimization run.
   const engine = { run_id: "engine-preview", metro_id: "metro-omaha", service_date: "2026-10-05", status: "PREVIEW", reason: null,
@@ -261,13 +272,14 @@ test("saved engine previews and unresolved proposals cannot be applied", async (
   await page.route("**/api/dispatch/testing**", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(
     new URL(route.request().url()).searchParams.has("id") ? run : { runs: [run], horizon: ["2026-10-05", "2026-10-06"] }) }));
   await page.goto(`/dispatch/testing?run=${id}`);
+  await expect(page.getByRole("heading", { name: "Saved proposals" })).toBeVisible();
   await expect(page.getByText(/Saved engine preview engine-preview: preview, 2 appointment\(s\) moved. Engine previews can no longer be applied./)).toBeVisible();
   await expect(page.getByText("Unresolved appointments: unplaced.", { exact: true })).toBeVisible();
   await expect(page.getByText("Nothing to apply", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply proposal" })).toHaveCount(0);
 });
 
-test("sequential review confirms guarded apply, reports conflicts, and confirms purge", async ({ page }) => {
+test("an older run's saved proposal confirms guarded apply, reports conflicts, and confirms purge", async ({ page }) => {
   const id = "11111111-1111-4111-8111-111111111111";
   const proposal = proposalFixture();
   const baseRun = { id, status: "COMPLETED", createdAt: "2026-09-21T12:00:00Z", config: { count: 1, seed: 42, policy: "earliest", weights: [1, 1, 1, 1], radiusMi: 30 },

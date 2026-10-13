@@ -2,8 +2,8 @@ import { date as dateContract } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
 import { activeClient } from "@/lib/activeClient";
 import { tomorrowInTz } from "@/lib/date";
+import { loadSolverSettings } from "@/lib/clientSettingsStore";
 import DispatchBoard from "@/app/dispatch/DispatchBoard";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,8 @@ export default async function DispatchPage({
 }) {
   const clientId = (await activeClient()).id;
   const metros = await prisma.metro.findMany({ where: { depots: { some: { dealership: { clientId } } } }, orderBy: { name: "asc" } });
+  // The board shows one metro: the client's first, or `?metroId=`. There is no metro selector.
+  // Revise when a client has depots across multiple metros.
   const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];
   if (!metro) {
     return (
@@ -53,6 +55,10 @@ export default async function DispatchPage({
     orderBy: { plannedStart: "asc" },
   });
 
+  // The optimize progress bar fills over the configured search time; without settings it has no length to fill.
+  const settings = await loadSolverSettings(clientId);
+  const searchSeconds = settings === null ? null : settings.costSearchSeconds + settings.fairnessSearchSeconds;
+
   const boardTechnicians = technicians.map((t) => ({
     id: t.id,
     name: t.name,
@@ -77,18 +83,21 @@ export default async function DispatchPage({
       addressLine: [a.job.address.line1, a.job.address.line2, a.job.address.city].filter(Boolean).join(", "),
       lat: a.job.address.lat,
       lng: a.job.address.lng,
+      durationMin: a.job.durationMin,
+      geocodePrecision: a.job.address.geocodePrecision,
+      pinConfirmedAt: a.job.address.pinConfirmedAt?.toISOString() ?? null,
+      jobStatus: a.job.status,
     }));
 
-  return <>
-    {metros.length > 1 && <nav aria-label="Dispatch metro" style={{ display: "flex", gap: 12, padding: 16 }}>
-      {metros.map(item => <Link key={item.id} href={`/dispatch?metroId=${encodeURIComponent(item.id)}&date=${date}`} aria-current={item.id === metro.id ? "page" : undefined}>{item.name}</Link>)}
-    </nav>}
-    <DispatchBoard
-      metroId={metro.id}
-      timezone={metro.timezone}
-      date={date}
-      technicians={boardTechnicians}
-      appointments={boardAppointments}
-    />
-  </>;
+  // Keyed by metro day, so moving to another day starts the board fresh.
+  return <DispatchBoard
+    key={`${metro.id}|${date}`}
+    metroId={metro.id}
+    metroName={metro.name}
+    searchSeconds={searchSeconds}
+    timezone={metro.timezone}
+    date={date}
+    technicians={boardTechnicians}
+    appointments={boardAppointments}
+  />;
 }
