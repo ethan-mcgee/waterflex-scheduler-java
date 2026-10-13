@@ -8,7 +8,7 @@ Local booking and dispatch prototype with Omaha map data and support for dealers
 - Java 25 for running Maven outside Docker. The checked-in Maven Wrapper downloads Maven 3.9.16.
 - Node 22 for portal checks outside Docker.
 
-All published Compose ports bind to `127.0.0.1`. The portal is at `http://localhost:3001`, the scheduler at `:8000`, routing at `:8001`, Nominatim at `:8082`, PMTiles at `:8083`, and PostgreSQL at `:5433`.
+All published Compose ports bind to `127.0.0.1`. The portal is at `http://localhost:3001`, the scheduler at `:8000` (metrics at `:9000`), routing at `:8001`, Nominatim at `:8082`, PMTiles at `:8083`, and PostgreSQL at `:5433`.
 
 ## First local setup
 
@@ -16,7 +16,7 @@ All published Compose ports bind to `127.0.0.1`. The portal is at `http://localh
 2. Import Nominatim into its separate `nominatim-db` volume with `docker compose run -d -e PBF_PATH=/maps/versions/<version>/omaha.osm.pbf -e IMPORT_TIGER_ADDRESSES=/maps/versions/<version>/tiger-nominatim-preprocessed.csv.tar.gz nominatim`. Wait for its import to complete and serve search responses, then stop that one-off container. This import takes substantial time and disk space. The TIGER ranges let Nominatim place a house number OpenStreetMap lacks along its street; a match still needs the house number, street and ZIP to agree. Never set `IMPORT_TIGER_ADDRESSES=true`, which makes the image download TIGER data from a third-party server. Activation links the version's TIGER file to `/maps/tiger-nominatim-preprocessed.csv.tar.gz`, and the running Nominatim searches TIGER ranges only while that file exists, so a Nominatim database imported without TIGER must be reimported before activating a TIGER version.
 3. Activate the prepared map with `docker compose --profile map-import run --rm map-import activate <version>`.
 4. Before upgrading an existing database to multi-depot dealerships, run the [depot owner audit](docs/dealerships.md). Resolve every ownerless or multiply owned depot explicitly. The migration stops if the audit has unresolved rows.
-5. Start the application with `docker compose up -d`. Compose builds the local application images, waits for PostgreSQL, applies all tracked Prisma migrations, and starts the portal and scheduler only after migration succeeds.
+5. Set `SCHEDULER_RETENTION_DAYS` in `.env` (see "Scheduler operations"); the scheduler does not start without it. Start the application with `docker compose up -d`. Compose builds the local application images, waits for PostgreSQL, applies all tracked Prisma migrations, and starts the portal and scheduler only after migration succeeds.
 6. For a new demo database only, seed sample data explicitly with `docker compose exec web npx prisma db seed`. Normal startup never runs seed commands.
 
 ## Normal local updates and restarts
@@ -42,6 +42,17 @@ These come from upstream images or tools and need no action: Nominatim's `ASGI a
 `routing-service` requires a shared bearer token on its `/internal/*` computation endpoints and refuses to start without one (`ROUTING_AUTH_TOKEN`, at least 32 non-whitespace characters); `/health` stays open. Compose sets a local-only default for both `routing-service` and `scheduler-service`. Any deployment outside local Compose must set its own secret in both services. Scripts that call a real routing service directly (`infra/validate-map.py`, `infra/verify-sparse-routing.mjs`, `infra/benchmark-routing-ch.mjs`) read the same variable. The CI fixture router does not check it.
 
 The public `/api/v1` calculations route through one routing service per metro, set with `ROUTING_METRO_URLS` (`metro=url` entries separated by commas, using WaterFlex Software metro IDs, for example `omaha=http://routing-omaha:8001,lincoln=http://routing-lincoln:8001`). A request for a metro that is not listed fails; it never falls back to `ROUTING_URL`, which stays the routing service for the internal portal. Every listed service uses the same `ROUTING_AUTH_TOKEN`.
+
+## Scheduler operations
+
+The [operations runbook](docs/operations-runbook.md) covers start order, upgrades, health, logs, metrics, retention, backups and failure modes. The settings it relies on:
+
+- `SCHEDULER_RETENTION_DAYS` (required, 1 to 3650, no default): days the thin store keeps requests, proposals, offers and receipts before the daily purge. The scheduler refuses to start without it.
+- `SCHEDULER_DB_PASSWORD`: password of the scheduler's database login `scheduler`, a member of the least-privilege role `scheduler_app`. `schema-migrate` creates or updates the login after the migrations (`npm run db:scheduler-login` in `web/`). Compose has a local-only default.
+- `MANAGEMENT_PORT` (default 9000): `/actuator/health` and `/actuator/prometheus`, never on the API port. Publish it only on a private interface.
+- `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`: JSON log lines instead of plain text. Either way each `/api/v1` call logs one summary line with its tenant and host `requestId`.
+
+`GET /health` on the API port is readiness: 200 when the database, every metro's routing service, a remote solver and the address lookup (when configured) answer within a second, 503 with the failing component otherwise. `GET /health/live` reads nothing.
 
 ## Public API tokens
 

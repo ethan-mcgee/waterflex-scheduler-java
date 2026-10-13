@@ -24,6 +24,9 @@ public final class SearchAdmission {
     private final Deque<Object> background = new ArrayDeque<>();
     private int active;
     private boolean backgroundActive;
+    private final java.util.concurrent.atomic.LongAdder rejections = new java.util.concurrent.atomic.LongAdder();
+    /** Requests refused because capacity and queue were full, or the deadline passed while waiting. */
+    public long rejections() { return rejections.sum(); }
     public record State(int active, int queuedBookings, int queuedBackground, boolean backgroundActive) { }
     public State state() {
         lock.lock();
@@ -63,6 +66,9 @@ public final class SearchAdmission {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new Busy("Search admission cancelled");
+        } catch (Busy busy) {
+            rejections.increment();
+            throw busy;
         } finally {
             if (locked) {
                 queue.remove(ticket);

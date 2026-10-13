@@ -29,6 +29,15 @@ public class AddressLocation implements DailyPreparation.AddressLocator {
         geocoder = chosen == Mode.NOMINATIM ? new NominatimGeocoder(nominatimUrl) : null;
     }
 
+    /** Whether address-only locations are looked up, which readiness then checks. */
+    public boolean looksUpAddresses() { return geocoder != null; }
+
+    /** Readiness of the address lookup; a no-op when addresses are never looked up. */
+    public void checkLookup(java.time.Duration timeout) {
+        NominatimGeocoder current = geocoder;
+        if (current != null) current.checkStatus(timeout);
+    }
+
     @Override public @Nullable RoadPoint locate(PublicTypes.Address address) {
         NominatimGeocoder current = geocoder;
         return current == null ? null : current.locate(address);

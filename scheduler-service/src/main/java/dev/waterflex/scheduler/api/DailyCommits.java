@@ -45,6 +45,7 @@ public class DailyCommits {
         } catch (IllegalArgumentException invalid) {
             return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, DailyProposals.invalidRequest(invalid)));
         }
+        dev.waterflex.scheduler.RequestLogging.requestId(request.requestId());
         String fingerprint = DailyProposals.sha256(proposalId + "\n" + CalculationJson.write(request));
         return switch (store.claim(tenantId, request.requestId(), Operation.DAILY_COMMIT, fingerprint)) {
             case Replay replay -> replayed(replay);

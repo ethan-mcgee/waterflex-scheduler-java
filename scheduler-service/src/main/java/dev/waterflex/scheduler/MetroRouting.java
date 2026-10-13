@@ -40,6 +40,9 @@ public class MetroRouting {
         this.clients = Required.value(Map.copyOf(clients));
     }
 
+    /** Every configured metro, for readiness. */
+    public java.util.Set<String> metros() { return Required.value(clients.keySet()); }
+
     public RoadClient client(String metroId) {
         RoadClient client = clients.get(metroId);
         if (client == null) throw new UnknownMetro(metroId);

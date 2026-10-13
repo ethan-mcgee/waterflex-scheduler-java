@@ -79,6 +79,20 @@ public final class NominatimGeocoder {
     }
 
     /** The exact house, or null when the address has none, or more than one location. */
+    /** Readiness: Nominatim's own status endpoint answers 200 within {@code timeout}; otherwise {@link Unavailable}. */
+    public void checkStatus(Duration timeout) {
+        try {
+            var response = http.send(Required.value(HttpRequest.newBuilder(Required.value(URI.create(base + "/status"))).timeout(timeout).GET().build()),
+                    HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() != 200) throw new Unavailable("Address lookup status answered HTTP " + response.statusCode());
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new Unavailable("Address lookup status check interrupted");
+        } catch (java.io.IOException failure) {
+            throw new Unavailable("Address lookup unreachable");
+        }
+    }
+
     public @Nullable RoadPoint locate(PublicTypes.Address address) {
         StreetAddress.StreetLine requested = StreetAddress.parseStreetLine(address.line1());
         String house = requested.houseNumber();
