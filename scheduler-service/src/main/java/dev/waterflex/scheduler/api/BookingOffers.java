@@ -240,7 +240,8 @@ public class BookingOffers {
             String technician = technicianOf(prepared.day().baseline(), reserved.holdId());
             var location = job.location();
             newHolds.computeIfAbsent(date, _ -> new TreeMap<>()).put(reserved.holdId(), new HoldState(job.jobId(), reserved.offerId(), offerSetId, expiresAt,
-                    job.serviceId(), candidate.window().start(), candidate.window().end(), job.durationMinutes(), location.lat(), location.lng(), arrival, technician));
+                    job.serviceId(), candidate.window().start(), candidate.window().end(), job.durationMinutes(), location.lat(), location.lng(), arrival, technician,
+                    request.job().location().source()));
             newOffers.add(new BookingStore.NewOffer(reserved.offerId(), reserved.holdId(), date, technician, candidate.window().start(), candidate.window().end()));
             offers.add(new Offer(reserved.offerId(), date, new PublicTypes.Window(candidate.window().start(), candidate.window().end())));
         }
@@ -326,8 +327,7 @@ public class BookingOffers {
         Map<String, HoldState> holds = new HashMap<>();
         reconciled.holds().forEach((id, hold) -> {
             String technician = technicianOf(arrangement, Required.value(id));
-            holds.put(id, technician.equals(hold.technicianId()) ? hold : new HoldState(hold.jobId(), hold.offerId(), hold.offerSetId(), hold.expiresAt(),
-                    hold.serviceId(), hold.windowStart(), hold.windowEnd(), hold.durationMinutes(), hold.lat(), hold.lng(), hold.plannedStart(), technician));
+            holds.put(id, technician.equals(hold.technicianId()) ? hold : hold.on(technician));
         });
         holds.putAll(added);
         return new BookingDayState(technicians, holds);
