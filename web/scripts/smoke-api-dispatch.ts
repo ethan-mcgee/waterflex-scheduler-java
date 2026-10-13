@@ -11,8 +11,8 @@ import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
 import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { addCalendarDays, todayInTz } from "../lib/date";
 import { localMinute } from "../lib/zonedTime";
-import { apiProposalHistory, commitApiProposal, DispatchRefused, proposeApiDay } from "../lib/apiDispatch";
-import { tokenVariable } from "../lib/schedulerApi";
+import { apiProposalHistory, commitApiProposal, DispatchRefused, OPTIMIZATION_CANCELLED, proposeApiDay } from "../lib/apiDispatch";
+import { cancelRequest, tokenVariable } from "../lib/schedulerApi";
 
 const METRO = "api-dispatch-smoke";
 const ZONE = "America/Chicago";
@@ -97,6 +97,22 @@ async function main() {
   try {
     const x = await visit("x", id("a"));
     const y = await visit("y", id("b"));
+
+    // Cancelling: nothing is running under a new request ID; a running proposal ends as cancelled and frees its ID.
+    assert.equal(await cancelRequest(clientId, randomUUID()), "NOT_RUNNING");
+    const requestId = randomUUID();
+    const cancelledRun = proposeApiDay(clientId, METRO, DATE, undefined, requestId);
+    const settled = cancelledRun.then(() => "SETTLED", () => "SETTLED");
+    let outcome: string = "NOT_RUNNING";
+    for (let attempt = 0; attempt < 100 && outcome === "NOT_RUNNING"; attempt++) {
+      outcome = await cancelRequest(clientId, requestId);
+      if (outcome === "NOT_RUNNING") await Promise.race([settled, new Promise(resolve => setTimeout(resolve, 100))]);
+    }
+    assert.equal(outcome, "CANCELLING", "The running proposal is found and cancelled");
+    await assert.rejects(cancelledRun, (error: unknown) => error instanceof DispatchRefused && error.status === 409 && error.message === OPTIMIZATION_CANCELLED);
+    assert.equal(await cancelRequest(clientId, requestId), "NOT_RUNNING", "A finished request is no longer running");
+    const retried = await proposeApiDay(clientId, METRO, DATE, undefined, requestId);
+    assert.equal(retried.decision, "IMPROVED", "Retrying a cancelled request ID runs it again");
 
     // A day that changes after its proposal is never written.
     const stale = await proposeApiDay(clientId, METRO, DATE);

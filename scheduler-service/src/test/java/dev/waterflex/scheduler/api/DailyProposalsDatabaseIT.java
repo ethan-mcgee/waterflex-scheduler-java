@@ -39,8 +39,12 @@ class DailyProposalsDatabaseIT {
     private final String tenant = "daily-it-" + UUID.randomUUID().toString().substring(0, 8);
     private final JdbcTemplate jdbc;
     private final PublicApiStore store;
+    private final RunningRequests running = new RunningRequests();
     private final AtomicInteger solves = new AtomicInteger();
     private final AtomicBoolean routingDown = new AtomicBoolean();
+    /** When set, a solve waits on its deadline until the operation is cancelled, as a long search would. */
+    private final AtomicBoolean slow = new AtomicBoolean();
+    private final java.util.concurrent.CountDownLatch solving = new java.util.concurrent.CountDownLatch(1);
     private final DailySolvers solvers;
     private final List<DailySearch> searched = Required.value(java.util.Collections.synchronizedList(new java.util.ArrayList<>()));
     private final RoadClient omaha;
@@ -63,6 +67,10 @@ class DailyProposalsDatabaseIT {
                 if (method.equals("diagnostics")) return actual.diagnostics(Required.value(invocation.getArgument(0)));
                 if (!method.equals("solve")) return org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation);
                 solves.incrementAndGet();
+                if (slow.get()) {
+                    solving.countDown();
+                    while (true) { dev.waterflex.scheduler.SearchDeadline.checkpoint(); Thread.sleep(10); }
+                }
                 return actual.solve(Required.value(invocation.getArgument(0)), Required.value(Duration.ofMillis(200)));
             }));
         }
@@ -93,7 +101,7 @@ class DailyProposalsDatabaseIT {
 
     private DailyProposals proposals(Instant now, Map<String, String> metros) {
         return new DailyProposals(store, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                solvers, new SearchAdmission(2, 16), Required.value(Clock.fixed(now, ZoneOffset.UTC)));
+                solvers, new SearchAdmission(2, 16), running, Required.value(Clock.fixed(now, ZoneOffset.UTC)));
     }
 
     private static final Instant BEFORE_CUTOFF = Required.value(Instant.parse("2026-10-11T12:00:00Z"));
@@ -309,5 +317,23 @@ class DailyProposalsDatabaseIT {
         assertTrue(Required.value(seconds) > 270, "lease seconds " + seconds);
         assertThrows(IllegalArgumentException.class, () -> store.claim(tenant, Required.value(UUID.randomUUID().toString()), PublicApiStore.Operation.DAILY_PROPOSAL,
                 DailyProposals.sha256(body), Required.value(Duration.ofSeconds(30))));
+    }
+
+    @Test void aHostCancelEndsARunningProposalWithCancelledAndTheSameRequestRunsAgain() throws Exception {
+        slow.set(true);
+        String body = request(false, policy -> policy.put("costSearchSeconds", 60).put("fairnessSearchSeconds", 0));
+        String requestId = PublicRequests.read(body, PublicRequests.DailyProposalRequest.class).requestId();
+        var cancellation = new RequestCancellation(running);
+        var reply = java.util.concurrent.CompletableFuture.supplyAsync(() -> proposals().create(tenant, body));
+        assertTrue(solving.await(10, java.util.concurrent.TimeUnit.SECONDS), "the search started");
+        long cancelled = System.nanoTime();
+        assertNull(cancellation.cancel(tenant, requestId), "the running request is found and cancelled");
+        problem(Required.value(reply.get(10, java.util.concurrent.TimeUnit.SECONDS)), 409, ErrorCode.CANCELLED);
+        assertTrue(System.nanoTime() - cancelled < Duration.ofSeconds(5).toNanos(), "a cancel ends the 60 second search promptly");
+        assertEquals(0, running.size(), "the finished request leaves the registry");
+        assertEquals(404, Required.value(cancellation.cancel(tenant, requestId)).status(), "nothing is running any more");
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "the claim was released");
+        slow.set(false);
+        proposal(proposals().create(tenant, body));
     }
 }

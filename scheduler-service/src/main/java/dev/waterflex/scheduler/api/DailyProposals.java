@@ -62,18 +62,19 @@ public class DailyProposals {
     private final CalculationTransport transport;
     private final DailySolvers solvers;
     private final SearchAdmission admission;
+    private final RunningRequests running;
     private final Clock clock;
 
     @Autowired
     public DailyProposals(PublicApiStore store, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                          DailySolvers solvers, SearchAdmission admission) {
-        this(store, routing, locator, transport, solvers, admission, Required.value(Clock.systemUTC()));
+                          DailySolvers solvers, SearchAdmission admission, RunningRequests running) {
+        this(store, routing, locator, transport, solvers, admission, running, Required.value(Clock.systemUTC()));
     }
 
     public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                          DailySolvers solvers, SearchAdmission admission, Clock clock) {
+                          DailySolvers solvers, SearchAdmission admission, RunningRequests running, Clock clock) {
         this.store = store; this.routing = routing; this.locator = locator; this.transport = transport;
-        this.solvers = solvers; this.admission = admission; this.clock = clock;
+        this.solvers = solvers; this.admission = admission; this.running = running; this.clock = clock;
     }
 
     public Reply create(String tenantId, String body) {
@@ -85,7 +86,7 @@ public class DailyProposals {
             case Replay replay -> replayed(replay);
             case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
             case Busy _ -> Reply.of(429, new Problem(ErrorCode.BUSY, "A request with this requestId is still running"));
-            case Started started -> run(tenantId, request.requestId(), started.ownerToken(), () -> propose(request, null));
+            case Started started -> run(tenantId, request.requestId(), started.ownerToken(), registered -> propose(request, null, registered));
         };
     }
 
@@ -98,7 +99,7 @@ public class DailyProposals {
             case Replay replay -> replayed(replay);
             case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
             case Busy _ -> Reply.of(429, new Problem(ErrorCode.BUSY, "A request with this requestId is still running"));
-            case Started started -> run(tenantId, request.requestId(), started.ownerToken(), () -> propose(request.day(), request.absence()));
+            case Started started -> run(tenantId, request.requestId(), started.ownerToken(), registered -> propose(request.day(), request.absence(), registered));
         };
     }
 
@@ -119,9 +120,23 @@ public class DailyProposals {
                 ? Required.value(unavailable.getMessage()) : "Road routing unavailable");
     }
 
-    private Reply run(String tenantId, String requestId, String owner, java.util.function.Supplier<StoredProposal> propose) {
+    /** A cancelled request: the claim is released, so the same requestId runs again when it is retried. */
+    static Problem cancelled() {
+        return new Problem(ErrorCode.CANCELLED, "The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again");
+    }
+
+    /** A proposal calculation for a registered request; declared here so its parameter is non-null like the rest of the package. */
+    private interface Proposer { StoredProposal propose(RunningRequests.Running registered); }
+
+    private Reply run(String tenantId, String requestId, String owner, Proposer propose) {
+        RunningRequests.Running registered;
+        try { registered = running.start(tenantId, requestId); }
+        catch (RunningRequests.AlreadyRunning already) {
+            store.release(tenantId, requestId, owner);
+            return Reply.of(429, new Problem(ErrorCode.BUSY, Required.value(already.getMessage())));
+        }
         try {
-            StoredProposal stored = Required.value(propose.get());
+            StoredProposal stored = Required.value(propose.propose(registered));
             store.completeDaily(tenantId, owner, stored);
             return new Reply(201, CalculationJson.write(stored.proposal()), null);
         } catch (Final failure) {
@@ -136,10 +151,13 @@ public class DailyProposals {
             return Reply.of(429, new Problem(ErrorCode.BUSY, "Search capacity exhausted"));
         } catch (SearchDeadline.Expired expired) {
             store.release(tenantId, requestId, owner);
+            if (registered.cancelled()) return Reply.of(409, cancelled());
             return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The calculation deadline passed"));
         } catch (RuntimeException unexpected) {
             store.release(tenantId, requestId, owner);
             throw unexpected;
+        } finally {
+            running.finish(tenantId, requestId, registered);
         }
     }
 
@@ -148,7 +166,7 @@ public class DailyProposals {
         return absence == null ? sha256(CalculationJson.write(snapshot)) : sha256(CalculationJson.write(absence) + "\n" + CalculationJson.write(snapshot));
     }
 
-    private StoredProposal propose(DailyProposalRequest request, PublicRequests.@Nullable Absence absence) {
+    private StoredProposal propose(DailyProposalRequest request, PublicRequests.@Nullable Absence absence, RunningRequests.Running registered) {
         PublicTypes.Snapshot snapshot = request.snapshot();
         if (ScheduleCutoff.frozen(request.serviceDate(), Required.value(clock.instant()), Required.value(ZoneId.of(snapshot.timeZone()))))
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Routes for " + request.serviceDate() + " are frozen from 6 a.m. local time");
@@ -158,9 +176,13 @@ public class DailyProposals {
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
         DailyCalculation.Allocation allocation = allocation(snapshot.policy());
-        Outcome outcome = DailyOperation.execute(admission, DailyOperation.Allowance.forSearch(allocation),
-                () -> calculate(request, policy, snapshot.policy().dailySearch(), allocation, proposalId, revision, tokens, absence),
-                receipt -> LOG.info("Public daily operation {}", receipt));
+        // The preparation runs on the operation's own thread, where the operation is current, so a host cancel can reach it.
+        Outcome outcome = DailyOperation.executePrepared(admission, DailyOperation.Allowance.forSearch(allocation), () -> {
+                    registered.attach(DailyOperation.current());
+                    return new DailyOperation.Preparation<>(
+                            () -> calculate(request, policy, snapshot.policy().dailySearch(), allocation, proposalId, revision, tokens, absence),
+                            true, _ -> { });
+                }, receipt -> LOG.info("Public daily operation {}", receipt));
         DailyProposal proposal = response(request, proposalId, revision, outcome);
         List<TechnicianDayVersion> days = new ArrayList<>();
         for (TechnicianDay day : snapshot.technicianDays()) days.add(new TechnicianDayVersion(day.technicianId(), day.serviceDate(), day.lastModified()));

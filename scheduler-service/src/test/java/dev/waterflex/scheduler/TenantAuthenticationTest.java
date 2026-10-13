@@ -22,7 +22,7 @@ class TenantAuthenticationTest {
     @Test void publicApiResolvesTenantOnlyFromAValidToken() throws Exception {
         TenantTokens tokens = mock(TenantTokens.class);
         when(tokens.tenantFor(VECTOR)).thenReturn("acme");
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class)))
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests())))
                 .addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(get("/api/v1/whoami").header("Authorization", "Bearer " + VECTOR)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tenantId").value("acme"));
@@ -40,7 +40,7 @@ class TenantAuthenticationTest {
         var proposals = mock(dev.waterflex.scheduler.api.DailyProposals.class);
         String body = "{\"requestId\":\"x\",\"tenantId\":\"other\"}";
         when(proposals.create("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(429, "{\"error\":\"BUSY\",\"message\":\"m\"}", 1));
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals, mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class))).addFilters(new TenantAuthentication(tokens)).build());
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals, mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests()))).addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals")
                         .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))
                 .andExpect(status().is(429)).andExpect(header().string("Retry-After", "1")).andExpect(jsonPath("$.error").value("BUSY"));
@@ -59,7 +59,7 @@ class TenantAuthenticationTest {
         String body = "{\"requestId\":\"7d0e1c55-4c1e-4f7a-9d1a-0b6a3c1b2e10\",\"job\":{\"id\":\"j\"},\"snapshot\":{\"technicians\":[]}}";
         when(offers.create("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(201, "{\"offerSetId\":\"set\"}", null));
         when(holds.select("acme", "offer-1", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(200, "{\"holdId\":\"h\"}", null));
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), offers, holds, mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class)))
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), offers, holds, mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests())))
                 .setMessageConverters(new JsonConfiguration().strictJsonConverter())
                 .addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/booking/offers")
@@ -78,7 +78,7 @@ class TenantAuthenticationTest {
         var commits = mock(dev.waterflex.scheduler.api.DailyCommits.class);
         String body = "{\"requestId\":\"x\"}";
         when(commits.commit("acme", "prop-1", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(409, "{\"error\":\"NOT_COMMITTABLE\",\"message\":\"m\"}", null));
-        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), commits, mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class)))
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), commits, mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests())))
                 .addFilters(new TenantAuthentication(tokens)).build());
         http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals/prop-1/commit")
                         .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content(body)))
@@ -94,5 +94,29 @@ class TenantAuthenticationTest {
         internal.setRequestURI("/health");
         assertDoesNotThrow(() -> filter.doFilter(internal, new org.springframework.mock.web.MockHttpServletResponse(), new org.springframework.mock.web.MockFilterChain()));
         assertThrows(IllegalStateException.class, () -> TenantAuthentication.tenant(new org.springframework.mock.web.MockHttpServletRequest()));
+    }
+
+    @Test void cancellingARunningRequestAnswersAcceptedWithoutABodyAndOnlyForItsTenant() throws Exception {
+        TenantTokens tokens = mock(TenantTokens.class);
+        when(tokens.tenantFor(VECTOR)).thenReturn("acme");
+        var requests = new dev.waterflex.scheduler.api.RunningRequests();
+        String id = "3b1f6c1e-2a7d-4f0e-8c52-9a1d7e6b4c21";
+        var running = requests.start("acme", id);
+        var other = requests.start("other", "00000000-0000-4000-8000-000000000000");
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(mock(dev.waterflex.scheduler.api.DailyProposals.class), mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(requests))).addFilters(new TenantAuthentication(tokens)).build());
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/requests/" + id)))
+                .andExpect(status().isUnauthorized());
+        assertFalse(running.cancelled(), "an unauthenticated cancel changes nothing");
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/requests/00000000-0000-4000-8000-000000000000")
+                        .header("Authorization", "Bearer " + VECTOR)))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error").value("NOT_FOUND"));
+        assertFalse(other.cancelled(), "another tenant's request is never found");
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/requests/not-a-uuid")
+                        .header("Authorization", "Bearer " + VECTOR)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/v1/requests/" + id)
+                        .header("Authorization", "Bearer " + VECTOR)))
+                .andExpect(status().isAccepted()).andExpect(content().string(""));
+        assertTrue(running.cancelled());
     }
 }

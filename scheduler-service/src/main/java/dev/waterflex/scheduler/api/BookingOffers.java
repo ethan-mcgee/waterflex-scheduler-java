@@ -70,6 +70,7 @@ public class BookingOffers {
     private final DailyPreparation.AddressLocator locator;
     private final CalculationTransport transport;
     private final SearchAdmission admission;
+    private final RunningRequests running;
     private final String variant;
     private final int refinementMillis;
     private final Clock clock;
@@ -78,17 +79,17 @@ public class BookingOffers {
 
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                         SearchAdmission admission,
+                         SearchAdmission admission, RunningRequests running,
                          @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:250}") int refinementMillis) {
-        this(store, bookings, routing, locator, transport, admission, variant, refinementMillis, Required.value(Clock.systemUTC()));
+        this(store, bookings, routing, locator, transport, admission, running, variant, refinementMillis, Required.value(Clock.systemUTC()));
     }
 
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                         SearchAdmission admission, String variant, int refinementMillis, Clock clock) {
+                         SearchAdmission admission, RunningRequests running, String variant, int refinementMillis, Clock clock) {
         if (!VARIANTS.contains(variant)) throw new IllegalArgumentException("Unknown booking search variant " + variant);
         if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid optional refinement budget");
         this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.transport = transport;
-        this.admission = admission; this.variant = variant;
+        this.admission = admission; this.running = running; this.variant = variant;
         this.refinementMillis = refinementMillis; this.clock = clock;
     }
 
@@ -112,9 +113,16 @@ public class BookingOffers {
     }
 
     private Reply run(String tenantId, BookingOffersRequest request, String owner) {
+        RunningRequests.Running registered;
+        try { registered = running.start(tenantId, request.requestId()); }
+        catch (RunningRequests.AlreadyRunning already) {
+            store.release(tenantId, request.requestId(), owner);
+            return Reply.of(429, new Problem(ErrorCode.BUSY, Required.value(already.getMessage())));
+        }
         try {
             // The client's own booking deadline bounds the whole search, admission and publication included.
             SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
+            registered.attach(deadline);
             OfferSet offers = deadline.within(() -> {
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
                     try { return search(tenantId, request, owner); }
@@ -140,10 +148,13 @@ public class BookingOffers {
                     ? "Other bookings kept changing these dates; retry" : "Search capacity exhausted"));
         } catch (SearchDeadline.Expired | HttpCalculation.Unavailable expired) {
             store.release(tenantId, request.requestId(), owner);
+            if (registered.cancelled()) return Reply.of(409, DailyProposals.cancelled());
             return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The booking search found nothing before its deadline"));
         } catch (RuntimeException unexpected) {
             store.release(tenantId, request.requestId(), owner);
             throw unexpected;
+        } finally {
+            running.finish(tenantId, request.requestId(), registered);
         }
     }
 

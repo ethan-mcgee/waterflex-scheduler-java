@@ -5,6 +5,7 @@ import dev.waterflex.scheduler.api.BookingHolds;
 import dev.waterflex.scheduler.api.BookingOffers;
 import dev.waterflex.scheduler.api.DailyCommits;
 import dev.waterflex.scheduler.api.DailyProposals;
+import dev.waterflex.scheduler.api.RequestCancellation;
 import dev.waterflex.scheduler.api.RouteEvaluations;
 import dev.waterflex.scheduler.api.RouteGeometries;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,9 +31,11 @@ public class PublicApiController {
     private final BookingConfirm bookingConfirm;
     private final RouteEvaluations routeEvaluations;
     private final RouteGeometries routeGeometries;
+    private final RequestCancellation cancellation;
 
     public PublicApiController(DailyProposals dailyProposals, DailyCommits dailyCommits, BookingOffers bookingOffers, BookingHolds bookingHolds,
-                               BookingConfirm bookingConfirm, RouteEvaluations routeEvaluations, RouteGeometries routeGeometries) {
+                               BookingConfirm bookingConfirm, RouteEvaluations routeEvaluations, RouteGeometries routeGeometries,
+                               RequestCancellation cancellation) {
         this.dailyProposals = dailyProposals;
         this.dailyCommits = dailyCommits;
         this.bookingOffers = bookingOffers;
@@ -39,6 +43,7 @@ public class PublicApiController {
         this.bookingConfirm = bookingConfirm;
         this.routeEvaluations = routeEvaluations;
         this.routeGeometries = routeGeometries;
+        this.cancellation = cancellation;
     }
 
     /** Lets an integrator confirm which tenant a token belongs to. */
@@ -90,6 +95,14 @@ public class PublicApiController {
     @PostMapping("/booking/holds/{holdId}/confirm")
     public void confirmBookingHold(HttpServletRequest request, @PathVariable String holdId, HttpServletResponse response) throws IOException {
         reply(response, bookingConfirm.confirm(TenantAuthentication.tenant(request), holdId, body(request)));
+    }
+
+    /** Best-effort cancellation of a calculation running on this replica: 202 without a body, or 404. */
+    @DeleteMapping("/requests/{requestId}")
+    public void cancelRequest(HttpServletRequest request, @PathVariable String requestId, HttpServletResponse response) throws IOException {
+        DailyProposals.Reply refused = cancellation.cancel(TenantAuthentication.tenant(request), requestId);
+        if (refused == null) response.setStatus(HttpServletResponse.SC_ACCEPTED);
+        else reply(response, refused);
     }
 
     /**
