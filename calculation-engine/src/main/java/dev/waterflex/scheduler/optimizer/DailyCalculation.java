@@ -85,7 +85,10 @@ public final class DailyCalculation {
         }
         var decision = SchedulingPolicy.compare(baselinePolicy,candidatePolicy,reference,policy);
         boolean accepted = candidateValid && (baselineValid ? decision.accepted() : DailyOutcome.assess(solved).policyEligible());
-        return new Result(solved,referencePlan,accepted,accepted ? baselineValid ? decision.reason() : "COMPLETE_ZERO_OVERTIME_DEMAND" : "No independently validated policy improvement",
+        // The reason is the policy's own code whenever a valid candidate was judged; a sentence would hide which rule decided.
+        String reason = accepted ? (baselineValid ? decision.reason() : "COMPLETE_ZERO_OVERTIME_DEMAND")
+                : candidateValid ? decision.reason() : "NO_VALID_CANDIDATE";
+        return new Result(solved,referencePlan,accepted,reason,
                 (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(phases)
                         .withPolicy(DailyPolicyDiagnostics.assess(referencePlan,solved,accepted,fairnessStatus)));
     }
