@@ -118,7 +118,7 @@ Version 1.0.0 (2026-10-13) is the first stable contract: everything in this tabl
 
 ### Latency target (Decided)
 
-`POST /api/v1/booking/offers` must return offers within the client's `bookingDeadlineMs` (at most 5 seconds) end to end, measured at the WaterFlex caller; the host sets its own timeout a little above it (the portal adds 3 seconds). Measuring it across the network is part of the deferred performance work.
+`POST /api/v1/booking/offers` must return offers within the client's `bookingDeadlineMs` (at most 5 seconds) end to end, measured at the WaterFlex caller; the host sets its own timeout a little above it (the portal adds 3 seconds). Measured on one machine on 2026-10-13 ([docs/api-load.md](api-load.md)): one booking desk meets it (p95 987 ms); five or more desks booking the same dates miss it at the caller because of the contention in "Remaining gaps", although each attempt answers within the deadline. Measuring it across the network, on the VM, is still to do.
 
 ### Commit ownership and concurrency (Decided: host last-modified timestamps)
 
@@ -359,6 +359,7 @@ The portal is the worked example of each of these (`web/lib/clientSnapshot.ts`, 
 - Remote mode has not been performance-tested; that study is deferred with the rest of the performance work.
 - TLS is not set up between WaterFlex Software and the scheduler, nor from the scheduler to routing and Nominatim (deferred by owner decision on 2026-10-13). It is a precondition of production traffic; `docs/operations-runbook.md` lists what must be encrypted.
 - Host cancellation (`DELETE /api/v1/requests/{requestId}`) reaches only the replica running the call, since running requests are kept in memory. Behind several scheduler replicas, the load balancer must send the DELETE where the call went (hash on the request ID); otherwise it is a 404 and the call ends at its own deadline.
+- Measured under load ([docs/api-load.md](api-load.md), findings 2 to 5), open for owner decisions: an older snapshot that arrives after a newer one is reconciled as a host edit and loses every hold on its date; concurrent bookings in one metro retry on day versions and answer 429 under contention; a queued daily proposal waits its whole allowance and answers 503 instead of an early 429; and `searchComplete` is false whenever the optional refinement reaches its 250 ms cap, which the spec does not describe.
 - The scheduler and a remote `solver-service` must run the same `CalculationProtocol.VERSION` (3 since the per-client policy change, which removed `BookingSnapshot.calendarReference` and the unused utilization threshold). Deploy a new solver pool beside the old one, then switch the scheduler to it.
 
 ## Resolved questions

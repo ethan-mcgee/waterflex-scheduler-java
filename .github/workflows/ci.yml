@@ -320,6 +320,10 @@ jobs:
             sed -n 's/^token: //p' > "$RUNNER_TEMP/conformance.token"
           node ../run-check.mjs host-conformance npx tsx conformance.ts --url http://127.0.0.1:18000 --token-file "$RUNNER_TEMP/conformance.token"             --metro conformance-fixture --time-zone America/Chicago --points fixture --out "$RUNNER_TEMP/conformance-report"
           cat "$RUNNER_TEMP/conformance-report/conformance-report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: API load tool against the scheduler
+        working-directory: infra/host-conformance
+        run: |
+          node ../run-check.mjs api-load npx tsx load.ts --url http://127.0.0.1:18000 --token-file "$RUNNER_TEMP/conformance.token"             --metro conformance-fixture --time-zone America/Chicago --points fixture --scenario mixed --concurrency 2 --duration-s 15             --metrics-url http://127.0.0.1:19000/actuator/prometheus --label ci --out "$RUNNER_TEMP/load-report"
       - name: Print service logs on failure
         if: failure()
         run: |
