@@ -91,6 +91,15 @@ test("spec is OpenAPI 3.1, tenant-authenticated and versioned under /api/v1", ()
   }
 });
 
+test("spec is a stable 1.x contract whose every operation is served", () => {
+  const info = object(spec.info, "info");
+  assert.equal(typeof info.version, "string");
+  assert.match(String(info.version), /^1\.\d+\.\d+$/, "v1 paths carry a 1.x version, never a draft");
+  assert.ok(String(info.description).includes(`- ${String(info.version)} (`), "the version history lists the current version");
+  const planned = operations.filter(({ operation }) => operation["x-implementation"] !== "implemented").map(({ method, path }) => `${method} ${path}`);
+  assert.deepEqual(planned, [], "a 1.x contract publishes only served operations");
+});
+
 test("every request and response example validates against its schema", () => {
   let checked = 0;
   for (const { path, method, operation } of operations) {
