@@ -50,7 +50,7 @@ The scheduler API is the only public surface. Calculation and routing stay priva
 
 ## Public contract v1
 
-The machine-readable contract is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (OpenAPI 3.1, draft). Each operation is marked `x-implementation: implemented` or `planned`; `web/scripts/openapi-v1.test.ts` validates every example against its schema and fails if the implemented operations differ from the `/api/v1` routes the scheduler serves. The Java types in `dev.waterflex.scheduler.api` mirror every object schema (same fields, same required fields), read request bodies strictly (unknown fields, duplicate keys, numeric or noncanonical money, missing values and dangling snapshot references all fail), and `PublicApiContractTest` keeps them in step with the spec.
+The machine-readable contract is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (OpenAPI 3.1, version 1.0.0), and [docs/integration-guide.md](integration-guide.md) shows WaterFlex Software how to use it. Each operation is marked `x-implementation: implemented` or `planned`; `web/scripts/openapi-v1.test.ts` validates every example against its schema, fails if the implemented operations differ from the `/api/v1` routes the scheduler serves, and refuses a 1.x spec with a planned operation. The Java types in `dev.waterflex.scheduler.api` mirror every object schema (same fields, same required fields), read request bodies strictly (unknown fields, duplicate keys, numeric or noncanonical money, missing values and dangling snapshot references all fail), and `PublicApiContractTest` keeps them in step with the spec.
 
 `RequestDay` builds the solver input for one service date from a daily request instead of the database: the same road point keys, the same technician and appointment order, absent legs treated as unroutable, coordinates used as sent and only address-only locations geocoded. Every route allows zero overtime minutes. Each appointment carries its current `plannedStart`, which proposals report moves against. While the scheduler's database path still existed, `DailyAttemptDatabaseIT` checked that a request describing a seeded day produced exactly the solver input that path produced; the test went with that path in P7c-3.
 
@@ -90,10 +90,11 @@ The scheduler computes a canonical content hash of the snapshot (the input revis
 
 ### Contract changes
 
-The contract is a draft until the first endpoint that calculates ships, but every change WaterFlex Software must act on is listed here and in the spec's description.
+Version 1.0.0 (2026-10-13) is the first stable contract: everything in this table up to it. From 1.0.0 on, changes within v1 are additive only (a new operation, optional request field, response field, error code or enum value), raise the minor version, and are listed here and in the spec's version history before they are deployed; a breaking change is published as `/api/v2` beside v1.
 
 | Change | Since | What WaterFlex Software does |
 | --- | --- | --- |
+| Spec version 1.0.0; every operation served; integration guide | #150 | Builds against [docs/integration-guide.md](integration-guide.md) and proves the integration with the host conformance kit (`infra/host-conformance`). No field changed. |
 | `TechnicianDay.absences` is required | #88 | An empty list when the technician has no absence that day. A missing list is rejected, never read as "no absences". |
 | `Appointment.plannedStart` is required | #89 | The appointment's currently planned arrival, as an instant. The solver records it as the appointment's original start, and proposals report moves against it. A missing value is rejected, never guessed. |
 | `DailyProposal.reason` and `DailyProposal.skippedTechnicianDays` added | #96 | Reads `reason` to see why the scheduler decided as it did. Leaves every technician-day in `skippedTechnicianDays` exactly as it is (it is not in `routes`), and sends coordinates for the location its `message` names to include it next time. |

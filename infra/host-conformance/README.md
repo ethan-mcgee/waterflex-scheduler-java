@@ -4,7 +4,7 @@ Proves, against a running scheduler and over its public API only, that the sched
 [`docs/api/openapi-v1.yaml`](../../docs/api/openapi-v1.yaml) says, and shows a host's engineers working examples of
 each call sequence: snapshots, booking (offers, select, release, confirm), daily and repair proposals, commits,
 idempotent replays, cancellation, and the refusals a host must handle. Run it before go-live and after every scheduler
-upgrade. It needs nothing but the scheduler's URL and a token: no database access, no repository code, no portal.
+upgrade; [the integration guide](../../docs/integration-guide.md) explains each sequence it exercises. It needs nothing but the scheduler's URL and a token: no database access, no repository code, no portal.
 
 ## Requirements
 

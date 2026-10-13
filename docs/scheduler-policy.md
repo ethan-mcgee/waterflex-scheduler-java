@@ -1,10 +1,10 @@
 # Scheduling policy, reservations and operations
 
-> The interfaces, rollout settings and rollback steps on this page describe the scheduler's internal booking and optimization paths, which were removed in October 2026 (P7c in [the stateless API design](stateless-api-design.md)). The scheduling policy itself is unchanged and is what the public `/api/v1` calculations apply. `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `ROUTING_PREWARM_ENABLED` and `SCHEDULER_OPTIMIZER_CRON` no longer exist.
+> The scheduling policy on this page is what the public `/api/v1` calculations apply. The "Interfaces and diagnostics" section is historical: it describes the scheduler's internal booking and optimization endpoints, removed in October 2026 (P7c in [the stateless API design](stateless-api-design.md)); [the integration guide](integration-guide.md) describes the interface that exists. The rollout flags `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `ROUTING_PREWARM_ENABLED` and `SCHEDULER_OPTIMIZER_CRON` no longer exist.
 
 This describes the implemented consolidated policy. Release acceptance and measured limitations are tracked separately in [the original-plan checklist](scheduler-plan-checklist.md), [booking benchmarks](booking-benchmarks.md) and [solver experiments](solver-benchmarks.md). The dispatcher still previews and manually applies optimization proposals. No same-day replanning, paid service migration or automatic dispatch apply is introduced.
 
-The new booking path, including booking fairness and common reservation arrangements, requires `booking.reservations.enabled=true`. Its bounded rearrangement search additionally requires `booking.search.bounded=true`. Both remain disabled by default for staged rollout. No booking path authorizes new overtime (see below), and previously issued managed offers retain their confirmation path when either flag is disabled. Daily optimization policy operates independently of these booking flags.
+Booking always uses common reservation arrangements and the bounded rearrangement search (`booking.search.variant=BOUNDED`, the default); the rollout flags that once gated them were removed. No booking path authorizes new overtime (see below). Daily optimization policy operates independently of booking.
 
 ## Customer promises and overtime
 
@@ -44,15 +44,13 @@ Confirmation locks current arrangements and versions in consistent order, replac
 
 A regular offer can transfer existing overtime between routes while adding no net overtime. Confirmation preserves its persisted nonpositive issuance delta and independently validates against the current complete reserved arrangement. This remains valid when another customer's confirmation has already applied the dependent reassignment. The selected offer and its issuance metric are reread inside the commit lock; a changed metric conflicts. Missing historical metrics do not become zero and retain the conservative marginal overtime check. A positive delta does not establish a regular reservation, and all technician limits remain hard.
 
-Refresh, release, expiry, cancellation and test purges also validate the remaining arrangement. Removing a stop can be unsafe with directed nonmetric travel, so removal is not treated as automatic proof of feasibility. An unsafe mutation is rejected without partially changing the protected arrangement. Background expiry rotates through failures for retry and yields to customer demand. Persisted strict JSON, relational dependencies and version checks retain guarantees across process restarts and rollout-flag changes.
+Refresh, release, expiry, cancellation and test purges also validate the remaining arrangement. Removing a stop can be unsafe with directed nonmetric travel, so removal is not treated as automatic proof of feasibility. An unsafe mutation is rejected without partially changing the protected arrangement. Background expiry rotates through failures for retry and yields to customer demand. Persisted strict JSON, relational dependencies and version checks retain guarantees across process restarts.
 
 The five-second search budget starts with a validated job/address. Exploratory work ends by four seconds, leaving the final second for independent validation and publication. Queueing, routing waits, pool admission, SQL locks/statements and commit acknowledgement share the deadline. Expensive work is admitted at two searches per instance, or one on a single available CPU, with a queue of at most 16 and one background optimizer. Bookings have priority over queued background work. Snapshots and solvers are never shared mutably.
 
-Browser refresh requests carry an optional absolute `deadlineEpochMs` through the portal so browser connection queueing does not restart the budget. Missing deadlines preserve compatibility for existing callers; malformed values fail validation and future deadlines cannot grant more than five seconds. An already-expired refresh returns retryable `SEARCH_INCOMPLETE` without invoking scheduling. That early response reports actual portal handling duration because no scheduler call occurred. The wizard aborts an expired refresh and retains retry/input state.
+A host cancels a running search, confirm or proposal with `DELETE /api/v1/requests/{requestId}` on the replica running it; the call then answers 409 `CANCELLED` and stores nothing. Publication checks the deadline and cancellation under locks, so a cancelled or expired search never publishes a usable reservation.
 
-Durable search IDs propagate cancellation across scheduler instances. Publication checks cancellation under locks; acknowledgement distinguishes delivered offers from abandoned responses. An abandoned search cannot later publish a usable reservation. An uncertain commit acknowledgement requires the durable cancellation/cleanup path, rather than assuming a transport timeout proves rollback.
-
-## Interfaces and diagnostics
+## Interfaces and diagnostics (historical)
 
 Existing booking and optimization endpoints are retained. Booking responses include `search.outcome`, prescribed-search completion, elapsed time, retryability and offers. Outcomes distinguish `AVAILABLE`, `SEARCH_INCOMPLETE`, `NO_CANDIDATE_FOUND`, `ROUTING_UNAVAILABLE`, `SCHEDULE_CONFLICT` and `SERVICE_BUSY`. A defined-search miss is not global proof of no capacity. Initial booking, refresh, selection conflicts and the testing page handle these outcomes. Customer inputs remain in place on failure, with retry and an accessible indeterminate progress bar labeled "Finding available appointments".
 
@@ -62,7 +60,7 @@ Optimization responses retain monetary meanings and add workload/utilization, va
 
 Routing retains the full-matrix endpoint and adds explicit directed sparse pairs with expected identity and per-pair routability. Only missing coordinate/identity pairs are requested; persistent cache operations are batched and concurrent missing-leg work is coalesced. One caller's deadline does not cancel another caller's result. Unreachable roads, provider unavailability and malformed responses remain distinct. There is no straight-line fallback.
 
-## Configuration and rollout
+## Configuration
 
 Every policy rule is the client's own and arrives in `Snapshot.policy` with each calculation; the scheduler holds no
 policy settings (the shared `omaha_setting` table was dropped). The rules are included in configuration fingerprints:
@@ -80,22 +78,14 @@ Spring properties can be supplied as command-line arguments or their standard en
 
 | Property | Default / purpose |
 | --- | --- |
-| `booking.reservations.enabled` | false; issue new common-arrangement offers |
-| `booking.search.bounded` | false; enable bounded booking rearrangement |
+| `booking.search.variant` | `BOUNDED`; the booking search variant (bounded rearrangement after insertion) |
 | `booking.search.refinement-ms` | 250; optional abundant-capacity refinement, range 0..1000 |
 | `scheduler.search.capacity` | 0 selects CPU-aware one/two default |
 | `scheduler.search.queue-limit` | 16; bounded queue |
-| `routing.prewarm.enabled` | false; low-priority versioned cache work |
-| `routing.ch.enabled` | false; separate fixed-car prepared graph artifact |
+| `routing.ch.enabled` | false (routing-service); separate fixed-car prepared graph artifact |
 | `spring.datasource.hikari.connection-timeout` | 250 ms |
 | `spring.datasource.hikari.validation-timeout` | 250 ms |
 
-Keep rollout disabled until the relevant correctness, latency and quality gates pass. No booking path authorizes new overtime, with or without new issuance. Already-issued managed offers still use the durable confirmation/release path. Start with the default admission capacity and benchmark before raising it. Budget database connections across scheduler instances, portals and benchmark clients; application search admission alone does not bound every instance's idle pool.
-
-Compose exposes `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `SCHEDULER_SEARCH_CAPACITY`, `ROUTING_PREWARM_ENABLED` and `ROUTING_CH_ENABLED` with the defaults above. Supplying these changes configuration only when the relevant containers are recreated; this implementation does not deploy or enable them automatically.
-
-The eight additive September 24 migrations cover policy/default validation, offer overtime authorization, repair approval, common reservation arrangements/dependencies, reservation obligations, diagnostics, current segment timing and durable cancellation. Apply all migrations before starting the new binaries. Historical timing/policy/solver fields are nullable and displayed as unavailable. Legacy optimization proposals require a fresh preview before apply.
-
-Rollback new booking search by disabling bounded search and new common-arrangement issuance while retaining this version's reservation lifecycle support until all issued offers are confirmed, released or safely expired. Do not delete reservation tables/dependencies or roll back to a binary that cannot honor outstanding arrangements. A configuration or graph change invalidates stale search/preview provenance and requires a fresh validated search or preview. CH uses a separate graph directory and identity; disabling it returns to the original graph artifact. Do not switch routing identity during active reservation experiments and treat outstanding reservations as a rollout guard.
+Start with the default admission capacity (`SCHEDULER_SEARCH_CAPACITY`; the VM compose sets 2) and measure before raising it; [the operations runbook](operations-runbook.md) lists the scaling levers. Budget database connections across scheduler replicas; search admission alone does not bound every replica's idle pool. A configuration or road graph change invalidates stale search and proposal provenance and requires a fresh search or proposal. CH uses a separate graph directory and routing identity; disabling it returns to the original graph artifact, and either switch leaves the route cache cold.
 
 See [benchmark provenance and limitations](booking-benchmarks.md) before interpreting improvements. Experimental ablation artifacts require local isolated `waterflex_test` schemas and must never be deployed. No production data, travel buffers or paid-service dependencies are changed by the verification workflow.
