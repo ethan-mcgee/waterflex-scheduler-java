@@ -106,8 +106,9 @@ class BookingOffersDatabaseIT {
         Instant expiresAt = Required.value(now.get().plusSeconds(600));
         Instant start = Required.value(Instant.parse("2026-10-12T15:00:00Z")), end = Required.value(Instant.parse("2026-10-12T17:00:00Z"));
         Map<String, BookingDayState.TechnicianState> technicians = new java.util.TreeMap<>();
-        technicians.put("tech-1", new BookingDayState.TechnicianState(1L, Required.value(List.of("appt-7", "appt-8")), Required.value(List.of("appt-7", firstHold, "appt-8"))));
-        technicians.put("tech-2", new BookingDayState.TechnicianState(1L, Required.value(List.of()), Required.value(List.of(secondHold))));
+        technicians.put("tech-1", new BookingDayState.TechnicianState(1L, Required.value(List.of("appt-7", "appt-8")), Required.value(List.of("appt-7", firstHold, "appt-8")),
+                BookingDayState.FIRST_SEEN, null));
+        technicians.put("tech-2", new BookingDayState.TechnicianState(1L, Required.value(List.of()), Required.value(List.of(secondHold)), BookingDayState.FIRST_SEEN, null));
         // The first hold was stored before holds recorded a coordinate source.
         Map<String, BookingDayState.HoldState> held = new java.util.TreeMap<>();
         held.put(firstHold, new BookingDayState.HoldState("job-311", first, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-1", null));
@@ -116,8 +117,8 @@ class BookingOffersDatabaseIT {
                 true, Required.value(List.of()));
         var started = assertInstanceOf(PublicApiStore.Started.class, store.claim(tenant, requestId, PublicApiStore.Operation.BOOKING_OFFERS, Required.value("c".repeat(64))));
         var key = new BookingStore.DayKey("omaha", DAY);
-        bookings.publish(tenant, started.ownerToken(), Required.value(Map.of(key, 0)), Required.value(Map.of(key, new BookingDayState(technicians, held))), Required.value(Map.of()),
-                new BookingStore.Publication(setId, requestId, "job-311", "omaha", expiresAt, body, Required.value(List.of(
+        bookings.publish(tenant, started.ownerToken(), Required.value(Map.of(key, new BookingStore.DayWrite(0, new BookingDayState(technicians, held), Required.value(Map.of()), true))),
+                Required.value(Set.of()), new BookingStore.Publication(setId, requestId, "job-311", "omaha", expiresAt, body, Required.value(List.of(
                         new BookingStore.NewOffer(first, firstHold, DAY, "tech-1", start, end), new BookingStore.NewOffer(second, secondHold, DAY, "tech-2", start, end)))));
         return body;
     }
@@ -538,18 +539,119 @@ class BookingOffersDatabaseIT {
         offerSet(offers().create(tenant, body));
     }
 
-    @Test void aConcurrentChangeToTheDayIsRetriedOnceThenRefused() {
+    @Test void aConcurrentChangeToTheDayIsRetriedThenRefused() {
         offerSet(offers().create(tenant, forJob("job-a")));
-        AtomicInteger bumps = new AtomicInteger(1);
+        AtomicInteger bumps = new AtomicInteger(BookingOffers.ATTEMPTS - 1);
         routingHook.set(() -> { if (bumps.getAndDecrement() > 0) bump(); });
         offerSet(offers().create(tenant, forJob("job-b")));
-        assertTrue(bumps.get() < 0, "the day moved once, and the retry routed again and published");
+        assertTrue(bumps.get() < 0, "the day moved on every attempt but the last, which routed again and published");
         routingHook.set(this::bump);
         String busy = forJob("job-c");
         problem(offers().create(tenant, busy), 429, ErrorCode.BUSY);
         assertEquals(0L, count("SELECT count(*) FROM api_request WHERE \"tenantId\"=? AND operation='BOOKING_OFFERS' AND state='IN_PROGRESS'", tenant));
         routingHook.set(null);
         offerSet(offers().create(tenant, busy));
+    }
+
+    /** A booking request for {@code job} on the host's records as {@code host} (a written confirm body) has them. */
+    private static String onRecords(ObjectNode host, String job) {
+        return request(request -> {
+            object(request.get("job")).put("id", job);
+            request.set("snapshot", Required.value(host.get("snapshot")).deepCopy());
+        });
+    }
+
+    @Test void aLateSnapshotOlderThanOneAlreadyUsedIsStaleAndKeepsTheOtherDesksHolds() {
+        // Desk 1 books job-a and the host writes its receipt: tech-1's day gets a new timestamp.
+        OfferSet first = offerSet(offers().create(tenant, forJob("job-a")));
+        Hold a = hold(holds().select(tenant, offer(first, 0).offerId(), requestOnly()));
+        CommitReceipt receipt = receipt(confirms().confirm(tenant, a.holdId(), confirmBody()));
+        ObjectNode current = written(confirmation(request()), receipt, offer(first, 0));
+        // Desk 2 searches and selects on the new records.
+        OfferSet second = offerSet(offers().create(tenant, onRecords(current, "job-b")));
+        Hold b = hold(holds().select(tenant, offer(second, 0).offerId(), requestOnly()));
+        // A request built from the records before the receipt arrives late.
+        String late = forJob("job-c");
+        var stale = offers().create(tenant, late);
+        assertEquals(409, stale.status(), stale.json());
+        var problem = PublicRequests.read(stale.json(), StaleProblem.class);
+        assertTrue(problem.changed().stream().anyMatch(day -> Required.value(day).technicianId().equals("tech-1")
+                && day.lastModified().equals(Instant.parse("2026-10-11T23:00:00Z"))), "the newest timestamp seen for tech-1: " + stale.json());
+        assertEquals(stale, offers().create(tenant, late), "a STALE answer is final: stored and replayed");
+        assertEquals(Set.of(b.holdId()), state().holds().keySet(), "the late request lost nothing");
+        var staleConfirm = confirms().confirm(tenant, b.holdId(), confirmBody());
+        assertEquals(409, staleConfirm.status(), staleConfirm.json());
+        assertEquals("STALE", PublicRequests.read(staleConfirm.json(), StaleProblem.class).error(), "a confirm on the old records is stale too");
+        current.put("requestId", UUID.randomUUID().toString());
+        assignment(receipt(confirms().confirm(tenant, b.holdId(), CalculationJson.write(current))), "job-b");
+    }
+
+    @Test void aSnapshotBuiltBeforeTheHostWroteAConfirmReceiptIsStaleAndKeepsTheOtherDesksHolds() {
+        OfferSet first = offerSet(offers().create(tenant, forJob("job-a")));
+        Hold a = hold(holds().select(tenant, offer(first, 0).offerId(), requestOnly()));
+        OfferSet second = offerSet(offers().create(tenant, forJob("job-b")));
+        Hold b = hold(holds().select(tenant, offer(second, 0).offerId(), requestOnly()));
+        CommitReceipt receipt = receipt(confirms().confirm(tenant, a.holdId(), confirmBody()));
+        // A search built from the records before the host wrote job-a's receipt: same timestamps, routes without job-a.
+        var early = offers().create(tenant, forJob("job-c"));
+        assertEquals(409, early.status(), early.json());
+        assertEquals("STALE", PublicRequests.read(early.json(), StaleProblem.class).error());
+        assertEquals(Set.of(b.holdId()), state().holds().keySet(), "job-b's hold stands");
+        var earlyConfirm = confirms().confirm(tenant, b.holdId(), confirmBody());
+        assertEquals(409, earlyConfirm.status(), "a confirm on records without the written receipt is stale too: " + earlyConfirm.json());
+        assignment(receipt(confirms().confirm(tenant, b.holdId(), CalculationJson.write(written(confirmation(request()), receipt, offer(first, 0))))), "job-b");
+    }
+
+    @Test void aReceiptTheHostNeverWritesStopsMakingSnapshotsStaleWhenItsHoldWouldHaveExpired() {
+        OfferSet first = offerSet(offers().create(tenant, forJob("job-a")));
+        Hold a = hold(holds().select(tenant, offer(first, 0).offerId(), requestOnly()));
+        receipt(confirms().confirm(tenant, a.holdId(), confirmBody()));
+        now.set(Required.value(now.get().plusSeconds(BookingOffers.HOLD.toSeconds() + 1)));
+        offerSet(offers().create(tenant, forJob("job-c")));
+        assertFalse(Required.value(state().technicians().get("tech-1")).expected().contains("job-a"),
+                "the unwritten receipt is given up and the day restarts from the host's routes");
+    }
+
+    @Test void aDayASearchOnlyRefreshesIsSkippedWhenAnotherBookingWroteItFirst() {
+        OfferSet set = twoHolds();
+        BookingDayState before = state();
+        var key = new BookingStore.DayKey("omaha", DAY);
+        int version = Required.value(bookings.days(tenant, "omaha", Required.value(List.of(DAY))).get(DAY)).version();
+        bump();
+        BookingDayState refreshed = before.without(Required.value(Set.copyOf(before.holds().keySet())));
+        Map<String, BookingReconciliation.Ending> lost = new java.util.TreeMap<>();
+        before.holds().keySet().forEach(hold -> lost.put(hold, BookingReconciliation.Ending.LOST));
+        publishFor("job-other", Required.value(Map.of(key, new BookingStore.DayWrite(version, refreshed, lost, false))));
+        assertEquals(before, state(), "the refresh was skipped, endings included");
+        assertTrue(offerStatuses(set.offerSetId()).values().stream().allMatch("HELD"::equals));
+        assertThrows(BookingStore.DayMoved.class, () -> publishFor("job-later", Required.value(Map.of(key, new BookingStore.DayWrite(version, refreshed, lost, true)))),
+                "a day the offers depend on is never skipped");
+    }
+
+    @Test void aSearchForAJobThatAnotherSearchPublishedMeanwhileStartsAgain() {
+        OfferSet set = twoHolds();
+        Set<String> held = new java.util.TreeSet<>(state().holds().keySet());
+        assertThrows(BookingStore.DayMoved.class, () -> publishFor("job-311", Required.value(Map.of()), Required.value(Set.of())),
+                "job-311's holds appeared after this search began");
+        assertEquals("ACTIVE", setStatus(set.offerSetId()));
+        publishFor("job-311", Required.value(Map.of()), held);
+        assertEquals("SUPERSEDED", setStatus(set.offerSetId()), "a search that saw the holds supersedes them");
+    }
+
+    private void publishFor(String job, Map<BookingStore.DayKey, BookingStore.DayWrite> writes) { publishFor(job, writes, Required.value(Set.of())); }
+
+    /** Publishes an empty offer set for {@code job} with these day writes, as a search would. */
+    private void publishFor(String job, Map<BookingStore.DayKey, BookingStore.DayWrite> writes, Set<String> heldBefore) {
+        String requestId = Required.value(UUID.randomUUID().toString()), setId = BookingStore.newOfferSetId();
+        Instant expiresAt = Required.value(now.get().plusSeconds(600));
+        var started = assertInstanceOf(PublicApiStore.Started.class, store.claim(tenant, requestId, PublicApiStore.Operation.BOOKING_OFFERS, Required.value("d".repeat(64))));
+        try {
+            bookings.publish(tenant, started.ownerToken(), writes, heldBefore, new BookingStore.Publication(setId, requestId, job, "omaha", expiresAt,
+                    new OfferSet(setId, expiresAt, Required.value(List.of()), true, Required.value(List.of())), Required.value(List.of())));
+        } catch (RuntimeException refused) {
+            store.release(tenant, requestId, started.ownerToken());
+            throw refused;
+        }
     }
 
     /** Another booking's write to the day, between this search's read and its publication. */

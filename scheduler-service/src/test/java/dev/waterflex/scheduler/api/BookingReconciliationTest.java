@@ -7,6 +7,7 @@ import dev.waterflex.scheduler.RoadPoint;
 import dev.waterflex.scheduler.api.BookingDayState.HoldState;
 import dev.waterflex.scheduler.api.BookingDayState.TechnicianState;
 import dev.waterflex.scheduler.api.BookingReconciliation.Ending;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -56,14 +57,21 @@ class BookingReconciliationTest {
      */
     private static BookingDayState stored() {
         Map<String, TechnicianState> technicians = new TreeMap<>();
-        technicians.put("tech-a", new TechnicianState(1L, list("a1"), list("a1", "hold-x")));
-        technicians.put("tech-b", new TechnicianState(1L, list("b1"), list("b1", "c1")));
-        technicians.put("tech-c", new TechnicianState(1L, list("c1"), list()));
-        technicians.put("tech-d", new TechnicianState(1L, list("d1"), list("d1")));
+        technicians.put("tech-a", technicianState(1L, list("a1"), list("a1", "hold-x")));
+        technicians.put("tech-b", technicianState(1L, list("b1"), list("b1", "c1")));
+        technicians.put("tech-c", technicianState(1L, list("c1"), list()));
+        technicians.put("tech-d", technicianState(1L, list("d1"), list("d1")));
         return new BookingDayState(technicians, Required.value(Map.of("hold-x", hold("job-x", "tech-a", LATER))));
     }
 
     private static List<String> list(String... ids) { return Required.value(List.of(ids)); }
+
+    /** A technician-day first seen at {@code version}: no superseded versions. */
+    private static TechnicianState technicianState(long version, List<String> expected, List<String> route) {
+        return new TechnicianState(version, expected, route, BookingDayState.FIRST_SEEN, null);
+    }
+
+    private static List<Long> versionsList(Long... versions) { return Required.value(List.of(versions)); }
 
     private static Map<String, Long> versions(long a, long b, long c, long d) {
         Map<String, Long> versions = new TreeMap<>();
@@ -83,7 +91,8 @@ class BookingReconciliationTest {
         BookingSnapshot.Day host = unchanged();
         var result = BookingReconciliation.reconcile(null, host, "job-new", NOW);
         assertSame(host, result.day());
-        assertEquals(BookingDayState.of(host), result.state());
+        assertEquals(BookingDayState.of(host, null), result.state());
+        assertEquals(BookingDayState.FIRST_SEEN, Required.value(result.state().technicians().get("tech-a")).superseded(), "a new day has no superseded versions");
         assertTrue(result.holds().isEmpty() && result.ended().isEmpty());
     }
 
@@ -110,18 +119,20 @@ class BookingReconciliationTest {
         assertEquals(java.util.Set.of("hold-x"), result.holds().keySet());
         assertEquals(7L, Required.value(result.state().technicians().get("tech-a")).version());
         assertEquals(8L, Required.value(result.state().technicians().get("tech-b")).version());
+        assertEquals(versionsList(1L), Required.value(result.state().technicians().get("tech-a")).superseded(), "the version moved past is remembered");
+        assertEquals(BookingDayState.FIRST_SEEN, Required.value(result.state().technicians().get("tech-c")).superseded(), "an unmoved version adds nothing");
     }
 
     @Test void aDispatcherChangeToAFreeRouteReplacesOnlyThatRoute() {
         var result = BookingReconciliation.reconcile(stored(), host(versions(1, 1, 1, 9), routes(list("a1"), list("b1"), list("c1"), list("d2", "d1"))), "job-new", NOW);
         assertTrue(result.ended().isEmpty());
-        assertEquals(new TechnicianState(9L, list("d2", "d1"), list("d2", "d1")), result.state().technicians().get("tech-d"));
+        assertEquals(new TechnicianState(9L, list("d2", "d1"), list("d2", "d1"), versionsList(1L), null), result.state().technicians().get("tech-d"));
         assertEquals(java.util.Set.of("hold-x"), result.holds().keySet());
     }
 
     @Test void aDispatcherMoveBetweenTwoFreeRoutesReplacesBoth() {
         Map<String, TechnicianState> technicians = new TreeMap<>(stored().technicians());
-        technicians.put("tech-e", new TechnicianState(1L, list("e1"), list("e1")));
+        technicians.put("tech-e", technicianState(1L, list("e1"), list("e1")));
         var stored = new BookingDayState(technicians, stored().holds());
         Map<String, Long> versions = versions(1, 1, 1, 5); versions.put("tech-e", 5L);
         Map<String, List<String>> routes = routes(list("a1"), list("b1"), list("c1"), list("d1", "e1")); routes.put("tech-e", list());
@@ -138,7 +149,9 @@ class BookingReconciliationTest {
                 host(versions(1, 2, 1, 1), routes(list("a1"), list(), list("c1"), list("d1", "b1"))))) {
             var result = BookingReconciliation.reconcile(stored(), host, "job-new", NOW);
             assertEquals(Map.of("hold-x", Ending.LOST), result.ended());
-            assertEquals(BookingDayState.of(host), result.state(), "the day restarts from the host's routes");
+            assertEquals(BookingDayState.of(host, stored()), result.state(), "the day restarts from the host's routes");
+            assertTrue(result.state().technicians().values().stream().anyMatch(technician -> versionsList(1L).equals(technician.superseded())),
+                    "a restarted day still remembers the versions it moved past");
             assertTrue(result.holds().isEmpty());
         }
     }
@@ -147,7 +160,7 @@ class BookingReconciliationTest {
         Map<String, Long> versions = versions(1, 1, 1, 1); versions.put("tech-n", 3L);
         Map<String, List<String>> routes = routes(list("a1"), list("b1"), list("c1"), list("d1")); routes.put("tech-n", list("n1"));
         var added = BookingReconciliation.reconcile(stored(), host(versions, routes), "job-new", NOW);
-        assertEquals(new TechnicianState(3L, list("n1"), list("n1")), added.state().technicians().get("tech-n"));
+        assertEquals(technicianState(3L, list("n1"), list("n1")), added.state().technicians().get("tech-n"));
         assertTrue(added.ended().isEmpty());
         Map<String, Long> withoutD = versions(1, 1, 1, 1); withoutD.remove("tech-d");
         Map<String, List<String>> routesWithoutD = routes(list("a1"), list("b1"), list("c1"), list()); routesWithoutD.remove("tech-d");
@@ -171,17 +184,98 @@ class BookingReconciliationTest {
         BookingDayState state = stored();
         assertEquals(state, PublicRequests.read(CalculationJson.write(state), BookingDayState.class));
         Map<String, TechnicianState> twice = new TreeMap<>(state.technicians());
-        twice.put("tech-d", new TechnicianState(1L, list("d1", "a1"), list("d1", "a1")));
+        twice.put("tech-d", technicianState(1L, list("d1", "a1"), list("d1", "a1")));
         assertThrows(IllegalArgumentException.class, () -> new BookingDayState(twice, state.holds()));
         Map<String, TechnicianState> unplaced = new TreeMap<>(state.technicians());
-        unplaced.put("tech-a", new TechnicianState(1L, list("a1"), list("a1")));
+        unplaced.put("tech-a", technicianState(1L, list("a1"), list("a1")));
         assertThrows(IllegalArgumentException.class, () -> new BookingDayState(unplaced, state.holds()));
         assertThrows(IllegalArgumentException.class, () -> new BookingDayState(state.technicians(),
                 Required.value(Map.of("hold-x", hold("job-x", "tech-b", LATER)))), "a hold must be on its technician's route");
         List<String> missing = new ArrayList<>(list("a1"));
         Map<String, TechnicianState> uncovered = new TreeMap<>(state.technicians());
-        uncovered.put("tech-c", new TechnicianState(1L, Required.value(List.copyOf(missing)), list()));
+        uncovered.put("tech-c", technicianState(1L, Required.value(List.copyOf(missing)), list()));
         assertThrows(IllegalArgumentException.class, () -> new BookingDayState(uncovered, state.holds()));
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(CalculationJson.write(state).replace("\"version\":1", "\"version\":-1")), BookingDayState.class));
+    }
+
+    /** Stored after the host wrote a booking on tech-a: its day moved from version 1 to 7. */
+    private static BookingDayState movedOn() {
+        return BookingReconciliation.reconcile(stored(), host(versions(7, 1, 1, 1), routes(list("a1"), list("b1"), list("c1"), list("d1"))), "job-new", NOW).state();
+    }
+
+    @Test void aSnapshotOlderThanOneAlreadyUsedIsStaleAndNotAHostChange() {
+        BookingDayState state = movedOn();
+        assertEquals(Required.value(List.of(new BookingReconciliation.Superseded("tech-a", 7L))), BookingReconciliation.stale(state, unchanged(), NOW),
+                "the late snapshot still carries tech-a's version 1, which the state moved past");
+        assertTrue(BookingReconciliation.stale(state, host(versions(7, 1, 1, 1), routes(list("a1"), list("b1"), list("c1"), list("d1"))), NOW).isEmpty(), "current records");
+        assertTrue(BookingReconciliation.stale(state, host(versions(9, 1, 1, 1), routes(list("a1"), list("b1"), list("c1"), list("d1"))), NOW).isEmpty(),
+                "a version never seen is a host change, reconciled as before");
+        assertTrue(BookingReconciliation.stale(null, unchanged(), NOW).isEmpty(), "nothing stored, nothing stale");
+    }
+
+    @Test void theStaleAnswerListsTheNewestTimestampSeen() {
+        Instant recorded = Required.value(Instant.parse("2026-10-11T21:04:17.123456789Z"));
+        java.time.LocalDate date = Required.value(java.time.LocalDate.of(2026, 10, 12));
+        var problem = BookingReconciliation.staleProblem(date,
+                Required.value(List.of(new BookingReconciliation.Superseded("tech-a", RequestBooking.version(recorded)))));
+        assertEquals("STALE", problem.error());
+        assertEquals(Required.value(List.of(new PublicTypes.TechnicianDayVersion("tech-a", date, recorded))), problem.changed());
+        assertThrows(IllegalArgumentException.class, () -> BookingReconciliation.staleProblem(date, Required.value(List.of())));
+    }
+
+    @Test void theHistoryIsBoundedAndForgetsTheOldestFirst() {
+        TechnicianState technician = technicianState(0L, list(), list());
+        for (long version = 1; version <= TechnicianState.HISTORY + 5; version++)
+            technician = new TechnicianState(version, list(), list(), technician.movedTo(version), null);
+        List<Long> superseded = Required.value(technician.superseded());
+        assertEquals(TechnicianState.HISTORY, superseded.size());
+        assertEquals(5L, superseded.getFirst(), "versions 0 to 4 were forgotten");
+        assertEquals(TechnicianState.HISTORY + 4L, superseded.getLast());
+        assertSame(technician.superseded(), technician.movedTo(technician.version()), "staying at a version changes nothing");
+    }
+
+    @Test void aStateStoredBeforeVersionsWereRememberedHasNoHistoryAndStartsOneWhenItMoves() {
+        ObjectNode json = (ObjectNode) CalculationJson.tree(CalculationJson.write(stored()));
+        json.path("technicians").forEach(technician -> ((ObjectNode) technician).remove("superseded"));
+        BookingDayState old = PublicRequests.read(CalculationJson.write(json), BookingDayState.class);
+        assertNull(Required.value(old.technicians().get("tech-a")).superseded(), "unknown, never read as empty");
+        assertTrue(BookingReconciliation.stale(old, unchanged(), NOW).isEmpty());
+        var moved = BookingReconciliation.reconcile(old, host(versions(7, 1, 1, 1), routes(list("a1"), list("b1"), list("c1"), list("d1"))), "job-new", NOW);
+        assertEquals(versionsList(1L), Required.value(moved.state().technicians().get("tech-a")).superseded());
+        assertNull(Required.value(moved.state().technicians().get("tech-b")).superseded(), "an unmoved old technician-day stays unknown");
+        assertEquals(1, BookingReconciliation.stale(moved.state(), unchanged(), NOW).size());
+    }
+
+    @Test void anInvalidHistoryIsRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new TechnicianState(3L, list(), list(), versionsList(1L, 3L), null), "the current version");
+        assertThrows(IllegalArgumentException.class, () -> new TechnicianState(3L, list(), list(), versionsList(1L, 1L), null), "listed twice");
+        assertThrows(IllegalArgumentException.class, () -> new TechnicianState(3L, list(), list(), versionsList(-1L), null), "negative");
+        List<Long> tooMany = new ArrayList<>();
+        for (long version = 10; version < 10 + TechnicianState.HISTORY + 1; version++) tooMany.add(version);
+        assertThrows(IllegalArgumentException.class, () -> new TechnicianState(3L, list(), list(), Required.value(List.copyOf(tooMany)), null));
+        String json = Required.value(CalculationJson.write(movedOn()).replace("\"superseded\":[1]", "\"superseded\":[null]"));
+        assertNotEquals(CalculationJson.write(movedOn()), json, "the history was found in the stored JSON");
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(json, BookingDayState.class), "a null entry");
+    }
+
+    @Test void aSnapshotFromBeforeAnUnwrittenReceiptIsStaleUntilTheReceiptIsWrittenOrRunsOut() {
+        // A confirm put job-y on tech-d: the host is told to write [d1, job-y] and has not yet.
+        Map<String, TechnicianState> technicians = new TreeMap<>(stored().technicians());
+        technicians.put("tech-d", new TechnicianState(1L, list("d1", "job-y"), list("d1", "job-y"), BookingDayState.FIRST_SEEN,
+                new BookingDayState.Unwritten(list("d1"), LATER)));
+        BookingDayState confirmed = new BookingDayState(technicians, stored().holds());
+        assertEquals(Required.value(List.of(new BookingReconciliation.Superseded("tech-d", 1L))), BookingReconciliation.stale(confirmed, unchanged(), NOW),
+                "the unchanged timestamp with the route before the receipt was read before the receipt was written");
+        assertTrue(BookingReconciliation.stale(confirmed, unchanged(), LATER).isEmpty(), "once the receipt runs out it is taken as never written");
+        var written = host(versions(1, 1, 1, 2), routes(list("a1"), list("b1"), list("c1"), list("d1", "job-y")));
+        assertTrue(BookingReconciliation.stale(confirmed, written, NOW).isEmpty());
+        var result = BookingReconciliation.reconcile(confirmed, written, "job-new", NOW);
+        assertEquals(java.util.Set.of("hold-x"), result.holds().keySet(), "the written receipt is accepted (rule 2)");
+        assertNull(Required.value(result.state().technicians().get("tech-d")).unwritten(), "a written receipt is no longer waited for");
+        assertEquals(new BookingDayState.Unwritten(list("d1"), LATER),
+                Required.value(BookingReconciliation.reconcile(confirmed, host(versions(1, 1, 1, 1), routes(list("a1"), list("b1"), list("c1"), list("d1", "job-y"))),
+                        "job-new", NOW).state().technicians().get("tech-d")).unwritten(), "kept while the host has not moved the timestamp");
+        var dispatcher = host(versions(1, 1, 1, 3), routes(list("a1"), list("b1"), list("c1"), list("d1")));
+        assertTrue(BookingReconciliation.stale(confirmed, dispatcher, NOW).isEmpty(), "a new timestamp is a host change, never stale");
     }
 }

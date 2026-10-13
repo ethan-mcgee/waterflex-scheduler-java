@@ -157,6 +157,11 @@ public class PublicApiStore {
         asTenant(tenantId, () -> { complete(tenantId, requestId, ownerToken, status, CalculationJson.write(problem)); return Boolean.TRUE; });
     }
 
+    /** Stores a final STALE answer: the request's snapshot is older than records the scheduler already used. */
+    public void completeStale(String tenantId, String requestId, String ownerToken, PublicResponses.StaleProblem problem) {
+        asTenant(tenantId, () -> { complete(tenantId, requestId, ownerToken, 409, CalculationJson.write(problem)); return Boolean.TRUE; });
+    }
+
     /** Saves the proposal and its technician-day timestamps and completes the request with it (201), atomically. */
     public void completeDaily(String tenantId, String ownerToken, StoredProposal stored) {
         asTenant(tenantId, () -> {
