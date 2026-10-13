@@ -39,6 +39,8 @@ info:
     - `BookingOffersRequest.offerLimit` (1 to 4) is required; send the client's own cap on offers per search.
     - `BookingOffersRequest.windowHours` (1 to 8) is required; send the client's own arrival window length in whole hours.
     - `POST /api/v1/repairs/proposals` is served; commit an IMPROVED repair like a daily proposal.
+    - `DELETE /api/v1/requests/{requestId}` is served, per scheduler replica and best effort; the cancelled call answers
+      409 `CANCELLED` and its requestId runs again on retry. `CANCELLED` is a new `Problem.error` value.
     - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
       confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
@@ -95,6 +97,7 @@ paths:
                 proposed: { $ref: '#/components/examples/DailyProposal' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Cancelled' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
         '503': { $ref: '#/components/responses/Unavailable' }
@@ -222,6 +225,7 @@ paths:
                 offers: { $ref: '#/components/examples/OfferSet' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Cancelled' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
         '503': { $ref: '#/components/responses/Unavailable' }
@@ -315,7 +319,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/HoldUnavailable' }
+        '409': { $ref: '#/components/responses/HoldUnavailableOrCancelled' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
         '503': { $ref: '#/components/responses/Unavailable' }
@@ -348,6 +352,7 @@ paths:
                 proposed: { $ref: '#/components/examples/DailyProposal' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Cancelled' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
         '503': { $ref: '#/components/responses/Unavailable' }
@@ -356,15 +361,21 @@ paths:
       operationId: cancelRequest
       tags: [Integration]
       summary: Best-effort cancellation of an in-flight calculation.
-      description: A calculation that is not cancelled in time still stops at its own deadline.
-      x-implementation: planned
+      description: >-
+        Cancels a daily or repair proposal, booking search or confirm that is still running under this requestId.
+        The cancelled call answers 409 CANCELLED, stores nothing, and releases its requestId, so retrying it with
+        the same requestId runs it again. Cancellation reaches only the scheduler replica running the call: behind
+        several replicas, route this request by requestId as the call itself was routed, or it is a 404 and the
+        call still stops at its own deadline.
+      x-implementation: implemented
       parameters:
         - name: requestId
           in: path
           required: true
           schema: { $ref: '#/components/schemas/RequestId' }
       responses:
-        '202': { description: Cancellation recorded. }
+        '202': { description: Cancellation recorded; the cancelled call answers 409 CANCELLED. No body. }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
 components:
@@ -429,6 +440,26 @@ components:
           examples:
             changed: { $ref: '#/components/examples/StaleProblem' }
             committed: { value: { error: NOT_COMMITTABLE, message: Proposal was already committed as rcpt-41d9 } }
+    Cancelled:
+      description: >-
+        The host cancelled this call with DELETE /api/v1/requests/{requestId}. Nothing was stored and the requestId
+        was released; retrying with the same requestId runs the call again.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            cancelled: { value: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
+    HoldUnavailableOrCancelled:
+      description: >-
+        HOLD_UNAVAILABLE: the hold expired or ended, was not selected, or the confirmed day would need overtime or
+        repair; search again. CANCELLED: the host cancelled this confirm; nothing was stored and the same requestId
+        runs again.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+          examples:
+            expired: { value: { error: HOLD_UNAVAILABLE, message: The hold expired } }
+            cancelled: { value: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' } }
     IncompleteFacts:
       description: The snapshot is well formed but cannot be scheduled, for example a location with no road route.
       content:
@@ -971,7 +1002,7 @@ components:
       properties:
         error:
           type: string
-          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE]
+          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED]
         message: { type: string, minLength: 1 }
     StaleProblem:
       type: object

@@ -21,5 +21,5 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   const clientId = (await activeClient(req)).id;
   if (!(await servesMetro(clientId, parsed.data.metroId))) return notFound("Metro");
-  return apiDispatchStep(() => proposeApiDay(clientId, parsed.data.metroId, parsed.data.date));
+  return apiDispatchStep(() => proposeApiDay(clientId, parsed.data.metroId, parsed.data.date, undefined, parsed.data.requestId));
 }

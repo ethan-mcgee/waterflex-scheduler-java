@@ -61,16 +61,19 @@ public class BookingConfirm {
     private final MetroRouting routing;
     private final DailyPreparation.AddressLocator locator;
     private final SearchAdmission admission;
+    private final RunningRequests running;
     private final Clock clock;
 
     @Autowired
-    public BookingConfirm(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, SearchAdmission admission) {
-        this(store, bookings, routing, locator, admission, Required.value(Clock.systemUTC()));
+    public BookingConfirm(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, SearchAdmission admission,
+                          RunningRequests running) {
+        this(store, bookings, routing, locator, admission, running, Required.value(Clock.systemUTC()));
     }
 
     public BookingConfirm(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, SearchAdmission admission,
-                          Clock clock) {
-        this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.admission = admission; this.clock = clock;
+                          RunningRequests running, Clock clock) {
+        this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.admission = admission;
+        this.running = running; this.clock = clock;
     }
 
     public Reply confirm(String tenantId, String holdId, String body) {
@@ -98,9 +101,16 @@ public class BookingConfirm {
     }
 
     private Reply run(String tenantId, String holdId, ConfirmRequest request, String owner) {
+        RunningRequests.Running registered;
+        try { registered = running.start(tenantId, request.requestId()); }
+        catch (RunningRequests.AlreadyRunning already) {
+            store.release(tenantId, request.requestId(), owner);
+            return Reply.of(429, new Problem(ErrorCode.BUSY, Required.value(already.getMessage())));
+        }
         try {
             // The client's own booking deadline bounds the confirm, as it bounds a search.
             SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
+            registered.attach(deadline);
             return deadline.within(() -> {
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
                     try { return attempt(tenantId, holdId, request, owner); }
@@ -120,10 +130,13 @@ public class BookingConfirm {
                     ? "Other bookings kept changing this date; retry" : "Search capacity exhausted"));
         } catch (SearchDeadline.Expired | HttpCalculation.Unavailable expired) {
             store.release(tenantId, request.requestId(), owner);
+            if (registered.cancelled()) return Reply.of(409, DailyProposals.cancelled());
             return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The confirm did not finish before its deadline"));
         } catch (RuntimeException unexpected) {
             store.release(tenantId, request.requestId(), owner);
             throw unexpected;
+        } finally {
+            running.finish(tenantId, request.requestId(), registered);
         }
     }
 

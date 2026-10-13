@@ -1,6 +1,6 @@
 "use client";
 
-import { apiProposal, apiProposals, errorMessage, readResponse } from "@/lib/contracts";
+import { apiProposal, apiProposals, cancelOutcome, errorMessage, readResponse } from "@/lib/contracts";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -79,6 +79,9 @@ export default function DispatchBoard({ metroId, metroName, timezone, date, sear
   const [committing, setCommitting] = useState(false);
   const [commitError, setCommitError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  /** The running optimization's scheduler request, so the dispatcher can cancel it; null when none is running. */
+  const [running, setRunning] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const showResult = useCallback((proposal: ApiProposal) => {
     setProposalGeometry(null); setCommitError(null); setFocus(null); setSelected(null);
@@ -120,13 +123,33 @@ export default function DispatchBoard({ metroId, metroName, timezone, date, sear
     const startedAt = Date.now();
     setError(null); setCommitError(null); setProposalGeometry(null); setView("current"); setFocus(null); setSelected(null);
     setPhase({ kind: "running", step: "optimizing", startedAt, proposal: null });
+    const requestId = crypto.randomUUID();
+    setRunning(requestId); setCancelling(false);
     try {
-      const response = await fetch("/api/dispatch/proposals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ metroId, date }) });
+      const response = await fetch("/api/dispatch/proposals", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metroId, date, requestId }) });
+      setRunning(null);
       setPhase({ kind: "running", step: "checking", startedAt, proposal: null });
       showResult(await readResponse(response, apiProposal));
     } catch (cause) {
       setError(errorMessage(cause));
       setPhase({ kind: "ready" });
+    } finally {
+      setRunning(null); setCancelling(false);
+    }
+  }
+
+  /** Asks the scheduler to stop the running optimization; the optimize call then ends with the cancellation. */
+  async function cancel() {
+    if (running === null) return;
+    setCancelling(true);
+    try {
+      const response = await fetch("/api/dispatch/proposals/cancel", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: running }) });
+      await readResponse(response, cancelOutcome);
+    } catch (cause) {
+      setError(errorMessage(cause));
+      setCancelling(false);
     }
   }
 
@@ -193,7 +216,8 @@ export default function DispatchBoard({ metroId, metroName, timezone, date, sear
     </header>
     {error && <p role="alert" className={styles.banner}>{error}</p>}
     <OptimizePanel phase={phase} timezone={timezone} current={current} optimized={optimized} searchSeconds={searchSeconds} blockers={blockers} warnings={warnings}
-      commitBlockedReason={commitBlockedReason} committing={committing} onOptimize={() => void optimize()} onDiscard={discard} onCommit={() => void commit()} />
+      commitBlockedReason={commitBlockedReason} committing={committing} onOptimize={() => void optimize()} onDiscard={discard} onCommit={() => void commit()}
+      onCancel={running === null ? null : () => void cancel()} cancelling={cancelling} />
     <section aria-labelledby="map-heading" className={styles.card}>
       <div className={styles.cardHeader}>
         <div className={styles.titleRow}><h2 id="map-heading">{title}</h2>{caption && <span className={styles.caption}>{caption}</span>}</div>

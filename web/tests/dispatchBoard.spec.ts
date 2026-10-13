@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
+import { cancelRequestBody, previewRequest } from "../lib/contracts";
 
 const prisma = new PrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
@@ -163,5 +164,36 @@ test("a day that changed after the proposal cannot be committed, and an unpriced
     await expect(page.getByRole("group", { name: "Plan shown on map" })).toHaveCount(0);
     await page.getByRole("button", { name: "Discard" }).click();
     await expect(page.getByRole("heading", { name: "Ready to optimize" })).toBeVisible();
+  } finally { await fixture.cleanup(); }
+});
+
+test("a running optimization can be cancelled and the board returns to ready", async ({ page }) => {
+  const fixture = await seed();
+  try {
+    await mockApis(page, fixture);
+    let optimizeRequestId: string | null = null;
+    let cancelledId: string | null = null;
+    let release: () => void = () => { };
+    const cancelled = new Promise<void>(resolve => { release = resolve; });
+    // The optimize call stays open until the board cancels it, then answers as the portal does for a cancelled scheduler call.
+    await page.route(url => url.pathname === "/api/dispatch/proposals", async route => {
+      if (route.request().method() === "GET") return route.fulfill(json({ proposals: [] }));
+      optimizeRequestId = previewRequest.parse(route.request().postDataJSON()).requestId;
+      await cancelled;
+      return route.fulfill(json({ error: "Optimization cancelled. Nothing was changed." }, 409));
+    });
+    await page.route("**/api/dispatch/proposals/cancel", route => {
+      cancelledId = cancelRequestBody.parse(route.request().postDataJSON()).requestId;
+      release();
+      return route.fulfill(json({ outcome: "CANCELLING" }));
+    });
+    await page.goto(`/dispatch?metroId=${fixture.metroId}&date=${DATE}`);
+    await page.getByRole("button", { name: "Optimize routes" }).click();
+    await expect(page.getByRole("heading", { name: "Optimizing routes" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Ready to optimize" })).toBeVisible();
+    await expect(page.getByText("Optimization cancelled. Nothing was changed.")).toBeVisible();
+    expect(optimizeRequestId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    expect(cancelledId).toBe(optimizeRequestId);
   } finally { await fixture.cleanup(); }
 });

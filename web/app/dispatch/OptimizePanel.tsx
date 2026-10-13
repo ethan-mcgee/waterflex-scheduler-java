@@ -36,6 +36,9 @@ type Props = {
   onOptimize: () => void;
   onDiscard: () => void;
   onCommit: () => void;
+  /** Stops the running optimization; null when there is nothing to cancel. */
+  onCancel: (() => void) | null;
+  cancelling: boolean;
 };
 
 function Notices({ blockers, warnings }: { blockers: ReactNode[]; warnings: string[] }) {
@@ -47,9 +50,14 @@ function Notices({ blockers, warnings }: { blockers: ReactNode[]; warnings: stri
 }
 
 /** The optimize card: ready to optimize, optimizing, or the optimizer's result with commit and discard. */
-export default function OptimizePanel({ phase, timezone, current, optimized, searchSeconds, blockers, warnings, commitBlockedReason, committing, onOptimize, onDiscard, onCommit }: Props) {
+export default function OptimizePanel({ phase, timezone, current, optimized, searchSeconds, blockers, warnings, commitBlockedReason, committing,
+  onOptimize, onDiscard, onCommit, onCancel, cancelling }: Props) {
   if (phase.kind === "running") return <section aria-labelledby="optimize-heading" aria-live="polite" className={styles.card}>
-    <h2 id="optimize-heading">Optimizing routes</h2>
+    <div className={styles.cardHeader}>
+      <h2 id="optimize-heading">Optimizing routes</h2>
+      {phase.step === "optimizing" && onCancel !== null &&
+        <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={cancelling}>{cancelling ? "Cancelling..." : "Cancel"}</button>}
+    </div>
     <ProgressSteps step={phase.step} startedAt={phase.startedAt} searchSeconds={searchSeconds} />
   </section>;
 
