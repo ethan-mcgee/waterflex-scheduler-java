@@ -28,6 +28,19 @@ public final class HttpCalculation implements CalculationAdapter {
         base = uri; this.token = token;
         client = Required.value(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).followRedirects(HttpClient.Redirect.NEVER).build());
     }
+    /** Readiness: the solver answers its health check within {@code timeout}; otherwise {@link Unavailable}. */
+    public void checkHealth(Duration timeout) {
+        try {
+            var response = client.send(Required.value(HttpRequest.newBuilder(base.resolve("/health")).timeout(timeout).GET().build()),
+                    HttpResponse.BodyHandlers.discarding());
+            if (response.statusCode() != 200) throw new Unavailable("Solver health answered HTTP " + response.statusCode(), null);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new Unavailable("Solver health check interrupted", interrupted);
+        } catch (java.io.IOException failure) {
+            throw new Unavailable("Solver unreachable", failure);
+        }
+    }
     private static final class SetOfSchemes {
         static boolean allowed(URI uri) {
             return "https".equals(uri.getScheme()) || "http".equals(uri.getScheme())

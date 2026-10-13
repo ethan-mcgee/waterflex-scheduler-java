@@ -35,6 +35,7 @@ public final class TenantAuthentication extends OncePerRequestFilter {
             return;
         }
         request.setAttribute(TENANT, tenant);
+        org.slf4j.MDC.put(RequestLogging.TENANT, tenant);
         chain.doFilter(request, response);
     }
 

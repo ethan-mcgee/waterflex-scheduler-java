@@ -54,6 +54,10 @@ public class RunningRequests {
     }
 
     private final ConcurrentHashMap<Key, Running> running = new ConcurrentHashMap<>();
+    private final java.util.concurrent.atomic.LongAdder cancellations = new java.util.concurrent.atomic.LongAdder();
+
+    /** Cancellations that found their request running here. */
+    public long cancellations() { return cancellations.sum(); }
 
     /** Registers a request that has claimed its request ID. Always {@link #finish} it. */
     public Running start(String tenantId, String requestId) {
@@ -70,6 +74,7 @@ public class RunningRequests {
     public boolean cancel(String tenantId, String requestId) {
         Running found = running.get(new Key(tenantId, requestId));
         if (found == null) return false;
+        cancellations.increment();
         found.cancel();
         return true;
     }

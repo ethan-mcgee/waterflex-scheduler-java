@@ -84,6 +84,7 @@ public class BookingConfirm {
         } catch (IllegalArgumentException invalid) {
             return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, DailyProposals.invalidRequest(invalid)));
         }
+        dev.waterflex.scheduler.RequestLogging.requestId(request.requestId());
         String fingerprint = DailyProposals.sha256(holdId + "\n" + CalculationJson.write(request));
         return switch (store.claim(tenantId, request.requestId(), Operation.BOOKING_CONFIRM, fingerprint)) {
             case Replay replay -> replayed(replay);

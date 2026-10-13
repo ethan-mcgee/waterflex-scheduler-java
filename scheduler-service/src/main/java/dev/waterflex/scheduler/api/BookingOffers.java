@@ -97,6 +97,7 @@ public class BookingOffers {
         BookingOffersRequest request;
         try { request = PublicRequests.read(body, BookingOffersRequest.class); }
         catch (IllegalArgumentException invalid) { return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, DailyProposals.invalidRequest(invalid))); }
+        dev.waterflex.scheduler.RequestLogging.requestId(request.requestId());
         return switch (store.claim(tenantId, request.requestId(), Operation.BOOKING_OFFERS, DailyProposals.sha256(CalculationJson.write(request)))) {
             case Replay replay -> replayed(replay);
             case Conflict _ -> Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, "requestId was already used with a different request"));
@@ -312,7 +313,8 @@ public class BookingOffers {
     }
 
     /** How many refinement results failed validation since this process started. */
-    long invalidRefinements() { return invalidRefinements.sum(); }
+    /** Remote refinements that failed validation; their searches published the insertion offers. */
+    public long invalidRefinements() { return invalidRefinements.sum(); }
 
     private static BoundedBookingSearch.Result incomplete(BoundedBookingSearch.Result result, String reason) {
         return new BoundedBookingSearch.Result(result.candidates(), result.coverage(), false, result.distinctRegularWindows(),

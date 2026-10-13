@@ -100,6 +100,7 @@ The contract is a draft until the first endpoint that calculates ships, but ever
 | `Snapshot.policy.fairnessBudget` is required | #97 | Sends each client's own fairness budget: "0" for none, or a share such as "0.02" (2 percent) by which the daily plan's cost may rise to spread work more evenly. A missing value is rejected, never assumed. |
 | `DailyProposal.reason` begins with the policy code | #138 | Nothing required. A host that wants the code takes the text before the first colon (for example `NO_POLICY_IMPROVEMENT`); the text after it is for people. Decisions without a policy judgement stay a sentence. |
 | `Snapshot.policy.dailySearch`, `costSearchSeconds` and `fairnessSearchSeconds` are required | #133 | Sends each client's daily search method (`TABU_KOPT` or `TABU`) and how many seconds the cost search (5 to 240) and the fairness search (0 to 240, 0 skips it) may run, at most 240 together. A proposal request then takes about that long plus up to 5 seconds. Missing values are rejected, never assumed. |
+| Thin store rows purged after the deployment's retention period | #PRG | Keeps its own copy of any receipt it needs beyond `SCHEDULER_RETENTION_DAYS`. A `requestId` older than the period is no longer remembered: repeating it runs a new request, so retries belong within the period (they normally come within seconds). |
 | `LocatedStop.source` added to route geometry | #141 | Reads `source` on each drawn stop: `HOST` when the snapshot sent the coordinates, `NOMINATIM` when the scheduler located an address. A strict reader must accept the new required field. |
 | `DELETE /api/v1/requests/{requestId}` served; new error `CANCELLED` | #140 | Cancels a call it no longer needs by its `requestId` (202, or 404 when nothing is running under it on that replica). The cancelled call answers 409 `CANCELLED`; nothing was stored, and retrying with the same `requestId` runs it again. |
 | `Snapshot.policy.bookingDeadlineMs` and `regularWindowThreshold` are required | #139 | Sends each client's booking search deadline (1000 to 5000 ms; a booking search or confirm answers within it, with `searchComplete` false when it was cut short) and window threshold (0 to 1000: when the first booking pass finds more distinct regular windows than this, the refinement pass is kept short). The scheduler's shared settings are gone, and missing values are rejected, never assumed. The calculation protocol moves to version 3 with this change, so the scheduler and a remote `solver-service` are deployed together. |
@@ -220,9 +221,11 @@ Client schedules are not stored in the scheduler. They stay in WaterFlex Softwar
 | Data | Typical lifetime |
 | --- | --- |
 | Booking holds and reservation arrangements | Minutes, until confirmed, released or expired |
-| Offer sets and offers | Hours, until selected or expired |
-| Daily and repair proposals | Until committed, rejected or stale |
-| Attempt, commit and outcome receipts | Retained for audit on a fixed retention period, then purged |
+| Offer sets and offers | Usable for hours, until selected or expired; the rows stay for the retention period |
+| Daily and repair proposals | Committable until committed or stale; the rows stay for the retention period |
+| Requests, commit and booking receipts | The retention period, then purged |
+
+The retention period is the deployment's `SCHEDULER_RETENTION_DAYS` (1 to 3650 days), required with no default: the scheduler does not start without it. A daily purge (03:45 America/Chicago, `scheduler.retention.cron`) deletes rows older than the period in batches of 5,000 through the database function `scheduler_purge`, children before parents. A row that a newer row still references (an old offer set whose offer was confirmed recently) stays until both have aged. The function refuses a cutoff less than a day old.
 | Road route cache | Up to 30 days (see "Route cache") |
 
 ### Tenant isolation
@@ -235,7 +238,7 @@ Client schedules are not stored in the scheduler. They stay in WaterFlex Softwar
 ### Several scheduler replicas on one database
 
 - Correctness lives in the database. Holds are protected by row locks and unique constraints on `(tenant_id, technician_id, service_date)` and by the timestamp comparison inside one transaction. Any replica can serve any request, so the load balancer needs no sticky sessions.
-- The scheduler runs one scheduled task, the weekly route cache cleanup, which is idempotent on every replica (see "Route cache"). There is no hold expiry sweeper: expiry is a time, applied when a day is next used. Overnight runs and time-off analysis belong to the host; the portal's overnight worker claims runs with `FOR UPDATE SKIP LOCKED`, so any number of workers is safe.
+- The scheduler runs two scheduled tasks, the weekly route cache cleanup (see "Route cache") and the daily retention purge (see "What is stored"). Both are idempotent on every replica; the purge skips rows another replica has locked. There is no hold expiry sweeper: expiry is a time, applied when a day is next used. Overnight runs and time-off analysis belong to the host; the portal's overnight worker claims runs with `FOR UPDATE SKIP LOCKED`, so any number of workers is safe.
 - A public API calculation ends at its own deadline (the client's `bookingDeadlineMs` for booking; the client's search time plus 5 seconds for daily and repair). The host can end one sooner with `DELETE /api/v1/requests/{requestId}`, on the replica running it. A cancelled daily operation frees its admission slot once the solver unwinds (the watchdog terminates it within milliseconds), not at the instant of the DELETE.
 - In-memory state that stays per replica by design:
   - admission counters (`SearchAdmission`): limits are per replica; a global limit would need a shared counter,
@@ -353,6 +356,7 @@ The portal is the worked example of each of these (`web/lib/clientSnapshot.ts`, 
 - Remote results must come from the same Timefold core artifact (version and SHA-256) and the same policy, cost and score model versions as the caller (`CalculationProtocol.Response.match`). This is the audit's TF01 provenance guarantee and is kept deliberately (decided by the owner on 2026-10-08: roadmap item S1e, a compatible-version set, was declined). A Timefold upgrade is deployed by running the new solver pool beside the old one and switching the scheduler with it, not by loosening the check.
 - Routing requires the `ROUTING_AUTH_TOKEN` bearer token on computation endpoints, but traffic is plain http inside the private network. Add TLS if routing is ever reachable beyond that network.
 - Remote mode has not been performance-tested; that study is deferred with the rest of the performance work.
+- TLS is not set up between WaterFlex Software and the scheduler, nor from the scheduler to routing and Nominatim (deferred by owner decision on 2026-10-13). It is a precondition of production traffic; `docs/operations-runbook.md` lists what must be encrypted.
 - Host cancellation (`DELETE /api/v1/requests/{requestId}`) reaches only the replica running the call, since running requests are kept in memory. Behind several scheduler replicas, the load balancer must send the DELETE where the call went (hash on the request ID); otherwise it is a 404 and the call ends at its own deadline.
 - The scheduler and a remote `solver-service` must run the same `CalculationProtocol.VERSION` (3 since the per-client policy change, which removed `BookingSnapshot.calendarReference` and the unused utilization threshold). Deploy a new solver pool beside the old one, then switch the scheduler to it.
 
@@ -365,9 +369,9 @@ The portal is the worked example of each of these (`web/lib/clientSnapshot.ts`, 
 5. Booking latency: offers within each client's `bookingDeadlineMs`, at most 5 seconds end to end. Every policy rule is the client's own; the scheduler holds no policy settings (the shared `omaha_setting` table was dropped).
 6. TIGER: the Nominatim import adds the US Census TIGER address ranges, so a house number OpenStreetMap lacks is placed along its street (see the README map steps).
 7. A refinement result that fails validation keeps the insertion offers (decided 2026-10-13). `BookingOffers.calculate` publishes them with `searchComplete: false` and the internal stop reason `REFINEMENT_INVALID`, logs the failure at error level and counts it; the insertion result is validated on its own and again before publishing, so nothing unchecked is offered. An invalid insertion result still fails the search.
+8. Retention (decided 2026-10-13): the period is the deployment's `SCHEDULER_RETENTION_DAYS`, required with no default, so the operator chooses it for each deployment (see "What is stored").
 
 ## Open questions
 
 1. Does WaterFlex Software's Google Maps Platform agreement allow passing Google-geocoded coordinates to the scheduler and caching them for up to 30 days?
-2. What audit retention period applies to receipts?
-3. Does any client require a dedicated database?
+2. Does any client require a dedicated database?
