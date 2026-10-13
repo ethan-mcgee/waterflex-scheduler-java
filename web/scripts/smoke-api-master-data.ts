@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma";
-import { generateTenantToken, tenantTokenSha256 } from "../lib/tenantTokens";
+import { issueToken } from "./smokeTokens";
 import { storeSolverSettings } from "../lib/clientSettingsStore";
 import { addCalendarDays, todayInTz } from "../lib/date";
 import { localMinute } from "../lib/zonedTime";
@@ -33,8 +33,6 @@ assert.ok(base, "SCHEDULER_TEST_URL must point at a running scheduler");
 
 async function removeMetro() {
   const like = "api-master-%";
-  await prisma.$executeRaw`DELETE FROM tenant_api_token WHERE "tenantId" LIKE ${like}`;
-  await prisma.$executeRaw`DELETE FROM tenant WHERE id LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM appointment WHERE "technicianId" LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM job WHERE id LIKE ${like}`;
   await prisma.$executeRaw`DELETE FROM address WHERE id LIKE ${like}`;
@@ -84,9 +82,7 @@ async function setUp() {
   const saved = await storeSolverSettings(clientId, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
     travelBufferPercent: "0", travelBufferMinutes: 0, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
   assert.ok("saved" in saved);
-  const token = generateTenantToken();
-  await prisma.tenant.create({ data: { id: clientId, name: clientId } });
-  await prisma.tenantApiToken.create({ data: { id: randomUUID(), tenantId: clientId, tokenSha256: tenantTokenSha256(token), label: "API master smoke" } });
+  const { token } = await issueToken(clientId, clientId, "API master smoke");
   process.env.SCHEDULER_API_URL = base;
   process.env[tokenVariable(clientId)] = token;
 }

@@ -1,0 +1,173 @@
+# The scheduler VM: what runs on the machine WaterFlex Software calls at https://<scheduler-vm>/api/v1, and nothing
+# else. No portal, no tiles, no portal database. Every secret is required (no defaults); copy .env.example to .env.
+# See deploy/vm/README.md for installation, and docs/operations-runbook.md for running it.
+#
+#   docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d
+#
+# Compute is partitioned with deploy.resources limits, so this machine's share is explicit. To serve another metro, add
+# a routing service like routing-omaha with that metro's map and list it in ROUTING_METRO_URLS.
+name: scheduler-vm
+
+x-scheduler-image: &scheduler-image
+  image: waterflex-scheduler-engine:vm
+  pull_policy: build
+  build:
+    context: ../..
+    dockerfile: scheduler-service/Dockerfile
+
+x-owner-connection: &owner-connection
+  JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
+  DATABASE_USER: scheduler_owner
+  DATABASE_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:?Set SCHEDULER_DB_OWNER_PASSWORD}
+
+services:
+  # The scheduler's own database: tenants and token digests, the thin store, the route cache.
+  scheduler-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: scheduler_owner
+      POSTGRES_PASSWORD: ${SCHEDULER_DB_OWNER_PASSWORD:?Set SCHEDULER_DB_OWNER_PASSWORD}
+      POSTGRES_DB: scheduler
+    volumes: ["scheduler-db:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scheduler_owner -d scheduler"]
+      interval: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { cpus: "${SCHEDULER_DB_CPUS:-1}", memory: "${SCHEDULER_DB_MEMORY:-1g}" }
+    restart: unless-stopped
+
+  # Runs once per start as the database owner: applies migrations and creates or updates the serving login. Operators
+  # also run tenant commands through it, for example:
+  #   docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env run --rm scheduler-admin --command=issue-token acme "Acme Water" primary
+  scheduler-admin:
+    <<: *scheduler-image
+    command: ["--command=migrate"]
+    environment:
+      <<: *owner-connection
+      SCHEDULER_DB_LOGIN: scheduler
+      SCHEDULER_DB_PASSWORD: ${SCHEDULER_DB_PASSWORD:?Set SCHEDULER_DB_PASSWORD}
+    depends_on:
+      scheduler-db: { condition: service_healthy }
+    restart: "no"
+
+  scheduler-service:
+    <<: *scheduler-image
+    environment:
+      JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
+      DATABASE_USER: scheduler
+      DATABASE_PASSWORD: ${SCHEDULER_DB_PASSWORD:?Set SCHEDULER_DB_PASSWORD}
+      SCHEDULER_RETENTION_DAYS: ${SCHEDULER_RETENTION_DAYS:?Set SCHEDULER_RETENTION_DAYS}
+      ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:?Set ROUTING_METRO_URLS}
+      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:?Set ROUTING_AUTH_TOKEN}
+      GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
+      NOMINATIM_URL: http://nominatim:8080
+      SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
+      SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-}
+      SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
+      # Admission matches the cores given to this container.
+      SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_SEARCH_CAPACITY:-2}
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    # The API answers only on the private interface named here; TLS terminates in front of it before production
+    # traffic (see the runbook). Metrics stay on the management port, private as well.
+    ports:
+      - "${SCHEDULER_API_BIND:?Set SCHEDULER_API_BIND to the private interface address}:${SCHEDULER_API_PORT:-8000}:8000"
+      - "${SCHEDULER_MANAGEMENT_BIND:-127.0.0.1}:${SCHEDULER_MANAGEMENT_PORT:-9000}:9000"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      scheduler-db: { condition: service_healthy }
+      scheduler-admin: { condition: service_completed_successfully }
+    deploy:
+      resources:
+        limits: { cpus: "${SCHEDULER_CPUS:-4}", memory: "${SCHEDULER_MEMORY:-4g}" }
+    restart: unless-stopped
+
+  # Omaha's routing service. The map volume holds the prepared versions (infra/prepare-map.ps1 on a build machine,
+  # then copied here); ACTIVE_MAP_VERSION picks one. GraphHopper locks the graph directory, so the volume is writable.
+  routing-omaha:
+    image: waterflex-scheduler-routing:vm
+    pull_policy: build
+    build:
+      context: ../..
+      dockerfile: routing-service/Dockerfile
+    environment:
+      ROUTING_OSM_FILE: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/omaha.osm.pbf
+      ROUTING_GRAPH_DIR: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/graph
+      ROUTING_MAP_VERSION: ${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}
+      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:?Set ROUTING_AUTH_TOKEN}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    volumes: ["maps:/maps"]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8001 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 300s
+    deploy:
+      resources:
+        limits: { cpus: "${ROUTING_CPUS:-2}", memory: "${ROUTING_MEMORY:-6g}" }
+    restart: unless-stopped
+
+  # Address lookup for locations sent without coordinates (GEOCODING_MODE=NOMINATIM). Its database is imported once
+  # per map version, as on the development machine (README map steps).
+  nominatim:
+    profiles: ["nominatim"]
+    image: mediagis/nominatim:5.3
+    environment:
+      PBF_PATH: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/omaha.osm.pbf
+      IMPORT_TIGER_ADDRESSES: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/tiger-nominatim-preprocessed.csv.tar.gz
+      IMPORT_STYLE: address
+      IMPORT_WIKIPEDIA: "false"
+      UPDATE_MODE: none
+      THREADS: "4"
+      GUNICORN_CMD_ARGS: "--no-control-socket"
+    shm_size: 1g
+    volumes: ["maps:/maps:ro", "nominatim-db:/var/lib/postgresql/16/main"]
+    deploy:
+      resources:
+        limits: { cpus: "${NOMINATIM_CPUS:-2}", memory: "${NOMINATIM_MEMORY:-4g}" }
+    restart: unless-stopped
+
+  # A remote solver pool (SCHEDULER_CALCULATION_MODE=REMOTE, SCHEDULER_CALCULATION_URL=http://solver-service:8002 on
+  # this private network). The embedded solver is the default.
+  solver-service:
+    profiles: ["remote-solver"]
+    image: waterflex-calculation-solver:vm
+    pull_policy: build
+    build:
+      context: ../..
+      dockerfile: solver-service/Dockerfile
+    environment:
+      SOLVER_BIND_ADDRESS: 0.0.0.0
+      SOLVER_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
+      SOLVER_CAPACITY: ${SOLVER_CAPACITY:-2}
+      SOLVER_QUEUE_LIMIT: ${SOLVER_QUEUE_LIMIT:-16}
+    expose: ["8002"]
+    deploy:
+      resources:
+        limits: { cpus: "${SOLVER_CPUS:-4}", memory: "${SOLVER_MEMORY:-4g}" }
+    restart: unless-stopped
+
+  # Scrapes the scheduler's metrics; its UI answers on the management interface only.
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.53.0
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml:ro", "prometheus-data:/prometheus"]
+    ports: ["${SCHEDULER_MANAGEMENT_BIND:-127.0.0.1}:${PROMETHEUS_PORT:-9090}:9090"]
+    restart: unless-stopped
+
+volumes:
+  scheduler-db:
+  # On the VM this holds the copied map versions. The local rehearsal points it at the development stack's map volume.
+  maps:
+    name: ${MAP_VOLUME:-scheduler-vm-maps}
+    external: true
+  nominatim-db:
+  prometheus-data:
