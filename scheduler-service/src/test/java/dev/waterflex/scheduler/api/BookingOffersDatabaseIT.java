@@ -86,7 +86,7 @@ class BookingOffersDatabaseIT {
             @Override public Instant instant() { return Required.value(now.get()); }
         };
         return new BookingOffers(store, bookings, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                new SearchAdmission(2, 16), jdbc, "BOUNDED", 250, clock);
+                new SearchAdmission(2, 16), "BOUNDED", 250, clock);
     }
 
     private BookingOffers offers() { return offers(Required.value(Map.of("omaha", "http://routing-omaha:8001"))); }
@@ -129,7 +129,7 @@ class BookingOffersDatabaseIT {
 
     private BookingConfirm confirms() {
         return new BookingConfirm(store, bookings, new MetroRouting(Required.value(Map.of("omaha", "http://routing-omaha:8001")), _ -> omaha), _ -> null,
-                new SearchAdmission(2, 16), jdbc, new Clock() {
+                new SearchAdmission(2, 16), new Clock() {
                     @Override public ZoneId getZone() { return Required.value(java.time.ZoneOffset.UTC); }
                     @Override public Clock withZone(@Nullable ZoneId zone) { return this; }
                     @Override public Instant instant() { return Required.value(now.get()); }

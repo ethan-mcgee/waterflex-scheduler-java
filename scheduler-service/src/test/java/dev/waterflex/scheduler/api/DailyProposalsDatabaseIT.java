@@ -93,7 +93,7 @@ class DailyProposalsDatabaseIT {
 
     private DailyProposals proposals(Instant now, Map<String, String> metros) {
         return new DailyProposals(store, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                solvers, new SearchAdmission(2, 16), jdbc, Required.value(Clock.fixed(now, ZoneOffset.UTC)));
+                solvers, new SearchAdmission(2, 16), Required.value(Clock.fixed(now, ZoneOffset.UTC)));
     }
 
     private static final Instant BEFORE_CUTOFF = Required.value(Instant.parse("2026-10-11T12:00:00Z"));

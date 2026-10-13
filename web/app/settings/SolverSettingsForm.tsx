@@ -4,7 +4,7 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from "reac
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { readResponse, errorMessage } from "@/lib/contracts";
-import { DAILY_SEARCHES, MAX_SEARCH_SECONDS, type DailySearch, type SolverSettingsView } from "@/lib/clientSettings";
+import { DAILY_SEARCHES, MAX_BOOKING_DEADLINE_MS, MAX_SEARCH_SECONDS, MIN_BOOKING_DEADLINE_MS, type DailySearch, type SolverSettingsView } from "@/lib/clientSettings";
 import ui from "../components/ui.module.css";
 import styles from "./settings.module.css";
 
@@ -13,14 +13,14 @@ const savedView = z.object({ version: z.int().nonnegative(), updatedAt: z.iso.da
 type Draft = {
   regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPercent: string;
   travelBufferMinutes: string; fairnessBudgetPercent: string; offerLimit: string; windowHours: string; bookingHorizonWeekdays: string;
-  dailySearch: string; costSearchSeconds: string; fairnessSearchSeconds: string;
+  dailySearch: string; costSearchSeconds: string; fairnessSearchSeconds: string; bookingDeadlineMs: string; regularWindowThreshold: string;
 };
 
 const SEARCH_LABELS: Record<DailySearch, string> = { TABU_KOPT: "Tabu + K opt (recommended)", TABU: "Tabu (previous default)" };
 
 const EMPTY: Draft = { regularHourly: "", overtimeHourly: "", mileagePerMile: "", travelBufferPercent: "",
   travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "",
-  dailySearch: "", costSearchSeconds: "", fairnessSearchSeconds: "" };
+  dailySearch: "", costSearchSeconds: "", fairnessSearchSeconds: "", bookingDeadlineMs: "", regularWindowThreshold: "" };
 
 function draftOf(view: SolverSettingsView | null): Draft {
   if (view === null) return EMPTY;
@@ -28,7 +28,8 @@ function draftOf(view: SolverSettingsView | null): Draft {
     travelBufferPercent: view.travelBufferPercent, travelBufferMinutes: String(view.travelBufferMinutes),
     fairnessBudgetPercent: view.fairnessBudgetPercent, offerLimit: String(view.offerLimit), windowHours: String(view.windowHours),
     bookingHorizonWeekdays: String(view.bookingHorizonWeekdays), dailySearch: view.dailySearch,
-    costSearchSeconds: String(view.costSearchSeconds), fairnessSearchSeconds: String(view.fairnessSearchSeconds) };
+    costSearchSeconds: String(view.costSearchSeconds), fairnessSearchSeconds: String(view.fairnessSearchSeconds),
+    bookingDeadlineMs: String(view.bookingDeadlineMs), regularWindowThreshold: String(view.regularWindowThreshold) };
 }
 
 /** Whole numbers only; anything else is sent as typed so the server rejects it instead of the form guessing. */
@@ -64,6 +65,7 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           fairnessBudgetPercent: draft.fairnessBudgetPercent, offerLimit: whole(draft.offerLimit), windowHours: whole(draft.windowHours),
           bookingHorizonWeekdays: whole(draft.bookingHorizonWeekdays), dailySearch: draft.dailySearch,
           costSearchSeconds: whole(draft.costSearchSeconds), fairnessSearchSeconds: whole(draft.fairnessSearchSeconds),
+          bookingDeadlineMs: whole(draft.bookingDeadlineMs), regularWindowThreshold: whole(draft.regularWindowThreshold),
         } }) });
       const saved = await readResponse(response, savedView);
       setVersion(saved.version);
@@ -103,6 +105,12 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           </Row>
           <Row label="Booking horizon" hint="How many weekdays ahead customers can book, starting tomorrow, 1 to 15.">
             <input inputMode="numeric" {...field("bookingHorizonWeekdays")} required /> <span>weekdays</span>
+          </Row>
+          <Row label="Search deadline" hint={`How long a booking search may take before it answers with what it found, ${MIN_BOOKING_DEADLINE_MS} to ${MAX_BOOKING_DEADLINE_MS}.`}>
+            <input inputMode="numeric" {...field("bookingDeadlineMs")} required /> <span>ms</span>
+          </Row>
+          <Row label="Window threshold" hint="Distinct regular windows a first pass must exceed before the search stops widening early. Lower answers faster; higher looks harder for more windows.">
+            <input inputMode="numeric" {...field("regularWindowThreshold")} required /> <span>windows</span>
           </Row>
         </section>
         <section className={ui.card}>

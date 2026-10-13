@@ -24,7 +24,6 @@ import dev.waterflex.scheduler.api.DailyProposals.Reply;
 import dev.waterflex.scheduler.api.PublicApiStore.*;
 import dev.waterflex.scheduler.api.PublicRequests.BookingOffersRequest;
 import dev.waterflex.scheduler.api.PublicResponses.*;
-import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -43,7 +42,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -72,7 +70,6 @@ public class BookingOffers {
     private final DailyPreparation.AddressLocator locator;
     private final CalculationTransport transport;
     private final SearchAdmission admission;
-    private final JdbcTemplate jdbc;
     private final String variant;
     private final int refinementMillis;
     private final Clock clock;
@@ -81,17 +78,17 @@ public class BookingOffers {
 
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                         SearchAdmission admission, JdbcTemplate jdbc,
+                         SearchAdmission admission,
                          @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:250}") int refinementMillis) {
-        this(store, bookings, routing, locator, transport, admission, jdbc, variant, refinementMillis, Required.value(Clock.systemUTC()));
+        this(store, bookings, routing, locator, transport, admission, variant, refinementMillis, Required.value(Clock.systemUTC()));
     }
 
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                         SearchAdmission admission, JdbcTemplate jdbc, String variant, int refinementMillis, Clock clock) {
+                         SearchAdmission admission, String variant, int refinementMillis, Clock clock) {
         if (!VARIANTS.contains(variant)) throw new IllegalArgumentException("Unknown booking search variant " + variant);
         if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid optional refinement budget");
         this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.transport = transport;
-        this.admission = admission; this.jdbc = jdbc; this.variant = variant;
+        this.admission = admission; this.variant = variant;
         this.refinementMillis = refinementMillis; this.clock = clock;
     }
 
@@ -116,16 +113,16 @@ public class BookingOffers {
 
     private Reply run(String tenantId, BookingOffersRequest request, String owner) {
         try {
-            SchedulingPolicy.Rules shared = DailyProposals.sharedPolicy(jdbc);
-            SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(shared.bookingDeadlineMs())));
+            // The client's own booking deadline bounds the whole search, admission and publication included.
+            SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
             OfferSet offers = deadline.within(() -> {
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
-                    try { return search(tenantId, request, owner, shared); }
+                    try { return search(tenantId, request, owner); }
                     catch (BookingStore.DayMoved moved) {
                         // One retry within the same deadline after a concurrent change.
                         LOG.info("Retrying booking search for job {}: {}", request.job().id(), moved.getMessage());
                         SearchDeadline.beginExploration();
-                        return search(tenantId, request, owner, shared);
+                        return search(tenantId, request, owner);
                     }
                 }
             });
@@ -153,7 +150,7 @@ public class BookingOffers {
     /** The reconciled state of one date, and how it was read. */
     private record Reconciled(DayKey key, StoredDay stored, BookingReconciliation.Result result) { }
 
-    private OfferSet search(String tenantId, BookingOffersRequest request, String owner, SchedulingPolicy.Rules shared) {
+    private OfferSet search(String tenantId, BookingOffersRequest request, String owner) {
         PublicTypes.Snapshot facts = request.snapshot();
         Instant now = Required.value(clock.instant());
         ZoneId zone = Required.value(ZoneId.of(facts.timeZone()));
@@ -164,7 +161,7 @@ public class BookingOffers {
         catch (MetroRouting.UnknownMetro unknown) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, Required.value(unknown.getMessage())); }
         String identity = roads.activeIdentity();
         RequestBooking.Built built;
-        try { built = RequestBooking.build(request, shared, identity, now, locator); }
+        try { built = RequestBooking.build(request, identity, now, locator); }
         catch (RequestBooking.JobUnlocatable | RequestBooking.Contradictory refused) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, Required.value(refused.getMessage())); }
         BoundedBookingSearch.Request job = built.request();
         String metro = facts.metroId();
@@ -258,7 +255,7 @@ public class BookingOffers {
         BookingSnapshot host = built.snapshot();
         Map<LocalDate, BookingSnapshot.Day> placed = new TreeMap<>();
         days.forEach((date, day) -> placed.put(date, day.result().day()));
-        var snapshot = new BookingSnapshot(host.metroId(), host.capturedAt(), host.calendarReference(), host.configurationFingerprint(), host.routingIdentity(),
+        var snapshot = new BookingSnapshot(host.metroId(), host.capturedAt(), host.configurationFingerprint(), host.routingIdentity(),
                 host.policy(), host.rates(), placed, host.horizon());
         return new SnapshotRouting(roads).insertion(snapshot, job);
     }

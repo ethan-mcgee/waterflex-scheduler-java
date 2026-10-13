@@ -64,14 +64,17 @@ Routing retains the full-matrix endpoint and adds explicit directed sparse pairs
 
 ## Configuration and rollout
 
-Policy defaults are persisted settings and included in configuration fingerprints:
+Every policy rule is the client's own and arrives in `Snapshot.policy` with each calculation; the scheduler holds no
+policy settings (the shared `omaha_setting` table was dropped). The rules are included in configuration fingerprints:
 
-| Setting | Default |
-| --- | --- |
-| `regular_window_threshold` | 2 |
-| `confirmed_utilization_threshold` | 0.90 (retained and reported; does not authorize overtime under the current policy) |
-| `fairness_cost_allowance` | 0.02 (daily fairness phase only; booking uses no allowance) |
-| `booking_deadline_ms` | 5000 |
+| `Snapshot.policy` field | Meaning | Portal starting value |
+| --- | --- | --- |
+| `regularWindowThreshold` | 0 to 1000; distinct regular windows above which the booking refinement is kept short | 2 |
+| `fairnessBudget` | 0 to 1; daily fairness phase only, booking uses no allowance | 0.02 |
+| `bookingDeadlineMs` | 1000 to 5000; booking search and confirm deadline at the scheduler | 5000 |
+
+There is no utilization threshold. It only fed the overtime authorization, which the zero-overtime policy always
+refuses, so it was removed with calculation protocol 3.
 
 Spring properties can be supplied as command-line arguments or their standard environment-variable equivalents:
 

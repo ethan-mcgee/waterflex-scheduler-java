@@ -13,7 +13,7 @@ const appointment = (id: string, technicianId: string, sequence: number, start: 
   durationMinutes: 45, window: { start: at("08:00"), end: at("12:00") }, location, sequence, plannedStart: at(start) });
 const snapshot: PublicSnapshot = { metroId: "metro", timeZone: "America/Chicago",
   rates: { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67", travelBufferPct: "0", travelBufferMinutes: 0 },
-  policy: { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 }, technicians: [{ id: "a", qualifications: ["svc"] }, { id: "b", qualifications: ["svc"] }],
+  policy: { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 }, technicians: [{ id: "a", qualifications: ["svc"] }, { id: "b", qualifications: ["svc"] }],
   technicianDays: [day("a"), day("b")], appointments: [appointment("x", "a", 0, "09:00"), appointment("y", "b", 0, "09:00")] };
 const stop = (appointmentId: string, sequence: number, start: string, end: string) => ({ appointmentId, sequence, plannedStart: at(start), plannedEnd: at(end) });
 const improved: DailyProposal = { proposalId: "prop-1", inputRevision: "a".repeat(64), decision: "IMPROVED", reason: "Lower fleet cost within policy",

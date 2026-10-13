@@ -22,7 +22,6 @@ import dev.waterflex.scheduler.api.PublicRequests.ConfirmRequest;
 import dev.waterflex.scheduler.api.PublicResponses.*;
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDay;
 import dev.waterflex.scheduler.api.PublicTypes.TechnicianDayVersion;
-import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -37,7 +36,6 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -63,17 +61,16 @@ public class BookingConfirm {
     private final MetroRouting routing;
     private final DailyPreparation.AddressLocator locator;
     private final SearchAdmission admission;
-    private final JdbcTemplate jdbc;
     private final Clock clock;
 
     @Autowired
-    public BookingConfirm(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, SearchAdmission admission, JdbcTemplate jdbc) {
-        this(store, bookings, routing, locator, admission, jdbc, Required.value(Clock.systemUTC()));
+    public BookingConfirm(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, SearchAdmission admission) {
+        this(store, bookings, routing, locator, admission, Required.value(Clock.systemUTC()));
     }
 
     public BookingConfirm(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, SearchAdmission admission,
-                          JdbcTemplate jdbc, Clock clock) {
-        this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.admission = admission; this.jdbc = jdbc; this.clock = clock;
+                          Clock clock) {
+        this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.admission = admission; this.clock = clock;
     }
 
     public Reply confirm(String tenantId, String holdId, String body) {
@@ -102,15 +99,15 @@ public class BookingConfirm {
 
     private Reply run(String tenantId, String holdId, ConfirmRequest request, String owner) {
         try {
-            SchedulingPolicy.Rules shared = DailyProposals.sharedPolicy(jdbc);
-            SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(shared.bookingDeadlineMs())));
+            // The client's own booking deadline bounds the confirm, as it bounds a search.
+            SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
             return deadline.within(() -> {
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
-                    try { return attempt(tenantId, holdId, request, owner, shared); }
+                    try { return attempt(tenantId, holdId, request, owner); }
                     catch (BookingStore.DayMoved moved) {
                         // One retry within the same deadline, as a search does after a concurrent change.
                         LOG.info("Retrying confirm of hold {}: {}", holdId, moved.getMessage());
-                        return attempt(tenantId, holdId, request, owner, shared);
+                        return attempt(tenantId, holdId, request, owner);
                     }
                 } catch (Refused refused) { return refused.reply; }
             });
@@ -130,7 +127,7 @@ public class BookingConfirm {
         }
     }
 
-    private Reply attempt(String tenantId, String holdId, ConfirmRequest request, String owner, SchedulingPolicy.Rules shared) {
+    private Reply attempt(String tenantId, String holdId, ConfirmRequest request, String owner) {
         Instant now = Required.value(clock.instant());
         List<HoldToConfirm> found = bookings.holdToConfirm(tenantId, holdId);
         if (found.isEmpty()) throw refuse(tenantId, request, owner, 404, ErrorCode.NOT_FOUND, "Hold not found");
@@ -181,7 +178,7 @@ public class BookingConfirm {
         }
         String identity = roads.activeIdentity();
         RequestBooking.Built built;
-        try { built = RequestBooking.build(search, shared, identity, now, locator); }
+        try { built = RequestBooking.build(search, identity, now, locator); }
         catch (RequestBooking.JobUnlocatable | RequestBooking.Contradictory refused) {
             throw refuse(tenantId, request, owner, 422, ErrorCode.INCOMPLETE_FACTS, Required.value(refused.getMessage()));
         }

@@ -15,19 +15,21 @@ public final class SchedulingPolicy {
     private static final MathContext DECIMAL = Required.value(MathContext.DECIMAL128);
     private SchedulingPolicy() { }
 
-    public record Rules(int regularWindowThreshold, BigDecimal utilizationThreshold,
-                        BigDecimal fairnessAllowance, int bookingDeadlineMs) {
+    /**
+     * A client's policy rules. There is no utilization threshold: it only ever fed {@link #authorizeOvertime}, which the
+     * zero-overtime policy answers with false whatever the utilization, so it was removed in calculation protocol 3.
+     */
+    public record Rules(int regularWindowThreshold, BigDecimal fairnessAllowance, int bookingDeadlineMs) {
         public Rules {
-            Objects.requireNonNull(utilizationThreshold);
             Objects.requireNonNull(fairnessAllowance);
-            if (regularWindowThreshold < 0 || utilizationThreshold.signum() < 0
-                    || utilizationThreshold.compareTo(BigDecimal.ONE) > 0
+            if (regularWindowThreshold < 0
                     || fairnessAllowance.signum() < 0 || fairnessAllowance.compareTo(BigDecimal.ONE) > 0
                     || bookingDeadlineMs < 1000 || bookingDeadlineMs > 5000)
                 throw new IllegalArgumentException("Invalid scheduling policy");
         }
+        /** Fixed rules for tests, fixtures and benchmarks only; a client's calculation always carries its own. */
         public static Rules defaults() {
-            return new Rules(2, new BigDecimal("0.90"), new BigDecimal("0.02"), 5000);
+            return new Rules(2, new BigDecimal("0.02"), 5000);
         }
         public long costCeiling(long referenceCost) {
             if (referenceCost <= 0) return referenceCost;

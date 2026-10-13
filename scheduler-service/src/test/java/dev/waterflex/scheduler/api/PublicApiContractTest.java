@@ -176,6 +176,17 @@ class PublicApiContractTest {
         rejected("string cost search time", request -> { child(snapshot(request), "policy").put("costSearchSeconds", "10"); });
         rejected("negative fairness search time", request -> { child(snapshot(request), "policy").put("fairnessSearchSeconds", -1); });
         rejected("search times over 240 together", request -> { child(snapshot(request), "policy").put("costSearchSeconds", 200).put("fairnessSearchSeconds", 41); });
+        rejected("missing booking deadline", request -> { child(snapshot(request), "policy").remove("bookingDeadlineMs"); });
+        rejected("null booking deadline", request -> { child(snapshot(request), "policy").putNull("bookingDeadlineMs"); });
+        rejected("booking deadline under one second", request -> { child(snapshot(request), "policy").put("bookingDeadlineMs", 999); });
+        rejected("booking deadline over five seconds", request -> { child(snapshot(request), "policy").put("bookingDeadlineMs", 5001); });
+        rejected("string booking deadline", request -> { child(snapshot(request), "policy").put("bookingDeadlineMs", "4000"); });
+        rejected("missing window threshold", request -> { child(snapshot(request), "policy").remove("regularWindowThreshold"); });
+        rejected("null window threshold", request -> { child(snapshot(request), "policy").putNull("regularWindowThreshold"); });
+        rejected("negative window threshold", request -> { child(snapshot(request), "policy").put("regularWindowThreshold", -1); });
+        rejected("window threshold over the bound", request -> { child(snapshot(request), "policy").put("regularWindowThreshold", PublicTypes.Policy.MAX_REGULAR_WINDOW_THRESHOLD + 1); });
+        rejected("fractional window threshold", request -> { child(snapshot(request), "policy").put("regularWindowThreshold", 2.5); });
+        rejected("shared utilization threshold", request -> { child(snapshot(request), "policy").put("utilizationThreshold", "0.85"); });
         rejected("null required integer", request -> { day(request, 0).putNull("maxPaidMinutes"); });
         rejected("string integer", request -> { day(request, 0).put("maxPaidMinutes", "540"); });
         rejected("missing absences", request -> { day(request, 0).remove("absences"); });

@@ -48,7 +48,7 @@ class SolverReplayTest {
         for (String from : List.of("a","b","old","new")) for (String to : List.of("old","new","a:return","b:return")) if (!from.equals(to)) roads.put(from+">"+to,new DayPlan.RoadLeg(60,100));
         var day = new BookingSnapshot.Day(Required.value(Map.of("a",a,"b",b)),Required.value(Map.of("old",visit)),new BookingSnapshot.Arrangement(Required.value(Map.of("a",List.of("old"),"b",List.of()))),2,new BookingSnapshot.Roads(roads,Required.value(Set.of())));
         Map<LocalDate,BookingSnapshot.Day> days = new TreeMap<>(original.snapshot().days()); days.put(ReplayFixture.DAY,day);
-        var snapshot = new BookingSnapshot("metro",ReplayFixture.CAPTURED,ReplayFixture.CAPTURED,"config-rev","roads-rev",original.snapshot().policy(),original.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
+        var snapshot = new BookingSnapshot("metro",ReplayFixture.CAPTURED,"config-rev","roads-rev",original.snapshot().policy(),original.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
         var request = new BoundedBookingSearch.Request("new","service",60,240,ReplayFixture.POINT);
         var insertionInput = new BookingCalculation.Input(snapshot,request,BookingCalculation.Stage.INSERTION,"BOUNDED",null,0);
         BookingDataset.parse(BookingDataset.encode(insertionInput,BookingDataset.Encoding.SPARSE));
@@ -81,8 +81,12 @@ class SolverReplayTest {
     @Test void malformedNullMissingDuplicateAndConflictingWireFactsFailClosed() throws Exception {
         var request = ReplayFixture.bookingRequest(); String json = CalculationJson.write(request);
         assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"remainingMillis\":5000","\"remainingMillis\":null")),CalculationProtocol.Request.class));
-        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"schemaVersion\":2,","")),CalculationProtocol.Request.class));
-        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace("\"schemaVersion\":2","\"schemaVersion\":2,\"schemaVersion\":2")),CalculationProtocol.Request.class));
+        String version="\"schemaVersion\":"+CalculationProtocol.VERSION;
+        assertTrue(json.contains(version+","),"The envelope carries the current protocol version");
+        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace(version+",","")),CalculationProtocol.Request.class));
+        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace(version,version+","+version)),CalculationProtocol.Request.class));
+        assertThrows(IllegalArgumentException.class,() -> CalculationJson.read(Required.value(json.replace(version+",","\"schemaVersion\":"+(CalculationProtocol.VERSION-1)+",")),CalculationProtocol.Request.class),
+                "A caller on the previous protocol is refused, never read");
         assertThrows(IllegalArgumentException.class,() -> new CalculationProtocol.Request(CalculationProtocol.VERSION,request.requestId(),"BOOKING",5000,"wrong",request.payload()));
         String facts=CalculationJson.write(ReplayFixture.booking());
         assertTrue(facts.contains("\"durationMinutes\":30")); assertTrue(facts.contains("\"regularHourly\":\"30\""));
@@ -109,7 +113,7 @@ class SolverReplayTest {
         Map<String,DayPlan.RoadLeg> roads = new HashMap<>(day.roads().legs()); roads.remove("a>new");
         var changed = new BookingSnapshot.Day(day.technicians(),day.visits(),day.baseline(),day.reservationVersion(),new BookingSnapshot.Roads(roads,Required.value(Set.of())));
         Map<java.time.LocalDate,BookingSnapshot.Day> days = new TreeMap<>(input.snapshot().days()); days.put(ReplayFixture.DAY,changed);
-        var snapshot = new BookingSnapshot(input.snapshot().metroId(),input.snapshot().capturedAt(),input.snapshot().capturedAt(),input.snapshot().configurationFingerprint(),input.snapshot().routingIdentity(),input.snapshot().policy(),input.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
+        var snapshot = new BookingSnapshot(input.snapshot().metroId(),input.snapshot().capturedAt(),input.snapshot().configurationFingerprint(),input.snapshot().routingIdentity(),input.snapshot().policy(),input.snapshot().rates(),days,Required.value(Set.copyOf(days.keySet())));
         var missing = new BookingCalculation.Input(snapshot,input.request(),input.stage(),input.variant(),null,0);
         assertThrows(BookingSnapshot.Incomplete.class,() -> BookingCalculation.run(missing));
         var result = BookingCalculation.run(input).result(); var original = result.candidates().getFirst();
