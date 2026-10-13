@@ -68,6 +68,8 @@ class RouteGeometriesTest {
         assertEquals("omaha-map-v7", geometry.routingIdentity());
         var tech1 = Required.value(geometry.routes().getFirst());
         assertEquals(List.of("appt-7", "appt-8"), tech1.stops().stream().map(stop -> Required.value(stop).appointmentId()).toList());
+        assertEquals(List.of(PublicTypes.CoordinateSource.HOST, PublicTypes.CoordinateSource.NOMINATIM), tech1.stops().stream().map(stop -> Required.value(stop).source()).toList(),
+                "the host sent appt-7's coordinates; appt-8 was an address the scheduler located");
         assertEquals(3, tech1.legs().size(), "start, two stops and end are three legs");
         assertEquals(List.of(new RoadPoint(41.2565, -95.9345), new RoadPoint(41.2603, -96.0731), LOCATED, new RoadPoint(41.2565, -95.9345)), requested.getFirst(),
                 "The appointment sent by address is drawn where it was located");

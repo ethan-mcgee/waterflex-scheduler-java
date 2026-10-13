@@ -41,6 +41,7 @@ info:
     - `POST /api/v1/repairs/proposals` is served; commit an IMPROVED repair like a daily proposal.
     - `DELETE /api/v1/requests/{requestId}` is served, per scheduler replica and best effort; the cancelled call answers
       409 `CANCELLED` and its requestId runs again on retry. `CANCELLED` is a new `Problem.error` value.
+    - `LocatedStop.source` (`HOST` or `NOMINATIM`) is required in route geometry; it says where each stop's coordinates came from.
     - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
       confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
@@ -779,12 +780,18 @@ components:
     LocatedStop:
       type: object
       additionalProperties: false
-      required: [appointmentId, sequence, lat, lng]
+      required: [appointmentId, sequence, lat, lng, source]
       properties:
         appointmentId: { $ref: '#/components/schemas/Id' }
         sequence: { type: integer, minimum: 0 }
         lat: { type: number, minimum: -90, maximum: 90 }
         lng: { type: number, minimum: -180, maximum: 180 }
+        source:
+          type: string
+          enum: [HOST, NOMINATIM]
+          description: >-
+            Where the coordinates came from: HOST when the snapshot sent them, NOMINATIM when the scheduler located
+            an address-only location. Check a NOMINATIM stop's pin before relying on it.
     GeometryLeg:
       type: object
       additionalProperties: false
@@ -1115,7 +1122,7 @@ components:
           - technicianId: tech-1
             serviceDate: '2026-10-12'
             stops:
-              - { appointmentId: appt-7, sequence: 0, lat: 41.2587, lng: -95.9378 }
+              - { appointmentId: appt-7, sequence: 0, lat: 41.2587, lng: -95.9378, source: HOST }
             legs:
               - { segment: 0, legIndex: 0, seconds: 900, meters: 12000, coordinates: [[-95.99, 41.24], [-95.9378, 41.2587]] }
               - { segment: 0, legIndex: 1, seconds: 900, meters: 12000, coordinates: [[-95.9378, 41.2587], [-95.99, 41.24]] }

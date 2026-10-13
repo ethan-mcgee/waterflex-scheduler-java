@@ -19,7 +19,7 @@ const snapshot: PublicSnapshot = { metroId: "omaha", timeZone: "America/Chicago"
   appointments: [appointment("x", "a", 0, `${DATE}T14:10:00.000Z`), appointment("y", "a", 1, `${DATE}T16:10:00.000Z`), appointment("z", "c", 0, `${DATE}T15:00:00.000Z`)] };
 const leg = (segment: number, legIndex: number) => ({ segment, legIndex, seconds: 600, meters: 3000, coordinates: [[-95.9, 41.1], [-95.8, 41.3]] as Array<[number, number]> });
 const drawn = (overrides: Partial<RouteGeometry> = {}): RouteGeometry => ({ routingIdentity: "omaha-map-v7", skippedTechnicianDays: [{ technicianId: "c", serviceDate: DATE, reason: "LOCATION_UNRESOLVED", message: "No match" }],
-  routes: [{ technicianId: "a", serviceDate: DATE, stops: [{ appointmentId: "x", sequence: 0, lat: 41.3, lng: -95.8 }, { appointmentId: "y", sequence: 1, lat: 41.4, lng: -95.7 }],
+  routes: [{ technicianId: "a", serviceDate: DATE, stops: [{ appointmentId: "x", sequence: 0, lat: 41.3, lng: -95.8, source: "HOST" }, { appointmentId: "y", sequence: 1, lat: 41.4, lng: -95.7, source: "NOMINATIM" }],
     legs: [leg(0, 0), leg(0, 1), leg(1, 0), leg(1, 1)] }, { technicianId: "b", serviceDate: DATE, stops: [], legs: [] }], ...overrides });
 const options = (change: Partial<GeometryOptions> = {}): GeometryOptions => ({ phase: "current", cost: { costCents: 12345 },
   anchors: technicianId => technicianId === "a" ? { departure: "DEPOT", returnTo: "HOME" } : { departure: "HOME", returnTo: "HOME" }, ...change });

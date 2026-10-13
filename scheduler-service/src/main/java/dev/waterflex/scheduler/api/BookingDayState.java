@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The scheduler's own booking state for one metro-day: the common arrangement of the host's appointments and every
@@ -34,9 +35,13 @@ public record BookingDayState(Map<String, TechnicianState> technicians, Map<Stri
         }
     }
 
-    /** A held slot: what is needed to place the job again, and who holds it until when. */
+    /**
+     * A held slot: what is needed to place the job again, who holds it until when, and where the job's coordinates came
+     * from. A null source means a hold written before sources were recorded; it is never read as HOST.
+     */
     public record HoldState(String jobId, String offerId, String offerSetId, Instant expiresAt, String serviceId, Instant windowStart, Instant windowEnd,
-                            Integer durationMinutes, Double lat, Double lng, Instant plannedStart, String technicianId) {
+                            Integer durationMinutes, Double lat, Double lng, Instant plannedStart, String technicianId,
+                            PublicTypes.@Nullable CoordinateSource source) {
         public HoldState {
             Input.id(jobId, "hold.jobId");
             Input.id(offerId, "hold.offerId");
@@ -50,6 +55,11 @@ public record BookingDayState(Map<String, TechnicianState> technicians, Map<Stri
             new RoadPoint(Input.present(lat, "hold.lat"), Input.present(lng, "hold.lng"));
             Input.present(plannedStart, "hold.plannedStart");
             Input.id(technicianId, "hold.technicianId");
+        }
+
+        /** The same hold on another technician's route. */
+        HoldState on(String technician) {
+            return new HoldState(jobId, offerId, offerSetId, expiresAt, serviceId, windowStart, windowEnd, durationMinutes, lat, lng, plannedStart, technician, source);
         }
 
         BookingSnapshot.Visit visit(String holdId) {

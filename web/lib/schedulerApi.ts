@@ -50,7 +50,8 @@ export const routeEvaluation = z.object({ feasible: z.boolean(), routes: z.array
 }).strict().refine(value => value.feasible || value.routes.length === 0, "A day that does not hold has no timed routes");
 const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
 const geometryRoute = z.object({ technicianId: id, serviceDate,
-  stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0), lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).strict()),
+  stops: z.array(z.object({ appointmentId: id, sequence: z.int().min(0), lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180),
+    source: z.enum(["HOST", "NOMINATIM"]) }).strict()),
   legs: z.array(z.object({ segment: z.int().min(0), legIndex: z.int().min(0), seconds: z.int().min(0), meters: z.int().min(0),
     coordinates: z.array(position).min(2) }).strict()),
 }).strict().refine(value => (value.stops.length === 0) === (value.legs.length === 0), "A route is drawn exactly when it has stops");
