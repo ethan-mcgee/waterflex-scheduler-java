@@ -1,6 +1,6 @@
 # Scheduler operations runbook
 
-The scheduler runs on its own VM and is reached only through `/api/v1`. On that VM it runs beside one routing service per served metro, its Postgres database (thin store, tenants, route cache), Nominatim when address lookup is on, and optionally a remote solver pool. This runbook covers running that set. The API contract is `docs/api/openapi-v1.yaml`; the design is `docs/stateless-api-design.md`.
+The scheduler runs on its own VM and is reached only through `/api/v1`. On that VM it runs beside one routing service per served metro, its Postgres database (thin store, tenants, route cache), Nominatim when address lookup is on, and optionally a remote solver pool. This runbook covers running that set. The API contract is `docs/api/openapi-v1.yaml`, the host's side is `docs/integration-guide.md`, and the design is `docs/stateless-api-design.md`.
 
 ## Before production traffic: TLS
 

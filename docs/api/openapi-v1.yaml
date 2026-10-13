@@ -1,17 +1,18 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 0.1.0-draft
+  version: 1.0.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
-    Draft contract for the thin scheduler store design in docs/stateless-api-design.md.
+    Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
+    docs/stateless-api-design.md.
 
     WaterFlex Software owns all master data and the business record. Every calculating call carries a
     snapshot of the facts it needs. The scheduler keeps only holds, offers, proposals and receipts.
 
     Conventions:
     - The tenant is derived from the bearer token. Requests never name a tenant.
-    - Every write carries a host `requestId` (UUID) used as an idempotency key.
+    - Every write carries a host `requestId` (UUID) used as an idempotency key across all of the tenant's endpoints.
     - IDs are WaterFlex Software IDs, opaque strings.
     - Money and rates are canonical decimal strings, never JSON numbers.
     - Instants are RFC 3339 with an offset; service dates are calendar dates in the metro's time zone.
@@ -23,35 +24,26 @@ info:
     - Requests, proposals, offers and receipts are kept for the deployment's retention period
       (`SCHEDULER_RETENTION_DAYS`), then purged. Repeating a `requestId` older than that period runs it as a new request.
 
-    Operations marked `x-implementation: planned` are specified but not yet served.
+    Every operation is marked `x-implementation: implemented`; an operation specified before it is served is marked
+    `planned`.
 
-    Changes WaterFlex Software must act on (also listed in docs/stateless-api-design.md):
-    - `TechnicianDay.absences` is required; send an empty list when there are none.
-    - `Appointment.plannedStart` is required; send the appointment's currently planned arrival.
-    - `DailyProposal` now has `reason` and `skippedTechnicianDays`; a skipped technician-day is not in `routes` and stays as it is.
-    - A daily proposal answers 201; a repeated `requestId` replays the stored answer, and reusing it for a different request is a 400.
-    - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
-    - `Snapshot.policy.dailySearch` (`TABU` or `TABU_KOPT`), `costSearchSeconds` (5 to 240) and `fairnessSearchSeconds`
-      (0 to 240, at most 240 together) are required; send the client's chosen daily search method and times.
-    - `Snapshot.policy.bookingDeadlineMs` (1000 to 5000) and `regularWindowThreshold` (0 to 1000) are required; send
-      the client's own booking search deadline and window threshold. The scheduler holds no policy settings of its own.
-    - A booking horizon covers at most 21 dates, and `job.id` must differ from every appointment and technician ID.
-    - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
-    - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
-    - `BookingOffersRequest.offerLimit` (1 to 4) is required; send the client's own cap on offers per search.
-    - `BookingOffersRequest.windowHours` (1 to 8) is required; send the client's own arrival window length in whole hours.
-    - `POST /api/v1/repairs/proposals` is served; commit an IMPROVED repair like a daily proposal.
-    - `DELETE /api/v1/requests/{requestId}` is served, per scheduler replica and best effort; the cancelled call answers
-      409 `CANCELLED` and its requestId runs again on retry. `CANCELLED` is a new `Problem.error` value.
-    - `LocatedStop.source` (`HOST` or `NOMINATIM`) is required in route geometry; it says where each stop's coordinates came from.
-    - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
-      confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
-    - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
-    - Stored requests, proposals, offers and receipts are purged after the deployment's retention period; keep your own
-      copy of any receipt you need for longer.
+    Versioning: within v1, changes are additive only (a new operation, optional request field, response field, error
+    code or enum value) and raise the minor version; each is listed below and in the change table of
+    docs/stateless-api-design.md before it is deployed. A reader that rejects unknown response fields takes each new
+    minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
+
+    Version history:
+    - 1.0.0 (2026-10-13): the first stable contract. It is the draft as last changed, with every operation served; the
+      draft's changes are listed in the change table of docs/stateless-api-design.md.
 servers:
-  - url: https://scheduler.internal.example
-    description: Private network address of the scheduler service (placeholder).
+  - url: https://{schedulerHost}
+    description: >-
+      The scheduler VM's API address on WaterFlex Software's private network, supplied by the host. TLS is a
+      precondition of production traffic (docs/integration-guide.md, step 10).
+    variables:
+      schedulerHost:
+        default: scheduler.internal.example
+        description: Host name and port of the scheduler API (placeholder).
 security:
   - tenantToken: []
 tags:
@@ -388,7 +380,10 @@ components:
     tenantToken:
       type: http
       scheme: bearer
-      description: Per-tenant token (`wfs_` plus 43 base64url characters), issued by the scheduler operator.
+      description: >-
+        Per-tenant token (`wfs_` plus 43 base64url characters), issued by the scheduler operator with
+        `--command=issue-token` and revoked with `--command=revoke-token`. A tenant may hold several active tokens, so a
+        token is rotated by issuing the new one, deploying it, then revoking the old one.
   parameters:
     ProposalId:
       name: proposalId
