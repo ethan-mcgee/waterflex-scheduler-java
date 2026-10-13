@@ -164,7 +164,12 @@ export const bookingLocationResponse = z.object({ status: z.enum(["MATCHED", "NE
 export const jobRequest = z.object({ jobId: text });
 export const refreshRequest = jobRequest;
 export const selectRequest = jobRequest.extend({ offerId: text });
-export const previewRequest = z.object({ metroId: text, date });
+/** The dispatcher's optimize request; `requestId` is the scheduler request it becomes, so the dispatcher can cancel it. */
+export const hostRequestId = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, "A lowercase UUID");
+export const previewRequest = z.object({ metroId: text, date, requestId: hostRequestId });
+export const cancelRequestBody = z.object({ requestId: hostRequestId }).strict();
+/** What the cancel route answers: the scheduler is stopping the optimization, or it was not running there. */
+export const cancelOutcome = z.object({ outcome: z.enum(["CANCELLING", "NOT_RUNNING"]) }).strict();
 export const qualificationRequest = z.object({ technicianId: text, serviceId: text, qualified: z.boolean() });
 export const availabilityRequest = z.object({ technicianId: text, date, available: z.boolean(),
   shiftStartMin: minute.nullish(), shiftEndMin: minute.nullish() }).refine(v => !v.available ||

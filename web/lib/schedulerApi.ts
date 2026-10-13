@@ -23,7 +23,7 @@ const skippedTechnicianDay = z.object({ technicianId: id, serviceDate, reason: z
 const technicianDayVersion = z.object({ technicianId: id, serviceDate, lastModified: instant }).strict();
 /** A refusal. Only a STALE commit carries `changed`: the technician-days whose recorded timestamp differs. */
 export const problem = z.object({ error: z.enum(["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMITTABLE", "HOLD_UNAVAILABLE",
-  "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE"]), message: z.string().min(1),
+  "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED"]), message: z.string().min(1),
   changed: z.array(technicianDayVersion).min(1).optional() }).strict()
   .refine(value => (value.changed !== undefined) === (value.error === "STALE"), "Only a STALE problem lists changed technician-days");
 export const offerSet = z.object({ offerSetId: id, expiresAt: instant, searchComplete: z.boolean(),
@@ -123,7 +123,7 @@ export function connection(clientId: string, env: Environment = process.env, rea
   return { baseUrl: baseUrl.replace(/\/+$/, ""), token };
 }
 
-async function call<T>(clientId: string, method: "GET" | "POST", path: string, body: unknown, schema: z.ZodType<T>, timeoutMs: number): Promise<T> {
+async function send(clientId: string, method: "GET" | "POST" | "DELETE", path: string, body: unknown, timeoutMs: number): Promise<Response> {
   const { baseUrl, token } = connection(clientId);
   let response: Response;
   try {
@@ -136,6 +136,11 @@ async function call<T>(clientId: string, method: "GET" | "POST", path: string, b
   }
   // The tenant filter answers an unknown, revoked or disabled token with a bare 401, not an API problem.
   if (response.status === 401) throw new SchedulerApiError(503, "NOT_CONNECTED", `The scheduling service does not accept client ${clientId}'s token`);
+  return response;
+}
+
+async function call<T>(clientId: string, method: "GET" | "POST", path: string, body: unknown, schema: z.ZodType<T>, timeoutMs: number): Promise<T> {
+  const response = await send(clientId, method, path, body, timeoutMs);
   let payload: unknown;
   try { payload = await response.json(); }
   catch { throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unreadable ${response.status} response`); }
@@ -183,6 +188,24 @@ export function selectBookingOffer(clientId: string, offerId: string, requestId:
 
 export function releaseBookingOffer(clientId: string, offerId: string, requestId: string): Promise<{ released: true }> {
   return tenantCall(clientId, `/api/v1/booking/offers/${encodeURIComponent(offerId)}/release`, { requestId }, released, 5000);
+}
+
+/**
+ * Asks the scheduler to cancel a calculation still running under `requestId`. "CANCELLING" means the call will answer
+ * 409 CANCELLED; "NOT_RUNNING" means no replica that received this found it (finished, or running elsewhere), so the
+ * call ends on its own.
+ */
+export async function cancelRequest(clientId: string, requestId: string): Promise<"CANCELLING" | "NOT_RUNNING"> {
+  await verifyTenant(clientId);
+  const response = await send(clientId, "DELETE", `/api/v1/requests/${encodeURIComponent(requestId)}`, undefined, 5000);
+  if (response.status === 202) return "CANCELLING";
+  let payload: unknown;
+  try { payload = await response.json(); }
+  catch { throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unreadable ${response.status} cancel response`); }
+  const refused = problem.safeParse(payload);
+  if (!refused.success) throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unexpected ${response.status} cancel response`);
+  if (response.status === 404 && refused.data.error === "NOT_FOUND") return "NOT_RUNNING";
+  throw new SchedulerApiError(response.status, refused.data.error, refused.data.message, refused.data.changed);
 }
 
 export function confirmBookingHold(clientId: string, holdId: string, requestId: string, snapshot: PublicSnapshot): Promise<CommitReceipt> {

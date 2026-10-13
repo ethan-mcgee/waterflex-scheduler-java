@@ -68,7 +68,7 @@ class BookingOffersRefinementTest {
         var roads = mock(RoadClient.class, invocation -> invocation.getMethod().getName().equals("activeIdentity")
                 ? snapshot.routingIdentity() : org.mockito.Answers.RETURNS_DEFAULTS.answer(invocation));
         var offers = new BookingOffers(mock(PublicApiStore.class), mock(BookingStore.class), mock(MetroRouting.class),
-                mock(DailyPreparation.AddressLocator.class), transport, new SearchAdmission(2, 16),
+                mock(DailyPreparation.AddressLocator.class), transport, new SearchAdmission(2, 16), new RunningRequests(),
                 "BOUNDED", 1000, Required.value(Clock.systemUTC()));
         return new Fixture(input, offers, Required.value(roads), stages);
     }
