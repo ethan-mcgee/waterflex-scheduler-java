@@ -125,7 +125,7 @@ test("dispatch retains missing-location appointments and shows malformed-history
     await page.goto("/dispatch?date=2026-10-05");
     await expect(page.getByText("Missing Location", { exact: true })).toBeVisible();
     await expect(page.getByText("Location data missing. Routing is blocked.", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Preview optimization" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Optimize routes" })).toBeDisabled();
     await expect(page.getByText("Invalid response. Reload before continuing.", { exact: true })).toBeVisible();
   } finally {
     await prisma.appointment.delete({ where: { id: appointment.id } }); await prisma.job.delete({ where: { id: job.id } });

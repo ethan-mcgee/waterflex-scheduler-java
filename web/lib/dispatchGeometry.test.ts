@@ -46,3 +46,24 @@ test("rejects stale dates, phases, missing routes, and invalid stop times", () =
   required(data.stops[0]).plannedStart = "invalid";
   assert.equal(isDispatchGeometry(data, "2026-09-22", "current"), false);
 });
+
+test("endpoints name their anchors, and only home or depot is accepted", () => {
+  const endpoint = { technicianId: "tech", departure: "DEPOT", returnTo: "HOME", departureLat: 41.2, departureLng: -95.9, returnLat: 41.3, returnLng: -96 };
+  assert.ok(isDispatchGeometry({ ...payload(), endpoints: [endpoint] }, "2026-09-22", "current"));
+  for (const change of [{ departure: "OFFICE" }, { returnTo: undefined }, { departure: null }])
+    assert.equal(isDispatchGeometry({ ...payload(), endpoints: [{ ...endpoint, ...change }] }, "2026-09-22", "current"), false);
+});
+
+test("totals are optional, a zero cost is a real cost, and an unavailable cost carries its reason", () => {
+  const check = (totals: unknown) => isDispatchGeometry({ ...payload(), totals }, "2026-09-22", "current");
+  assert.ok(check({ seconds: 120, meters: 800, costCents: 0 }));
+  assert.ok(check({ seconds: 120, meters: 800, costCents: null, costUnavailableReason: "Not priced" }));
+  for (const totals of [null, { seconds: 120, meters: 800, costCents: null }, { seconds: -1, meters: 800, costCents: 5 },
+    { seconds: 120, meters: 800, costCents: 1.5 }, { seconds: 120, meters: 800 }, { seconds: 120, meters: 800, costCents: 5, costUnavailableReason: "x" }])
+    assert.equal(check(totals), false, JSON.stringify(totals));
+});
+
+test("skipped technician-days must say who and why", () => {
+  assert.ok(isDispatchGeometry({ ...payload(), skippedTechnicianDays: [{ technicianId: "t", reason: "LOCATION_UNRESOLVED", message: "No match" }] }, "2026-09-22", "current"));
+  assert.equal(isDispatchGeometry({ ...payload(), skippedTechnicianDays: [{ technicianId: "t" }] }, "2026-09-22", "current"), false);
+});
