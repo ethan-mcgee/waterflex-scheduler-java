@@ -114,8 +114,7 @@ public final class BookingReconciliation {
     }
 
     private static HoldState relocated(HoldState hold, String technician) {
-        return new HoldState(hold.jobId(), hold.offerId(), hold.offerSetId(), hold.expiresAt(), hold.serviceId(), hold.windowStart(), hold.windowEnd(),
-                hold.durationMinutes(), hold.lat(), hold.lng(), hold.plannedStart(), technician);
+        return hold.on(technician);
     }
 
     private static Map<String, Ending> lose(Map<String, Ending> ended, Map<String, HoldState> remaining) {

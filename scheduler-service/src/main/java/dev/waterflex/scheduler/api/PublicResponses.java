@@ -94,12 +94,14 @@ public final class PublicResponses {
     }
 
     /** A located appointment on a drawn route. */
-    public record LocatedStop(String appointmentId, Integer sequence, Double lat, Double lng) {
+    /** A drawn stop and where its coordinates came from. */
+    public record LocatedStop(String appointmentId, Integer sequence, Double lat, Double lng, PublicTypes.CoordinateSource source) {
         public LocatedStop {
             Input.id(appointmentId, "appointmentId");
             Input.integer(sequence, "sequence", 0, Integer.MAX_VALUE);
             coordinate(lat, 90, "lat");
             coordinate(lng, 180, "lng");
+            Input.present(source, "source");
         }
     }
 
