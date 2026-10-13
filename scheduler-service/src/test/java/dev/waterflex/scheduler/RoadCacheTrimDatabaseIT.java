@@ -1,20 +1,16 @@
 package dev.waterflex.scheduler;
 
-import java.net.URI;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** The whole table is trimmed, so the fixture runs inside a rolled-back transaction. */
 class RoadCacheTrimDatabaseIT {
     @Test void trimRemovesOldestRowsAcrossBatchesUntilWithinCap() {
-        String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
-        assertEquals("/waterflex_test", URI.create(url.substring("jdbc:".length())).getPath());
-        var source = new DriverManagerDataSource(url, "waterflex", "waterflex");
+        var source = TestDatabase.owner();
         var jdbc = new JdbcTemplate(source);
         var manager = new DataSourceTransactionManager(source);
         var roads = new RoadClient(jdbc, "http://127.0.0.1:9", 10, 60, manager);

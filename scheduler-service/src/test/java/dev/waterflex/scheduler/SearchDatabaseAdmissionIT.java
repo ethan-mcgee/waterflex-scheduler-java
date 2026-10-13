@@ -2,7 +2,6 @@ package dev.waterflex.scheduler;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import java.net.URI;
 import java.sql.Connection;
 import java.sql.SQLTransientConnectionException;
 import java.time.Duration;
@@ -10,13 +9,12 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Explicit real-pool gate against waterflex_test only. */
+/** Explicit real-pool gate against the throwaway scheduler_test database only. */
 class SearchDatabaseAdmissionIT {
     @Test void exhaustedPoolHasBoundedWaitAndLateAdmissionDoesNotBorrow() throws Exception {
-        String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
-        assertEquals("/waterflex_test", URI.create(url.substring("jdbc:".length())).getPath());
+        TestDatabase.owner();
         var configuration = new HikariConfig();
-        configuration.setJdbcUrl(url); configuration.setUsername("waterflex"); configuration.setPassword("waterflex");
+        configuration.setJdbcUrl(TestDatabase.url()); configuration.setUsername(TestDatabase.ownerUser()); configuration.setPassword(TestDatabase.ownerPassword());
         configuration.setMaximumPoolSize(1); configuration.setMinimumIdle(1);
         configuration.setConnectionTimeout(250); configuration.setValidationTimeout(250);
         try (var pool = new HikariDataSource(configuration); Connection occupied = pool.getConnection()) {

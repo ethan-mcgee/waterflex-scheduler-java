@@ -1,20 +1,16 @@
 package dev.waterflex.scheduler;
 
-import java.net.URI;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Fixture rows are rolled back. */
 class TenantTokensDatabaseIT {
     @Test void onlyActiveTokensOfEnabledTenantsResolve() {
-        String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
-        assertEquals("/waterflex_test", URI.create(url.substring("jdbc:".length())).getPath());
-        var source = new DriverManagerDataSource(url, "waterflex", "waterflex");
+        var source = TestDatabase.owner();
         var jdbc = new JdbcTemplate(source);
         var manager = new DataSourceTransactionManager(source);
         var tokens = new TenantTokens(jdbc);

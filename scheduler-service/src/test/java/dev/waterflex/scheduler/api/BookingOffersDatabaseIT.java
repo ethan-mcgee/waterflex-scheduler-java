@@ -1,5 +1,7 @@
 package dev.waterflex.scheduler.api;
 
+import dev.waterflex.scheduler.TestDatabase;
+
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
 import dev.waterflex.scheduler.MetroRouting;
@@ -7,7 +9,6 @@ import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.api.PublicResponses.*;
-import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -51,9 +51,7 @@ class BookingOffersDatabaseIT {
     private final RoadClient omaha;
 
     BookingOffersDatabaseIT() {
-        String url = Required.value(System.getenv("JDBC_DATABASE_URL"), "isolated integration database URL");
-        assertEquals("/waterflex_test", URI.create(url.substring(5)).getPath());
-        var source = new DriverManagerDataSource(url, "waterflex", "waterflex");
+        var source = TestDatabase.owner();
         jdbc = new JdbcTemplate(source);
         manager = new DataSourceTransactionManager(source);
         store = new PublicApiStore(jdbc, manager);

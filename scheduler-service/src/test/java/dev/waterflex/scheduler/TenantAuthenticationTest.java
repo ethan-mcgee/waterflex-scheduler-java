@@ -9,10 +9,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class TenantAuthenticationTest {
-    // Shared with web/lib/tenantTokens.test.ts so both sides hash identically.
+    // The portal's web/lib/tenantTokens.test.ts accepts the same token format.
     static final String VECTOR = "wfs_AAAAAAAAAAAAAAAAAAAA-_b9b9b9b9b9b9b9b9b9b9z";
 
-    @Test void tokenDigestMatchesThePortalIssuer() {
+    @Test void generatedTokensAreWellFormedAndDistinct() {
+        String first = TenantTokens.generate(), second = TenantTokens.generate();
+        assertTrue(TenantTokens.wellFormed(first));
+        assertNotEquals(first, second);
+    }
+
+    @Test void tokenDigestIsStable() {
         assertEquals("e272c126d6d2fa192e81378fa257a85bd6b44830492c8c2141cc6928235f35db", TenantTokens.sha256(VECTOR));
         assertTrue(TenantTokens.wellFormed(VECTOR));
         for (String token : new String[] {"", "wfs_", "wfs_short", "xyz_" + "A".repeat(43), "wfs_" + "A".repeat(42) + "=", "wfs_" + "A".repeat(44)})

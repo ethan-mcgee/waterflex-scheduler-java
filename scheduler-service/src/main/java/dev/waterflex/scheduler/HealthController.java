@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Readiness and liveness. {@code /health} checks every dependency a calculation needs, each within one second and all
- * at once: the database, each configured metro's routing service, the remote solver pool when calculations are
+ * at once: the database and its schema version, each configured metro's routing service, the remote solver pool when calculations are
  * remote, and the address lookup when it is on. It answers 200 when every one is up and 503 otherwise. The body names
  * components and routing identities only, never URLs or credentials. {@code /health/live} reads nothing.
  */
@@ -42,13 +42,13 @@ public class HealthController {
     private final Map<String, Check> checks;
 
     @Autowired
-    public HealthController(JdbcTemplate jdbc, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
-        this(checks(jdbc, routing, transport, geocoding));
+    public HealthController(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
+        this(checks(jdbc, schema, routing, transport, geocoding));
     }
 
     HealthController(Map<String, Check> checks) { this.checks = Required.value(Map.copyOf(checks)); }
 
-    private static Map<String, Check> checks(JdbcTemplate jdbc, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
+    private static Map<String, Check> checks(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
         Map<String, Check> checks = new LinkedHashMap<>();
         JdbcTemplate bounded = new JdbcTemplate(Required.value(jdbc.getDataSource(), "scheduler data source"));
         bounded.setQueryTimeout((int) CHECK_TIMEOUT.toSeconds());
@@ -57,6 +57,8 @@ public class HealthController {
             if (one == null || one != 1) throw new IllegalStateException("Unexpected database answer");
             return null;
         });
+        // Down until the owner has migrated the database to this build's schema (--command=migrate).
+        checks.put("schema", () -> { schema.verify(); return null; });
         for (String listed : routing.metros()) {
             String metro = Required.value(listed);
             checks.put("routing:" + metro, () -> routing.client(metro).activeIdentity());
