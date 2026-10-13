@@ -107,6 +107,10 @@ model ClientSolverSettings {
   dailySearch            String
   costSearchSeconds      Int
   fairnessSearchSeconds  Int
+  // 1000 to 5000 (CHECK constraint): a booking search or confirm's deadline at the scheduler.
+  bookingDeadlineMs      Int
+  // 0 to 1000 (CHECK constraint): regular windows above which the booking refinement is kept short.
+  regularWindowThreshold Int
   version                Int      @default(0)
   updatedAt              DateTime @default(now()) @db.Timestamptz(6)
 
@@ -493,14 +497,6 @@ model RoadRouteCache {
   @@unique([originKey, destinationKey, profile, mapVersion])
   @@index([fetchedAt])
   @@map("road_route_cache")
-}
-
-model OmahaSetting {
-  key String @id
-  value Decimal @db.Decimal(65, 30)
-  updatedAt DateTime @updatedAt
-
-  @@map("omaha_setting")
 }
 
 /// Client of the public scheduling API (/api/v1).

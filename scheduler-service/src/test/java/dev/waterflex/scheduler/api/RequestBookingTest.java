@@ -8,7 +8,6 @@ import dev.waterflex.scheduler.RoadClient;
 import dev.waterflex.scheduler.RoadPoint;
 import dev.waterflex.scheduler.SnapshotRouting;
 import dev.waterflex.scheduler.api.PublicRequests.BookingOffersRequest;
-import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -49,7 +48,7 @@ class RequestBookingTest {
     private static ArrayNode appointments(@Nullable ObjectNode request) { return (ArrayNode) Required.value(snapshot(request).get("appointments")); }
 
     private static RequestBooking.Built build(BookingOffersRequest request) {
-        return RequestBooking.build(request, SchedulingPolicy.Rules.defaults(), "omaha-map-v7", CAPTURED, NO_GEOCODING);
+        return RequestBooking.build(request, "omaha-map-v7", CAPTURED, NO_GEOCODING);
     }
 
     @Test void everyHorizonDateIsCoveredAndTheHostFactsMapExactly() {
@@ -78,6 +77,8 @@ class RequestBookingTest {
         assertEquals(new RoadPoint(41.2587, -95.9378), appt8.location());
         assertEquals(new dev.waterflex.scheduler.BoundedBookingSearch.Request("job-311", "softener-install", 90, 240, new RoadPoint(41.2350, -96.0420)), built.request());
         assertEquals(new java.math.BigDecimal("0.02"), snapshot.policy().fairnessAllowance(), "the client's fairness budget");
+        assertEquals(5000, snapshot.policy().bookingDeadlineMs(), "the client's booking deadline");
+        assertEquals(2, snapshot.policy().regularWindowThreshold(), "the client's window threshold");
         assertEquals(List.of(), built.skipped());
     }
 
@@ -104,7 +105,7 @@ class RequestBookingTest {
 
     @Test void daysMustCoverExactlyTheDeclaredHorizon() {
         BookingSnapshot snapshot = build(request(request -> object(request.get("horizon")).put("lastDate", "2026-10-13"))).snapshot();
-        assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot(snapshot.metroId(), snapshot.capturedAt(), snapshot.calendarReference(),
+        assertThrows(BookingSnapshot.Incomplete.class, () -> new BookingSnapshot(snapshot.metroId(), snapshot.capturedAt(),
                 snapshot.configurationFingerprint(), snapshot.routingIdentity(), snapshot.policy(), snapshot.rates(), snapshot.days(), Required.value(Set.of(DAY))));
     }
 

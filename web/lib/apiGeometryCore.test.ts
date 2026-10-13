@@ -13,7 +13,7 @@ const technicianDay = (technicianId: string) => ({ technicianId, serviceDate: DA
 const appointment = (id: string, technicianId: string, sequence: number, plannedStart: string) => ({ id, technicianId, serviceDate: DATE, serviceId: "svc", durationMinutes: 45,
   window, location: { address: { line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102" } }, sequence, plannedStart });
 const snapshot: PublicSnapshot = { metroId: "omaha", timeZone: "America/Chicago",
-  rates: { regularHourly: "20", overtimeHourly: "30", mileagePerMile: "0.5", travelBufferPct: "0", travelBufferMinutes: 0 }, policy: { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 },
+  rates: { regularHourly: "20", overtimeHourly: "30", mileagePerMile: "0.5", travelBufferPct: "0", travelBufferMinutes: 0 }, policy: { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 },
   technicians: [{ id: "a", qualifications: [] }, { id: "b", qualifications: [] }, { id: "c", qualifications: [] }],
   technicianDays: [technicianDay("a"), technicianDay("b"), technicianDay("c")],
   appointments: [appointment("x", "a", 0, `${DATE}T14:10:00.000Z`), appointment("y", "a", 1, `${DATE}T16:10:00.000Z`), appointment("z", "c", 0, `${DATE}T15:00:00.000Z`)] };

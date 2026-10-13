@@ -13,6 +13,8 @@ import { TENANT_ID_PATTERN, TENANT_TOKEN_PATTERN } from "./tenantTokens";
  */
 
 const id = z.string().min(1).max(128);
+/** Time a booking call may take beyond the client's scheduler deadline: the snapshot upload and the network. */
+export const CALLER_MARGIN_MS = 3000;
 const instant = z.iso.datetime({ offset: true });
 const serviceDate = z.iso.date();
 const window = z.object({ start: instant, end: instant }).strict();
@@ -171,8 +173,8 @@ async function tenantCall<T>(clientId: string, path: string, body: unknown, sche
 export function createBookingOffers(clientId: string, request: { requestId: string; offerLimit: number; windowHours: number;
   job: { id: string; serviceId: string; durationMinutes: number; location: { lat: number; lng: number } };
   horizon: { firstDate: string; lastDate: string }; snapshot: PublicSnapshot }): Promise<OfferSet> {
-  // The API answers within five seconds; the extra time covers the snapshot upload and the network.
-  return tenantCall(clientId, "/api/v1/booking/offers", request, offerSet, 8000);
+  // The API answers within the client's booking deadline; the extra time covers the snapshot upload and the network.
+  return tenantCall(clientId, "/api/v1/booking/offers", request, offerSet, request.snapshot.policy.bookingDeadlineMs + CALLER_MARGIN_MS);
 }
 
 export function selectBookingOffer(clientId: string, offerId: string, requestId: string): Promise<Hold> {

@@ -31,6 +31,8 @@ info:
     - `Snapshot.policy.fairnessBudget` is required; send the client's chosen budget, "0" for none.
     - `Snapshot.policy.dailySearch` (`TABU` or `TABU_KOPT`), `costSearchSeconds` (5 to 240) and `fairnessSearchSeconds`
       (0 to 240, at most 240 together) are required; send the client's chosen daily search method and times.
+    - `Snapshot.policy.bookingDeadlineMs` (1000 to 5000) and `regularWindowThreshold` (0 to 1000) are required; send
+      the client's own booking search deadline and window threshold. The scheduler holds no policy settings of its own.
     - A booking horizon covers at most 21 dates, and `job.id` must differ from every appointment and technician ID.
     - `OfferSet.skippedTechnicianDays` is new; a new search for a job ends its earlier offers; a horizon date past its 6 a.m. cutoff is a 422.
     - Selecting an offer whose hold expired or ended is a 409 `HOLD_UNAVAILABLE`, not `STALE`.
@@ -198,7 +200,7 @@ paths:
       tags: [Booking]
       summary: Find up to four arrival windows for a job and hold them.
       description: >-
-        Must answer within 5 seconds end to end. Returns at most `offerLimit` offers, the client's own cap.
+        Answers within the client's `bookingDeadlineMs` (at most 5 seconds) end to end. Returns at most `offerLimit` offers, the client's own cap.
         Offers add no overtime and may move other appointments
         (see "Booking (Decided 2026-10-08)" in docs/stateless-api-design.md). A new search for the same job
         ends its earlier offers. A date already past its 6 a.m. cutoff is a 422.
@@ -525,9 +527,10 @@ components:
     Policy:
       type: object
       additionalProperties: false
-      required: [fairnessBudget, dailySearch, costSearchSeconds, fairnessSearchSeconds]
+      required: [fairnessBudget, dailySearch, costSearchSeconds, fairnessSearchSeconds, bookingDeadlineMs, regularWindowThreshold]
       description: >-
-        The client's own scheduling choices, sent with every calculation. The daily search method and times apply
+        The client's own scheduling choices, sent with every calculation; the scheduler holds no policy settings of
+        its own. The daily search method and times apply
         to daily and repair proposals; costSearchSeconds and fairnessSearchSeconds together may be at most 240. A
         proposal request takes about the search time plus up to 5 seconds.
       properties:
@@ -555,6 +558,22 @@ components:
           description: >-
             Seconds then spent spreading work more evenly within the fairness budget. 0 skips that search; the
             lowest-cost plan is still checked against the policy.
+        bookingDeadlineMs:
+          type: integer
+          minimum: 1000
+          maximum: 5000
+          description: >-
+            Milliseconds a booking search or confirm may take at the scheduler, end to end. When it passes, the
+            search returns the offers found so far with searchComplete false. Set the caller's timeout a little
+            above it.
+        regularWindowThreshold:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          description: >-
+            How many distinct regular arrival windows the first booking pass must exceed for the refinement pass to
+            be optional and kept short. At or below it, offers are scarce and the refinement may use the rest of
+            bookingDeadlineMs to find more. 0 keeps the refinement short whenever the first pass found any window.
     Technician:
       type: object
       additionalProperties: false
@@ -980,7 +999,7 @@ components:
           metroId: omaha
           timeZone: America/Chicago
           rates: { regularHourly: '20', overtimeHourly: '30', mileagePerMile: '0.67', travelBufferPct: '0.2', travelBufferMinutes: 2 }
-          policy: { fairnessBudget: '0.02', dailySearch: TABU_KOPT, costSearchSeconds: 10, fairnessSearchSeconds: 5 }
+          policy: { fairnessBudget: '0.02', dailySearch: TABU_KOPT, costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 }
           technicians:
             - { id: tech-1, qualifications: [softener-install, softener-service] }
             - { id: tech-2, qualifications: [softener-service] }

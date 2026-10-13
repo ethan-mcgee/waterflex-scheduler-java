@@ -3,7 +3,7 @@ import { z } from "zod";
 
 /**
  * A client's booking and routing settings: what the portal sends as `rates`, `policy` (including the daily search method
- * and times), `offerLimit`, `windowHours` and the booking horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
+ * and times, booking deadline and window threshold), `offerLimit`, `windowHours` and the booking horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
  * Percentages are what people edit; the API takes fractions ("20" percent is "0.2").
  */
 
@@ -19,6 +19,11 @@ export const dailySearch = z.enum(DAILY_SEARCHES);
 export type DailySearch = z.infer<typeof dailySearch>;
 /** Cost and fairness search seconds together may be at most this. */
 export const MAX_SEARCH_SECONDS = 240;
+/** A booking search or confirm deadline at the scheduler, in milliseconds; the upper bound is the latency target. */
+export const MIN_BOOKING_DEADLINE_MS = 1000;
+export const MAX_BOOKING_DEADLINE_MS = 5000;
+/** The scheduler's bound on the regular window threshold. */
+export const MAX_REGULAR_WINDOW_THRESHOLD = 1000;
 
 export const solverSettingsInput = z.object({
   regularHourly: dollars,
@@ -33,6 +38,8 @@ export const solverSettingsInput = z.object({
   dailySearch,
   costSearchSeconds: z.int().min(5).max(MAX_SEARCH_SECONDS),
   fairnessSearchSeconds: z.int().min(0).max(MAX_SEARCH_SECONDS),
+  bookingDeadlineMs: z.int().min(MIN_BOOKING_DEADLINE_MS).max(MAX_BOOKING_DEADLINE_MS),
+  regularWindowThreshold: z.int().min(0).max(MAX_REGULAR_WINDOW_THRESHOLD),
 }).strict().refine(settings => settings.costSearchSeconds + settings.fairnessSearchSeconds <= MAX_SEARCH_SECONDS,
   { message: `Cost and fairness search time together must be at most ${MAX_SEARCH_SECONDS} seconds`, path: ["fairnessSearchSeconds"] });
 export type SolverSettingsInput = z.infer<typeof solverSettingsInput>;
@@ -46,7 +53,8 @@ export interface StoredSolverSettings {
   travelBufferPct: Prisma.Decimal; travelBufferMinutes: number; fairnessBudget: Prisma.Decimal;
   offerLimit: number; windowHours: number; bookingHorizonWeekdays: number;
   /** Stored as text under a CHECK constraint; validated with `dailySearch` before use. */
-  dailySearch: string; costSearchSeconds: number; fairnessSearchSeconds: number; version: number; updatedAt: Date;
+  dailySearch: string; costSearchSeconds: number; fairnessSearchSeconds: number;
+  bookingDeadlineMs: number; regularWindowThreshold: number; version: number; updatedAt: Date;
 }
 
 export interface SolverSettingsView extends SolverSettingsInput { version: number; updatedAt: string }
@@ -72,6 +80,8 @@ export function toStored(input: SolverSettingsInput) {
     dailySearch: input.dailySearch,
     costSearchSeconds: input.costSearchSeconds,
     fairnessSearchSeconds: input.fairnessSearchSeconds,
+    bookingDeadlineMs: input.bookingDeadlineMs,
+    regularWindowThreshold: input.regularWindowThreshold,
   };
 }
 
@@ -94,6 +104,8 @@ export function toView(stored: StoredSolverSettings): SolverSettingsView {
     dailySearch: storedSearch(stored),
     costSearchSeconds: stored.costSearchSeconds,
     fairnessSearchSeconds: stored.fairnessSearchSeconds,
+    bookingDeadlineMs: stored.bookingDeadlineMs,
+    regularWindowThreshold: stored.regularWindowThreshold,
     version: stored.version,
     updatedAt: stored.updatedAt.toISOString(),
   };
@@ -110,12 +122,14 @@ export function publicRates(stored: StoredSolverSettings) {
   };
 }
 
-/** The public API's `Snapshot.policy` for this client. */
+/** The public API's `Snapshot.policy` for this client: every policy rule, since the scheduler holds none. */
 export function publicPolicy(stored: StoredSolverSettings) {
   return {
     fairnessBudget: canonicalDecimal(stored.fairnessBudget),
     dailySearch: storedSearch(stored),
     costSearchSeconds: stored.costSearchSeconds,
     fairnessSearchSeconds: stored.fairnessSearchSeconds,
+    bookingDeadlineMs: stored.bookingDeadlineMs,
+    regularWindowThreshold: stored.regularWindowThreshold,
   };
 }

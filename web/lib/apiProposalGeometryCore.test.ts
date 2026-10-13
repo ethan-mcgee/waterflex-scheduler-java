@@ -13,7 +13,7 @@ const appointment = (id: string, technicianId: string, sequence: number, hour: n
   window: { start: at(14), end: at(20) }, location: { lat: 41.2, lng: -95.8 }, sequence, plannedStart: at(hour) });
 const snapshot: PublicSnapshot = { metroId: "omaha", timeZone: "America/Chicago",
   rates: { regularHourly: "20", overtimeHourly: "30", mileagePerMile: "0.5", travelBufferPct: "0", travelBufferMinutes: 0 },
-  policy: { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5 },
+  policy: { fairnessBudget: "0.02", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 },
   technicians: [{ id: "a", qualifications: [] }, { id: "b", qualifications: [] }, { id: "c", qualifications: [] }],
   technicianDays: [technicianDay("a"), technicianDay("b"), technicianDay("c")],
   appointments: [appointment("x", "a", 0, 14), appointment("y", "a", 1, 16), appointment("z", "c", 0, 15)] };

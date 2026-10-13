@@ -10,21 +10,22 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Each client chooses its own fairness budget, daily search method and search times; the other policy settings stay the scheduler's. */
+/** Every policy rule is the client's own: fairness budget, daily search method and times, booking deadline and window threshold. */
 class ClientPolicyTest {
-    private static final SchedulingPolicy.Rules SHARED = new SchedulingPolicy.Rules(3, new BigDecimal("0.85"), new BigDecimal("0.02"), 4000);
+    private static final BigDecimal BUDGET = new BigDecimal("0.02");
 
-    private static PublicTypes.Policy policy(String budget) { return new PublicTypes.Policy(new BigDecimal(budget), DailySearch.TABU_KOPT, 10, 5); }
+    private static PublicTypes.Policy policy(String budget) { return new PublicTypes.Policy(new BigDecimal(budget), DailySearch.TABU_KOPT, 10, 5, 4000, 3); }
+    private static PublicTypes.Policy searchTimes(int cost, int fairness) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU, cost, fairness, 5000, 2); }
+    private static PublicTypes.Policy booking(int deadlineMs, int threshold) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU_KOPT, 10, 5, deadlineMs, threshold); }
 
-    @Test void theClientBudgetReplacesOnlyTheSharedFairnessAllowance() {
-        var rules = DailyProposals.rules(SHARED, policy("0.05"));
-        assertEquals(new SchedulingPolicy.Rules(3, new BigDecimal("0.85"), new BigDecimal("0.05"), 4000), rules);
+    @Test void theRulesAreTheClientsOwn() {
+        var rules = policy("0.05").rules();
+        assertEquals(new SchedulingPolicy.Rules(3, new BigDecimal("0.05"), 4000), rules);
         assertEquals(10_500L, rules.costCeiling(10_000L));
     }
 
     @Test void aZeroBudgetNeverAddsCost() {
-        var rules = DailyProposals.rules(SHARED, policy("0"));
-        assertEquals(10_000L, rules.costCeiling(10_000L));
+        assertEquals(10_000L, policy("0").rules().costCeiling(10_000L));
     }
 
     @Test void aNegativeOrOversizedBudgetIsRejected() {
@@ -35,35 +36,56 @@ class ClientPolicyTest {
 
     /** Missing and null values arrive through JSON; PublicApiContractTest rejects those. */
     @Test void theSearchTimesAreBounded() {
-        BigDecimal budget = new BigDecimal("0.02");
-        assertThrows(IllegalArgumentException.class, () -> new PublicTypes.Policy(budget, DailySearch.TABU, 4, 0));
-        assertThrows(IllegalArgumentException.class, () -> new PublicTypes.Policy(budget, DailySearch.TABU, 241, 0));
-        assertThrows(IllegalArgumentException.class, () -> new PublicTypes.Policy(budget, DailySearch.TABU, 10, -1));
-        assertThrows(IllegalArgumentException.class, () -> new PublicTypes.Policy(budget, DailySearch.TABU, 200, 41));
-        assertEquals(240, new PublicTypes.Policy(budget, DailySearch.TABU, 200, 40).costSearchSeconds() + 40);
-        assertEquals(240, new PublicTypes.Policy(budget, DailySearch.TABU, 240, 0).costSearchSeconds());
+        assertThrows(IllegalArgumentException.class, () -> searchTimes(4, 0));
+        assertThrows(IllegalArgumentException.class, () -> searchTimes(241, 0));
+        assertThrows(IllegalArgumentException.class, () -> searchTimes(10, -1));
+        assertThrows(IllegalArgumentException.class, () -> searchTimes(200, 41));
+        assertEquals(240, searchTimes(200, 40).costSearchSeconds() + 40);
+        assertEquals(240, searchTimes(240, 0).costSearchSeconds());
+    }
+
+    @Test void theBookingDeadlineIsBetweenOneAndFiveSeconds() {
+        assertThrows(IllegalArgumentException.class, () -> booking(999, 2));
+        assertThrows(IllegalArgumentException.class, () -> booking(5001, 2));
+        assertEquals(1000, booking(1000, 2).rules().bookingDeadlineMs());
+        assertEquals(5000, booking(5000, 2).rules().bookingDeadlineMs());
+    }
+
+    @Test void theWindowThresholdIsBounded() {
+        assertThrows(IllegalArgumentException.class, () -> booking(5000, -1));
+        assertThrows(IllegalArgumentException.class, () -> booking(5000, PublicTypes.Policy.MAX_REGULAR_WINDOW_THRESHOLD + 1));
+        assertEquals(0, booking(5000, 0).rules().regularWindowThreshold());
+        assertEquals(PublicTypes.Policy.MAX_REGULAR_WINDOW_THRESHOLD, booking(5000, PublicTypes.Policy.MAX_REGULAR_WINDOW_THRESHOLD).rules().regularWindowThreshold());
     }
 
     @Test void theTimesBecomePhaseBudgetsAndTheEarlierFixedTimesAreTheDefault() {
         assertEquals(DailyCalculation.Allocation.DEFAULT, DailyProposals.allocation(policy("0.02")));
         assertEquals(new DailyCalculation.Allocation(10_000, 5_000, 15_000, true), DailyCalculation.Allocation.DEFAULT);
-        var costOnly = DailyProposals.allocation(new PublicTypes.Policy(new BigDecimal("0"), DailySearch.TABU, 60, 0));
+        var costOnly = DailyProposals.allocation(new PublicTypes.Policy(new BigDecimal("0"), DailySearch.TABU, 60, 0, 5000, 2));
         assertEquals(new DailyCalculation.Allocation(60_000, 0, 60_000, true), costOnly);
         assertEquals(60_000, costOnly.searchMs());
     }
 
-    @Test void theConfigurationIdentityCoversTheMethodAndTimes() {
-        var rules = DailyProposals.rules(SHARED, policy("0.02"));
+    @Test void theConfigurationIdentityCoversTheMethodTimesAndEveryRule() {
+        var rules = policy("0.02").rules();
         String tabuKopt = DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT);
         assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU, DailyCalculation.Allocation.DEFAULT));
         assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 0)));
         assertEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 5)));
+        assertNotEquals(tabuKopt, DailyProposals.configuration(booking(4999, 3).rules(), DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT));
+        assertNotEquals(tabuKopt, DailyProposals.configuration(booking(4000, 4).rules(), DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT));
     }
 
     @Test void aClaimLeaseOutlivesTheLongestSearch() {
         assertEquals(PublicApiStore.LEASE, DailyProposals.lease(snapshot(10, 5)));
         assertEquals(Duration.ofSeconds(240 + 5 + 30), DailyProposals.lease(snapshot(240, 0)));
         assertEquals(Duration.ofSeconds(120 + 60 + 5 + 30), DailyProposals.lease(snapshot(120, 60)));
+    }
+
+    @Test void theSpecExampleCarriesTheClientsBookingRules() {
+        var rules = snapshot(10, 5).policy().rules();
+        assertTrue(rules.bookingDeadlineMs() >= PublicTypes.Policy.MIN_BOOKING_DEADLINE_MS && rules.bookingDeadlineMs() <= PublicTypes.Policy.MAX_BOOKING_DEADLINE_MS);
+        assertTrue(rules.regularWindowThreshold() >= 0);
     }
 
     private static PublicTypes.Snapshot snapshot(int cost, int fairness) {
