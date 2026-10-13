@@ -1,0 +1,1210 @@
+{
+  "study": "API load measurement 2026-10-13",
+  "scheduler": {
+    "revision": "6abf872 plus the PR I DeadlineSignals fix",
+    "mode": "EMBEDDED",
+    "searchCapacity": 2,
+    "routing": "routing-service car, flexible mode (CH off), Omaha map 2026-10-13",
+    "database": "Postgres 16 in Docker on the same machine"
+  },
+  "protocol": "infra/host-conformance/load.ts, 60 s per run, distinct seed per run, area 41.22,-96.05,41.28,-95.95; see docs/api-load.md",
+  "staleSnapshotReproduction": {
+    "steps": [
+      "desk 1 books and the host writes receipt R1",
+      "desk 2 searches and selects on the records after R1",
+      "desk 3 searches with the snapshot from before R1",
+      "desk 2 confirms on current records"
+    ],
+    "result": "409 HOLD_UNAVAILABLE 'The hold is lost'",
+    "control": "without step 3, desk 2's confirm answers 200"
+  },
+  "runs": [
+    {
+      "label": "booking-cold-c1",
+      "scenario": "booking",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-9526f2c9",
+      "startedAt": "2026-10-13T22:00:24.819Z",
+      "finishedAt": "2026-10-13T22:01:25.481Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 1,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 11
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "booking offers",
+          "calls": 77,
+          "statuses": {
+            "201": 77
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 701,
+            "p95": 987,
+            "p99": 3254,
+            "max": 3254,
+            "mean": 755
+          }
+        },
+        {
+          "operation": "confirm",
+          "calls": 19,
+          "statuses": {
+            "200": 19
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 31,
+            "p95": 50,
+            "p99": 50,
+            "max": 50,
+            "mean": 33
+          }
+        },
+        {
+          "operation": "release",
+          "calls": 58,
+          "statuses": {
+            "200": 58
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 22,
+            "p95": 38,
+            "p99": 51,
+            "max": 51,
+            "mean": 23
+          }
+        },
+        {
+          "operation": "select",
+          "calls": 19,
+          "statuses": {
+            "200": 19
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 21,
+            "p95": 30,
+            "p99": 30,
+            "max": 30,
+            "mean": 22
+          }
+        }
+      ],
+      "booking": {
+        "searches": 77,
+        "searchIncomplete": 77,
+        "offers": 308,
+        "noOffers": 0,
+        "selected": 19,
+        "holdUnavailable": 0,
+        "confirmed": 19,
+        "hostWriteConflicts": 0,
+        "released": 58,
+        "failedSearches": 0
+      },
+      "daily": null,
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "200",
+            "calls": 19,
+            "meanMs": 31
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "201",
+            "calls": 77,
+            "meanMs": 754
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/release",
+            "method": "POST",
+            "status": "200",
+            "calls": 58,
+            "meanMs": 22
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/select",
+            "method": "POST",
+            "status": "200",
+            "calls": 19,
+            "meanMs": 21
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 22261,
+        "routingLegRequests": 123,
+        "routingIdentityRequests": 192,
+        "processCpu": {
+          "mean": 0.03661108836137133,
+          "max": 0.08036704923761209
+        },
+        "heapUsedMaxBytes": 455806536
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 54.96,
+            "max": 78.06
+          },
+          "memoryMaxBytes": 2189359579.136
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    },
+    {
+      "label": "booking-cold-c5",
+      "scenario": "booking",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-5df0ab67",
+      "startedAt": "2026-10-13T22:01:29.119Z",
+      "finishedAt": "2026-10-13T22:02:32.141Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 5,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 12
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "booking offers",
+          "calls": 102,
+          "statuses": {
+            "201": 102
+          },
+          "errors": {},
+          "retriedBusy": 35,
+          "ms": {
+            "p50": 1824,
+            "p95": 6233,
+            "p99": 11212,
+            "max": 15038,
+            "mean": 2751
+          }
+        },
+        {
+          "operation": "confirm",
+          "calls": 38,
+          "statuses": {
+            "200": 24,
+            "409": 14
+          },
+          "errors": {
+            "HOLD_UNAVAILABLE": 14
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 670,
+            "p95": 1093,
+            "p99": 1256,
+            "max": 1256,
+            "mean": 703
+          }
+        },
+        {
+          "operation": "release",
+          "calls": 78,
+          "statuses": {
+            "200": 78
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 19,
+            "p95": 25,
+            "p99": 27,
+            "max": 27,
+            "mean": 19
+          }
+        },
+        {
+          "operation": "select",
+          "calls": 38,
+          "statuses": {
+            "200": 38
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 18,
+            "p95": 25,
+            "p99": 29,
+            "max": 29,
+            "mean": 19
+          }
+        }
+      ],
+      "booking": {
+        "searches": 102,
+        "searchIncomplete": 102,
+        "offers": 408,
+        "noOffers": 0,
+        "selected": 38,
+        "holdUnavailable": 14,
+        "confirmed": 24,
+        "hostWriteConflicts": 0,
+        "released": 78,
+        "failedSearches": 0
+      },
+      "daily": null,
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "200",
+            "calls": 24,
+            "meanMs": 707
+          },
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "409",
+            "calls": 14,
+            "meanMs": 692
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "201",
+            "calls": 102,
+            "meanMs": 1380
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "429",
+            "calls": 52,
+            "meanMs": 1677
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/release",
+            "method": "POST",
+            "status": "200",
+            "calls": 78,
+            "meanMs": 18
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/select",
+            "method": "POST",
+            "status": "200",
+            "calls": 38,
+            "meanMs": 18
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 29030,
+        "routingLegRequests": 223,
+        "routingIdentityRequests": 585,
+        "processCpu": {
+          "mean": 0.06169928968959626,
+          "max": 0.08345736119636778
+        },
+        "heapUsedMaxBytes": 976323344
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 53.95,
+            "max": 136.43
+          },
+          "memoryMaxBytes": 2205465706.496
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    },
+    {
+      "label": "booking-cold-c10",
+      "scenario": "booking",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-3357e8ff",
+      "startedAt": "2026-10-13T22:02:39.128Z",
+      "finishedAt": "2026-10-13T22:03:44.480Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 10,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 13
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "booking offers",
+          "calls": 102,
+          "statuses": {
+            "201": 102
+          },
+          "errors": {},
+          "retriedBusy": 43,
+          "ms": {
+            "p50": 3442,
+            "p95": 12006,
+            "p99": 23908,
+            "max": 27459,
+            "mean": 5361
+          }
+        },
+        {
+          "operation": "confirm",
+          "calls": 39,
+          "statuses": {
+            "200": 16,
+            "409": 23
+          },
+          "errors": {
+            "HOLD_UNAVAILABLE": 23
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 2033,
+            "p95": 3133,
+            "p99": 3151,
+            "max": 3151,
+            "mean": 2089
+          }
+        },
+        {
+          "operation": "release",
+          "calls": 87,
+          "statuses": {
+            "200": 87
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 17,
+            "p95": 21,
+            "p99": 22,
+            "max": 22,
+            "mean": 17
+          }
+        },
+        {
+          "operation": "select",
+          "calls": 39,
+          "statuses": {
+            "200": 39
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 18,
+            "p95": 21,
+            "p99": 21,
+            "max": 21,
+            "mean": 18
+          }
+        }
+      ],
+      "booking": {
+        "searches": 102,
+        "searchIncomplete": 102,
+        "offers": 408,
+        "noOffers": 0,
+        "selected": 39,
+        "holdUnavailable": 23,
+        "confirmed": 15,
+        "hostWriteConflicts": 1,
+        "released": 87,
+        "failedSearches": 0
+      },
+      "daily": null,
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "200",
+            "calls": 16,
+            "meanMs": 1935
+          },
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "409",
+            "calls": 23,
+            "meanMs": 2194
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "201",
+            "calls": 102,
+            "meanMs": 2591
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "429",
+            "calls": 70,
+            "meanMs": 3024
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/release",
+            "method": "POST",
+            "status": "200",
+            "calls": 87,
+            "meanMs": 16
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/select",
+            "method": "POST",
+            "status": "200",
+            "calls": 39,
+            "meanMs": 17
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 28238,
+        "routingLegRequests": 202,
+        "routingIdentityRequests": 622,
+        "processCpu": {
+          "mean": 0.06144010853504337,
+          "max": 0.08882414174798142
+        },
+        "heapUsedMaxBytes": 970577192
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 54.00545454545454,
+            "max": 130.31
+          },
+          "memoryMaxBytes": 2208686931.968
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    },
+    {
+      "label": "booking-warm-c5",
+      "scenario": "booking",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-acc3d6a4",
+      "startedAt": "2026-10-13T22:03:49.137Z",
+      "finishedAt": "2026-10-13T22:04:51.709Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 5,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "warm",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 14
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "booking offers",
+          "calls": 120,
+          "statuses": {
+            "201": 120
+          },
+          "errors": {},
+          "retriedBusy": 35,
+          "ms": {
+            "p50": 590,
+            "p95": 10207,
+            "p99": 14392,
+            "max": 18117,
+            "mean": 2480
+          }
+        },
+        {
+          "operation": "confirm",
+          "calls": 35,
+          "statuses": {
+            "200": 28,
+            "409": 7
+          },
+          "errors": {
+            "HOLD_UNAVAILABLE": 7
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 249,
+            "p95": 334,
+            "p99": 638,
+            "max": 638,
+            "mean": 195
+          }
+        },
+        {
+          "operation": "release",
+          "calls": 92,
+          "statuses": {
+            "200": 92
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 18,
+            "p95": 21,
+            "p99": 22,
+            "max": 22,
+            "mean": 18
+          }
+        },
+        {
+          "operation": "select",
+          "calls": 35,
+          "statuses": {
+            "200": 35
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 18,
+            "p95": 20,
+            "p99": 20,
+            "max": 20,
+            "mean": 18
+          }
+        }
+      ],
+      "booking": {
+        "searches": 120,
+        "searchIncomplete": 120,
+        "offers": 480,
+        "noOffers": 0,
+        "selected": 35,
+        "holdUnavailable": 7,
+        "confirmed": 28,
+        "hostWriteConflicts": 0,
+        "released": 92,
+        "failedSearches": 0
+      },
+      "daily": null,
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "200",
+            "calls": 28,
+            "meanMs": 183
+          },
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "409",
+            "calls": 7,
+            "meanMs": 242
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "201",
+            "calls": 120,
+            "meanMs": 534
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "429",
+            "calls": 114,
+            "meanMs": 1039
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/release",
+            "method": "POST",
+            "status": "200",
+            "calls": 92,
+            "meanMs": 17
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/select",
+            "method": "POST",
+            "status": "200",
+            "calls": 35,
+            "meanMs": 17
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 5712,
+        "routingLegRequests": 70,
+        "routingIdentityRequests": 774,
+        "processCpu": {
+          "mean": 0.07824687431253023,
+          "max": 0.09988819094696783
+        },
+        "heapUsedMaxBytes": 962259552
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 15.792727272727273,
+            "max": 143.67
+          },
+          "memoryMaxBytes": 2209760673.792
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    },
+    {
+      "label": "daily-c1",
+      "scenario": "daily",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-4e6ca579",
+      "startedAt": "2026-10-13T22:04:59.220Z",
+      "finishedAt": "2026-10-13T22:06:04.192Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 1,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 15
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "daily proposal",
+          "calls": 12,
+          "statuses": {
+            "201": 11,
+            "503": 1
+          },
+          "errors": {
+            "CALCULATION_UNAVAILABLE": 1
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 5063,
+            "p95": 9040,
+            "p99": 9040,
+            "max": 9040,
+            "mean": 5397
+          }
+        }
+      ],
+      "booking": null,
+      "daily": {
+        "proposals": 12,
+        "decisions": {
+          "IMPROVED": 11
+        }
+      },
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "201",
+            "calls": 11,
+            "meanMs": 5064
+          },
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "503",
+            "calls": 1,
+            "meanMs": 9033
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 3600,
+        "routingLegRequests": 15,
+        "routingIdentityRequests": 24,
+        "processCpu": {
+          "mean": 0.04397622338769922,
+          "max": 0.0854234048648424
+        },
+        "heapUsedMaxBytes": 881102312
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 9.410000000000002,
+            "max": 98.31
+          },
+          "memoryMaxBytes": 2209760673.792
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    },
+    {
+      "label": "daily-c4",
+      "scenario": "daily",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-0fd0bf29",
+      "startedAt": "2026-10-13T22:06:09.366Z",
+      "finishedAt": "2026-10-13T22:07:14.639Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 4,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 16
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "daily proposal",
+          "calls": 28,
+          "statuses": {
+            "201": 3,
+            "503": 25
+          },
+          "errors": {
+            "CALCULATION_UNAVAILABLE": 25
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 9028,
+            "p95": 9635,
+            "p99": 10198,
+            "max": 10198,
+            "mean": 8963
+          }
+        }
+      ],
+      "booking": null,
+      "daily": {
+        "proposals": 28,
+        "decisions": {
+          "IMPROVED": 3
+        }
+      },
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "201",
+            "calls": 3,
+            "meanMs": 7807
+          },
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "503",
+            "calls": 25,
+            "meanMs": 9097
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 3600,
+        "routingLegRequests": 15,
+        "routingIdentityRequests": 27,
+        "processCpu": {
+          "mean": 0.04078913466602354,
+          "max": 0.05426952438694027
+        },
+        "heapUsedMaxBytes": 880930344
+      },
+      "metricFailures": 3,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 9.333636363636366,
+            "max": 100.75
+          },
+          "memoryMaxBytes": 2211908157.44
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    },
+    {
+      "label": "mixed-c5-d1",
+      "scenario": "mixed",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-e758e6d0",
+      "startedAt": "2026-10-13T22:07:19.431Z",
+      "finishedAt": "2026-10-13T22:08:25.327Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 5,
+        "dailyConcurrency": 1,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 17
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "booking offers",
+          "calls": 93,
+          "statuses": {
+            "201": 93
+          },
+          "errors": {},
+          "retriedBusy": 34,
+          "ms": {
+            "p50": 1989,
+            "p95": 7018,
+            "p99": 11983,
+            "max": 11983,
+            "mean": 2965
+          }
+        },
+        {
+          "operation": "confirm",
+          "calls": 30,
+          "statuses": {
+            "200": 20,
+            "409": 10
+          },
+          "errors": {
+            "HOLD_UNAVAILABLE": 10
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 715,
+            "p95": 1983,
+            "p99": 2875,
+            "max": 2875,
+            "mean": 928
+          }
+        },
+        {
+          "operation": "daily proposal",
+          "calls": 6,
+          "statuses": {
+            "201": 2,
+            "503": 4
+          },
+          "errors": {
+            "CALCULATION_UNAVAILABLE": 4
+          },
+          "retriedBusy": 1,
+          "ms": {
+            "p50": 10015,
+            "p95": 17395,
+            "p99": 17395,
+            "max": 17395,
+            "mean": 10844
+          }
+        },
+        {
+          "operation": "release",
+          "calls": 74,
+          "statuses": {
+            "200": 74
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 18,
+            "p95": 23,
+            "p99": 31,
+            "max": 31,
+            "mean": 19
+          }
+        },
+        {
+          "operation": "select",
+          "calls": 30,
+          "statuses": {
+            "200": 30
+          },
+          "errors": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 18,
+            "p95": 23,
+            "p99": 24,
+            "max": 24,
+            "mean": 19
+          }
+        }
+      ],
+      "booking": {
+        "searches": 93,
+        "searchIncomplete": 93,
+        "offers": 372,
+        "noOffers": 0,
+        "selected": 30,
+        "holdUnavailable": 10,
+        "confirmed": 19,
+        "hostWriteConflicts": 1,
+        "released": 74,
+        "failedSearches": 0
+      },
+      "daily": {
+        "proposals": 6,
+        "decisions": {
+          "IMPROVED": 2
+        }
+      },
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "200",
+            "calls": 20,
+            "meanMs": 840
+          },
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "409",
+            "calls": 10,
+            "meanMs": 1102
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "201",
+            "calls": 93,
+            "meanMs": 1567
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "429",
+            "calls": 44,
+            "meanMs": 1942
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/release",
+            "method": "POST",
+            "status": "200",
+            "calls": 74,
+            "meanMs": 18
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/select",
+            "method": "POST",
+            "status": "200",
+            "calls": 30,
+            "meanMs": 18
+          },
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "201",
+            "calls": 2,
+            "meanMs": 8175
+          },
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "429",
+            "calls": 1,
+            "meanMs": 8628
+          },
+          {
+            "uri": "/api/v1/daily/proposals",
+            "method": "POST",
+            "status": "503",
+            "calls": 4,
+            "meanMs": 9765
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 29949,
+        "routingLegRequests": 195,
+        "routingIdentityRequests": 515,
+        "processCpu": {
+          "mean": 0.056940937004011934,
+          "max": 0.0759646495680645
+        },
+        "heapUsedMaxBytes": 897172920
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 70.47636363636364,
+            "max": 187.1
+          },
+          "memoryMaxBytes": 2218350608.384
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    }
+  ]
+}

@@ -71,6 +71,36 @@ money as decimal strings, `sequence` and `plannedStart` in the same order, one `
 the client's policy and rates on every call (the kit sends its own test values). `src/cases.ts` shows each call
 sequence with the checks a host's integration should make on the answers.
 
+## Load tool
+
+`load.ts` drives a scheduler with concurrent work over the same public API, for capacity planning and before and after
+performance changes. It uses the same kind of dedicated tenant and token, never a client's.
+
+```sh
+npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --metro metro-omaha   --time-zone America/Chicago --area 41.22,-96.05,41.28,-95.95 --scenario booking --concurrency 5 --duration-s 60   --metrics-url http://127.0.0.1:9000/actuator/prometheus --docker <routing container>
+```
+
+- **booking**: each of `--concurrency` desks books like a host: a search over `--horizon-days` dates (from two days
+  ahead) for a new 60-minute job, then either releases the offers or (`--confirm-rate`, default 0.3) selects the first,
+  confirms it against fresh records and writes the receipt with a compare-and-set. The records live in an in-memory host
+  (`src/load/host.ts`): `--technicians` per date with `--appointments` visits each, every write stamping a new
+  `lastModified`, so concurrent desks see each other's bookings as a real host would.
+- **daily**: `--concurrency` planners ask for proposals of one day of `--daily-technicians` technicians, again and
+  again, with `--cost-seconds` and `--fairness-seconds` of search.
+- **mixed**: booking desks and `--daily-concurrency` planners at once.
+- `--jobs cold` (default) places every job at a new point, so its routes are fetched; `--jobs warm` cycles eight
+  points, so they come from the route cache. The difference between the two is the cold-routing cost.
+- A 429 is repeated with the same `requestId` after `Retry-After`, and the wait counts in the call's time, as a host
+  would see it. `--seed` fixes the run's points and choices; runs with different seeds share no point.
+
+The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
+its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,
+holds lost, host write conflicts) and daily decisions. With `--metrics-url` (the scheduler's private management port)
+it adds the scheduler's own view: server time per route and status, admission rejections, routing pairs fetched,
+and the scheduler process's CPU and heap through the run. `--docker` adds CPU and memory of the named containers. The
+tool exits 1 when a response breaks the contract or a receipt drops an appointment, so a load run also checks
+correctness. [docs/api-load.md](../../docs/api-load.md) is the measurement protocol and its results.
+
 ## Development
 
 ```sh
@@ -78,5 +108,5 @@ npm run typecheck
 npm test
 ```
 
-CI runs both in "Portal checks" and runs the kit against the CI scheduler and fixture router in "Database and core
-workflows".
+CI runs both in "Portal checks", and runs the kit and a 15 second mixed load against the CI scheduler and fixture
+router in "Database and core workflows".

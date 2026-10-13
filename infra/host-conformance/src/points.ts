@@ -39,17 +39,37 @@ function halton(index: number, base: number): number {
 }
 
 /**
- * `count` distinct points spread evenly over the area, the same on every run so a failure can be repeated. They keep a
- * tenth of the box as margin from its edges and are rounded to five decimals (about a metre).
+ * Distinct points spread evenly over the area, the same sequence on every run so a failure can be repeated. They keep
+ * a tenth of the box as margin from its edges and are rounded to five decimals (about a metre).
  */
-export function areaPoints(area: Area, count: number): Point[] {
-  const round = (value: number) => Math.round(value * 1e5) / 1e5;
-  const points: Point[] = [];
-  for (let index = 1; points.length < count; index++) {
-    if (index > count * 10) throw new Error("--area is too small to hold distinct points");
-    const lat = round(area.south + (area.north - area.south) * (0.1 + 0.8 * halton(index, 2)));
-    const lng = round(area.west + (area.east - area.west) * (0.1 + 0.8 * halton(index, 3)));
-    if (!points.some(point => point.lat === lat && point.lng === lng)) points.push({ lat, lng });
+export class AreaPoints {
+  readonly #seen = new Set<string>();
+  #index: number;
+
+  /** `start` skips that many points of the sequence, so runs with different starts share no point. */
+  constructor(readonly area: Area, start = 0) {
+    if (!Number.isInteger(start) || start < 0) throw new Error("The point sequence start must be a whole number");
+    this.#index = start;
   }
-  return points;
+
+  next(): Point {
+    const round = (value: number) => Math.round(value * 1e5) / 1e5;
+    for (let attempts = 0; attempts < 1000; attempts++) {
+      this.#index++;
+      const lat = round(this.area.south + (this.area.north - this.area.south) * (0.1 + 0.8 * halton(this.#index, 2)));
+      const lng = round(this.area.west + (this.area.east - this.area.west) * (0.1 + 0.8 * halton(this.#index, 3)));
+      const key = `${lat},${lng}`;
+      if (!this.#seen.has(key)) {
+        this.#seen.add(key);
+        return { lat, lng };
+      }
+    }
+    throw new Error("--area is too small to hold more distinct points");
+  }
+}
+
+/** The first `count` points of {@link AreaPoints}. */
+export function areaPoints(area: Area, count: number): Point[] {
+  const stream = new AreaPoints(area);
+  return Array.from({ length: count }, () => stream.next());
 }
