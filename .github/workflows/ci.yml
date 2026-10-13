@@ -101,6 +101,9 @@ jobs:
       - name: Build portal
         working-directory: web
         run: npm run build
+      - name: Host conformance kit typecheck and unit tests
+        working-directory: infra/host-conformance
+        run: npm ci && npm run typecheck && npm test
       - name: Summarize portal tests
         if: always()
         run: python3 infra/summarize-tests.py 'web/test-results/unit.xml' --label Portal
@@ -203,7 +206,7 @@ jobs:
       DATABASE_PASSWORD: scheduler-owner-ci
       ROUTING_URL: http://127.0.0.1:18001
       # The public API booking smoke's metro routes through the fixture router.
-      ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001,api-shared-smoke=http://127.0.0.1:18001,api-overnight-smoke=http://127.0.0.1:18001,api-master-smoke=http://127.0.0.1:18001,api-master-smoke-far=http://127.0.0.1:18001,api-cancel-smoke=http://127.0.0.1:18001,metro-omaha=http://127.0.0.1:18001,address-matching-smoke=http://127.0.0.1:18001
+      ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001,api-shared-smoke=http://127.0.0.1:18001,api-overnight-smoke=http://127.0.0.1:18001,api-master-smoke=http://127.0.0.1:18001,api-master-smoke-far=http://127.0.0.1:18001,api-cancel-smoke=http://127.0.0.1:18001,metro-omaha=http://127.0.0.1:18001,address-matching-smoke=http://127.0.0.1:18001,conformance-fixture=http://127.0.0.1:18001
       SCHEDULER_TEST_URL: http://127.0.0.1:18000
       ENGINE_URL: http://127.0.0.1:18000
       SERVER_PORT: '18000'
@@ -309,6 +312,14 @@ jobs:
       - name: Sequential booking test runner smoke
         working-directory: web
         run: node ../infra/run-check.mjs test:booking-tests:integration npm run test:booking-tests:integration
+      - name: Host conformance kit against the scheduler
+        working-directory: infra/host-conformance
+        run: |
+          npm ci
+          java -jar ../../scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --command=issue-token conformance "Conformance kit" "CI run" |
+            sed -n 's/^token: //p' > "$RUNNER_TEMP/conformance.token"
+          node ../run-check.mjs host-conformance npx tsx conformance.ts --url http://127.0.0.1:18000 --token-file "$RUNNER_TEMP/conformance.token"             --metro conformance-fixture --time-zone America/Chicago --points fixture --out "$RUNNER_TEMP/conformance-report"
+          cat "$RUNNER_TEMP/conformance-report/conformance-report.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Print service logs on failure
         if: failure()
         run: |

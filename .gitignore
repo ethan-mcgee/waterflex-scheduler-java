@@ -1,4 +1,6 @@
 web/node_modules/
+infra/host-conformance/node_modules/
+infra/host-conformance/conformance-report/
 web/.next/
 web/.env
 web/.data/
