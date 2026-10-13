@@ -24,12 +24,18 @@ test("dispatch and weekly schedule use the depot metro effective on each date", 
       void route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ type: "FeatureCollection", routingIdentity: "fixture",
         serviceDate: date, phase: "current", features: [], stops: [], endpoints: [] }) });
     });
+    // The board has no technician list: a metro day with the technician assigned has no visits to optimize, and one without has no technicians.
+    const noVisits = page.getByText("No visits are booked on this day.", { exact: true });
+    const noTechnicians = page.getByText("No technicians are assigned to this metro on this day.", { exact: true });
     await page.goto(`/dispatch?metroId=${firstMetro.id}&date=2026-10-07`);
-    await expect(page.getByText("Moving browser technician")).toBeVisible();
+    await expect(noVisits).toBeVisible();
+    await expect(noTechnicians).toHaveCount(0);
     await page.goto(`/dispatch?metroId=${firstMetro.id}&date=2026-10-08`);
-    await expect(page.getByText("Moving browser technician")).toHaveCount(0);
+    await expect(noTechnicians).toBeVisible();
+    await expect(noVisits).toHaveCount(0);
     await page.goto(`/dispatch?metroId=${secondMetro.id}&date=2026-10-08`);
-    await expect(page.getByText("Moving browser technician")).toBeVisible();
+    await expect(noVisits).toBeVisible();
+    await expect(noTechnicians).toHaveCount(0);
     await page.goto(`/schedule?metroId=${firstMetro.id}&week=2026-10-05`);
     await expect(page.getByText("Assigned to another metro").first()).toBeVisible();
     await page.goto(`/schedule?metroId=${secondMetro.id}&week=2026-10-05`);

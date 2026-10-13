@@ -10,9 +10,14 @@ export type GeometryResponse = {
   phase: string;
   features: RoadFeature[];
   stops: Array<{ id: string; technicianId: string; sequence: number; plannedStart: string; lat: number; lng: number }>;
-  endpoints?: Array<{ technicianId: string; departureLat: number; departureLng: number; returnLat: number; returnLng: number }>;
+  endpoints?: Array<{ technicianId: string; departure: RouteAnchor; returnTo: RouteAnchor; departureLat: number; departureLng: number; returnLat: number; returnLng: number }>;
   segments?: Record<string, Array<{ departure: string; returnedAt: string; visitIds: string[] }>>;
+  /** The day's drive and cost; a null `costCents` means the scheduler could not price the day, never that it is free. */
+  totals?: GeometryTotals;
+  skippedTechnicianDays?: Array<{ technicianId: string; reason: string; message: string }>;
 };
+export type RouteAnchor = "HOME" | "DEPOT";
+export type GeometryTotals = { seconds: number; meters: number; costCents: number | null; costUnavailableReason?: string };
 
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -23,6 +28,15 @@ function coordinate(value: unknown, limit: number): value is number {
 function nonnegative(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
+function anchor(value: unknown): value is RouteAnchor {
+  return value === "HOME" || value === "DEPOT";
+}
+function totals(value: unknown): value is GeometryTotals {
+  if (!object(value) || !nonnegative(value.seconds) || !nonnegative(value.meters)) return false;
+  if (value.costCents === null)
+    return typeof value.costUnavailableReason === "string" && value.costUnavailableReason.length > 0;
+  return nonnegative(value.costCents) && Number.isInteger(value.costCents) && value.costUnavailableReason === undefined;
+}
 
 // Validate the complete payload before any source or marker is replaced.
 export function isDispatchGeometry(value: unknown, date: string, phase: string): value is GeometryResponse {
@@ -30,8 +44,13 @@ export function isDispatchGeometry(value: unknown, date: string, phase: string):
       typeof value.routingIdentity !== "string" || !value.routingIdentity ||
       !Array.isArray(value.features) || !Array.isArray(value.stops)) return false;
   if (value.endpoints !== undefined && (!Array.isArray(value.endpoints) || !value.endpoints.every((endpoint: unknown) =>
-    object(endpoint) && typeof endpoint.technicianId === "string" && coordinate(endpoint.departureLat, 90) &&
-    coordinate(endpoint.departureLng, 180) && coordinate(endpoint.returnLat, 90) && coordinate(endpoint.returnLng, 180)))) return false;
+    object(endpoint) && typeof endpoint.technicianId === "string" && anchor(endpoint.departure) && anchor(endpoint.returnTo) &&
+    coordinate(endpoint.departureLat, 90) && coordinate(endpoint.departureLng, 180) &&
+    coordinate(endpoint.returnLat, 90) && coordinate(endpoint.returnLng, 180)))) return false;
+  if (value.totals !== undefined && !totals(value.totals)) return false;
+  if (value.skippedTechnicianDays !== undefined && (!Array.isArray(value.skippedTechnicianDays) ||
+    !value.skippedTechnicianDays.every((day: unknown) => object(day) && typeof day.technicianId === "string" &&
+      typeof day.reason === "string" && typeof day.message === "string"))) return false;
   if (!value.features.every((feature: unknown) => {
     if (!object(feature) || feature.type !== "Feature" || !object(feature.properties) || !object(feature.geometry)) return false;
     const { properties, geometry } = feature;

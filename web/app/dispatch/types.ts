@@ -21,4 +21,10 @@ export interface BoardAppointment {
   addressLine: string;
   lat: number | null;
   lng: number | null;
+  durationMin: number;
+  /** How the address was located, or null when it has not been geocoded. */
+  geocodePrecision: string | null;
+  /** When a person confirmed the map pin, or null when nobody has. */
+  pinConfirmedAt: string | null;
+  jobStatus: "PENDING" | "SCHEDULED" | "COMPLETED" | "CANCELLED";
 }
