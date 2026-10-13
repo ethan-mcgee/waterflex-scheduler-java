@@ -24,6 +24,27 @@ class DailyPolicyDiagnosticsTest {
     @Test void eligibleZeroOvertimeReferenceStillStartsFairness() {
         verifyPhases(480,2,DailyPolicyDiagnostics.Fairness.SEARCHED);
     }
+    /** A rejected valid candidate reports the policy's own code, never a generic sentence. */
+    @Test void aCandidateNoBetterThanTheBaselineIsRejectedWithThePolicyCode() {
+        DayPlan baseline=plan(480,false);
+        var real=new DailySolver("CURRENT_CAPPED",17);
+        var evidence=real.solve(PlanCopies.copy(baseline),Required.value(Duration.ofMillis(100)));
+        var solver=mock(DailySolver.class,invocation -> {
+            if (invocation.getMethod().getName().equals("solve"))
+                return new SolverEngine.Result(PlanCopies.copy(baseline),evidence.statistics(),DailyOutcome.assess(baseline));
+            if (invocation.getMethod().getName().equals("diagnostics") && invocation.getArguments()[0] instanceof List<?> values) {
+                List<DailySolver.Phase> phases=new ArrayList<>();
+                for (Object value : values) { if (!(value instanceof DailySolver.Phase phase)) throw new IllegalArgumentException("Invalid test phase"); phases.add(phase); }
+                return real.diagnostics(phases);
+            }
+            throw new IllegalArgumentException("Unexpected solver call");
+        });
+        var result=DailyOperation.execute(new SearchAdmission(2,16),Required.value(Duration.ofSeconds(20)),
+                () -> DailyCalculation.run(baseline,SchedulingPolicy.Rules.defaults(),solver),_ -> { });
+        assertFalse(result.accepted());
+        assertTrue(DailyCalculation.valid(result.plan()));
+        assertEquals("NO_POLICY_IMPROVEMENT",result.reason());
+    }
     private static void verifyPhases(int capacity,int expected,DailyPolicyDiagnostics.Fairness fairness) {
         DayPlan baseline=plan(capacity,false), candidate=PlanCopies.copy(baseline);
         Collections.reverse(candidate.getRoutes().getFirst().getVisits());
@@ -50,6 +71,7 @@ class DailyPolicyDiagnosticsTest {
             assertEquals(90,RouteEvaluator.evaluate(baseline).overtimeMinutes());
             assertEquals(20,diagnostic.candidateOvertimeMinutes()); assertEquals(20,diagnostic.referenceOvertimeMinutes());
             assertFalse(result.accepted()); assertEquals(DailyPolicyDiagnostics.Decision.REJECTED_OVERTIME,diagnostic.decision());
+            assertEquals(DailyCalculation.valid(result.plan()) ? "OVERTIME_PROHIBITED" : "NO_VALID_CANDIDATE",result.reason());
         }
         assertEquals(150,RouteEvaluator.evaluate(baseline).paidMinutes());
     }

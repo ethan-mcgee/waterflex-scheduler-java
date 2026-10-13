@@ -678,7 +678,12 @@ components:
         reason:
           type: string
           minLength: 1
-          description: Why the scheduler reached this decision, for operators.
+          description: >-
+            Why the scheduler reached this decision. When the policy judged a valid plan it begins with the policy's code
+            (COST_REDUCTION, FAIRNESS_IMPROVEMENT, OVERTIME_REDUCTION, NO_POLICY_IMPROVEMENT, COST_CEILING_EXCEEDED,
+            FAIRNESS_REGRESSION_WITHIN_ALLOWANCE, OVERTIME_PROHIBITED, OVERTIME_TARGET_MISMATCH, NO_VALID_CANDIDATE,
+            INCOMPLETE_OR_INFEASIBLE_DEMAND or COMPLETE_ZERO_OVERTIME_DEMAND) followed by a colon and a sentence for operators;
+            a host that wants the code takes the text before the first colon. Other decisions are a sentence only.
         routes:
           type: array
           items: { $ref: '#/components/schemas/PlannedRoute' }
@@ -1020,7 +1025,7 @@ components:
         proposalId: prop-0c4e
         inputRevision: 9f2b6c0d4e1a7b3c5d8e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e
         decision: IMPROVED
-        reason: Lower fleet cost within policy
+        reason: 'COST_REDUCTION: lower fleet cost within policy'
         routes:
           - technicianId: tech-1
             serviceDate: '2026-10-12'
