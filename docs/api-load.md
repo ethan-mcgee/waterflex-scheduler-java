@@ -52,6 +52,34 @@ percent of the machine and at most 0.9 GiB of heap. The routing service did most
 - **Cold routing costs about 1.2 s per search at 5 desks:** cold p50 1824 ms against warm 590 ms, with 285 against
   48 routing pairs per search. It is the largest part of a search's own time, which PR J addresses.
 
+## After the booking concurrency fixes
+
+The booking and mixed lines of the protocol, run again on the same stack with findings 2 and 3 fixed (#152) and new
+seeds (21 to 25). Raw reports: [docs/evidence/api-load-2026-10-13-booking-concurrency.json](evidence/api-load-2026-10-13-booking-concurrency.json).
+The load tool now does what the integration guide asks of a host: a search or confirm answered 409 `STALE` is sent
+again from current records with a new `requestId`. Latency is per call, so a resent search counts as two calls.
+
+| Run | Searches per min | Offers p50 / p95 / p99 ms | Confirm p50 / p95 ms | Holds lost at confirm | Calls resent after `STALE` | Calls that waited on 429 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| booking cold, 1 desk | 151 | 344 / 636 / 743 | 21 / 25 | 0 of 45 | 0 | 0 |
+| booking cold, 5 desks | 147 | 973 / 2177 / 3905 | 709 / 1695 | 0 of 50 | 115 | 10 |
+| booking cold, 10 desks | 154 | 786 / 3399 / 4616 | 1225 / 2841 | 0 of 56 | 289 | 14 |
+| booking warm, 5 desks | 156 | 973 / 2660 / 5000 | 665 / 1329 | 0 of 41 | 98 | 17 |
+| mixed, 5 desks and 1 planner | 131 | 898 / 2722 / 3412 | 735 / 1760 | 0 of 49 | 113 | 3 |
+
+- **No hold was lost** in any run (before: 37 percent of selected holds at 5 desks, 59 percent at 10), and the
+  deterministic reproduction of finding 2 now ends with desk 2's confirm answering 200.
+- **Every desk count meets the latency target** at the caller: offers p95 2.2 s at 5 desks and 3.4 s at 10 (before:
+  6.2 s and 12 s), against a 5.5 s bound. Throughput rose from 97 to 147 searches per minute at 5 desks.
+- **The cost is resends.** A search built from records that another desk's receipt overtook before it arrived is
+  answered `STALE` and sent again: about 0.8 resends per answered search at 5 desks, 1.7 at 10. Each resend is a new call, and a `STALE` answer still
+  took 0.4 to 0.6 s at the server: it is decided before the search, but the scheduler first builds the request's facts
+  and checks the routing identity. PR J's routing identity cache removes most of that round trip.
+- The first run on the fixed code still lost 9 of 48 holds at 5 desks. It exposed a second kind of late snapshot: one
+  read before the host wrote a confirm receipt carries the unchanged timestamp with the route from before the
+  receipt. The scheduler now remembers that route until the receipt is written (or the hold lifetime passes) and
+  answers such a snapshot with `STALE` too; the runs above include that change.
+
 ## Findings
 
 1. **Fixed in this PR: a booking search near its deadline answered 500.** When too little of the deadline was left to
@@ -60,7 +88,7 @@ percent of the machine and at most 0.9 GiB of heap. The routing service did most
    request claim was kept until its lease ran out. `DeadlineSignals.unwrap` now restores the signal in the tenant and
    route cache transactions (regression test `PublicApiStoreDeadlineTest`).
 
-2. **An older snapshot that arrives late loses other desks' holds (owner decision needed).** Reproduced
+2. **Fixed in #152: an older snapshot that arrives late loses other desks' holds.** Reproduced
    deterministically:
    1. Desk 1 books and the host writes the receipt.
    2. Desk 2 searches and selects on the new records.
@@ -72,19 +100,19 @@ percent of the machine and at most 0.9 GiB of heap. The routing service did most
    booking desks produces such late requests. Here they lost 37 percent of selected holds at 5 desks and 59 percent at
    10. They also raise 429 retries, because the date's state is rebuilt.
 
-   A fix that keeps equality-only comparison (so clock skew still cannot matter): the scheduler remembers, per
-   technician-day, the timestamps it has already moved past. A snapshot carrying one of those is stale and is refused
-   (409 `STALE`, retry with current records) instead of being reconciled as a host change.
+   The fix keeps equality-only comparison (so clock skew still cannot matter). The scheduler remembers, per
+   technician-day, the last 32 timestamps it has moved past, and the route from before a confirm receipt the host
+   has not written yet. A snapshot carrying either is stale and is refused with 409 `STALE` (retry with current
+   records) instead of being reconciled as a host change (spec 1.1.0).
 
-3. **Concurrent bookings in one metro serialize on day versions.** A search or confirm publishes only if every day it
+3. **Fixed in #152: concurrent bookings in one metro serialize on day versions.** A search or confirm publishes only if every day it
    read still has the version it read. Otherwise it retries once, then answers 429 ("Other bookings kept changing
    these dates"). With 5 or 10 desks booking the same 5 dates, 29 to 42 percent of searches waited on at least one
    429, and caller-side p95 rose to 6 to 12 s although every attempt stayed within the deadline. Finding 2 adds to this.
-   Levers, in order:
-   - fix finding 2;
-   - make searches faster, so each holds its read for less time (PR J);
-   - let hosts search fewer dates per call;
-   - only then consider finer-grained publication.
+   Now a search checks only the days its offers hold, or where the job's earlier holds end. A day it only brings up
+   to date with the host is skipped when another booking wrote it first. Days it read but did not change are not
+   checked at all. Searches for one job publish one at a time, and a moved day runs the search again while the
+   deadline leaves time to explore, up to three times. Faster searches (PR J) shorten the window further.
 
 4. **Daily proposals run one at a time per replica, and a queued one ends as a slow 503.** Admission lets one daily
    calculation (`BACKGROUND`) run at a time. Others queue for their whole allowance (search time plus 5 s), then answer

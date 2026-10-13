@@ -46,10 +46,30 @@ public class BookingStore {
         public Publication { offers = Required.value(List.copyOf(offers)); }
     }
 
-    /** Another booking changed one of the days after it was read; nothing was written. */
+    /** Another booking changed one of the days after it was read, or published for the same job; nothing was written. */
     public static final class DayMoved extends RuntimeException {
         private static final long serialVersionUID = 1L;
         DayMoved(DayKey day) { super("Booking state of " + day.metroId() + " on " + day.serviceDate() + " changed during the search"); }
+        DayMoved(String message) { super(message); }
+    }
+
+    /**
+     * A day a search publishes. A placed day gets the search's new holds or ends the job's earlier ones there, so it is
+     * written only if it still has the version read. Any other day only brings the stored state up to date with the
+     * host (new timestamps, holds found lost or expired): when another booking wrote it first, it is skipped together
+     * with its endings, since the next reader reconciles that day again.
+     *
+     * @param readVersion the version the search read
+     * @param state       the day's new state
+     * @param ended       the stored holds of this day that are no longer active, and why
+     * @param placed      whether the publication depends on this write
+     */
+    public record DayWrite(int readVersion, BookingDayState state, Map<String, BookingReconciliation.Ending> ended, boolean placed) {
+        public DayWrite {
+            if (readVersion < 0) throw new IllegalArgumentException("Negative read version");
+            Input.present(state, "state");
+            ended = Required.value(Map.copyOf(ended));
+        }
     }
 
     private final PublicApiStore store;
@@ -68,6 +88,12 @@ public class BookingStore {
         });
     }
 
+    /** The hold IDs of the job's offers that are still held or selected. */
+    private Set<String> held(String tenantId, String jobId) {
+        return new TreeSet<>(jdbc.queryForList("SELECT o.\"holdId\" FROM api_booking_offer o JOIN api_booking_offer_set s ON s.\"tenantId\"=o.\"tenantId\" AND s.id=o.\"offerSetId\" "
+                + "WHERE o.\"tenantId\"=? AND s.\"jobId\"=? AND o.status IN ('HELD','SELECTED')", String.class, tenantId, jobId));
+    }
+
     /** Where this job holds offers, by metro-day, so a new search can end those holds wherever they are. */
     public Map<DayKey, Set<String>> heldBy(String tenantId, String jobId) {
         return store.asTenant(tenantId, () -> {
@@ -80,26 +106,33 @@ public class BookingStore {
     }
 
     /**
-     * Locks every day read, in one order, and publishes atomically: the days' new states, the ended holds, the job's
-     * superseded offer sets, the new offer set and its offers, and the request's answer (201). Throws {@link DayMoved}
-     * and writes nothing when a day's version is not the one the search read.
+     * Publishes atomically: the days' new states and ended holds, the job's superseded offer sets, the new offer set
+     * and its offers, and the request's answer (201). Searches for one job publish one at a time, and days are locked
+     * in one order. Throws {@link DayMoved} and writes nothing when a placed day's version is not the one the search
+     * read, or when the job holds offers that {@code heldBefore} (the job's holds when the search began) does not list:
+     * another search for the job published meanwhile. A day that is not placed is skipped when it moved (see {@link DayWrite}).
      */
-    public void publish(String tenantId, String ownerToken, Map<DayKey, Integer> read, Map<DayKey, BookingDayState> writes,
-                        Map<String, BookingReconciliation.Ending> ended, Publication publication) {
-        if (!read.keySet().containsAll(writes.keySet())) throw new IllegalArgumentException("Every written day must have been read");
+    public void publish(String tenantId, String ownerToken, Map<DayKey, DayWrite> writes, Set<String> heldBefore, Publication publication) {
         store.asTenant(tenantId, () -> {
+            jdbc.queryForList("SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtextextended(?,0))) locked", Integer.class,
+                    "booking-job:" + tenantId.length() + ":" + tenantId + ":" + publication.jobId());
+            for (String held : held(tenantId, publication.jobId()))
+                if (!heldBefore.contains(held)) throw new DayMoved("Another search for job " + publication.jobId() + " published during this search");
             Map<String, DayKey> ordered = new TreeMap<>();
-            for (DayKey day : read.keySet()) ordered.put(Required.value(day).order(), Required.value(day));
+            for (DayKey day : writes.keySet()) ordered.put(Required.value(day).order(), Required.value(day));
             for (DayKey day : ordered.values()) {
+                DayWrite write = Required.value(writes.get(day), "day write");
                 jdbc.update("INSERT INTO api_booking_day (\"tenantId\",\"metroId\",\"serviceDate\",version,\"stateJson\") VALUES (?,?,?,0,NULL) ON CONFLICT DO NOTHING",
                         tenantId, day.metroId(), Date.valueOf(day.serviceDate()));
-                int version = read(tenantId, day, true).version();
-                if (version != Required.value(read.get(day), "read version")) throw new DayMoved(day);
+                if (read(tenantId, day, true).version() != write.readVersion()) {
+                    if (write.placed()) throw new DayMoved(day);
+                    continue;
+                }
+                jdbc.update("UPDATE api_booking_day SET \"stateJson\"=?::jsonb,version=version+1,\"updatedAt\"=clock_timestamp() "
+                        + "WHERE \"tenantId\"=? AND \"metroId\"=? AND \"serviceDate\"=?", CalculationJson.write(write.state()), tenantId, day.metroId(),
+                        Date.valueOf(day.serviceDate()));
+                end(tenantId, write.ended());
             }
-            writes.forEach((day, state) -> jdbc.update("UPDATE api_booking_day SET \"stateJson\"=?::jsonb,version=version+1,\"updatedAt\"=clock_timestamp() "
-                    + "WHERE \"tenantId\"=? AND \"metroId\"=? AND \"serviceDate\"=?", CalculationJson.write(Required.value(state)), tenantId, Required.value(day).metroId(),
-                    Date.valueOf(Required.value(day).serviceDate())));
-            end(tenantId, ended);
             jdbc.update("UPDATE api_booking_offer_set SET status='SUPERSEDED' WHERE \"tenantId\"=? AND \"jobId\"=? AND status IN ('ACTIVE','SELECTED')", tenantId, publication.jobId());
             String body = CalculationJson.write(publication.body());
             jdbc.update("INSERT INTO api_booking_offer_set (\"tenantId\",id,\"requestId\",\"jobId\",\"metroId\",\"expiresAt\",status,\"offerSetJson\") VALUES (?,?,?,?,?,?,'ACTIVE',?::jsonb)",

@@ -55,7 +55,7 @@ and, for a failure, the request that answered unexpectedly with the scheduler's 
 | Integration | 401 with a `Bearer` challenge without a valid token; `whoami` |
 | Strict parsing | an unknown field, a duplicate key, money as a JSON number, a missing `plannedStart`, missing `absences`, a `tenantId` in the body: each a 400 `INVALID_REQUEST` |
 | Routes | evaluate times the host's order; geometry draws every leg and marks each stop `source: HOST`; an unlocatable technician-day is skipped as `LOCATION_UNRESOLVED` |
-| Booking | offers honour `offerLimit` and `windowHours`, start on the hour and hold about 10 minutes; a `requestId` replays its answer and refuses a different body; select, select again, a second offer of the set (409), release, release again, select after release (409), an unknown offer (404); a new search ends earlier offers; confirm against a fresh snapshot returns the job under its own ID inside the offered window, and replays the same receipt; 22 horizon dates (400); a job ID equal to an appointment ID (400); a frozen date (422) |
+| Booking | offers honour `offerLimit` and `windowHours`, start on the hour and hold about 10 minutes; a `requestId` replays its answer and refuses a different body; select, select again, a second offer of the set (409), release, release again, select after release (409), an unknown offer (404); a new search ends earlier offers; confirm against a fresh snapshot returns the job under its own ID inside the offered window, and replays the same receipt; a late search on records older than ones already used (409 `STALE` listing the newest timestamp, replayed, every hold kept); 22 horizon dates (400); a job ID equal to an appointment ID (400); a frozen date (422) |
 | Daily | an improvable day is proposed `IMPROVED`, replays, commits with the proposal's assignments, replays the commit, and refuses a second commit (409 `NOT_COMMITTABLE`); a commit missing a technician-day (400); a changed `lastModified` (409 `STALE` listing the change); an unknown proposal (404); a frozen date (422) |
 | Repair | a day-long absence moves the absent technician's visit to another technician |
 | Cancellation | an unknown `requestId` (404) or a malformed one (400); a running daily proposal is cancelled (202), answers 409 `CANCELLED`, and its `requestId` runs again on retry |
@@ -91,7 +91,8 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
 - `--jobs cold` (default) places every job at a new point, so its routes are fetched; `--jobs warm` cycles eight
   points, so they come from the route cache. The difference between the two is the cold-routing cost.
 - A 429 is repeated with the same `requestId` after `Retry-After`, and the wait counts in the call's time, as a host
-  would see it. `--seed` fixes the run's points and choices; runs with different seeds share no point.
+  would see it. A search or confirm answered 409 `STALE` is sent again from current records with a new `requestId`,
+  and counted. `--seed` fixes the run's points and choices; runs with different seeds share no point.
 
 The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
 its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,

@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.0.0);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.1.0);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -223,6 +223,13 @@ that carries a hold or a move a pending offer depends on loses **every** hold on
 then a 409 and the date starts again from your routes. Nothing is guessed: a hold either still fits your current facts
 exactly, or it is lost.
 
+**Late requests.** With several booking desks, a search or confirm built from your records can arrive after another
+desk's receipt was written and already used, or after a confirm whose receipt you have not written yet. The
+scheduler recognises the older `lastModified` (it remembers the last 32 timestamps of each technician-day it moved
+past) or the route from before the unwritten receipt, and answers 409 `STALE` instead of reading your older routes as
+a change, so no other desk's hold is lost. Rebuild the snapshot from current records and send it with a new
+`requestId`; the holds still stand.
+
 **Timeouts.** Set the caller's timeout a little above the client's `bookingDeadlineMs` (the portal adds 3 seconds).
 Reuse HTTP connections (keep-alive): the budget is short enough that connection setup matters.
 
@@ -320,7 +327,7 @@ Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 40
 | 400 | `INVALID_REQUEST` | Malformed body, unknown field, duplicate key, missing value, a reference the snapshot does not hold, horizon over 21 dates, a reused `requestId` | Fix the request; send it with a new `requestId`. Never retry unchanged. |
 | 401 | (no body, `WWW-Authenticate: Bearer`) | Missing, malformed, unknown or revoked token, or a disabled tenant | Check the token; do not retry. |
 | 404 | `NOT_FOUND` | No such proposal, offer, hold or running request for this tenant | Do nothing (or search again for a booking). |
-| 409 | `STALE` | A technician-day changed since the proposal was computed; `changed` lists them | New proposal from current facts. |
+| 409 | `STALE` | Commit: a technician-day changed since the proposal was computed. Booking search or confirm: the snapshot is older than records already used. `changed` lists the technician-days | Commit: new proposal from current facts. Booking: the same call from current records with a new `requestId`. |
 | 409 | `NOT_COMMITTABLE` | Already committed, or not `IMPROVED` | Do nothing. |
 | 409 | `HOLD_UNAVAILABLE` | Hold expired, lost, released, superseded, not selected, or the day would need overtime | Search again (new `requestId`). |
 | 409 | `CANCELLED` | You cancelled the call | Nothing stored; repeat the same `requestId` if you still want it. |
@@ -395,7 +402,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.0.0). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.1.0). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor

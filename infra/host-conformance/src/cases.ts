@@ -310,6 +310,31 @@ export const CASES: readonly Case[] = [
     },
   },
   {
+    group: "Booking", name: "late older snapshot is stale", proves:
+      "A snapshot older than one the scheduler already used for a technician-day is refused as STALE, listing the newest timestamp seen; it never loses other holds.",
+    run: async context => {
+      const date = addDays(context.today, 6);
+      const day = bookingDay(context, "stale", date);
+      const id = ids(context, "stale");
+      const newer = new Date(Date.parse(context.lastModified) + 60_000).toISOString();
+      const current: Snapshot = { ...day.snapshot, technicianDays: day.snapshot.technicianDays.map(item => ({ ...item, lastModified: newer })) };
+      const held = firstOffer((await offers(context, offersBody(context, day.snapshot, id("job-1"), date, date), "Search on the first records")).set, "Search on the first records");
+      const later = firstOffer((await offers(context, offersBody(context, current, id("job-2"), date, date), "Search on newer records")).set, "Search on newer records");
+      const late = offersBody(context, day.snapshot, id("job-3"), date, date);
+      const stale = expectBody(await context.api.call("POST", "/api/v1/booking/offers", late, { timeoutMs: BOOKING_TIMEOUT_MS }), 409, Api.StaleProblem,
+        "Search on the first records after newer ones were used");
+      const listed = stale.changed.find(item => item.technicianId === day.technician && item.serviceDate === date);
+      check(listed !== undefined && sameInstant(listed.lastModified, newer), `Stale search: changed does not list ${day.technician} at ${newer}`);
+      const replay = expectBody(await context.api.call("POST", "/api/v1/booking/offers", late, { timeoutMs: BOOKING_TIMEOUT_MS }), 409, Api.StaleProblem, "Stale search replay");
+      check(isDeepStrictEqual(replay, stale), "Stale search replay: the same requestId answered differently");
+      for (const offer of [held, later]) {
+        expectBody(await context.api.call("POST", `/api/v1/booking/offers/${encodeURIComponent(offer.offerId)}/select`, requestOnly()), 200, Api.Hold,
+          "Selecting an offer held before the stale search");
+        expectBody(await context.api.call("POST", `/api/v1/booking/offers/${encodeURIComponent(offer.offerId)}/release`, requestOnly()), 200, Api.Released, "Release");
+      }
+    },
+  },
+  {
     group: "Booking", name: "horizon of 22 dates", proves: "A booking horizon covers at most 21 dates.",
     run: async context => {
       const first = addDays(context.today, 2);
