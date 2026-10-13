@@ -20,6 +20,8 @@ info:
       the ones a proposal was computed from gets 409, and nothing is changed. A confirm sends the hold's
       date as a new snapshot instead, and the scheduler reconciles its holds with it.
     - Overtime is never assigned.
+    - Requests, proposals, offers and receipts are kept for the deployment's retention period
+      (`SCHEDULER_RETENTION_DAYS`), then purged. Repeating a `requestId` older than that period runs it as a new request.
 
     Operations marked `x-implementation: planned` are specified but not yet served.
 
@@ -45,6 +47,8 @@ info:
     - Confirm sends `{requestId, snapshot}` (the hold's metro and date), not technician-day timestamps. It
       confirms a selected hold; its 409 is `HOLD_UNAVAILABLE`, and the new appointment's ID is the job ID.
     - A commit's 409 is either STALE (with `changed`) or the new NOT_COMMITTABLE; a commit after the 6 a.m. cutoff is a 422.
+    - Stored requests, proposals, offers and receipts are purged after the deployment's retention period; keep your own
+      copy of any receipt you need for longer.
 servers:
   - url: https://scheduler.internal.example
     description: Private network address of the scheduler service (placeholder).

@@ -81,6 +81,7 @@ public class DailyProposals {
         DailyProposalRequest request;
         try { request = PublicRequests.read(body, DailyProposalRequest.class); }
         catch (IllegalArgumentException invalid) { return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, invalidRequest(invalid))); }
+        dev.waterflex.scheduler.RequestLogging.requestId(request.requestId());
         Claim claim = store.claim(tenantId, request.requestId(), Operation.DAILY_PROPOSAL, sha256(CalculationJson.write(request)), lease(request.snapshot()));
         return switch (claim) {
             case Replay replay -> replayed(replay);
@@ -94,6 +95,7 @@ public class DailyProposals {
         PublicRequests.RepairProposalRequest request;
         try { request = PublicRequests.read(body, PublicRequests.RepairProposalRequest.class); }
         catch (IllegalArgumentException invalid) { return Reply.of(400, new Problem(ErrorCode.INVALID_REQUEST, invalidRequest(invalid))); }
+        dev.waterflex.scheduler.RequestLogging.requestId(request.requestId());
         Claim claim = store.claim(tenantId, request.requestId(), Operation.REPAIR_PROPOSAL, sha256(CalculationJson.write(request)), lease(request.day().snapshot()));
         return switch (claim) {
             case Replay replay -> replayed(replay);
