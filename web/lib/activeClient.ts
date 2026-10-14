@@ -20,7 +20,7 @@ export async function activeClient(request?: NextRequest): Promise<ClientSummary
  * stops at cookies() without querying a database it does not have.
  */
 export async function activeClientAndList(request?: NextRequest): Promise<{ active: ClientSummary; clients: ClientSummary[] }> {
-  const remembered = (request ? request.cookies : cookies()).get(CLIENT_COOKIE)?.value;
+  const remembered = (request ? request.cookies : await cookies()).get(CLIENT_COOKIE)?.value;
   const clients = await listClients();
   const active = chooseClient(remembered, clients);
   if (active == null) throw new Error("No clients exist; create one with web/scripts/create-client.ts");

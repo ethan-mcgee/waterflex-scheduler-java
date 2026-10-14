@@ -42,7 +42,7 @@ export function useHomeAddressLookup(initial?: HomeAddress | null) {
 
   useEffect(() => {
     const version = ++lookupVersion.current;
-    if (!dirty || !addressComplete) { setLookup("idle"); return; }
+    if (!dirty || !addressComplete) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
       setLookup("loading"); setLookupError("");

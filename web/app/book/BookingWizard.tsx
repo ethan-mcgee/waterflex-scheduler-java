@@ -1,7 +1,7 @@
 "use client";
 
 import { offersResponse, bookingLocationResponse, bookingResponse, bookingFailure, selection as selectionSchema, success, readResponse, errorMessage, required, date as dateContract } from "@/lib/contracts";
-import { appointmentSearchMessage, recordBookingApiDuration } from "@/lib/appointmentSearch";
+import { appointmentSearchMessage, bookingApiStart, recordBookingApiDuration } from "@/lib/appointmentSearch";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "@/app/book/booking.module.css";
 import AddressPinMap, { type PinCandidate, type ServiceArea } from "@/app/book/AddressPinMap";
@@ -159,7 +159,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   }
 
   async function handleSelectSlot(offerId: string) {
-    const started = performance.now();
+    const started = bookingApiStart();
     setError(null);
     setConfirmingHoldId(offerId);
     try {
@@ -217,7 +217,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
   async function refreshOffers() {
     if (!jobId) return;
     setSubmitting(true); setError(null);
-    const started = performance.now();
+    const started = bookingApiStart();
     try {
       const refreshed = await readResponse(await fetch("/api/book/refresh", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId }) }), offersResponse);
@@ -232,7 +232,7 @@ export default function BookingWizard({ services }: { services: ServiceOption[] 
     const mode = followUp ? "followUp" : "pin";
     const submissionId = submittedMode.current !== null && submittedMode.current !== mode ? newRequestId() : requestId;
     submittedMode.current = mode; setRequestId(submissionId);
-    const started = performance.now();
+    const started = bookingApiStart();
     const current = revision.current;
     setSubmitting(true);
     setError(null);

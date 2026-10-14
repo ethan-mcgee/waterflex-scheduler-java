@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { maplibregl } from "@/lib/maplibre";
 import { z } from "zod";
 import { bookingLocationResponse } from "@/lib/contracts";
@@ -20,8 +20,9 @@ export default function AddressPinMap({ candidates, area, pin, onPlace, onAvaila
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const callbacks = useRef({ onPlace, onAvailableChange });
-  callbacks.current = { onPlace, onAvailableChange };
-  const pinRef = useRef(pin); pinRef.current = pin;
+  const pinRef = useRef(pin);
+  // The map's handlers read the latest callbacks and pin; refresh them after each commit, never during render.
+  useLayoutEffect(() => { callbacks.current = { onPlace, onAvailableChange }; pinRef.current = pin; });
   useEffect(() => {
     const controller = new AbortController();
     let map: maplibregl.Map | null = null;

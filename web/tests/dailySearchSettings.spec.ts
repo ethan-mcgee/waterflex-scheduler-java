@@ -23,7 +23,8 @@ test("a client chooses its daily search method and times, and the page keeps the
 
     // More than 240 seconds together is refused, and nothing changes.
     await fill(page, "TABU_KOPT", "200", "41");
-    await expect(page.getByRole("alert")).toBeVisible();
+    // Scoped to the page body: Next's route announcer is also an alert.
+    await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Cost search time")).toHaveValue("60");
   } finally {

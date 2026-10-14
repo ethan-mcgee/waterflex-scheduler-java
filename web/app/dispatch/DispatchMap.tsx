@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { maplibregl } from "@/lib/maplibre";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import { isDispatchGeometry, type GeometryResponse } from "@/lib/dispatchGeometry";
@@ -58,48 +58,56 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
     return points.length ? [points.reduce((sum, point) => sum + point[0], 0) / points.length, points.reduce((sum, point) => sum + point[1], 0) / points.length] : DEFAULT_CENTER;
   }, [technicians, appointments]);
   const { map, loaded } = useMapInstance(element, center);
-  const [current, setCurrent] = useState<GeometryResponse | null>(null);
-  const [proposal, setProposal] = useState<GeometryResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Each fetched plan is stored with the request it answers, so a new metro day, revision or proposal starts empty
+  // without a reset inside the effect.
+  const currentKey = `${metroId}|${date}|${revision}`, proposalKey = proposalId === null ? null : `${proposalId}|${date}`;
+  const [currentFetch, setCurrentFetch] = useState<{ key: string; geometry: GeometryResponse | null; error: string | null } | null>(null);
+  const [proposalFetch, setProposalFetch] = useState<{ key: string; geometry: GeometryResponse } | null>(null);
+  const current = currentFetch !== null && currentFetch.key === currentKey ? currentFetch.geometry : null;
+  const proposal = proposalFetch !== null && proposalFetch.key === proposalKey ? proposalFetch.geometry : null;
+  const fetchError = currentFetch !== null && currentFetch.key === currentKey ? currentFetch.error : null;
   const callbacks = useRef({ onCurrentGeometry, onProposalGeometry, onSelectStop });
-  callbacks.current = { onCurrentGeometry, onProposalGeometry, onSelectStop };
+  // The map's handlers read the latest callbacks; refresh them after each commit, never during render.
+  useLayoutEffect(() => { callbacks.current = { onCurrentGeometry, onProposalGeometry, onSelectStop }; });
 
   // The current plan is drawn once per metro day and revision; re-renders and proposal changes never refetch it. It is
   // fetched after the map loads, so React's development double mount does not ask the scheduler twice.
   useEffect(() => {
     if (!loaded) return;
     const request = new AbortController();
-    setCurrent(null); setError(null);
     void fetchGeometry(`/api/dispatch/geometry?${new URLSearchParams({ metroId, date })}`, date, "current", request.signal).then(result => {
       if (request.signal.aborted) return;
-      if ("geometry" in result) setCurrent(result.geometry);
-      else setError(`${result.error} Stop markers remain visible.`);
+      setCurrentFetch("geometry" in result ? { key: currentKey, geometry: result.geometry, error: null }
+        : { key: currentKey, geometry: null, error: `${result.error} Stop markers remain visible.` });
       callbacks.current.onCurrentGeometry?.(result);
     }).catch((cause: unknown) => {
       if (request.signal.aborted) return;
       const message = errorMessage(cause, "Road routes are unavailable.");
-      setError(`${message} Stop markers remain visible.`);
+      setCurrentFetch({ key: currentKey, geometry: null, error: `${message} Stop markers remain visible.` });
       callbacks.current.onCurrentGeometry?.({ error: message, status: null });
     });
     return () => request.abort();
-  }, [loaded, metroId, date, revision]);
+  }, [loaded, metroId, date, revision, currentKey]);
 
   useEffect(() => {
-    setProposal(null);
-    if (proposalId === null) return;
+    if (proposalId === null || proposalKey === null) return;
     const request = new AbortController();
     void fetchGeometry(`/api/dispatch/proposals/${encodeURIComponent(proposalId)}/geometry`, date, "proposal", request.signal).then(result => {
       if (request.signal.aborted) return;
-      if ("geometry" in result) setProposal(result.geometry);
+      if ("geometry" in result) setProposalFetch({ key: proposalKey, geometry: result.geometry });
       callbacks.current.onProposalGeometry?.(result);
     }).catch((cause: unknown) => {
       if (!request.signal.aborted) callbacks.current.onProposalGeometry?.({ error: errorMessage(cause, "Optimized routes are unavailable."), status: null });
     });
     return () => request.abort();
-  }, [proposalId, date]);
+  }, [proposalId, date, proposalKey]);
 
   const colorByTech = useMemo(() => new Map(technicians.map(tech => [tech.id, tech.color])), [technicians]);
   const nameByTech = useMemo(() => new Map(technicians.map(tech => [tech.id, tech.name])), [technicians]);
+  // A route for a technician the board does not know is not drawn; the map says which one instead.
+  const unknownTechnician = useMemo(() => [current, proposal].flatMap(geometry => geometry?.features ?? [])
+    .find(feature => !colorByTech.has(feature.properties.technicianId))?.properties.technicianId ?? null, [current, proposal, colorByTech]);
+  const error = unknownTechnician !== null ? `Unknown route technician ${unknownTechnician}.` : fetchError;
 
   // Fit the camera to the current plan once per metro day; later views keep where the dispatcher has panned.
   const fitted = useRef<string | null>(null);
@@ -114,11 +122,8 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
   }, [map, loaded, current, metroId, date]);
 
   useEffect(() => {
-    if (map === null || !loaded) return;
+    if (map === null || !loaded || unknownTechnician !== null) return;
     const showProposal = proposal !== null && view !== "current";
-    for (const geometry of [current, proposal])
-      for (const feature of geometry?.features ?? [])
-        if (!colorByTech.has(feature.properties.technicianId)) { setError(`Unknown route technician ${feature.properties.technicianId}.`); return; }
     const base = { colorByTech, focusTechnicianId, dimmed };
     syncRouteLayers(map, "current", current, { ...base, visible: !showProposal || view === "compare", ghost: showProposal,
       only: showProposal ? changedTechnicianIds ?? new Set<string>() : null });
@@ -164,7 +169,7 @@ export default function DispatchMap({ technicians, appointments, timezone, metro
       }
     }
     return () => markers.forEach(marker => marker.remove());
-  }, [map, loaded, current, proposal, view, focusTechnicianId, changedAppointmentIds, changedTechnicianIds, dimmed, appointments, timezone, colorByTech, nameByTech]);
+  }, [map, loaded, unknownTechnician, current, proposal, view, focusTechnicianId, changedAppointmentIds, changedTechnicianIds, dimmed, appointments, timezone, colorByTech, nameByTech]);
 
   return <div className={styles.mapFrame}>
     <div ref={element} className={styles.mapCanvas} />

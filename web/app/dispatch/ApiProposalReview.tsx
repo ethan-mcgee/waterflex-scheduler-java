@@ -2,7 +2,7 @@
 
 import { apiProposal, errorMessage, readResponse } from "@/lib/contracts";
 import { formatCents } from "@/lib/money";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { z } from "zod";
 import styles from "@/app/dispatch/dispatch.module.css";
 
@@ -22,7 +22,10 @@ export default function ApiProposalReview({ proposal, timezone, technicianName, 
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  useEffect(() => { setMessage(null); }, [proposal.proposalId, proposal.state]);
+  // A message belongs to the proposal and state it was written for; a new one starts without it.
+  const shown = `${proposal.proposalId}|${proposal.state}`;
+  const [messageFor, setMessageFor] = useState(shown);
+  if (messageFor !== shown) { setMessageFor(shown); setMessage(null); }
   const time = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
   async function apply() {
     if (proposal.state !== "OPEN" || disabled || !window.confirm("Apply this optimization proposal?")) return;

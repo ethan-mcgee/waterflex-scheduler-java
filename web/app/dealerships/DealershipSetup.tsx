@@ -56,14 +56,15 @@ export default function DealershipSetup({ metros, depots, dealerships }: {
 
   const addressComplete = Object.values(address).every(value => value.trim());
   const depotFieldsReady = Boolean(dealershipId) && Boolean(metroId) && depotName.trim().length > 0 && addressComplete;
+  // A located pin belongs to complete depot fields: when readiness changes, the lookup starts over. Address edits reset
+  // it in updateAddress. Adjusting state during render (not in an effect) keeps the stale pin from ever painting.
+  const [lookupReady, setLookupReady] = useState(depotFieldsReady);
+  if (lookupReady !== depotFieldsReady) { setLookupReady(depotFieldsReady); setPin(null); setLookup("idle"); setLookupError(""); }
 
   useEffect(() => {
     const version = ++lookupVersion.current;
-    setLookupError("");
-    if (!depotFieldsReady) { setLookup("idle"); setPin(null); return; }
+    if (!depotFieldsReady) return;
     const controller = new AbortController();
-    setPin(null);
-    setLookup("idle");
     const timer = setTimeout(() => {
       setLookup("loading");
       fetch("/api/technicians/geocode", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(address), signal: controller.signal })
@@ -336,7 +337,6 @@ function DepotDetailsEditor({ depot, busy, error, onCancel, onSave, onAddressCha
   const complete = Object.values(address).every(value => value.trim().length > 0);
   useEffect(() => {
     const version = ++lookupVersion.current;
-    setLookupError("");
     if (!addressChanged || !complete) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
@@ -384,7 +384,13 @@ function DepotRow({ depot, metroName, editing, busy, error, onToggleEdit, onEdit
   const [departure, setDeparture] = useState<Anchor>(depot.upcomingPolicy?.departure ?? depot.departure);
   const [returnTo, setReturnTo] = useState<Anchor>(depot.upcomingPolicy?.returnTo ?? depot.returnTo);
 
-  useEffect(() => { setDeparture(depot.upcomingPolicy?.departure ?? depot.departure); setReturnTo(depot.upcomingPolicy?.returnTo ?? depot.returnTo); }, [depot.departure, depot.returnTo, depot.upcomingPolicy]);
+  // When the saved policy changes (after a save and refresh), the editor starts from it again.
+  const savedPolicy = `${depot.upcomingPolicy?.departure ?? depot.departure}|${depot.upcomingPolicy?.returnTo ?? depot.returnTo}`;
+  const [editedFrom, setEditedFrom] = useState(savedPolicy);
+  if (editedFrom !== savedPolicy) {
+    setEditedFrom(savedPolicy);
+    setDeparture(depot.upcomingPolicy?.departure ?? depot.departure); setReturnTo(depot.upcomingPolicy?.returnTo ?? depot.returnTo);
+  }
 
   return (
     <div className={editing ? styles.depotRowExpanded : styles.depotRow}>
