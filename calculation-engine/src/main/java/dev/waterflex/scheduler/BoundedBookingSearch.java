@@ -45,6 +45,10 @@ public final class BoundedBookingSearch {
             if (changedAssignments < 0 || insertionPosition < 0) throw new IllegalArgumentException("Invalid booking candidate counts");
         }
     }
+    /**
+     * One window's share of a pass. {@code complete}: this window's own work finished (every eligible route tried, and in
+     * a refinement its neighborhood exhausted), even when the pass as a whole was cut short before other windows did.
+     */
     public record Coverage(Window window, int routesExamined, int arrangementsExamined, int movesGenerated,
                            int candidateEvaluations, boolean complete, String stopReason) {
         public Coverage { Required.value(window); CalculationJson.text(stopReason);
@@ -239,7 +243,9 @@ public final class BoundedBookingSearch {
                         work = false;
                         for (State state : states) {
                             checkpoint.run();
-                            if (state.step()) work = true;
+                            boolean more = state.step();
+                            state.neighborhoodDone = !more;
+                            if (more) work = true;
                         }
                     } while (work);
                     complete = true;
@@ -251,8 +257,10 @@ public final class BoundedBookingSearch {
         List<Coverage> coverage = new ArrayList<>();
         for (State state : states) {
             candidates.addAll(state.candidates);
+            // A window whose own work finished is complete even when the deadline stopped the pass for the others.
+            boolean done = complete || state.insertionCursor >= state.eligible.size() && (!rearrangementEnabled || state.neighborhoodDone);
             coverage.add(new Coverage(state.window, state.examinedRoutes.size(), state.arrangements, state.generated,
-                    state.evaluations, complete, complete ? state.reason : stopped));
+                    state.evaluations, done, done ? state.reason : stopped));
         }
         Set<Window> reported = new HashSet<>();
         coverage.forEach(item -> reported.add(item.window()));
@@ -293,6 +301,8 @@ public final class BoundedBookingSearch {
         final Map<String, Double> utilizations = new HashMap<>();
         int insertionCursor, arrangements = 1, generated, evaluations, depth, ruinCursor;
         boolean ruinFinished;
+        /** The last neighborhood step found nothing more to try for this window. */
+        boolean neighborhoodDone;
         String reason = "INSERTION_COMPLETED";
 
         State(Window window) {
