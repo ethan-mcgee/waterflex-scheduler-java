@@ -28,6 +28,9 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `SCHEDULER_SEARCH_BACKGROUND_LIMIT` | No | Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas. |
 | `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`. |
 | `SCHEDULER_CANCEL_POLL_MS` | No | How often a replica reads the cancellations other replicas recorded for the calls it runs, default 500. |
+| `ROUTING_IDENTITY_TTL_MS` | No | How long a routing identity fetched from a routing service's `/health` is trusted, default 2000; the service still refuses a call with a changed identity (409), which drops the remembered one. |
+| `ROUTING_FLIGHTS_THREADS`, `ROUTING_FLIGHTS_QUEUE` | No | Leg batches a replica fetches from a routing service at once (8) and lets wait (64). |
+| `ROUTING_CH_ENABLED`, `ROUTING_PARALLELISM` (routing service) | No | Serve the map version's contraction hierarchy graph (default true; false serves the flexible graph, with another routing identity) and route a request's pairs on this many threads (0, the default, means the processors available). |
 | `SCHEDULER_DAILY_QUEUE_POLL_MS`, `SCHEDULER_DAILY_QUEUE_MAX_WAIT_MINUTES`, `SCHEDULER_DAILY_QUEUE_TENANT_LIMIT` | No | How often an idle worker looks for work queued on another replica (500 ms); how long a queued request may wait before it completes with 429 without running (15 minutes); how many requests one client may have queued or running (50). |
 | `MANAGEMENT_PORT` | No | Port of `/actuator/health` and `/actuator/prometheus`, default 9000. Keep it private. |
 | `LOGGING_STRUCTURED_FORMAT_CONSOLE` | No | `ecs` for JSON log lines. |
@@ -148,6 +151,8 @@ docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env run --r
 The token is printed once and stored only as a digest. A disabled tenant's tokens answer 401 until it is enabled again. To rotate: issue a new token, give it to the host, wait until the host uses it, then revoke the old one. A revoked token answers 401 at once.
 
 ## Maps and routing identity
+
+Each prepared map version carries two road graphs, `graph` (flexible) and `graph-ch-car-v1` (contraction hierarchy, which answers a query in a fraction of the time and CPU); `infra/prepare-map.ps1` prepares both, the manifest lists both, and activation requires both. The routing service serves the CH graph by default (`ROUTING_CH_ENABLED=true`). Switching between the two changes the routing identity exactly as a map change does: every route cache goes cold and a call in flight on the old identity is refused and retried by the host.
 
 A map refresh prepares a new version beside the active one and switches to it (README, "Normal local updates and restarts"). Pause booking during the switch. The routing identity in `/health` changes with the map. The scheduler's route cache is keyed by identity, so it starts cold and routing load is higher until it fills.
 

@@ -75,9 +75,20 @@ public class MatrixController {
     private record Cached(Leg leg, Instant expiresAt) { }
     private final Map<String, Cached> cache;
     private final Duration cacheTtl;
+    /**
+     * Routes the pairs of one request at once, up to {@code routing.parallelism} at a time across all requests
+     * (GraphHopper's route is safe to call concurrently). A batch of 256 cold pairs that took 256 queries in a row
+     * now takes about 256 divided by the parallelism.
+     */
+    private final java.util.concurrent.ExecutorService workers;
+    private final int parallelism;
 
     public MatrixController(String osmFile, String graphDir, String mapVersion, int cacheEntries, int cacheMinutes) {
         this(osmFile, graphDir, mapVersion, cacheEntries, cacheMinutes, false);
+    }
+
+    public MatrixController(String osmFile, String graphDir, String mapVersion, int cacheEntries, int cacheMinutes, boolean chEnabled) {
+        this(osmFile, graphDir, mapVersion, cacheEntries, cacheMinutes, chEnabled, 0, 1);
     }
 
     @org.springframework.beans.factory.annotation.Autowired
@@ -86,7 +97,15 @@ public class MatrixController {
                             @Value("${routing.map-version:unprepared}") String mapVersion,
                             @Value("${routing.cache.max-entries:100000}") int cacheEntries,
                             @Value("${routing.cache.ttl-minutes:60}") int cacheMinutes,
-                            @Value("${routing.ch.enabled:false}") boolean chEnabled) {
+                            @Value("${routing.ch.enabled:false}") boolean chEnabled,
+                            @Value("${routing.parallelism:0}") int configuredParallelism,
+                            @Value("${routing.ch.preparation-threads:1}") int preparationThreads) {
+        if (configuredParallelism < 0 || configuredParallelism > 64) throw new IllegalArgumentException("routing.parallelism must be 0 (the processors available) to 64");
+        if (preparationThreads < 1 || preparationThreads > 64) throw new IllegalArgumentException("routing.ch.preparation-threads must be 1 to 64");
+        this.parallelism = configuredParallelism == 0 ? Math.max(1, Runtime.getRuntime().availableProcessors()) : configuredParallelism;
+        this.workers = Required.value(java.util.concurrent.Executors.newFixedThreadPool(parallelism, task -> {
+            Thread thread = new Thread(task, "routing-query"); thread.setDaemon(true); return thread;
+        }));
         this.chEnabled = chEnabled;
         // Preparation is isolated from the existing flexible graph, including rollback.
         if (chEnabled) graphDir = graphDir + "-ch-car-v1";
@@ -114,7 +133,7 @@ public class MatrixController {
         active.setProfiles(new Profile("car").setCustomModel(GHUtility.loadCustomModelFromJar("car.json")));
         if (chEnabled) {
             active.getCHPreparationHandler().setCHProfiles(new CHProfile("car"));
-            active.getCHPreparationHandler().setPreparationThreads(1);
+            active.getCHPreparationHandler().setPreparationThreads(preparationThreads);
         }
         active.importOrLoad();
     }
@@ -123,20 +142,12 @@ public class MatrixController {
     public Matrix matrix(@RequestBody Request request) {
         checkIdentity(request.expectedRoutingIdentity());
         if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
+        List<Point> origins = request.origins(), destinations = request.destinations();
+        List<Leg> flat = legs(origins.size() * destinations.size(),
+                index -> cachedLeg(Required.value(origins.get(index / destinations.size())), Required.value(destinations.get(index % destinations.size()))));
         List<List<Leg>> rows = new ArrayList<>();
-        for (Point origin : request.origins()) {
-            List<Leg> row = new ArrayList<>();
-            for (Point destination : request.destinations()) {
-                String key = origin.lat() + "," + origin.lng() + ">" + destination.lat() + "," + destination.lng();
-                Cached hit = cache.get(key);
-                if (hit == null || !hit.expiresAt().isAfter(Instant.now())) {
-                    hit = new Cached(route(Required.value(origin), Required.value(destination)), Required.value(Instant.now().plus(cacheTtl)));
-                    cache.put(key, hit);
-                }
-                row.add(hit.leg());
-            }
-            rows.add(row);
-        }
+        for (int from = 0; from < origins.size(); from++)
+            rows.add(Required.value(List.copyOf(flat.subList(from * destinations.size(), (from + 1) * destinations.size()))));
         return new Matrix(mapVersion, routingIdentity, Required.value(rows));
     }
 
@@ -167,17 +178,45 @@ public class MatrixController {
     public SparseResponse sparse(@RequestBody SparseRequest request) {
         checkIdentity(request.expectedRoutingIdentity());
         if (hopper == null) throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Road graph not imported");
+        List<Pair> pairs = request.pairs();
+        List<Leg> flat = legs(pairs.size(), index -> { Pair pair = Required.value(pairs.get(index)); return cachedLeg(pair.origin(), pair.destination()); });
         List<PairResult> results = new ArrayList<>();
-        for (Pair pair : request.pairs()) {
-            String key = pair.origin().lat() + "," + pair.origin().lng() + ">" + pair.destination().lat() + "," + pair.destination().lng();
-            Cached hit = cache.get(key);
-            if (hit == null || !hit.expiresAt().isAfter(Instant.now())) {
-                hit = new Cached(route(pair.origin(), pair.destination()), Required.value(Instant.now().plus(cacheTtl)));
-                cache.put(key, hit);
-            }
-            results.add(new PairResult(pair.id(), hit.leg()));
-        }
+        for (int index = 0; index < pairs.size(); index++) results.add(new PairResult(Required.value(pairs.get(index)).id(), Required.value(flat.get(index))));
         return new SparseResponse(routingIdentity, results);
+    }
+
+    /** The leg for one directed pair, from the cache or routed now. */
+    private Leg cachedLeg(Point origin, Point destination) {
+        String key = origin.lat() + "," + origin.lng() + ">" + destination.lat() + "," + destination.lng();
+        Cached hit = cache.get(key);
+        if (hit == null || !hit.expiresAt().isAfter(Instant.now())) {
+            hit = new Cached(route(origin, destination), Required.value(Instant.now().plus(cacheTtl)));
+            cache.put(key, hit);
+        }
+        return hit.leg();
+    }
+
+    /** Computes {@code count} legs on the shared workers and returns them in index order. */
+    private List<Leg> legs(int count, java.util.function.IntFunction<Leg> leg) {
+        if (count <= 1 || parallelism == 1) {
+            List<Leg> legs = new ArrayList<>(count);
+            for (int index = 0; index < count; index++) legs.add(leg.apply(index));
+            return legs;
+        }
+        List<java.util.concurrent.Future<Leg>> futures = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) { int at = index; futures.add(Required.value(workers.submit(() -> leg.apply(at)))); }
+        List<Leg> legs = new ArrayList<>(count);
+        try {
+            for (var future : futures) legs.add(Required.value(future.get()));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Routing interrupted");
+        } catch (java.util.concurrent.ExecutionException failed) {
+            Throwable cause = failed.getCause();
+            if (cause instanceof ResponseStatusException status) throw status;
+            throw new IllegalStateException("Routing query failed", cause);
+        }
+        return legs;
     }
 
     private void checkIdentity(@Nullable String expected) {
@@ -234,5 +273,5 @@ public class MatrixController {
             "preparedConfiguration", chEnabled ? "CH-car-v1" : "flexible")); }
 
     @PreDestroy
-    public void close() { GraphHopper active = hopper; if (active != null) active.close(); }
+    public void close() { workers.shutdownNow(); GraphHopper active = hopper; if (active != null) active.close(); }
 }
