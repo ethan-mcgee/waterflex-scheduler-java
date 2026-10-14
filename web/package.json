@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "tsx scripts/copy-maplibre-worker.ts",
     "dev": "next dev",
+    "prebuild": "tsx scripts/copy-maplibre-worker.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint app lib scripts prisma tests playwright.config.ts --ext .ts,.tsx --max-warnings 0",
@@ -47,7 +49,7 @@
   "dependencies": {
     "@prisma/client": "^5.20.0",
     "lucide-react": "^1.55.0",
-    "maplibre-gl": "^5.18.0",
+    "maplibre-gl": "^6.14.0",
     "next": "^14.2.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

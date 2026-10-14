@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import maplibregl from "maplibre-gl";
+import { maplibregl } from "@/lib/maplibre";
 import type { BoardAppointment, BoardTechnician } from "@/app/dispatch/types";
 import { isDispatchGeometry, type GeometryResponse } from "@/lib/dispatchGeometry";
 import { errorMessage } from "@/lib/contracts";
