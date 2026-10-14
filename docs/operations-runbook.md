@@ -69,6 +69,8 @@ Upgrade:
 
 Rollback is the reverse: start the previous scheduler with the previous pool. Migrations are forward only. A migration that removes something the previous version reads is called out in the design doc's "Contract changes" table and its pull request.
 
+Rolling back past #152 (late snapshots keep holds) needs one more step. From #152 on, the stored booking day state carries `superseded` and `unwritten`, which an earlier build refuses to read, so its booking calls would answer 500 for every day written since. Stop the scheduler, delete the booking day rows (`DELETE FROM api_booking_day;` as the owner role; holds live 10 minutes, so this releases at most the holds of the last 10 minutes, and confirmed bookings live in the host's records), then start the previous build.
+
 ## Health
 
 `GET /health` on the API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names each component with `up` or `down` and a short detail; it never contains URLs or credentials.

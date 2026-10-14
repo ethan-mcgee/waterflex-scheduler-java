@@ -17,7 +17,7 @@ class BookingDayStateSourceTest {
     private static String stored(PublicTypes.@Nullable CoordinateSource source) {
         var hold = new BookingDayState.HoldState("job-1", "offer-1", "set-1", DAY, "service", DAY, Required.value(DAY.plusSeconds(7200)), 60,
                 41.26, -95.94, DAY, "tech-1", source);
-        var state = new BookingDayState(Required.value(Map.of("tech-1", new BookingDayState.TechnicianState(1L, Required.value(List.of()), Required.value(List.of("hold-1"))))),
+        var state = new BookingDayState(Required.value(Map.of("tech-1", new BookingDayState.TechnicianState(1L, Required.value(List.of()), Required.value(List.of("hold-1")), BookingDayState.FIRST_SEEN, null))),
                 Required.value(Map.of("hold-1", hold)));
         return CalculationJson.write(state);
     }
