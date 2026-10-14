@@ -1,4 +1,4 @@
-import type maplibregl from "maplibre-gl";
+import type * as maplibregl from "maplibre-gl";
 import type { GeometryResponse, RoadFeature } from "@/lib/dispatchGeometry";
 
 /** The style of one plan's routes: who is drawn, in what color, and how strongly. */
@@ -52,7 +52,7 @@ export function syncRouteLayers(map: maplibregl.Map, prefix: "current" | "propos
     map.setLayoutProperty(id, "visibility", shown ? "visible" : "none");
     map.setPaintProperty(id, "line-color", style.ghost ? GHOST_COLOR : style.colorByTech.get(technicianId) ?? GHOST_COLOR);
     map.setPaintProperty(id, "line-width", style.ghost ? 2 : 3.5);
-    map.setPaintProperty(id, "line-dasharray", style.ghost ? [2, 1.5] : null);
+    map.setPaintProperty(id, "line-dasharray", style.ghost ? [2, 1.5] : undefined); // undefined restores the default: a solid line.
     map.setPaintProperty(id, "line-opacity", opacity(style, technicianId));
   }
 }

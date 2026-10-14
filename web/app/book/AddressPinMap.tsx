@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
+import { maplibregl } from "@/lib/maplibre";
 import { z } from "zod";
 import { bookingLocationResponse } from "@/lib/contracts";
 import { localMapStyle } from "@/lib/localMapStyle";

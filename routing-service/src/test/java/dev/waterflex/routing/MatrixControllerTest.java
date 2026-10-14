@@ -48,6 +48,12 @@ class MatrixControllerTest {
         MatrixController routing = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60);
         String identity = (String) routing.health().get("routingIdentity");
         assertEquals(64, identity.length());
+        // The identity binds every cached leg to the engine that routed it: it must name the loaded GraphHopper release.
+        assertTrue(MatrixController.ENGINE_VERSION.matches("[0-9]+[.][0-9]+([.][0-9]+)?"), MatrixController.ENGINE_VERSION);
+        assertEquals(MatrixController.ENGINE_VERSION, routing.health().get("engineVersion"));
+        String settings = CHECKSUM + "|car|car_access,car_average_speed,road_access,road_environment,max_speed,ferry_speed|car.json|GraphHopper-"
+                + MatrixController.ENGINE_VERSION + "|snap-1000m";
+        assertEquals(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(settings.getBytes(java.nio.charset.StandardCharsets.UTF_8))), identity);
         try {
             var matrix = routing.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), identity));
             assertEquals(identity, matrix.routingIdentity());
