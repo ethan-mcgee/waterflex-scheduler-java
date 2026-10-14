@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.4.0);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.4.1);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -20,8 +20,8 @@ The portal in `web/` is a working client of this API and the reference for every
 ```
  WaterFlex Software backend                         Scheduler VM (partitioned CPU and memory)
  +-----------------------------+   HTTPS /api/v1   +-----------------------------------------------+
- | master data and the record  | ----------------> | scheduler-service  :8000  (API, /health)      |
- | of every appointment        |  snapshot + call  |   |  embedded calculation engine              |
+ | master data and the record  | ----------------> | scheduler-proxy :8000 -> booking / daily pool |
+ | of every appointment        |  snapshot + call  |   |  scheduler replicas, embedded engine      |
  |                             | <---------------- |   +--> routing-service per metro (private)     |
  | writes receipts with a      |  offers, routes,  |   +--> Nominatim (optional, private)           |
  | compare-and-set             |  receipts         |   +--> scheduler-db (thin store, its own)      |
@@ -31,6 +31,11 @@ The portal in `web/` is a working client of this API and the reference for every
 
 The scheduler runs on its own VM and is reached only through `https://<scheduler-vm>/api/v1`. Nothing else connects
 to it: no shared database, no client library, no callbacks. WaterFlex Software can call it from any language.
+
+On the VM, `scheduler-service` may run as several replicas of the same jar behind one load balancer (the address you
+call). Booking replicas answer booking searches, confirms and route calls; daily replicas take daily and repair
+proposals, synchronous or queued. Every replica answers every route, holds no state of its own, and shares the one
+thin store, so which replica answers a call never changes the answer; you call one address and see one API.
 
 | WaterFlex Software owns | The scheduler owns |
 | --- | --- |
@@ -343,13 +348,13 @@ overnight runner (`web/lib/overnight.ts`) queues each day and polls it.
 
 `DELETE /api/v1/requests/{requestId}` cancels a daily or repair proposal, booking search or confirm still running under
 that `requestId`, best effort. It answers 202 without a body; the cancelled call then answers 409 `CANCELLED`, stores
-nothing and releases its `requestId`, so retrying the same request later runs it again. A 404 means nothing is running
-under it on that replica (it finished, never started, or ran elsewhere).
+nothing and releases its `requestId`, so retrying the same request later runs it again. A 404 means no call is queued
+or in progress under it (it finished or never started).
 
-A request sent with `Prefer: respond-async` is cancelled from any replica: a queued one ends at once and a running one
-stops within a few seconds; polling it then reports `COMPLETED` with a 409 `CANCELLED` result. Any other call is
-cancelled only by the scheduler replica running it: behind several replicas, route the DELETE by `requestId` the way
-the call was routed; otherwise it is a 404 and the call stops at its own deadline.
+The DELETE may reach any replica. A call running on another replica is stopped by that replica within about a second
+(spec 1.4.1). A request sent with `Prefer: respond-async` that is still queued ends at once, and a running one stops
+within a few seconds; polling it then reports `COMPLETED` with a 409 `CANCELLED` result. A call that finishes before
+the cancel reaches it keeps its answer.
 
 A second call with a `requestId` that is still running answers 429 `BUSY`; wait and repeat it.
 
@@ -446,7 +451,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.4.0). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.4.1). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor

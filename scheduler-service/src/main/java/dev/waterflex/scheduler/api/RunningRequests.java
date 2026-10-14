@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler.api;
 
+import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.SearchDeadline;
 import dev.waterflex.scheduler.optimizer.DailyOperation;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,13 +9,14 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
- * The calculations this replica is running, by tenant and host request ID, so the host can cancel one. Cancellation
- * is per replica and best effort: a request running on another replica, or already finished, is not found, and a
- * calculation that is not cancelled in time still stops at its own deadline.
+ * The calculations this replica is running, by tenant and host request ID, so the host can cancel one. A cancel that
+ * reaches another replica is recorded on the request's claim and found here by {@link CancelWatcher}. Cancellation is
+ * best effort: a calculation that is not cancelled in time still stops at its own deadline.
  */
 @Component
 public class RunningRequests {
-    private record Key(String tenantId, String requestId) { }
+    /** A running request: the tenant and the host's request ID. */
+    public record Key(String tenantId, String requestId) { }
 
     /** One running request. Cancelling it ends whatever calculation is attached, now or once one is. */
     public static final class Running {
@@ -78,6 +80,9 @@ public class RunningRequests {
         found.cancel();
         return true;
     }
+
+    /** The requests running here now. */
+    public java.util.List<Key> keys() { return Required.value(java.util.List.copyOf(running.keySet())); }
 
     /** How many requests are running here. */
     int size() { return running.size(); }

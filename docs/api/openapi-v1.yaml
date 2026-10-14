@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.4.0
+  version: 1.4.1
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -35,6 +35,9 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.4.1 (2026-10-13): cancelRequest reaches every call in progress from any replica, so a load balancer may send
+      it anywhere: a replica that does not run the call records the cancel, and the replica running it stops the call
+      within a second. No schema changes.
     - 1.4.0 (2026-10-13): createDailyProposal and createRepairProposal accept the optional request header
       `Prefer: respond-async`: the request is queued and answered 202 at once with a RequestStatus, and the host polls
       the new getRequest (GET /api/v1/requests/{requestId}) for its answer. Queued requests are taken by any replica,
@@ -445,13 +448,13 @@ paths:
       tags: [Integration]
       summary: Best-effort cancellation of an in-flight calculation.
       description: >-
-        Cancels a daily or repair proposal, booking search or confirm that is still running under this requestId.
-        The cancelled call answers 409 CANCELLED, stores nothing, and releases its requestId, so retrying it with
-        the same requestId runs it again. A request sent with `Prefer: respond-async` is cancelled from any replica:
-        a queued one ends at once and a running one stops within a few seconds, and getRequest then reports the 409.
-        Any other call is cancelled only by the scheduler replica running it: behind several replicas, route this
-        request by requestId as the call itself was routed, or it is a 404 and the call still stops at its own
-        deadline.
+        Cancels a daily or repair proposal, booking search or confirm that is still running under this requestId,
+        from any scheduler replica. The cancelled call answers 409 CANCELLED, stores nothing, and releases its
+        requestId, so retrying it with the same requestId runs it again. A request sent with `Prefer: respond-async`
+        that is still queued ends at once; one that is running stops within a few seconds, and getRequest then reports
+        the 409. A synchronous call running on another replica stops within about a second. Cancellation is best
+        effort: a call that finishes first keeps its answer. 404 when no call with this requestId is queued or in
+        progress.
       x-implementation: implemented
       parameters:
         - name: requestId

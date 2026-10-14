@@ -5,10 +5,12 @@
 #   docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/rehearsal.override.yml --env-file deploy/vm/rehearsal.env up -d
 #
 # rehearsal.env (ignored by git) holds local secrets and, for this file:
-#   SCHEDULER_API_BIND=127.0.0.1, SCHEDULER_API_PORT=18080, SCHEDULER_MANAGEMENT_PORT=19090,
+#   SCHEDULER_API_BIND=127.0.0.1, SCHEDULER_API_PORT=18080, PROMETHEUS_PORT=19091,
 #   ROUTING_METRO_URLS=metro-omaha=http://host.docker.internal:8001, and the development stack's ROUTING_AUTH_TOKEN.
 services:
   routing-omaha:
     profiles: ["vm-routing"]
-  scheduler-service:
+  scheduler-booking:
+    extra_hosts: ["host.docker.internal:host-gateway"]
+  scheduler-daily:
     extra_hosts: ["host.docker.internal:host-gateway"]

@@ -8,13 +8,15 @@ The scheduler runs on its own VM with a fixed share of compute and is reached on
 | --- | --- |
 | `scheduler-db` | The scheduler's own Postgres: tenants and token digests, the thin store, the route cache. |
 | `scheduler-admin` | One-shot, as the database owner: applies migrations and creates the serving login on every start. Operators run tenant commands through it. |
-| `scheduler-service` | The API (`/api/v1`, `/health`) on the private interface, and metrics on the management port. |
+| `scheduler-proxy` | nginx: the one API address (`/api/v1`, `/health`) on the private interface. It sends daily and repair proposals and `/api/v1/requests/*` to the daily pool and everything else to the booking pool ([nginx.conf](nginx.conf)). |
+| `scheduler-booking` | Booking replicas (`SCHEDULER_ROLE=booking`): booking searches, confirms, commits and route calls. They take no queued daily work. |
+| `scheduler-daily` | Daily replicas (`SCHEDULER_ROLE=daily`): daily and repair proposals, synchronous and queued, up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` at once each. |
 | `routing-omaha` | Omaha's routing service. Add one per served metro. |
 | `nominatim` | Profile `nominatim`: address lookup for locations sent without coordinates (`GEOCODING_MODE=NOMINATIM`). |
 | `solver-service` | Profile `remote-solver`: a remote solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE`). The embedded solver is the default. |
-| `prometheus` | Profile `monitoring`: scrapes the scheduler's metrics. |
+| `prometheus` | Profile `monitoring`: scrapes every scheduler replica's metrics. |
 
-Each service has `deploy.resources` limits set from `.env`, so the VM's partition is explicit. Running it is covered by [the operations runbook](../../docs/operations-runbook.md).
+Each service has `deploy.resources` limits set from `.env`, so the VM's partition is explicit; a pool's limits apply to each of its replicas. Both pools run the same image and every replica answers every route, so a call that reaches the other pool still gets the right answer. Running it is covered by [the operations runbook](../../docs/operations-runbook.md).
 
 ## Before production traffic
 
@@ -39,8 +41,8 @@ TLS is not set up (deferred by owner decision). Terminate TLS in front of the AP
    docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d
    ```
 
-   `scheduler-admin` migrates the database and exits; `scheduler-service` starts after it. Loading the road graph takes minutes, and `/health` answers 503 until routing is up.
-5. Check readiness from the VM: `curl http://<SCHEDULER_API_BIND>:8000/health` answers 200 with `database`, `schema` and `routing:metro-omaha` up.
+   `scheduler-admin` migrates the database and exits; both pools start after it, and `scheduler-proxy` in front of them. Loading the road graph takes minutes, and `/health` answers 503 until routing is up.
+5. Check readiness from the VM: `curl http://<SCHEDULER_API_BIND>:8000/health` answers 200 with `"role":"booking"` and `database`, `schema` and `routing:metro-omaha` up (the proxy sends `/health` to a booking replica). `docker compose ... ps` shows each replica healthy.
 6. Issue a token for each WaterFlex Software client and hand it over through a secret channel:
 
    ```sh
@@ -55,6 +57,15 @@ TLS is not set up (deferred by owner decision). Terminate TLS in front of the AP
 
 Pull the new revision, then `docker compose -f deploy/vm/docker-compose.yml --env-file deploy/vm/.env up -d --build`. `scheduler-admin` applies new migrations before the new scheduler starts. With a remote solver, follow the runbook's upgrade order (new solver pool beside the old one first).
 
+## Scaling the pools
+
+Each pool scales on its own, by replica count and by each replica's share (`.env`, then `up -d`):
+
+- **Booking** (`SCHEDULER_BOOKING_REPLICAS`, `_CPUS`, `_MEMORY`, `_SEARCH_CAPACITY`): add replicas when booking p95 nears the client's deadline or `scheduler_admission_rejections_total` rises on booking replicas. Keep the search capacity at about the replica's cores.
+- **Daily** (`SCHEDULER_DAILY_REPLICAS`, `_CPUS`, `_MEMORY`, `_SEARCH_CAPACITY`, `SCHEDULER_DAILY_BACKGROUND_LIMIT`): add replicas, or raise the background limit up to the search capacity with the cores to match, when queued days wait long (from `queuedAt` to `startedAt` in `GET /api/v1/requests/{id}`) or `scheduler_daily_queue_expired_total` rises.
+
+The proxy finds new replicas within 10 seconds without a restart. A replica stopped while it runs a queued day leaves it to another replica once its lease passes; a synchronous call it was running fails at the caller, who repeats it with the same `requestId`.
+
 ## Another metro
 
 Copy `routing-omaha` to `routing-<metro>` with that metro's map (its own volume or version directory), and add `<metro id>=http://routing-<metro>:8001` to `ROUTING_METRO_URLS`. The metro ID is the one WaterFlex Software sends in its snapshots.
@@ -65,7 +76,7 @@ The same stack runs on a development machine as its own Compose project (`schedu
 
 ```sh
 # deploy/vm/rehearsal.env (ignored by git): local secrets plus
-#   SCHEDULER_API_BIND=127.0.0.1  SCHEDULER_API_PORT=18080  SCHEDULER_MANAGEMENT_PORT=19090  PROMETHEUS_PORT=19091
+#   SCHEDULER_API_BIND=127.0.0.1  SCHEDULER_API_PORT=18080  PROMETHEUS_PORT=19091
 #   ROUTING_METRO_URLS=metro-omaha=http://host.docker.internal:8001  ROUTING_AUTH_TOKEN=<the development stack's>
 #   ACTIVE_MAP_VERSION=<any>  SCHEDULER_RETENTION_DAYS=30
 docker compose -f deploy/vm/docker-compose.yml -f deploy/vm/rehearsal.override.yml --env-file deploy/vm/rehearsal.env --profile monitoring up -d --build
@@ -74,4 +85,4 @@ curl http://127.0.0.1:18080/health
 # ... and down -v to remove it.
 ```
 
-`rehearsal.override.yml` moves `routing-omaha` into an unused profile and points the scheduler at the development router, so the Omaha graph is not loaded twice. Moving to the real VM is this directory, a `.env`, the map volume and a token.
+`rehearsal.override.yml` moves `routing-omaha` into an unused profile and points both pools at the development router, so the Omaha graph is not loaded twice. Moving to the real VM is this directory, a `.env`, the map volume and a token.
