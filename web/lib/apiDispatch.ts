@@ -6,7 +6,8 @@ import type { TechnicianDayKey } from "./apiBookingCore";
 import { checkDailyReceipt, checkProposal, proposalChanges, storedProposal, type Placement, type ProposalChange } from "./apiDispatchCore";
 import { currentLastModified, StaleReceipt, writeReceipt } from "./apiReceipt";
 import type { PublicSnapshot } from "./publicApi";
-import { commitDailyProposal, createDailyProposal, createRepairProposal, SchedulerApiError, type CommitReceipt, type DailyProposal } from "./schedulerApi";
+import { awaitDailyProposal, commitDailyProposal, createDailyProposal, createRepairProposal, proposalTimeoutMs, SchedulerApiError, type CommitReceipt,
+  type DailyProposal } from "./schedulerApi";
 
 /**
  * Daily optimization and absence repair through the public scheduling API, with the portal acting as WaterFlex
@@ -88,19 +89,24 @@ export function refusedFor(error: unknown): never {
   throw error;
 }
 
+/** How long an overnight day may wait in the scheduler's queue before the run records it as failed. */
+export const QUEUED_DAY_LIMIT_MS = 20 * 60_000;
+
 /**
  * Asks the scheduler for an optimized day of the client's technicians in the metro, and keeps the proposal. An
- * overnight run passes `record`, which links the proposal to the run in the transaction that stores it. A dispatcher
- * passes the `requestId` the board can cancel with; anything else gets a new one.
+ * overnight run passes `record`, which links the proposal to the run in the transaction that stores it, and `queued`,
+ * which sends the day to the scheduler's queue (Prefer: respond-async) and polls it instead of holding a call open. A
+ * dispatcher passes the `requestId` the board can cancel with; anything else gets a new one.
  */
 export async function proposeApiDay(clientId: string, metroId: string, serviceDate: string,
-  record?: (tx: Prisma.TransactionClient, proposalId: string) => Promise<string>, requestId: string = randomUUID()): Promise<ApiProposalView> {
+  record?: (tx: Prisma.TransactionClient, proposalId: string) => Promise<string>, requestId: string = randomUUID(), queued = false): Promise<ApiProposalView> {
   let proposal: DailyProposal;
   let snapshot: PublicSnapshot;
   try {
     snapshot = await buildClientSnapshot(clientId, metroId, [serviceDate]);
     if (snapshot.technicianDays.length === 0) throw new DispatchRefused(409, NO_TECHNICIANS);
-    proposal = await createDailyProposal(clientId, { requestId, serviceDate, snapshot });
+    proposal = queued ? await awaitDailyProposal(clientId, { requestId, serviceDate, snapshot }, QUEUED_DAY_LIMIT_MS + proposalTimeoutMs(snapshot.policy))
+      : await createDailyProposal(clientId, { requestId, serviceDate, snapshot });
     checkProposal(proposal, snapshot, serviceDate);
   } catch (error) {
     if (error instanceof DispatchRefused) throw error;

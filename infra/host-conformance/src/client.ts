@@ -16,6 +16,8 @@ export interface CallOptions {
   /** The token to send instead of the kit's; null sends no Authorization header. */
   readonly token?: string | null;
   readonly timeoutMs?: number;
+  /** Extra request headers, for example Prefer: respond-async. */
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 export class SchedulerApi {
@@ -41,7 +43,7 @@ export class SchedulerApi {
   }
 
   async call(method: "GET" | "POST" | "DELETE", path: string, body?: string | object, options: CallOptions = {}): Promise<Reply> {
-    const headers: Record<string, string> = { Accept: "application/json" };
+    const headers: Record<string, string> = { Accept: "application/json", ...options.headers };
     const token = options.token === undefined ? this.#token : options.token;
     if (token !== null) headers.Authorization = `Bearer ${token}`;
     let payload: string | undefined;

@@ -34,7 +34,7 @@ class SchemaMigrationDatabaseIT {
             assertThrows(SchemaMigration.SchemaNotCurrent.class, () -> SchemaMigration.validate(unmigrated), "a pending migration is refused");
 
             var changed = scratch(altered);
-            assertEquals(1, SchemaMigration.migrate(changed));
+            assertEquals(2, SchemaMigration.migrate(changed), "every migration runs on an empty schema");
             SchemaMigration.validate(changed);
             owner.update("UPDATE " + altered + ".flyway_schema_history SET checksum = checksum + 1 WHERE version = '1'");
             var refused = assertThrows(SchemaMigration.SchemaNotCurrent.class, () -> SchemaMigration.validate(changed), "a changed migration is refused");

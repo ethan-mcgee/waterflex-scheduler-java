@@ -24,6 +24,8 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `GEOCODING_MODE`, `NOMINATIM_URL` | No | `COORDINATES_REQUIRED` (default) or `NOMINATIM`. |
 | `SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN` | No | `EMBEDDED` (default) or `REMOTE` with a solver pool. |
 | `SCHEDULER_SEARCH_CAPACITY` | No | Concurrent searches per replica. 0 means 2, or 1 on a one-processor machine. |
+| `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1 (a replica runs one daily calculation at a time). 0 leaves the queue to other replicas. |
+| `SCHEDULER_DAILY_QUEUE_POLL_MS`, `SCHEDULER_DAILY_QUEUE_MAX_WAIT_MINUTES`, `SCHEDULER_DAILY_QUEUE_TENANT_LIMIT` | No | How often an idle worker looks for work queued on another replica (500 ms); how long a queued request may wait before it completes with 429 without running (15 minutes); how many requests one client may have queued or running (50). |
 | `MANAGEMENT_PORT` | No | Port of `/actuator/health` and `/actuator/prometheus`, default 9000. Keep it private. |
 | `LOGGING_STRUCTURED_FORMAT_CONSOLE` | No | `ecs` for JSON log lines. |
 
@@ -58,7 +60,7 @@ The running scheduler logs in as a member of `scheduler_app`, which holds exactl
 
 Start order: database, `--command=migrate` (migrations and the login), routing services, Nominatim (if used), the solver pool (if remote), then the scheduler. The scheduler starts without its dependencies, but `/health` answers 503 until they answer.
 
-Stop the scheduler first. A call in progress is lost and the host retries it with the same `requestId`; an unfinished claim is taken over when its lease expires.
+Stop the scheduler first. A call in progress is lost and the host retries it with the same `requestId`; an unfinished claim is taken over when its lease expires. A queued proposal stays queued; one that was running is taken again by another replica's worker once its lease passes, at most three times.
 
 Upgrade:
 
@@ -114,6 +116,8 @@ Lines to act on:
 | `scheduler_booking_refinement_invalid_total` | Should stay 0. |
 | `scheduler_booking_refinement_shed_total` | Optional refinements skipped because booking requests were queued. A steady rise means booking desks often wait for a slot: add booking capacity. |
 | `scheduler_requests_cancelled_total` | Host cancellations. |
+| `scheduler_admission_evictions_total` | Queued bookings that gave their place in a full queue to a booking of a client with fewer waiting. Rising: one client's desks fill the booking queue; add booking capacity. |
+| `scheduler_daily_queue_started_total`, `scheduler_daily_queue_expired_total`, `scheduler_daily_queue_failed_total` | Queued proposals this replica started; ones that waited longer than `MAX_WAIT_MINUTES` (hosts got 429: add daily capacity); ones that failed unexpectedly and were queued again (read the logs). The queue's depth is `SELECT state, count(*) FROM api_daily_job WHERE state <> 'DONE' GROUP BY state` as the owner role. |
 | `scheduler_retention_deleted_total` | Grows once a day after the first period has passed. |
 
 ## Retention
@@ -157,7 +161,7 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 ## Scaling, in order
 
 1. `SCHEDULER_SEARCH_CAPACITY` to match the cores given to the scheduler.
-2. More scheduler replicas on the same database behind a load balancer. Send `DELETE /api/v1/requests/{requestId}` to the replica running the call by hashing on the request ID.
+2. More scheduler replicas on the same database behind a load balancer. Queued proposals (`Prefer: respond-async`) are taken by any replica's worker and cancelled from any replica. For synchronous calls, send `DELETE /api/v1/requests/{requestId}` to the replica running the call by hashing on the request ID.
 3. `REMOTE` calculation with a solver pool, so solving scales apart from the API.
 4. More routing capacity for a busy metro.
 

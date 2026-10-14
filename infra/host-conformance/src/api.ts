@@ -77,12 +77,21 @@ export const CommitReceipt = z.strictObject({ receiptId: Id, assignments: z.arra
 
 export const WhoAmI = z.strictObject({ tenantId: TenantId });
 
+/** The answer a daily or repair proposal request ended with (spec 1.4.0). */
+export const RequestResult = z.strictObject({ status: z.int().min(200).max(599), body: z.union([DailyProposal, Problem]),
+  retryAfterSeconds: z.int().min(1).max(300).optional() });
+
+/** GET /api/v1/requests/{requestId}, and the 202 to a request sent with Prefer: respond-async. */
+export const RequestStatus = z.strictObject({ requestId: z.uuid(), operation: z.enum(["DAILY_PROPOSAL", "REPAIR_PROPOSAL"]),
+  state: z.enum(["QUEUED", "RUNNING", "COMPLETED"]), queuedAt: Instant.optional(), startedAt: Instant.optional(), result: RequestResult.optional() });
+
 /** Every object above under its name in the spec's components.schemas, for the drift test. */
 export const SPEC_SCHEMAS = { Problem, TechnicianDayVersion, StaleProblem, SkippedTechnicianDay, PlannedStop, PlannedRoute, DailyProposal,
   RouteEvaluation, LocatedStop, GeometryLeg, GeometryRoute, RouteGeometry, Window, Offer, OfferSet, Hold, Released, Assignment, CommitReceipt,
-  WhoAmI } as const;
+  WhoAmI, RequestResult, RequestStatus } as const;
 
 export type DailyProposal = z.infer<typeof DailyProposal>;
+export type RequestStatus = z.infer<typeof RequestStatus>;
 export type OfferSet = z.infer<typeof OfferSet>;
 export type CommitReceipt = z.infer<typeof CommitReceipt>;
 export type TechnicianDayVersion = z.infer<typeof TechnicianDayVersion>;
