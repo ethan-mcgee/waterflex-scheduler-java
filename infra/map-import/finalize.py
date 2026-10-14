@@ -18,6 +18,6 @@ manifest['artifacts'] = {path.relative_to(target).as_posix(): checksum(path)
                          for path in [target / 'omaha.pmtiles', target / 'tiger-nominatim-preprocessed.csv.tar.gz',
                                       *sorted((target / 'graph').glob('*')), *sorted((target / 'graph-ch-car-v1').glob('*'))]
                          if path.is_file() and path.name != 'gh.lock'}
-manifest['tools'] = {'planetiler': '0.9.0', 'graphhopper': '11.0', 'nominatim': '5.3', 'importStyle': 'address', 'tigerYear': manifest['tiger']['year']}
+manifest['tools'] = {'planetiler': '0.9.0', 'graphhopper': '11.1', 'nominatim': '5.3', 'importStyle': 'address', 'tigerYear': manifest['tiger']['year']}
 (target / 'manifest.json.next').write_text(json.dumps(manifest, indent=2) + '\n')
 (target / 'manifest.json.next').replace(target / 'manifest.json')
