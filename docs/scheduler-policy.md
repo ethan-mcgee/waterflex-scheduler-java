@@ -82,7 +82,10 @@ Spring properties can be supplied as command-line arguments or their standard en
 | `booking.search.refinement-ms` | 250; optional abundant-capacity refinement, range 0..1000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued |
 | `scheduler.search.capacity` | 0 selects CPU-aware one/two default |
 | `scheduler.search.queue-limit` | 16; bounded queue |
-| `routing.ch.enabled` | false (routing-service); separate fixed-car prepared graph artifact |
+| `routing.ch.enabled` | true (routing-service, `ROUTING_CH_ENABLED`); serves the map version's contraction hierarchy graph (`graph-ch-car-v1`, prepared beside the flexible graph by `infra/prepare-map.ps1`); false serves the flexible graph with another routing identity |
+| `routing.parallelism` | 0 (routing-service, `ROUTING_PARALLELISM`): the pairs of one request are routed on this many threads at once, 0 meaning the processors available |
+| `routing.identity-ttl-ms` | 2000 (scheduler, `ROUTING_IDENTITY_TTL_MS`): how long a fetched routing identity is trusted before `/health` is asked again; the routing service still checks the identity on every call and a 409 drops it |
+| `routing.flights.threads`, `routing.flights.queue` | 8 and 64 (scheduler): batches of legs fetched from a metro's routing service at once, and batches that may wait; a batch that finds the queue full is refused as busy |
 | `spring.datasource.hikari.connection-timeout` | 250 ms |
 | `spring.datasource.hikari.validation-timeout` | 250 ms |
 

@@ -26,7 +26,7 @@ TLS is not set up (deferred by owner decision). Terminate TLS in front of the AP
 
 1. Install Docker Engine with the Compose plugin, and clone this repository on the VM.
 2. Copy `deploy/vm/.env.example` to `deploy/vm/.env` and fill in every empty value. Generate secrets with `openssl rand -base64 48 | tr -d '/+=' | cut -c1-48`. `SCHEDULER_RETENTION_DAYS` is your audit decision; there is no default.
-3. Put the maps on the VM. Prepare a version on a build machine as the main README describes (`./infra/prepare-map.ps1 -Version <version>`, then validate it), and copy that version's directory into the map volume:
+3. Put the maps on the VM. Prepare a version on a build machine as the main README describes (`./infra/prepare-map.ps1 -Version <version>`, which builds both road graphs, `graph` and `graph-ch-car-v1`; then validate it), and copy that version's directory into the map volume:
 
    ```sh
    docker volume create scheduler-vm-maps

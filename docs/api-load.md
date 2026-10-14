@@ -260,6 +260,43 @@ in L5) are gone and the numbers are the scheduler's. Load: 5 booking desks and 5
 - **The daily replica is CPU bound by design** (180 percent of its 2 cores: two 5 s searches at a time). More daily
   throughput is more daily replicas or cores, or faster moves per second inside the budget (L).
 
+## Routing: the CH graph, parallel pairs and fewer round trips (J)
+
+The baseline said a search spends half its time waiting for cold legs from a routing service that routes a batch's
+pairs one after another through a flexible A* graph, with a `/health` round trip before every lookup and two leg
+workers in the scheduler. J changes all four: each map version now carries a contraction hierarchy graph beside the
+flexible one (`graph-ch-car-v1`, prepared by `infra/prepare-map.ps1`, listed in the manifest and required at
+activation) and the routing service serves it by default; the routing service routes a request's pairs on
+`ROUTING_PARALLELISM` threads at once; the scheduler trusts a fetched routing identity for `ROUTING_IDENTITY_TTL_MS`
+(2 s; the service still refuses a call with another identity with 409, which drops the remembered one); and the
+scheduler fetches leg batches on 8 workers with a queue of 64. Same stack and load as the baseline, run twice with
+the same scheduler image: once against the flexible graph and once against the CH graph
+([evidence](evidence/api-load-2026-10-14-routing.json); the routing API alone, 132 Omaha pairs uncached on both
+graphs, is in [routing-ch-2026-10-14.json](evidence/routing-ch-2026-10-14.json): exact parity on every directed leg,
+16-pair requests 29.6 ms to 3.7 ms p50 at concurrency 1 and 118.9 ms to 8.1 ms at concurrency 10).
+
+| Run | Offers in 60 s | Caller p50 / p95 | Server p50: slot wait | routing | per fetched leg | Confirm caller p50 / p95 | Routing container CPU |
+| --- | ---: | --- | ---: | ---: | ---: | --- | ---: |
+| Baseline (flexible, before J) | 289 | 837 / 1341 ms | 424 ms | 353 ms | 1.48 ms | 454 / 773 ms | 166 percent |
+| J, flexible graph | 454 | 493 / 746 ms | 228 ms | 197 ms | 0.77 ms | 265 / 503 ms | 1324 percent |
+| J, CH graph (default) | 1020 | 216 / 353 ms | 94 ms | 65 ms | 0.23 ms | 116 / 214 ms | 261 percent |
+
+- **3.5 times the searches at a quarter of the latency, with no errors and no change in what is offered.** Every
+  search still finishes complete; the engine and database shares are unchanged (12 ms and 33 ms p50), so the whole
+  gain is routing and the slot wait that routing was holding.
+- **CH is the lever; parallel flexible search is not.** Routing a batch's pairs in parallel on the flexible graph
+  halves the routing time but spends 13 cores doing it (1324 percent CPU on an unlimited container); the same
+  parallelism on the CH graph answers in a third of the time on 2.6 cores. On a VM with a routing service capped at a
+  few cores, flexible mode would be far worse than this run shows. The CH graph costs 27 s and 2.7 million shortcuts
+  at import on a 12-core machine and about 200 MiB more on disk per version.
+- **The routing identity changes with the graph.** CH on and CH off are different identities (the `/health`
+  detail), so switching one way or the other starts every route cache cold, exactly like a map change.
+- **The daily replica is unchanged** (25 queued proposals, 15.1 s p50, queue wait p50 7.1 to 7.8 s): its work is the
+  5 s search, not routing.
+- **Next.** The booking replica now spends 94 ms p50 waiting for a slot and 65 ms routing; the confirm still waits
+  behind searches (98 ms of its 112 ms). Confirm priority in admission and the JVM settings are the next measured
+  change; after them the slot wait is the booking replica's CPU, which is more cores or replicas.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing

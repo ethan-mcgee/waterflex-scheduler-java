@@ -16,6 +16,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Planetiler generation failed' }
 
 docker compose run --rm -e ROUTING_OSM_FILE="/maps/versions/$Version/omaha.osm.pbf" -e ROUTING_GRAPH_DIR="/maps/versions/$Version/graph" -e ROUTING_MAP_VERSION=$Version routing-service --spring.main.web-application-type=none
 if ($LASTEXITCODE -ne 0) { throw 'GraphHopper import failed' }
+# The contraction hierarchy graph for the same map, prepared beside the flexible one (graph-ch-car-v1) so a version
+# always carries both; routing-service serves it with ROUTING_CH_ENABLED=true.
+docker compose run --rm -e ROUTING_OSM_FILE="/maps/versions/$Version/omaha.osm.pbf" -e ROUTING_GRAPH_DIR="/maps/versions/$Version/graph" -e ROUTING_MAP_VERSION=$Version -e ROUTING_CH_ENABLED=true -e ROUTING_CH_PREPARATION_THREADS=4 routing-service --spring.main.web-application-type=none
+if ($LASTEXITCODE -ne 0) { throw 'GraphHopper CH preparation failed' }
 docker compose --profile map-import run --rm map-import finalize $Version
 if ($LASTEXITCODE -ne 0) { throw 'Map artifact manifest failed' }
 
