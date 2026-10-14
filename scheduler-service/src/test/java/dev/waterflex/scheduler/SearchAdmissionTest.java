@@ -138,6 +138,54 @@ class SearchAdmissionTest {
         assertEquals(0, admission.rejections());
     }
 
+    @Test void aBackgroundLimitAboveOneRunsThatManyAtOnceAndEstimatesTheFirstFreeLane() {
+        SearchAdmission admission = new SearchAdmission(3, 16, 2);
+        assertEquals(2, admission.backgroundLimit());
+        assertTrue(admission.backgroundSlotFree());
+        try (var first = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(60_000), seconds(30))) {
+            assertTrue(admission.backgroundSlotFree(), "one lane is still free");
+            try (var second = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(60_000), seconds(10))) {
+                assertTrue(first.queueMillis() >= 0 && second.queueMillis() < 1000, "the second started at once");
+                assertEquals(2, admission.state().active());
+                assertFalse(admission.backgroundSlotFree(), "both lanes run");
+                // The first lane frees after about 10 s (the shorter job), not after both jobs as with one lane.
+                var refused = assertThrows(SearchAdmission.Busy.class, () -> admission.requireBackgroundStartWithin(seconds(5)));
+                Duration wait = Required.value(refused.retryAfter(), "estimated wait");
+                assertTrue(wait.compareTo(seconds(8)) > 0 && wait.compareTo(seconds(10)) <= 0, "the shorter job's remaining time: " + wait);
+                admission.requireBackgroundStartWithin(seconds(11));
+            }
+            assertTrue(admission.backgroundSlotFree(), "closing a lease frees its lane");
+        }
+        assertEquals(new SearchAdmission.State(0, 0, 0, false), admission.state());
+    }
+
+    @Test void queuedBackgroundWorkTakesTheLaneThatFreesFirst() throws Exception {
+        SearchAdmission admission = new SearchAdmission(2, 16, 2);
+        var longer = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(120_000), seconds(40));
+        var shorter = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(120_000), seconds(10));
+        try (var pool = Executors.newSingleThreadExecutor()) {
+            var queued = pool.submit(() -> {
+                try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(60_000), seconds(20))) { return lease.queueMillis(); }
+            });
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+            while (admission.state().queuedBackground() == 0 && System.nanoTime() < until) Thread.sleep(1);
+            assertEquals(1, admission.state().queuedBackground());
+            assertFalse(admission.backgroundSlotFree(), "work waits for a lane");
+            // Lanes free at about 10 s and 40 s; the queued 20 s job takes the first, so new work waits for min(30, 40).
+            var refused = assertThrows(SearchAdmission.Busy.class, () -> admission.requireBackgroundStartWithin(seconds(5)));
+            Duration wait = Required.value(refused.retryAfter(), "estimated wait");
+            assertTrue(wait.compareTo(seconds(28)) > 0 && wait.compareTo(seconds(30)) <= 0, "queued work fills the first free lane: " + wait);
+            shorter.close();
+            assertTrue(queued.get(3, TimeUnit.SECONDS) >= 0);
+        } finally { shorter.close(); longer.close(); }
+    }
+
+    @Test void theBackgroundLimitMustFitTheCapacity() {
+        assertThrows(IllegalArgumentException.class, () -> new SearchAdmission(2, 16, 3));
+        assertThrows(IllegalArgumentException.class, () -> new SearchAdmission(2, 16, 0));
+        assertEquals(1, new SearchAdmission(2, 16).backgroundLimit(), "one at a time unless configured");
+    }
+
     @Test void oneBudgetReservesCommitTimeAndAlwaysClearsRequestScope() {
         AtomicLong time = new AtomicLong(0);
         SearchDeadline budget = new SearchDeadline(Required.value(Duration.ofSeconds(5)), time::get);

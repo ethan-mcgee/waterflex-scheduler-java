@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler.api;
 
+import dev.waterflex.scheduler.ReplicaRole;
 import dev.waterflex.scheduler.Required;
 import java.time.Duration;
 import java.util.concurrent.Semaphore;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DailyQueue {
-    /** Workers on this replica; 0 leaves the queue to other replicas. */
+    /** Workers on this replica; 0 (always on a booking replica) leaves the queue to other replicas. */
     private final int workers;
     /** How often an idle worker looks for a job queued on another replica. */
     private final Duration poll;
@@ -26,8 +27,10 @@ public class DailyQueue {
 
     @Autowired
     public DailyQueue(@Value("${scheduler.daily.queue.workers:1}") int workers, @Value("${scheduler.daily.queue.poll-ms:500}") long pollMillis,
-                      @Value("${scheduler.daily.queue.max-wait-minutes:15}") long maxWaitMinutes, @Value("${scheduler.daily.queue.tenant-limit:50}") int tenantLimit) {
-        this(workers, Required.value(Duration.ofMillis(pollMillis)), Required.value(Duration.ofMinutes(maxWaitMinutes)), tenantLimit);
+                      @Value("${scheduler.daily.queue.max-wait-minutes:15}") long maxWaitMinutes, @Value("${scheduler.daily.queue.tenant-limit:50}") int tenantLimit,
+                      ReplicaRole role) {
+        this(role.runsDailyQueue() ? workers : 0, Required.value(Duration.ofMillis(pollMillis)), Required.value(Duration.ofMinutes(maxWaitMinutes)), tenantLimit);
+        if (workers < 0 || workers > 8) throw new IllegalArgumentException("scheduler.daily.queue.workers must be 0 to 8");
     }
 
     public DailyQueue(int workers, Duration poll, Duration maxWait, int tenantLimit) {

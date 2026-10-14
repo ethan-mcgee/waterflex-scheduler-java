@@ -1,8 +1,12 @@
-# Scrapes the scheduler's management port on the VM's private Compose network.
+# Scrapes every scheduler replica's management port on the VM's private Compose network. Each pool's name resolves to
+# all its replicas, so scaling a pool needs no change here; scheduler_replica_info carries each replica's role.
 global:
   scrape_interval: 15s
 scrape_configs:
   - job_name: scheduler
     metrics_path: /actuator/prometheus
-    static_configs:
-      - targets: ["scheduler-service:9000"]
+    dns_sd_configs:
+      - names: ["scheduler-booking", "scheduler-daily"]
+        type: A
+        port: 9000
+        refresh_interval: 30s

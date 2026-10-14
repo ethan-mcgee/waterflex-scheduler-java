@@ -80,6 +80,55 @@ class PublicApiStoreDatabaseIT {
         assertEquals(Instant.parse("2026-10-11T21:04:17.123456789Z"), read.technicianDays().getFirst().lastModified());
     }
 
+    @Test void aCancelRecordedOnAnotherReplicaIsFoundByTheReplicaRunningTheRequest() {
+        String request = requestId(), other = requestId(), done = requestId();
+        owner(store.claim(tenantA, request, Operation.BOOKING_OFFERS, SHA_A));
+        owner(store.claim(tenantB, other, Operation.DAILY_PROPOSAL, SHA_A));
+        store.completeDaily(tenantA, owner(store.claim(tenantA, done, Operation.DAILY_PROPOSAL, SHA_A)), proposal(done));
+        var running = Required.value(List.of(new RunningRequests.Key(tenantA, request), new RunningRequests.Key(tenantB, other), new RunningRequests.Key(tenantA, done)));
+        assertEquals(List.of(), store.cancelRequested(running), "nothing was cancelled yet");
+
+        assertTrue(store.requestCancel(tenantA, request));
+        assertFalse(store.requestCancel(tenantB, request), "another tenant cannot cancel it");
+        assertFalse(store.requestCancel(tenantA, done), "a completed request has nothing to stop");
+        assertFalse(store.requestCancel(tenantA, requestId()), "an unknown request is not recorded");
+        assertEquals(List.of(new RunningRequests.Key(tenantA, request)), store.cancelRequested(running));
+        assertEquals(List.of(), store.cancelRequested(Required.value(List.of())));
+
+        // A claim taken over after its lease passed is a new run: the earlier cancel does not stop it.
+        jdbc.update("UPDATE api_request SET \"leaseExpiresAt\"=clock_timestamp()-interval '1 second' WHERE \"tenantId\"=? AND \"requestId\"=?", tenantA, request);
+        owner(store.claim(tenantA, request, Operation.BOOKING_OFFERS, SHA_A));
+        assertEquals(List.of(), store.cancelRequested(running));
+    }
+
+    @Test void theWatcherStopsOnlyTheCancelledRequestsRunningHere() {
+        String request = requestId(), elsewhere = requestId();
+        owner(store.claim(tenantA, request, Operation.DAILY_PROPOSAL, SHA_A));
+        owner(store.claim(tenantA, elsewhere, Operation.DAILY_PROPOSAL, SHA_A));
+        var running = new RunningRequests();
+        var watcher = new CancelWatcher(running, store);
+        assertEquals(0, watcher.check(), "nothing runs here, so nothing is read");
+        var here = running.start(tenantA, request);
+        assertEquals(0, watcher.check());
+        assertTrue(store.requestCancel(tenantA, elsewhere));
+        assertEquals(0, watcher.check(), "a cancel for a request running on another replica is left to it");
+        assertTrue(store.requestCancel(tenantA, request));
+        assertEquals(1, watcher.check());
+        assertTrue(here.cancelled());
+        running.finish(tenantA, request, here);
+        assertEquals(0, watcher.check());
+    }
+
+    @Test void cancellingFromAReplicaThatDoesNotRunTheRequestRecordsIt() {
+        String request = requestId();
+        owner(store.claim(tenantA, request, Operation.BOOKING_CONFIRM, SHA_A));
+        var cancellation = new RequestCancellation(new RunningRequests(), null, store);
+        assertNull(cancellation.cancel(tenantA, request), "202: the cancel is recorded for the replica running it");
+        assertEquals(List.of(new RunningRequests.Key(tenantA, request)), store.cancelRequested(Required.value(List.of(new RunningRequests.Key(tenantA, request)))));
+        assertEquals(404, Required.value(cancellation.cancel(tenantA, requestId())).status());
+        assertEquals(404, Required.value(cancellation.cancel(tenantB, request)).status(), "another tenant's request is not found");
+    }
+
     @Test void anAbandonedClaimIsTakenOverAndItsFormerOwnerCannotComplete() {
         String request = requestId();
         String first = owner(store.claim(tenantA, request, Operation.DAILY_PROPOSAL, SHA_A));
