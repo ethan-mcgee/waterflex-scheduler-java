@@ -60,8 +60,11 @@ export const Window = z.strictObject({ start: Instant, end: Instant });
 
 export const Offer = z.strictObject({ offerId: Id, serviceDate: ServiceDate, window: Window });
 
+export const Refinement = z.enum(["COMPLETE", "SHORTENED", "SKIPPED", "UNAVAILABLE"]);
+
+/** `refinement` is absent only on a replay of an offer set answered before spec 1.2.0. */
 export const OfferSet = z.strictObject({ offerSetId: Id, expiresAt: Instant, offers: z.array(Offer).max(4), searchComplete: z.boolean(),
-  skippedTechnicianDays: z.array(SkippedTechnicianDay) });
+  refinement: Refinement.optional(), skippedTechnicianDays: z.array(SkippedTechnicianDay) });
 
 export const Hold = z.strictObject({ holdId: Id, offerId: Id, expiresAt: Instant });
 

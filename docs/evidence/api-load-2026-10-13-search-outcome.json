@@ -1,0 +1,225 @@
+{
+  "study": "searchComplete semantics and the refinement outcome (docs/api-load.md finding 5, PR #154)",
+  "scheduler": "local jar of feat/search-outcome (stacked on #152), SCHEDULER_SEARCH_CAPACITY=2, real Omaha routing-service",
+  "protocol": "One 60 s booking run at 5 desks with cold addresses (seed 41), same settings as the #152 runs. Before this change every answered search in those runs reported searchComplete false (the optional refinement reaching its 250 ms cap).",
+  "result": {
+    "searches": 123,
+    "searchCompleteFalse": 0,
+    "refinement": {
+      "SHORTENED": 123
+    }
+  },
+  "runs": [
+    {
+      "label": "booking-cold-c5",
+      "scenario": "booking",
+      "scheduler": "http://127.0.0.1:18010",
+      "metroId": "metro-omaha",
+      "timeZone": "America/Chicago",
+      "points": "area 41.22,-96.05,41.28,-95.95",
+      "run": "load-dd2a34a8",
+      "startedAt": "2026-10-14T00:11:11.886Z",
+      "finishedAt": "2026-10-14T00:12:14.174Z",
+      "settings": {
+        "durationS": 60,
+        "concurrency": 5,
+        "dailyConcurrency": null,
+        "technicians": 10,
+        "appointmentsPerDay": 2,
+        "horizonDates": 5,
+        "dailyTechnicians": 20,
+        "jobs": "cold",
+        "confirmRate": 0.3,
+        "offerLimit": 4,
+        "windowHours": 2,
+        "policy": {
+          "fairnessBudget": "0",
+          "dailySearch": "TABU",
+          "costSearchSeconds": 5,
+          "fairnessSearchSeconds": 0,
+          "bookingDeadlineMs": 5000,
+          "regularWindowThreshold": 2
+        },
+        "seed": 41
+      },
+      "machine": {
+        "cpus": 24,
+        "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+        "memoryBytes": 67870916608,
+        "node": "v22.20.0"
+      },
+      "operations": [
+        {
+          "operation": "booking offers",
+          "calls": 237,
+          "statuses": {
+            "201": 123,
+            "409": 114
+          },
+          "errors": {
+            "STALE": 114
+          },
+          "reasons": {
+            "STALE: The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId": 114
+          },
+          "retriedBusy": 7,
+          "ms": {
+            "p50": 963,
+            "p95": 2691,
+            "p99": 5444,
+            "max": 6331,
+            "mean": 1127
+          }
+        },
+        {
+          "operation": "confirm",
+          "calls": 49,
+          "statuses": {
+            "200": 43,
+            "409": 6
+          },
+          "errors": {
+            "STALE": 6
+          },
+          "reasons": {
+            "STALE: The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId": 6
+          },
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 859,
+            "p95": 1515,
+            "p99": 1555,
+            "max": 1555,
+            "mean": 761
+          }
+        },
+        {
+          "operation": "release",
+          "calls": 80,
+          "statuses": {
+            "200": 80
+          },
+          "errors": {},
+          "reasons": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 20,
+            "p95": 24,
+            "p99": 33,
+            "max": 33,
+            "mean": 20
+          }
+        },
+        {
+          "operation": "select",
+          "calls": 43,
+          "statuses": {
+            "200": 43
+          },
+          "errors": {},
+          "reasons": {},
+          "retriedBusy": 0,
+          "ms": {
+            "p50": 19,
+            "p95": 25,
+            "p99": 35,
+            "max": 35,
+            "mean": 20
+          }
+        }
+      ],
+      "booking": {
+        "searches": 123,
+        "searchIncomplete": 0,
+        "offers": 492,
+        "noOffers": 0,
+        "selected": 43,
+        "holdUnavailable": 0,
+        "confirmed": 43,
+        "hostWriteConflicts": 0,
+        "released": 80,
+        "failedSearches": 0,
+        "stale": 120,
+        "refinements": {
+          "SHORTENED": 123
+        }
+      },
+      "daily": null,
+      "server": {
+        "operations": [
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "200",
+            "calls": 43,
+            "meanMs": 796
+          },
+          {
+            "uri": "/api/v1/booking/holds/{holdId}/confirm",
+            "method": "POST",
+            "status": "409",
+            "calls": 6,
+            "meanMs": 504
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "201",
+            "calls": 123,
+            "meanMs": 1462
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "409",
+            "calls": 114,
+            "meanMs": 511
+          },
+          {
+            "uri": "/api/v1/booking/offers",
+            "method": "POST",
+            "status": "429",
+            "calls": 7,
+            "meanMs": 3081
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/release",
+            "method": "POST",
+            "status": "200",
+            "calls": 80,
+            "meanMs": 19
+          },
+          {
+            "uri": "/api/v1/booking/offers/{offerId}/select",
+            "method": "POST",
+            "status": "200",
+            "calls": 43,
+            "meanMs": 19
+          }
+        ],
+        "admissionRejections": 0,
+        "routingPairs": 36111,
+        "routingLegRequests": 289,
+        "routingIdentityRequests": 914,
+        "processCpu": {
+          "mean": 0.06463010152034382,
+          "max": 0.10372669652930185
+        },
+        "heapUsedMaxBytes": 1203776936
+      },
+      "metricFailures": 0,
+      "containers": [
+        {
+          "name": "waterflex-scheduler-java-routing-service-1",
+          "cpuPercent": {
+            "mean": 74.32,
+            "max": 340.62
+          },
+          "memoryMaxBytes": 2430951489.536
+        }
+      ],
+      "contractBreaches": [],
+      "hostAnomalies": []
+    }
+  ]
+}
