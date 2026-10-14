@@ -26,7 +26,9 @@ export const problem = z.object({ error: z.enum(["INVALID_REQUEST", "NOT_FOUND",
   "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED"]), message: z.string().min(1),
   changed: z.array(technicianDayVersion).min(1).optional() }).strict()
   .refine(value => (value.changed !== undefined) === (value.error === "STALE"), "Only a STALE problem lists changed technician-days");
+/** `refinement` is absent only on a replay of an offer set answered before spec 1.2.0. */
 export const offerSet = z.object({ offerSetId: id, expiresAt: instant, searchComplete: z.boolean(),
+  refinement: z.enum(["COMPLETE", "SHORTENED", "SKIPPED", "UNAVAILABLE"]).optional(),
   offers: z.array(z.object({ offerId: id, serviceDate, window }).strict()).max(4),
   skippedTechnicianDays: z.array(skippedTechnicianDay),
 }).strict();

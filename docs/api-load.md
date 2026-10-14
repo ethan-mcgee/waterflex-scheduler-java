@@ -152,7 +152,11 @@ again from current records with a new `requestId`. Latency is per call, so a res
    - On a replica that also books, queued bookings always go first, so daily work starves while desks are busy.
      Separate booking and daily replicas behind a load balancer (L5) remove that contention.
 
-5. **`searchComplete` is false on nearly every search (owner decision needed).** When the first pass finds more
+5. **`searchComplete` is false on nearly every search. Fixed in #154:** `searchComplete` is now false only when the
+   deadline or a failure stopped a pass the offers need, and `OfferSet.refinement` (spec 1.2.0) reports a refinement
+   cut short at its cap as `SHORTENED`. A 60 s run at 5 desks afterwards answered 123 searches: none reported
+   `searchComplete: false`, and all 123 refinements were `SHORTENED` by the cap
+   ([evidence](evidence/api-load-2026-10-13-search-outcome.json)). The original finding: when the first pass finds more
    distinct windows than `regularWindowThreshold`, the optional refinement gets a 250 ms cap. Reaching that cap marks
    the search incomplete (`REFINEMENT_TIME_LIMIT`), so all 494 searches in these runs reported `false` while returning 4 offers.
    The spec says `false` means "the deadline ended the search early; an empty offer list then does not prove there is

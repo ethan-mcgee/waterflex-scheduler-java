@@ -33,6 +33,8 @@ export interface BookingTally {
   confirmed: number; hostWriteConflicts: number; released: number; failedSearches: number;
   /** Searches and confirms answered 409 STALE and sent again with current records. */
   stale: number;
+  /** Answered searches by how their refinement pass ended; `ABSENT` counts a replayed offer set from before spec 1.2.0. */
+  refinements: Record<string, number>;
 }
 
 export interface DailyTally { proposals: number; decisions: Record<string, number> }
@@ -54,7 +56,7 @@ export interface Run {
 export function newTallies(): { booking: BookingTally; daily: DailyTally } {
   return {
     booking: { searches: 0, searchIncomplete: 0, offers: 0, noOffers: 0, selected: 0, holdUnavailable: 0, confirmed: 0, hostWriteConflicts: 0,
-      released: 0, failedSearches: 0, stale: 0 },
+      released: 0, failedSearches: 0, stale: 0, refinements: {} },
     daily: { proposals: 0, decisions: {} },
   };
 }
@@ -152,6 +154,8 @@ export async function bookingLoop(run: Run, settings: BookingSettings, desk: num
     const set = parsed(run, reply, Api.OfferSet, "Booking offers");
     if (set === null) continue;
     if (!set.searchComplete) run.booking.searchIncomplete++;
+    const refinement = set.refinement ?? "ABSENT";
+    run.booking.refinements[refinement] = (run.booking.refinements[refinement] ?? 0) + 1;
     run.booking.offers += set.offers.length;
     const offer = set.offers[0];
     if (offer === undefined) {

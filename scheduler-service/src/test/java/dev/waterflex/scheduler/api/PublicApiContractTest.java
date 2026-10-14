@@ -226,9 +226,20 @@ class PublicApiContractTest {
         var offers = PublicRequests.read(example("OfferSet"), PublicResponses.OfferSet.class);
         List<PublicResponses.Offer> five = new ArrayList<>();
         for (int i = 0; i < 5; i++) five.add(Required.value(offers.offers().getFirst()));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays()));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays(), offers.refinement()));
         List<PublicResponses.Offer> twice = Required.value(List.of(Required.value(offers.offers().getFirst()), Required.value(offers.offers().getFirst())));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays()));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays(), offers.refinement()));
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read("{\"requestId\":\"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\",\"technicianDays\":[]}", PublicRequests.CommitRequest.class));
+    }
+
+    @Test void anOfferSetStoredBeforeTheRefinementFieldReplaysWithoutInventingOne() {
+        String current = example("OfferSet");
+        assertTrue(current.contains("\"refinement\":\"SHORTENED\""), current);
+        String stored = Required.value(current.replace("\"refinement\":\"SHORTENED\",", ""));
+        var old = PublicRequests.read(stored, PublicResponses.OfferSet.class);
+        assertNull(old.refinement(), "an offer set from before 1.2.0 has no refinement");
+        assertFalse(CalculationJson.write(old).contains("refinement"), "and its replay leaves the field out rather than sending null");
+        assertTrue(CalculationJson.write(PublicRequests.read(current, PublicResponses.OfferSet.class)).contains("\"refinement\":\"SHORTENED\""));
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("SHORTENED", "PARTIAL")), PublicResponses.OfferSet.class));
     }
 }
