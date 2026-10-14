@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.1.0
+  version: 1.2.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -35,6 +35,9 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.2.0 (2026-10-13): OfferSet gains refinement (COMPLETE, SHORTENED, SKIPPED or UNAVAILABLE), saying how the
+      booking search's second pass ended. searchComplete keeps its meaning and is now false only when the deadline
+      or a failure stopped a pass the offers need; an optional refinement cut short at its cap no longer clears it.
     - 1.1.0 (2026-10-13): createBookingOffers and confirmBookingHold answer 409 STALE (a StaleProblem listing the
       newest timestamp seen for each technician-day) when the snapshot is older than records already used, instead
       of reading the older routes as a host change and losing the date's holds.
@@ -614,8 +617,8 @@ components:
           maximum: 5000
           description: >-
             Milliseconds a booking search or confirm may take at the scheduler, end to end. When it passes, the
-            search returns the offers found so far with searchComplete false. Set the caller's timeout a little
-            above it.
+            search returns the offers found so far, with searchComplete false if a pass the offers need had not
+            finished. Set the caller's timeout a little above it.
         regularWindowThreshold:
           type: integer
           minimum: 0
@@ -930,7 +933,20 @@ components:
           items: { $ref: '#/components/schemas/Offer' }
         searchComplete:
           type: boolean
-          description: False when the deadline ended the search early; an empty offer list then does not prove there is no capacity.
+          description: >-
+            False when the deadline or a failure stopped a pass the offers need: the first pass, or the refinement
+            when the first pass found no more distinct regular windows than regularWindowThreshold. An empty offer
+            list then does not prove there is no capacity. An optional refinement cut short leaves it true.
+        refinement:
+          type: string
+          enum: [COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE]
+          description: >-
+            How the search's refinement pass ended. COMPLETE: it finished. SHORTENED: its cap or the deadline ended
+            it; the offers are the best found so far. SKIPPED: it did not run, because the first pass used the whole
+            deadline or the scheduler is configured for one pass. UNAVAILABLE: routing or a remote engine failed it,
+            and the first pass's offers are returned. Informational: searchComplete already says whether the offers
+            are complete. Sent on every offer set since 1.2.0; a replay of an offer set answered by an earlier
+            version leaves it out.
         skippedTechnicianDays:
           type: array
           description: Technician-days left out of the search because a location could not be located; nothing is offered on them.
@@ -1178,6 +1194,7 @@ components:
         offerSetId: set-77a1
         expiresAt: '2026-10-12T15:10:00-05:00'
         searchComplete: true
+        refinement: SHORTENED
         skippedTechnicianDays: []
         offers:
           - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T10:00:00-05:00', end: '2026-10-12T12:00:00-05:00' } }

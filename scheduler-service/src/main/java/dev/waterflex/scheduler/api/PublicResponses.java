@@ -159,8 +159,20 @@ public final class PublicResponses {
         }
     }
 
-    /** Technician-days that could not be located are left out of the search and listed in {@code skippedTechnicianDays}. */
-    public record OfferSet(String offerSetId, Instant expiresAt, List<Offer> offers, Boolean searchComplete, List<SkippedTechnicianDay> skippedTechnicianDays) {
+    /**
+     * How a booking search's refinement pass ended: it finished; its cap, the deadline or the job's few windows cut it
+     * short; it did not run (the insertion pass used the whole deadline, or the configured variant has none); or routing
+     * or a remote engine failed it.
+     */
+    public enum Refinement { COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE }
+
+    /**
+     * Technician-days that could not be located are left out of the search and listed in {@code skippedTechnicianDays}.
+     * {@code refinement} is null only for an offer set answered before spec 1.2.0 and replayed from storage; it is then
+     * left out of the JSON, never invented.
+     */
+    public record OfferSet(String offerSetId, Instant expiresAt, List<Offer> offers, Boolean searchComplete, List<SkippedTechnicianDay> skippedTechnicianDays,
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Refinement refinement) {
         public OfferSet {
             Input.id(offerSetId, "offerSetId");
             Input.present(expiresAt, "expiresAt");
