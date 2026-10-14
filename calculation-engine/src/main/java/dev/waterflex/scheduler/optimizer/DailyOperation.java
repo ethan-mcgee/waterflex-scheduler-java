@@ -121,6 +121,16 @@ public final class DailyOperation {
     public static <T> T executePrepared(SearchAdmission admission, Allowance allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
         return launch(admission, prepare, new DailyOperation(allowance, recorder));
     }
+    /**
+     * Like {@link #executePrepared(SearchAdmission, Allowance, Supplier, Consumer)}, but the work waits in the queue for
+     * as long as its deadline lets it start, and is refused early only when the work ahead could not end before that
+     * deadline. For a remote solver: its caller already passed the scheduler's admission and sent its allowance with
+     * little to spare beyond the search, so the scheduler's early refusal (which expects search time plus
+     * {@link #SETTLE}) would turn every short wait into a failure.
+     */
+    public static <T> T executeQueued(SearchAdmission admission, Allowance allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
+        return launch(admission, prepare, new DailyOperation(allowance, Required.value(Duration.ZERO), recorder));
+    }
     private static <T> T launch(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
         DailyOperation operation = new DailyOperation(allowance, recorder);
         return launch(admission,prepare,operation);
