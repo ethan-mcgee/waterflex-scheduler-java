@@ -710,10 +710,16 @@ class ParallelDispatchTests(unittest.TestCase):
             self.assertTrue(0 <= completed['in_flight_min'] <= 2)
 
     def test_dispatch_order_follows_saved_cases(self):
-        order = []
+        order, lock, first_wave = [], threading.Lock(), threading.Barrier(3, timeout=5)
         def fake(args, cwd, env, log, timeout, **_):
             path, case = self.case_for(args)
-            order.append(case['id'])
+            with lock:
+                order.append(case['id'])
+                position = len(order)
+            # The first wave keeps its slots until all three have been seen, so a later case cannot take a freed slot
+            # and be recorded before one of them (the orchestrator submits the fourth as soon as any first finishes).
+            if position <= 3:
+                first_wave.wait()
             evidence(path, case)
         with patch.object(rt, 'runtime', return_value=self.info), patch.object(rt, 'command', side_effect=fake):
             rt.execute(self.run)

@@ -21,7 +21,11 @@ import org.springframework.stereotype.Component;
  * client share the slots fairly: a waiting booking of the client with the fewest bookings running starts first (of
  * clients with as many, the one whose last booking started longest ago), and
  * when the queue is full, a client with fewer waiting takes the place of the newest booking of the client with the
- * most, so one client's burst cannot shut another client out. Background work runs at most
+ * most, so one client's burst cannot shut another client out. A confirm (a few milliseconds of work that completes a
+ * booking a customer already chose) is a booking with priority: it starts before any waiting search, shares the slots
+ * fairly with other clients' confirms, and never gives up its place in a full queue. {@code scheduler.search.confirm-slots}
+ * (one by default) extra slots are open to confirms alone, so a confirm need not wait for a search to finish when
+ * every search slot is busy. Background work runs at most
  * {@code scheduler.search.background-limit} at a time (one by default; a replica that runs only daily work may allow
  * more, up to its capacity).
  */
@@ -45,13 +49,19 @@ public final class SearchAdmission {
         private final long expectedNanos;
         /** The client a booking runs for; null shares one unnamed client. */
         private final @Nullable String client;
+        /** A confirm: starts before waiting searches and keeps its place in a full queue. */
+        private final boolean priority;
         /** Set when a lighter client took this ticket's place in a full queue. */
         private boolean evicted;
-        Ticket(long expectedNanos, @Nullable String client) { this.expectedNanos = expectedNanos; this.client = client; }
+        Ticket(long expectedNanos, @Nullable String client, boolean priority) {
+            this.expectedNanos = expectedNanos; this.client = client; this.priority = priority;
+        }
         long expectedNanos() { return expectedNanos; }
         String share() { String named = client; return named == null ? "" : named; }
     }
     private final int capacity;
+    /** Slots beyond the capacity that only confirms may take. */
+    private final int confirmSlots;
     private final int queueLimit;
     /** Background work that may run at once. */
     private final int backgroundLimit;
@@ -94,20 +104,27 @@ public final class SearchAdmission {
 
     public int backgroundLimit() { return backgroundLimit; }
 
-    /** One background job at a time. */
+    /** One background job at a time, one confirm slot. */
     public SearchAdmission(int configuredCapacity, int queueLimit) { this(configuredCapacity, queueLimit, 1); }
+
+    /** One confirm slot. */
+    public SearchAdmission(int configuredCapacity, int queueLimit, int backgroundLimit) { this(configuredCapacity, queueLimit, backgroundLimit, 1); }
 
     @Autowired
     public SearchAdmission(@Value("${scheduler.search.capacity:0}") int configuredCapacity,
                            @Value("${scheduler.search.queue-limit:16}") int queueLimit,
-                           @Value("${scheduler.search.background-limit:1}") int backgroundLimit) {
+                           @Value("${scheduler.search.background-limit:1}") int backgroundLimit,
+                           @Value("${scheduler.search.confirm-slots:1}") int confirmSlots) {
         if (configuredCapacity < 0 || queueLimit < 0 || queueLimit > 16)
             throw new IllegalArgumentException("Invalid search admission limits");
         this.capacity = configuredCapacity == 0 ? (Runtime.getRuntime().availableProcessors() <= 1 ? 1 : 2) : configuredCapacity;
         if (backgroundLimit < 1 || backgroundLimit > capacity)
             throw new IllegalArgumentException("scheduler.search.background-limit must be 1 to the search capacity (" + capacity + ")");
+        if (confirmSlots < 0 || confirmSlots > capacity)
+            throw new IllegalArgumentException("scheduler.search.confirm-slots must be 0 to the search capacity (" + capacity + ")");
         this.queueLimit = queueLimit;
         this.backgroundLimit = backgroundLimit;
+        this.confirmSlots = confirmSlots;
     }
 
     public Lease acquire(Kind kind, SearchDeadline deadline) {
@@ -117,7 +134,17 @@ public final class SearchAdmission {
     /** Admits a booking for this client, sharing the booking slots fairly with other clients' bookings. */
     public Lease acquireBooking(SearchDeadline deadline, String client) {
         if (client.isEmpty()) throw new IllegalArgumentException("A booking's client must be named");
-        return acquire(Kind.BOOKING, deadline, Required.value(Duration.ZERO), client);
+        return acquire(Kind.BOOKING, deadline, Required.value(Duration.ZERO), client, false);
+    }
+
+    /**
+     * Admits a confirm for this client: a booking that starts before any waiting search (of any client), shares the
+     * slots fairly with other clients' confirms, and is never evicted from a full queue (it takes the place of the
+     * heaviest client's newest waiting search instead).
+     */
+    public Lease acquireConfirm(SearchDeadline deadline, String client) {
+        if (client.isEmpty()) throw new IllegalArgumentException("A confirm's client must be named");
+        return acquire(Kind.BOOKING, deadline, Required.value(Duration.ZERO), client, true);
     }
 
     /**
@@ -126,13 +153,13 @@ public final class SearchAdmission {
      * time, instead of queueing until its deadline passes.
      */
     public Lease acquire(Kind kind, SearchDeadline deadline, Duration expected) {
-        return acquire(kind, deadline, expected, null);
+        return acquire(kind, deadline, expected, null, false);
     }
 
-    private Lease acquire(Kind kind, SearchDeadline deadline, Duration expected, @Nullable String client) {
+    private Lease acquire(Kind kind, SearchDeadline deadline, Duration expected, @Nullable String client, boolean priority) {
         if (expected.isNegative() || (kind == Kind.BOOKING && !expected.isZero())) throw new IllegalArgumentException("Invalid expected duration");
         long started = System.nanoTime();
-        Ticket ticket = new Ticket(expected.toNanos(), client);
+        Ticket ticket = new Ticket(expected.toNanos(), client, priority);
         boolean locked = false;
         Deque<Ticket> queue = kind == Kind.BOOKING ? bookings : background;
         try {
@@ -140,7 +167,7 @@ public final class SearchAdmission {
             locked = lock.tryLock(deadline.remainingNanos(), TimeUnit.NANOSECONDS);
             if (!locked) throw new Busy("Search admission deadline exhausted");
             deadline.requireTime();
-            if (canStart(kind) && queue.isEmpty()) return start(kind, started, ticket);
+            if (canStart(kind, ticket) && queue.isEmpty()) return start(kind, started, ticket);
             if (bookings.size() + background.size() >= queueLimit && !(kind == Kind.BOOKING && evictFor(ticket))) throw new Busy("Search queue is full");
             if (kind == Kind.BACKGROUND) {
                 long wait = backgroundWaitNanos(System.nanoTime());
@@ -152,11 +179,11 @@ public final class SearchAdmission {
                 deadline.requireTime();
                 // Background work that can no longer finish once it starts (queued bookings go first) leaves the queue
                 // now with a retry time, rather than waiting until its deadline passes.
-                if (kind == Kind.BACKGROUND && !(queue.peekFirst() == ticket && canStart(kind)) && deadline.remainingNanos() < ticket.expectedNanos())
+                if (kind == Kind.BACKGROUND && !(queue.peekFirst() == ticket && canStart(kind, ticket)) && deadline.remainingNanos() < ticket.expectedNanos())
                     throw new Busy("Background work could not start in time", Required.value(Duration.ofNanos(Math.max(TimeUnit.SECONDS.toNanos(1),
                             backgroundWaitNanos(System.nanoTime()) - ticket.expectedNanos()))));
                 if (ticket.evicted) throw new Busy("Search queue is full; a booking of a client with fewer waiting took this place");
-                if (next(kind) == ticket && canStart(kind)) {
+                if (next(kind) == ticket && canStart(kind, ticket)) {
                     queue.remove(ticket);
                     return start(kind, started, ticket);
                 }
@@ -216,7 +243,7 @@ public final class SearchAdmission {
     /**
      * The queued request to start next: the oldest background request, or the booking of the client with the fewest
      * bookings running; of clients with as many, the one whose last booking started longest ago (or never); within a
-     * client, its oldest booking.
+     * client, its oldest booking. Confirms (priority tickets) are chosen before searches by the same rule among themselves.
      */
     private @Nullable Ticket next(Kind kind) {
         if (kind == Kind.BACKGROUND) return background.peekFirst();
@@ -224,11 +251,13 @@ public final class SearchAdmission {
         int fewest = Integer.MAX_VALUE;
         long earliest = Long.MAX_VALUE;
         for (Ticket queued : bookings) {
+            if (chosen != null && chosen.priority && !queued.priority) continue;
             int count = runningBookings.getOrDefault(queued.share(), 0);
             Long last = lastBookingStart.get(queued.share());
             // Never started sorts first; nanoTime values are compared by difference, so they are made relative.
             long since = last == null ? Long.MIN_VALUE : last - startOrigin;
-            if (count < fewest || (count == fewest && since < earliest)) { chosen = queued; fewest = count; earliest = since; }
+            boolean outranks = chosen != null && queued.priority && !chosen.priority;
+            if (outranks || count < fewest || (count == fewest && since < earliest)) { chosen = queued; fewest = count; earliest = since; }
         }
         return chosen;
     }
@@ -237,20 +266,22 @@ public final class SearchAdmission {
     private final long startOrigin = System.nanoTime();
 
     /**
-     * Makes room in a full queue for this booking when its client has fewer bookings waiting than the client with the
-     * most: that client's newest waiting booking leaves with Busy. False when no client waits more than this one would.
+     * Makes room in a full queue for this booking when its client has fewer searches waiting than the client with the
+     * most: that client's newest waiting search leaves with Busy. False when no client waits more than this one would.
+     * Waiting confirms are never counted or evicted; an arriving confirm takes the heaviest client's place whenever any
+     * search waits.
      */
     private boolean evictFor(Ticket arriving) {
         Map<String, Integer> waiting = new HashMap<>();
-        for (Ticket queued : bookings) increment(waiting, queued.share());
+        for (Ticket queued : bookings) if (!queued.priority) increment(waiting, queued.share());
         String heaviest = null;
         int most = 0;
         for (var entry : waiting.entrySet()) if (entry.getValue() > most) { heaviest = entry.getKey(); most = entry.getValue(); }
-        if (heaviest == null || waiting.getOrDefault(arriving.share(), 0) + 1 >= most) return false;
+        if (heaviest == null || (!arriving.priority && waiting.getOrDefault(arriving.share(), 0) + 1 >= most)) return false;
         var newest = bookings.descendingIterator();
         while (newest.hasNext()) {
             Ticket queued = Required.value(newest.next());
-            if (queued.share().equals(heaviest)) {
+            if (!queued.priority && queued.share().equals(heaviest)) {
                 newest.remove();
                 queued.evicted = true;
                 evictions.increment();
@@ -266,8 +297,10 @@ public final class SearchAdmission {
         counts.put(key, current == null ? 1 : current + 1);
     }
 
-    private boolean canStart(Kind kind) {
-        return active < capacity && (kind == Kind.BOOKING || (runningBackground.size() < backgroundLimit && bookings.isEmpty()));
+    /** A confirm may also take one of the confirm slots beyond the capacity. */
+    private boolean canStart(Kind kind, Ticket ticket) {
+        int slots = ticket.priority ? capacity + confirmSlots : capacity;
+        return active < slots && (kind == Kind.BOOKING || (runningBackground.size() < backgroundLimit && bookings.isEmpty()));
     }
     private Lease start(Kind kind, long started, Ticket ticket) {
         active++;

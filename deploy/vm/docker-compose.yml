@@ -34,7 +34,6 @@ x-scheduler-runtime: &scheduler-runtime
   SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-}
   SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
-  JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
 
 # A replica is ready when its /health answers 200 (database, schema and every metro's routing up). Its ports are not
 # published: the API is reached through scheduler-proxy, metrics through Prometheus on this network.
@@ -97,6 +96,9 @@ services:
       <<: *scheduler-runtime
       SCHEDULER_ROLE: booking
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_BOOKING_SEARCH_CAPACITY:-2}
+      # JVM flags of this pool (measured in docs/api-load.md, "Confirm priority and JVM settings"); the heap is three
+      # quarters of the container's memory limit.
+      JAVA_TOOL_OPTIONS: ${SCHEDULER_BOOKING_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}
     deploy:
       replicas: ${SCHEDULER_BOOKING_REPLICAS:-1}
       resources:
@@ -112,6 +114,7 @@ services:
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_DAILY_SEARCH_CAPACITY:-2}
       SCHEDULER_SEARCH_BACKGROUND_LIMIT: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
       SCHEDULER_DAILY_QUEUE_WORKERS: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
+      JAVA_TOOL_OPTIONS: ${SCHEDULER_DAILY_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}
     deploy:
       replicas: ${SCHEDULER_DAILY_REPLICAS:-1}
       resources:
