@@ -297,6 +297,53 @@ graphs, is in [routing-ch-2026-10-14.json](evidence/routing-ch-2026-10-14.json):
   behind searches (98 ms of its 112 ms). Confirm priority in admission and the JVM settings are the next measured
   change; after them the slot wait is the booking replica's CPU, which is more cores or replicas.
 
+## Confirm priority and JVM settings (J2)
+
+After J a confirm, which does a few milliseconds of work to complete a booking the customer already chose, still
+spent 98 of its 112 ms waiting for a search slot behind searches. J2 changes admission in two steps and then measures
+the JVM flags the compose file sets, on the same stack and load as J's CH run
+([evidence](evidence/api-load-2026-10-14-confirm-priority-and-jvm.json); a confirm's own CPU time is 3 ms p50 in
+every run, from the `cpuMs` field of the request log).
+
+1. **Confirm priority.** A confirm is a booking ticket with priority: `SearchAdmission.next` chooses waiting confirms
+   before waiting searches (among confirms the same fairness rule as among searches: the client with the fewest
+   running, then the one whose last booking started longest ago), a full queue never evicts a confirm, and an arriving
+   confirm takes the heaviest client's newest waiting search's place.
+2. **A confirm-only slot.** `SCHEDULER_SEARCH_CONFIRM_SLOTS` (default 1, at most the capacity) opens slots beyond the
+   search capacity that only confirms may take, so a confirm does not wait for a running search to finish either.
+
+| Run | JVM flags (booking / daily) | Confirm caller p50 / p95 | Confirm server p50: slot wait | Offers caller p50 / p95 | Searches in 60 s | Booking replica CPU, heap max | Daily proposal caller p50 |
+| --- | --- | --- | ---: | --- | ---: | --- | ---: |
+| J, CH graph (before) | default (G1) | 116 / 214 ms | 98 ms | 216 / 353 ms | 1020 | 135 percent, 0.36 GiB | 15.1 s |
+| J2 step 1, priority | default | 89 / 122 ms | 71 ms | 213 / 341 ms | 1086 | 135 percent, 0.38 GiB | 12.4 s |
+| J2 step 1, ZGC / Parallel | `-XX:+UseZGC` / `-XX:+UseParallelGC` | 87 / 142 ms | 65 ms | 210 / 331 ms | 1084 | 154 percent, 1.25 GiB | 12.4 s |
+| J2 steps 1 and 2, confirm slot (shipped) | default | 20 / 35 ms | 0 ms | 226 / 307 ms | 1161 | 145 percent, 0.39 GiB | 12.3 s |
+| J2 steps 1 and 2, compact headers | `-XX:+UseCompactObjectHeaders` both | 20 / 32 ms | 0 ms | 228 / 320 ms | 1174 | 124 percent, 0.34 GiB | 12.3 s |
+
+- **A confirm now answers in 20 ms p50 and 35 ms p95 at the caller, from 116 and 214 ms.** Priority alone took the
+  wait from 98 to 71 ms (the confirm still waited for one of the two running searches to finish); the confirm slot
+  took it to 0. Offers are unchanged within run-to-run variation (p50 213 to 228 ms across the five runs) and every
+  search still completes with four offers and no errors; the replica served 14 percent more searches in the 60 s
+  because the desks spent less time in confirms. Both steps ship as defaults.
+- **The garbage collector is not a lever here, so G1 stays.** ZGC on the booking replica is within 3 percent on
+  offers p50 and p95 and worse on confirm p95 (142 against 122 ms), offers p99 (820 against 551 ms), CPU (154 against
+  135 percent) and heap (1.25 against 0.38 GiB used; 1.68 GiB resident). Parallel GC on the daily replica changes
+  nothing the load tool can see: a queued 20-technician day is 6 s of queue wait plus a fixed 5 s search, so a GC
+  difference of a few milliseconds per solve is below the measurement. A move-rate comparison inside the solver
+  (study L's harness) is the right instrument for that replica, not this one.
+- **Compact object headers (`-XX:+UseCompactObjectHeaders`, a product flag since JDK 24) are within noise on
+  latency** (offers 228 / 320 against 226 / 307 ms, confirm 20 / 32 against 20 / 35 ms) with the heap 0.05 GiB
+  smaller and the booking replica's mean CPU 21 points lower in this run; the CPU figure moved by as much between
+  runs with identical flags (135 to 154 percent), so it is not counted as a win. The threshold set before the runs
+  was 5 percent on a latency figure; nothing met it, so the compose keeps the JDK defaults and records both pools'
+  flags as settings (`SCHEDULER_BOOKING_JAVA_OPTIONS`, `SCHEDULER_DAILY_JAVA_OPTIONS`) for the operator who wants
+  to measure them on the VM itself.
+- **A measurement hazard worth knowing.** `deploy/vm/docker-compose.yml` declares `pull_policy: build`, so every
+  `up --force-recreate` rebuilds the image from the working tree; one run (seeds 713/714) unknowingly carried a later
+  commit and was repeated on the committed image before anything was concluded from it.
+- **Next.** With confirms out of the way, the booking replica's remaining wait is searches queueing for the two
+  slots (117 ms p50 of a 221 ms search), which is CPU: more cores, more replicas, or a cheaper search (study L).
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing

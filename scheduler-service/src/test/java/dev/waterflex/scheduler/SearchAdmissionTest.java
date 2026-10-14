@@ -255,6 +255,86 @@ class SearchAdmissionTest {
         assertEquals(java.util.Set.of("a1", "b1", "c1"), java.util.Set.copyOf(order));
     }
 
+    /** Like {@link #booking} for a confirm. */
+    private static java.util.concurrent.Future<String> confirm(java.util.concurrent.ExecutorService pool, SearchAdmission admission, String client, String name,
+                                                               ConcurrentLinkedQueue<String> order) throws InterruptedException {
+        int queued = admission.state().queuedBookings();
+        var future = pool.submit(() -> {
+            try (var lease = admission.acquireConfirm(deadline(5000), client)) {
+                order.add(name); Thread.sleep(20); return Required.value(name + " ran after " + lease.queueMillis() + " ms");
+            } catch (SearchAdmission.Busy busy) { return name + " refused"; }
+        });
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (admission.state().queuedBookings() == queued && !future.isDone() && System.nanoTime() < until) Thread.sleep(1);
+        return Required.value(future);
+    }
+
+    @Test void aWaitingConfirmStartsBeforeEveryWaitingSearchAndConfirmsStayFairAmongClients() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 16, 1, 0);
+        ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
+        var occupied = admission.acquireBooking(deadline(5000), "client-a");
+        try (var pool = Required.value(Executors.newVirtualThreadPerTaskExecutor())) {
+            var a2 = booking(pool, admission, "client-a", "a2", order);
+            var b1 = booking(pool, admission, "client-b", "b1", order);
+            var ca = confirm(pool, admission, "client-a", "confirm-a", order);
+            var cb = confirm(pool, admission, "client-b", "confirm-b", order);
+            assertEquals(4, admission.state().queuedBookings(), "confirms wait in the booking queue");
+            occupied.close();
+            for (var done : List.of(a2, b1, ca, cb)) assertTrue(done.get(3, TimeUnit.SECONDS).contains("ran"));
+        } finally { occupied.close(); }
+        assertEquals(List.of("confirm-b", "confirm-a", "b1", "a2"), List.copyOf(order),
+                "both confirms precede both searches; among confirms the client that had not run goes first, as among searches");
+        assertEquals(0, admission.rejections());
+        assertEquals(new SearchAdmission.State(0, 0, 0, false), admission.state());
+    }
+
+    @Test void aConfirmTakesASearchsPlaceInAFullQueueAndNeverGivesUpItsOwn() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 2, 1, 0);
+        ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
+        var occupied = admission.acquireBooking(deadline(5000), "client-a");
+        try (var pool = Required.value(Executors.newVirtualThreadPerTaskExecutor())) {
+            var a2 = booking(pool, admission, "client-a", "a2", order);
+            var a3 = booking(pool, admission, "client-a", "a3", order);
+            var ca = confirm(pool, admission, "client-a", "confirm-a", order);
+            assertEquals("a3 refused", a3.get(2, TimeUnit.SECONDS), "the arriving confirm took the newest waiting search's place although it is the same client's");
+            var b1 = booking(pool, admission, "client-b", "b1", order);
+            assertEquals("b1 refused", b1.get(2, TimeUnit.SECONDS), "the waiting confirm is not counted: client a waits one search, as b would, so no client is heavier");
+            var cc = confirm(pool, admission, "client-c", "confirm-c", order);
+            assertEquals("a2 refused", a2.get(2, TimeUnit.SECONDS), "a second confirm takes the last search's place; the waiting confirm is never evicted");
+            var cd = confirm(pool, admission, "client-d", "confirm-d", order);
+            assertEquals("confirm-d refused", cd.get(2, TimeUnit.SECONDS), "a full queue of confirms refuses a confirm rather than evicting one");
+            occupied.close();
+            for (var done : List.of(ca, cc)) assertTrue(done.get(3, TimeUnit.SECONDS).contains("ran"));
+        } finally { occupied.close(); }
+        assertEquals(java.util.Set.of("confirm-a", "confirm-c"), java.util.Set.copyOf(order));
+        assertEquals(2, admission.evictions());
+        assertEquals(4, admission.rejections());
+        assertThrows(IllegalArgumentException.class, () -> admission.acquireConfirm(deadline(1000), ""));
+    }
+
+    @Test void aConfirmSlotBeyondTheCapacityIsOpenToConfirmsAlone() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 16, 1, 1);
+        ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
+        var occupied = admission.acquireBooking(deadline(5000), "client-a");
+        try (var pool = Required.value(Executors.newVirtualThreadPerTaskExecutor())) {
+            var a2 = booking(pool, admission, "client-a", "a2", order);
+            assertEquals(1, admission.state().queuedBookings(), "a search waits for the one search slot");
+            try (var first = admission.acquireConfirm(deadline(5000), "client-b")) {
+                assertEquals(0, first.queueMillis(), "the confirm took the confirm slot at once, ahead of the waiting search");
+                assertEquals(2, admission.state().active());
+                var second = confirm(pool, admission, "client-c", "confirm-c", order);
+                assertEquals(2, admission.state().queuedBookings(), "a second confirm waits: the confirm slot is taken and the search slot is busy");
+                assertFalse(second.isDone());
+                occupied.close();
+                assertTrue(second.get(3, TimeUnit.SECONDS).contains("ran"), "the freed search slot goes to the waiting confirm first");
+            }
+            assertTrue(a2.get(3, TimeUnit.SECONDS).contains("ran"));
+        } finally { occupied.close(); }
+        assertEquals(List.of("confirm-c", "a2"), List.copyOf(order));
+        assertEquals(new SearchAdmission.State(0, 0, 0, false), admission.state());
+        assertThrows(IllegalArgumentException.class, () -> new SearchAdmission(1, 16, 1, 2), "confirm slots are at most the capacity");
+    }
+
     @Test void bookingsWithoutAClientKeepTheirArrivalOrder() throws Exception {
         SearchAdmission admission = new SearchAdmission(1, 16);
         ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
