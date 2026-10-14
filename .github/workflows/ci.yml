@@ -254,6 +254,8 @@ jobs:
           exit 1
       - name: Booking location contracts with isolated data
         working-directory: web
+        # It takes under a minute; a hang fails here with its log kept instead of running to the job limit.
+        timeout-minutes: 5
         env:
           DATABASE_URL: postgresql://waterflex:waterflex@127.0.0.1:5432/waterflex_test?schema=booking_location_it
           ENGINE_URL: http://127.0.0.1:18002
@@ -262,6 +264,7 @@ jobs:
           SCHEDULER_SEARCH_CAPACITY: '2'
         run: |
           npx prisma migrate deploy
+          echo "Migrations done; starting the location scheduler"
           DATABASE_USER="$SCHEDULER_DB_LOGIN" DATABASE_PASSWORD="$SCHEDULER_DB_PASSWORD" java -jar ../scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/location-scheduler.log" 2>&1 &
           location_pid=$!
           trap 'kill "$location_pid"' EXIT
@@ -269,6 +272,7 @@ jobs:
             if curl --fail --silent http://127.0.0.1:18002/health > /dev/null; then break; fi
             sleep 2
           done
+          echo "Scheduler wait over; running the booking location smoke"
           node ../infra/run-check.mjs test:booking-location:integration npx tsx scripts/smoke-booking-location.ts
       - name: Depot pin setup smoke
         working-directory: web
@@ -435,7 +439,8 @@ jobs:
           SCHEDULER_TEST_URL: http://127.0.0.1:18003
           ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001
         run: |
-          node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
+          # Prisma 7 reads the connection from prisma.config.ts, which it looks for in the working directory; name it here.
+          node web/node_modules/prisma/build/index.js migrate deploy --config web/prisma.config.ts
           java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --command=migrate
           token=$(openssl rand -hex 32)
           SOLVER_AUTH_TOKEN="$token" SERVER_PORT=18004 java -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-solver.log" 2>&1 &

@@ -1,9 +1,9 @@
 // Creates or renames a portal client. The client's public API token stays in the environment, never in this database.
 //   npx tsx scripts/create-client.ts <clientId> "<client name>"
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { CLIENT_ID } from "../lib/clients";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function main() {
   const [clientId, name, ...extra] = process.argv.slice(2);

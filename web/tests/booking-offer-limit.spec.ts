@@ -1,10 +1,10 @@
 import { mockBookingLocation } from "./bookingLocationFixture";
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { z } from "zod";
 import { required } from "../lib/contracts";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 for (const limit of [1, 2, 4]) {

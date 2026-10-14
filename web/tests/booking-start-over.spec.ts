@@ -1,9 +1,9 @@
 import { mockBookingLocation } from "./bookingLocationFixture";
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("Refresh searches again directly; Start over retries release, then returns to the populated form with a new request ID", async ({ page }) => {

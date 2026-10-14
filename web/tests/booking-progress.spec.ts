@@ -1,8 +1,8 @@
 import { mockBookingLocation } from "./bookingLocationFixture";
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("appointment search shows indeterminate progress and retains inputs after failure", async ({ page }) => {

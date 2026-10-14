@@ -43,11 +43,9 @@
     "test:ui": "playwright test",
     "test:unit": "tsx scripts/run-unit-tests.ts"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
-    "@prisma/client": "^5.20.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "lucide-react": "^1.55.0",
     "maplibre-gl": "^6.14.0",
     "next": "^16.4.0",
@@ -57,8 +55,10 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
+    "@prisma/internals": "7.10.0",
     "@types/geojson": "7946.0.16",
     "@types/node": "^22.20.5",
+    "@types/pg": "8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@typescript-eslint/eslint-plugin": "^8.71.1",
@@ -68,7 +68,7 @@
     "eslint": "^10.12.0",
     "eslint-config-next": "^16.4.0",
     "js-yaml": "5.4.3",
-    "prisma": "^5.20.0",
+    "prisma": "^7.10.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   }

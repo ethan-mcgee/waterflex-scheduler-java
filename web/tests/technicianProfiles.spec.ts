@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability, nextTemplateEffectiveDate } from "../lib/technicianAvailability";
 import { addCalendarDays, formatUsDate, localMidnightUtc } from "../lib/date";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("legacy contacts stay nullable and profile and pending week persist after refresh", async ({ page }) => {

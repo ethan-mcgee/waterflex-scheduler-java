@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { z } from "zod";
 import { initialAvailability } from "../lib/technicianAvailability";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 
 test("empty datasets expose no shift mutations and disable time-off submission", async ({ page }) => {

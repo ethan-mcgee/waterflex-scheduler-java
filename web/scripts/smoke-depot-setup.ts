@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { z } from "zod";
 import { POST } from "../app/api/depots/route";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 const database = process.env.DATABASE_URL ? new URL(process.env.DATABASE_URL).pathname.slice(1) : "";
 if (database !== "waterflex_test") throw new Error("Requires waterflex_test");
 
