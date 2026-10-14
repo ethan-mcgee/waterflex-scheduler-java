@@ -9,7 +9,7 @@ TLS is not set up yet (deferred by owner decision on 2026-10-13). It is a precon
 - WaterFlex Software to the scheduler API (port 8000). Terminate TLS at a reverse proxy in front of 8000, or in the JVM with Spring Boot's `server.ssl.*` settings.
 - The scheduler to each routing service. Today this is plain http with a bearer token (`ROUTING_AUTH_TOKEN`).
 - The scheduler to Nominatim, when `GEOCODING_MODE=NOMINATIM`.
-- The scheduler to a remote solver. This is already enforced: a non-loopback `SCHEDULER_CALCULATION_URL` must be https.
+- The scheduler to a remote solver. This is already enforced: a `SCHEDULER_CALCULATION_URL` must be https unless it names loopback or the compose service `solver-service` on the VM's private network.
 
 Until then, keep every port on the private network, as Compose does by binding to `127.0.0.1`.
 
@@ -22,7 +22,7 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `ROUTING_METRO_URLS` | Yes | One `metro=url` entry per served metro. |
 | `ROUTING_AUTH_TOKEN` | Yes | Shared bearer token of the routing services, at least 32 characters. |
 | `GEOCODING_MODE`, `NOMINATIM_URL` | No | `COORDINATES_REQUIRED` (default) or `NOMINATIM`. |
-| `SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN` | No | `EMBEDDED` (default) or `REMOTE` with a solver pool. |
+| `SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN` | No | `EMBEDDED` (default) or `REMOTE` with a solver pool. Measured for a daily pool, not for booking (docs/api-load.md, "Embedded against remote calculation"). The pool's `SOLVER_CAPACITY` is the replicas' search capacities summed; its `SOLVER_BACKGROUND_LIMIT` (0: every slot) must cover the daily replicas' background limits, or their second concurrent calculation answers 503. |
 | `SCHEDULER_ROLE` | No | `booking`, `daily` or `all` (default). Every replica answers every route; a `booking` replica takes no queued daily work. Any other value stops the replica at startup. See "Replica roles". |
 | `SCHEDULER_SEARCH_CAPACITY` | No | Concurrent searches per replica. 0 means 2, or 1 on a one-processor machine. |
 | `SCHEDULER_SEARCH_CONFIRM_SLOTS` | No | Slots beyond the search capacity that only confirms may take, 0 to the capacity, default 1: a confirm (a few milliseconds of work) then never waits for a running search to finish. Confirms also start before any waiting search. |

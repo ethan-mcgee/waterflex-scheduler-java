@@ -193,7 +193,10 @@ services:
     restart: unless-stopped
 
   # A remote solver pool (SCHEDULER_CALCULATION_MODE=REMOTE, SCHEDULER_CALCULATION_URL=http://solver-service:8002 on
-  # this private network). The embedded solver is the default.
+  # this private network). The embedded solver is the default. Its capacity serves every replica's searches at once
+  # (booking capacity plus daily capacity, summed over replicas: 4 for the defaults above) and its background limit
+  # is how many daily calculations it runs at once (0: every slot). Measured in docs/api-load.md, "Embedded against
+  # remote (K)".
   solver-service:
     profiles: ["remote-solver"]
     image: waterflex-calculation-solver:vm
@@ -204,8 +207,9 @@ services:
     environment:
       SOLVER_BIND_ADDRESS: 0.0.0.0
       SOLVER_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
-      SOLVER_CAPACITY: ${SOLVER_CAPACITY:-2}
+      SOLVER_CAPACITY: ${SOLVER_CAPACITY:-4}
       SOLVER_QUEUE_LIMIT: ${SOLVER_QUEUE_LIMIT:-16}
+      SOLVER_BACKGROUND_LIMIT: ${SOLVER_BACKGROUND_LIMIT:-0}
     expose: ["8002"]
     deploy:
       resources:
