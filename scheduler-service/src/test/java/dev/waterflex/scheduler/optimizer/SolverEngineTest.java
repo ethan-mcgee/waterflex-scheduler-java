@@ -137,7 +137,7 @@ class SolverEngineTest {
     }
     @Test void loadedArtifactIsIdentifiedAndNoSearchDoesNotInventCounters() {
         var provenance = EngineProvenance.loaded();
-        assertEquals("2.6.0", provenance.version()); assertNotNull(provenance.sha256()); assertNull(provenance.unavailableReason());
+        assertEquals(SolverEngine.INSTRUMENTED_TIMEFOLD, provenance.version()); assertNotNull(provenance.sha256()); assertNull(provenance.unavailableReason());
         var solver = new DailySolver("TABU", 17);
         var result = solver.solve(DailyConstructionTest.fixture(0, 1, 0, 0, DayPlan.Mode.COLD), Required.value(Duration.ofMillis(100)));
         assertEquals("NOT_RUN", result.statistics().termination()); assertEquals("NO_SEARCH", result.statistics().diagnosticsUnavailableReason());
