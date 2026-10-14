@@ -95,8 +95,10 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 Each `/api/v1` call writes one line to the logger `dev.waterflex.scheduler.api.requests`:
 
 ```
-INFO [tenant=acme request=2b7892ab-02be-43d3-a8e9-5086354eb54a] ... api operation="POST /api/v1/booking/offers" status=201 elapsedMs=374
+INFO [tenant=acme request=2b7892ab-02be-43d3-a8e9-5086354eb54a] ... api operation="POST /api/v1/booking/offers" status=201 elapsedMs=374 queueMs=12 routingMs=212 calculationMs=97 dbMs=18 dbCalls=9 routingPairs=310 cacheHits=280 fetched=30 cpuMs=141
 ```
+
+A call that ran under a deadline (booking offers and confirms, route evaluation and geometry, and the routing of a synchronous daily proposal) also says how its time was spent: `queueMs` waiting for a search slot, `routingMs` waiting on routing (identity checks, leg fetches and the route cache reads around them), `calculationMs` in the calculation engine, `dbMs` and `dbCalls` in the thin store, `routingPairs` the legs the call needed with `cacheHits` served from memory or the route cache and `fetched` from the routing service, and `cpuMs` the request thread's own CPU time. A slow search with high `routingMs` and `fetched` is cold routing (new addresses, or a cache gone cold after a map change); one with high `calculationMs` is the engine; one with high `queueMs` waited for a slot behind other calls (add capacity or replicas).
 
 Every line written while serving the call, including the solver's worker thread, carries the same tenant and the host's `requestId`. Search by `requestId` to follow one call. With `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs` the same fields are JSON properties.
 

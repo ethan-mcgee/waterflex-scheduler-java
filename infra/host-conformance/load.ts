@@ -23,7 +23,7 @@ const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --met
     (--area <south,west,north,east> | --points fixture) --scenario booking|daily|mixed --duration-s <seconds>
     [--concurrency 5] [--daily-concurrency 1] [--technicians 10] [--appointments 2] [--horizon-days 5]
     [--daily-technicians 20] [--daily-mode sync|async] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
-    [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--metrics-url <prometheus URL>]
+    [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--date-spread] [--metrics-url <prometheus URL>]
     [--docker <container,...>] [--label <text>] [--out <directory>]`;
 
 class UsageError extends Error { }
@@ -37,12 +37,14 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
   "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
   "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "label", "out"] as const;
+const FLAG_OPTIONS = ["date-spread", "help"] as const;
 
 function settings() {
   let values: Record<string, string | boolean | undefined>;
   try {
     values = parseArgs({ strict: true, allowPositionals: false,
-      options: { ...Object.fromEntries(STRING_OPTIONS.map(name => [name, { type: "string" as const }])), help: { type: "boolean" } } }).values;
+      options: { ...Object.fromEntries(STRING_OPTIONS.map(name => [name, { type: "string" as const }])),
+        ...Object.fromEntries(FLAG_OPTIONS.map(name => [name, { type: "boolean" as const }])) } }).values;
   } catch (error) {
     throw new UsageError(error instanceof Error ? error.message : String(error));
   }
@@ -86,6 +88,7 @@ function settings() {
     deadlineMs: integer("deadline-ms", KIT_POLICY.bookingDeadlineMs, 1000, 5000), costSeconds, fairnessSeconds, seed: integer("seed", 1, 0, 1000),
     metricsUrl: text("metrics-url") ?? null, docker: text("docker")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
     label: text("label") ?? null, out: resolve(text("out") ?? "load-report"),
+    dateSpread: values["date-spread"] === true,
   };
 }
 
@@ -114,13 +117,18 @@ async function main(): Promise<number> {
   const prefix = `load-${randomUUID().slice(0, 8)}`;
   const serviceId = `${prefix}-service`;
   const today = todayIn(options.timeZone);
-  const horizon = Array.from({ length: options.horizonDays }, (_, offset) => addDays(today, 2 + offset));
+  // With --date-spread each desk searches its own horizonDays dates after the previous desk's, so desks book different
+  // technician-days instead of all contending for the same ones (which answers 409 STALE and measures the test rather
+  // than the scheduler).
+  const spread = options.dateSpread && options.scenario !== "daily" ? (options.concurrency - 1) * options.horizonDays : 0;
+  const allDates = Array.from({ length: options.horizonDays + spread }, (_, offset) => addDays(today, 2 + offset));
+  const horizon = allDates.slice(0, options.horizonDays);
   const dailyDate = addDays(today, 2);
   const point = pointSource(options.area, options.seed);
   const policy = { ...KIT_POLICY, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds };
   const shape = (name: string, technicians: number, dates: readonly string[]): MetroShape => ({ metroId: options.metroId, timeZone: options.timeZone, serviceId,
     prefix: `${prefix}-${name}`, technicians, appointmentsPerDay: options.appointments, dates, rates: KIT_RATES, policy });
-  const bookingStore = new HostStore(shape("book", options.technicians, horizon), point, point);
+  const bookingStore = new HostStore(shape("book", options.technicians, allDates), point, point);
   const dailyStore = new HostStore(shape("daily", options.dailyTechnicians, [dailyDate]), point, point);
   const warm = Array.from({ length: 8 }, () => point());
   let warmIndex = 0;
@@ -137,8 +145,8 @@ async function main(): Promise<number> {
   const loops: Promise<void>[] = [];
   if (options.scenario !== "daily")
     for (let desk = 1; desk <= options.concurrency; desk++)
-      loops.push(bookingLoop(run, { store: bookingStore, horizon, offerLimit: options.offerLimit, windowHours: options.windowHours, jobMinutes: 60,
-        confirmRate: options.confirmRate, jobLocation }, desk, options.deadlineMs));
+      loops.push(bookingLoop(run, { store: bookingStore, horizon: spread === 0 ? horizon : allDates.slice((desk - 1) * options.horizonDays, desk * options.horizonDays),
+        offerLimit: options.offerLimit, windowHours: options.windowHours, jobMinutes: 60, confirmRate: options.confirmRate, jobLocation }, desk, options.deadlineMs));
   if (options.scenario !== "booking")
     for (let planner = 0; planner < (options.scenario === "daily" ? options.concurrency : options.dailyConcurrency); planner++)
       loops.push(dailyLoop(run, { store: dailyStore, date: dailyDate, mode: options.dailyMode }, (options.costSeconds + options.fairnessSeconds + 5) * 1000 + 30_000));
@@ -159,7 +167,8 @@ async function main(): Promise<number> {
     settings: { durationS: options.durationS, concurrency: options.concurrency, dailyConcurrency: options.scenario === "mixed" ? options.dailyConcurrency : null,
       technicians: options.technicians, appointmentsPerDay: options.appointments, horizonDates: horizon.length, dailyTechnicians: options.dailyTechnicians,
       dailyMode: options.scenario === "booking" ? null : options.dailyMode,
-      jobs: options.jobs, confirmRate: options.confirmRate, offerLimit: options.offerLimit, windowHours: options.windowHours, policy, seed: options.seed },
+      jobs: options.jobs, confirmRate: options.confirmRate, offerLimit: options.offerLimit, windowHours: options.windowHours, policy, seed: options.seed,
+      dateSpread: spread > 0 },
     machine: { cpus: cpus().length, cpuModel: cpus()[0]?.model ?? "unknown", memoryBytes: totalmem(), node: process.version },
     operations: summarize(run.records), booking: options.scenario === "daily" ? null : run.booking,
     daily: options.scenario === "booking" ? null : run.daily, server, metricFailures, containers: usage,
