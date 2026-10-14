@@ -1,0 +1,438 @@
+{
+  "progression": [
+    {
+      "stage": "#151",
+      "label": "booking-cold-c5",
+      "searches_per_minute": 102.0,
+      "p50": 1824,
+      "p95": 6233
+    },
+    {
+      "stage": "#152",
+      "label": "cold-recheck-c5 (seed 91)",
+      "searches_per_minute": 129.0,
+      "p50": 1335,
+      "p95": 2636
+    },
+    {
+      "stage": "#154",
+      "label": "booking-cold-c5",
+      "searches_per_minute": 123.0,
+      "p50": 963,
+      "p95": 2691
+    },
+    {
+      "stage": "#155",
+      "label": "after-c5 (seed 55)",
+      "searches_per_minute": 246.0,
+      "p50": 597,
+      "p95": 1358
+    },
+    {
+      "stage": "J0",
+      "label": "base-spread2 booking",
+      "searches_per_minute": 289.0,
+      "p50": 837,
+      "p95": 1341
+    },
+    {
+      "stage": "J flexible",
+      "label": "j-flex booking",
+      "searches_per_minute": 454.0,
+      "p50": 493,
+      "p95": 746
+    },
+    {
+      "stage": "J CH",
+      "label": "j-ch booking",
+      "searches_per_minute": 1020.0,
+      "p50": 216,
+      "p95": 353
+    }
+  ],
+  "desks": [
+    {
+      "stage": "#151",
+      "desks": [
+        1,
+        5,
+        10
+      ],
+      "p95": [
+        987,
+        6233,
+        12006
+      ],
+      "searches_per_minute": [
+        77.0,
+        102.0,
+        102.0
+      ]
+    },
+    {
+      "stage": "#152",
+      "desks": [
+        1,
+        5,
+        10
+      ],
+      "p95": [
+        724,
+        2636,
+        4961
+      ],
+      "searches_per_minute": [
+        88.0,
+        129.0,
+        128.0
+      ]
+    },
+    {
+      "stage": "#155",
+      "desks": [
+        1,
+        5,
+        10
+      ],
+      "p95": [
+        761,
+        1358,
+        2289
+      ],
+      "searches_per_minute": [
+        85.0,
+        246.0,
+        258.0
+      ]
+    }
+  ],
+  "holds": [
+    {
+      "run": "booking-cold-c1",
+      "lost_before": 0,
+      "selected_before": 19,
+      "lost_after": 0,
+      "selected_after": 45,
+      "stale_after": 0,
+      "searches_after": 153
+    },
+    {
+      "run": "booking-cold-c5",
+      "lost_before": 14,
+      "selected_before": 38,
+      "lost_after": 0,
+      "selected_after": 50,
+      "stale_after": 115,
+      "searches_after": 152
+    },
+    {
+      "run": "booking-cold-c10",
+      "lost_before": 23,
+      "selected_before": 39,
+      "lost_after": 0,
+      "selected_after": 56,
+      "stale_after": 289,
+      "searches_after": 167
+    },
+    {
+      "run": "booking-warm-c5",
+      "lost_before": 7,
+      "selected_before": 35,
+      "lost_after": 0,
+      "selected_after": 41,
+      "stale_after": 98,
+      "searches_after": 159
+    },
+    {
+      "run": "mixed-c5-d1",
+      "lost_before": 10,
+      "selected_before": 30,
+      "lost_after": 0,
+      "selected_after": 49,
+      "stale_after": 113,
+      "searches_after": 138
+    }
+  ],
+  "daily_admission": [
+    {
+      "planners": "1 planner",
+      "stage": "#151",
+      "answered_201": 11,
+      "answered_503": 1,
+      "retried_429": 0
+    },
+    {
+      "planners": "1 planner",
+      "stage": "#153",
+      "answered_201": 11,
+      "answered_503": 0,
+      "retried_429": 0
+    },
+    {
+      "planners": "4 planners",
+      "stage": "#151",
+      "answered_201": 3,
+      "answered_503": 25,
+      "retried_429": 0
+    },
+    {
+      "planners": "4 planners",
+      "stage": "#153",
+      "answered_201": 15,
+      "answered_503": 0,
+      "retried_429": 3
+    }
+  ],
+  "daily_fairness": [
+    {
+      "mode": "sync",
+      "tenant": "A",
+      "planners": 4,
+      "proposals": 20,
+      "p50": 5059
+    },
+    {
+      "mode": "sync",
+      "tenant": "B",
+      "planners": 1,
+      "proposals": 1,
+      "p50": 109080
+    },
+    {
+      "mode": "async",
+      "tenant": "A",
+      "planners": 4,
+      "proposals": 12,
+      "p50": 39150
+    },
+    {
+      "mode": "async",
+      "tenant": "B",
+      "planners": 1,
+      "proposals": 9,
+      "p50": 9060
+    }
+  ],
+  "daily_roles": [
+    {
+      "run": "all-1",
+      "shape": "one all",
+      "proposals": 13,
+      "queue_wait_p50": 20717
+    },
+    {
+      "run": "split-1",
+      "shape": "split",
+      "proposals": 25,
+      "queue_wait_p50": 7479
+    },
+    {
+      "run": "split-2",
+      "shape": "split",
+      "proposals": 25,
+      "queue_wait_p50": 7367
+    },
+    {
+      "run": "all-2",
+      "shape": "one all",
+      "proposals": 14,
+      "queue_wait_p50": 20169.0
+    }
+  ],
+  "attribution": [
+    {
+      "stage": "J0",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 832,
+      "queueMs": 424,
+      "routingMs": 353,
+      "calculationMs": 12,
+      "dbMs": 28
+    },
+    {
+      "stage": "J0",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 451,
+      "queueMs": 432,
+      "routingMs": 5,
+      "calculationMs": 0,
+      "dbMs": 4
+    },
+    {
+      "stage": "J flexible",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 488,
+      "queueMs": 228,
+      "routingMs": 197,
+      "calculationMs": 13,
+      "dbMs": 34
+    },
+    {
+      "stage": "J flexible",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 259,
+      "queueMs": 238,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 4
+    },
+    {
+      "stage": "J CH",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 212,
+      "queueMs": 94,
+      "routingMs": 65,
+      "calculationMs": 12,
+      "dbMs": 33
+    },
+    {
+      "stage": "J CH",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 112,
+      "queueMs": 98,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 3
+    }
+  ],
+  "ch": [
+    {
+      "date": "2026-09-24",
+      "engine": "flexible",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        168.28859999999986,
+        214.9384,
+        311.8634999999995
+      ],
+      "p95": [
+        242.26609999999982,
+        292.34739999999965,
+        381.34929999999986
+      ],
+      "pairs_per_request": 16
+    },
+    {
+      "date": "2026-09-24",
+      "engine": "CH-car-v1",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        14.64889999999923,
+        14.45219999999972,
+        16.85490000000027
+      ],
+      "p95": [
+        17.98849999999993,
+        19.78439999999955,
+        19.256200000001627
+      ],
+      "pairs_per_request": 16
+    },
+    {
+      "date": "2026-10-14",
+      "engine": "flexible",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        29.61880000000008,
+        66.08950000000004,
+        118.86599999999999
+      ],
+      "p95": [
+        43.15680000000003,
+        88.98479999999995,
+        146.9058
+      ],
+      "pairs_per_request": 16
+    },
+    {
+      "date": "2026-10-14",
+      "engine": "CH-car-v1",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        3.685699999999997,
+        6.495100000000093,
+        8.062900000000127
+      ],
+      "p95": [
+        4.52230000000003,
+        20.28539999999998,
+        9.615299999999934
+      ],
+      "pairs_per_request": 16
+    }
+  ],
+  "cpu": [
+    {
+      "stage": "J0",
+      "searches_per_minute": 289.0,
+      "routing_cpu_mean": 166.33666666666664,
+      "booking_cpu_mean": 62.62111111111111
+    },
+    {
+      "stage": "J flexible",
+      "searches_per_minute": 454.0,
+      "routing_cpu_mean": 1323.8155555555556,
+      "booking_cpu_mean": 123.46555555555554
+    },
+    {
+      "stage": "J CH",
+      "searches_per_minute": 1020.0,
+      "routing_cpu_mean": 260.7355555555555,
+      "booking_cpu_mean": 135.22
+    }
+  ],
+  "roles": [
+    {
+      "run": "all-1",
+      "shape": "one all",
+      "offers_p95": 1746,
+      "offers_busy": 15,
+      "confirm_p50": 136,
+      "searches_per_minute": 247.0,
+      "proposal_p50": 27150
+    },
+    {
+      "run": "split-1",
+      "shape": "split",
+      "offers_p95": 1430,
+      "offers_busy": 4,
+      "confirm_p50": 379,
+      "searches_per_minute": 231.0,
+      "proposal_p50": 15083
+    },
+    {
+      "run": "split-2",
+      "shape": "split",
+      "offers_p95": 1382,
+      "offers_busy": 4,
+      "confirm_p50": 440,
+      "searches_per_minute": 227.0,
+      "proposal_p50": 15078
+    },
+    {
+      "run": "all-2",
+      "shape": "one all",
+      "offers_p95": 1804,
+      "offers_busy": 24,
+      "confirm_p50": 122,
+      "searches_per_minute": 250.0,
+      "proposal_p50": 27127
+    }
+  ]
+}
