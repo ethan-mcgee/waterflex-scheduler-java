@@ -57,8 +57,8 @@ harness, one after the other on an idle workstation:
 
 | Fleet | Cost-phase moves per second, before to after (median) | Fairness-phase speedup (median) | Cases cheaper after at the same budget |
 | --- | --- | ---: | --- |
-| 20 technicians | 117k to 180k (1.54x) | 1.30x | 9 of 12 (2 ties, 1 dearer by 50 cents) |
-| 50 technicians | 104k to 208k (2.00x) | 1.27x | 12 of 12 |
+| 20 technicians | 131k to 193k (1.54x) | 1.32x | 9 of 12 (2 ties, 1 dearer by 50 cents) |
+| 50 technicians | 107k to 222k (2.00x) | 1.28x | 12 of 12 |
 
 Two independent runs of the same four cases on each side agree within 10 percent, so the speedup is not a
 run-to-run effect. The fairness phase gains less because its time goes to `SchedulingPolicy.fairness` (a BigDecimal

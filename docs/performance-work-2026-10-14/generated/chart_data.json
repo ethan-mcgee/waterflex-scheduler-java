@@ -48,6 +48,13 @@
       "searches_per_minute": 1020.0,
       "p50": 216,
       "p95": 353
+    },
+    {
+      "stage": "J2",
+      "label": "j2-slot booking",
+      "searches_per_minute": 1161.0,
+      "p50": 226,
+      "p95": 307
     }
   ],
   "desks": [
@@ -293,6 +300,42 @@
       "routingMs": 0,
       "calculationMs": 0,
       "dbMs": 3
+    },
+    {
+      "stage": "J2",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 221,
+      "queueMs": 117,
+      "routingMs": 56,
+      "calculationMs": 12,
+      "dbMs": 19
+    },
+    {
+      "stage": "J2",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 16,
+      "queueMs": 0,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 3
+    },
+    {
+      "stage": "K remote",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 367,
+      "queueMs": 201,
+      "routingMs": 56,
+      "calculationMs": 69,
+      "dbMs": 26
+    },
+    {
+      "stage": "K remote",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 16,
+      "queueMs": 0,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 4
     }
   ],
   "ch": [
@@ -433,6 +476,415 @@
       "confirm_p50": 122,
       "searches_per_minute": 250.0,
       "proposal_p50": 27127
+    }
+  ],
+  "confirm": [
+    {
+      "stage": "J CH",
+      "run": "j-ch",
+      "confirm_p50": 116,
+      "confirm_p95": 214,
+      "confirm_wait_p50": 98,
+      "offers_p50": 216,
+      "offers_p95": 353
+    },
+    {
+      "stage": "priority",
+      "run": "j2-confirm",
+      "confirm_p50": 89,
+      "confirm_p95": 122,
+      "confirm_wait_p50": 71,
+      "offers_p50": 213,
+      "offers_p95": 341
+    },
+    {
+      "stage": "priority,\nZGC / Parallel",
+      "run": "j2-gc",
+      "confirm_p50": 87,
+      "confirm_p95": 142,
+      "confirm_wait_p50": 65,
+      "offers_p50": 210,
+      "offers_p95": 331
+    },
+    {
+      "stage": "priority +\nconfirm slot",
+      "run": "j2-slot",
+      "confirm_p50": 20,
+      "confirm_p95": 35,
+      "confirm_wait_p50": 0,
+      "offers_p50": 226,
+      "offers_p95": 307
+    },
+    {
+      "stage": "slot, compact\nheaders",
+      "run": "j2-coh2",
+      "confirm_p50": 20,
+      "confirm_p95": 32,
+      "confirm_wait_p50": 0,
+      "offers_p50": 228,
+      "offers_p95": 320
+    }
+  ],
+  "profile": [
+    {
+      "group": "Immutable map probe",
+      "before": 13.1,
+      "after": 12.6
+    },
+    {
+      "group": "HashMap and copies",
+      "before": 16.8,
+      "after": 6.3
+    },
+    {
+      "group": "BigDecimal arithmetic",
+      "before": 18.1,
+      "after": 22.5
+    },
+    {
+      "group": "Instant and Duration",
+      "before": 3.5,
+      "after": 16.2
+    },
+    {
+      "group": "Engine timing methods",
+      "before": 10.6,
+      "after": 3.2
+    },
+    {
+      "group": "Timefold score director",
+      "before": 3.7,
+      "after": 2.9
+    }
+  ],
+  "profile_rates": [
+    {
+      "case": "20-CLUSTERED",
+      "before": 104700,
+      "after": 164985
+    },
+    {
+      "case": "20-DISPERSED",
+      "before": 121306,
+      "after": 181254
+    },
+    {
+      "case": "50-CLUSTERED",
+      "before": 97705,
+      "after": 192438
+    },
+    {
+      "case": "50-DISPERSED",
+      "before": 99467,
+      "after": 200749
+    }
+  ],
+  "paired": [
+    {
+      "technicians": 20,
+      "workload": "ABSENCE",
+      "seed": 17,
+      "before": 111400,
+      "after": 172099,
+      "speedup": 1.545,
+      "fairness_speedup": 1.228,
+      "cost_before": 164961,
+      "cost_after": 164225
+    },
+    {
+      "technicians": 20,
+      "workload": "ABSENCE",
+      "seed": 23,
+      "before": 109334,
+      "after": 172433,
+      "speedup": 1.577,
+      "fairness_speedup": 1.328,
+      "cost_before": 164562,
+      "cost_after": 163813
+    },
+    {
+      "technicians": 20,
+      "workload": "ABSENCE",
+      "seed": 41,
+      "before": 108748,
+      "after": 168499,
+      "speedup": 1.549,
+      "fairness_speedup": 1.352,
+      "cost_before": 164842,
+      "cost_after": 164354
+    },
+    {
+      "technicians": 20,
+      "workload": "CLUSTERED",
+      "seed": 17,
+      "before": 117345,
+      "after": 179337,
+      "speedup": 1.528,
+      "fairness_speedup": 1.52,
+      "cost_before": 168119,
+      "cost_after": 168169
+    },
+    {
+      "technicians": 20,
+      "workload": "CLUSTERED",
+      "seed": 23,
+      "before": 113568,
+      "after": 191907,
+      "speedup": 1.69,
+      "fairness_speedup": 1.495,
+      "cost_before": 168039,
+      "cost_after": 167989
+    },
+    {
+      "technicians": 20,
+      "workload": "CLUSTERED",
+      "seed": 41,
+      "before": 129852,
+      "after": 193361,
+      "speedup": 1.489,
+      "fairness_speedup": 1.179,
+      "cost_before": 168064,
+      "cost_after": 168064
+    },
+    {
+      "technicians": 20,
+      "workload": "DISPERSED",
+      "seed": 17,
+      "before": 133798,
+      "after": 190456,
+      "speedup": 1.423,
+      "fairness_speedup": 1.312,
+      "cost_before": 183037,
+      "cost_after": 182258
+    },
+    {
+      "technicians": 20,
+      "workload": "DISPERSED",
+      "seed": 23,
+      "before": 131921,
+      "after": 206032,
+      "speedup": 1.562,
+      "fairness_speedup": 1.324,
+      "cost_before": 182077,
+      "cost_after": 182077
+    },
+    {
+      "technicians": 20,
+      "workload": "DISPERSED",
+      "seed": 41,
+      "before": 135976,
+      "after": 199416,
+      "speedup": 1.467,
+      "fairness_speedup": 1.268,
+      "cost_before": 182874,
+      "cost_after": 181957
+    },
+    {
+      "technicians": 20,
+      "workload": "TIGHT_WINDOW",
+      "seed": 17,
+      "before": 146673,
+      "after": 222524,
+      "speedup": 1.517,
+      "fairness_speedup": 1.389,
+      "cost_before": 226971,
+      "cost_after": 225807
+    },
+    {
+      "technicians": 20,
+      "workload": "TIGHT_WINDOW",
+      "seed": 23,
+      "before": 141447,
+      "after": 224456,
+      "speedup": 1.587,
+      "fairness_speedup": 1.257,
+      "cost_before": 226812,
+      "cost_after": 226352
+    },
+    {
+      "technicians": 20,
+      "workload": "TIGHT_WINDOW",
+      "seed": 41,
+      "before": 151362,
+      "after": 223633,
+      "speedup": 1.477,
+      "fairness_speedup": 1.202,
+      "cost_before": 226966,
+      "cost_after": 226312
+    },
+    {
+      "technicians": 50,
+      "workload": "ABSENCE",
+      "seed": 17,
+      "before": 96227,
+      "after": 182104,
+      "speedup": 1.892,
+      "fairness_speedup": 1.307,
+      "cost_before": 410226,
+      "cost_after": 408276
+    },
+    {
+      "technicians": 50,
+      "workload": "ABSENCE",
+      "seed": 23,
+      "before": 91222,
+      "after": 181459,
+      "speedup": 1.989,
+      "fairness_speedup": 1.309,
+      "cost_before": 412666,
+      "cost_after": 410489
+    },
+    {
+      "technicians": 50,
+      "workload": "ABSENCE",
+      "seed": 41,
+      "before": 94131,
+      "after": 191313,
+      "speedup": 2.032,
+      "fairness_speedup": 1.333,
+      "cost_before": 410901,
+      "cost_after": 407838
+    },
+    {
+      "technicians": 50,
+      "workload": "CLUSTERED",
+      "seed": 17,
+      "before": 103522,
+      "after": 207571,
+      "speedup": 2.005,
+      "fairness_speedup": 1.099,
+      "cost_before": 419195,
+      "cost_after": 418275
+    },
+    {
+      "technicians": 50,
+      "workload": "CLUSTERED",
+      "seed": 23,
+      "before": 105718,
+      "after": 216999,
+      "speedup": 2.053,
+      "fairness_speedup": 1.343,
+      "cost_before": 417570,
+      "cost_after": 417525
+    },
+    {
+      "technicians": 50,
+      "workload": "CLUSTERED",
+      "seed": 41,
+      "before": 97956,
+      "after": 221671,
+      "speedup": 2.263,
+      "fairness_speedup": 1.385,
+      "cost_before": 417845,
+      "cost_after": 417331
+    },
+    {
+      "technicians": 50,
+      "workload": "DISPERSED",
+      "seed": 17,
+      "before": 107286,
+      "after": 227558,
+      "speedup": 2.121,
+      "fairness_speedup": 1.268,
+      "cost_before": 453821,
+      "cost_after": 450633
+    },
+    {
+      "technicians": 50,
+      "workload": "DISPERSED",
+      "seed": 23,
+      "before": 113731,
+      "after": 230144,
+      "speedup": 2.024,
+      "fairness_speedup": 1.294,
+      "cost_before": 453742,
+      "cost_after": 451007
+    },
+    {
+      "technicians": 50,
+      "workload": "DISPERSED",
+      "seed": 41,
+      "before": 115040,
+      "after": 222666,
+      "speedup": 1.936,
+      "fairness_speedup": 1.257,
+      "cost_before": 455743,
+      "cost_after": 450392
+    },
+    {
+      "technicians": 50,
+      "workload": "TIGHT_WINDOW",
+      "seed": 17,
+      "before": 126012,
+      "after": 251747,
+      "speedup": 1.998,
+      "fairness_speedup": 1.165,
+      "cost_before": 565902,
+      "cost_after": 564961
+    },
+    {
+      "technicians": 50,
+      "workload": "TIGHT_WINDOW",
+      "seed": 23,
+      "before": 129108,
+      "after": 246472,
+      "speedup": 1.909,
+      "fairness_speedup": 1.081,
+      "cost_before": 565261,
+      "cost_after": 563337
+    },
+    {
+      "technicians": 50,
+      "workload": "TIGHT_WINDOW",
+      "seed": 41,
+      "before": 125050,
+      "after": 242676,
+      "speedup": 1.941,
+      "fairness_speedup": 1.001,
+      "cost_before": 565726,
+      "cost_after": 564197
+    }
+  ],
+  "remote": [
+    {
+      "run": "k-embedded",
+      "offers_p50": 244,
+      "offers_p95": 357,
+      "searches": 1058,
+      "calculation_p50": 15,
+      "answered_201": 25,
+      "answered_503": 0,
+      "daily_cpu_mean": 185.19699999999997
+    },
+    {
+      "run": "k-remote",
+      "offers_p50": 352,
+      "offers_p95": 485,
+      "searches": 748,
+      "calculation_p50": 64,
+      "answered_201": 3,
+      "answered_503": 15,
+      "daily_cpu_mean": 43.186
+    },
+    {
+      "run": "k-remote4",
+      "offers_p50": 356,
+      "offers_p95": 556,
+      "searches": 753,
+      "calculation_p50": 63,
+      "answered_201": 5,
+      "answered_503": 13,
+      "daily_cpu_mean": 32.943000000000005
+    },
+    {
+      "run": "k-remote5",
+      "offers_p50": 374,
+      "offers_p95": 504,
+      "searches": 703,
+      "calculation_p50": 69,
+      "answered_201": 25,
+      "answered_503": 0,
+      "daily_cpu_mean": 36.415
     }
   ]
 }
