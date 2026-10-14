@@ -335,7 +335,7 @@ Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 40
 | 409 | `HOLD_UNAVAILABLE` | Hold expired, lost, released, superseded, not selected, or the day would need overtime | Search again (new `requestId`). |
 | 409 | `CANCELLED` | You cancelled the call | Nothing stored; repeat the same `requestId` if you still want it. |
 | 422 | `INCOMPLETE_FACTS` | Well formed but not schedulable: a date past its 6 a.m. cutoff, an unconfigured metro, an unlocatable job, `sequence` and `plannedStart` in different orders, no road route | Fix the facts or the dates; retrying unchanged returns the same answer. |
-| 429 | `BUSY` | Admission limit reached, a concurrent change to the same day, or the same `requestId` still running | Retry the same `requestId` with backoff, honouring `Retry-After` when present. |
+| 429 | `BUSY` | Admission limit reached, a concurrent change to the same day, or the same `requestId` still running. A daily or repair proposal is refused at once when the calculations ahead of it would not finish within its allowance, and `Retry-After` is their estimated time (up to 300 seconds) | Retry the same `requestId` after `Retry-After`. |
 | 503 | `ROUTING_UNAVAILABLE` | Road routing or address lookup unavailable | Retry the same `requestId` with backoff. |
 | 503 | `CALCULATION_UNAVAILABLE` | The deadline passed with nothing found, or the remote solver is unavailable | Retry the same `requestId` with backoff. |
 
