@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint app lib scripts prisma tests playwright.config.ts --max-warnings 0",
+    "lint": "next typegen && eslint app lib scripts prisma tests playwright.config.ts --max-warnings 0",
     "typecheck": "next typegen && tsc --noEmit",
     "test:schema-contract": "tsx scripts/check-schema-contract.ts",
     "test:client-boundaries:integration": "tsx scripts/check-client-boundaries.ts",
