@@ -55,6 +55,8 @@ public class BookingOffers {
     /** How long an offer holds its slot. */
     static final Duration HOLD = Required.value(Duration.ofMinutes(10));
     private static final Set<String> VARIANTS = Required.value(Set.of("INSERTION", "BOUNDED", "EXPANDED", "RUIN_RECREATE", "SHARED"));
+    /** Searches per request when other bookings keep changing its dates, all within the one deadline. */
+    static final int ATTEMPTS = 3;
 
     /** A request that will fail the same way every time it is repeated. */
     private static final class Final extends RuntimeException {
@@ -62,6 +64,13 @@ public class BookingOffers {
         final int status;
         final ErrorCode code;
         Final(int status, ErrorCode code, String message) { super(message); this.status = status; this.code = code; }
+    }
+
+    /** The snapshot is older than records already used: a final answer, as {@link Final} is. */
+    private static final class Stale extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        final transient StaleProblem problem;
+        Stale(StaleProblem problem) { super(problem.message(), null, false, false); this.problem = problem; }
     }
 
     private final PublicApiStore store;
@@ -108,7 +117,11 @@ public class BookingOffers {
 
     private static Reply replayed(Replay replay) {
         Object body;
-        try { body = replay.status() == 201 ? PublicRequests.read(replay.json(), OfferSet.class) : PublicRequests.read(replay.json(), Problem.class); }
+        try {
+            body = replay.status() == 201 ? PublicRequests.read(replay.json(), OfferSet.class)
+                    : CalculationJson.tree(replay.json()).has("changed") ? PublicRequests.read(replay.json(), StaleProblem.class)
+                    : PublicRequests.read(replay.json(), Problem.class);
+        }
         catch (IllegalArgumentException invalid) { throw new IllegalStateException("A stored response failed validation", invalid); }
         return Reply.of(replay.status(), body);
     }
@@ -125,13 +138,19 @@ public class BookingOffers {
             SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
             registered.attach(deadline);
             OfferSet offers = deadline.within(() -> {
+                // A request refused for its facts, or a late snapshot, is answered before it waits for a search slot. The
+                // search checks again in its slot, since other bookings may move the dates while it waits.
+                prepare(tenantId, request);
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
-                    try { return search(tenantId, request, owner); }
-                    catch (BookingStore.DayMoved moved) {
-                        // One retry within the same deadline after a concurrent change.
-                        LOG.info("Retrying booking search for job {}: {}", request.job().id(), moved.getMessage());
-                        SearchDeadline.beginExploration();
-                        return search(tenantId, request, owner);
+                    for (int attempt = 1; ; attempt++) {
+                        try { return search(tenantId, request, owner); }
+                        catch (BookingStore.DayMoved moved) {
+                            // Search again on the new state while the deadline leaves time to explore; the routes already
+                            // fetched are cached, so a retry costs less than the first search.
+                            if (attempt == ATTEMPTS || deadline.explorationNanos() == 0) throw moved;
+                            LOG.info("Retrying booking search for job {} (attempt {}): {}", request.job().id(), attempt + 1, moved.getMessage());
+                            SearchDeadline.beginExploration();
+                        }
                     }
                 }
             });
@@ -140,6 +159,9 @@ public class BookingOffers {
             Problem problem = new Problem(failure.code, Required.value(failure.getMessage()));
             store.completeWithError(tenantId, request.requestId(), owner, failure.status, problem);
             return Reply.of(failure.status, problem);
+        } catch (Stale stale) {
+            store.completeStale(tenantId, request.requestId(), owner, stale.problem);
+            return Reply.of(409, stale.problem);
         } catch (RoadClient.RoadUnavailable unavailable) {
             store.release(tenantId, request.requestId(), owner);
             return Reply.of(503, DailyProposals.routingUnavailable(unavailable));
@@ -162,7 +184,11 @@ public class BookingOffers {
     /** The reconciled state of one date, and how it was read. */
     private record Reconciled(DayKey key, StoredDay stored, BookingReconciliation.Result result) { }
 
-    private OfferSet search(String tenantId, BookingOffersRequest request, String owner) {
+    /** A request's facts as built for the search, and the stored state of its horizon dates, which it does not predate. */
+    private record Prepared(Instant now, RoadClient roads, String identity, RequestBooking.Built built, Map<LocalDate, StoredDay> stored) { }
+
+    /** Builds the request's facts and reads its dates' stored state; throws {@link Final} or {@link Stale} when it is refused. */
+    private Prepared prepare(String tenantId, BookingOffersRequest request) {
         PublicTypes.Snapshot facts = request.snapshot();
         Instant now = Required.value(clock.instant());
         ZoneId zone = Required.value(ZoneId.of(facts.timeZone()));
@@ -175,11 +201,28 @@ public class BookingOffers {
         RequestBooking.Built built;
         try { built = RequestBooking.build(request, identity, now, locator); }
         catch (RequestBooking.JobUnlocatable | RequestBooking.Contradictory refused) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, Required.value(refused.getMessage())); }
+        Map<LocalDate, StoredDay> stored = bookings.days(tenantId, facts.metroId(), built.snapshot().horizon());
+        // A late snapshot, older than one already used for a date, would read as a host change and lose holds.
+        List<PublicTypes.TechnicianDayVersion> outdated = new ArrayList<>();
+        stored.forEach((date, day) -> {
+            var stale = BookingReconciliation.stale(Required.value(day).state(), Required.value(built.snapshot().days().get(date), "horizon day"), now);
+            if (!stale.isEmpty()) outdated.addAll(BookingReconciliation.staleProblem(Required.value(date), stale).changed());
+        });
+        if (!outdated.isEmpty()) throw new Stale(BookingReconciliation.staleProblem(Required.value(List.copyOf(outdated))));
+        return new Prepared(now, roads, identity, built, stored);
+    }
+
+    private OfferSet search(String tenantId, BookingOffersRequest request, String owner) {
+        Prepared ready = prepare(tenantId, request);
+        Instant now = ready.now();
+        RoadClient roads = ready.roads();
+        String identity = ready.identity();
+        RequestBooking.Built built = ready.built();
         BoundedBookingSearch.Request job = built.request();
-        String metro = facts.metroId();
+        String metro = request.snapshot().metroId();
 
         // Reconcile every horizon date, and end this job's holds on any other date.
-        Map<LocalDate, StoredDay> stored = bookings.days(tenantId, metro, built.snapshot().horizon());
+        Map<LocalDate, StoredDay> stored = ready.stored();
         Map<LocalDate, Reconciled> days = new TreeMap<>();
         for (var entry : stored.entrySet()) {
             LocalDate date = Required.value(entry.getKey());
@@ -187,20 +230,20 @@ public class BookingOffers {
             days.put(date, new Reconciled(new DayKey(metro, date), Required.value(entry.getValue()),
                     BookingReconciliation.reconcile(Required.value(entry.getValue()).state(), host, job.jobId(), now)));
         }
-        Map<DayKey, Integer> read = new HashMap<>();
-        Map<DayKey, BookingDayState> writes = new HashMap<>();
-        Map<String, BookingReconciliation.Ending> ended = new TreeMap<>();
+        Map<DayKey, BookingStore.DayWrite> writes = new HashMap<>();
+        Set<String> heldBefore = new java.util.TreeSet<>();
         for (var entry : bookings.heldBy(tenantId, job.jobId()).entrySet()) {
             DayKey key = Required.value(entry.getKey());
+            heldBefore.addAll(Required.value(entry.getValue()));
             if (key.metroId().equals(metro) && days.containsKey(key.serviceDate())) continue;
             StoredDay elsewhere = Required.value(bookings.days(tenantId, key.metroId(), Required.value(List.of(key.serviceDate()))).get(key.serviceDate()));
             BookingDayState state = elsewhere.state();
-            read.put(key, elsewhere.version());
             if (state == null) continue;
             Set<String> superseded = new java.util.TreeSet<>(Required.value(entry.getValue()));
             superseded.retainAll(state.holds().keySet());
+            Map<String, BookingReconciliation.Ending> ended = new TreeMap<>();
             superseded.forEach(hold -> ended.put(hold, BookingReconciliation.Ending.SUPERSEDED));
-            if (!superseded.isEmpty()) writes.put(key, state.without(superseded));
+            if (!superseded.isEmpty()) writes.put(key, new BookingStore.DayWrite(elsewhere.version(), state.without(superseded), ended, true));
         }
 
         // Route the reconciled days; a date whose holds no longer fit loses them and is routed again without them.
@@ -251,16 +294,22 @@ public class BookingOffers {
         for (var entry : days.entrySet()) {
             LocalDate date = Required.value(entry.getKey());
             Reconciled day = Required.value(entry.getValue());
-            ended.putAll(day.result().ended());
             ReservationOffers.Prepared prepared = bundle.dates().get(date);
             BookingDayState next = prepared == null ? day.result().state()
                     : withOffers(day.result().state(), prepared.day().baseline(), Required.value(newHolds.getOrDefault(date, Required.value(Map.of()))));
-            read.put(day.key(), day.stored().version());
-            if (!next.equals(day.stored().state())) writes.put(day.key(), next);
+            Map<String, BookingReconciliation.Ending> ended = day.result().ended();
+            if (next.equals(day.stored().state())) {
+                // Every ending removes a hold from the state, so an unchanged day has none.
+                if (!ended.isEmpty()) throw new IllegalStateException("Holds ended on " + date + " without a change of its state");
+                continue;
+            }
+            // The offers depend on the days they hold, and the job's earlier holds must end; any other change only refreshes.
+            boolean placed = newHolds.containsKey(date) || ended.containsValue(BookingReconciliation.Ending.SUPERSEDED);
+            writes.put(day.key(), new BookingStore.DayWrite(day.stored().version(), next, ended, placed));
         }
         var body = new OfferSet(offerSetId, expiresAt, Required.value(List.copyOf(offers)), result.complete() && bundle.completed(), built.skipped());
         SearchDeadline.beforeCommit();
-        bookings.publish(tenantId, owner, read, writes, ended, new BookingStore.Publication(offerSetId, request.requestId(), job.jobId(), metro, expiresAt, body, newOffers));
+        bookings.publish(tenantId, owner, writes, heldBefore, new BookingStore.Publication(offerSetId, request.requestId(), job.jobId(), metro, expiresAt, body, newOffers));
         return body;
     }
 
@@ -324,8 +373,7 @@ public class BookingOffers {
     /** The day after publishing: the prepared common arrangement, its earlier holds (perhaps moved) and the new ones. */
     private static BookingDayState withOffers(BookingDayState reconciled, BookingSnapshot.Arrangement arrangement, Map<String, HoldState> added) {
         Map<String, TechnicianState> technicians = new TreeMap<>();
-        reconciled.technicians().forEach((id, technician) -> technicians.put(id, new TechnicianState(technician.version(), technician.expected(),
-                Required.value(arrangement.routes().get(id), "prepared route"))));
+        reconciled.technicians().forEach((id, technician) -> technicians.put(id, technician.routed(Required.value(arrangement.routes().get(id), "prepared route"))));
         Map<String, HoldState> holds = new HashMap<>();
         reconciled.holds().forEach((id, hold) -> {
             String technician = technicianOf(arrangement, Required.value(id));

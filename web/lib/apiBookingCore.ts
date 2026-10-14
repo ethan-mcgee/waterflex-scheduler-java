@@ -6,6 +6,25 @@ import { dayOfWeek } from "./technicianAvailability";
 
 /** The pure rules of booking through the public API: the horizon, exact timestamps, receipts and search outcomes. */
 
+/** How many times a search or confirm is sent while the scheduler answers STALE: other desks' writes moved the records. */
+export const STALE_ATTEMPTS = 3;
+
+/**
+ * Runs `call` with a new requestId, building its snapshot from records read at that moment, and again while the
+ * scheduler answers 409 STALE (the snapshot was older than records it already used), as the integration guide says.
+ * Any other failure, or STALE on the last attempt, is thrown.
+ */
+export async function sentAgainWhileStale<T>(call: (requestId: string) => Promise<T>, isStale: (error: unknown) => boolean,
+  newRequestId: () => string): Promise<{ requestId: string; result: T }> {
+  for (let attempt = 1; ; attempt++) {
+    const requestId = newRequestId();
+    try { return { requestId, result: await call(requestId) }; }
+    catch (error) {
+      if (!isStale(error) || attempt === STALE_ATTEMPTS) throw error;
+    }
+  }
+}
+
 /** Every date from tomorrow through the `weekdays`-th weekday, weekends between included (the scheduler's calendar). */
 export function bookingHorizon(today: string, weekdays: number): string[] {
   dateContract.parse(today);

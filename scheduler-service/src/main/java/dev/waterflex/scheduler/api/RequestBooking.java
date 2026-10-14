@@ -143,6 +143,12 @@ public final class RequestBooking {
         return Math.addExact(Math.multiplyExact(lastModified.getEpochSecond(), 1_000_000_000L), lastModified.getNano());
     }
 
+    /** The host's last-modified instant a {@link #version} was made from. */
+    static Instant instant(long version) {
+        if (version < 0) throw new IllegalArgumentException("Negative technician version");
+        return Required.value(Instant.ofEpochSecond(version / 1_000_000_000L, version % 1_000_000_000L));
+    }
+
     private static @Nullable RoadPoint point(Location location, DailyPreparation.AddressLocator locator, Map<PublicTypes.Address, @Nullable RoadPoint> located) {
         Double lat = location.lat(), lng = location.lng();
         if (lat != null && lng != null) return new RoadPoint(lat, lng);
