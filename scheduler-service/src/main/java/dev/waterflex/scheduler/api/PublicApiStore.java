@@ -143,6 +143,29 @@ public class PublicApiStore {
         });
     }
 
+    /** A request's claim: its operation, and its stored answer once it completed (both null while in progress). */
+    public record RequestRow(Operation operation, @Nullable Integer responseStatus, @Nullable String responseJson) {
+        public RequestRow {
+            if ((responseStatus == null) != (responseJson == null)) throw new IllegalStateException("A completed request has both a status and a body");
+        }
+        public boolean completed() { return responseStatus != null; }
+    }
+
+    /** The tenant's claim for this requestId, or null when it has none. */
+    public @Nullable RequestRow request(String tenantId, String requestId) {
+        return asTenant(tenantId, () -> {
+            List<RequestRow> rows = jdbc.query("SELECT operation,state,\"responseStatus\",\"responseJson\"::text FROM api_request WHERE \"tenantId\"=? AND \"requestId\"=?",
+                    (rs, _) -> {
+                        boolean completed = "COMPLETED".equals(DatabaseFacts.string(rs, 2));
+                        return new RequestRow(Operation.valueOf(DatabaseFacts.string(rs, 1)), completed ? DatabaseFacts.integer(rs, 3) : null,
+                                completed ? DatabaseFacts.string(rs, 4) : null);
+                    }, tenantId, requestId);
+            return new FoundRequest(rows.isEmpty() ? null : rows.getFirst());
+        }).value();
+    }
+
+    private record FoundRequest(@Nullable RequestRow value) { }
+
     /** Gives up a claim without a stored response, so a retry runs again (for example after routing was unavailable). */
     public void release(String tenantId, String requestId, String ownerToken) {
         asTenant(tenantId, () -> {

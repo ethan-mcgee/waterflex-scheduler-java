@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.3.0
+  version: 1.4.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -35,6 +35,11 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.4.0 (2026-10-13): createDailyProposal and createRepairProposal accept the optional request header
+      `Prefer: respond-async`: the request is queued and answered 202 at once with a RequestStatus, and the host polls
+      the new getRequest (GET /api/v1/requests/{requestId}) for its answer. Queued requests are taken by any replica,
+      round-robin across tenants. cancelRequest also cancels a queued request from any replica. Without the header,
+      both operations behave as before.
     - 1.3.0 (2026-10-13): OfferSet gains incompleteDates, the horizon dates where a pass the offers need did not
       finish. refinement gains SHED: an optional refinement skipped because other booking requests were waiting for
       a slot. Policy gains the optional bookingRefinementMs, the client's own budget for an optional refinement.
@@ -87,7 +92,10 @@ paths:
         Technician-days whose locations cannot be resolved are left exactly as they are and listed in
         skippedTechnicianDays; every other technician-day is still optimized. Routes are frozen from 6 a.m.
         local time on the service date. Repeating a request with the same requestId replays the stored result.
+        With `Prefer: respond-async` the request is queued and answered 202; poll getRequest for its answer.
       x-implementation: implemented
+      parameters:
+        - $ref: '#/components/parameters/Prefer'
       requestBody:
         required: true
         content:
@@ -103,6 +111,7 @@ paths:
               schema: { $ref: '#/components/schemas/DailyProposal' }
               examples:
                 proposed: { $ref: '#/components/examples/DailyProposal' }
+        '202': { $ref: '#/components/responses/Queued' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/Cancelled' }
@@ -341,8 +350,11 @@ paths:
         the absence's date only and must include the absent technician-day. The decision is IMPROVED only when every
         appointment is placed, every constraint holds and no overtime is added; otherwise the current routes are
         returned with reason "Repair infeasible" and nothing can be committed. An absent technician-day that cannot
-        be located is a 422. The absence itself is the host's to record.
+        be located is a 422. The absence itself is the host's to record. With `Prefer: respond-async` the request is
+        queued and answered 202, as a daily proposal is.
       x-implementation: implemented
+      parameters:
+        - $ref: '#/components/parameters/Prefer'
       requestBody:
         required: true
         content:
@@ -358,6 +370,7 @@ paths:
               schema: { $ref: '#/components/schemas/DailyProposal' }
               examples:
                 proposed: { $ref: '#/components/examples/DailyProposal' }
+        '202': { $ref: '#/components/responses/Queued' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '409': { $ref: '#/components/responses/Cancelled' }
@@ -365,6 +378,68 @@ paths:
         '429': { $ref: '#/components/responses/Busy' }
         '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/requests/{requestId}:
+    get:
+      operationId: getRequest
+      tags: [Integration]
+      summary: The status of a daily or repair proposal request, and its answer once complete.
+      description: >-
+        Reports a daily or repair proposal request sent with or without `Prefer: respond-async`: QUEUED while it waits
+        for a calculation slot on any replica, RUNNING while it is calculated, COMPLETED with the answer the call
+        itself would have given. A completed result with status 201 carries the stored proposal; the same requestId
+        sent again replays it. A completed result with an error status that is not stored (BUSY, ROUTING_UNAVAILABLE,
+        CALCULATION_UNAVAILABLE or CANCELLED) released the requestId, so sending the request again with it runs it
+        again; it carries retryAfterSeconds when a wait is advised. Poll no sooner than Retry-After. Other operations'
+        requests and unknown IDs are 404.
+      x-implementation: implemented
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/RequestId' }
+      responses:
+        '200':
+          description: The request's status.
+          headers:
+            Retry-After:
+              description: Seconds before the next poll, while the request is QUEUED or RUNNING.
+              schema: { type: integer, minimum: 1 }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RequestStatus' }
+              examples:
+                running:
+                  value: { requestId: 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d, operation: DAILY_PROPOSAL, state: RUNNING, queuedAt: '2026-10-11T22:00:00.120Z', startedAt: '2026-10-11T22:00:41.902Z' }
+                proposed:
+                  value:
+                    requestId: 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
+                    operation: DAILY_PROPOSAL
+                    state: COMPLETED
+                    queuedAt: '2026-10-11T22:00:00.120Z'
+                    startedAt: '2026-10-11T22:00:41.902Z'
+                    result:
+                      status: 201
+                      body:
+                        proposalId: prop-0c4e
+                        inputRevision: 9f2b6c0d4e1a7b3c5d8e0f1a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e
+                        decision: NO_IMPROVEMENT
+                        reason: No appointments to optimize
+                        routes: []
+                        unresolvedAppointmentIds: []
+                        skippedTechnicianDays: []
+                        costCents: 0
+                        overtimeMinutes: 0
+                cancelled:
+                  value:
+                    requestId: 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d
+                    operation: REPAIR_PROPOSAL
+                    state: COMPLETED
+                    queuedAt: '2026-10-11T22:00:00.120Z'
+                    result:
+                      status: 409
+                      body: { error: CANCELLED, message: 'The request was cancelled; nothing was stored, and retrying it with the same requestId runs it again' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     delete:
       operationId: cancelRequest
       tags: [Integration]
@@ -372,9 +447,11 @@ paths:
       description: >-
         Cancels a daily or repair proposal, booking search or confirm that is still running under this requestId.
         The cancelled call answers 409 CANCELLED, stores nothing, and releases its requestId, so retrying it with
-        the same requestId runs it again. Cancellation reaches only the scheduler replica running the call: behind
-        several replicas, route this request by requestId as the call itself was routed, or it is a 404 and the
-        call still stops at its own deadline.
+        the same requestId runs it again. A request sent with `Prefer: respond-async` is cancelled from any replica:
+        a queued one ends at once and a running one stops within a few seconds, and getRequest then reports the 409.
+        Any other call is cancelled only by the scheduler replica running it: behind several replicas, route this
+        request by requestId as the call itself was routed, or it is a 404 and the call still stops at its own
+        deadline.
       x-implementation: implemented
       parameters:
         - name: requestId
@@ -396,6 +473,15 @@ components:
         `--command=issue-token` and revoked with `--command=revoke-token`. A tenant may hold several active tokens, so a
         token is rotated by issuing the new one, deploying it, then revoking the old one.
   parameters:
+    Prefer:
+      name: Prefer
+      in: header
+      required: false
+      description: >-
+        RFC 7240 preferences. `respond-async` queues the request and answers 202 at once instead of calculating within
+        the call. Other preferences are ignored.
+      schema: { type: string }
+      example: respond-async
     ProposalId:
       name: proposalId
       in: path
@@ -492,12 +578,34 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
             unroutable: { value: { error: INCOMPLETE_FACTS, message: No road route to appointment appt-7 } }
+    Queued:
+      description: >-
+        Queued, because the request asked `Prefer: respond-async`: a worker on any replica calculates it, taking
+        queued requests round-robin across tenants. Poll getRequest at Location, no sooner than Retry-After. A request
+        that waits longer than the deployment's queue allowance (15 minutes unless the operator changes it) completes
+        with 429 BUSY without running. The same requestId sent again while it is queued or running answers 202 again.
+      headers:
+        Location:
+          description: The request's status, /api/v1/requests/{requestId}.
+          schema: { type: string }
+        Retry-After:
+          description: Seconds before the first poll.
+          schema: { type: integer, minimum: 1 }
+        Preference-Applied:
+          schema: { type: string, const: respond-async }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/RequestStatus' }
+          examples:
+            queued: { value: { requestId: 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d, operation: DAILY_PROPOSAL, state: QUEUED, queuedAt: '2026-10-11T22:00:00.120Z' } }
     Busy:
       description: >-
         Admission limit reached, or a call with the same requestId is still running; retry with backoff. A daily or
         repair proposal is refused at once, before anything is routed, when the calculations ahead of it on this
         replica would not finish within its allowance; Retry-After is then their estimated remaining time in seconds
-        (at most 300). Otherwise Retry-After is 1.
+        (at most 300). A request sent with `Prefer: respond-async` is refused when the tenant already has as many
+        queued or running as the deployment allows (50 unless the operator changes it), with Retry-After 30. Otherwise
+        Retry-After is 1.
       headers:
         Retry-After:
           schema: { type: integer, minimum: 1 }
@@ -1096,6 +1204,50 @@ components:
       oneOf:
         - { $ref: '#/components/schemas/StaleProblem' }
         - { $ref: '#/components/schemas/Problem' }
+    RequestStatus:
+      type: object
+      additionalProperties: false
+      required: [requestId, operation, state]
+      properties:
+        requestId: { $ref: '#/components/schemas/RequestId' }
+        operation:
+          type: string
+          enum: [DAILY_PROPOSAL, REPAIR_PROPOSAL]
+        state:
+          type: string
+          enum: [QUEUED, RUNNING, COMPLETED]
+          description: >-
+            QUEUED waits for a calculation slot; RUNNING is being calculated (or, for a call sent without
+            respond-async, still running within it); COMPLETED has a result.
+        queuedAt:
+          $ref: '#/components/schemas/Instant'
+          description: When the request was queued; absent for a call sent without respond-async.
+        startedAt:
+          $ref: '#/components/schemas/Instant'
+          description: When its calculation last started; absent while queued and for a call sent without respond-async.
+        result:
+          $ref: '#/components/schemas/RequestResult'
+          description: Present exactly when state is COMPLETED.
+    RequestResult:
+      type: object
+      additionalProperties: false
+      required: [status, body]
+      properties:
+        status:
+          type: integer
+          minimum: 200
+          maximum: 599
+          description: The HTTP status the call answered, or would have answered had it been sent without respond-async.
+        body:
+          description: The answer's body, a DailyProposal for 201 and a Problem otherwise.
+          oneOf:
+            - $ref: '#/components/schemas/DailyProposal'
+            - $ref: '#/components/schemas/Problem'
+        retryAfterSeconds:
+          type: integer
+          minimum: 1
+          maximum: 300
+          description: For a refusal that released the requestId, the seconds to wait before sending it again.
   examples:
     DailyProposalRequest:
       value:

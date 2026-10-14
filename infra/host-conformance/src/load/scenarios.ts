@@ -3,7 +3,8 @@
 // A daily loop asks for a proposal of one metro day again and again. Loops run until the run's end time; a 429 BUSY is
 // retried with the same requestId after Retry-After, as a host should, and its wait counts in the call's time. A 409
 // STALE (the snapshot was older than records the scheduler already used) is sent again with current records and a
-// new requestId, as the integration guide says.
+// new requestId, as the integration guide says. With --daily-mode async a daily loop sends Prefer: respond-async and
+// polls GET /api/v1/requests/{requestId} as Retry-After asks, as a host using the queue would.
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
@@ -26,7 +27,12 @@ export interface BookingSettings {
   readonly jobLocation: () => Point;
 }
 
-export interface DailySettings { readonly store: HostStore; readonly date: string }
+export interface DailySettings {
+  readonly store: HostStore;
+  readonly date: string;
+  /** sync calculates within the call; async queues with Prefer: respond-async and polls the request's status. */
+  readonly mode: "sync" | "async";
+}
 
 export interface BookingTally {
   searches: number; searchIncomplete: number; offers: number; noOffers: number; selected: number; holdUnavailable: number;
@@ -37,7 +43,12 @@ export interface BookingTally {
   refinements: Record<string, number>;
 }
 
-export interface DailyTally { proposals: number; decisions: Record<string, number> }
+export interface DailyTally {
+  proposals: number;
+  decisions: Record<string, number>;
+  /** Queued proposals only: milliseconds from queuing to the start of the calculation, from the request's status. */
+  queueWaitsMs: number[];
+}
 
 export interface Run {
   readonly api: SchedulerApi;
@@ -57,7 +68,7 @@ export function newTallies(): { booking: BookingTally; daily: DailyTally } {
   return {
     booking: { searches: 0, searchIncomplete: 0, offers: 0, noOffers: 0, selected: 0, holdUnavailable: 0, confirmed: 0, hostWriteConflicts: 0,
       released: 0, failedSearches: 0, stale: 0, refinements: {} },
-    daily: { proposals: 0, decisions: {} },
+    daily: { proposals: 0, decisions: {}, queueWaitsMs: [] },
   };
 }
 
@@ -83,7 +94,7 @@ export function retryAfterMs(reply: Reply): number {
   return Number.isInteger(seconds) && seconds >= 1 && seconds <= 300 ? seconds * 1000 : 1000;
 }
 
-function problem(reply: Reply): { error: string | null; message: string | null } {
+function problem(reply: Pick<Reply, "status" | "json">): { error: string | null; message: string | null } {
   if (reply.status < 400) return { error: null, message: null };
   const parsed = Api.Problem.safeParse(reply.json);
   if (parsed.success) return { error: parsed.data.error, message: parsed.data.message };
@@ -105,15 +116,19 @@ async function current(run: Run, operation: string, path: string, body: () => ob
   }
 }
 
+/** How many attempts each answered call took, BUSY retries included. */
+const attemptsOf = new WeakMap<Reply, number>();
+
 /** Calls once and repeats a 429 with the same body until another answer, or until one minute past the run's end. */
-async function call(run: Run, operation: string, method: "POST" | "DELETE", path: string, body: object, timeoutMs: number): Promise<Reply | null> {
+async function call(run: Run, operation: string, method: "POST" | "DELETE", path: string, body: object, timeoutMs: number,
+                    headers?: Readonly<Record<string, string>>): Promise<Reply | null> {
   const started = performance.now();
   let attempts = 0;
   for (;;) {
     attempts++;
     let reply: Reply;
     try {
-      reply = await run.api.call(method, path, body, { timeoutMs });
+      reply = await run.api.call(method, path, body, { timeoutMs, ...(headers === undefined ? {} : { headers }) });
     } catch (error) {
       run.records.push({ operation, status: null, error: error instanceof Error ? error.name : "Error", message: null, ms: Math.round(performance.now() - started), attempts });
       return null;
@@ -123,6 +138,7 @@ async function call(run: Run, operation: string, method: "POST" | "DELETE", path
       continue;
     }
     run.records.push({ operation, status: reply.status, ...problem(reply), ms: Math.round(performance.now() - started), attempts });
+    attemptsOf.set(reply, attempts);
     return reply;
   }
 }
@@ -200,14 +216,58 @@ export async function bookingLoop(run: Run, settings: BookingSettings, desk: num
 export async function dailyLoop(run: Run, settings: DailySettings, timeoutMs: number): Promise<void> {
   while (Date.now() < run.endsAt) {
     run.daily.proposals++;
-    const reply = await call(run, "daily proposal", "POST", "/api/v1/daily/proposals",
-      { requestId: randomUUID(), serviceDate: settings.date, snapshot: settings.store.snapshot([settings.date]) }, timeoutMs);
-    if (reply === null || reply.status !== 201) {
+    const body = { requestId: randomUUID(), serviceDate: settings.date, snapshot: settings.store.snapshot([settings.date]) };
+    const proposal = settings.mode === "sync" ? await synchronous(run, body, timeoutMs) : await queued(run, body);
+    if (proposal === null) {
       await sleep(200);
       continue;
     }
-    const proposal = parsed(run, reply, Api.DailyProposal, "Daily proposal");
-    if (proposal !== null) run.daily.decisions[proposal.decision] = (run.daily.decisions[proposal.decision] ?? 0) + 1;
+    run.daily.decisions[proposal.decision] = (run.daily.decisions[proposal.decision] ?? 0) + 1;
+  }
+}
+
+async function synchronous(run: Run, body: { requestId: string }, timeoutMs: number): Promise<Api.DailyProposal | null> {
+  const reply = await call(run, "daily proposal", "POST", "/api/v1/daily/proposals", body, timeoutMs);
+  return reply === null || reply.status !== 201 ? null : parsed(run, reply, Api.DailyProposal, "Daily proposal");
+}
+
+/**
+ * Queues the proposal, then polls its status until it completes. "daily queue" is the call that queues it; "daily
+ * proposal" is from queuing to the completed answer, with the answer's status, as the synchronous call would have had.
+ */
+async function queued(run: Run, body: { requestId: string }): Promise<Api.DailyProposal | null> {
+  const started = performance.now();
+  const accepted = await call(run, "daily queue", "POST", "/api/v1/daily/proposals", body, 30_000, { Prefer: "respond-async" });
+  if (accepted === null || accepted.status !== 202) return null;
+  if (parsed(run, accepted, Api.RequestStatus, "Queued daily proposal") === null) return null;
+  // Polls are not BUSY retries: the proposal counts as retried only when queuing it was refused first.
+  const queueAttempts = attemptsOf.get(accepted) ?? 1;
+  let wait = retryAfterMs(accepted);
+  for (;;) {
+    await sleep(Math.min(wait, 5000));
+    let reply: Reply;
+    try {
+      reply = await run.api.call("GET", `/api/v1/requests/${body.requestId}`, undefined, { timeoutMs: 30_000 });
+    } catch (error) {
+      run.records.push({ operation: "daily proposal", status: null, error: error instanceof Error ? error.name : "Error", message: null,
+        ms: Math.round(performance.now() - started), attempts: queueAttempts });
+      return null;
+    }
+    const status = reply.status === 200 ? parsed(run, reply, Api.RequestStatus, "Daily request status") : null;
+    if (status === null) {
+      run.records.push({ operation: "daily proposal", status: reply.status, ...problem(reply), ms: Math.round(performance.now() - started), attempts: queueAttempts });
+      return null;
+    }
+    const result = status.result;
+    if (status.state !== "COMPLETED" || result === undefined) {
+      if (Date.now() > run.endsAt + 600_000) return null;
+      wait = retryAfterMs(reply);
+      continue;
+    }
+    run.records.push({ operation: "daily proposal", status: result.status, ...problem({ status: result.status, json: result.body }),
+      ms: Math.round(performance.now() - started), attempts: queueAttempts });
+    if (status.queuedAt !== undefined && status.startedAt !== undefined) run.daily.queueWaitsMs.push(Date.parse(status.startedAt) - Date.parse(status.queuedAt));
+    return result.status === 201 ? Api.DailyProposal.parse(result.body) : null;
   }
 }
 

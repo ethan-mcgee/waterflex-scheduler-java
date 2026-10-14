@@ -52,14 +52,24 @@ public class PublicApiController {
         return new dev.waterflex.scheduler.api.PublicResponses.WhoAmI(TenantAuthentication.tenant(request));
     }
 
+    /** With {@code Prefer: respond-async}, queued and answered 202 at once; otherwise calculated within the call. */
     @PostMapping("/daily/proposals")
     public void createDailyProposal(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        reply(response, dailyProposals.create(TenantAuthentication.tenant(request), body(request)));
+        String tenant = TenantAuthentication.tenant(request);
+        reply(response, respondAsync(request) ? dailyProposals.createAsync(tenant, body(request)) : dailyProposals.create(tenant, body(request)));
     }
 
+    /** With {@code Prefer: respond-async}, queued and answered 202 at once; otherwise calculated within the call. */
     @PostMapping("/repairs/proposals")
     public void createRepairProposal(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        reply(response, dailyProposals.repair(TenantAuthentication.tenant(request), body(request)));
+        String tenant = TenantAuthentication.tenant(request);
+        reply(response, respondAsync(request) ? dailyProposals.repairAsync(tenant, body(request)) : dailyProposals.repair(tenant, body(request)));
+    }
+
+    /** The status of a daily or repair proposal request, and its answer once complete. */
+    @GetMapping("/requests/{requestId}")
+    public void getRequest(HttpServletRequest request, @PathVariable String requestId, HttpServletResponse response) throws IOException {
+        reply(response, dailyProposals.describe(TenantAuthentication.tenant(request), requestId));
     }
 
     @PostMapping("/daily/proposals/{proposalId}/commit")
@@ -114,12 +124,26 @@ public class PublicApiController {
         return new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
     }
 
+    /** Whether the request's Prefer headers (RFC 7240) include respond-async. */
+    static boolean respondAsync(HttpServletRequest request) {
+        var headers = request.getHeaders("Prefer");
+        while (headers != null && headers.hasMoreElements())
+            for (String preference : headers.nextElement().split(",")) {
+                String token = preference.split(";", 2)[0].split("=", 2)[0].strip();
+                if (token.equalsIgnoreCase("respond-async")) return true;
+            }
+        return false;
+    }
+
     /** Writes the service's JSON exactly as produced; a message converter would encode it again as a JSON string. */
     private static void reply(HttpServletResponse response, DailyProposals.Reply reply) throws IOException {
         response.setStatus(reply.status());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         Integer retryAfter = reply.retryAfterSeconds();
         if (retryAfter != null) response.setHeader("Retry-After", Integer.toString(retryAfter));
+        String location = reply.location();
+        if (location != null) response.setHeader("Location", location);
+        if (reply.status() == HttpServletResponse.SC_ACCEPTED) response.setHeader("Preference-Applied", "respond-async");
         byte[] json = reply.json().getBytes(StandardCharsets.UTF_8);
         response.setContentLength(json.length);
         response.getOutputStream().write(json);

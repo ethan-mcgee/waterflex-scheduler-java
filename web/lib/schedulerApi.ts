@@ -61,6 +61,12 @@ const geometryRoute = z.object({ technicianId: id, serviceDate,
 /** A day's routes drawn on roads in their given order; a technician-day that could not be located is skipped. */
 export const routeGeometry = z.object({ routingIdentity: z.string().min(1), routes: z.array(geometryRoute), skippedTechnicianDays: z.array(skippedTechnicianDay) }).strict();
 const whoami = z.object({ tenantId: z.string().min(1) }).strict();
+/** The answer a queued proposal ended with; its body is checked against the answer's own schema when it is read. */
+const requestResult = z.object({ status: z.int().min(200).max(599), body: z.unknown(), retryAfterSeconds: z.int().min(1).max(300).optional() }).strict();
+/** GET /api/v1/requests/{requestId}, and the 202 to a proposal sent with Prefer: respond-async (spec 1.4.0). */
+export const requestStatus = z.object({ requestId: z.uuid(), operation: z.enum(["DAILY_PROPOSAL", "REPAIR_PROPOSAL"]),
+  state: z.enum(["QUEUED", "RUNNING", "COMPLETED"]), queuedAt: instant.optional(), startedAt: instant.optional(), result: requestResult.optional(),
+}).strict().refine(value => (value.state === "COMPLETED") === (value.result !== undefined), "A request has a result exactly when it is COMPLETED");
 
 export type OfferSet = z.infer<typeof offerSet>;
 export type Hold = z.infer<typeof hold>;
@@ -70,6 +76,7 @@ export type RouteEvaluation = z.infer<typeof routeEvaluation>;
 export type RouteGeometry = z.infer<typeof routeGeometry>;
 export type TechnicianDayVersion = z.infer<typeof technicianDayVersion>;
 export type ProblemCode = z.infer<typeof problem>["error"];
+export type RequestStatus = z.infer<typeof requestStatus>;
 
 /** A refused or failed call. `code` is the API's error, or TRANSPORT / MALFORMED / NOT_CONNECTED for the portal's own failures. */
 export class SchedulerApiError extends Error {
@@ -128,12 +135,13 @@ export function connection(clientId: string, env: Environment = process.env, rea
   return { baseUrl: baseUrl.replace(/\/+$/, ""), token };
 }
 
-async function send(clientId: string, method: "GET" | "POST" | "DELETE", path: string, body: unknown, timeoutMs: number): Promise<Response> {
+async function send(clientId: string, method: "GET" | "POST" | "DELETE", path: string, body: unknown, timeoutMs: number,
+  extraHeaders: Readonly<Record<string, string>> = {}): Promise<Response> {
   const { baseUrl, token } = connection(clientId);
   let response: Response;
   try {
     response = await fetch(`${baseUrl}${path}`, { method, signal: AbortSignal.timeout(timeoutMs),
-      headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
+      headers: { ...extraHeaders, Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { "Content-Type": "application/json" }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   } catch (error) {
     const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
@@ -145,7 +153,11 @@ async function send(clientId: string, method: "GET" | "POST" | "DELETE", path: s
 }
 
 async function call<T>(clientId: string, method: "GET" | "POST", path: string, body: unknown, schema: z.ZodType<T>, timeoutMs: number): Promise<T> {
-  const response = await send(clientId, method, path, body, timeoutMs);
+  return parsed(await send(clientId, method, path, body, timeoutMs), path, schema);
+}
+
+/** A response's body checked against `schema`, or the refusal it carries as a SchedulerApiError. */
+async function parsed<T>(response: Response, path: string, schema: z.ZodType<T>): Promise<T> {
   let payload: unknown;
   try { payload = await response.json(); }
   catch { throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unreadable ${response.status} response`); }
@@ -236,6 +248,79 @@ export function proposalTimeoutMs(policy: PublicSnapshot["policy"]): number {
 
 export function createDailyProposal(clientId: string, request: { requestId: string; serviceDate: string; snapshot: PublicSnapshot }): Promise<DailyProposal> {
   return tenantCall(clientId, "/api/v1/daily/proposals", request, dailyProposal, proposalTimeoutMs(request.snapshot.policy));
+}
+
+/** Seconds to wait before polling when a status carries no Retry-After. */
+const DEFAULT_POLL_MS = 3000;
+
+/** Retry-After in milliseconds for a poll, at least one second; the default when absent or malformed. */
+export function pollAfterMs(response: Pick<Response, "headers">): number {
+  const header = response.headers.get("retry-after");
+  return header !== null && /^[1-9][0-9]{0,5}$/.test(header) ? Number(header) * 1000 : DEFAULT_POLL_MS;
+}
+
+/** What queuing a proposal answered: its status and when to poll it, or (for a requestId that already finished) the stored proposal. */
+export type Queued = { readonly status: RequestStatus; readonly pollAfterMs: number } | { readonly proposal: DailyProposal };
+
+/** Queues a daily proposal with Prefer: respond-async: 202 with the request's status, or 201 replaying a finished one. */
+export async function queueDailyProposal(clientId: string, request: { requestId: string; serviceDate: string; snapshot: PublicSnapshot }): Promise<Queued> {
+  await verifyTenant(clientId);
+  const path = "/api/v1/daily/proposals";
+  const response = await send(clientId, "POST", path, request, 30000, { Prefer: "respond-async" });
+  if (response.status === 201) return { proposal: await parsed(response, path, dailyProposal) };
+  if (response.status !== 202 && response.ok)
+    throw new SchedulerApiError(502, "MALFORMED", `The scheduling service answered ${response.status} to a queued proposal`);
+  return { status: await parsed(response, path, requestStatus), pollAfterMs: pollAfterMs(response) };
+}
+
+/** The status of a daily or repair proposal request, and when to poll it again. */
+export async function readRequestStatus(clientId: string, requestId: string): Promise<{ status: RequestStatus; pollAfterMs: number }> {
+  await verifyTenant(clientId);
+  const path = `/api/v1/requests/${encodeURIComponent(requestId)}`;
+  const response = await send(clientId, "GET", path, undefined, 10000);
+  return { status: await parsed(response, path, requestStatus), pollAfterMs: pollAfterMs(response) };
+}
+
+export interface QueueDependencies {
+  queue: typeof queueDailyProposal;
+  read: typeof readRequestStatus;
+  sleep: (ms: number) => Promise<void>;
+  now: () => number;
+}
+
+const queueDefaults: QueueDependencies = { queue: queueDailyProposal, read: readRequestStatus,
+  sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), now: () => Date.now() };
+
+/**
+ * Queues a daily proposal and polls its status as Retry-After asks until it completes, within `limitMs`: the
+ * proposal, or the refusal it ended with as a SchedulerApiError (a 429 keeps its Retry-After). The scheduler takes
+ * queued proposals from every client in turn, so one client's many days never hold back another client's.
+ */
+export async function awaitDailyProposal(clientId: string, request: { requestId: string; serviceDate: string; snapshot: PublicSnapshot },
+  limitMs: number, dependencies: Partial<QueueDependencies> = {}): Promise<DailyProposal> {
+  const { queue, read, sleep, now } = { ...queueDefaults, ...dependencies };
+  const until = now() + limitMs;
+  const queued = await queue(clientId, request);
+  if ("proposal" in queued) return queued.proposal;
+  let current = queued;
+  while (current.status.state !== "COMPLETED") {
+    if (now() + current.pollAfterMs > until)
+      throw new SchedulerApiError(504, "TRANSPORT", `The queued proposal was still ${current.status.state.toLowerCase()} after ${Math.round(limitMs / 1000)} seconds`);
+    await sleep(current.pollAfterMs);
+    current = await read(clientId, request.requestId);
+    if (current.status.requestId !== request.requestId) throw new SchedulerApiError(502, "MALFORMED", "The scheduling service reported another request's status");
+  }
+  const result = current.status.result;
+  if (result === undefined) throw new SchedulerApiError(502, "MALFORMED", "A completed request has no result");
+  if (result.status === 201) {
+    const proposal = dailyProposal.safeParse(result.body);
+    if (!proposal.success) throw new SchedulerApiError(502, "MALFORMED", "The queued proposal does not match the API");
+    return proposal.data;
+  }
+  const refused = problem.safeParse(result.body);
+  if (!refused.success || result.status < 400) throw new SchedulerApiError(502, "MALFORMED", `The queued proposal ended with an unexpected ${result.status} result`);
+  throw new SchedulerApiError(result.status, refused.data.error, refused.data.message, refused.data.changed,
+    result.status === 429 && result.retryAfterSeconds !== undefined ? result.retryAfterSeconds * 1000 : null);
 }
 
 export function commitDailyProposal(clientId: string, proposalId: string, request: { requestId: string; technicianDays: TechnicianDayVersion[] }): Promise<CommitReceipt> {

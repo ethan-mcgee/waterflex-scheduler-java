@@ -139,6 +139,36 @@ function firstOffer(set: Api.OfferSet, what: string) {
 
 const requestOnly = () => ({ requestId: randomUUID() });
 
+const RESPOND_ASYNC = { Prefer: "respond-async" } as const;
+/** How long a queued request may take: a wait behind other work on a busy scheduler, then its own calculation. */
+const QUEUED_TIMEOUT_MS = PROPOSAL_TIMEOUT_MS + 120_000;
+
+/** A 202 to Prefer: respond-async: Location names the request's status, Retry-After when to poll, and the body is its status. */
+function expectQueued(reply: Reply, requestId: string, what: string): Api.RequestStatus {
+  const status = expectBody(reply, 202, Api.RequestStatus, what);
+  check(reply.headers.get("location") === `/api/v1/requests/${requestId}`, `${what}: Location is ${reply.headers.get("location") ?? "missing"}`);
+  check(Number(reply.headers.get("retry-after")) >= 1, `${what}: no Retry-After`);
+  check(reply.headers.get("preference-applied") === "respond-async", `${what}: no Preference-Applied: respond-async`);
+  check(status.requestId === requestId && status.state !== "COMPLETED" && status.result === undefined, `${what}: not waiting or running: ${reply.text}`);
+  return status;
+}
+
+/** Polls GET /api/v1/requests/{requestId} as Retry-After asks until the request completes, and returns its status. */
+async function awaitCompleted(context: Context, requestId: string, what: string): Promise<Api.RequestStatus> {
+  const until = Date.now() + QUEUED_TIMEOUT_MS;
+  while (true) {
+    const reply = await context.api.call("GET", `/api/v1/requests/${requestId}`);
+    const status = expectBody(reply, 200, Api.RequestStatus, what);
+    check(status.requestId === requestId, `${what}: the status names another request`);
+    check((status.state === "COMPLETED") === (status.result !== undefined), `${what}: a result exactly when COMPLETED`);
+    if (status.state === "COMPLETED") return status;
+    check(Date.now() < until, `${what}: still ${status.state} after ${QUEUED_TIMEOUT_MS / 1000} s`);
+    const wait = Number(reply.headers.get("retry-after"));
+    check(wait >= 1, `${what}: a ${status.state} status without Retry-After`);
+    await new Promise(resolve => setTimeout(resolve, Math.min(wait, 5) * 1000));
+  }
+}
+
 /** The day's appointments as the kit sent them must all appear exactly once across the proposal's routes. */
 function checkRoutesCover(proposal: Api.DailyProposal, appointmentIds: readonly string[], what: string) {
   const routed = proposal.routes.flatMap(route => route.stops.map(stop => stop.appointmentId)).sort();
@@ -442,6 +472,31 @@ export const CASES: readonly Case[] = [
     },
   },
   {
+    group: "Daily", name: "queued proposal", proves:
+      "With Prefer: respond-async a proposal is queued (202 with Location), its status is polled to the same answer the call would give, and the requestId then replays it.",
+    run: async context => {
+      const date = addDays(context.today, 6);
+      const day = sharedVisit(context, "queued", date);
+      const body = { requestId: randomUUID(), serviceDate: date, snapshot: day.snapshot };
+      const accepted = await context.api.call("POST", "/api/v1/daily/proposals", body, { headers: RESPOND_ASYNC });
+      check(accepted.ms < 5_000, `The queued proposal took ${accepted.ms} ms to be accepted`);
+      expectQueued(accepted, body.requestId, "Queueing a daily proposal");
+      const again = await context.api.call("POST", "/api/v1/daily/proposals", body, { headers: RESPOND_ASYNC });
+      if (again.status === 202) expectQueued(again, body.requestId, "Queueing the same request again");
+      else expectBody(again, 201, Api.DailyProposal, "Queueing the same request again after it finished");
+      const done = await awaitCompleted(context, body.requestId, "Polling the queued proposal");
+      check(done.operation === "DAILY_PROPOSAL" && done.queuedAt !== undefined, "Polling the queued proposal: operation or queuedAt missing");
+      const result = done.result ?? fail("Polling the queued proposal: no result");
+      check(result.status === 201, `Polling the queued proposal: expected 201, got ${result.status}: ${JSON.stringify(result.body)}`);
+      const proposal = Api.DailyProposal.parse(result.body);
+      check(proposal.decision === "IMPROVED", `The queued proposal: expected IMPROVED, got ${proposal.decision}: ${proposal.reason}`);
+      checkRoutesCover(proposal, day.visits, "The queued proposal");
+      const replay = await propose(context, body, "The same requestId sent without respond-async");
+      check(isDeepStrictEqual(replay, proposal), "The same requestId sent without respond-async answered differently");
+      expectProblem(await context.api.call("GET", `/api/v1/requests/${randomUUID()}`), 404, "NOT_FOUND", "The status of an unknown requestId");
+    },
+  },
+  {
     group: "Daily", name: "frozen date", proves: "A daily proposal for a date past its 6 a.m. cutoff is refused as INCOMPLETE_FACTS.",
     run: async context => {
       const yesterday = addDays(context.today, -1);
@@ -494,6 +549,26 @@ export const CASES: readonly Case[] = [
       expectProblem(await context.api.call("DELETE", `/api/v1/requests/${body.requestId}`), 404, "NOT_FOUND", "Cancelling a finished request");
       const retried = await propose(context, body, "Retrying the cancelled requestId");
       check(retried.decision === "IMPROVED", `Retrying the cancelled requestId: expected IMPROVED, got ${retried.decision}`);
+    },
+  },
+  {
+    group: "Cancellation", name: "cancel a queued proposal", proves:
+      "A queued daily proposal is cancelled with 202 from any replica, its status reports 409 CANCELLED, and the same requestId queued again runs.",
+    run: async context => {
+      const date = addDays(context.today, 7);
+      const body = { requestId: randomUUID(), serviceDate: date, snapshot: sharedVisit(context, "cancel-queued", date).snapshot };
+      expectQueued(await context.api.call("POST", "/api/v1/daily/proposals", body, { headers: RESPOND_ASYNC }), body.requestId, "Queueing a daily proposal");
+      const cancel = await context.api.call("DELETE", `/api/v1/requests/${body.requestId}`);
+      check(cancel.status === 202 && cancel.text === "", `Cancelling the queued proposal: expected HTTP 202 without a body, got ${describe(cancel)}`);
+      const cancelled = await awaitCompleted(context, body.requestId, "Polling the cancelled proposal");
+      const result = cancelled.result ?? fail("Polling the cancelled proposal: no result");
+      check(result.status === 409, `The cancelled proposal: expected 409, got ${result.status}: ${JSON.stringify(result.body)}`);
+      const problem = Api.Problem.parse(result.body);
+      check(problem.error === "CANCELLED", `The cancelled proposal: expected CANCELLED, got ${problem.error}`);
+      expectQueued(await context.api.call("POST", "/api/v1/daily/proposals", body, { headers: RESPOND_ASYNC }), body.requestId,
+        "Queueing the cancelled requestId again");
+      const done = await awaitCompleted(context, body.requestId, "Polling the requestId queued again");
+      check(done.result?.status === 201, `The requestId queued again: expected 201, got ${JSON.stringify(done.result)}`);
     },
   },
 ];

@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.3.0);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.4.0);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -304,8 +304,40 @@ The answer is a `DailyProposal`. `IMPROVED` means every appointment is placed wi
 commit endpoint, write the receipt, then record the absence in your own system. Any other decision (reason "Repair
 infeasible") means it cannot be covered automatically; a dispatcher decides.
 
-**Overnight optimization** is yours to schedule: call daily proposals per metro-day at a time each client chooses and
-commit the `IMPROVED` ones, or hold them for a dispatcher's approval. The scheduler has no batch of its own.
+**Queued proposals (spec 1.4.0).** Add the header `Prefer: respond-async` to a daily or repair proposal and the
+scheduler queues it and answers 202 at once, instead of holding the call open for the search:
+
+```http
+POST /api/v1/daily/proposals
+Prefer: respond-async
+
+HTTP/1.1 202 Accepted
+Location: /api/v1/requests/3b1f6c1e-2a7d-4f0e-8c52-9a1d7e6b4c21
+Retry-After: 3
+Preference-Applied: respond-async
+
+{ "requestId": "3b1f6c1e-2a7d-4f0e-8c52-9a1d7e6b4c21", "operation": "DAILY_PROPOSAL", "state": "QUEUED", "queuedAt": "2026-10-11T22:00:00.120Z" }
+```
+
+Poll `GET /api/v1/requests/{requestId}` (the `Location`) no sooner than `Retry-After`. The status is `QUEUED`, then
+`RUNNING`, then `COMPLETED` with `result`: the HTTP `status` and `body` the call itself would have answered (201 with the
+proposal, or a `Problem`). A 201 result is stored like any proposal: commit it as above, and the same `requestId` sent
+again, with or without the header, replays it. A `BUSY`, `ROUTING_UNAVAILABLE`, `CALCULATION_UNAVAILABLE` or
+`CANCELLED` result released the `requestId`, as the same answer to a synchronous call does: send the request again with
+it to run it again, after `result.retryAfterSeconds` when given.
+
+- Any scheduler replica takes queued requests, the waiting request of the client whose last one started longest ago
+  first, so one client's 30 overnight days never hold back another client's single day. Each replica runs one daily
+  calculation at a time; bookings keep priority over it.
+- A client may have up to 50 requests queued or running (the operator's `scheduler.daily.queue.tenant-limit`); one
+  more is a 429 `BUSY` with `Retry-After: 30`. A request still waiting after 15 minutes (`max-wait-minutes`) completes
+  with 429 `BUSY` without running; send it again.
+- Without the header both endpoints behave exactly as before. Use the queue for anything that is not waiting on a
+  person: overnight runs, batches of days, repairs analysed in the background.
+
+**Overnight optimization** is yours to schedule: queue daily proposals per metro-day at a time each client chooses and
+commit the `IMPROVED` ones, or hold them for a dispatcher's approval. The scheduler has no batch of its own; the portal's
+overnight runner (`web/lib/overnight.ts`) queues each day and polls it.
 
 ## 6. Cancellation and in-flight requests
 
@@ -314,8 +346,10 @@ that `requestId`, best effort. It answers 202 without a body; the cancelled call
 nothing and releases its `requestId`, so retrying the same request later runs it again. A 404 means nothing is running
 under it on that replica (it finished, never started, or ran elsewhere).
 
-Cancellation reaches only the scheduler replica running the call. Behind several replicas, route the DELETE by
-`requestId` the way the call was routed; otherwise it is a 404 and the call stops at its own deadline.
+A request sent with `Prefer: respond-async` is cancelled from any replica: a queued one ends at once and a running one
+stops within a few seconds; polling it then reports `COMPLETED` with a 409 `CANCELLED` result. Any other call is
+cancelled only by the scheduler replica running it: behind several replicas, route the DELETE by `requestId` the way
+the call was routed; otherwise it is a 404 and the call stops at its own deadline.
 
 A second call with a `requestId` that is still running answers 429 `BUSY`; wait and repeat it.
 
@@ -342,13 +376,13 @@ Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 40
 | 409 | `HOLD_UNAVAILABLE` | Hold expired, lost, released, superseded, not selected, or the day would need overtime | Search again (new `requestId`). |
 | 409 | `CANCELLED` | You cancelled the call | Nothing stored; repeat the same `requestId` if you still want it. |
 | 422 | `INCOMPLETE_FACTS` | Well formed but not schedulable: a date past its 6 a.m. cutoff, an unconfigured metro, an unlocatable job, `sequence` and `plannedStart` in different orders, no road route | Fix the facts or the dates; retrying unchanged returns the same answer. |
-| 429 | `BUSY` | Admission limit reached, a concurrent change to the same day, or the same `requestId` still running. A daily or repair proposal is refused at once when the calculations ahead of it would not finish within its allowance, and `Retry-After` is their estimated time (up to 300 seconds) | Retry the same `requestId` after `Retry-After`. |
+| 429 | `BUSY` | Admission limit reached, a concurrent change to the same day, or the same `requestId` still running. A daily or repair proposal is refused at once when the calculations ahead of it would not finish within its allowance, and `Retry-After` is their estimated time (up to 300 seconds). A queued proposal: the client's queue is full, or the request waited longer than the queue allows | Retry the same `requestId` after `Retry-After`. |
 | 503 | `ROUTING_UNAVAILABLE` | Road routing or address lookup unavailable | Retry the same `requestId` with backoff. |
 | 503 | `CALCULATION_UNAVAILABLE` | The deadline passed with nothing found, or the remote solver is unavailable | Retry the same `requestId` with backoff. |
 
 **Timeouts to set at the caller:** booking offers and confirm, the client's `bookingDeadlineMs` plus about 3 seconds;
-daily and repair proposals, `costSearchSeconds + fairnessSearchSeconds` plus about 15 seconds; everything else, 10 to 30
-seconds. After a client-side timeout, repeat the same `requestId`: you get the stored answer, or a 429 while it is still
+daily and repair proposals, `costSearchSeconds + fairnessSearchSeconds` plus about 15 seconds (a queued one answers 202
+within a second; give up polling after the queue's 15 minutes plus that); everything else, 10 to 30 seconds. After a client-side timeout, repeat the same `requestId`: you get the stored answer, or a 429 while it is still
 running.
 
 ## 8. Changes you make yourself
@@ -412,7 +446,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.3.0). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.4.0). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor
