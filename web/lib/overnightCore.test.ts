@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dueSlot, minuteOf, overnightDates, runTimes, SCHEDULE_GRACE_MS, timeOf } from "./overnightCore";
+import { BUSY_RETRIES, busyRetryDelayMs, dueSlot, MAX_BUSY_WAIT_MS, minuteOf, overnightDates, runTimes, SCHEDULE_GRACE_MS, timeOf } from "./overnightCore";
 
 test("run times are 24-hour local times, each listed once, and none means manual only", () => {
   assert.equal(minuteOf("02:00"), 120);
@@ -54,4 +54,14 @@ test("a run proposes the scheduler's overnight days: from today until ten weekda
   const saturday = overnightDates(new Date("2026-10-17T07:00:00Z"));
   assert.deepEqual(saturday.slice(0, 3), ["2026-10-17", "2026-10-18", "2026-10-19"]);
   assert.equal(saturday.at(-1), "2026-10-30");
+});
+
+test("a busy overnight day waits as long as the scheduler asks, then backs off, and gives up after the last retry", () => {
+  assert.equal(busyRetryDelayMs(1, 42_000), 42_000, "Retry-After is honoured");
+  assert.equal(busyRetryDelayMs(1, 900_000), MAX_BUSY_WAIT_MS, "a longer wait is capped");
+  assert.equal(busyRetryDelayMs(1, 10), 1000, "never sooner than a second");
+  assert.deepEqual([1, 2, 3].map(attempt => busyRetryDelayMs(attempt, null)), [5000, 10_000, 20_000], "no Retry-After: doubling from 5 s");
+  assert.notEqual(busyRetryDelayMs(BUSY_RETRIES, 1000), null);
+  assert.equal(busyRetryDelayMs(BUSY_RETRIES + 1, 1000), null, "then the day is recorded as failed");
+  for (const attempt of [0, 1.5]) assert.throws(() => busyRetryDelayMs(attempt, null));
 });

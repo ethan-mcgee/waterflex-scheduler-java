@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { DispatchRefused, NO_TECHNICIANS, proposeApiDay } from "./apiDispatch";
 import { frozen } from "./apiTimeOffCore";
-import { ABANDON_AFTER_MINUTES, dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, timeOf } from "./overnightCore";
+import { ABANDON_AFTER_MINUTES, busyRetryDelayMs, dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, timeOf } from "./overnightCore";
 
 /**
  * The portal's overnight optimization, acting as the host for each client: a run asks the scheduling API for a daily
@@ -131,16 +131,19 @@ export interface RunDependencies {
   dates: (now: Date) => string[];
   /** Checked between days; true stops the run and abandons it, keeping the days already done. */
   stopping: () => boolean;
+  /** Waits before a day is asked again after the scheduler answered 429. */
+  sleep: (ms: number) => Promise<void>;
 }
 
-const defaults: RunDependencies = { propose: proposeApiDay, now: () => new Date(), dates: overnightDates, stopping: () => false };
+const defaults: RunDependencies = { propose: proposeApiDay, now: () => new Date(), dates: overnightDates, stopping: () => false,
+  sleep: ms => new Promise(resolve => setTimeout(resolve, ms)) };
 
 /**
  * Proposes every day of a claimed run in every metro the client serves, one at a time, and finishes the run. A day the
  * scheduler cannot propose is recorded with the reason and the run moves on; nothing is ever applied.
  */
 export async function executeRun(runId: string, clientId: string, dependencies: Partial<RunDependencies> = {}): Promise<RunStatus> {
-  const { propose, now, dates, stopping } = { ...defaults, ...dependencies };
+  const { propose, now, dates, stopping, sleep } = { ...defaults, ...dependencies };
   const metros = await prisma.depot.findMany({ where: { dealership: { clientId } }, select: { metroId: true }, distinct: ["metroId"], orderBy: { metroId: "asc" } });
   const days = dates(now());
   try {
@@ -150,7 +153,7 @@ export async function executeRun(runId: string, clientId: string, dependencies: 
           await prisma.portalOvernightRun.updateMany({ where: { id: runId, status: "RUNNING" }, data: { status: "ABANDONED", finishedAt: new Date() } });
           return "ABANDONED";
         }
-        await proposeDay(runId, clientId, metroId, serviceDate, propose, now);
+        await proposeDay(runId, clientId, metroId, serviceDate, propose, now, sleep, stopping);
       }
   } catch (error) {
     if (error instanceof RunEnded) return "ABANDONED";
@@ -160,20 +163,29 @@ export async function executeRun(runId: string, clientId: string, dependencies: 
   return finished.count === 1 ? "FINISHED" : "ABANDONED";
 }
 
-async function proposeDay(runId: string, clientId: string, metroId: string, serviceDate: string, propose: typeof proposeApiDay, now: () => Date) {
+async function proposeDay(runId: string, clientId: string, metroId: string, serviceDate: string, propose: typeof proposeApiDay, now: () => Date,
+  sleep: (ms: number) => Promise<void>, stopping: () => boolean) {
   const record = (outcome: DayOutcome, message: string) => prisma.$transaction(tx => recordDay(tx, runId, metroId, serviceDate, outcome, null, message));
-  // A run that reaches a day after its 6 a.m. cutoff leaves it alone, as the scheduler would refuse to change it.
-  if (frozen(serviceDate, now(), OVERNIGHT_TIME_ZONE)) return record("SKIPPED", "The day is frozen after 6 a.m.");
-  try {
-    await propose(clientId, metroId, serviceDate, async (tx, proposalId) => {
-      await recordDay(tx, runId, metroId, serviceDate, "PROPOSED", proposalId, null);
-      return runId;
-    });
-  } catch (error) {
-    if (error instanceof RunEnded) throw error;
-    if (error instanceof DispatchRefused) return record(error.message === NO_TECHNICIANS ? "SKIPPED" : "FAILED", error.message);
-    console.error("Overnight day failed", runId, metroId, serviceDate, error);
-    return record("FAILED", "The day could not be proposed. Ask an administrator to check the portal logs.");
+  for (let attempt = 1; ; attempt++) {
+    // A run that reaches a day after its 6 a.m. cutoff leaves it alone, as the scheduler would refuse to change it.
+    if (frozen(serviceDate, now(), OVERNIGHT_TIME_ZONE)) return record("SKIPPED", "The day is frozen after 6 a.m.");
+    try {
+      await propose(clientId, metroId, serviceDate, async (tx, proposalId) => {
+        await recordDay(tx, runId, metroId, serviceDate, "PROPOSED", proposalId, null);
+        return runId;
+      });
+      return;
+    } catch (error) {
+      if (error instanceof RunEnded) throw error;
+      if (error instanceof DispatchRefused) {
+        // The scheduler is busy with other calculations: wait as long as it asks, then ask for the day again.
+        const wait = error.status === 429 && !stopping() ? busyRetryDelayMs(attempt, error.retryAfterMs) : null;
+        if (wait !== null) { await sleep(wait); continue; }
+        return record(error.message === NO_TECHNICIANS ? "SKIPPED" : "FAILED", error.message);
+      }
+      console.error("Overnight day failed", runId, metroId, serviceDate, error);
+      return record("FAILED", "The day could not be proposed. Ask an administrator to check the portal logs.");
+    }
   }
 }
 

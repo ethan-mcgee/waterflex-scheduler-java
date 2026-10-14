@@ -72,14 +72,70 @@ class SearchAdmissionTest {
         assertEquals(new SearchAdmission.State(0, 0, 0, false), admission.state());
     }
 
-    @Test void expiredQueuedRequestCannotStartLater() {
+    @Test void expiredQueuedRequestCannotStartLaterAndCountsAsARejection() {
         SearchAdmission admission = new SearchAdmission(1, 16);
         try (var lease = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(1000))) {
             assertTrue(lease.queueMillis() >= 0);
             assertThrows(SearchDeadline.Expired.class, () -> admission.acquire(SearchAdmission.Kind.BOOKING, deadline(20)));
             assertEquals(0, admission.state().queuedBookings());
+            assertEquals(1, admission.rejections(), "a request whose deadline passed in the queue was refused, only later");
         }
         assertEquals(0, admission.state().active());
+    }
+
+    private static Duration seconds(long seconds) { return Required.value(Duration.ofSeconds(seconds)); }
+
+    @Test void backgroundWorkThatCouldNotStartInTimeIsRefusedAtOnceWithTheEstimatedWait() {
+        SearchAdmission admission = new SearchAdmission(2, 16);
+        try (var running = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(60_000), seconds(30))) {
+            assertTrue(running.queueMillis() >= 0);
+            long started = System.nanoTime();
+            var refused = assertThrows(SearchAdmission.Busy.class,
+                    () -> admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(20_000), seconds(15)));
+            assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(1), "refused without waiting");
+            Duration wait = Required.value(refused.retryAfter(), "estimated wait");
+            assertTrue(wait.compareTo(seconds(25)) > 0 && wait.compareTo(seconds(30)) <= 0, "the running work's remaining 30 s: " + wait);
+            assertEquals(0, admission.state().queuedBackground());
+            assertEquals(1, admission.rejections());
+
+            var early = assertThrows(SearchAdmission.Busy.class, () -> admission.requireBackgroundStartWithin(seconds(5)));
+            assertNotNull(early.retryAfter());
+            admission.requireBackgroundStartWithin(seconds(60));
+            assertEquals(2, admission.rejections());
+        }
+        admission.requireBackgroundStartWithin(Required.value(Duration.ZERO));
+        assertThrows(IllegalArgumentException.class, () -> admission.acquire(SearchAdmission.Kind.BOOKING, deadline(1000), seconds(1)));
+    }
+
+    @Test void backgroundWorkBlockedByBookingsLeavesTheQueueOnceItCouldNoLongerFinish() {
+        SearchAdmission admission = new SearchAdmission(1, 16);
+        try (var booking = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(5000))) {
+            assertTrue(booking.queueMillis() >= 0);
+            long started = System.nanoTime();
+            var refused = assertThrows(SearchAdmission.Busy.class,
+                    () -> admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(1500), Required.value(Duration.ofMillis(1000))));
+            long waited = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+            assertTrue(waited >= 400 && waited < 1400, "left once less than its expected second remained, after " + waited + " ms");
+            assertNotNull(refused.retryAfter());
+            assertEquals(0, admission.state().queuedBackground());
+            assertEquals(1, admission.rejections());
+        }
+    }
+
+    @Test void backgroundWorkThatFitsAfterTheWorkAheadQueuesAsBefore() throws Exception {
+        SearchAdmission admission = new SearchAdmission(2, 16);
+        var running = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(60_000), Required.value(Duration.ofMillis(200)));
+        try (var pool = Executors.newSingleThreadExecutor()) {
+            var queued = pool.submit(() -> {
+                try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline(5000), seconds(1))) { return lease.queueMillis(); }
+            });
+            long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+            while (admission.state().queuedBackground() == 0 && System.nanoTime() < until) Thread.sleep(1);
+            assertEquals(1, admission.state().queuedBackground());
+            running.close();
+            assertTrue(queued.get(3, TimeUnit.SECONDS) >= 0);
+        } finally { running.close(); }
+        assertEquals(0, admission.rejections());
     }
 
     @Test void oneBudgetReservesCommitTimeAndAlwaysClearsRequestScope() {
