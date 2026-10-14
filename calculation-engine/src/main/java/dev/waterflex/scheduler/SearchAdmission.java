@@ -2,13 +2,17 @@ package dev.waterflex.scheduler;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +21,9 @@ import org.springframework.stereotype.Component;
  * client share the slots fairly: a waiting booking of the client with the fewest bookings running starts first (of
  * clients with as many, the one whose last booking started longest ago), and
  * when the queue is full, a client with fewer waiting takes the place of the newest booking of the client with the
- * most, so one client's burst cannot shut another client out.
+ * most, so one client's burst cannot shut another client out. Background work runs at most
+ * {@code scheduler.search.background-limit} at a time (one by default; a replica that runs only daily work may allow
+ * more, up to its capacity).
  */
 @Component
 public final class SearchAdmission {
@@ -47,12 +53,15 @@ public final class SearchAdmission {
     }
     private final int capacity;
     private final int queueLimit;
+    /** Background work that may run at once. */
+    private final int backgroundLimit;
     private final ReentrantLock lock = new ReentrantLock(true);
     private final Condition changed = Required.value(lock.newCondition());
     private final Deque<Ticket> bookings = new ArrayDeque<>();
     private final Deque<Ticket> background = new ArrayDeque<>();
     private int active;
-    private boolean backgroundActive;
+    /** The running background work, each with when it expects to finish. */
+    private final List<Lease> runningBackground = new ArrayList<>();
     /** Bookings running per client share (the unnamed share is the empty string). */
     private final Map<String, Integer> runningBookings = new HashMap<>();
     /** When each client share's most recent booking started (System.nanoTime). */
@@ -60,8 +69,6 @@ public final class SearchAdmission {
     private final java.util.concurrent.atomic.LongAdder evictions = new java.util.concurrent.atomic.LongAdder();
     /** Queued bookings that gave their place to a booking of a client with fewer waiting (each is also a rejection). */
     public long evictions() { return evictions.sum(); }
-    /** When the running background work expects to finish (System.nanoTime), while one runs. */
-    private long backgroundEndsAt;
     private final java.util.concurrent.atomic.LongAdder rejections = new java.util.concurrent.atomic.LongAdder();
     /**
      * Requests refused because capacity and queue were full, because background work could not start in time, or
@@ -71,16 +78,36 @@ public final class SearchAdmission {
     public record State(int active, int queuedBookings, int queuedBackground, boolean backgroundActive) { }
     public State state() {
         lock.lock();
-        try { return new State(active, bookings.size(), background.size(), backgroundActive); }
+        try { return new State(active, bookings.size(), background.size(), !runningBackground.isEmpty()); }
         finally { lock.unlock(); }
     }
 
+    /**
+     * True when a background lane is free and no background work waits for one. Bookings are not counted: background
+     * work taken now still waits behind them for a slot, as it should.
+     */
+    public boolean backgroundSlotFree() {
+        lock.lock();
+        try { return runningBackground.size() < backgroundLimit && background.isEmpty(); }
+        finally { lock.unlock(); }
+    }
+
+    public int backgroundLimit() { return backgroundLimit; }
+
+    /** One background job at a time. */
+    public SearchAdmission(int configuredCapacity, int queueLimit) { this(configuredCapacity, queueLimit, 1); }
+
+    @Autowired
     public SearchAdmission(@Value("${scheduler.search.capacity:0}") int configuredCapacity,
-                           @Value("${scheduler.search.queue-limit:16}") int queueLimit) {
+                           @Value("${scheduler.search.queue-limit:16}") int queueLimit,
+                           @Value("${scheduler.search.background-limit:1}") int backgroundLimit) {
         if (configuredCapacity < 0 || queueLimit < 0 || queueLimit > 16)
             throw new IllegalArgumentException("Invalid search admission limits");
         this.capacity = configuredCapacity == 0 ? (Runtime.getRuntime().availableProcessors() <= 1 ? 1 : 2) : configuredCapacity;
+        if (backgroundLimit < 1 || backgroundLimit > capacity)
+            throw new IllegalArgumentException("scheduler.search.background-limit must be 1 to the search capacity (" + capacity + ")");
         this.queueLimit = queueLimit;
+        this.backgroundLimit = backgroundLimit;
     }
 
     public Lease acquire(Kind kind, SearchDeadline deadline) {
@@ -171,12 +198,19 @@ public final class SearchAdmission {
 
     /**
      * The estimated wait before new background work could start: what the running background work expects to have left,
-     * plus what the queued background work expects. Background work runs one at a time.
+     * plus what the queued background work expects, spread over the background lanes: each queued job takes the lane
+     * that frees first, and new work waits for the first lane free after them.
      */
     private long backgroundWaitNanos(long now) {
-        long wait = backgroundActive ? Math.max(0, backgroundEndsAt - now) : 0;
-        for (Ticket queued : background) wait += queued.expectedNanos();
-        return wait;
+        long[] lanes = new long[backgroundLimit];
+        for (int lane = 0; lane < runningBackground.size() && lane < backgroundLimit; lane++)
+            lanes[lane] = Math.max(0, Required.value(runningBackground.get(lane)).endsAt - now);
+        for (Ticket queued : background) {
+            Arrays.sort(lanes);
+            lanes[0] += queued.expectedNanos();
+        }
+        Arrays.sort(lanes);
+        return lanes[0];
     }
 
     /**
@@ -233,23 +267,27 @@ public final class SearchAdmission {
     }
 
     private boolean canStart(Kind kind) {
-        return active < capacity && (kind == Kind.BOOKING || (!backgroundActive && bookings.isEmpty()));
+        return active < capacity && (kind == Kind.BOOKING || (runningBackground.size() < backgroundLimit && bookings.isEmpty()));
     }
     private Lease start(Kind kind, long started, Ticket ticket) {
         active++;
-        if (kind == Kind.BACKGROUND) { backgroundActive = true; backgroundEndsAt = System.nanoTime() + ticket.expectedNanos(); }
+        long now = System.nanoTime();
+        Lease lease = new Lease(kind, ticket.share(), (now - started) / 1_000_000, now + ticket.expectedNanos());
+        if (kind == Kind.BACKGROUND) runningBackground.add(lease);
         else {
             increment(runningBookings, ticket.share());
-            lastBookingStart.put(ticket.share(), System.nanoTime());
+            lastBookingStart.put(ticket.share(), now);
         }
-        return new Lease(kind, ticket.share(), (System.nanoTime() - started) / 1_000_000);
+        return lease;
     }
     public final class Lease implements AutoCloseable {
         private final Kind kind;
         private final String share;
         private final long queueMillis;
+        /** When background work expects to finish (System.nanoTime). */
+        private final long endsAt;
         private boolean closed;
-        private Lease(Kind kind, String share, long queueMillis) { this.kind = kind; this.share = share; this.queueMillis = queueMillis; }
+        private Lease(Kind kind, String share, long queueMillis, long endsAt) { this.kind = kind; this.share = share; this.queueMillis = queueMillis; this.endsAt = endsAt; }
         public long queueMillis() { return queueMillis; }
         @Override public void close() {
             lock.lock();
@@ -257,7 +295,7 @@ public final class SearchAdmission {
                 if (closed) return;
                 closed = true;
                 active--;
-                if (kind == Kind.BACKGROUND) backgroundActive = false;
+                if (kind == Kind.BACKGROUND) runningBackground.remove(this);
                 else {
                     Integer running = runningBookings.get(share);
                     if (running == null || running <= 1) runningBookings.remove(share);

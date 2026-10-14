@@ -23,8 +23,11 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `ROUTING_AUTH_TOKEN` | Yes | Shared bearer token of the routing services, at least 32 characters. |
 | `GEOCODING_MODE`, `NOMINATIM_URL` | No | `COORDINATES_REQUIRED` (default) or `NOMINATIM`. |
 | `SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN` | No | `EMBEDDED` (default) or `REMOTE` with a solver pool. |
+| `SCHEDULER_ROLE` | No | `booking`, `daily` or `all` (default). Every replica answers every route; a `booking` replica takes no queued daily work. Any other value stops the replica at startup. See "Replica roles". |
 | `SCHEDULER_SEARCH_CAPACITY` | No | Concurrent searches per replica. 0 means 2, or 1 on a one-processor machine. |
-| `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1 (a replica runs one daily calculation at a time). 0 leaves the queue to other replicas. |
+| `SCHEDULER_SEARCH_BACKGROUND_LIMIT` | No | Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas. |
+| `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`. |
+| `SCHEDULER_CANCEL_POLL_MS` | No | How often a replica reads the cancellations other replicas recorded for the calls it runs, default 500. |
 | `SCHEDULER_DAILY_QUEUE_POLL_MS`, `SCHEDULER_DAILY_QUEUE_MAX_WAIT_MINUTES`, `SCHEDULER_DAILY_QUEUE_TENANT_LIMIT` | No | How often an idle worker looks for work queued on another replica (500 ms); how long a queued request may wait before it completes with 429 without running (15 minutes); how many requests one client may have queued or running (50). |
 | `MANAGEMENT_PORT` | No | Port of `/actuator/health` and `/actuator/prometheus`, default 9000. Keep it private. |
 | `LOGGING_STRUCTURED_FORMAT_CONSOLE` | No | `ecs` for JSON log lines. |
@@ -75,7 +78,7 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 
 ## Health
 
-`GET /health` on the API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names each component with `up` or `down` and a short detail; it never contains URLs or credentials.
+`GET /health` on the API port answers 200 `ok` when every component answers within one second, and 503 `degraded` otherwise. The body names the replica's `role` and each component with `up` or `down` and a short detail; it never contains URLs or credentials.
 
 | Component | Checked | Down means |
 | --- | --- | --- |
@@ -105,7 +108,7 @@ Lines to act on:
 
 ## Metrics
 
-`http://<private address>:9000/actuator/prometheus`:
+`http://<replica>:9000/actuator/prometheus` on each replica. On the VM the replicas publish no ports: Prometheus (`--profile monitoring`) finds every replica of both pools by name, and `scheduler_replica_info{role}` (always 1) labels each one's role, so every meter below can be split by pool.
 
 | Metric | Watch for |
 | --- | --- |
@@ -119,6 +122,7 @@ Lines to act on:
 | `scheduler_admission_evictions_total` | Queued bookings that gave their place in a full queue to a booking of a client with fewer waiting. Rising: one client's desks fill the booking queue; add booking capacity. |
 | `scheduler_daily_queue_started_total`, `scheduler_daily_queue_expired_total`, `scheduler_daily_queue_failed_total` | Queued proposals this replica started; ones that waited longer than `MAX_WAIT_MINUTES` (hosts got 429: add daily capacity); ones that failed unexpectedly and were queued again (read the logs). The queue's depth is `SELECT state, count(*) FROM api_daily_job WHERE state <> 'DONE' GROUP BY state` as the owner role. |
 | `scheduler_retention_deleted_total` | Grows once a day after the first period has passed. |
+| `scheduler_replica_info{role}`, `scheduler_admission_background_limit` | The replica's role and how many daily calculations it runs at once. |
 
 ## Retention
 
@@ -161,9 +165,23 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 ## Scaling, in order
 
 1. `SCHEDULER_SEARCH_CAPACITY` to match the cores given to the scheduler.
-2. More scheduler replicas on the same database behind a load balancer. Queued proposals (`Prefer: respond-async`) are taken by any replica's worker and cancelled from any replica. For synchronous calls, send `DELETE /api/v1/requests/{requestId}` to the replica running the call by hashing on the request ID.
-3. `REMOTE` calculation with a solver pool, so solving scales apart from the API.
-4. More routing capacity for a busy metro.
+2. More scheduler replicas on the same database behind a load balancer. Any replica answers any call: queued proposals (`Prefer: respond-async`) are taken by any replica's worker, and `DELETE /api/v1/requests/{requestId}` cancels a call wherever it runs (the replica that receives it records the cancel; the replica running the call stops it within about a second).
+3. Replica roles: a booking pool and a daily pool of the same jar behind one address (see "Replica roles"), each scaled on its own.
+4. `REMOTE` calculation with a solver pool, so solving scales apart from the API.
+5. More routing capacity for a busy metro.
+
+## Replica roles
+
+`deploy/vm/docker-compose.yml` runs two pools of the same image behind `scheduler-proxy` (nginx, [deploy/vm/nginx.conf](../deploy/vm/nginx.conf)):
+
+| Pool | `SCHEDULER_ROLE` | Receives | Tuned for |
+| --- | --- | --- | --- |
+| `scheduler-booking` | `booking` | Everything except the routes below: booking searches, holds and confirms, commits, route evaluation and geometry, whoami, `/health` | Latency. No queued daily work runs here, so bookings never wait behind a 20 second solve. |
+| `scheduler-daily` | `daily` | `POST /api/v1/daily/proposals`, `POST /api/v1/repairs/proposals`, `GET` and `DELETE /api/v1/requests/{id}` | Throughput. Up to `SCHEDULER_DAILY_BACKGROUND_LIMIT` daily solves at once per replica, with as many queue workers. |
+
+Every replica answers every route and shares the one database, so the split is about load, not correctness: if the proxy sends a call to the other pool, it still gets the right answer. Bookings keep their priority inside each replica as before. One replica with `SCHEDULER_ROLE=all` (the default) does both and is the right shape for a single small machine.
+
+Scale the booking pool when booking p95 nears the client's deadline or booking replicas reject; scale the daily pool, or raise its background limit with cores to match, when queued days wait (from `queuedAt` to `startedAt`) or `scheduler_daily_queue_expired_total` rises. The proxy re-reads each pool's replicas every 10 seconds. To check which replica answered, read `role` in `/health`, or `scheduler_replica_info` in Prometheus.
 
 ## Failure modes
 

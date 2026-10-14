@@ -201,6 +201,35 @@ tenants at once for 90 s: tenant A with 4 daily planners, tenant B with 1, 20-te
   kit's daily and cancellation cases sent through it all passed: its queued proposals ran on the first replica, and a
   cancel sent to it stopped a proposal running there.
 
+## Replica roles (L5)
+
+The same jar now runs as booking replicas (`SCHEDULER_ROLE=booking`, no queued daily work) and daily replicas
+(`SCHEDULER_ROLE=daily`, several daily calculations at once with `SCHEDULER_SEARCH_BACKGROUND_LIMIT`) behind one
+address; `deploy/vm/` puts nginx in front of the two pools. Measured on fresh seeds at **equal total search capacity
+(4 slots)** ([evidence](evidence/api-load-2026-10-14-replica-roles.json)): one `all` replica (capacity 4, one daily
+calculation at a time) against a booking replica (capacity 2) plus a daily replica (capacity 2, two at a time). Load:
+5 booking desks and 5 queued daily planners (20-technician days, 5 s searches) for 60 s, as two load tool processes.
+Pairs ran in the order all, split, split, all.
+
+| Shape | Run | Searches per minute | Offers p95 | Offers p99 | Offers waited on 429 | Confirm p50 / p95 | Daily proposals | Proposal p50 / p95 | Queue wait p50 |
+| --- | --- | ---: | ---: | ---: | ---: | --- | ---: | --- | ---: |
+| One `all` replica | 1 | 241 | 1746 ms | 2495 ms | 15 | 136 / 515 ms | 13 | 27.2 / 36.4 s | 20.7 s |
+| One `all` replica | 2 | 245 | 1804 ms | 3442 ms | 24 | 122 / 480 ms | 14 | 27.1 / 36.4 s | 20.1 s |
+| Booking + daily replicas | 1 | 226 | 1430 ms | 2084 ms | 4 | 379 / 810 ms | **25** | 15.1 / 18.3 s | 7.5 s |
+| Booking + daily replicas | 2 | 222 | 1382 ms | 2392 ms | 4 | 440 / 795 ms | **25** | 15.1 / 18.3 s | 7.4 s |
+
+- **Daily throughput nearly doubles** (13 and 14 to 25 and 25 proposals), and a queued day waits a third as long
+  (20 s to 7.5 s), because the daily replica runs two solves at once while the `all` replica runs one at a time.
+- **Bookings keep their tail.** Booking offers p95 fell from about 1.8 s to 1.4 s, and calls refused with 429 and sent
+  again fell from 15 to 24 down to 4. No daily solve competes for the booking replica's cores or slots.
+- **The cost is booking throughput and confirm latency.** With 2 booking slots instead of up to 4, searches per
+  minute fell about 8 percent and confirm p50 rose from about 130 ms to about 400 ms (confirms wait behind searches
+  for a slot). Give the booking pool more replicas or capacity when that matters; the pools now scale apart.
+- **Cancellation reaches every replica.** On the local VM rehearsal with two replicas per pool behind nginx, the
+  conformance kit passed all 27 cases, and in its repeated cancellation cases 4 of 8 synchronous cancels reached a
+  replica other than the one running the call; that replica's watcher stopped the call, which answered 409 `CANCELLED`.
+  nginx found the replicas added while it ran without a restart.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
