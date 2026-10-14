@@ -1,10 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { coverageBounds } from "../lib/coverage";
 import { locationBounds, serviceAreaCircle } from "../lib/contracts";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 async function main() {
   const depots = await prisma.depot.findMany({ select: { lat: true, lng: true, metro: { select: { serviceRadiusMi: true } } } });
   const circles = depots.map(d => serviceAreaCircle.parse({ lat: d.lat, lng: d.lng, radiusMi: d.metro.serviceRadiusMi }));

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import { NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { POST as preview } from "../app/api/technicians/geocode/route";
 import { POST as createDepot } from "../app/api/depots/route";
 import { PATCH as editDepot } from "../app/api/depots/[id]/route";
@@ -14,7 +14,7 @@ import { required } from "../lib/contracts";
 
 if (!process.env.DATABASE_URL || new URL(process.env.DATABASE_URL).pathname !== "/waterflex_test") throw new Error("Requires waterflex_test");
 if (process.env.ENGINE_URL !== (process.env.SCHEDULER_TEST_URL ?? "http://127.0.0.1:18000")) throw new Error("Requires isolated test engine");
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 let unavailable = false;
 const geocoder = createServer((_, response) => {
   response.setHeader("Content-Type", "application/json");

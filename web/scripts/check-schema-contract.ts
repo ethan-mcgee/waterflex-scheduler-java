@@ -3,9 +3,11 @@
 import { z } from "zod";
 import { required } from "../lib/contracts";
 import assert from "node:assert/strict";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { readFileSync } from "node:fs";
+import { getDMMF } from "@prisma/internals";
+import { createPrismaClient } from "../lib/portalDatabase";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 async function main() {
 try {
   const column = z.object({ table_name: z.string(), column_name: z.string(), data_type: z.string(), udt_name: z.string(), is_nullable: z.enum(["YES", "NO"]) });
@@ -16,7 +18,10 @@ try {
   const uuidColumns = new Set(["portal_api_offer_set.requestId", "portal_api_daily_proposal.requestId", "portal_api_daily_proposal.commitRequestId", "portal_overnight_run.id", "portal_overnight_day.runId"]);
   const dateColumns = new Set(["portal_api_offer.serviceDate", "portal_api_daily_proposal.serviceDate", "portal_overnight_day.serviceDate"]);
   const sqlTypes: Record<string, string> = { String: "text", Int: "integer", BigInt: "bigint", Float: "double precision", Decimal: "numeric", Boolean: "boolean", DateTime: "timestamp without time zone", Json: "jsonb", Bytes: "bytea" };
-  for (const model of Prisma.dmmf.datamodel.models) {
+  // Prisma 7's generated client keeps only a slim model description (no nullability or column names), so the full
+  // description is read from the schema file itself.
+  const dmmf = await getDMMF({ datamodel: readFileSync("prisma/schema.prisma", "utf8") });
+  for (const model of dmmf.datamodel.models) {
     const table = model.dbName ?? model.name;
     for (const field of model.fields.filter(field => field.kind !== "object")) {
       const name = field.dbName ?? field.name;
@@ -30,7 +35,7 @@ try {
   for (const table of ["tenant", "tenant_api_token", "api_request", "api_daily_proposal", "api_proposal_technician_day", "api_commit_receipt",
     "api_booking_day", "api_booking_offer_set", "api_booking_offer", "api_booking_receipt", "road_route_cache"])
     assert.ok(!actual.some(row => row.table_name === table), `The portal database must not hold the scheduler's table ${table}`);
-  console.log(`Portal database matches the Prisma schema for ${Prisma.dmmf.datamodel.models.length} models and holds no scheduler tables`);
+  console.log(`Portal database matches the Prisma schema for ${dmmf.datamodel.models.length} models and holds no scheduler tables`);
 } finally {
   await prisma.$disconnect();
 }
