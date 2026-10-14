@@ -23,7 +23,9 @@ import org.springframework.stereotype.Component;
  * when the queue is full, a client with fewer waiting takes the place of the newest booking of the client with the
  * most, so one client's burst cannot shut another client out. A confirm (a few milliseconds of work that completes a
  * booking a customer already chose) is a booking with priority: it starts before any waiting search, shares the slots
- * fairly with other clients' confirms, and never gives up its place in a full queue. Background work runs at most
+ * fairly with other clients' confirms, and never gives up its place in a full queue. {@code scheduler.search.confirm-slots}
+ * (one by default) extra slots are open to confirms alone, so a confirm need not wait for a search to finish when
+ * every search slot is busy. Background work runs at most
  * {@code scheduler.search.background-limit} at a time (one by default; a replica that runs only daily work may allow
  * more, up to its capacity).
  */
@@ -58,6 +60,8 @@ public final class SearchAdmission {
         String share() { String named = client; return named == null ? "" : named; }
     }
     private final int capacity;
+    /** Slots beyond the capacity that only confirms may take. */
+    private final int confirmSlots;
     private final int queueLimit;
     /** Background work that may run at once. */
     private final int backgroundLimit;
@@ -100,20 +104,27 @@ public final class SearchAdmission {
 
     public int backgroundLimit() { return backgroundLimit; }
 
-    /** One background job at a time. */
+    /** One background job at a time, one confirm slot. */
     public SearchAdmission(int configuredCapacity, int queueLimit) { this(configuredCapacity, queueLimit, 1); }
+
+    /** One confirm slot. */
+    public SearchAdmission(int configuredCapacity, int queueLimit, int backgroundLimit) { this(configuredCapacity, queueLimit, backgroundLimit, 1); }
 
     @Autowired
     public SearchAdmission(@Value("${scheduler.search.capacity:0}") int configuredCapacity,
                            @Value("${scheduler.search.queue-limit:16}") int queueLimit,
-                           @Value("${scheduler.search.background-limit:1}") int backgroundLimit) {
+                           @Value("${scheduler.search.background-limit:1}") int backgroundLimit,
+                           @Value("${scheduler.search.confirm-slots:1}") int confirmSlots) {
         if (configuredCapacity < 0 || queueLimit < 0 || queueLimit > 16)
             throw new IllegalArgumentException("Invalid search admission limits");
         this.capacity = configuredCapacity == 0 ? (Runtime.getRuntime().availableProcessors() <= 1 ? 1 : 2) : configuredCapacity;
         if (backgroundLimit < 1 || backgroundLimit > capacity)
             throw new IllegalArgumentException("scheduler.search.background-limit must be 1 to the search capacity (" + capacity + ")");
+        if (confirmSlots < 0 || confirmSlots > capacity)
+            throw new IllegalArgumentException("scheduler.search.confirm-slots must be 0 to the search capacity (" + capacity + ")");
         this.queueLimit = queueLimit;
         this.backgroundLimit = backgroundLimit;
+        this.confirmSlots = confirmSlots;
     }
 
     public Lease acquire(Kind kind, SearchDeadline deadline) {
@@ -156,7 +167,7 @@ public final class SearchAdmission {
             locked = lock.tryLock(deadline.remainingNanos(), TimeUnit.NANOSECONDS);
             if (!locked) throw new Busy("Search admission deadline exhausted");
             deadline.requireTime();
-            if (canStart(kind) && queue.isEmpty()) return start(kind, started, ticket);
+            if (canStart(kind, ticket) && queue.isEmpty()) return start(kind, started, ticket);
             if (bookings.size() + background.size() >= queueLimit && !(kind == Kind.BOOKING && evictFor(ticket))) throw new Busy("Search queue is full");
             if (kind == Kind.BACKGROUND) {
                 long wait = backgroundWaitNanos(System.nanoTime());
@@ -168,11 +179,11 @@ public final class SearchAdmission {
                 deadline.requireTime();
                 // Background work that can no longer finish once it starts (queued bookings go first) leaves the queue
                 // now with a retry time, rather than waiting until its deadline passes.
-                if (kind == Kind.BACKGROUND && !(queue.peekFirst() == ticket && canStart(kind)) && deadline.remainingNanos() < ticket.expectedNanos())
+                if (kind == Kind.BACKGROUND && !(queue.peekFirst() == ticket && canStart(kind, ticket)) && deadline.remainingNanos() < ticket.expectedNanos())
                     throw new Busy("Background work could not start in time", Required.value(Duration.ofNanos(Math.max(TimeUnit.SECONDS.toNanos(1),
                             backgroundWaitNanos(System.nanoTime()) - ticket.expectedNanos()))));
                 if (ticket.evicted) throw new Busy("Search queue is full; a booking of a client with fewer waiting took this place");
-                if (next(kind) == ticket && canStart(kind)) {
+                if (next(kind) == ticket && canStart(kind, ticket)) {
                     queue.remove(ticket);
                     return start(kind, started, ticket);
                 }
@@ -286,8 +297,10 @@ public final class SearchAdmission {
         counts.put(key, current == null ? 1 : current + 1);
     }
 
-    private boolean canStart(Kind kind) {
-        return active < capacity && (kind == Kind.BOOKING || (runningBackground.size() < backgroundLimit && bookings.isEmpty()));
+    /** A confirm may also take one of the confirm slots beyond the capacity. */
+    private boolean canStart(Kind kind, Ticket ticket) {
+        int slots = ticket.priority ? capacity + confirmSlots : capacity;
+        return active < slots && (kind == Kind.BOOKING || (runningBackground.size() < backgroundLimit && bookings.isEmpty()));
     }
     private Lease start(Kind kind, long started, Ticket ticket) {
         active++;
