@@ -120,7 +120,10 @@ async function propose(context: Context, body: object, what: string): Promise<Ap
 
 async function offers(context: Context, body: object, what: string): Promise<{ set: Api.OfferSet; receivedAt: number }> {
   const reply = await context.api.call("POST", "/api/v1/booking/offers", body, { timeoutMs: BOOKING_TIMEOUT_MS });
-  return { set: expectBody(reply, 201, Api.OfferSet, what), receivedAt: Date.now() };
+  const set = expectBody(reply, 201, Api.OfferSet, what);
+  // Every offer set this kit gets was answered by a 1.2.0 scheduler, which always says how the refinement ended.
+  check(set.refinement !== undefined, `${what}: no refinement outcome`);
+  return { set, receivedAt: Date.now() };
 }
 
 function firstOffer(set: Api.OfferSet, what: string) {

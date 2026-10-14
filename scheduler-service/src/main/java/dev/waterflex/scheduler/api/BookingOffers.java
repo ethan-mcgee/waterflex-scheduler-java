@@ -307,7 +307,8 @@ public class BookingOffers {
             boolean placed = newHolds.containsKey(date) || ended.containsValue(BookingReconciliation.Ending.SUPERSEDED);
             writes.put(day.key(), new BookingStore.DayWrite(day.stored().version(), next, ended, placed));
         }
-        var body = new OfferSet(offerSetId, expiresAt, Required.value(List.copyOf(offers)), result.complete() && bundle.completed(), built.skipped());
+        var body = new OfferSet(offerSetId, expiresAt, Required.value(List.copyOf(offers)), searched.complete() && bundle.completed(), built.skipped(),
+                searched.refinement());
         SearchDeadline.beforeCommit();
         bookings.publish(tenantId, owner, writes, heldBefore, new BookingStore.Publication(offerSetId, request.requestId(), job.jobId(), metro, expiresAt, body, newOffers));
         return body;
@@ -322,15 +323,36 @@ public class BookingOffers {
         return new SnapshotRouting(roads).insertion(snapshot, job);
     }
 
-    /** A search result and the snapshot holding every leg it was found with. */
-    record Searched(BookingSnapshot snapshot, BoundedBookingSearch.Result result) { }
+    /**
+     * A search result, the snapshot holding every leg it was found with, and how the search ended. {@code insertionComplete}:
+     * the insertion pass covered every window. {@code refinementRequired}: the insertion pass found no more distinct
+     * regular windows than the client's threshold, so the offers are not complete until the refinement finishes too.
+     */
+    record Searched(BookingSnapshot snapshot, BoundedBookingSearch.Result result, boolean insertionComplete,
+                    Refinement refinement, boolean refinementRequired) {
+        Searched {
+            if (refinementRequired && refinement == Refinement.SKIPPED && insertionComplete)
+                throw new IllegalArgumentException("A required refinement cannot be skipped after a complete insertion pass");
+        }
+
+        /**
+         * The public {@code searchComplete}: false only when the deadline or a failure stopped a pass the offers need. An
+         * optional refinement cut short by its cap, the deadline or a failure leaves it true, and {@code refinement} says so.
+         */
+        boolean complete() {
+            return insertionComplete && (!refinementRequired || refinement == Refinement.COMPLETE);
+        }
+    }
 
     /** The portal pipeline's insertion and optional bounded refinement (BookingSearchPipeline.prepare), without its overflow dates. */
     Searched calculate(RoadClient roads, BookingSnapshot snapshot, BoundedBookingSearch.Request job) {
         var inserted = transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant, null, 0));
         BoundedBookingSearch.Result result = inserted.result();
-        if (variant.equals("INSERTION") || "DEADLINE".equals(result.stopReason())) return new Searched(snapshot, result);
+        // The INSERTION variant is the whole search by configuration; nothing more is owed.
+        if (variant.equals("INSERTION")) return new Searched(snapshot, result, result.complete(), Refinement.SKIPPED, false);
+        if ("DEADLINE".equals(result.stopReason())) return new Searched(snapshot, result, false, Refinement.SKIPPED, true);
         boolean optional = result.complete() && result.distinctRegularWindows() > snapshot.policy().regularWindowThreshold();
+        boolean insertionComplete = result.complete();
         long started = System.nanoTime();
         Runnable checkpoint = () -> {
             SearchDeadline.checkpoint();
@@ -352,13 +374,19 @@ public class BookingOffers {
                 invalidRefinements.increment();
                 LOG.error("Refinement result for job {} failed validation ({} since this process started); keeping the insertion offers: {}",
                         job.jobId(), invalidRefinements.sum(), invalid.getMessage(), invalid);
-                return new Searched(widened, incomplete(result, "REFINEMENT_INVALID"));
+                return new Searched(widened, incomplete(result, "REFINEMENT_INVALID"), insertionComplete, Refinement.UNAVAILABLE, !optional);
             }
-            return new Searched(widened, refined);
-        } catch (BoundedBookingSearch.RefinementLimit limit) { return new Searched(widened, incomplete(result, "REFINEMENT_TIME_LIMIT")); }
-        catch (SearchDeadline.Expired expired) { return new Searched(widened, incomplete(result, "DEADLINE")); }
-        catch (RoadClient.RoadUnavailable unavailable) { return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE")); }
-        catch (HttpCalculation.Unavailable unavailable) { return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE")); }
+            // The engine stops at its cap or the deadline by returning what it found, marked incomplete.
+            return new Searched(widened, refined, insertionComplete, refined.complete() ? Refinement.COMPLETE : Refinement.SHORTENED, !optional);
+        } catch (BoundedBookingSearch.RefinementLimit limit) {
+            return new Searched(widened, incomplete(result, "REFINEMENT_TIME_LIMIT"), insertionComplete, Refinement.SHORTENED, !optional);
+        } catch (SearchDeadline.Expired expired) {
+            return new Searched(widened, incomplete(result, "DEADLINE"), insertionComplete, Refinement.SHORTENED, !optional);
+        } catch (RoadClient.RoadUnavailable unavailable) {
+            return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE"), insertionComplete, Refinement.UNAVAILABLE, !optional);
+        } catch (HttpCalculation.Unavailable unavailable) {
+            return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE"), insertionComplete, Refinement.UNAVAILABLE, !optional);
+        }
     }
 
     /** How many refinement results failed validation since this process started. */

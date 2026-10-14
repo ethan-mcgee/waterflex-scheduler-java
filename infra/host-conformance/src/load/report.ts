@@ -59,6 +59,7 @@ export function loadMarkdown(report: LoadReport): string {
     lines.push("", "## Booking outcomes", "",
       `- Searches ${b.searches} (${(b.searches / (seconds / 60)).toFixed(1)} per minute), answered ${answered}, failed ${b.failedSearches}`,
       `- searchComplete false: ${b.searchIncomplete} (${answered === 0 ? "-" : ((b.searchIncomplete / answered) * 100).toFixed(1)} percent of answered)`,
+      `- Refinement: ${entries(b.refinements)}`,
       `- Offers per answered search: ${answered === 0 ? "-" : (b.offers / answered).toFixed(2)}; searches with no offer: ${b.noOffers}`,
       `- Selected ${b.selected}, confirmed and written ${b.confirmed}, HOLD_UNAVAILABLE ${b.holdUnavailable}, host write conflicts ${b.hostWriteConflicts}, released ${b.released}, sent again after STALE ${b.stale}`);
   }
