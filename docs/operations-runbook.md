@@ -124,7 +124,7 @@ Lines to act on:
 | `scheduler_booking_refinement_invalid_total` | Should stay 0. |
 | `scheduler_booking_refinement_shed_total` | Optional refinements skipped because booking requests were queued. A steady rise means booking desks often wait for a slot: add booking capacity. |
 | `scheduler_requests_cancelled_total` | Host cancellations. |
-| `scheduler_admission_evictions_total` | Queued bookings that gave their place in a full queue to a booking of a client with fewer waiting. Rising: one client's desks fill the booking queue; add booking capacity. |
+| `scheduler_admission_evictions_total` | Queued searches that gave their place in a full queue to a search of a client with fewer waiting, or to an arriving confirm (confirms start before waiting searches and are never evicted). Rising: one client's desks fill the booking queue; add booking capacity. |
 | `scheduler_daily_queue_started_total`, `scheduler_daily_queue_expired_total`, `scheduler_daily_queue_failed_total` | Queued proposals this replica started; ones that waited longer than `MAX_WAIT_MINUTES` (hosts got 429: add daily capacity); ones that failed unexpectedly and were queued again (read the logs). The queue's depth is `SELECT state, count(*) FROM api_daily_job WHERE state <> 'DONE' GROUP BY state` as the owner role. |
 | `scheduler_retention_deleted_total` | Grows once a day after the first period has passed. |
 | `scheduler_replica_info{role}`, `scheduler_admission_background_limit` | The replica's role and how many daily calculations it runs at once. |

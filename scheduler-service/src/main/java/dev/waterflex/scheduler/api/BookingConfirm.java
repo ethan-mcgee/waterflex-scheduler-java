@@ -117,7 +117,7 @@ public class BookingConfirm {
             SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
             registered.attach(deadline);
             return deadline.within(() -> {
-                try (var _ = admission.acquireBooking(deadline, tenantId)) {
+                try (var _ = admission.acquireConfirm(deadline, tenantId)) {
                     for (int attempt = 1; ; attempt++) {
                         try { return attempt(tenantId, holdId, request, owner); }
                         catch (BookingStore.DayMoved moved) {
