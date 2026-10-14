@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bookingHorizon, checkReceipt, instantMicros, offersView, sameInstant } from "./apiBookingCore";
+import { bookingHorizon, checkReceipt, instantMicros, offersView, sameInstant, sentAgainWhileStale, STALE_ATTEMPTS } from "./apiBookingCore";
 import { offersResponse, required } from "./contracts";
 
 test("the booking horizon runs from tomorrow through the last counted weekday, weekends between included", () => {
@@ -55,4 +55,28 @@ test("offer sets become the booking page's search results", () => {
   const incomplete = offersResponse.parse(offersView("job-1", { ...set, offers: [], searchComplete: false }, 40));
   assert.equal(incomplete.search.outcome, "SEARCH_INCOMPLETE", "An empty incomplete search does not claim there is no capacity");
   assert.equal(incomplete.search.retryable, true);
+});
+
+test("a STALE answer is sent again from current records with a new requestId, a bounded number of times", async () => {
+  const staleError = new Error("STALE");
+  const isStale = (error: unknown) => error === staleError;
+  let next = 0;
+  const newRequestId = () => `request-${++next}`;
+  const seen: string[] = [];
+  const answered = await sentAgainWhileStale(async requestId => {
+    seen.push(requestId);
+    if (seen.length < 2) throw staleError;
+    return "offers";
+  }, isStale, newRequestId);
+  assert.deepEqual(answered, { requestId: "request-2", result: "offers" }, "the answer names the requestId that produced it");
+  assert.deepEqual(seen, ["request-1", "request-2"], "every attempt has its own requestId");
+
+  let calls = 0;
+  await assert.rejects(sentAgainWhileStale(async () => { calls++; throw staleError; }, isStale, newRequestId), staleError);
+  assert.equal(calls, STALE_ATTEMPTS, "STALE on every attempt is reported after the last one");
+
+  const refused = new Error("HOLD_UNAVAILABLE");
+  calls = 0;
+  await assert.rejects(sentAgainWhileStale(async () => { calls++; throw refused; }, isStale, newRequestId), refused);
+  assert.equal(calls, 1, "any other refusal is final");
 });

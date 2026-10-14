@@ -4,7 +4,7 @@ import { todayInTz } from "./date";
 import { loadSolverSettings } from "./clientSettingsStore";
 import { buildClientSnapshot, SnapshotError } from "./clientSnapshot";
 import { resolveMetroForLocation } from "./serviceArea";
-import { bookingHorizon, checkReceipt, failedSearch, offersView } from "./apiBookingCore";
+import { bookingHorizon, checkReceipt, failedSearch, offersView, sentAgainWhileStale } from "./apiBookingCore";
 import { writeReceipt } from "./apiReceipt";
 import { confirmBookingHold, createBookingOffers, releaseBookingOffer, SchedulerApiError, selectBookingOffer, type CommitReceipt } from "./schedulerApi";
 
@@ -20,6 +20,11 @@ export class BookingRefused extends Error {
 }
 
 const day = (value: string) => new Date(`${value}T00:00:00Z`);
+
+const stale = (error: unknown) => error instanceof SchedulerApiError && error.code === "STALE";
+
+/** A search or confirm on records read now, sent again from current records while the scheduler answers STALE. */
+const onCurrentRecords = <T>(call: (requestId: string) => Promise<T>) => sentAgainWhileStale(call, stale, randomUUID);
 
 function refusedFor(error: unknown): never {
   if (error instanceof SnapshotError) {
@@ -57,13 +62,12 @@ export async function searchApiOffers(clientId: string, jobId: string, onlyDate?
   const dates = onlyDate === undefined ? bookingHorizon(todayInTz(metro.timezone), settings.bookingHorizonWeekdays) : [onlyDate];
   const firstDate = dates[0], lastDate = dates.at(-1);
   if (firstDate === undefined || lastDate === undefined) throw new Error("A booking horizon has at least one date");
-  const requestId = randomUUID();
-  let set;
+  let set, requestId;
   try {
-    const snapshot = await buildClientSnapshot(clientId, metroId, dates);
-    set = await createBookingOffers(clientId, { requestId, offerLimit: settings.offerLimit, windowHours: settings.windowHours, snapshot,
+    ({ requestId, result: set } = await onCurrentRecords(async requestId => createBookingOffers(clientId, { requestId, offerLimit: settings.offerLimit,
+      windowHours: settings.windowHours, snapshot: await buildClientSnapshot(clientId, metroId, dates),
       job: { id: job.id, serviceId: job.serviceId, durationMinutes: job.durationMin, location: { lat, lng } },
-      horizon: { firstDate, lastDate } });
+      horizon: { firstDate, lastDate } })));
   } catch (error) {
     if (error instanceof SchedulerApiError && error.code === "BUSY") return failedSearch(jobId, "SERVICE_BUSY", elapsed());
     if (error instanceof SchedulerApiError && error.code === "ROUTING_UNAVAILABLE") return failedSearch(jobId, "ROUTING_UNAVAILABLE", elapsed());
@@ -112,8 +116,9 @@ export async function bookApiOffer(clientId: string, jobId: string, offerId: str
   try {
     held = await selectBookingOffer(clientId, offerId, randomUUID());
     await prisma.portalApiOfferSet.update({ where: { id: set.id }, data: { holdId: held.holdId, selectedOfferId: offerId } });
-    const snapshot = await buildClientSnapshot(clientId, set.metroId, [serviceDate]);
-    receipt = await confirmBookingHold(clientId, held.holdId, randomUUID(), snapshot);
+    const holdId = held.holdId;
+    ({ result: receipt } = await onCurrentRecords(async requestId =>
+      confirmBookingHold(clientId, holdId, requestId, await buildClientSnapshot(clientId, set.metroId, [serviceDate]))));
   } catch (error) { return refusedFor(error); }
   await writeBookingReceipt(clientId, jobId, { serviceDate, windowStart: offer.windowStart, windowEnd: offer.windowEnd }, receipt);
   await prisma.portalApiOfferSet.update({ where: { id: set.id }, data: { receiptId: receipt.receiptId, endedAt: new Date() } });

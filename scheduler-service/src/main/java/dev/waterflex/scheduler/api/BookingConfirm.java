@@ -96,7 +96,11 @@ public class BookingConfirm {
 
     private static Reply replayed(Replay replay) {
         Object body;
-        try { body = replay.status() == 200 ? PublicRequests.read(replay.json(), CommitReceipt.class) : PublicRequests.read(replay.json(), Problem.class); }
+        try {
+            body = replay.status() == 200 ? PublicRequests.read(replay.json(), CommitReceipt.class)
+                    : CalculationJson.tree(replay.json()).has("changed") ? PublicRequests.read(replay.json(), StaleProblem.class)
+                    : PublicRequests.read(replay.json(), Problem.class);
+        }
         catch (IllegalArgumentException invalid) { throw new IllegalStateException("A stored response failed validation", invalid); }
         return Reply.of(replay.status(), body);
     }
@@ -114,11 +118,13 @@ public class BookingConfirm {
             registered.attach(deadline);
             return deadline.within(() -> {
                 try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
-                    try { return attempt(tenantId, holdId, request, owner); }
-                    catch (BookingStore.DayMoved moved) {
-                        // One retry within the same deadline, as a search does after a concurrent change.
-                        LOG.info("Retrying confirm of hold {}: {}", holdId, moved.getMessage());
-                        return attempt(tenantId, holdId, request, owner);
+                    for (int attempt = 1; ; attempt++) {
+                        try { return attempt(tenantId, holdId, request, owner); }
+                        catch (BookingStore.DayMoved moved) {
+                            // Confirm again on the new state within the same deadline, as a search does.
+                            if (attempt == BookingOffers.ATTEMPTS) throw moved;
+                            LOG.info("Retrying confirm of hold {} (attempt {}): {}", holdId, attempt + 1, moved.getMessage());
+                        }
                     }
                 } catch (Refused refused) { return refused.reply; }
             });
@@ -200,6 +206,13 @@ public class BookingConfirm {
         BookingSnapshot.Day host = Required.value(snapshot.days().get(date), "hold date");
         DayKey key = new DayKey(metro, date);
 
+        // A late snapshot, older than one already used for this date, would read as a host change and lose holds.
+        var stale = BookingReconciliation.stale(state, host, now);
+        if (!stale.isEmpty()) {
+            StaleProblem problem = BookingReconciliation.staleProblem(date, stale);
+            store.completeStale(tenantId, request.requestId(), owner, problem);
+            throw new Refused(Reply.of(409, problem));
+        }
         var reconciled = BookingReconciliation.reconcile(state, host, null, now);
         if (!reconciled.holds().containsKey(holdId))
             throw settle(tenantId, request, owner, key, day.version(), reconciled, "The hold was lost: the host changed a route it depended on");
@@ -225,7 +238,7 @@ public class BookingConfirm {
         if (!identity.equals(roads.activeIdentity())) throw new RoadClient.RoadUnavailable("Routing identity changed");
 
         CommitReceipt receipt = receipt(prepared, reconciled.state(), host, facts, date);
-        BookingDayState next = after(prepared, reconciled.state(), holdId);
+        BookingDayState next = after(prepared, reconciled.state(), holdId, now);
         SearchDeadline.beforeCommit();
         String body = CalculationJson.write(receipt);
         bookings.settle(tenantId, request.requestId(), owner, key, day.version(), next, reconciled.ended(),
@@ -266,12 +279,20 @@ public class BookingConfirm {
         return new CommitReceipt(PublicApiStore.newReceiptId(), Required.value(List.copyOf(assignments)), Required.value(List.copyOf(technicianDays)));
     }
 
-    /** The day after the confirm: the job is an appointment the host is expected to have, and the other holds stay. */
-    static BookingDayState after(ReservationTransition.Prepared prepared, BookingDayState reconciled, String holdId) {
+    /**
+     * The day after the confirm: the job is an appointment the host is expected to have, and the other holds stay. Each
+     * technician-day the receipt changes remembers its earlier expected route until the host writes the receipt, for as
+     * long as a hold lasts (see {@link BookingDayState.Unwritten}).
+     */
+    static BookingDayState after(ReservationTransition.Prepared prepared, BookingDayState reconciled, String holdId, Instant now) {
         Map<String, TechnicianState> technicians = new TreeMap<>();
-        prepared.day().baseline().routes().forEach((id, route) -> technicians.put(id, new TechnicianState(
-                Required.value(reconciled.technicians().get(id), "reconciled technician").version(), written(Required.value(route), prepared.holds()),
-                Required.value(List.copyOf(route)))));
+        Instant until = Required.value(now.plus(BookingOffers.HOLD));
+        prepared.day().baseline().routes().forEach((id, route) -> {
+            TechnicianState technician = Required.value(reconciled.technicians().get(id), "reconciled technician");
+            List<String> expected = written(Required.value(route), prepared.holds());
+            technicians.put(id, new TechnicianState(technician.version(), expected, Required.value(List.copyOf(route)), technician.superseded(),
+                    expected.equals(technician.expected()) ? technician.unwritten() : new BookingDayState.Unwritten(technician.expected(), until)));
+        });
         Map<String, HoldState> holds = new TreeMap<>(reconciled.holds());
         holds.remove(holdId);
         return new BookingDayState(technicians, holds);

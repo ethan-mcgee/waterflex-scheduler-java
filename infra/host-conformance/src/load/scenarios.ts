@@ -1,7 +1,9 @@
 // Load scenarios. A booking loop is one host booking desk: search, then either release the offers or select one,
 // confirm it against fresh records and write the receipt with a compare-and-set, as docs/integration-guide.md says.
 // A daily loop asks for a proposal of one metro day again and again. Loops run until the run's end time; a 429 BUSY is
-// retried with the same requestId after Retry-After, as a host should, and its wait counts in the call's time.
+// retried with the same requestId after Retry-After, as a host should, and its wait counts in the call's time. A 409
+// STALE (the snapshot was older than records the scheduler already used) is sent again with current records and a
+// new requestId, as the integration guide says.
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
@@ -29,6 +31,8 @@ export interface DailySettings { readonly store: HostStore; readonly date: strin
 export interface BookingTally {
   searches: number; searchIncomplete: number; offers: number; noOffers: number; selected: number; holdUnavailable: number;
   confirmed: number; hostWriteConflicts: number; released: number; failedSearches: number;
+  /** Searches and confirms answered 409 STALE and sent again with current records. */
+  stale: number;
 }
 
 export interface DailyTally { proposals: number; decisions: Record<string, number> }
@@ -50,7 +54,7 @@ export interface Run {
 export function newTallies(): { booking: BookingTally; daily: DailyTally } {
   return {
     booking: { searches: 0, searchIncomplete: 0, offers: 0, noOffers: 0, selected: 0, holdUnavailable: 0, confirmed: 0, hostWriteConflicts: 0,
-      released: 0, failedSearches: 0 },
+      released: 0, failedSearches: 0, stale: 0 },
     daily: { proposals: 0, decisions: {} },
   };
 }
@@ -80,7 +84,23 @@ export function retryAfterMs(reply: Reply): number {
 function problem(reply: Reply): { error: string | null; message: string | null } {
   if (reply.status < 400) return { error: null, message: null };
   const parsed = Api.Problem.safeParse(reply.json);
-  return parsed.success ? { error: parsed.data.error, message: parsed.data.message } : { error: `HTTP_${reply.status}`, message: null };
+  if (parsed.success) return { error: parsed.data.error, message: parsed.data.message };
+  const stale = Api.StaleProblem.safeParse(reply.json);
+  return stale.success ? { error: stale.data.error, message: stale.data.message } : { error: `HTTP_${reply.status}`, message: null };
+}
+
+const isStale = (reply: Reply | null): boolean => reply?.status === 409 && Api.StaleProblem.safeParse(reply.json).success;
+
+/**
+ * Calls with a body built from the host's current records, and builds it again with a new requestId after each 409
+ * STALE, until another answer or one minute past the run's end.
+ */
+async function current(run: Run, operation: string, path: string, body: () => object, timeoutMs: number): Promise<Reply | null> {
+  for (;;) {
+    const reply = await call(run, operation, "POST", path, body(), timeoutMs);
+    if (!isStale(reply) || Date.now() >= run.endsAt + 60_000) return reply;
+    run.booking.stale++;
+  }
 }
 
 /** Calls once and repeats a 429 with the same body until another answer, or until one minute past the run's end. */
@@ -121,8 +141,9 @@ export async function bookingLoop(run: Run, settings: BookingSettings, desk: num
     const first = settings.horizon[0], last = settings.horizon[settings.horizon.length - 1];
     if (first === undefined || last === undefined) throw new Error("Empty booking horizon");
     run.booking.searches++;
-    const reply = await call(run, "booking offers", "POST", "/api/v1/booking/offers", { requestId: randomUUID(), job, horizon: { firstDate: first, lastDate: last },
-      offerLimit: settings.offerLimit, windowHours: settings.windowHours, snapshot: settings.store.snapshot(settings.horizon) }, timeoutMs);
+    const reply = await current(run, "booking offers", "/api/v1/booking/offers", () => ({ requestId: randomUUID(), job,
+      horizon: { firstDate: first, lastDate: last }, offerLimit: settings.offerLimit, windowHours: settings.windowHours,
+      snapshot: settings.store.snapshot(settings.horizon) }), timeoutMs);
     if (reply === null || reply.status !== 201) {
       run.booking.failedSearches++;
       await sleep(200);
@@ -154,8 +175,8 @@ export async function bookingLoop(run: Run, settings: BookingSettings, desk: num
     const hold = parsed(run, selected, Api.Hold, "Select");
     if (hold === null) continue;
     run.booking.selected++;
-    const confirmed = await call(run, "confirm", "POST", `/api/v1/booking/holds/${encodeURIComponent(hold.holdId)}/confirm`,
-      { requestId: randomUUID(), snapshot: settings.store.snapshot([offer.serviceDate]) }, timeoutMs);
+    const confirmed = await current(run, "confirm", `/api/v1/booking/holds/${encodeURIComponent(hold.holdId)}/confirm`,
+      () => ({ requestId: randomUUID(), snapshot: settings.store.snapshot([offer.serviceDate]) }), timeoutMs);
     if (confirmed === null || confirmed.status !== 200) {
       if (confirmed?.status === 409) run.booking.holdUnavailable++;
       await release();
