@@ -331,7 +331,7 @@ every run, from the `cpuMs` field of the request log).
   nothing the load tool can see: a queued 20-technician day is 6 s of queue wait plus a fixed 5 s search, so a GC
   difference of a few milliseconds per solve is below the measurement. A move-rate comparison inside the solver
   (study L's harness) is the right instrument for that replica, not this one.
-- **Compact object headers (`-XX:+UseCompactObjectHeaders`, a product flag since JDK 24) are within noise on
+- **Compact object headers (`-XX:+UseCompactObjectHeaders`, a product flag since JDK 25, JEP 519) are within noise on
   latency** (offers 228 / 320 against 226 / 307 ms, confirm 20 / 32 against 20 / 35 ms) with the heap 0.05 GiB
   smaller and the booking replica's mean CPU 21 points lower in this run; the CPU figure moved by as much between
   runs with identical flags (135 to 154 percent), so it is not counted as a win. The threshold set before the runs

@@ -12,7 +12,8 @@ from report_data import per_minute, queue_wait
 
 # One color per stage of the work, kept across every figure.
 COLOR = {"#151": "#444444", "#152": "#5B9BD5", "#153": "#2E8B57", "#154": "#8064A2", "#155": "#2E8B57", "#157": "#B34F75", "#158": "#C37E12",
-         "J0": "#0B3A66", "J flexible": "#7DAFCB", "J CH": "#B22222"}
+         "J0": "#0B3A66", "J flexible": "#7DAFCB", "J CH": "#B22222", "J2": "#1F7A8C", "L": "#6B4C9A", "K embedded": "#1F7A8C", "K remote": "#E07B39"}
+OFFERS, CONFIRM = "POST /api/v1/booking/offers 201", "POST /api/v1/booking/holds/{holdId}/confirm 200"
 PART = {"queueMs": ("Slot wait", "#C9C9C9"), "routingMs": ("Routing", "#5B9BD5"), "calculationMs": ("Engine", "#2E8B57"), "dbMs": ("Database", "#C37E12")}
 
 
@@ -47,7 +48,7 @@ def make_charts(runs, extras, benchmarks, folder):
     stages = [("#151", by_label(runs["baseline"], "booking-cold-c5")), ("#152", by_label(extras["coldRemeasurement"], "cold-recheck-c5 (seed 91)")),
               ("#154", by_label(runs["outcome"], "booking-cold-c5")), ("#155", by_label(runs["shedding"], "after-c5 (seed 55)")),
               ("J0", by_run(runs["vm"], "base-spread2", "booking")), ("J flexible", by_run(runs["routing"], "j-flex", "booking")),
-              ("J CH", by_run(runs["routing"], "j-ch", "booking"))]
+              ("J CH", by_run(runs["routing"], "j-ch", "booking")), ("J2", by_run(runs["priority"], "j2-slot", "booking"))]
     data["progression"] = [{"stage": s, "label": r["label"], "searches_per_minute": per_minute(r), "p50": r["ops"]["booking offers"]["ms"]["p50"],
                             "p95": r["ops"]["booking offers"]["ms"]["p95"]} for s, r in stages]
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.7), layout="constrained")
@@ -56,13 +57,13 @@ def make_charts(runs, extras, benchmarks, folder):
     axes[0].set_ylabel("Booking searches answered per minute"); axes[0].set_title("Throughput at five desks")
     axes[1].bar([i - .2 for i in x], [d["p50"] for d in data["progression"]], .4, color="#7DAFCB", label="p50")
     axes[1].bar([i + .2 for i in x], [d["p95"] for d in data["progression"]], .4, color="#0B3A66", label="p95")
-    axes[1].axhline(5500, color="#B22222", linewidth=1, linestyle="--"); axes[1].text(6.4, 5600, "5.5 s bound", color="#B22222", fontsize=9, ha="right")
+    axes[1].axhline(5500, color="#B22222", linewidth=1, linestyle="--"); axes[1].text(7.4, 5600, "5.5 s bound", color="#B22222", fontsize=9, ha="right")
     axes[1].set_ylabel("Caller latency of offers (ms)"); axes[1].set_title("Latency at five desks"); axes[1].legend(fontsize=9)
     for ax in axes:
         ax.set_xticks(list(x), [s for s, _ in stages], fontsize=9); ax.grid(axis="y", alpha=.2)
         ax.axvline(3.5, color="#999999", linewidth=.8, linestyle=":")
     axes[0].text(1.5, axes[0].get_ylim()[1] * .95, "one machine, desks alone", ha="center", fontsize=8.5, color="#666666")
-    axes[0].text(5, axes[0].get_ylim()[1] * .95, "VM shape, with daily planners", ha="center", fontsize=8.5, color="#666666")
+    axes[0].text(5.4, axes[0].get_ylim()[1] * .95, "VM shape, with daily planners", ha="center", fontsize=8, color="#666666")
     save(fig, "progression")
 
     # 2. Latency by desk count on fresh addresses: baseline, after #152 and after #155.
@@ -131,9 +132,10 @@ def make_charts(runs, extras, benchmarks, folder):
     save(fig, "daily")
 
     # 5. Where a search's server time goes, before and after the routing work.
-    attribution = [("J0", by_run(runs["vm"], "base-spread2", "booking")), ("J flexible", by_run(runs["routing"], "j-flex", "booking")), ("J CH", by_run(runs["routing"], "j-ch", "booking"))]
+    attribution = [("J0", by_run(runs["vm"], "base-spread2", "booking")), ("J flexible", by_run(runs["routing"], "j-flex", "booking")), ("J CH", by_run(runs["routing"], "j-ch", "booking")),
+                   ("J2", by_run(runs["priority"], "j2-slot", "booking")), ("K remote", by_run(runs["remote"], "k-remote5", "booking"))]
     data["attribution"] = []
-    fig, ax = plt.subplots(figsize=(9, 3.2), layout="constrained")
+    fig, ax = plt.subplots(figsize=(9, 4.2), layout="constrained")
     for i, (stage, r) in enumerate(attribution):
         for op, y in (("POST /api/v1/booking/offers 201", i + .18), ("POST /api/v1/booking/holds/{holdId}/confirm 200", i - .18)):
             entry = r["breakdown"][op]
@@ -143,7 +145,7 @@ def make_charts(runs, extras, benchmarks, folder):
             for k, (name, color) in PART.items():
                 ax.barh(y, parts[k], .34, left=left, color=color, label=name if i == 0 and "offers" in op else None); left += parts[k]
             ax.text(left + 8, y, f"{entry['elapsedMs']['p50']} ms {'offers' if 'offers' in op else 'confirm'}", va="center", fontsize=8.5)
-    ax.set_yticks(range(3), [s for s, _ in attribution]); ax.set_xlabel("Server time of the median call (ms)"); ax.set_xlim(0, 1000)
+    ax.set_yticks(range(5), [s for s, _ in attribution]); ax.set_xlabel("Server time of the median call (ms)"); ax.set_xlim(0, 1000)
     ax.set_title("Where a booking call's time goes (p50 of each part)"); ax.legend(fontsize=9, loc="lower right"); ax.grid(axis="x", alpha=.2)
     ax.invert_yaxis()
     save(fig, "attribution")
@@ -165,7 +167,7 @@ def make_charts(runs, extras, benchmarks, folder):
     # 7. What the routing container's CPU bought: searches per minute against routing CPU.
     fig, ax = plt.subplots(figsize=(9, 3.6), layout="constrained")
     data["cpu"] = []
-    for stage, r in attribution:
+    for stage, r in attribution[:3]:
         routing = [c for c in r["containers"] if "routing" in c["name"]][0]
         booking = [c for c in r["containers"] if "booking" in c["name"]][0]
         d = {"stage": stage, "searches_per_minute": per_minute(r), "routing_cpu_mean": routing["cpuPercent"]["mean"], "booking_cpu_mean": booking["cpuPercent"]["mean"]}
@@ -191,6 +193,86 @@ def make_charts(runs, extras, benchmarks, folder):
     for ax in axes:
         ax.set_xticks(range(4), ["one all 1", "split 1", "split 2", "one all 2"], fontsize=9); ax.grid(axis="y", alpha=.2)
     save(fig, "roles")
+
+    # 9. J2: confirm and offers latency at the caller from J's CH run through the four J2 runs.
+    j2 = [("J CH", by_run(runs["routing"], "j-ch", "booking")), ("priority", by_run(runs["priority"], "j2-confirm", "booking")), ("priority,\nZGC / Parallel", by_run(runs["priority"], "j2-gc", "booking")),
+          ("priority +\nconfirm slot", by_run(runs["priority"], "j2-slot", "booking")), ("slot, compact\nheaders", by_run(runs["priority"], "j2-coh2", "booking"))]
+    data["confirm"] = [{"stage": s, "run": r.get("run"), "confirm_p50": r["ops"]["confirm"]["ms"]["p50"], "confirm_p95": r["ops"]["confirm"]["ms"]["p95"],
+                        "confirm_wait_p50": r["breakdown"][CONFIRM]["queueMs"]["p50"],
+                        "offers_p50": r["ops"]["booking offers"]["ms"]["p50"], "offers_p95": r["ops"]["booking offers"]["ms"]["p95"]} for s, r in j2]
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.7), layout="constrained")
+    x = range(len(j2))
+    for ax, key, title in ((axes[0], "confirm", "Confirm at the caller"), (axes[1], "offers", "Offers at the caller")):
+        ax.bar([i - .2 for i in x], [d[f"{key}_p50"] for d in data["confirm"]], .4, color="#7DAFCB", label="p50")
+        ax.bar([i + .2 for i in x], [d[f"{key}_p95"] for d in data["confirm"]], .4, color=COLOR["J2"], label="p95")
+        ax.set_xticks(list(x), [s for s, _ in j2], fontsize=8.5); ax.set_ylabel("Caller latency (ms)"); ax.set_title(title); ax.grid(axis="y", alpha=.2)
+        ax.set_ylim(0, max(d[f"{key}_p95"] for d in data["confirm"]) * 1.25); ax.legend(fontsize=9, loc="upper right", ncol=2)
+    for i, d in enumerate(data["confirm"]):
+        axes[0].text(i - .2, d["confirm_p50"] + 3, f"wait {d['confirm_wait_p50']}", ha="center", fontsize=7.5, color="#444444")
+    save(fig, "confirm")
+
+    # 10. L: where the solve's samples went before and after the treatment, by group of leaf frame, and the profiled solves' move rates.
+    prof = extras["profiling"]
+    groups = ["Immutable map probe", "HashMap and copies", "BigDecimal arithmetic", "Instant and Duration", "Engine timing methods", "Timefold score director"]
+    data["profile"] = [{"group": g, "before": prof["before"]["groups"].get(g, 0), "after": prof["after"]["groups"].get(g, 0)} for g in groups]
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.7), layout="constrained", width_ratios=[1.3, 1])
+    y = range(len(groups))
+    axes[0].barh([i - .2 for i in y], [d["before"] for d in data["profile"]], .4, color=COLOR["#151"], label="before (7ca5c72)")
+    axes[0].barh([i + .2 for i in y], [d["after"] for d in data["profile"]], .4, color=COLOR["L"], label="after (RoadMatrix)")
+    axes[0].set_yticks(list(y), groups, fontsize=9); axes[0].invert_yaxis(); axes[0].set_xlabel("Share of the solve's samples (percent, top 20 leaf frames)")
+    axes[0].set_title("Where a solve's time went"); axes[0].legend(fontsize=9); axes[0].grid(axis="x", alpha=.2)
+    cases = ["20-CLUSTERED", "20-DISPERSED", "50-CLUSTERED", "50-DISPERSED"]
+    data["profile_rates"] = [{"case": c, "before": prof["before"]["rates"][f"{c}-referencePhase"]["movesPerSecond"], "after": prof["after"]["rates"][f"{c}-referencePhase"]["movesPerSecond"]} for c in cases]
+    x = range(4)
+    axes[1].bar([i - .2 for i in x], [d["before"] / 1000 for d in data["profile_rates"]], .4, color=COLOR["#151"])
+    axes[1].bar([i + .2 for i in x], [d["after"] / 1000 for d in data["profile_rates"]], .4, color=COLOR["L"])
+    axes[1].set_xticks(list(x), [c.replace("-", "\n") for c in cases], fontsize=8.5); axes[1].set_ylabel("Cost-phase moves per second (thousands)")
+    axes[1].set_title("The profiled solves"); axes[1].grid(axis="y", alpha=.2)
+    save(fig, "profile")
+
+    # 11. L: the 24 paired cases, cost-phase moves per second before against after.
+    data["paired"] = [{"technicians": x["technicians"], "workload": x["workload"], "seed": x["seed"], "before": x["costPhaseMovesPerSecond"]["before"], "after": x["costPhaseMovesPerSecond"]["after"],
+                       "speedup": x["costPhaseSpeedup"], "fairness_speedup": x["fairnessPhaseSpeedup"], "cost_before": x["afterCostCents"]["before"], "cost_after": x["afterCostCents"]["after"]} for x in prof["pairs"]]
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8), layout="constrained")
+    for fleet, color, marker in ((20, "#7DAFCB", "o"), (50, COLOR["L"], "s")):
+        pts = [d for d in data["paired"] if d["technicians"] == fleet]
+        axes[0].scatter([d["before"] / 1000 for d in pts], [d["after"] / 1000 for d in pts], s=40, color=color, marker=marker, label=f"{fleet} technicians")
+    lim = max(d["after"] for d in data["paired"]) / 1000 * 1.05
+    axes[0].plot([0, lim], [0, lim], color="#999999", linewidth=.8, linestyle=":"); axes[0].text(lim * .97, lim * .91, "equal", fontsize=8, ha="right", color="#666666")
+    axes[0].plot([0, lim / 2], [0, lim], color="#B22222", linewidth=.8, linestyle="--"); axes[0].text(lim * .22, lim * .5, "2x", fontsize=8, ha="right", color="#B22222")
+    axes[0].set_xlim(0, lim); axes[0].set_ylim(0, lim); axes[0].set_xlabel("Before: cost-phase moves per second (thousands)"); axes[0].set_ylabel("After (thousands)")
+    axes[0].set_title("24 paired cases"); axes[0].legend(fontsize=9, loc="lower right"); axes[0].grid(alpha=.2)
+    order = sorted(data["paired"], key=lambda d: (d["technicians"], d["workload"], d["seed"]))
+    axes[1].bar(range(24), [d["speedup"] for d in order], .7, color=[("#7DAFCB" if d["technicians"] == 20 else COLOR["L"]) for d in order])
+    axes[1].axhline(1, color="#999999", linewidth=.8); axes[1].set_ylabel("Cost-phase speedup (after / before)")
+    axes[1].set_xticks([1, 4, 7, 10, 13, 16, 19, 22], [f"{d['technicians']}\n{d['workload'][:5]}" for d in order[1::3]], fontsize=8)
+    axes[1].set_title("Speedup by case (three seeds each)"); axes[1].grid(axis="y", alpha=.2)
+    save(fig, "paired")
+
+    # 12. K: embedded against remote, booking latency and the daily pool's answers.
+    k = [("Embedded", "k-embedded"), ("Remote, old\npool defaults", "k-remote"), ("Remote,\ncapacity 4", "k-remote4"), ("Remote, capacity 4,\nevery slot daily", "k-remote5")]
+    data["remote"] = []
+    for name, run in k:
+        b, d = by_run(runs["remote"], run, "booking"), by_run(runs["remote"], run, "daily")
+        data["remote"].append({"run": run, "offers_p50": b["ops"]["booking offers"]["ms"]["p50"], "offers_p95": b["ops"]["booking offers"]["ms"]["p95"], "searches": b["booking"]["searches"],
+                               "calculation_p50": b["breakdown"][OFFERS]["calculationMs"]["p50"], "answered_201": d["ops"]["daily proposal"]["statuses"].get("201", 0),
+                               "answered_503": d["ops"]["daily proposal"]["statuses"].get("503", 0), "daily_cpu_mean": [c for c in b["containers"] if "daily" in c["name"]][0]["cpuPercent"]["mean"]})
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8), layout="constrained")
+    x = range(4)
+    axes[0].bar([i - .2 for i in x], [d["offers_p50"] for d in data["remote"]], .4, color="#7DAFCB", label="p50")
+    axes[0].bar([i + .2 for i in x], [d["offers_p95"] for d in data["remote"]], .4, color=[COLOR["K embedded"], *[COLOR["K remote"]] * 3], label="p95")
+    axes[0].set_ylabel("Offers at the caller (ms)"); axes[0].set_title("Booking search, five desks")
+    axes[0].set_ylim(0, max(d["offers_p95"] for d in data["remote"]) * 1.25); axes[0].legend(fontsize=9, loc="upper left", ncol=2)
+    for i, d in enumerate(data["remote"]):
+        axes[0].text(i, d["offers_p95"] + 8, f"{d['searches']} searches", ha="center", fontsize=8, color="#444444")
+    axes[1].bar(list(x), [d["answered_201"] for d in data["remote"]], .6, color=[COLOR["K embedded"], *[COLOR["K remote"]] * 3])
+    axes[1].bar(list(x), [d["answered_503"] for d in data["remote"]], .6, bottom=[d["answered_201"] for d in data["remote"]], color="#DDAA76", hatch="//")
+    for i, d in enumerate(data["remote"]):
+        axes[1].text(i, d["answered_201"] + d["answered_503"] + .5, f"daily CPU {d['daily_cpu_mean']:.0f}%", ha="center", fontsize=8, color="#444444")
+    axes[1].set_ylabel("Queued proposals in 60 s"); axes[1].set_title("Daily: answered (solid) or 503 (hatched)"); axes[1].set_ylim(0, 31)
+    for ax in axes:
+        ax.set_xticks(list(x), [n for n, _ in k], fontsize=8.5); ax.grid(axis="y", alpha=.2)
+    save(fig, "remote")
 
     (folder / "chart_data.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     return data

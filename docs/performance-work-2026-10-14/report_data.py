@@ -22,7 +22,12 @@ STUDIES = (
     ("roles", "api-load-2026-10-14-replica-roles.json", "#158", "Booking and daily replica pools (L5)"),
     ("vm", "api-load-2026-10-14-vm-baseline.json", "#159", "VM-shaped baseline with the time attributed (J0)"),
     ("routing", "api-load-2026-10-14-routing.json", "#160", "CH graph, parallel pairs, identity cache (J)"),
+    ("priority", "api-load-2026-10-14-confirm-priority-and-jvm.json", "#162", "Confirm priority, a confirm-only slot, JVM flags (J2)"),
+    ("remote", "api-load-2026-10-14-embedded-vs-remote.json", "#164", "Embedded against remote calculation; solver pool sizing (K)"),
 )
+PROFILING = "solver-profiling-2026-10-14.json"  # Study L (#163): solve-scoped JFR profiles and the 24-case paired study.
+FRAME_GROUPS = (("java/util/ImmutableCollections$MapN.probe", "Immutable map probe"), ("java/util/HashMap", "HashMap and copies"), ("java/util/", "HashMap and copies"),
+                ("java/math/", "BigDecimal arithmetic"), ("java/time/", "Instant and Duration"), ("dev/waterflex/", "Engine timing methods"), ("ai/timefold/", "Timefold score director"))
 ROUTING_BENCHMARKS = (("2026-09-24", "routing-ch-omaha-2026-09-24.json"), ("2026-10-14", "routing-ch-2026-10-14.json"))
 MACHINE = "AMD Ryzen 9 7900X 12-Core Processor"
 
@@ -52,7 +57,9 @@ def load_report(study, report, note=""):
     if daily is not None:
         assert daily["proposals"] == ops["daily proposal"]["calls"]
         if "queueWaitsMs" in daily and daily["queueWaitsMs"]:
-            assert len(daily["queueWaitsMs"]) == ops["daily proposal"]["statuses"].get("201", 0)
+            # A proposal refused 503 after its queue wait still records that wait, so with refusals the waits cover every proposal.
+            statuses = ops["daily proposal"]["statuses"]
+            assert len(daily["queueWaitsMs"]) == (daily["proposals"] if "503" in statuses else statuses.get("201", 0)), report["label"]
     return {"study": study, "label": report["label"], "note": note, "scenario": report["scenario"], "desks": settings["concurrency"],
             "planners": settings.get("dailyConcurrency"), "mode": settings.get("dailyMode"), "jobs": settings["jobs"],
             "seed": settings["seed"], "duration": settings["durationS"], "spread": settings.get("dateSpread"),
@@ -82,6 +89,7 @@ def load():
     extras["outcome"] = files["outcome"]["result"]
     extras["stack"] = {key: files[key].get("scheduler") or files[key].get("stack") for key in files}
     extras["protocol"] = {key: files[key]["protocol"] for key in files}
+    extras["profiling"] = load_profiling(read(PROFILING))
     benchmarks = {}
     for date, name in ROUTING_BENCHMARKS:
         doc = read(name)
@@ -90,6 +98,48 @@ def load():
         assert doc["hardware"]["cpu"].strip() == MACHINE
         benchmarks[date] = doc
     return runs, extras, benchmarks
+
+
+def frame_group(frame):
+    """The report's grouping of a JFR leaf frame; a frame outside every group is an error, never silently dropped."""
+    for prefix, group in FRAME_GROUPS:
+        if frame.startswith(prefix):
+            return group
+    raise ValueError(frame)
+
+
+def load_profiling(doc):
+    """Study L as the report uses it, after checking the profiles and recomputing every paired summary from its cases."""
+    assert doc["study"].startswith("Solve-scoped profiling") and doc["paired"]["provenance"]["before"]["revision"] == "cr07-before"
+    assert doc["paired"]["provenance"]["after"]["revision"] == "cr07-after" and doc["paired"]["provenance"]["before"]["engine"] == doc["paired"]["provenance"]["after"]["engine"]
+    profiles = {}
+    for side in ("profileBefore", "profileAfter"):
+        pr = doc[side]
+        assert sum(pr["recordings"].values()) == pr["samples"] and len(pr["recordings"]) == 8
+        assert all(0 < v <= 100 for v in pr["leafFramesPercent"].values()) and sum(pr["leafFramesPercent"].values()) < 100
+        rates = pr["moveRates"]
+        assert len(rates) == 8 and all(r["movesPerSecond"] == round(r["moveEvaluations"] * 1000 / r["solveMs"]) for r in rates.values())
+        groups = {}
+        for frame, share in pr["leafFramesPercent"].items():
+            groups[frame_group(frame)] = round(groups.get(frame_group(frame), 0) + share, 1)
+        profiles[side] = {"samples": pr["samples"], "frames": pr["leafFramesPercent"], "groups": groups, "rates": rates}
+    pairs = doc["paired"]["pairs"]
+    assert len(pairs) == 24 and len({(x["technicians"], x["workload"], x["seed"]) for x in pairs}) == 24
+    for x in pairs:
+        assert x["variant"] == "TABU_KOPT" and x["fixtureSeed"] == 7001 and x["violations"] == {"before": 0, "after": 0}
+        for phase in ("costPhase", "fairnessPhase"):
+            rate = x[f"{phase}MovesPerSecond"]
+            assert x[f"{phase}Speedup"] == round(rate["after"] / rate["before"], 3), (x["technicians"], x["workload"], x["seed"])
+    summary = doc["paired"]["summary"]
+    cost = [x["costPhaseSpeedup"] for x in pairs]
+    assert summary["costPhaseSpeedup"] == {"median": round(median(cost), 3), "min": min(cost), "max": max(cost), "pairs": 24}
+    assert summary["fairnessPhaseSpeedup"]["median"] == round(median(x["fairnessPhaseSpeedup"] for x in pairs), 3)
+    for fleet in (20, 50):
+        assert summary["costPhaseSpeedupByFleet"][str(fleet)]["medianCostPhaseSpeedup"] == round(median(x["costPhaseSpeedup"] for x in pairs if x["technicians"] == fleet), 3)
+    wins = {"afterWins": sum(x["afterCostCents"]["after"] < x["afterCostCents"]["before"] for x in pairs), "ties": sum(x["afterCostCents"]["after"] == x["afterCostCents"]["before"] for x in pairs),
+            "beforeWins": sum(x["afterCostCents"]["after"] > x["afterCostCents"]["before"] for x in pairs)}
+    assert summary["afterCostCentsWinTieLoss"] == wins and summary["violationsAfter"] == 0
+    return {"method": doc["method"], "before": profiles["profileBefore"], "after": profiles["profileAfter"], "pairs": pairs, "summary": summary}
 
 
 def per_minute(run, operation="booking offers", status="201"):
