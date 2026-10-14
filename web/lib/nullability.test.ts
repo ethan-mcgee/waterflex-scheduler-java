@@ -96,7 +96,7 @@ test("solver diagnostics require measured phase counts and explicit unavailable 
   const result = { engine: "Timefold-2.6.0", configurationXml: "<solver/>", phases: [{ name: "REFERENCE", statistics }] };
   assert.equal(solverAnalysis.safeParse(result).success, true);
   for (const invalid of [{ ...statistics, steps: null }, { ...statistics, moveEvaluations: -1 },
-    { ...statistics, termination: "unknown" }, { ...statistics, stepLimit: undefined }])
+    { ...statistics, termination: "unknown" }, { ...statistics, stepLimit: undefined }, { ...statistics, format: null }])
     assert.equal(solverAnalysis.safeParse({ ...result, phases: [{ name: "REFERENCE", statistics: invalid }] }).success, false);
 });
 

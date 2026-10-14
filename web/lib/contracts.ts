@@ -74,7 +74,7 @@ const legacySolverStatistics = z.object({ variant: text, seed: z.int(), configur
   termination: z.enum(["TERMINATED_EARLY", "STEP_AND_TIME_LIMIT", "STEP_LIMIT", "TIME_LIMIT", "PHASE_COMPLETED"]),
   budgetMs: z.int().positive(), stepLimit: z.int().positive().nullable(), steps: z.int().nonnegative(),
   moveEvaluations: z.int().nonnegative(), scoreCalculations: z.int().nonnegative(), solveMs: z.int().nonnegative(), timeToBestMs: z.int().nonnegative().nullable(),
-  format: z.undefined(),
+  format: z.never().optional(), // Legacy statistics carry no format key; any value there is a different format.
 });
 const engineProvenance = z.object({ artifact: z.literal("timefold-solver-core"), version: text.nullable(),
   sha256: z.string().regex(/^[a-f0-9]{64}$/).nullable(), unavailableReason: text.nullable(),
