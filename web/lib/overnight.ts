@@ -170,10 +170,11 @@ async function proposeDay(runId: string, clientId: string, metroId: string, serv
     // A run that reaches a day after its 6 a.m. cutoff leaves it alone, as the scheduler would refuse to change it.
     if (frozen(serviceDate, now(), OVERNIGHT_TIME_ZONE)) return record("SKIPPED", "The day is frozen after 6 a.m.");
     try {
+      // Each day waits in the scheduler's queue, where every client's days take turns, rather than in an open call.
       await propose(clientId, metroId, serviceDate, async (tx, proposalId) => {
         await recordDay(tx, runId, metroId, serviceDate, "PROPOSED", proposalId, null);
         return runId;
-      });
+      }, randomUUID(), true);
       return;
     } catch (error) {
       if (error instanceof RunEnded) throw error;

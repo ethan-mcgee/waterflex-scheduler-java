@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -52,6 +53,37 @@ class TenantAuthenticationTest {
                 .andExpect(status().is(429)).andExpect(header().string("Retry-After", "1")).andExpect(jsonPath("$.error").value("BUSY"));
         http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals").content(body)))
                 .andExpect(status().isUnauthorized());
+        org.mockito.Mockito.verify(proposals, org.mockito.Mockito.times(1)).create("acme", body);
+    }
+
+    @Test void preferRespondAsyncQueuesTheProposalAndTheStatusIsReadByRequestId() throws Exception {
+        TenantTokens tokens = mock(TenantTokens.class);
+        when(tokens.tenantFor(VECTOR)).thenReturn("acme");
+        var proposals = mock(dev.waterflex.scheduler.api.DailyProposals.class);
+        String body = "{\"requestId\":\"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\"}";
+        String status = "{\"requestId\":\"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\",\"operation\":\"DAILY_PROPOSAL\",\"state\":\"QUEUED\"}";
+        when(proposals.createAsync("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(202, status, 3, "/api/v1/requests/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"));
+        when(proposals.repairAsync("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(202, status, 3, "/api/v1/requests/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"));
+        when(proposals.create("acme", body)).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(201, "{}", null));
+        when(proposals.describe("acme", "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d")).thenReturn(new dev.waterflex.scheduler.api.DailyProposals.Reply(200, status, 3));
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals, mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests()))).addFilters(new TenantAuthentication(tokens)).build());
+        for (String prefer : List.of("respond-async", "return=minimal, respond-async", "RESPOND-ASYNC; wait=10"))
+            http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals")
+                            .header("Authorization", "Bearer " + VECTOR).header("Prefer", prefer).contentType("application/json").content(body)))
+                    .andExpect(status().isAccepted()).andExpect(header().string("Location", "/api/v1/requests/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"))
+                    .andExpect(header().string("Retry-After", "3")).andExpect(header().string("Preference-Applied", "respond-async"))
+                    .andExpect(jsonPath("$.state").value("QUEUED"));
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/repairs/proposals")
+                        .header("Authorization", "Bearer " + VECTOR).header("Prefer", "respond-async").contentType("application/json").content(body)))
+                .andExpect(status().isAccepted());
+        // Another preference alone, or none, keeps the synchronous call.
+        http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals")
+                        .header("Authorization", "Bearer " + VECTOR).header("Prefer", "return=minimal").contentType("application/json").content(body)))
+                .andExpect(status().isCreated()).andExpect(header().doesNotExist("Preference-Applied"));
+        http.perform(Required.value(get("/api/v1/requests/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d").header("Authorization", "Bearer " + VECTOR)))
+                .andExpect(status().isOk()).andExpect(header().string("Retry-After", "3")).andExpect(jsonPath("$.state").value("QUEUED"));
+        http.perform(Required.value(get("/api/v1/requests/0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"))).andExpect(status().isUnauthorized());
+        org.mockito.Mockito.verify(proposals, org.mockito.Mockito.times(3)).createAsync("acme", body);
         org.mockito.Mockito.verify(proposals, org.mockito.Mockito.times(1)).create("acme", body);
     }
 

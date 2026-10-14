@@ -147,7 +147,7 @@ public class BookingOffers {
                 // A request refused for its facts, or a late snapshot, is answered before it waits for a search slot. The
                 // search checks again in its slot, since other bookings may move the dates while it waits.
                 prepare(tenantId, request);
-                try (var _ = admission.acquire(SearchAdmission.Kind.BOOKING, deadline)) {
+                try (var _ = admission.acquireBooking(deadline, tenantId)) {
                     for (int attempt = 1; ; attempt++) {
                         try { return search(tenantId, request, owner); }
                         catch (BookingStore.DayMoved moved) {

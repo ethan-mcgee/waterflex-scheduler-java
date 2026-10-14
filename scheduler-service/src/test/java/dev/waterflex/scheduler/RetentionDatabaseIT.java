@@ -34,7 +34,7 @@ class RetentionDatabaseIT {
     }
 
     @AfterEach void clean() {
-        for (String table : List.of("api_booking_receipt", "api_booking_offer", "api_booking_offer_set", "api_booking_day", "api_commit_receipt",
+        for (String table : List.of("api_daily_job", "api_booking_receipt", "api_booking_offer", "api_booking_offer_set", "api_booking_day", "api_commit_receipt",
                 "api_proposal_technician_day", "api_daily_proposal", "api_request"))
             owner.update("DELETE FROM " + table + " WHERE \"tenantId\"=?", tenant);
         owner.update("DELETE FROM tenant WHERE id=?", tenant);
@@ -76,6 +76,13 @@ class RetentionDatabaseIT {
                 tenant, metro, interval(age));
     }
 
+    /** A queued job made {@code age} ago, finished then too unless {@code waiting}. */
+    private void job(Duration age, boolean waiting) {
+        owner.update("INSERT INTO api_daily_job (\"tenantId\",\"requestId\",operation,\"requestJson\",\"ownerToken\",state,\"leaseSeconds\",\"queuedAt\",\"finishedAt\") "
+                + "VALUES (?,?, 'DAILY_PROPOSAL', '{}'::jsonb, 'owner', ?, 60, clock_timestamp() - ?::interval, CASE WHEN ? THEN NULL ELSE clock_timestamp() - ?::interval END)",
+                tenant, id(), waiting ? "QUEUED" : "DONE", interval(age), waiting, interval(age));
+    }
+
     private long count(String table) {
         return Required.value(owner.queryForObject("SELECT count(*) FROM " + table + " WHERE \"tenantId\"=?", Long.class, tenant));
     }
@@ -95,6 +102,9 @@ class RetentionDatabaseIT {
         receipt(offerSet(keptSearch, old), recentConfirm, recent);
         bookingDay("old-metro", old);
         bookingDay("recent-metro", recent);
+        job(old, false);
+        job(old, true);
+        job(recent, false);
 
         long deleted = new Retention(app, 30, Required.value(Clock.systemUTC())).purge();
 
@@ -109,8 +119,17 @@ class RetentionDatabaseIT {
         assertEquals(1, count("api_booking_offer"));
         assertEquals(1, count("api_booking_day"));
         assertEquals(1L, owner.queryForObject("SELECT count(*) FROM api_booking_day WHERE \"tenantId\"=? AND \"metroId\"='recent-metro'", Long.class, tenant));
-        assertTrue(deleted >= 6, "deleted " + deleted);
+        assertEquals(1, count("api_daily_job"), "old jobs go, finished or left waiting");
+        assertTrue(deleted >= 8, "deleted " + deleted);
         assertEquals(0, new Retention(app, 30, Required.value(Clock.systemUTC())).purge(), "a second purge finds nothing more");
+    }
+
+    @Test void theAppLoginTakesQueuedJobsOnlyThroughTheQueueFunction() {
+        assertThrows(DataAccessException.class, () -> app.queryForObject("SELECT count(*) FROM api_daily_job", Long.class), "it reads jobs only as scheduler_tenant");
+        assertThrows(DataAccessException.class, () -> app.queryForObject("SELECT count(*) FROM api_tenant_turn", Long.class), "the turn table is the function's");
+        assertThrows(DataAccessException.class, () -> app.queryForList("SELECT * FROM scheduler_next_daily_job('w', INTERVAL '10 seconds')"), "a wait under a minute is refused");
+        assertThrows(DataAccessException.class, () -> app.queryForList("SELECT * FROM scheduler_next_daily_job('', INTERVAL '15 minutes')"), "a worker is named");
+        app.queryForList("SELECT * FROM scheduler_next_daily_job('w', INTERVAL '15 minutes')");
     }
 
     @Test void thePurgeRefusesACutoffNewerThanOneDay() {

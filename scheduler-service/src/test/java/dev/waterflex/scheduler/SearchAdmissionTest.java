@@ -153,4 +153,78 @@ class SearchAdmissionTest {
         assertNull(SearchDeadline.current());
         SearchDeadline.checkpoint();
     }
+
+    /** Starts a booking for {@code client} on its own thread; it records its name once admitted, or how it was refused. */
+    private static java.util.concurrent.Future<String> booking(java.util.concurrent.ExecutorService pool, SearchAdmission admission, String client, String name,
+                                                               ConcurrentLinkedQueue<String> order) throws InterruptedException {
+        int queued = admission.state().queuedBookings();
+        var future = pool.submit(() -> {
+            try (var lease = admission.acquireBooking(deadline(5000), client)) {
+                order.add(name); Thread.sleep(20); return Required.value(name + " ran after " + lease.queueMillis() + " ms");
+            } catch (SearchAdmission.Busy busy) { return name + " refused"; }
+        });
+        // Each booking joins the queue before the next is sent, so the queue order is known.
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (admission.state().queuedBookings() == queued && !future.isDone() && System.nanoTime() < until) Thread.sleep(1);
+        return Required.value(future);
+    }
+
+    @Test void aWaitingBookingOfAnotherClientStartsBeforeTheBusyClientsNextOne() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 16);
+        ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
+        var occupied = admission.acquireBooking(deadline(5000), "client-a");
+        try (var pool = Required.value(Executors.newVirtualThreadPerTaskExecutor())) {
+            var a2 = booking(pool, admission, "client-a", "a2", order);
+            var a3 = booking(pool, admission, "client-a", "a3", order);
+            var b1 = booking(pool, admission, "client-b", "b1", order);
+            assertEquals(3, admission.state().queuedBookings());
+            occupied.close();
+            for (var done : List.of(a2, a3, b1)) assertTrue(done.get(3, TimeUnit.SECONDS).contains("ran"));
+        } finally { occupied.close(); }
+        assertEquals(List.of("b1", "a2", "a3"), List.copyOf(order), "the client that had not run goes first, then the busy client's bookings in order");
+        assertEquals(new SearchAdmission.State(0, 0, 0, false), admission.state());
+    }
+
+    @Test void aFullQueueGivesALighterClientThePlaceOfTheHeaviestClientsNewestBooking() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 3);
+        ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
+        var occupied = admission.acquireBooking(deadline(5000), "client-x");
+        try (var pool = Required.value(Executors.newVirtualThreadPerTaskExecutor())) {
+            var a1 = booking(pool, admission, "client-a", "a1", order);
+            var a2 = booking(pool, admission, "client-a", "a2", order);
+            var a3 = booking(pool, admission, "client-a", "a3", order);
+            var b1 = booking(pool, admission, "client-b", "b1", order);
+            assertEquals("a3 refused", a3.get(2, TimeUnit.SECONDS), "client a's newest booking gave its place to client b");
+            var c1 = booking(pool, admission, "client-c", "c1", order);
+            assertEquals("a2 refused", a2.get(2, TimeUnit.SECONDS));
+            var d1 = booking(pool, admission, "client-d", "d1", order);
+            assertEquals("d1 refused", d1.get(2, TimeUnit.SECONDS), "no client waits more than one booking, so the full queue refuses the newcomer");
+            assertEquals(2, admission.evictions());
+            assertEquals(3, admission.rejections());
+            occupied.close();
+            for (var done : List.of(a1, b1, c1)) assertTrue(done.get(3, TimeUnit.SECONDS).contains("ran"));
+        } finally { occupied.close(); }
+        assertEquals(java.util.Set.of("a1", "b1", "c1"), java.util.Set.copyOf(order));
+    }
+
+    @Test void bookingsWithoutAClientKeepTheirArrivalOrder() throws Exception {
+        SearchAdmission admission = new SearchAdmission(1, 16);
+        ConcurrentLinkedQueue<String> order = new ConcurrentLinkedQueue<>();
+        var occupied = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(5000));
+        List<java.util.concurrent.Future<?>> waiting = new java.util.ArrayList<>();
+        try (var pool = Required.value(Executors.newVirtualThreadPerTaskExecutor())) {
+            for (String name : List.of("first", "second", "third")) {
+                int queued = admission.state().queuedBookings();
+                waiting.add(pool.submit(() -> {
+                    try (var lease = admission.acquire(SearchAdmission.Kind.BOOKING, deadline(5000))) { order.add(name); return lease.queueMillis(); }
+                }));
+                long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                while (admission.state().queuedBookings() == queued && System.nanoTime() < until) Thread.sleep(1);
+            }
+            occupied.close();
+            for (var done : waiting) done.get(3, TimeUnit.SECONDS);
+        } finally { occupied.close(); }
+        assertEquals(List.of("first", "second", "third"), List.copyOf(order));
+        assertThrows(IllegalArgumentException.class, () -> admission.acquireBooking(deadline(1000), ""));
+    }
 }

@@ -1,6 +1,7 @@
 package dev.waterflex.scheduler;
 
 import dev.waterflex.scheduler.api.BookingOffers;
+import dev.waterflex.scheduler.api.DailyQueueWorker;
 import dev.waterflex.scheduler.api.RunningRequests;
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
@@ -11,7 +12,7 @@ import org.springframework.stereotype.Component;
 /**
  * The scheduler's own meters, beside Spring's {@code http_server_requests_seconds} (each API operation by route and
  * status): admission load and rejections, routing service calls per metro, invalid refinements, host cancellations,
- * and rows the retention purge deleted. Every meter reads a counter the service keeps anyway.
+ * rows the retention purge deleted, and this replica's work from the asynchronous daily queue. Every meter reads a counter the service keeps anyway.
  */
 @Component
 public class SchedulerMetrics implements MeterBinder {
@@ -20,15 +21,19 @@ public class SchedulerMetrics implements MeterBinder {
     private final BookingOffers offers;
     private final RunningRequests running;
     private final Retention retention;
+    private final DailyQueueWorker queue;
 
-    public SchedulerMetrics(SearchAdmission admission, MetroRouting routing, BookingOffers offers, RunningRequests running, Retention retention) {
-        this.admission = admission; this.routing = routing; this.offers = offers; this.running = running; this.retention = retention;
+    public SchedulerMetrics(SearchAdmission admission, MetroRouting routing, BookingOffers offers, RunningRequests running, Retention retention,
+                            DailyQueueWorker queue) {
+        this.admission = admission; this.routing = routing; this.offers = offers; this.running = running; this.retention = retention; this.queue = queue;
     }
 
     @Override
     public void bindTo(MeterRegistry registry) {
         FunctionCounter.builder("scheduler.admission.rejections", admission, SearchAdmission::rejections)
                 .description("Calculations refused because search capacity and its queue were full").register(registry);
+        FunctionCounter.builder("scheduler.admission.evictions", admission, SearchAdmission::evictions)
+                .description("Queued bookings that gave their place to a booking of a client with fewer waiting").register(registry);
         Gauge.builder("scheduler.admission.active", admission, current -> current.state().active())
                 .description("Calculations running now").register(registry);
         Gauge.builder("scheduler.admission.queued", admission, current -> current.state().queuedBookings() + current.state().queuedBackground())
@@ -50,6 +55,12 @@ public class SchedulerMetrics implements MeterBinder {
                 .description("Remote refinements that failed validation; their insertion offers were published").register(registry);
         FunctionCounter.builder("scheduler.requests.cancelled", running, RunningRequests::cancellations)
                 .description("Host cancellations that found their request running").register(registry);
+        FunctionCounter.builder("scheduler.daily.queue.started", queue, DailyQueueWorker::started)
+                .description("Queued daily and repair proposals this replica started").register(registry);
+        FunctionCounter.builder("scheduler.daily.queue.expired", queue, DailyQueueWorker::expired)
+                .description("Queued proposals that waited longer than the queue allows and ended without running").register(registry);
+        FunctionCounter.builder("scheduler.daily.queue.failed", queue, DailyQueueWorker::failed)
+                .description("Queued proposals that failed unexpectedly here and were queued again").register(registry);
         FunctionCounter.builder("scheduler.retention.deleted", retention, Retention::deleted)
                 .description("Thin store rows deleted by the retention purge").register(registry);
     }
