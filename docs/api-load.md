@@ -139,7 +139,18 @@ again from current records with a new `requestId`. Latency is per call, so a res
    deadline or a failure stopped a pass the offers need, and `OfferSet.refinement` (spec 1.2.0) reports a refinement
    cut short at its cap as `SHORTENED`. A 60 s run at 5 desks afterwards answered 123 searches: none reported
    `searchComplete: false`, and all 123 refinements were `SHORTENED` by the cap
-   ([evidence](evidence/api-load-2026-10-13-search-outcome.json)). The original finding: when the first pass finds more
+   ([evidence](evidence/api-load-2026-10-13-search-outcome.json)). #155 adds `incompleteDates`, sheds the optional
+   refinement while booking requests are queued (`SHED`) and lets a client set its own budget. At 5 desks, both builds
+   on fresh addresses ([evidence](evidence/api-load-2026-10-13-refinement-shedding.json)):
+
+   | Build | Searches per minute | Offers p50 | Offers p95 | Refinement |
+   | --- | ---: | ---: | ---: | --- |
+   | #154 | 124 | 1.28 s | 2.56 s | `SHORTENED` 127 |
+   | #155 | 256 | 0.66 s | 1.30 s | `SHED` 262, `SHORTENED` 1 |
+
+   Every search in both runs returned 4 offers and none was incomplete; shed searches skip only the optional cost and
+   fairness improvement. Compare runs on fresh seeds only: a seed run before leaves its routes in the cache and makes
+   a one-desk search about 250 ms faster. The original finding: when the first pass finds more
    distinct windows than `regularWindowThreshold`, the optional refinement gets a 250 ms cap. Reaching that cap marks
    the search incomplete (`REFINEMENT_TIME_LIMIT`), so all 494 searches in these runs reported `false` while returning 4 offers.
    The spec says `false` means "the deadline ended the search early; an empty offer list then does not prove there is

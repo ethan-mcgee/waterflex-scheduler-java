@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ClientPolicyTest {
     private static final BigDecimal BUDGET = new BigDecimal("0.02");
 
-    private static PublicTypes.Policy policy(String budget) { return new PublicTypes.Policy(new BigDecimal(budget), DailySearch.TABU_KOPT, 10, 5, 4000, 3); }
-    private static PublicTypes.Policy searchTimes(int cost, int fairness) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU, cost, fairness, 5000, 2); }
-    private static PublicTypes.Policy booking(int deadlineMs, int threshold) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU_KOPT, 10, 5, deadlineMs, threshold); }
+    private static PublicTypes.Policy policy(String budget) { return new PublicTypes.Policy(new BigDecimal(budget), DailySearch.TABU_KOPT, 10, 5, 4000, 3, null); }
+    private static PublicTypes.Policy searchTimes(int cost, int fairness) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU, cost, fairness, 5000, 2, null); }
+    private static PublicTypes.Policy booking(int deadlineMs, int threshold) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU_KOPT, 10, 5, deadlineMs, threshold, null); }
 
     @Test void theRulesAreTheClientsOwn() {
         var rules = policy("0.05").rules();
@@ -58,10 +58,20 @@ class ClientPolicyTest {
         assertEquals(PublicTypes.Policy.MAX_REGULAR_WINDOW_THRESHOLD, booking(5000, PublicTypes.Policy.MAX_REGULAR_WINDOW_THRESHOLD).rules().regularWindowThreshold());
     }
 
+    @Test void theOptionalRefinementBudgetIsAbsentOrBounded() {
+        java.util.function.IntFunction<PublicTypes.Policy> refining = ms -> new PublicTypes.Policy(BUDGET, DailySearch.TABU, 10, 5, 5000, 2, ms);
+        assertNull(booking(5000, 2).bookingRefinementMs(), "absent: the operator's default applies");
+        assertEquals(0, refining.apply(0).bookingRefinementMs(), "0 skips the optional refinement");
+        assertEquals(PublicTypes.Policy.MAX_BOOKING_REFINEMENT_MS, refining.apply(PublicTypes.Policy.MAX_BOOKING_REFINEMENT_MS).bookingRefinementMs());
+        assertThrows(IllegalArgumentException.class, () -> refining.apply(-1));
+        assertThrows(IllegalArgumentException.class, () -> refining.apply(PublicTypes.Policy.MAX_BOOKING_REFINEMENT_MS + 1));
+        assertEquals(booking(5000, 2).rules(), refining.apply(100).rules(), "the budget is not part of the calculation rules");
+    }
+
     @Test void theTimesBecomePhaseBudgetsAndTheEarlierFixedTimesAreTheDefault() {
         assertEquals(DailyCalculation.Allocation.DEFAULT, DailyProposals.allocation(policy("0.02")));
         assertEquals(new DailyCalculation.Allocation(10_000, 5_000, 15_000, true), DailyCalculation.Allocation.DEFAULT);
-        var costOnly = DailyProposals.allocation(new PublicTypes.Policy(new BigDecimal("0"), DailySearch.TABU, 60, 0, 5000, 2));
+        var costOnly = DailyProposals.allocation(new PublicTypes.Policy(new BigDecimal("0"), DailySearch.TABU, 60, 0, 5000, 2, null));
         assertEquals(new DailyCalculation.Allocation(60_000, 0, 60_000, true), costOnly);
         assertEquals(60_000, costOnly.searchMs());
     }

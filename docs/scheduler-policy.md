@@ -79,7 +79,7 @@ Spring properties can be supplied as command-line arguments or their standard en
 | Property | Default / purpose |
 | --- | --- |
 | `booking.search.variant` | `BOUNDED`; the booking search variant (bounded rearrangement after insertion) |
-| `booking.search.refinement-ms` | 250; optional abundant-capacity refinement, range 0..1000 |
+| `booking.search.refinement-ms` | 250; optional abundant-capacity refinement, range 0..1000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued |
 | `scheduler.search.capacity` | 0 selects CPU-aware one/two default |
 | `scheduler.search.queue-limit` | 16; bounded queue |
 | `routing.ch.enabled` | false (routing-service); separate fixed-car prepared graph artifact |

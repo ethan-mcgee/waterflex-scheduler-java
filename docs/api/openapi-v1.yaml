@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.2.0
+  version: 1.3.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -35,6 +35,9 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.3.0 (2026-10-13): OfferSet gains incompleteDates, the horizon dates where a pass the offers need did not
+      finish. refinement gains SHED: an optional refinement skipped because other booking requests were waiting for
+      a slot. Policy gains the optional bookingRefinementMs, the client's own budget for an optional refinement.
     - 1.2.0 (2026-10-13): OfferSet gains refinement (COMPLETE, SHORTENED, SKIPPED or UNAVAILABLE), saying how the
       booking search's second pass ended. searchComplete keeps its meaning and is now false only when the deadline
       or a failure stopped a pass the offers need; an optional refinement cut short at its cap no longer clears it.
@@ -619,6 +622,15 @@ components:
             Milliseconds a booking search or confirm may take at the scheduler, end to end. When it passes, the
             search returns the offers found so far, with searchComplete false if a pass the offers need had not
             finished. Set the caller's timeout a little above it.
+        bookingRefinementMs:
+          type: integer
+          minimum: 0
+          maximum: 1000
+          description: >-
+            Optional. Milliseconds a booking search may spend on an optional refinement (one after a first pass that
+            found more distinct regular windows than regularWindowThreshold); 0 skips it. A required refinement is not
+            limited by it, only by bookingDeadlineMs. When absent, the scheduler operator's configured budget applies
+            (booking.search.refinement-ms, 250 unless changed).
         regularWindowThreshold:
           type: integer
           minimum: 0
@@ -939,14 +951,24 @@ components:
             list then does not prove there is no capacity. An optional refinement cut short leaves it true.
         refinement:
           type: string
-          enum: [COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE]
+          enum: [COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE, SHED]
           description: >-
             How the search's refinement pass ended. COMPLETE: it finished. SHORTENED: its cap or the deadline ended
             it; the offers are the best found so far. SKIPPED: it did not run, because the first pass used the whole
-            deadline or the scheduler is configured for one pass. UNAVAILABLE: routing or a remote engine failed it,
-            and the first pass's offers are returned. Informational: searchComplete already says whether the offers
-            are complete. Sent on every offer set since 1.2.0; a replay of an offer set answered by an earlier
-            version leaves it out.
+            deadline, the client's bookingRefinementMs is 0, or the scheduler is configured for one pass. UNAVAILABLE:
+            routing or a remote engine failed it, and the first pass's offers are returned. SHED: it was optional and
+            other booking requests were waiting for a slot, so the slot went to them. Informational: searchComplete
+            already says whether the offers are complete. Sent on every offer set since 1.2.0; a replay of an offer
+            set answered by an earlier version leaves it out.
+        incompleteDates:
+          type: array
+          description: >-
+            Horizon dates, ascending, where a pass the offers need did not finish. On every other date the search
+            finished, so having no offer there means there is no regular capacity for the job. Empty when
+            searchComplete is true; searchComplete can also be false with this empty, when the deadline stopped the
+            offers being prepared after every date was searched. Sent on every offer set since 1.3.0; a replay of an
+            offer set answered by an earlier version leaves it out.
+          items: { $ref: '#/components/schemas/ServiceDate' }
         skippedTechnicianDays:
           type: array
           description: Technician-days left out of the search because a location could not be located; nothing is offered on them.
@@ -1195,6 +1217,7 @@ components:
         expiresAt: '2026-10-12T15:10:00-05:00'
         searchComplete: true
         refinement: SHORTENED
+        incompleteDates: []
         skippedTechnicianDays: []
         offers:
           - { offerId: offer-1, serviceDate: '2026-10-12', window: { start: '2026-10-12T10:00:00-05:00', end: '2026-10-12T12:00:00-05:00' } }
