@@ -1,4 +1,5 @@
 import type * as maplibregl from "maplibre-gl";
+import type { FeatureCollection } from "geojson";
 import type { GeometryResponse, RoadFeature } from "@/lib/dispatchGeometry";
 
 /** The style of one plan's routes: who is drawn, in what color, and how strongly. */
@@ -42,7 +43,7 @@ export function syncRouteLayers(map: maplibregl.Map, prefix: "current" | "propos
   const firstProposal = prefix === "current" ? map.getStyle().layers.find(layer => layer.id.startsWith("route-proposal-"))?.id : undefined;
   for (const [technicianId, features] of byTech) {
     const id = layerId(prefix, technicianId);
-    const data: GeoJSON.FeatureCollection = { type: "FeatureCollection", features };
+    const data: FeatureCollection = { type: "FeatureCollection", features };
     const source = map.getSource<maplibregl.GeoJSONSource>(id);
     if (source === undefined) {
       map.addSource(id, { type: "geojson", data });
