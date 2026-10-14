@@ -19,7 +19,7 @@ public final class DayScoreCalculator {
         long hard = plan.getUnassignedVisitIds().size(), paid = 0, overtime = 0, meters = 0, drive = 0, waiting = 0;
         Map<String, Instant> arrivals = new HashMap<>();
         for (TechRoute route : plan.getRoutes()) {
-            var result = RouteTimeline.evaluate(plan, Required.value(route));
+            var result = RouteTimeline.evaluate(plan.getFacts(), Required.value(route));
             hard += result.hardPenalty();
             paid = Math.addExact(paid, result.paidMinutes()); overtime = Math.addExact(overtime, result.overtimeMinutes());
             meters = Math.addExact(meters, result.meters()); drive += result.driveMinutes(); waiting += result.waitingMinutes();

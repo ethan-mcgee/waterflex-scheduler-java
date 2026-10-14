@@ -33,6 +33,10 @@ public final class SolverBenchmark {
         var seeds = values("benchmark.seeds", "17").stream().mapToLong(Long::parseLong).toArray();
         var fixtureSeeds = values("benchmark.fixtureSeeds", "0").stream().mapToLong(Long::parseLong).toArray();
         Phases phases = Phases.valueOf(Required.value(System.getProperty("benchmark.phases", Phases.COST_AND_FAIRNESS.name())));
+        // Optional: a directory that receives one JFR recording per measured solve (the solve alone: no warmup, no
+        // validation, no report), named <technicians>-<workload>-<fixtureSeed>-<variant>-<seed>-<phase>.jfr.
+        @Nullable String jfr = System.getProperty("benchmark.jfr");
+        if (jfr != null) { jfrDirectory = Path.of(jfr); Files.createDirectories(jfrDirectory); }
         ObjectMapper json = new ObjectMapper();
         @Nullable Path parent = output.toAbsolutePath().getParent(); if (parent != null) Files.createDirectories(parent);
         try (var writer = Files.newBufferedWriter(output, StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW)) {
@@ -43,6 +47,7 @@ public final class SolverBenchmark {
             provenance.put("processors", Runtime.getRuntime().availableProcessors()); provenance.put("maxHeapBytes", Runtime.getRuntime().maxMemory());
             provenance.put("budgetMs", budget); provenance.put("routingIdentity", "deterministic-directed-fixtures-v1");
             provenance.put("phases", phases.name());
+            provenance.put("jfr", jfr == null ? "disabled" : "profile settings, one recording per measured solve in " + jfr);
             provenance.put("engine", EngineProvenance.loaded());
             provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", "TIMEFOLD_INTERNAL_2_6_0");
             provenance.put("roadEvidence", false); provenance.put("travelBufferPct", .2); provenance.put("travelBufferMinutes", 5);
@@ -68,6 +73,7 @@ public final class SolverBenchmark {
                 for (var variant : ordered) {
                     var definition = Required.value(definitions.get(variant + ":" + seed));
                     Map<String, Object> row;
+                    jfrLabel = size + "-" + workload + "-" + fixtureSeed + "-" + variant + "-" + seed;
                     try { row = run(definition, PlanCopies.copy(fixture), budget, phases); }
                     catch (SolverEngine.DiagnosticsFailure failure) {
                         writeDiagnosticFailure(writer, json, failure, "measurement", definition, fingerprint); throw failure;
@@ -94,6 +100,24 @@ public final class SolverBenchmark {
         writer.write(json.writeValueAsString(receipt)); writer.newLine(); writer.flush();
     }
 
+    private static @Nullable Path jfrDirectory;
+    private static String jfrLabel = "unlabelled";
+    /** Runs one solve inside its own flight recording when {@code benchmark.jfr} names a directory. */
+    private static SolverEngine.Result recorded(String phase, java.util.function.Supplier<SolverEngine.Result> solve) {
+        @Nullable Path directory = jfrDirectory;
+        if (directory == null) return Required.value(solve.get());
+        try (var recording = new jdk.jfr.Recording(jdk.jfr.Configuration.getConfiguration("profile"))) {
+            recording.setName(jfrLabel + "-" + phase);
+            recording.start();
+            SolverEngine.Result result = Required.value(solve.get());
+            recording.stop();
+            recording.dump(directory.resolve(jfrLabel + "-" + phase + ".jfr"));
+            return result;
+        } catch (java.io.IOException | java.text.ParseException failure) {
+            throw new IllegalStateException("Could not record the solve", failure);
+        }
+    }
+
     static Map<String, Object> run(SolverEngine.Definition definition, DayPlan fixture, long budgetMs) {
         return run(definition, fixture, budgetMs, Phases.COST_AND_FAIRNESS);
     }
@@ -105,7 +129,7 @@ public final class SolverBenchmark {
         for (var pool : ManagementFactory.getMemoryPoolMXBeans()) pool.resetPeakUsage();
         long cpuBefore = cpuNanos(); long started = System.nanoTime();
         long costBudget = phases == Phases.COST_ONLY ? budgetMs : Math.max(1, budgetMs * 2 / 3);
-        var cost = SolverExperiment.solve(definition, fixture, Required.value(Duration.ofMillis(costBudget)));
+        var cost = recorded("cost", () -> SolverExperiment.solve(definition, fixture, Required.value(Duration.ofMillis(costBudget))));
         validate(cost.plan());
         var costMetrics = SchedulingPolicy.measure(cost.plan());
         DayPlan reference = costMetrics.overtimeMinutes() < before.overtimeMinutes()
@@ -117,7 +141,7 @@ public final class SolverBenchmark {
         if (phases == Phases.COST_AND_FAIRNESS && remaining > 0) {
             DayPlan fairnessSeed = PlanCopies.copy(reference);
             fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(reference, rules.costCeiling(referenceMetrics.costCents())));
-            var fair = SolverExperiment.solve(definition, fairnessSeed, Required.value(Duration.ofMillis(remaining)));
+            var fair = recorded("fairness", () -> SolverExperiment.solve(definition, fairnessSeed, Required.value(Duration.ofMillis(remaining))));
             validate(fair.plan()); fairStatistics = fair.statistics();
             var metrics = SchedulingPolicy.measure(fair.plan());
             if (metrics.overtimeMinutes() == referenceMetrics.overtimeMinutes() && metrics.costCents() <= rules.costCeiling(referenceMetrics.costCents())

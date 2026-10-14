@@ -24,8 +24,9 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
         public long costCeilingCents() { return costCeilingCents; }
     }
     record ScoredRoute(String technicianId, long capacity, boolean eligible, RouteTimeline.Result metrics) { }
+    /** Scores one route against the revision: minutes, meters and violations, without arrivals. */
     ScoredRoute evaluate(TechRoute route) {
-        var metrics = RouteTimeline.evaluate(new DayPlan(Required.value(List.<TechRoute>of(route)), route.getVisits(), this), route);
+        var metrics = RouteTimeline.evaluate(facts, route, false);
         return new ScoredRoute(route.getId(), SchedulingPolicy.regularCapacity(route),
                 !Collections.disjoint(facts.demandServices(), route.getQualifiedServiceIds()), metrics);
     }

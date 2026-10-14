@@ -22,6 +22,59 @@ The first frozen run at `18a9f0b` exposed two harness limitations. Its `CURRENT_
 
 The first `NEAR_CAPACITY` fixture was also too lightly loaded (about 62 percent fleet utilization in the 20-technician case). Keep those rows only as uneven-load evidence. The replacement fixture assigns eight 55-minute appointments per technician and tests confirmed paid workload at or above 90 percent of available regular capacity for every fleet size. Rerun the affected comparisons using the corrected committed fixture and retain both artifact revisions in provenance. Do not silently combine datasets with different fingerprints.
 
+## Solve-scoped profiling and the CR07 treatment (2026-10-14)
+
+The harness records one JDK Flight Recorder file per measured solve when `benchmark.jfr` names a directory
+(`-Dbenchmark.jfr=<dir>`, profile settings): the recording starts just before `SolverExperiment.solve` and is dumped
+just after, so its samples cover the solve alone, with no warmup, validation or report in them. Each file is named
+`<technicians>-<workload>-<fixtureSeed>-<variant>-<seed>-<phase>.jfr`. The configurable experiment toolkit's whole-JVM
+recording (`instrumentation.jfr`) is unchanged; this is the instrument for asking where a solve spends its time.
+
+The first such profile, `TABU_KOPT` on 20 and 50 technicians, `CLUSTERED` and `DISPERSED`, fixture seed 7001 (not one
+of the tuning fixtures), 10 s per case, is in [solver-profiling-2026-10-14.json](evidence/solver-profiling-2026-10-14.json).
+Of 3,719 samples, the engine's own methods held about a tenth; the rest was what scoring did around them, and it named
+one treatment of the three the audit had listed (CR07, indexed lookup and score-only timing), not the other two:
+
+| Leaf frame | Before | What it was |
+| --- | ---: | --- |
+| `ImmutableCollections$MapN.probe` | 13.1 percent | road lookups keyed by a `from>to` string built for every leg of every scored route |
+| `HashMap.putVal` and friends (`newNode`, `resize`, `Map.ofEntries`, `listCopy`) | 15.2 percent | arrival maps and a `DayPlan` built for every scored route, then copied into the result |
+| `BigDecimal` and `MutableBigInteger` | about 17 percent | buffered travel minutes computed per leg, money per route, and the bendable BigDecimal score itself |
+| `RouteTimingSearch.segments`, `RouteTimeline.evaluate` | 9.5 percent | the timing itself |
+
+The treatment keeps every number the same and removes the work around it: `RoadMatrix` gives each endpoint identity
+a number and holds the legs in two tables with their buffered minutes computed once per fact revision (built lazily
+on the first scoring lookup, so a plan evaluated once outside the solver, such as a booking candidate, pays nothing
+new); `RouteTimeline` and `RouteTimingSearch` evaluate a route against `PlanFacts` directly, and on the score-only path
+build no arrival map (the score reads minutes, meters and violations; arrivals come from `DayScoreCalculator` and
+`RouteEvaluator`, which still ask for them). `ScoringExactnessTest` captured a step-limited, fixed-seed solve on three
+fixtures before the change and asserts the same score, move count, arrangement and independent evaluation after it;
+the full assertion campaigns in CI exercise the same path under `FULL_ASSERT`.
+
+Paired on 24 cases (`TABU_KOPT`; 20 and 50 technicians; `CLUSTERED`, `DISPERSED`, `ABSENCE`, `TIGHT_WINDOW`; seeds 17,
+23, 41; fixture seed 7001; 10 s), the engine jar built from the commit before the change against the treated one, same
+harness, one after the other on an idle workstation:
+
+| Fleet | Cost-phase moves per second, before to after (median) | Fairness-phase speedup (median) | Cases cheaper after at the same budget |
+| --- | --- | ---: | --- |
+| 20 technicians | 117k to 180k (1.54x) | 1.30x | 9 of 12 (2 ties, 1 dearer by 50 cents) |
+| 50 technicians | 104k to 208k (2.00x) | 1.27x | 12 of 12 |
+
+Two independent runs of the same four cases on each side agree within 10 percent, so the speedup is not a
+run-to-run effect. The fairness phase gains less because its time goes to `SchedulingPolicy.fairness` (a BigDecimal
+variance over the fleet per move) and the BigDecimal score impacts, which the treatment leaves alone. After it the
+profile is `MapN.probe` 12.6 percent (now the identity-to-number probe, one per visit), `Duration.between` and
+`Instant.until` 16 percent, and BigDecimal about 20 percent: the next step, if one is wanted, is time as primitive
+seconds in the timing search, with the same exactness test as its gate, and it is not in this change.
+
+What this is not: a search-policy change. The acceptor, moves, tabu size and budgets are what the Tabu variant study
+chose; a solve now evaluates more moves in the same seconds, which is why 21 of 24 cases ended cheaper. The promotion
+review belongs to policy changes and was not run for this. Two of the audit's items stay out: TF13 (invariant
+technician context) and TF12 (incremental collectors) were not named by the profile; and a `moveThreadCount` variant
+cannot be built, because multithreaded solving is a Timefold Enterprise feature (the commercial editions page,
+https://docs.timefold.ai/timefold-solver/latest/commercial-editions/commercial-editions, retrieved 2026-10-14) and
+`CampaignSolverConfiguration` refuses any value but `NONE` for the Community artifact this project builds with.
+
 ## Measured configuration choice
 
 [Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41. The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations. Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
