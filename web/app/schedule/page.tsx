@@ -15,10 +15,11 @@ function validDateKey(value: string | undefined): value is string {
 }
 
 export default async function SchedulePage({
-  searchParams,
+  searchParams: query,
 }: {
-  searchParams: { week?: string; metroId?: string };
+  searchParams: Promise<{ week?: string; metroId?: string }>;
 }) {
+  const searchParams = await query;
   const clientId = (await activeClient()).id;
   const metros = await prisma.metro.findMany({ where: { depots: { some: { dealership: { clientId } } } }, orderBy: { name: "asc" } });
   const metro = searchParams.metroId ? metros.find(item => item.id === searchParams.metroId) : metros[0];

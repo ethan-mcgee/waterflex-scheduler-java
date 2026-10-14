@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { maplibregl } from "@/lib/maplibre";
 import { z } from "zod";
 import { localMapStyle } from "@/lib/localMapStyle";
@@ -24,9 +24,9 @@ export default function DepotPinMap({ lat, lng, onDrag, requireInteractive = fal
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(null);
   const [metadataLoaded, setMetadataLoaded] = useState(false);
   const onDragRef = useRef(onDrag);
-  onDragRef.current = onDrag;
   const availableRef = useRef(onAvailableChange);
-  availableRef.current = onAvailableChange;
+  // The map's handlers read the latest callbacks; refresh them after each commit, never during render.
+  useLayoutEffect(() => { onDragRef.current = onDrag; availableRef.current = onAvailableChange; });
 
   useEffect(() => {
     const controller = new AbortController();

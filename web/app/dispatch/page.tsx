@@ -8,10 +8,11 @@ import DispatchBoard from "@/app/dispatch/DispatchBoard";
 export const dynamic = "force-dynamic";
 
 export default async function DispatchPage({
-  searchParams,
+  searchParams: query,
 }: {
-  searchParams: { date?: string; metroId?: string };
+  searchParams: Promise<{ date?: string; metroId?: string }>;
 }) {
+  const searchParams = await query;
   const clientId = (await activeClient()).id;
   const metros = await prisma.metro.findMany({ where: { depots: { some: { dealership: { clientId } } } }, orderBy: { name: "asc" } });
   // The board shows one metro: the client's first, or `?metroId=`. There is no metro selector.

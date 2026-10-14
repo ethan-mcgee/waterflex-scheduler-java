@@ -155,7 +155,7 @@ test("a day that changed after the proposal cannot be committed, and an unpriced
   try {
     await mockApis(page, fixture, { currentCost: null, proposalGeometryStatus: 409 });
     await page.goto(`/dispatch?metroId=${fixture.metroId}&date=${DATE}`);
-    const costTile = page.locator('[class*="_tile_"]').filter({ hasText: "Estimated cost" });
+    const costTile = page.getByRole("group", { name: "Estimated cost" });
     await expect(costTile).toContainText("Unavailable");
     await expect(costTile).not.toContainText("$0");
     await page.getByRole("button", { name: "Optimize routes" }).click();
