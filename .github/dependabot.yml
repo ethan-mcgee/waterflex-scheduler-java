@@ -9,6 +9,14 @@ updates:
     groups:
       npm-dependencies:
         patterns: ['*']
+    ignore:
+      # typescript-eslint, which runs the portal's type-aware lint rules, supports TypeScript below 6.1 only.
+      # Remove this rule once its peer range includes the newer compiler.
+      - dependency-name: typescript
+        versions: ['>=6.1']
+      # The types follow the oldest Node the portal runs on (CI uses Node 22), not the newest release.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: maven
     directory: /
     schedule:
