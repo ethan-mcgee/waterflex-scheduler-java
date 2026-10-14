@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import maplibregl from "maplibre-gl";
+import { maplibregl } from "@/lib/maplibre";
 import { localMapStyle } from "@/lib/localMapStyle";
 
 /**
