@@ -122,7 +122,7 @@ public final class SolverEngine {
         if (budget.isNegative() || budget.isZero() || budget.toMillis() == 0) throw new IllegalArgumentException("Positive millisecond solver budget required");
         initial.validateInputMode(); initial.getFacts().requireSearchRoads();
         if (definition.variant() == Variant.RUIN_RECREATE && initial.getRoutes().stream().anyMatch(route -> route.getPinnedPrefix() > 0))
-            throw new IllegalArgumentException("RUIN_RECREATE with pinned prefixes is unsupported: list corruption during undo was observed on Timefold 2.6.0 and has not been re-tested");
+            throw new IllegalArgumentException("RUIN_RECREATE with pinned prefixes is unsupported: observed list corruption during undo on Timefold 2.6.0, not re-tested since");
         if (!initial.getUnassignedVisitIds().isEmpty() && !definition.construction())
             return solve(configuration(definition.variant(), definition.seed(), definition.environmentMode(), true), initial, budget, telemetry, required, cancellation);
         DayPlan working = PlanCopies.copy(initial);
