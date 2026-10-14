@@ -16,9 +16,10 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.stereotype.Component;
 
 /**
- * This replica's workers for the asynchronous daily queue. A worker takes a job only when no daily calculation runs or
- * waits on this replica (daily calculations run one at a time per replica), so a job never sits behind another here
- * while a replica with a free slot could take it. Bookings keep their priority in admission: the job routes its day
+ * This replica's workers for the asynchronous daily queue. A worker takes a job only when this replica has a free
+ * background lane and no daily calculation waits for one ({@code scheduler.search.background-limit}, one by default), so
+ * a job never sits behind another here while a replica with a free slot could take it. A daily replica that allows more
+ * than one at a time runs as many workers as lanes. Bookings keep their priority in admission: the job routes its day
  * first, then waits for a slot behind any queued booking, as a synchronous call does. While a job runs, the worker checks once a second whether the host cancelled it
  * from any replica, and stops it if so.
  */
@@ -98,19 +99,19 @@ public class DailyQueueWorker implements SmartLifecycle {
                 Thread.currentThread().interrupt();
                 return;
             } catch (RuntimeException failure) {
-                // The database or a store call failed outside any job; wait a poll interval and look again.
-                LOG.error("Daily queue worker {} failed; it looks again shortly", worker, failure);
+                // The database or a store call failed outside any job; wait a poll interval and look again. No free
+                // connection within the pool's short timeout (as while the pool fills at startup) is expected to pass.
+                if (failure instanceof org.springframework.jdbc.CannotGetJdbcConnectionException)
+                    LOG.warn("Daily queue worker {} found no free database connection; it looks again shortly", worker);
+                else LOG.error("Daily queue worker {} failed; it looks again shortly", worker, failure);
                 try { Thread.sleep(queue.poll().toMillis()); }
                 catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return; }
             }
         }
     }
 
-    /** Whether no daily calculation runs or waits on this replica. */
-    private boolean idle() {
-        SearchAdmission.State state = admission.state();
-        return !state.backgroundActive() && state.queuedBackground() == 0;
-    }
+    /** Whether a daily calculation could start on this replica now: a background lane is free and none waits for one. */
+    private boolean idle() { return admission.backgroundSlotFree(); }
 
     /** Takes and runs one job; false when none was waiting. */
     boolean runOnce(String worker) {

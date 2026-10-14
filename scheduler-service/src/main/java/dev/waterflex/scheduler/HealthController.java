@@ -23,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
  * Readiness and liveness. {@code /health} checks every dependency a calculation needs, each within one second and all
  * at once: the database and its schema version, each configured metro's routing service, the remote solver pool when calculations are
  * remote, and the address lookup when it is on. It answers 200 when every one is up and 503 otherwise. The body names
- * components and routing identities only, never URLs or credentials. {@code /health/live} reads nothing.
+ * components and routing identities only, never URLs or credentials, and this replica's {@code role} (booking, daily
+ * or all) so a load balancer's view can be checked. {@code /health/live} reads nothing.
  */
 @RestController
 public class HealthController {
@@ -37,16 +38,18 @@ public class HealthController {
 
     /** A component's state; {@code detail} is a routing identity when up, or a short reason when down. */
     public record Component(String status, @Nullable String detail) { }
-    public record Health(String status, Map<String, Component> components) { }
+    public record Health(String status, String role, Map<String, Component> components) { }
 
     private final Map<String, Check> checks;
+    private final String role;
 
     @Autowired
-    public HealthController(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
-        this(checks(jdbc, schema, routing, transport, geocoding));
+    public HealthController(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding,
+                            ReplicaRole role) {
+        this(checks(jdbc, schema, routing, transport, geocoding), role);
     }
 
-    HealthController(Map<String, Check> checks) { this.checks = Required.value(Map.copyOf(checks)); }
+    HealthController(Map<String, Check> checks, ReplicaRole role) { this.checks = Required.value(Map.copyOf(checks)); this.role = role.label(); }
 
     private static Map<String, Check> checks(JdbcTemplate jdbc, SchemaCheck schema, MetroRouting routing, CalculationTransport transport, AddressLocation geocoding) {
         Map<String, Check> checks = new LinkedHashMap<>();
@@ -96,7 +99,7 @@ public class HealthController {
             ready &= component.status().equals("up");
             components.put(name, component);
         }
-        Health health = new Health(ready ? "ok" : "degraded", components);
+        Health health = new Health(ready ? "ok" : "degraded", role, components);
         return Required.value(ResponseEntity.status(ready ? 200 : 503).body(health));
     }
 

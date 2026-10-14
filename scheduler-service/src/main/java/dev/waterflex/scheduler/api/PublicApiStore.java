@@ -137,7 +137,7 @@ public class PublicApiStore {
             if (existing.size() != 1) throw new IllegalStateException("Request claim disappeared");
             Claim found = Required.value(existing.getFirst());
             if (found instanceof Started)
-                jdbc.update("UPDATE api_request SET \"ownerToken\"=?,\"leaseExpiresAt\"=clock_timestamp()+?::interval WHERE \"tenantId\"=? AND \"requestId\"=?",
+                jdbc.update("UPDATE api_request SET \"ownerToken\"=?,\"leaseExpiresAt\"=clock_timestamp()+?::interval,\"cancelRequestedAt\"=NULL WHERE \"tenantId\"=? AND \"requestId\"=?",
                         owner, lease.toSeconds() + " seconds", tenantId, requestId);
             return found;
         });
@@ -165,6 +165,43 @@ public class PublicApiStore {
     }
 
     private record FoundRequest(@Nullable RequestRow value) { }
+
+    /**
+     * Records the host's cancel on a request still in progress, for the replica running it to read; false when the
+     * tenant has no request with this ID in progress.
+     */
+    public boolean requestCancel(String tenantId, String requestId) {
+        return asTenant(tenantId, () -> jdbc.update("UPDATE api_request SET \"cancelRequestedAt\"=clock_timestamp() "
+                + "WHERE \"tenantId\"=? AND \"requestId\"=? AND state='IN_PROGRESS'", tenantId, requestId) == 1);
+    }
+
+    /** Of these requests (running on this replica), the ones in progress whose cancellation was recorded. */
+    public List<RunningRequests.Key> cancelRequested(List<RunningRequests.Key> keys) {
+        if (keys.isEmpty()) return Required.value(List.of());
+        String[] tenants = new String[keys.size()];
+        String[] requests = new String[keys.size()];
+        for (int index = 0; index < keys.size(); index++) {
+            RunningRequests.Key key = Required.value(keys.get(index));
+            tenants[index] = key.tenantId();
+            requests[index] = key.requestId();
+        }
+        try {
+            List<RunningRequests.Key> found = jdbc.execute((java.sql.Connection connection) -> {
+                try (var statement = connection.prepareStatement("SELECT cancel_tenant, cancel_request FROM scheduler_cancel_requested(?, ?)")) {
+                    statement.setArray(1, connection.createArrayOf("text", tenants));
+                    statement.setArray(2, connection.createArrayOf("text", requests));
+                    List<RunningRequests.Key> flagged = new java.util.ArrayList<>();
+                    try (var rows = statement.executeQuery()) {
+                        while (rows.next()) flagged.add(new RunningRequests.Key(DatabaseFacts.string(rows, 1), DatabaseFacts.string(rows, 2)));
+                    }
+                    return flagged;
+                }
+            });
+            return Required.value(found, "cancelled requests");
+        } catch (org.springframework.dao.DataAccessException failure) {
+            throw DeadlineSignals.unwrap(failure);
+        }
+    }
 
     /** Gives up a claim without a stored response, so a retry runs again (for example after routing was unavailable). */
     public void release(String tenantId, String requestId, String ownerToken) {

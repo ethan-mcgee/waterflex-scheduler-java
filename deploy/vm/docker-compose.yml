@@ -6,6 +6,11 @@
 #
 # Compute is partitioned with deploy.resources limits, so this machine's share is explicit. To serve another metro, add
 # a routing service like routing-omaha with that metro's map and list it in ROUTING_METRO_URLS.
+#
+# The scheduler runs as two pools of the same image behind scheduler-proxy, the one address WaterFlex Software calls:
+# booking replicas (SCHEDULER_ROLE=booking) answer booking searches, confirms and route calls, and daily replicas
+# (SCHEDULER_ROLE=daily) answer daily and repair proposals and run the queued ones. Scale a pool by its replica count
+# and its per-replica CPU and memory; each limit applies to every replica of the pool.
 name: scheduler-vm
 
 x-scheduler-image: &scheduler-image
@@ -14,6 +19,38 @@ x-scheduler-image: &scheduler-image
   build:
     context: ../..
     dockerfile: scheduler-service/Dockerfile
+
+# What every scheduler replica runs with; each pool adds its role, admission and compute.
+x-scheduler-runtime: &scheduler-runtime
+  JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
+  DATABASE_USER: scheduler
+  DATABASE_PASSWORD: ${SCHEDULER_DB_PASSWORD:?Set SCHEDULER_DB_PASSWORD}
+  SCHEDULER_RETENTION_DAYS: ${SCHEDULER_RETENTION_DAYS:?Set SCHEDULER_RETENTION_DAYS}
+  ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:?Set ROUTING_METRO_URLS}
+  ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:?Set ROUTING_AUTH_TOKEN}
+  GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
+  NOMINATIM_URL: http://nominatim:8080
+  SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
+  SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-}
+  SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
+  LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
+  JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+
+# A replica is ready when its /health answers 200 (database, schema and every metro's routing up). Its ports are not
+# published: the API is reached through scheduler-proxy, metrics through Prometheus on this network.
+x-scheduler-replica: &scheduler-replica
+  <<: *scheduler-image
+  expose: ["8000", "9000"]
+  healthcheck:
+    test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+    interval: 10s
+    timeout: 3s
+    retries: 3
+    start_period: 60s
+  depends_on:
+    scheduler-db: { condition: service_healthy }
+    scheduler-admin: { condition: service_completed_successfully }
+  restart: unless-stopped
 
 x-owner-connection: &owner-connection
   JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
@@ -52,41 +89,54 @@ services:
       scheduler-db: { condition: service_healthy }
     restart: "no"
 
-  scheduler-service:
-    <<: *scheduler-image
+  # Booking pool: latency first. It takes no queued daily work, so a queued day never takes a slot a booking needs.
+  # Admission capacity matches each replica's cores.
+  scheduler-booking:
+    <<: *scheduler-replica
     environment:
-      JDBC_DATABASE_URL: jdbc:postgresql://scheduler-db:5432/scheduler
-      DATABASE_USER: scheduler
-      DATABASE_PASSWORD: ${SCHEDULER_DB_PASSWORD:?Set SCHEDULER_DB_PASSWORD}
-      SCHEDULER_RETENTION_DAYS: ${SCHEDULER_RETENTION_DAYS:?Set SCHEDULER_RETENTION_DAYS}
-      ROUTING_METRO_URLS: ${ROUTING_METRO_URLS:?Set ROUTING_METRO_URLS}
-      ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:?Set ROUTING_AUTH_TOKEN}
-      GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}
-      NOMINATIM_URL: http://nominatim:8080
-      SCHEDULER_CALCULATION_MODE: ${SCHEDULER_CALCULATION_MODE:-EMBEDDED}
-      SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-}
-      SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
-      # Admission matches the cores given to this container.
-      SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_SEARCH_CAPACITY:-2}
-      LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
-      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
-    # The API answers only on the private interface named here; TLS terminates in front of it before production
-    # traffic (see the runbook). Metrics stay on the management port, private as well.
+      <<: *scheduler-runtime
+      SCHEDULER_ROLE: booking
+      SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_BOOKING_SEARCH_CAPACITY:-2}
+    deploy:
+      replicas: ${SCHEDULER_BOOKING_REPLICAS:-1}
+      resources:
+        limits: { cpus: "${SCHEDULER_BOOKING_CPUS:-2}", memory: "${SCHEDULER_BOOKING_MEMORY:-2g}" }
+
+  # Daily pool: throughput. Each replica runs up to SCHEDULER_DAILY_BACKGROUND_LIMIT daily calculations at once (at
+  # most its search capacity), with as many queue workers.
+  scheduler-daily:
+    <<: *scheduler-replica
+    environment:
+      <<: *scheduler-runtime
+      SCHEDULER_ROLE: daily
+      SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_DAILY_SEARCH_CAPACITY:-2}
+      SCHEDULER_SEARCH_BACKGROUND_LIMIT: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
+      SCHEDULER_DAILY_QUEUE_WORKERS: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
+    deploy:
+      replicas: ${SCHEDULER_DAILY_REPLICAS:-1}
+      resources:
+        limits: { cpus: "${SCHEDULER_DAILY_CPUS:-2}", memory: "${SCHEDULER_DAILY_MEMORY:-2g}" }
+
+  # The one address WaterFlex Software calls. nginx sends daily and repair proposals and request status and
+  # cancellation to the daily pool and everything else to the booking pool, spreading each over its replicas; it
+  # looks the replicas up again every 10 s, so scaling a pool needs no restart here (deploy/vm/nginx.conf). The API
+  # answers only on the private interface named here; TLS terminates in front of it before production traffic.
+  scheduler-proxy:
+    image: nginx:1.27.5-alpine
+    volumes: ["./nginx.conf:/etc/nginx/nginx.conf:ro"]
     ports:
       - "${SCHEDULER_API_BIND:?Set SCHEDULER_API_BIND to the private interface address}:${SCHEDULER_API_PORT:-8000}:8000"
-      - "${SCHEDULER_MANAGEMENT_BIND:-127.0.0.1}:${SCHEDULER_MANAGEMENT_PORT:-9000}:9000"
     healthcheck:
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8000/proxy/live"]
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 60s
     depends_on:
-      scheduler-db: { condition: service_healthy }
-      scheduler-admin: { condition: service_completed_successfully }
+      scheduler-booking: { condition: service_started }
+      scheduler-daily: { condition: service_started }
     deploy:
       resources:
-        limits: { cpus: "${SCHEDULER_CPUS:-4}", memory: "${SCHEDULER_MEMORY:-4g}" }
+        limits: { cpus: "${SCHEDULER_PROXY_CPUS:-0.5}", memory: "${SCHEDULER_PROXY_MEMORY:-128m}" }
     restart: unless-stopped
 
   # Omaha's routing service. The map volume holds the prepared versions (infra/prepare-map.ps1 on a build machine,
@@ -155,7 +205,8 @@ services:
         limits: { cpus: "${SOLVER_CPUS:-4}", memory: "${SOLVER_MEMORY:-4g}" }
     restart: unless-stopped
 
-  # Scrapes the scheduler's metrics; its UI answers on the management interface only.
+  # Scrapes every scheduler replica's metrics (found by name on this network); its UI answers on the management
+  # interface only.
   prometheus:
     profiles: ["monitoring"]
     image: prom/prometheus:v2.53.0

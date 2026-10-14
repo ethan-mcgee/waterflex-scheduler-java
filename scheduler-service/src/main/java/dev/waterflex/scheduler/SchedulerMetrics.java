@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
  * The scheduler's own meters, beside Spring's {@code http_server_requests_seconds} (each API operation by route and
  * status): admission load and rejections, routing service calls per metro, invalid refinements, host cancellations,
  * rows the retention purge deleted, and this replica's work from the asynchronous daily queue. Every meter reads a counter the service keeps anyway.
+ * {@code scheduler.replica.info} is always 1 and carries the replica's role, so dashboards can split every other meter
+ * by pool.
  */
 @Component
 public class SchedulerMetrics implements MeterBinder {
@@ -22,14 +24,20 @@ public class SchedulerMetrics implements MeterBinder {
     private final RunningRequests running;
     private final Retention retention;
     private final DailyQueueWorker queue;
+    private final ReplicaRole role;
 
     public SchedulerMetrics(SearchAdmission admission, MetroRouting routing, BookingOffers offers, RunningRequests running, Retention retention,
-                            DailyQueueWorker queue) {
+                            DailyQueueWorker queue, ReplicaRole role) {
         this.admission = admission; this.routing = routing; this.offers = offers; this.running = running; this.retention = retention; this.queue = queue;
+        this.role = role;
     }
 
     @Override
     public void bindTo(MeterRegistry registry) {
+        Gauge.builder("scheduler.replica.info", role, _ -> 1).tag("role", role.label())
+                .description("This replica's role (booking, daily or all); always 1").register(registry);
+        Gauge.builder("scheduler.admission.background.limit", admission, SearchAdmission::backgroundLimit)
+                .description("Background calculations (daily and repair) this replica runs at once").register(registry);
         FunctionCounter.builder("scheduler.admission.rejections", admission, SearchAdmission::rejections)
                 .description("Calculations refused because search capacity and its queue were full").register(registry);
         FunctionCounter.builder("scheduler.admission.evictions", admission, SearchAdmission::evictions)

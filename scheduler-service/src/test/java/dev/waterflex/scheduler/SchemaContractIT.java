@@ -21,7 +21,7 @@ class SchemaContractIT {
     private static final Map<String, List<String>> READ = Required.value(Map.ofEntries(
             Map.entry("tenant", List.of("id", "name", "disabledAt")),
             Map.entry("tenant_api_token", List.of("id", "tenantId", "tokenSha256", "label", "revokedAt")),
-            Map.entry("api_request", List.of("tenantId", "requestId", "operation", "requestSha256", "state", "ownerToken", "leaseExpiresAt", "responseStatus", "responseJson", "createdAt", "completedAt")),
+            Map.entry("api_request", List.of("tenantId", "requestId", "operation", "requestSha256", "state", "ownerToken", "leaseExpiresAt", "responseStatus", "responseJson", "createdAt", "completedAt", "cancelRequestedAt")),
             Map.entry("api_daily_proposal", List.of("tenantId", "id", "requestId", "metroId", "timeZone", "serviceDate", "inputRevision", "routingIdentity", "status", "proposalJson", "createdAt", "committedAt")),
             Map.entry("api_proposal_technician_day", List.of("tenantId", "proposalId", "technicianId", "serviceDate", "lastModified")),
             Map.entry("api_commit_receipt", List.of("tenantId", "id", "proposalId", "requestId", "receiptJson", "createdAt")),
@@ -88,7 +88,7 @@ class SchemaContractIT {
     }
 
     @Test void thePurgeAndTheQueueAreDefinerFunctionsWithAPinnedSearchPathOnlySchedulerAppMayRun() {
-        for (String function : List.of("scheduler_purge(timestamptz, integer)", "scheduler_next_daily_job(text, interval)")) {
+        for (String function : List.of("scheduler_purge(timestamptz, integer)", "scheduler_next_daily_job(text, interval)", "scheduler_cancel_requested(text[], text[])")) {
             assertEquals(Boolean.TRUE, jdbc.queryForObject("""
                     SELECT p.prosecdef AND array_to_string(p.proconfig, ',') LIKE 'search_path=%'
                     FROM pg_proc p WHERE p.oid = to_regprocedure(?)""", Boolean.class, function), function);
