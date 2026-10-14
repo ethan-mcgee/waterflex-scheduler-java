@@ -38,11 +38,12 @@ public final class RequestLogging extends OncePerRequestFilter {
     /** The summary line's breakdown of a finished deadline, or an empty string without one. */
     static String breakdown(SearchTelemetry.@org.jspecify.annotations.Nullable Measurements measured) {
         if (measured == null) return "";
+        Long cpu = measured.foregroundCpuNanos();
         return " queueMs=" + measured.admissionNanos() / 1_000_000 + " routingMs=" + measured.routingNanos() / 1_000_000 + " calculationMs=" + measured.calculationNanos() / 1_000_000
                 + " dbMs=" + measured.databaseNanos() / 1_000_000 + " dbCalls=" + measured.databaseExecutions()
                 + " routingPairs=" + measured.routingPairs() + " cacheHits=" + (measured.memoryHits() + measured.persistentHits())
                 + " fetched=" + measured.sharedRoutingPairs()
-                + (measured.foregroundCpuNanos() == null ? "" : " cpuMs=" + measured.foregroundCpuNanos() / 1_000_000);
+                + (cpu == null ? "" : " cpuMs=" + cpu / 1_000_000);
     }
 
     @Override

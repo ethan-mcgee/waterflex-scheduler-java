@@ -13,7 +13,7 @@ fi
 # Everything a version needs before it may serve: its artifacts, TIGER data, and a validation report for this manifest.
 check_activation() {
   target="/maps/versions/$1"
-  for file in manifest.json omaha.pmtiles graph/properties tiger-nominatim-preprocessed.csv.tar.gz; do
+  for file in manifest.json omaha.pmtiles graph/properties graph-ch-car-v1/properties tiger-nominatim-preprocessed.csv.tar.gz; do
     test -f "$target/$file" || { echo "Missing $file in $1" >&2; exit 1; }
   done
   test -f "$target/validated.json" || { echo 'Validate all three preview services before activation' >&2; exit 1; }
@@ -38,10 +38,12 @@ if [ "${1:-}" = activate ]; then
   ln -s "versions/$version/omaha.osm.pbf" /maps/omaha.osm.pbf.next
   ln -s "versions/$version/omaha.pmtiles" /maps/omaha.pmtiles.next
   ln -s "versions/$version/graph" /maps/graph.next
+  ln -s "versions/$version/graph-ch-car-v1" /maps/graph-ch-car-v1.next
   ln -s "versions/$version/tiger-nominatim-preprocessed.csv.tar.gz" /maps/tiger-nominatim-preprocessed.csv.tar.gz.next
   mv -Tf /maps/omaha.osm.pbf.next /maps/omaha.osm.pbf
   mv -Tf /maps/omaha.pmtiles.next /maps/omaha.pmtiles
   mv -Tf /maps/graph.next /maps/graph
+  mv -Tf /maps/graph-ch-car-v1.next /maps/graph-ch-car-v1
   mv -Tf /maps/tiger-nominatim-preprocessed.csv.tar.gz.next /maps/tiger-nominatim-preprocessed.csv.tar.gz
   printf '%s' "$version" > /maps/map-version.next
   mv -Tf /maps/map-version.next /maps/map-version
