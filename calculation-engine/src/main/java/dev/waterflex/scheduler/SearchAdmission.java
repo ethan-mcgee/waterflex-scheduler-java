@@ -21,7 +21,9 @@ import org.springframework.stereotype.Component;
  * client share the slots fairly: a waiting booking of the client with the fewest bookings running starts first (of
  * clients with as many, the one whose last booking started longest ago), and
  * when the queue is full, a client with fewer waiting takes the place of the newest booking of the client with the
- * most, so one client's burst cannot shut another client out. Background work runs at most
+ * most, so one client's burst cannot shut another client out. A confirm (a few milliseconds of work that completes a
+ * booking a customer already chose) is a booking with priority: it starts before any waiting search, shares the slots
+ * fairly with other clients' confirms, and never gives up its place in a full queue. Background work runs at most
  * {@code scheduler.search.background-limit} at a time (one by default; a replica that runs only daily work may allow
  * more, up to its capacity).
  */
@@ -45,9 +47,13 @@ public final class SearchAdmission {
         private final long expectedNanos;
         /** The client a booking runs for; null shares one unnamed client. */
         private final @Nullable String client;
+        /** A confirm: starts before waiting searches and keeps its place in a full queue. */
+        private final boolean priority;
         /** Set when a lighter client took this ticket's place in a full queue. */
         private boolean evicted;
-        Ticket(long expectedNanos, @Nullable String client) { this.expectedNanos = expectedNanos; this.client = client; }
+        Ticket(long expectedNanos, @Nullable String client, boolean priority) {
+            this.expectedNanos = expectedNanos; this.client = client; this.priority = priority;
+        }
         long expectedNanos() { return expectedNanos; }
         String share() { String named = client; return named == null ? "" : named; }
     }
@@ -117,7 +123,17 @@ public final class SearchAdmission {
     /** Admits a booking for this client, sharing the booking slots fairly with other clients' bookings. */
     public Lease acquireBooking(SearchDeadline deadline, String client) {
         if (client.isEmpty()) throw new IllegalArgumentException("A booking's client must be named");
-        return acquire(Kind.BOOKING, deadline, Required.value(Duration.ZERO), client);
+        return acquire(Kind.BOOKING, deadline, Required.value(Duration.ZERO), client, false);
+    }
+
+    /**
+     * Admits a confirm for this client: a booking that starts before any waiting search (of any client), shares the
+     * slots fairly with other clients' confirms, and is never evicted from a full queue (it takes the place of the
+     * heaviest client's newest waiting search instead).
+     */
+    public Lease acquireConfirm(SearchDeadline deadline, String client) {
+        if (client.isEmpty()) throw new IllegalArgumentException("A confirm's client must be named");
+        return acquire(Kind.BOOKING, deadline, Required.value(Duration.ZERO), client, true);
     }
 
     /**
@@ -126,13 +142,13 @@ public final class SearchAdmission {
      * time, instead of queueing until its deadline passes.
      */
     public Lease acquire(Kind kind, SearchDeadline deadline, Duration expected) {
-        return acquire(kind, deadline, expected, null);
+        return acquire(kind, deadline, expected, null, false);
     }
 
-    private Lease acquire(Kind kind, SearchDeadline deadline, Duration expected, @Nullable String client) {
+    private Lease acquire(Kind kind, SearchDeadline deadline, Duration expected, @Nullable String client, boolean priority) {
         if (expected.isNegative() || (kind == Kind.BOOKING && !expected.isZero())) throw new IllegalArgumentException("Invalid expected duration");
         long started = System.nanoTime();
-        Ticket ticket = new Ticket(expected.toNanos(), client);
+        Ticket ticket = new Ticket(expected.toNanos(), client, priority);
         boolean locked = false;
         Deque<Ticket> queue = kind == Kind.BOOKING ? bookings : background;
         try {
@@ -216,7 +232,7 @@ public final class SearchAdmission {
     /**
      * The queued request to start next: the oldest background request, or the booking of the client with the fewest
      * bookings running; of clients with as many, the one whose last booking started longest ago (or never); within a
-     * client, its oldest booking.
+     * client, its oldest booking. Confirms (priority tickets) are chosen before searches by the same rule among themselves.
      */
     private @Nullable Ticket next(Kind kind) {
         if (kind == Kind.BACKGROUND) return background.peekFirst();
@@ -224,11 +240,13 @@ public final class SearchAdmission {
         int fewest = Integer.MAX_VALUE;
         long earliest = Long.MAX_VALUE;
         for (Ticket queued : bookings) {
+            if (chosen != null && chosen.priority && !queued.priority) continue;
             int count = runningBookings.getOrDefault(queued.share(), 0);
             Long last = lastBookingStart.get(queued.share());
             // Never started sorts first; nanoTime values are compared by difference, so they are made relative.
             long since = last == null ? Long.MIN_VALUE : last - startOrigin;
-            if (count < fewest || (count == fewest && since < earliest)) { chosen = queued; fewest = count; earliest = since; }
+            boolean outranks = chosen != null && queued.priority && !chosen.priority;
+            if (outranks || count < fewest || (count == fewest && since < earliest)) { chosen = queued; fewest = count; earliest = since; }
         }
         return chosen;
     }
@@ -237,20 +255,22 @@ public final class SearchAdmission {
     private final long startOrigin = System.nanoTime();
 
     /**
-     * Makes room in a full queue for this booking when its client has fewer bookings waiting than the client with the
-     * most: that client's newest waiting booking leaves with Busy. False when no client waits more than this one would.
+     * Makes room in a full queue for this booking when its client has fewer searches waiting than the client with the
+     * most: that client's newest waiting search leaves with Busy. False when no client waits more than this one would.
+     * Waiting confirms are never counted or evicted; an arriving confirm takes the heaviest client's place whenever any
+     * search waits.
      */
     private boolean evictFor(Ticket arriving) {
         Map<String, Integer> waiting = new HashMap<>();
-        for (Ticket queued : bookings) increment(waiting, queued.share());
+        for (Ticket queued : bookings) if (!queued.priority) increment(waiting, queued.share());
         String heaviest = null;
         int most = 0;
         for (var entry : waiting.entrySet()) if (entry.getValue() > most) { heaviest = entry.getKey(); most = entry.getValue(); }
-        if (heaviest == null || waiting.getOrDefault(arriving.share(), 0) + 1 >= most) return false;
+        if (heaviest == null || (!arriving.priority && waiting.getOrDefault(arriving.share(), 0) + 1 >= most)) return false;
         var newest = bookings.descendingIterator();
         while (newest.hasNext()) {
             Ticket queued = Required.value(newest.next());
-            if (queued.share().equals(heaviest)) {
+            if (!queued.priority && queued.share().equals(heaviest)) {
                 newest.remove();
                 queued.evicted = true;
                 evictions.increment();
