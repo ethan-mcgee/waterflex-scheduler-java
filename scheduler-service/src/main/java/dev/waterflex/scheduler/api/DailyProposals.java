@@ -2,6 +2,7 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
+import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
@@ -150,7 +151,13 @@ public class DailyProposals {
             return Reply.of(503, routingUnavailable(unavailable));
         } catch (SearchAdmission.Busy busy) {
             store.release(tenantId, requestId, owner);
-            return Reply.of(429, new Problem(ErrorCode.BUSY, "Search capacity exhausted"));
+            return busy(busy);
+        } catch (HttpCalculation.Unavailable unavailable) {
+            // A remote solver that is down, refused the work or answered an error: nothing was calculated, so the
+            // claim is released and the same requestId may be sent again.
+            store.release(tenantId, requestId, owner);
+            LOG.warn("Remote daily calculation unavailable for request {}: {}", requestId, unavailable.getMessage());
+            return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The calculation service is unavailable"));
         } catch (SearchDeadline.Expired expired) {
             store.release(tenantId, requestId, owner);
             if (registered.cancelled()) return Reply.of(409, cancelled());
@@ -162,6 +169,25 @@ public class DailyProposals {
             running.finish(tenantId, requestId, registered);
         }
     }
+
+    /** The longest Retry-After a refusal names; a longer estimated wait is retried after this and refused again if still busy. */
+    static final int MAX_RETRY_AFTER_SECONDS = 300;
+
+    /** A 429: with the estimated wait for the work ahead as Retry-After when admission knows it, else one second. */
+    static Reply busy(SearchAdmission.Busy busy) {
+        java.time.Duration wait = busy.retryAfter();
+        Problem problem = new Problem(ErrorCode.BUSY, wait == null ? "Search capacity exhausted"
+                : "Daily calculations ahead of this one would not finish in time; retry after the Retry-After seconds");
+        if (wait == null) return Reply.of(429, problem);
+        long seconds = Math.max(1, (wait.toMillis() + 999) / 1000);
+        return new Reply(429, CalculationJson.write(problem), Math.toIntExact(Math.min(seconds, MAX_RETRY_AFTER_SECONDS)));
+    }
+
+    /**
+     * Routing for a daily request (road legs and any address lookups) runs before it asks for a calculation slot, under
+     * this deadline of its own, so a cold map never spends the search allowance and never holds the slot.
+     */
+    static final Duration ROUTING_ALLOWANCE = Required.value(Duration.ofSeconds(30));
 
     /** The input revision: the snapshot, and for a repair also the absence it repairs. */
     static String revision(PublicTypes.Snapshot snapshot, PublicRequests.@Nullable Absence absence) {
@@ -178,11 +204,15 @@ public class DailyProposals {
         Map<String, String> tokens = new LinkedHashMap<>();
         for (TechnicianDay day : snapshot.technicianDays()) tokens.put(day.technicianId(), day.lastModified().toString());
         DailyCalculation.Allocation allocation = allocation(snapshot.policy());
+        DailyOperation.Allowance allowance = DailyOperation.Allowance.forSearch(allocation);
+        // Refused at once, before any routing, when the calculations ahead could not finish within the allowance's reserve.
+        admission.requireBackgroundStartWithin(Required.value(allowance.total().minus(allowance.search())));
+        DailyPreparation.Prepared prepared = route(request, registered);
         // The preparation runs on the operation's own thread, where the operation is current, so a host cancel can reach it.
-        Outcome outcome = DailyOperation.executePrepared(admission, DailyOperation.Allowance.forSearch(allocation), () -> {
+        Outcome outcome = DailyOperation.executePrepared(admission, allowance, () -> {
                     registered.attach(DailyOperation.current());
                     return new DailyOperation.Preparation<>(
-                            () -> calculate(request, policy, snapshot.policy().dailySearch(), allocation, proposalId, revision, tokens, absence),
+                            () -> calculate(prepared, policy, snapshot.policy().dailySearch(), allocation, proposalId, revision, tokens, absence),
                             true, _ -> { });
                 }, receipt -> LOG.info("Public daily operation {}", receipt));
         DailyProposal proposal = response(request, proposalId, revision, outcome);
@@ -194,14 +224,19 @@ public class DailyProposals {
 
     private record Outcome(DailyPreparation.Prepared prepared, DayPlan chosen, Decision decision, String reason) { }
 
+    /** The day's routed facts, fetched within {@link #ROUTING_ALLOWANCE}; a host cancel ends it like the calculation. */
+    private DailyPreparation.Prepared route(DailyProposalRequest request, RunningRequests.Running registered) {
+        SearchDeadline deadline = new SearchDeadline(ROUTING_ALLOWANCE);
+        registered.attach(deadline);
+        try { return deadline.within(() -> DailyPreparation.prepare(request, routing, locator)); }
+        catch (MetroRouting.UnknownMetro unknown) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, message(unknown)); }
+    }
+
     /**
      * The daily preview decision applied to request-fed facts; with an absence, the repair of the same facts.
      */
-    private Outcome calculate(DailyProposalRequest request, SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation,
+    private Outcome calculate(DailyPreparation.Prepared prepared, SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation,
                               String proposalId, String revision, Map<String, String> tokens, PublicRequests.@Nullable Absence absence) {
-        DailyPreparation.Prepared prepared;
-        try { prepared = DailyPreparation.prepare(request, routing, locator); }
-        catch (MetroRouting.UnknownMetro unknown) { throw new Final(422, ErrorCode.INCOMPLETE_FACTS, message(unknown)); }
         DayPlan baseline = prepared.plan();
         if (absence != null && baseline.getRoutes().stream().noneMatch(route -> route.getId().equals(absence.technicianId())))
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Technician-day " + absence.technicianId() + " on " + absence.serviceDate()
@@ -257,7 +292,8 @@ public class DailyProposals {
 
     /** A claim must outlive the calculation it guards, so another replica never takes over a running request. */
     static Duration lease(PublicTypes.Snapshot snapshot) {
-        Duration running = Required.value(DailyOperation.Allowance.forSearch(allocation(snapshot.policy())).total().plus(PublicApiStore.LEASE_MARGIN));
+        Duration running = Required.value(DailyOperation.Allowance.forSearch(allocation(snapshot.policy())).total().plus(ROUTING_ALLOWANCE)
+                .plus(PublicApiStore.LEASE_MARGIN));
         return running.compareTo(PublicApiStore.LEASE) > 0 ? running : PublicApiStore.LEASE;
     }
 

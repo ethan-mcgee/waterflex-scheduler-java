@@ -123,17 +123,34 @@ again from current records with a new `requestId`. Latency is per call, so a res
    checked at all. Searches for one job publish one at a time, and a moved day runs the search again while the
    deadline leaves time to explore, up to three times. Faster searches (PR J) shorten the window further.
 
-4. **Daily proposals run one at a time per replica, and a queued one ends as a slow 503.** Admission lets one daily
-   calculation (`BACKGROUND`) run at a time. Others queue for their whole allowance (search time plus 5 s), then answer
-   503 `CALCULATION_UNAVAILABLE` after about 9 s (receipts show `queueMs` 9005). They are not counted in
-   `scheduler.admission.rejections`. Separately, the first proposal for a new 20-technician day spent about 4 s on cold
-   routing and ran past its allowance (503 after 9 s); later ones took 5.0 s. Hosts should run one daily proposal at a
-   time per replica, as the portal's overnight worker does.
+4. **Partly fixed in #153: daily proposals run one at a time per replica, and a queued one ended as a slow 503.**
+   Admission let one daily calculation (`BACKGROUND`) run at a time. Others queued for their whole allowance (search
+   time plus 5 s), then answered 503 `CALCULATION_UNAVAILABLE` after about 9 s (receipts showed `queueMs` 9005), and
+   were not counted in `scheduler.admission.rejections`. The first proposal for a new 20-technician day spent about
+   4 s on cold routing and ran past its allowance.
 
-   Proposed:
-   - refuse a daily request with 429 when the queue ahead of it cannot finish within its allowance;
-   - count queue expiries as rejections;
-   - leave routing time out of the 5 s reserve, or make it faster (PR J).
+   Now:
+   - The day is routed before the calculation asks for a slot, under its own 30 s deadline.
+   - Each calculation tells admission how long it expects to hold its slot: its search time plus a 2 s settle
+     margin. A request that could not start within its reserve is refused at once with 429 and the estimated wait
+     as `Retry-After`, before anything is routed.
+   - A request that is still waiting when it could no longer finish leaves the queue with a 429 too.
+   - Every such refusal, and any deadline that passes in the queue, counts as an admission rejection.
+   - The portal's overnight run waits `Retry-After` and asks for the day again, up to five times.
+
+   Measured again ([evidence](evidence/api-load-2026-10-13-daily-admission.json), seeds 34, 35 and 37):
+
+   | Run | Proposals | Answered 201 | 503 | 429 answers, retried after `Retry-After` |
+   | --- | ---: | ---: | ---: | ---: |
+   | daily, 1 planner | 11 | 11 (the first included, cold routing) | 0 | 0 |
+   | daily, 4 planners | 15 | 15 | 0 | 39 (0.3 s each) |
+   | mixed, 1 planner beside 5 desks | 2 | 2 | 0 | 12 (about 3 s each) |
+
+   What remains is the next step of the plan:
+   - Retries are a lottery with no fairness between planners or clients: one proposal at 4 planners waited 86 s.
+     The durable queue with per-client turns (L4) replaces it.
+   - On a replica that also books, queued bookings always go first, so daily work starves while desks are busy.
+     Separate booking and daily replicas behind a load balancer (L5) remove that contention.
 
 5. **`searchComplete` is false on nearly every search. Fixed in #154:** `searchComplete` is now false only when the
    deadline or a failure stopped a pass the offers need, and `OfferSet.refinement` (spec 1.2.0) reports a refinement

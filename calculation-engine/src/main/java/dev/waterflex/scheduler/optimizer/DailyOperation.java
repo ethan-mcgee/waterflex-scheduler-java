@@ -5,6 +5,8 @@ import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.SearchAdmission;
 import dev.waterflex.scheduler.SearchDeadline;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -21,6 +23,12 @@ public final class DailyOperation {
     private static final java.util.concurrent.ScheduledExecutorService WATCHDOG = Required.value(Executors.newSingleThreadScheduledExecutor(
             task -> Thread.ofPlatform().daemon().name("daily-cancellation").unstarted(task)));
     private final long searchLimitNanos;
+    /**
+     * How long the operation expects to hold its admission slot, so admission can estimate the wait for work behind it:
+     * a calculation's search limit plus {@link #SETTLE} (at most its allowance), and zero for the legacy fixed
+     * allowance, which only route evaluations and geometry use and which does not search.
+     */
+    private final long expectedNanos;
     public record Receipt(String requestId, String outcome, long elapsedMs, @Nullable Long queueMs, long searchMs,
             @Nullable Long cancellationElapsedMs, @Nullable Long cleanupOvershootMs, long phaseCleanupOvershootMs,
             long searchOvershootMs, boolean lateResult) { }
@@ -58,13 +66,23 @@ public final class DailyOperation {
             return new Allowance(Required.value(search.plus(RESERVE)), search);
         }
     }
+    /**
+     * What a calculation needs in its slot besides its search: building the solver, scoring and validating the result.
+     * Measured at 0.3 to 0.7 s for a 20 technician day; the margin keeps a request that starts after a wait from running
+     * out of allowance while it validates.
+     */
+    public static final Duration SETTLE = Required.value(Duration.ofSeconds(2));
     private DailyOperation(Allowance allowance, Consumer<Receipt> recorder) {
+        this(allowance, Required.value(Collections.min(List.of(allowance.search().plus(SETTLE), allowance.total()))), recorder);
+    }
+    private DailyOperation(Allowance allowance, Duration expected, Consumer<Receipt> recorder) {
         deadline = new SearchDeadline(allowance.total());
         searchLimitNanos = allowance.search().toNanos();
+        expectedNanos = expected.toNanos();
         this.recorder = recorder;
     }
     private DailyOperation(Duration allowance, Consumer<Receipt> recorder) {
-        this(legacy(allowance), recorder);
+        this(legacy(allowance), Required.value(Duration.ZERO), recorder);
     }
     /** Callers that pass only a total keep the original limits: at most 20 seconds, of which up to 15 may search. */
     private static Allowance legacy(Duration allowance) {
@@ -78,6 +96,7 @@ public final class DailyOperation {
             throw new IllegalArgumentException("Campaign search and reserve exceed operation allowance");
         deadline = new SearchDeadline(allowance, reserve);
         searchLimitNanos = searchAllowance.toNanos();
+        expectedNanos = searchLimitNanos;
         this.recorder = recorder;
     }
     public static @Nullable DailyOperation current() { return CURRENT.get(); }
@@ -101,6 +120,16 @@ public final class DailyOperation {
     }
     public static <T> T executePrepared(SearchAdmission admission, Allowance allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
         return launch(admission, prepare, new DailyOperation(allowance, recorder));
+    }
+    /**
+     * Like {@link #executePrepared(SearchAdmission, Allowance, Supplier, Consumer)}, but the work waits in the queue for
+     * as long as its deadline lets it start, and is refused early only when the work ahead could not end before that
+     * deadline. For a remote solver: its caller already passed the scheduler's admission and sent its allowance with
+     * little to spare beyond the search, so the scheduler's early refusal (which expects search time plus
+     * {@link #SETTLE}) would turn every short wait into a failure.
+     */
+    public static <T> T executeQueued(SearchAdmission admission, Allowance allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
+        return launch(admission, prepare, new DailyOperation(allowance, Required.value(Duration.ZERO), recorder));
     }
     private static <T> T launch(SearchAdmission admission, Duration allowance, Supplier<Preparation<T>> prepare, Consumer<Receipt> recorder) {
         DailyOperation operation = new DailyOperation(allowance, recorder);
@@ -150,7 +179,7 @@ public final class DailyOperation {
                 if (!prepared.needsAdmission()) value = prepared.work().get();
                 else {
                     boolean acquired = false;
-                    try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline)) {
+                    try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, deadline, Required.value(Duration.ofNanos(expectedNanos)))) {
                         acquired = true;
                         queueMs = lease.queueMillis();
                         try { value = prepared.work().get(); }

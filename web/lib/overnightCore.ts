@@ -15,6 +15,24 @@ export const MAX_RUN_TIMES = 8;
  * one day's proposal waits at most the client's longest search (240 seconds) plus its reserve and network allowance, so
  * this must stay above schedulerApi.proposalTimeoutMs for the longest search.
  */
+/** How many times an overnight day is asked again after the scheduler answered 429 BUSY. */
+export const BUSY_RETRIES = 5;
+
+/** The longest wait between those attempts, whatever Retry-After says; well inside the run's abandon time. */
+export const MAX_BUSY_WAIT_MS = 5 * 60_000;
+
+/**
+ * How long to wait before asking for a day again after the `attempt`-th 429 (1 for the first), or null to give up and
+ * record the day as failed: the scheduler's Retry-After when it sent one, else a doubling backoff from 5 seconds, both
+ * capped at {@link MAX_BUSY_WAIT_MS}.
+ */
+export function busyRetryDelayMs(attempt: number, retryAfterMs: number | null): number | null {
+  if (!Number.isInteger(attempt) || attempt < 1) throw new Error(`Invalid busy attempt ${attempt}`);
+  if (attempt > BUSY_RETRIES) return null;
+  const wait = retryAfterMs ?? 5000 * 2 ** (attempt - 1);
+  return Math.min(Math.max(wait, 1000), MAX_BUSY_WAIT_MS);
+}
+
 export const ABANDON_AFTER_MINUTES = 10;
 
 /** A scheduled run still starts this long after its time, for a worker that was briefly down; later it is skipped. */
