@@ -1069,5 +1069,414 @@
       "contractBreaches": [],
       "hostAnomalies": []
     }
-  ]
+  ],
+  "coldRemeasurement": {
+    "why": "The runs above were the third pass over seeds 21 to 25, so their routes were already in road_route_cache; a cached seed makes a one-desk search about 250 ms faster. These runs repeat 1, 5 and 10 desks on fresh seeds, comparable with the baseline, whose seeds 11 to 13 were also fresh.",
+    "runs": [
+      {
+        "label": "cold-recheck-c1 (seed 93)",
+        "scenario": "booking",
+        "scheduler": "http://127.0.0.1:18010",
+        "metroId": "metro-omaha",
+        "timeZone": "America/Chicago",
+        "points": "area 41.22,-96.05,41.28,-95.95",
+        "run": "load-0a48b35d",
+        "startedAt": "2026-10-14T00:43:20.715Z",
+        "finishedAt": "2026-10-14T00:44:21.178Z",
+        "settings": {
+          "durationS": 60,
+          "concurrency": 1,
+          "dailyConcurrency": null,
+          "technicians": 10,
+          "appointmentsPerDay": 2,
+          "horizonDates": 5,
+          "dailyTechnicians": 20,
+          "jobs": "cold",
+          "confirmRate": 0.3,
+          "offerLimit": 4,
+          "windowHours": 2,
+          "policy": {
+            "fairnessBudget": "0",
+            "dailySearch": "TABU",
+            "costSearchSeconds": 5,
+            "fairnessSearchSeconds": 0,
+            "bookingDeadlineMs": 5000,
+            "regularWindowThreshold": 2
+          },
+          "seed": 93
+        },
+        "machine": {
+          "cpus": 24,
+          "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "memoryBytes": 67870916608,
+          "node": "v22.20.0"
+        },
+        "operations": [
+          {
+            "operation": "booking offers",
+            "calls": 88,
+            "statuses": {
+              "201": 88
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 616,
+              "p95": 724,
+              "p99": 3810,
+              "max": 3810,
+              "mean": 662
+            }
+          },
+          {
+            "operation": "confirm",
+            "calls": 20,
+            "statuses": {
+              "200": 20
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 25,
+              "p95": 31,
+              "p99": 50,
+              "max": 50,
+              "mean": 27
+            }
+          },
+          {
+            "operation": "release",
+            "calls": 68,
+            "statuses": {
+              "200": 68
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 17,
+              "p95": 22,
+              "p99": 24,
+              "max": 24,
+              "mean": 18
+            }
+          },
+          {
+            "operation": "select",
+            "calls": 20,
+            "statuses": {
+              "200": 20
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 17,
+              "p95": 19,
+              "p99": 38,
+              "max": 38,
+              "mean": 18
+            }
+          }
+        ],
+        "booking": {
+          "searches": 88,
+          "searchIncomplete": 88,
+          "offers": 352,
+          "noOffers": 0,
+          "selected": 20,
+          "holdUnavailable": 0,
+          "confirmed": 20,
+          "hostWriteConflicts": 0,
+          "released": 68,
+          "failedSearches": 0,
+          "stale": 0
+        },
+        "daily": null,
+        "server": null,
+        "metricFailures": 0,
+        "containers": null,
+        "contractBreaches": [],
+        "hostAnomalies": []
+      },
+      {
+        "label": "cold-recheck-c5 (seed 91)",
+        "scenario": "booking",
+        "scheduler": "http://127.0.0.1:18010",
+        "metroId": "metro-omaha",
+        "timeZone": "America/Chicago",
+        "points": "area 41.22,-96.05,41.28,-95.95",
+        "run": "load-4e6f7075",
+        "startedAt": "2026-10-14T00:44:22.395Z",
+        "finishedAt": "2026-10-14T00:45:24.200Z",
+        "settings": {
+          "durationS": 60,
+          "concurrency": 5,
+          "dailyConcurrency": null,
+          "technicians": 10,
+          "appointmentsPerDay": 2,
+          "horizonDates": 5,
+          "dailyTechnicians": 20,
+          "jobs": "cold",
+          "confirmRate": 0.3,
+          "offerLimit": 4,
+          "windowHours": 2,
+          "policy": {
+            "fairnessBudget": "0",
+            "dailySearch": "TABU",
+            "costSearchSeconds": 5,
+            "fairnessSearchSeconds": 0,
+            "bookingDeadlineMs": 5000,
+            "regularWindowThreshold": 2
+          },
+          "seed": 91
+        },
+        "machine": {
+          "cpus": 24,
+          "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "memoryBytes": 67870916608,
+          "node": "v22.20.0"
+        },
+        "operations": [
+          {
+            "operation": "booking offers",
+            "calls": 207,
+            "statuses": {
+              "201": 129,
+              "409": 78
+            },
+            "errors": {
+              "STALE": 78
+            },
+            "reasons": {
+              "STALE: The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId": 78
+            },
+            "retriedBusy": 3,
+            "ms": {
+              "p50": 1335,
+              "p95": 2636,
+              "p99": 3672,
+              "max": 5005,
+              "mean": 1314
+            }
+          },
+          {
+            "operation": "confirm",
+            "calls": 34,
+            "statuses": {
+              "200": 32,
+              "409": 2
+            },
+            "errors": {
+              "STALE": 2
+            },
+            "reasons": {
+              "STALE: The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId": 2
+            },
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 941,
+              "p95": 1861,
+              "p99": 1926,
+              "max": 1926,
+              "mean": 917
+            }
+          },
+          {
+            "operation": "release",
+            "calls": 97,
+            "statuses": {
+              "200": 97
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 19,
+              "p95": 23,
+              "p99": 27,
+              "max": 27,
+              "mean": 19
+            }
+          },
+          {
+            "operation": "select",
+            "calls": 32,
+            "statuses": {
+              "200": 32
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 19,
+              "p95": 33,
+              "p99": 72,
+              "max": 72,
+              "mean": 21
+            }
+          }
+        ],
+        "booking": {
+          "searches": 129,
+          "searchIncomplete": 129,
+          "offers": 516,
+          "noOffers": 0,
+          "selected": 32,
+          "holdUnavailable": 0,
+          "confirmed": 32,
+          "hostWriteConflicts": 0,
+          "released": 97,
+          "failedSearches": 0,
+          "stale": 80
+        },
+        "daily": null,
+        "server": null,
+        "metricFailures": 0,
+        "containers": null,
+        "contractBreaches": [],
+        "hostAnomalies": []
+      },
+      {
+        "label": "cold-recheck-c10 (seed 92)",
+        "scenario": "booking",
+        "scheduler": "http://127.0.0.1:18010",
+        "metroId": "metro-omaha",
+        "timeZone": "America/Chicago",
+        "points": "area 41.22,-96.05,41.28,-95.95",
+        "run": "load-7041fec1",
+        "startedAt": "2026-10-14T00:45:25.451Z",
+        "finishedAt": "2026-10-14T00:46:30.901Z",
+        "settings": {
+          "durationS": 60,
+          "concurrency": 10,
+          "dailyConcurrency": null,
+          "technicians": 10,
+          "appointmentsPerDay": 2,
+          "horizonDates": 5,
+          "dailyTechnicians": 20,
+          "jobs": "cold",
+          "confirmRate": 0.3,
+          "offerLimit": 4,
+          "windowHours": 2,
+          "policy": {
+            "fairnessBudget": "0",
+            "dailySearch": "TABU",
+            "costSearchSeconds": 5,
+            "fairnessSearchSeconds": 0,
+            "bookingDeadlineMs": 5000,
+            "regularWindowThreshold": 2
+          },
+          "seed": 92
+        },
+        "machine": {
+          "cpus": 24,
+          "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+          "memoryBytes": 67870916608,
+          "node": "v22.20.0"
+        },
+        "operations": [
+          {
+            "operation": "booking offers",
+            "calls": 285,
+            "statuses": {
+              "201": 128,
+              "409": 157
+            },
+            "errors": {
+              "STALE": 157
+            },
+            "reasons": {
+              "STALE: The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId": 157
+            },
+            "retriedBusy": 33,
+            "ms": {
+              "p50": 1822,
+              "p95": 4961,
+              "p99": 7423,
+              "max": 8373,
+              "mean": 2005
+            }
+          },
+          {
+            "operation": "confirm",
+            "calls": 47,
+            "statuses": {
+              "200": 34,
+              "409": 13
+            },
+            "errors": {
+              "STALE": 13
+            },
+            "reasons": {
+              "STALE: The snapshot is older than one already used for these technician-days; rebuild it from current records and retry with a new requestId": 13
+            },
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 1221,
+              "p95": 3007,
+              "p99": 3084,
+              "max": 3084,
+              "mean": 1259
+            }
+          },
+          {
+            "operation": "release",
+            "calls": 94,
+            "statuses": {
+              "200": 94
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 18,
+              "p95": 21,
+              "p99": 36,
+              "max": 36,
+              "mean": 19
+            }
+          },
+          {
+            "operation": "select",
+            "calls": 34,
+            "statuses": {
+              "200": 34
+            },
+            "errors": {},
+            "reasons": {},
+            "retriedBusy": 0,
+            "ms": {
+              "p50": 18,
+              "p95": 22,
+              "p99": 25,
+              "max": 25,
+              "mean": 18
+            }
+          }
+        ],
+        "booking": {
+          "searches": 128,
+          "searchIncomplete": 128,
+          "offers": 512,
+          "noOffers": 0,
+          "selected": 34,
+          "holdUnavailable": 0,
+          "confirmed": 34,
+          "hostWriteConflicts": 0,
+          "released": 94,
+          "failedSearches": 0,
+          "stale": 170
+        },
+        "daily": null,
+        "server": null,
+        "metricFailures": 0,
+        "containers": null,
+        "contractBreaches": [],
+        "hostAnomalies": []
+      }
+    ]
+  }
 }

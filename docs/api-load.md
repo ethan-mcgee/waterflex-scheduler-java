@@ -69,8 +69,17 @@ again from current records with a new `requestId`. Latency is per call, so a res
 
 - **No hold was lost** in any run (before: 37 percent of selected holds at 5 desks, 59 percent at 10), and the
   deterministic reproduction of finding 2 now ends with desk 2's confirm answering 200.
-- **Every desk count meets the latency target** at the caller: offers p95 2.2 s at 5 desks and 3.4 s at 10 (before:
-  6.2 s and 12 s), against a 5.5 s bound. Throughput rose from 97 to 147 searches per minute at 5 desks.
+- **Latency improved, by less than the table shows.** Those runs were the third pass over seeds 21 to 25, so their
+  routes were already cached. Run again on fresh seeds, as the baseline was (evidence, `coldRemeasurement`):
+
+  | Desks | Baseline offers p95 | #152 offers p95, fresh seeds | Searches per minute, baseline / #152 |
+  | ---: | ---: | ---: | ---: |
+  | 1 | 0.99 s | 0.72 s | 76 / 87 |
+  | 5 | 6.2 s | 2.6 s | 97 / 125 |
+  | 10 | 12.0 s | 5.0 s | 94 / 117 |
+
+  Every desk count is now within the 5.5 s bound at the caller, 10 desks only just. Compare load runs on fresh seeds
+  only: a seed run before makes a one-desk search about 250 ms faster.
 - **The cost is resends.** A search built from records that another desk's receipt overtook before it arrived is
   answered `STALE` and sent again: about 0.8 resends per answered search at 5 desks, 1.7 at 10. Each resend is a new call, and a `STALE` answer still
   took 0.4 to 0.6 s at the server: it is decided before the search, but the scheduler first builds the request's facts
