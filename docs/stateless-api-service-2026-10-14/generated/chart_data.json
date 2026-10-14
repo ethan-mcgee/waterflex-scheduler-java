@@ -1,0 +1,236 @@
+{
+  "topology": {
+    "boxes": [
+      "host backend",
+      "scheduler-proxy",
+      "booking pool",
+      "daily pool",
+      "routing-service per metro",
+      "Nominatim",
+      "scheduler-db",
+      "management port"
+    ]
+  },
+  "booking": {
+    "steps": [
+      "offers",
+      "select",
+      "confirm",
+      "write receipt"
+    ],
+    "refusals": [
+      "STALE",
+      "HOLD_UNAVAILABLE",
+      "HOLD_UNAVAILABLE",
+      "host write conflict"
+    ]
+  },
+  "daily": {
+    "modes": [
+      "synchronous",
+      "queued"
+    ],
+    "decisions": [
+      "IMPROVED",
+      "NO_IMPROVEMENT",
+      "REJECTED_BY_POLICY"
+    ]
+  },
+  "tiers": [
+    "1. In-flight dedup",
+    "2. Scheduler memory",
+    "3. Scheduler database",
+    "4. Routing memory"
+  ],
+  "history": {
+    "days": [
+      "2026-10-07",
+      "2026-10-08",
+      "2026-10-09",
+      "2026-10-10",
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14"
+    ],
+    "phases": [
+      "Design",
+      "S1 hardening",
+      "S2 contract",
+      "S3 daily",
+      "S4 thin store",
+      "S5 commit",
+      "Booking",
+      "Repair",
+      "S6 portal",
+      "P7 retirement",
+      "P8 cleanup",
+      "Client policy",
+      "Contract gaps",
+      "Integration",
+      "Performance"
+    ],
+    "counts": {
+      "Design": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "S1 hardening": [
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "S2 contract": [
+        0,
+        3,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "S3 daily": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "S4 thin store": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "S5 commit": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "Booking": [
+        0,
+        5,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "Repair": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "S6 portal": [
+        0,
+        8,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "P7 retirement": [
+        0,
+        0,
+        11,
+        0,
+        0,
+        0,
+        0
+      ],
+      "P8 cleanup": [
+        0,
+        0,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      "Client policy": [
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      "Contract gaps": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "Integration": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        0
+      ],
+      "Performance": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        7
+      ]
+    },
+    "versions": [
+      [
+        "1.4.1",
+        "2026-10-13"
+      ],
+      [
+        "1.4.0",
+        "2026-10-13"
+      ],
+      [
+        "1.3.0",
+        "2026-10-13"
+      ],
+      [
+        "1.2.0",
+        "2026-10-13"
+      ],
+      [
+        "1.1.0",
+        "2026-10-13"
+      ],
+      [
+        "1.0.0",
+        "2026-10-13"
+      ]
+    ]
+  }
+}
