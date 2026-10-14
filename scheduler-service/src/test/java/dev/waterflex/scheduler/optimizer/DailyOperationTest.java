@@ -33,6 +33,27 @@ class DailyOperationTest {
             assertEquals(1, admission.state().active()); assertEquals(0, admission.state().queuedBackground());
         }
     }
+    @Test void aQueuedRemoteSolveWaitsItsTurnInsteadOfBeingRefusedEarly() throws Exception {
+        var admission = new SearchAdmission(2, 16);
+        // A remote solve's allowance leaves little beyond its search, as the scheduler sends it.
+        var allowance = new DailyOperation.Allowance(Required.value(Duration.ofMillis(3000)), Required.value(Duration.ofMillis(2800)));
+        var ahead = admission.acquire(SearchAdmission.Kind.BACKGROUND, new SearchDeadline(seconds(20)), Required.value(Duration.ofMillis(300)));
+        var receipts = new LinkedBlockingQueue<DailyOperation.Receipt>();
+        var waiter = new Thread(() -> { pause(300); ahead.close(); });
+        waiter.start();
+        assertEquals("solved", DailyOperation.executeQueued(admission, allowance,
+                () -> new DailyOperation.Preparation<>(() -> "solved", true, _ -> { }), receipts::add));
+        waiter.join();
+        assertTrue(Required.value(Required.value(receipts.poll(5, TimeUnit.SECONDS)).queueMs()) >= 200, "it waited for the solve ahead");
+        assertEquals(0, admission.rejections());
+
+        // The scheduler's own entry point refuses the same request at once: it could not finish its search and settle.
+        var blocking = admission.acquire(SearchAdmission.Kind.BACKGROUND, new SearchDeadline(seconds(20)), Required.value(Duration.ofMillis(300)));
+        try (blocking) {
+            assertThrows(SearchAdmission.Busy.class, () -> DailyOperation.executePrepared(admission, allowance,
+                    () -> new DailyOperation.Preparation<>(() -> "refused", true, _ -> { }), _ -> { }));
+        }
+    }
     private static Duration seconds(long value) { return Required.value(Duration.ofSeconds(value)); }
     private static void await(CountDownLatch latch) {
         try { assertTrue(latch.await(5, TimeUnit.SECONDS)); }
