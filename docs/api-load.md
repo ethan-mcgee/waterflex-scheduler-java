@@ -344,6 +344,43 @@ every run, from the `cpuMs` field of the request log).
 - **Next.** With confirms out of the way, the booking replica's remaining wait is searches queueing for the two
   slots (117 ms p50 of a 221 ms search), which is CPU: more cores, more replicas, or a cheaper search (study L).
 
+## Embedded against remote calculation (K)
+
+The design's third scaling lever moves the calculation out of the scheduler into a solver pool
+(`SCHEDULER_CALCULATION_MODE=REMOTE`). It had never been measured. This run compares the two on the rehearsal
+stack with the same load as J2's runs, the solver pool at its compose shape (4 CPUs, 4 GiB) beside the booking and
+daily replicas at 2 CPUs each ([evidence](evidence/api-load-2026-10-14-embedded-vs-remote.json)). The acceptance set
+beforehand was remote p95 at most 1.05 times embedded.
+
+| Run | Offers caller p50 / p95 | Offers server p50: slot wait | calculation | Searches in 60 s | Daily proposal p50 (25 queued) | Daily replica CPU | Solver pool |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Embedded (default) | 244 / 357 ms | 124 ms | 15 ms | 1058 | 15.1 s, 25 of 25 | 185 percent | none |
+| Remote, previous pool defaults | 352 / 485 ms | 187 ms | 64 ms | 748 | 15 of 18 answered 503 | 43 percent | capacity 2, one daily at a time |
+| Remote, capacity 4 | 356 / 556 ms | 190 ms | 63 ms | 753 | 13 of 18 answered 503 | 33 percent | capacity 4, one daily at a time |
+| Remote, capacity 4, every slot open to daily work | 374 / 504 ms | 201 ms | 69 ms | 703 | 15.1 s, 25 of 25 | 36 percent | the new defaults |
+
+- **Booking fails the acceptance; the embedded solver stays the default.** A remote search costs 1.5 times the
+  embedded one at the caller (p50 374 against 244 ms, p95 504 against 357 ms) and the replica serves two thirds of
+  the searches. The calculation share goes from 15 to 69 ms: a search makes up to three solver calls (insertion,
+  refinement, and the retry on a moved day), each a snapshot encoded, sent, decoded and answered, and the replica
+  spends 20 ms more CPU per search on that encoding (`cpuMs` 37 to 57 ms). Nothing else changes: routing, the
+  database and the confirm (16 ms, no calculation) are the same.
+- **For a daily pool, remote is the lever it was meant to be.** The proposal takes the same 15.1 s p50 (queue wait
+  plus a fixed 5 s search) and the daily replica's CPU falls from 185 to 36 percent: the solve runs in the pool. Each
+  pool has its own `SCHEDULER_CALCULATION_MODE`, so the daily pool can go remote while booking stays embedded; set
+  the mode and URL on the daily replica alone (an override file next to `deploy/vm/docker-compose.yml`).
+- **A finding and a fix.** With the pool's previous defaults most daily proposals answered 503
+  `CALCULATION_UNAVAILABLE`: `SolverApplication` built its admission with the scheduler's default of one daily
+  calculation at a time, whatever the capacity, so the second of the two solves a daily replica admits waited behind
+  the first and was refused once it could no longer finish in its allowance. Raising the capacity alone did nothing.
+  The pool now takes `SOLVER_BACKGROUND_LIMIT` (0, the default, opens every slot to daily work; a pool protects
+  nothing else) and its default capacity is 4, the sum of the replicas' search capacities on this shape. The rule
+  for an operator: a pool's capacity is the replicas' search capacities summed, and its background limit at least
+  the daily replicas' background limits summed.
+- **The L engine on the VM shape.** The embedded run is the first measurement of study L's scoring treatment behind
+  the API: a 5 s search is a 5 s search, so the proposal latency is unchanged by design; what changed is how many
+  moves it evaluates (docs/solver-benchmarks.md).
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
