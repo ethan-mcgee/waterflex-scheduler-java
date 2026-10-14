@@ -73,8 +73,9 @@ export type ProblemCode = z.infer<typeof problem>["error"];
 
 /** A refused or failed call. `code` is the API's error, or TRANSPORT / MALFORMED / NOT_CONNECTED for the portal's own failures. */
 export class SchedulerApiError extends Error {
+  /** `retryAfterMs`: a 429's Retry-After in milliseconds, or null when the scheduler sent none. */
   constructor(readonly status: number, readonly code: ProblemCode | "TRANSPORT" | "MALFORMED" | "NOT_CONNECTED", message: string,
-    readonly changed: readonly TechnicianDayVersion[] = []) {
+    readonly changed: readonly TechnicianDayVersion[] = [], readonly retryAfterMs: number | null = null) {
     super(message);
     this.name = "SchedulerApiError";
   }
@@ -152,11 +153,19 @@ async function call<T>(clientId: string, method: "GET" | "POST", path: string, b
     const refused = problem.safeParse(payload);
     if (!refused.success)
       throw new SchedulerApiError(502, "MALFORMED", `The scheduling service sent an unexpected ${response.status} response: ${JSON.stringify(payload).slice(0, 300)}`);
-    throw new SchedulerApiError(response.status, refused.data.error, refused.data.message, refused.data.changed);
+    throw new SchedulerApiError(response.status, refused.data.error, refused.data.message, refused.data.changed, retryAfterMs(response));
   }
   const parsed = schema.safeParse(payload);
   if (!parsed.success) throw new SchedulerApiError(502, "MALFORMED", `The scheduling service's ${path} response does not match the API`);
   return parsed.data;
+}
+
+/** A 429's Retry-After (whole seconds, as the scheduler sends it) in milliseconds; null when absent or not a positive integer. */
+export function retryAfterMs(response: Pick<Response, "status" | "headers">): number | null {
+  if (response.status !== 429) return null;
+  const header = response.headers.get("retry-after");
+  if (header === null || !/^[1-9][0-9]{0,5}$/.test(header)) return null;
+  return Number(header) * 1000;
 }
 
 const verified = new Map<string, Promise<void>>();
