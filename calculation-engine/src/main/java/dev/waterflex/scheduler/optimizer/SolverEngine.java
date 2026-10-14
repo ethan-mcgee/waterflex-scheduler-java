@@ -39,6 +39,10 @@ public final class SolverEngine {
         }
     }
     @FunctionalInterface interface Probe { Measurements finish(); }
+    /** The one Timefold release the experiment instrumentation is verified against; it attaches to that exact artifact only. */
+    public static final String INSTRUMENTED_TIMEFOLD = "2.7.1";
+    /** Diagnostics' name for that instrumentation. Evidence recorded on 2.6.0 says TIMEFOLD_INTERNAL_2_6_0, which readers still accept. */
+    public static final String INSTRUMENTATION = "TIMEFOLD_INTERNAL_" + INSTRUMENTED_TIMEFOLD.replace('.', '_');
     @FunctionalInterface interface Telemetry { Probe attach(Solver<DayPlan> solver); }
     interface Cancellation {
         void started(Solver<DayPlan> solver);
@@ -118,7 +122,7 @@ public final class SolverEngine {
         if (budget.isNegative() || budget.isZero() || budget.toMillis() == 0) throw new IllegalArgumentException("Positive millisecond solver budget required");
         initial.validateInputMode(); initial.getFacts().requireSearchRoads();
         if (definition.variant() == Variant.RUIN_RECREATE && initial.getRoutes().stream().anyMatch(route -> route.getPinnedPrefix() > 0))
-            throw new IllegalArgumentException("RUIN_RECREATE with pinned prefixes is unsupported on Timefold 2.6.0: observed list corruption during undo");
+            throw new IllegalArgumentException("RUIN_RECREATE with pinned prefixes is unsupported: observed list corruption during undo on Timefold 2.6.0, not re-tested since");
         if (!initial.getUnassignedVisitIds().isEmpty() && !definition.construction())
             return solve(configuration(definition.variant(), definition.seed(), definition.environmentMode(), true), initial, budget, telemetry, required, cancellation);
         DayPlan working = PlanCopies.copy(initial);
@@ -164,7 +168,7 @@ public final class SolverEngine {
             basis = "INFERRED";
         }
         Result result = result(definition, solved, budget, solveMs, reason, basis, measured, unavailable,
-                telemetry == null ? "NONE" : "TIMEFOLD_INTERNAL_2_6_0");
+                telemetry == null ? "NONE" : INSTRUMENTATION);
         if (required && measured == null) throw new DiagnosticsFailure(result);
         return result;
     }

@@ -21,3 +21,4 @@ portal-api-tokens.env
 # The scheduler VM rehearsal's local secrets (deploy/vm/rehearsal.override.yml).
 deploy/vm/rehearsal.env
 web/next-env.d.ts
+web/public/maplibre/
