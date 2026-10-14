@@ -50,7 +50,7 @@
     "@prisma/client": "^5.20.0",
     "lucide-react": "^1.55.0",
     "maplibre-gl": "^6.14.0",
-    "next": "^14.2.13",
+    "next": "^15.5.27",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zod": "^4.6.5"
