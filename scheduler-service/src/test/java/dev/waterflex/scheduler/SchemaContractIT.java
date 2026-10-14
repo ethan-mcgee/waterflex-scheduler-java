@@ -29,10 +29,13 @@ class SchemaContractIT {
             Map.entry("api_booking_offer_set", List.of("tenantId", "id", "requestId", "jobId", "metroId", "expiresAt", "status", "offerSetJson", "createdAt")),
             Map.entry("api_booking_offer", List.of("tenantId", "id", "offerSetId", "holdId", "serviceDate", "technicianId", "windowStart", "windowEnd", "status")),
             Map.entry("api_booking_receipt", List.of("tenantId", "id", "offerId", "requestId", "receiptJson", "createdAt")),
+            Map.entry("api_daily_job", List.of("tenantId", "requestId", "operation", "requestJson", "ownerToken", "state", "leaseSeconds", "queuedAt", "notBefore",
+                    "startedAt", "leaseExpiresAt", "worker", "attempts", "cancelRequested", "finishedAt", "resultStatus", "resultJson", "retryAfterSeconds")),
+            Map.entry("api_tenant_turn", List.of("tenantId", "lastStartedAt")),
             Map.entry("road_route_cache", List.of("id", "originKey", "destinationKey", "profile", "mapVersion", "seconds", "meters", "routable", "fetchedAt"))));
 
     private static final Set<String> THIN_STORE = Required.value(Set.of("api_request", "api_daily_proposal", "api_proposal_technician_day", "api_commit_receipt",
-            "api_booking_day", "api_booking_offer_set", "api_booking_offer", "api_booking_receipt"));
+            "api_booking_day", "api_booking_offer_set", "api_booking_offer", "api_booking_receipt", "api_daily_job"));
 
     @Test void everyTableAndColumnJavaReadsExists() {
         for (var table : READ.entrySet()) {
@@ -72,7 +75,8 @@ class SchemaContractIT {
                 "api_booking_day", "INSERT,SELECT,UPDATE",
                 "api_booking_offer_set", "INSERT,SELECT,UPDATE",
                 "api_booking_offer", "INSERT,SELECT,UPDATE",
-                "api_booking_receipt", "INSERT,SELECT"), grants("scheduler_tenant"));
+                "api_booking_receipt", "INSERT,SELECT",
+                "api_daily_job", "INSERT,SELECT,UPDATE"), grants("scheduler_tenant"));
         assertEquals(Map.of(
                 "tenant", "SELECT",
                 "tenant_api_token", "SELECT",
@@ -83,11 +87,15 @@ class SchemaContractIT {
         assertEquals(Boolean.TRUE, jdbc.queryForObject("SELECT pg_has_role('scheduler_app', 'scheduler_tenant', 'MEMBER')", Boolean.class));
     }
 
-    @Test void thePurgeIsADefinerFunctionWithAPinnedSearchPathOnlySchedulerAppMayRun() {
-        assertEquals(Boolean.TRUE, jdbc.queryForObject("""
-                SELECT p.prosecdef AND array_to_string(p.proconfig, ',') LIKE 'search_path=%'
-                FROM pg_proc p WHERE p.oid = to_regprocedure('scheduler_purge(timestamptz, integer)')""", Boolean.class));
-        assertEquals(Boolean.TRUE, jdbc.queryForObject("SELECT has_function_privilege('scheduler_app', 'scheduler_purge(timestamptz, integer)', 'EXECUTE')", Boolean.class));
-        assertEquals(Boolean.FALSE, jdbc.queryForObject("SELECT has_function_privilege('scheduler_tenant', 'scheduler_purge(timestamptz, integer)', 'EXECUTE')", Boolean.class));
+    @Test void thePurgeAndTheQueueAreDefinerFunctionsWithAPinnedSearchPathOnlySchedulerAppMayRun() {
+        for (String function : List.of("scheduler_purge(timestamptz, integer)", "scheduler_next_daily_job(text, interval)")) {
+            assertEquals(Boolean.TRUE, jdbc.queryForObject("""
+                    SELECT p.prosecdef AND array_to_string(p.proconfig, ',') LIKE 'search_path=%'
+                    FROM pg_proc p WHERE p.oid = to_regprocedure(?)""", Boolean.class, function), function);
+            assertEquals(Boolean.TRUE, jdbc.queryForObject("SELECT has_function_privilege('scheduler_app', ?, 'EXECUTE')", Boolean.class, function), function);
+            assertEquals(Boolean.FALSE, jdbc.queryForObject("SELECT has_function_privilege('scheduler_tenant', ?, 'EXECUTE')", Boolean.class, function), function);
+        }
+        assertEquals(Boolean.FALSE, jdbc.queryForObject("SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass('api_tenant_turn')", Boolean.class),
+                "the turn table is read only through the queue function, so no runtime role is granted it");
     }
 }

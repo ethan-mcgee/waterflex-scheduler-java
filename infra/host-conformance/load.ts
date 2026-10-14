@@ -22,7 +22,7 @@ import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
 const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --metro <metroId> --time-zone <IANA zone>
     (--area <south,west,north,east> | --points fixture) --scenario booking|daily|mixed --duration-s <seconds>
     [--concurrency 5] [--daily-concurrency 1] [--technicians 10] [--appointments 2] [--horizon-days 5]
-    [--daily-technicians 20] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
+    [--daily-technicians 20] [--daily-mode sync|async] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
     [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--metrics-url <prometheus URL>]
     [--docker <container,...>] [--label <text>] [--out <directory>]`;
 
@@ -35,7 +35,7 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
 }
 
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
-  "technicians", "appointments", "horizon-days", "daily-technicians", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
+  "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
   "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "label", "out"] as const;
 
 function settings() {
@@ -60,6 +60,7 @@ function settings() {
   };
   const scenario = oneOf(required("scenario"), ["booking", "daily", "mixed"] as const, "--scenario");
   const jobs = oneOf(text("jobs") ?? "cold", ["cold", "warm"] as const, "--jobs");
+  const dailyMode = oneOf(text("daily-mode") ?? "sync", ["sync", "async"] as const, "--daily-mode");
   const confirmRate = Number(text("confirm-rate") ?? "0.3");
   if (!(confirmRate >= 0 && confirmRate <= 1)) throw new UsageError("--confirm-rate is a share from 0 to 1");
   const metroId = required("metro");
@@ -80,7 +81,7 @@ function settings() {
     durationS: (() => { required("duration-s"); return integer("duration-s", 0, 5, 3600); })(),
     concurrency: integer("concurrency", 5, 1, 64), dailyConcurrency: integer("daily-concurrency", 1, 1, 16),
     technicians: integer("technicians", 10, 1, 200), appointments: integer("appointments", 2, 0, 4), horizonDays: integer("horizon-days", 5, 1, 21),
-    dailyTechnicians: integer("daily-technicians", 20, 1, 200), jobs, confirmRate,
+    dailyTechnicians: integer("daily-technicians", 20, 1, 200), dailyMode, jobs, confirmRate,
     offerLimit: integer("offer-limit", 4, 1, 4), windowHours: integer("window-hours", 2, 1, 8),
     deadlineMs: integer("deadline-ms", KIT_POLICY.bookingDeadlineMs, 1000, 5000), costSeconds, fairnessSeconds, seed: integer("seed", 1, 0, 1000),
     metricsUrl: text("metrics-url") ?? null, docker: text("docker")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
@@ -140,7 +141,7 @@ async function main(): Promise<number> {
         confirmRate: options.confirmRate, jobLocation }, desk, options.deadlineMs));
   if (options.scenario !== "booking")
     for (let planner = 0; planner < (options.scenario === "daily" ? options.concurrency : options.dailyConcurrency); planner++)
-      loops.push(dailyLoop(run, { store: dailyStore, date: dailyDate }, (options.costSeconds + options.fairnessSeconds + 5) * 1000 + 30_000));
+      loops.push(dailyLoop(run, { store: dailyStore, date: dailyDate, mode: options.dailyMode }, (options.costSeconds + options.fairnessSeconds + 5) * 1000 + 30_000));
   await Promise.all(loops);
   const finishedAt = new Date();
   let server: ServerView | null = null;
@@ -157,6 +158,7 @@ async function main(): Promise<number> {
     run: prefix, startedAt: startedAt.toISOString(), finishedAt: finishedAt.toISOString(),
     settings: { durationS: options.durationS, concurrency: options.concurrency, dailyConcurrency: options.scenario === "mixed" ? options.dailyConcurrency : null,
       technicians: options.technicians, appointmentsPerDay: options.appointments, horizonDates: horizon.length, dailyTechnicians: options.dailyTechnicians,
+      dailyMode: options.scenario === "booking" ? null : options.dailyMode,
       jobs: options.jobs, confirmRate: options.confirmRate, offerLimit: options.offerLimit, windowHours: options.windowHours, policy, seed: options.seed },
     machine: { cpus: cpus().length, cpuModel: cpus()[0]?.model ?? "unknown", memoryBytes: totalmem(), node: process.version },
     operations: summarize(run.records), booking: options.scenario === "daily" ? null : run.booking,

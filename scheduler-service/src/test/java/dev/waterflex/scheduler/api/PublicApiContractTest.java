@@ -68,6 +68,8 @@ class PublicApiContractTest {
         types.put("CommitReceipt", PublicResponses.CommitReceipt.class);
         types.put("Problem", PublicResponses.Problem.class);
         types.put("StaleProblem", PublicResponses.StaleProblem.class);
+        types.put("RequestStatus", PublicResponses.RequestStatus.class);
+        types.put("RequestResult", PublicResponses.RequestResult.class);
         return types;
     }
 

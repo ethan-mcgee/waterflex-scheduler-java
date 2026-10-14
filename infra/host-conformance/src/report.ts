@@ -25,7 +25,7 @@ export interface Report {
   readonly results: readonly CaseResult[];
 }
 
-export const KIT_VERSION = "1.3.0";
+export const KIT_VERSION = "1.4.0";
 
 /** Runs one case; an unexpected error (a timeout, a refused connection) fails it like a broken expectation. */
 export async function runCase(item: Case, context: Context): Promise<CaseResult> {

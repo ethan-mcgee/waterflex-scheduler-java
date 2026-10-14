@@ -146,10 +146,10 @@ again from current records with a new `requestId`. Latency is per call, so a res
    | daily, 4 planners | 15 | 15 | 0 | 39 (0.3 s each) |
    | mixed, 1 planner beside 5 desks | 2 | 2 | 0 | 12 (about 3 s each) |
 
-   What remains is the next step of the plan:
-   - Retries are a lottery with no fairness between planners or clients: one proposal at 4 planners waited 86 s.
-     The durable queue with per-client turns (L4) replaces it.
-   - On a replica that also books, queued bookings always go first, so daily work starves while desks are busy.
+   What remained was the next step of the plan:
+   - Retries were a lottery with no fairness between planners or clients: one proposal at 4 planners waited 86 s.
+     The durable queue with per-client turns (L4, below) replaces it for hosts that queue.
+   - On a replica that also books, queued bookings always go first, so daily work waits while desks are busy.
      Separate booking and daily replicas behind a load balancer (L5) remove that contention.
 
 5. **`searchComplete` is false on nearly every search. Fixed in #154:** `searchComplete` is now false only when the
@@ -173,6 +173,33 @@ again from current records with a new `requestId`. Latency is per call, so a res
    The spec says `false` means "the deadline ended the search early; an empty offer list then does not prove there is
    no capacity", and a host reading it that way learns nothing. Either report `false` only when the deadline (or a
    failure) cut the search short, or change the spec's wording to cover the optional refinement.
+
+## Asynchronous proposals and fair queuing (L4)
+
+A host may now queue a daily or repair proposal with `Prefer: respond-async` and poll its status (spec 1.4.0). Any
+replica's worker takes queued requests round-robin across tenants, and booking slots are shared between clients
+within a replica. Measured on fresh seeds ([evidence](evidence/api-load-2026-10-13-daily-queue.json)), with two
+tenants at once for 90 s: tenant A with 4 daily planners, tenant B with 1, 20-technician days, 5 s searches.
+
+| Mode | Tenant | Proposals | Proposal p50 | Proposal p95 | Wait before the calculation started |
+| --- | --- | ---: | ---: | ---: | --- |
+| Synchronous, 429 and `Retry-After` | A, 4 planners | 20 | 5.1 s | 105 s | |
+| Synchronous, 429 and `Retry-After` | B, 1 planner | **1** | 109 s | 109 s | |
+| Queued (`Prefer: respond-async`) | A, 4 planners | 12 | 39.2 s | 45.2 s | p50 32.5 s, max 38.3 s |
+| Queued (`Prefer: respond-async`) | B, 1 planner | **9** | 9.1 s | 15.1 s | p50 3.9 s, max 5.8 s |
+
+- **Synchronously, one client starved another.** Tenant B's single planner got 1 proposal in 109 s, because tenant A's
+  four planners took each freed slot first while B waited out its `Retry-After`. Queued, B's planner got a proposal
+  every 9 to 15 s: B waits only for the calculation running when it asks, whatever A has queued.
+- **Throughput is unchanged:** 21 proposals in both modes. A replica still runs one daily calculation at a time, so the
+  queue shares the same work out fairly rather than adding any. More daily capacity is the separate replicas of L5.
+- **Beside booking desks, queuing costs bookings nothing.** One tenant, 5 desks and 2 daily planners for 60 s: queued,
+  9 daily proposals (p95 30 s) against 10 synchronous (p95 73 s), and 187 against 192 searches. A first build whose
+  worker waited for an empty booking queue managed only 6 proposals (bookings rose to 221 searches); the worker now
+  waits only while a daily calculation runs or waits on its replica, and admission still puts bookings first.
+- **Any replica serves the queue.** With a second replica running no workers on the same database, the conformance
+  kit's daily and cancellation cases sent through it all passed: its queued proposals ran on the first replica, and a
+  cancel sent to it stopped a proposal running there.
 
 ## Repeating the measurement
 

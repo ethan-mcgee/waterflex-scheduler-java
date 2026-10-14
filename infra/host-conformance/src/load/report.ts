@@ -2,7 +2,7 @@
 import type { Snapshot } from "../snapshot.ts";
 import type { ServerView } from "./metrics.ts";
 import type { BookingTally, ContainerUsage, DailyTally } from "./scenarios.ts";
-import type { OperationSummary } from "./stats.ts";
+import { percentile, type OperationSummary } from "./stats.ts";
 
 export interface LoadReport {
   readonly label: string | null;
@@ -16,7 +16,7 @@ export interface LoadReport {
   readonly finishedAt: string;
   readonly settings: {
     readonly durationS: number; readonly concurrency: number; readonly dailyConcurrency: number | null; readonly technicians: number;
-    readonly appointmentsPerDay: number; readonly horizonDates: number; readonly dailyTechnicians: number; readonly jobs: "cold" | "warm";
+    readonly appointmentsPerDay: number; readonly horizonDates: number; readonly dailyTechnicians: number; readonly dailyMode: "sync" | "async" | null; readonly jobs: "cold" | "warm";
     readonly confirmRate: number; readonly offerLimit: number; readonly windowHours: number; readonly policy: Snapshot["policy"]; readonly seed: number;
   };
   readonly machine: { readonly cpus: number; readonly cpuModel: string; readonly memoryBytes: number; readonly node: string };
@@ -43,7 +43,7 @@ export function loadMarkdown(report: LoadReport): string {
     `- Scheduler ${report.scheduler}, metro ${report.metroId} (${report.timeZone}), points ${report.points}`,
     `- Booking metro: ${s.technicians} technicians x ${s.horizonDates} dates, ${s.appointmentsPerDay} visits per day booked; jobs ${s.jobs}; ` +
       `confirm ${Math.round(s.confirmRate * 100)} percent; offerLimit ${s.offerLimit}, windowHours ${s.windowHours}`,
-    `- Daily day: ${s.dailyTechnicians} technicians x ${s.appointmentsPerDay} visits; search ${s.policy.costSearchSeconds} + ${s.policy.fairnessSearchSeconds} s; ` +
+    `- Daily day: ${s.dailyTechnicians} technicians x ${s.appointmentsPerDay} visits${s.dailyMode === "async" ? ", queued (Prefer: respond-async)" : ""}; search ${s.policy.costSearchSeconds} + ${s.policy.fairnessSearchSeconds} s; ` +
       `bookingDeadlineMs ${s.policy.bookingDeadlineMs}`,
     `- Machine: ${report.machine.cpus} CPUs (${report.machine.cpuModel}), ${gib(report.machine.memoryBytes)}, Node ${report.machine.node}`, "",
     "## Caller-side latency", "",
@@ -63,8 +63,12 @@ export function loadMarkdown(report: LoadReport): string {
       `- Offers per answered search: ${answered === 0 ? "-" : (b.offers / answered).toFixed(2)}; searches with no offer: ${b.noOffers}`,
       `- Selected ${b.selected}, confirmed and written ${b.confirmed}, HOLD_UNAVAILABLE ${b.holdUnavailable}, host write conflicts ${b.hostWriteConflicts}, released ${b.released}, sent again after STALE ${b.stale}`);
   }
-  if (report.daily !== null)
+  if (report.daily !== null) {
     lines.push("", "## Daily outcomes", "", `- Proposals requested ${report.daily.proposals}; decisions: ${entries(report.daily.decisions)}`);
+    const waits = [...report.daily.queueWaitsMs].sort((a, b) => a - b);
+    if (waits.length > 0)
+      lines.push(`- Queued proposals: ${waits.length}; wait before the calculation started p50 ${percentile(waits, 0.5)} ms, max ${waits[waits.length - 1] ?? 0} ms`);
+  }
   if (report.server !== null) {
     const v = report.server;
     lines.push("", "## Scheduler view (Prometheus)", "", "| Route | Method | Status | Calls | Mean server ms |", "| --- | --- | --- | ---: | ---: |",

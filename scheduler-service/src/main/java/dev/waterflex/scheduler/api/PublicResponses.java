@@ -236,6 +236,41 @@ public final class PublicResponses {
         }
     }
 
+    /** How far a daily or repair proposal request has come (spec 1.4.0). */
+    public enum RequestState { QUEUED, RUNNING, COMPLETED }
+
+    /** The operations whose requests report their status. */
+    public enum RequestOperation { DAILY_PROPOSAL, REPAIR_PROPOSAL }
+
+    /**
+     * The answer a request ended with: the HTTP status and body the call answers (201 with the proposal, or a Problem),
+     * and for a refusal worth retrying, the seconds to wait first.
+     */
+    public record RequestResult(Integer status, Object body,
+                                @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Integer retryAfterSeconds) {
+        public RequestResult {
+            Input.integer(status, "status", 200, 599);
+            Input.present(body, "body");
+            if (status == 201 ? !(body instanceof DailyProposal) : !(body instanceof Problem))
+                throw new IllegalArgumentException("A request result is 201 with its proposal, or an error status with a Problem");
+            if (retryAfterSeconds != null) Input.integer(retryAfterSeconds, "retryAfterSeconds", 1, 300);
+        }
+    }
+
+    /** {@code GET /api/v1/requests/{requestId}}, and the 202 answer to a request sent with {@code Prefer: respond-async}. */
+    public record RequestStatus(String requestId, RequestOperation operation, RequestState state,
+                                @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Instant queuedAt,
+                                @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Instant startedAt,
+                                @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable RequestResult result) {
+        public RequestStatus {
+            Input.requestId(requestId);
+            Input.present(operation, "operation");
+            Input.present(state, "state");
+            if ((state == RequestState.COMPLETED) != (result != null)) throw new IllegalArgumentException("A request has a result exactly when it is COMPLETED");
+            if (state == RequestState.QUEUED && startedAt != null) throw new IllegalArgumentException("A queued request has not started");
+        }
+    }
+
     public record StaleProblem(String error, String message, List<TechnicianDayVersion> changed) {
         public StaleProblem {
             if (!"STALE".equals(error)) throw new IllegalArgumentException("error must be STALE");
