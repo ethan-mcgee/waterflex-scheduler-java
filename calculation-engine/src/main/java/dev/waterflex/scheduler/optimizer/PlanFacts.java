@@ -7,7 +7,11 @@ import java.time.Instant;
 import java.util.*;
 import org.jspecify.annotations.Nullable;
 
-/** One immutable revision; planning copies own assignment and shadow state only. */
+/**
+ * One immutable revision; planning copies own assignment and shadow state only. The road matrix is held as a
+ * {@link RoadMatrix} (still the legacy {@code from>to} map to every reader) so scoring can look legs up by endpoint
+ * with their buffered minutes computed once per revision.
+ */
 public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         Map<String, DayPlan.RoadLeg> matrix, Set<String> unreachable,
         BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
@@ -40,11 +44,12 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
     }
     public PlanFacts {
         technicians = Required.value(List.copyOf(technicians)); demand = Required.value(List.copyOf(demand));
-        matrix = Required.value(Map.copyOf(matrix)); unreachable = Required.value(Set.copyOf(unreachable));
+        unreachable = Required.value(Set.copyOf(unreachable));
         demandServices = Required.value(Set.copyOf(demandServices));
         regularHourly = Monetary.rate(regularHourly); overtimeHourly = Monetary.rate(overtimeHourly);
         mileagePerMile = Monetary.rate(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
         check(travelBufferMinutes >= 0 && travelBufferMinutes <= Integer.MAX_VALUE, "travelBufferMinutes out of range");
+        matrix = RoadMatrix.of(matrix, travelBufferPct, travelBufferMinutes);
         Set<String> locations = new HashSet<>(); Set<String> ids = new HashSet<>();
         for (Technician tech : technicians) {
             check(ids.add(tech.id()), "duplicate technician identity: " + tech.id());
@@ -60,6 +65,8 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         for (var entry : matrix.entrySet()) { roadKey(Required.value(entry.getKey())); Objects.requireNonNull(entry.getValue(), "road value"); }
         for (String key : unreachable) { roadKey(Required.value(key)); check(!matrix.containsKey(key), "road is both reachable and unreachable: " + key); }
     }
+    /** The roads indexed by endpoint for scoring. */
+    RoadMatrix roads() { return (RoadMatrix) matrix; }
     public static PlanFacts capture(List<TechRoute> routes, List<PlanVisit> visits, Map<String, DayPlan.RoadLeg> roads,
             Set<String> unreachable, BigDecimal regular, BigDecimal overtime, BigDecimal mileage, BigDecimal pct, long minutes) {
         List<Technician> technicians = new ArrayList<>(); List<Visit> demand = new ArrayList<>(); Set<String> services = new HashSet<>();
