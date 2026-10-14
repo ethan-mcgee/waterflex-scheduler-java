@@ -435,7 +435,8 @@ jobs:
           SCHEDULER_TEST_URL: http://127.0.0.1:18003
           ROUTING_METRO_URLS: api-booking-smoke=http://127.0.0.1:18001,api-dispatch-smoke=http://127.0.0.1:18001,api-repair-smoke=http://127.0.0.1:18001
         run: |
-          node web/node_modules/prisma/build/index.js migrate deploy --schema web/prisma/schema.prisma
+          # Prisma 7 reads the connection from prisma.config.ts, which it looks for in the working directory; name it here.
+          node web/node_modules/prisma/build/index.js migrate deploy --config web/prisma.config.ts
           java -jar scheduler-service/target/scheduler-service-0.1.0-SNAPSHOT.jar --command=migrate
           token=$(openssl rand -hex 32)
           SOLVER_AUTH_TOKEN="$token" SERVER_PORT=18004 java -jar solver-service/target/solver-service-0.1.0-SNAPSHOT.jar > "$RUNNER_TEMP/remote-solver.log" 2>&1 &
