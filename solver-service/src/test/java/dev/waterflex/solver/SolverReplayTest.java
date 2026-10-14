@@ -33,7 +33,7 @@ class SolverReplayTest {
         var expected = CalculationJson.read(embedded.payload(),BookingCalculation.Output.class);
         assertEquals(expected,actual); assertFalse(actual.result().candidates().isEmpty());
         var input = ReplayFixture.booking(); BookingCalculation.validate(input.snapshot(),input.request(),actual.result());
-        assertEquals("Timefold-2.6.0",remote.engine()); assertEquals(request.contentHash(),remote.contentHash());
+        assertEquals("Timefold-" + dev.waterflex.scheduler.optimizer.SolverEngine.INSTRUMENTED_TIMEFOLD,remote.engine()); assertEquals(request.contentHash(),remote.contentHash());
         var adapter = new HttpCalculation("http://127.0.0.1:"+port,TOKEN);
         var response = new SearchDeadline(Required.value(Duration.ofSeconds(5))).within(() -> adapter.calculate(request));
         assertEquals(actual,CalculationJson.read(response.payload(),BookingCalculation.Output.class));
