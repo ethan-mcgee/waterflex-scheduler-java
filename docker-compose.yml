@@ -50,7 +50,9 @@ services:
     environment:
       ROUTING_OSM_FILE: /maps/omaha.osm.pbf
       ROUTING_GRAPH_DIR: /maps/graph
-      ROUTING_CH_ENABLED: ${ROUTING_CH_ENABLED:-false}
+      # The active map's contraction hierarchy graph (prepared beside the flexible one); false serves the flexible graph.
+      ROUTING_CH_ENABLED: ${ROUTING_CH_ENABLED:-true}
+      ROUTING_PARALLELISM: ${ROUTING_PARALLELISM:-0}
       # Local-only default; production VMs must set their own secret.
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:-local-compose-routing-token-not-for-production}
     volumes: ["map-data:/maps"]

@@ -9,10 +9,22 @@ import java.util.function.Function;
 final class DirectedLegFlights implements AutoCloseable {
     private record Key(String identity, String pair) { }
     private final Map<Key, CompletableFuture<Optional<RoadClient.Leg>>> pending = new HashMap<>();
-    private final ThreadPoolExecutor workers = new ThreadPoolExecutor(2, 2, 30, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(16), task -> {
-                Thread thread = new Thread(task, "directed-road-legs"); thread.setDaemon(true); return thread;
-            }, new ThreadPoolExecutor.AbortPolicy());
+    private final ThreadPoolExecutor workers;
+
+    /** Two workers and a queue of 16, as before the sizes became settings. */
+    DirectedLegFlights() { this(2, 16); }
+
+    /**
+     * {@code threads} batches are fetched from the routing service at once and {@code queue} more wait; a batch that
+     * finds the queue full is refused as busy. Bounded so a burst of cold searches cannot open unlimited connections.
+     */
+    DirectedLegFlights(int threads, int queue) {
+        if (threads < 1 || threads > 64 || queue < 1 || queue > 1024) throw new IllegalArgumentException("Invalid routing flight limits");
+        workers = new ThreadPoolExecutor(threads, threads, 30, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(queue), task -> {
+                    Thread thread = new Thread(task, "directed-road-legs"); thread.setDaemon(true); return thread;
+                }, new ThreadPoolExecutor.AbortPolicy());
+    }
 
     Map<String, RoadClient.Leg> resolve(List<RoadClient.Pair> pairs, String identity,
             Function<List<RoadClient.Pair>, Map<String, RoadClient.Leg>> fetch) {

@@ -14,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.util.concurrent.TimeUnit;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
@@ -29,7 +30,11 @@ public class RoadClient {
         public RoadUnavailable(String message) { super(message); }
     }
     private record Cached(@Nullable Leg leg, Instant expiresAt) { }
-    private final DirectedLegFlights flights = new DirectedLegFlights();
+    private final DirectedLegFlights flights;
+    /** How long a fetched routing identity is trusted before {@code /health} is asked again. */
+    private final long identityTtlNanos;
+    /** When the identity was last fetched (System.nanoTime), or 0 when it must be fetched. */
+    private volatile long identityFetchedAt;
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper = new ObjectMapper();
     private final String url;
@@ -53,12 +58,22 @@ public class RoadClient {
         this(jdbc, url, "", maxEntries, ttlMinutes, transactions);
     }
 
+    /** The identity cache and flight limits at their defaults (2 s; 8 batches at once, 64 waiting). */
+    public RoadClient(JdbcTemplate jdbc, String url, String token, int maxEntries, int ttlMinutes, PlatformTransactionManager transactions) {
+        this(jdbc, url, token, maxEntries, ttlMinutes, transactions, 2000, 8, 64);
+    }
+
     @org.springframework.beans.factory.annotation.Autowired
     public RoadClient(JdbcTemplate jdbc, @Value("${routing.url}") String url, @Value("${routing.auth-token:}") String token,
                       @Value("${routing.cache.max-entries:100000}") int maxEntries,
-                      @Value("${routing.cache.ttl-minutes:60}") int ttlMinutes, PlatformTransactionManager transactions) {
+                      @Value("${routing.cache.ttl-minutes:60}") int ttlMinutes, PlatformTransactionManager transactions,
+                      @Value("${routing.identity-ttl-ms:2000}") long identityTtlMillis,
+                      @Value("${routing.flights.threads:8}") int flightThreads, @Value("${routing.flights.queue:64}") int flightQueue) {
         if (!token.isEmpty() && (token.length() < 32 || token.chars().anyMatch(Character::isWhitespace)))
             throw new IllegalArgumentException("Routing authentication token must contain at least 32 non-whitespace characters");
+        if (identityTtlMillis < 0 || identityTtlMillis > 60_000) throw new IllegalArgumentException("routing.identity-ttl-ms must be 0 to 60000");
+        this.identityTtlNanos = TimeUnit.MILLISECONDS.toNanos(identityTtlMillis);
+        this.flights = new DirectedLegFlights(flightThreads, flightQueue);
         this.jdbc = jdbc;
         this.url = url;
         this.authorization = token.isEmpty() ? null : "Bearer " + token;
@@ -105,7 +120,7 @@ public class RoadClient {
             geometryRequests.incrementAndGet();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             SearchDeadline.checkpoint();
-            if (response.statusCode() == 409) throw new RoadUnavailable("Routing identity changed");
+            if (response.statusCode() == 409) { identityFetchedAt = 0; throw new RoadUnavailable("Routing identity changed"); }
             if (response.statusCode() != 200) throw new RoadUnavailable("Road geometry unavailable: HTTP " + response.statusCode());
             JsonNode data = mapper.readTree(response.body());
             if (!identity.equals(data.path("routingIdentity").asText()) || !data.path("legs").isArray()
@@ -207,6 +222,7 @@ public class RoadClient {
                 legRequests.incrementAndGet(); requestedPairs.addAndGet(requested.size());
                 var response = http.send(request, HttpResponse.BodyHandlers.ofString());
                 SearchDeadline.checkpoint();
+                if (response.statusCode() == 409) { identityFetchedAt = 0; throw new RoadUnavailable("Routing identity changed"); }
                 if (response.statusCode() != 200) throw new RoadUnavailable("Sparse routing unavailable: HTTP " + response.statusCode());
                 JsonNode data = mapper.readTree(response.body());
                 if (!identity.equals(data.path("routingIdentity").asText()) || !data.path("pairs").isArray()
@@ -261,7 +277,21 @@ public class RoadClient {
         return sparse(pairs, identity);
     }
 
+    /**
+     * The routing identity: the one fetched within {@code routing.identity-ttl-ms}, else fetched now from {@code /health}.
+     * The routing service checks the identity on every computing call and answers 409 when it changed, which clears
+     * this cache, so a stale identity costs one refused call and never a wrong leg.
+     */
     private String healthIdentity() {
+        long fetched = identityFetchedAt;
+        String known = routingIdentity;
+        if (fetched != 0 && !known.isBlank() && System.nanoTime() - fetched < identityTtlNanos) return known;
+        String identity = fetchIdentity();
+        identityFetchedAt = System.nanoTime();
+        return identity;
+    }
+
+    private String fetchIdentity() {
         try {
             var request = HttpRequest.newBuilder(URI.create(url + "/health")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(5)))).GET().build();
             identityRequests.incrementAndGet();

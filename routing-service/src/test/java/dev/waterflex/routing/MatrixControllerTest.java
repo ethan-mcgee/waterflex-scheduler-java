@@ -78,12 +78,20 @@ class MatrixControllerTest {
                     new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST)), Required.value(List.<MatrixController.Point>of(SECOND)), "old-graph")))
                     .getStatusCode().value());
         } finally { routing.close(); }
-        MatrixController prepared = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60, true);
+        // The prepared graph answers on four workers at once, the flexible one above on one; they agree leg for leg.
+        MatrixController prepared = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60, true, 4, 2);
         try {
             assertNotEquals(identity, prepared.health().get("routingIdentity"));
             assertEquals("CH-car-v1", prepared.health().get("preparedConfiguration"));
             assertTrue(Files.isDirectory(Required.value(temp).resolve("graph-ch-car-v1")));
             var accelerated = prepared.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), null));
+            var manyAtOnce = prepared.sparse(new MatrixController.SparseRequest(Required.value(java.util.stream.IntStream.range(0, 40).mapToObj(n ->
+                    new MatrixController.Pair("p" + n, n % 2 == 0 ? FIRST : SECOND, n % 2 == 0 ? SECOND : FIRST)).toList()), Required.value((String) prepared.health().get("routingIdentity"))));
+            for (int n = 0; n < 40; n++) {
+                assertEquals("p" + n, manyAtOnce.pairs().get(n).id(), "answers keep the request's order");
+                assertEquals(accelerated.legs().get(n % 2).get(1 - n % 2), manyAtOnce.pairs().get(n).leg());
+            }
+            assertThrows(IllegalArgumentException.class, () -> new MatrixController("missing.osm", "missing-graph", "test", 10, 10, false, 65, 1));
             MatrixController flexible = new MatrixController(Required.value(osm.toString()), Required.value(graph.toString()), "fixture-v1", 100, 60);
             try {
                 assertEquals(accelerated.legs(), flexible.matrix(new MatrixController.Request(Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), Required.value(List.<MatrixController.Point>of(FIRST, SECOND)), identity)).legs());

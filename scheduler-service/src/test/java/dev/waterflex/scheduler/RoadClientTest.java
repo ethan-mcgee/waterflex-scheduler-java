@@ -127,6 +127,49 @@ class RoadClientTest {
             assertThrows(RoadClient.RoadUnavailable.class, () -> roads.sparse(pairs, "changed"));
         } finally { server.stop(0); }
     }
+    @Test void theRoutingIdentityIsAskedOncePerTtlAndAgainAfterTheServiceRefusesIt() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        AtomicInteger healthRequests = new AtomicInteger();
+        AtomicInteger legStatus = new AtomicInteger(409);
+        server.createContext("/health", exchange -> {
+            healthRequests.incrementAndGet();
+            byte[] bytes = "{\"ready\":true,\"routingIdentity\":\"test\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.createContext("/internal/legs", exchange -> {
+            byte[] bytes = "{\"routingIdentity\":\"test\",\"pairs\":[{\"id\":\"0.00000,0.00000>1.00000,1.00000\",\"leg\":{\"routable\":true,\"seconds\":60,\"meters\":42}}]}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(legStatus.get(), bytes.length);
+            exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.start();
+        try {
+            var transactions = mock(org.springframework.transaction.PlatformTransactionManager.class);
+            String url = "http://127.0.0.1:" + server.getAddress().getPort();
+            RoadClient roads = new RoadClient(mock(JdbcTemplate.class), url, "", 10, 10, transactions, 60_000, 2, 16);
+            assertEquals("test", roads.activeIdentity());
+            assertEquals("test", roads.activeIdentity());
+            assertEquals(1, healthRequests.get(), "within the TTL the identity is answered from memory");
+            assertEquals(1, roads.httpMeasurements().identityRequests());
+            List<RoadClient.Pair> pairs = Required.value(List.<RoadClient.Pair>of(new RoadClient.Pair("out", new RoadPoint(0, 0), new RoadPoint(1, 1))));
+            var refused = assertThrows(RoadClient.RoadUnavailable.class, () -> roads.sparse(pairs, "test"));
+            assertTrue(refused.getMessage().contains("identity changed"), refused.getMessage());
+            assertEquals("test", roads.activeIdentity());
+            assertEquals(2, healthRequests.get(), "a 409 from the service drops the remembered identity");
+            legStatus.set(200);
+            assertEquals(Map.of("out", new RoadClient.Leg(60, 42)), roads.sparse(pairs, "test"));
+            assertEquals(2, healthRequests.get());
+
+            RoadClient uncached = new RoadClient(mock(JdbcTemplate.class), url, "", 10, 10, transactions, 0, 2, 16);
+            int before = healthRequests.get();
+            uncached.activeIdentity(); uncached.activeIdentity();
+            assertEquals(before + 2, healthRequests.get(), "a TTL of 0 asks every time");
+            assertThrows(IllegalArgumentException.class, () -> new RoadClient(mock(JdbcTemplate.class), url, "", 10, 10, transactions, 60_001, 2, 16));
+            assertThrows(IllegalArgumentException.class, () -> new RoadClient(mock(JdbcTemplate.class), url, "", 10, 10, transactions, 2000, 0, 16));
+            roads.closeRoutingWork(); uncached.closeRoutingWork();
+        } finally { server.stop(0); }
+    }
+
     @Test void outagesAreRetriedAndExplicitUnreachableRoutesAreCached() throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         AtomicInteger requests = new AtomicInteger();

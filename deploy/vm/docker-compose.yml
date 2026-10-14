@@ -152,6 +152,10 @@ services:
       ROUTING_GRAPH_DIR: /maps/versions/${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}/graph
       ROUTING_MAP_VERSION: ${ACTIVE_MAP_VERSION:?Set ACTIVE_MAP_VERSION}
       ROUTING_AUTH_TOKEN: ${ROUTING_AUTH_TOKEN:?Set ROUTING_AUTH_TOKEN}
+      # The version's contraction hierarchy graph (graph-ch-car-v1, prepared with the map); false serves the flexible
+      # graph under another routing identity. A request's pairs are routed on ROUTING_PARALLELISM threads at once.
+      ROUTING_CH_ENABLED: ${ROUTING_CH_ENABLED:-true}
+      ROUTING_PARALLELISM: ${ROUTING_PARALLELISM:-0}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
     volumes: ["maps:/maps"]
     healthcheck:
