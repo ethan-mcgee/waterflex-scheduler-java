@@ -70,7 +70,8 @@ public final class SolveController {
                 // The caller's allocation bounds the solver phases; the rest of its remaining time covers validation.
                 long search = Math.min(remaining,CalculationJson.read(request.payload(),CalculationProtocol.DailyInput.class).allocation().searchMs());
                 var allowance = new DailyOperation.Allowance(Required.value(Duration.ofMillis(remaining)),Required.value(Duration.ofMillis(search)));
-                result = DailyOperation.executePrepared(admission,allowance,() -> {
+                // The scheduler already admitted this request; here it only waits its turn on the solver's slots.
+                result = DailyOperation.executeQueued(admission,allowance,() -> {
                     state.daily = DailyOperation.current(); state.deadline = SearchDeadline.current();
                     if (state.cancelled.get()) state.cancel();
                     return new DailyOperation.Preparation<>(() -> encode(request,entered,response),true,_ -> { });
