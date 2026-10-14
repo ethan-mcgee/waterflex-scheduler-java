@@ -112,6 +112,7 @@ Lines to act on:
 | `scheduler_admission_active`, `scheduler_admission_queued` | Sustained queue: searches wait for a slot. |
 | `scheduler_routing_leg_requests_total`, `scheduler_routing_leg_pairs_total` by `metro` | Routing load per metro; a jump after a map change is the cold cache filling. |
 | `scheduler_booking_refinement_invalid_total` | Should stay 0. |
+| `scheduler_booking_refinement_shed_total` | Optional refinements skipped because booking requests were queued. A steady rise means booking desks often wait for a slot: add booking capacity. |
 | `scheduler_requests_cancelled_total` | Host cancellations. |
 | `scheduler_retention_deleted_total` | Grows once a day after the first period has passed. |
 

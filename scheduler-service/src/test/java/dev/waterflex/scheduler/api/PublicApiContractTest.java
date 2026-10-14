@@ -226,9 +226,9 @@ class PublicApiContractTest {
         var offers = PublicRequests.read(example("OfferSet"), PublicResponses.OfferSet.class);
         List<PublicResponses.Offer> five = new ArrayList<>();
         for (int i = 0; i < 5; i++) five.add(Required.value(offers.offers().getFirst()));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays(), offers.refinement()));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays(), offers.refinement(), offers.incompleteDates()));
         List<PublicResponses.Offer> twice = Required.value(List.of(Required.value(offers.offers().getFirst()), Required.value(offers.offers().getFirst())));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays(), offers.refinement()));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays(), offers.refinement(), offers.incompleteDates()));
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read("{\"requestId\":\"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\",\"technicianDays\":[]}", PublicRequests.CommitRequest.class));
     }
 
@@ -241,5 +241,23 @@ class PublicApiContractTest {
         assertFalse(CalculationJson.write(old).contains("refinement"), "and its replay leaves the field out rather than sending null");
         assertTrue(CalculationJson.write(PublicRequests.read(current, PublicResponses.OfferSet.class)).contains("\"refinement\":\"SHORTENED\""));
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("SHORTENED", "PARTIAL")), PublicResponses.OfferSet.class));
+    }
+
+    @Test void anOfferSetStoredBeforeIncompleteDatesReplaysWithoutThemAndTheListIsChecked() {
+        String current = example("OfferSet");
+        assertTrue(current.contains("\"incompleteDates\":[],"), current);
+        var old = PublicRequests.read(Required.value(current.replace("\"incompleteDates\":[],", "")), PublicResponses.OfferSet.class);
+        assertNull(old.incompleteDates(), "an offer set from before 1.3.0 has no incomplete dates");
+        assertFalse(CalculationJson.write(old).contains("incompleteDates"), "and its replay leaves the field out rather than sending null");
+        String incomplete = Required.value(current.replace("\"searchComplete\":true", "\"searchComplete\":false"));
+        var listed = PublicRequests.read(Required.value(incomplete.replace("\"incompleteDates\":[]", "\"incompleteDates\":[\"2026-10-12\",\"2026-10-13\"]")),
+                PublicResponses.OfferSet.class);
+        assertEquals(List.of(java.time.LocalDate.parse("2026-10-12"), java.time.LocalDate.parse("2026-10-13")), listed.incompleteDates());
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(incomplete.replace("\"incompleteDates\":[]",
+                "\"incompleteDates\":[\"2026-10-13\",\"2026-10-12\"]")), PublicResponses.OfferSet.class), "out of order");
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(incomplete.replace("\"incompleteDates\":[]",
+                "\"incompleteDates\":[\"2026-10-12\",\"2026-10-12\"]")), PublicResponses.OfferSet.class), "repeated");
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("\"incompleteDates\":[]",
+                "\"incompleteDates\":[\"2026-10-12\"]")), PublicResponses.OfferSet.class), "a complete search lists none");
     }
 }

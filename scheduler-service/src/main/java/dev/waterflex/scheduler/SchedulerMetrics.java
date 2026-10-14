@@ -43,6 +43,9 @@ public class SchedulerMetrics implements MeterBinder {
             FunctionCounter.builder("scheduler.routing.identity.requests", client, roads -> roads.httpMeasurements().identityRequests())
                     .tag("metro", metro).description("Routing identity checks").register(registry);
         }
+        FunctionCounter.builder("scheduler.booking.refinement.shed", offers, BookingOffers::shedRefinements)
+                .description("Optional booking refinements skipped because other booking requests were waiting")
+                .register(registry);
         FunctionCounter.builder("scheduler.booking.refinement.invalid", offers, BookingOffers::invalidRefinements)
                 .description("Remote refinements that failed validation; their insertion offers were published").register(registry);
         FunctionCounter.builder("scheduler.requests.cancelled", running, RunningRequests::cancellations)

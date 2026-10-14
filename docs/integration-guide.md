@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.2.0);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.3.0);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -173,7 +173,7 @@ It answers 201 within the client's `bookingDeadlineMs`:
 
 ```json
 {
-  "offerSetId": "set-77a1", "expiresAt": "2026-10-12T15:10:00-05:00", "searchComplete": true, "refinement": "SHORTENED", "skippedTechnicianDays": [],
+  "offerSetId": "set-77a1", "expiresAt": "2026-10-12T15:10:00-05:00", "searchComplete": true, "refinement": "SHORTENED", "incompleteDates": [], "skippedTechnicianDays": [],
   "offers": [
     { "offerId": "offer-1", "serviceDate": "2026-10-12", "window": { "start": "2026-10-12T10:00:00-05:00", "end": "2026-10-12T12:00:00-05:00" } }
   ]
@@ -185,8 +185,15 @@ It answers 201 within the client's `bookingDeadlineMs`:
 - `searchComplete: false` means the deadline or a failure stopped a pass the offers need: an empty list then does not
   prove there is no capacity. Search later dates or try again. When the first pass already found plenty of windows,
   the second (refinement) pass is optional and kept short; cutting it short leaves `searchComplete` true.
-- `refinement` says how that second pass ended (`COMPLETE`, `SHORTENED`, `SKIPPED` or `UNAVAILABLE`). It is for
-  monitoring and needs no action; a replay of an offer set answered before spec 1.2.0 leaves it out.
+- `incompleteDates` lists the dates that pass did not finish. Every other date was searched to the end, so a date
+  outside the list with no offer has no regular capacity for the job: when the customer asks for a later week, search
+  dates after the last complete one rather than repeating the whole horizon.
+- `refinement` says how that second pass ended (`COMPLETE`, `SHORTENED`, `SKIPPED`, `UNAVAILABLE`, or `SHED` when
+  other customers were waiting for a booking slot and the optional pass gave its time to them). It is for monitoring
+  and needs no action. A replay of an offer set answered before spec 1.2.0 leaves out `refinement`, and before 1.3.0
+  `incompleteDates`.
+- `policy.bookingRefinementMs` (optional) sets how long a client's optional refinement may run, 0 to 1000 ms; 0 turns
+  it off and leaves the first pass's offers. Without it the scheduler operator's default applies.
 - `job.id` must differ from every appointment and technician ID in the snapshot. A date already past its 6 a.m. local
   cutoff is a 422; start the horizon after it.
 - A new search for the same job ends its earlier offers. Search again whenever the customer changes their mind.
@@ -405,7 +412,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.2.0). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.3.0). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor

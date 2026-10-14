@@ -121,8 +121,13 @@ async function propose(context: Context, body: object, what: string): Promise<Ap
 async function offers(context: Context, body: object, what: string): Promise<{ set: Api.OfferSet; receivedAt: number }> {
   const reply = await context.api.call("POST", "/api/v1/booking/offers", body, { timeoutMs: BOOKING_TIMEOUT_MS });
   const set = expectBody(reply, 201, Api.OfferSet, what);
-  // Every offer set this kit gets was answered by a 1.2.0 scheduler, which always says how the refinement ended.
+  // Every offer set this kit gets was answered by a 1.3.0 scheduler, which always says how the refinement ended and
+  // which dates the search did not finish.
   check(set.refinement !== undefined, `${what}: no refinement outcome`);
+  const incomplete = set.incompleteDates;
+  check(incomplete !== undefined, `${what}: no incompleteDates`);
+  check(incomplete.every((date, index) => index === 0 || (incomplete[index - 1] ?? "") < date), `${what}: incompleteDates are not ascending`);
+  check(!set.searchComplete || incomplete.length === 0, `${what}: a complete search lists incomplete dates`);
   return { set, receivedAt: Date.now() };
 }
 
@@ -335,6 +340,24 @@ export const CASES: readonly Case[] = [
           "Selecting an offer held before the stale search");
         expectBody(await context.api.call("POST", `/api/v1/booking/offers/${encodeURIComponent(offer.offerId)}/release`, requestOnly()), 200, Api.Released, "Release");
       }
+    },
+  },
+  {
+    group: "Booking", name: "client refinement budget", proves:
+      "A client's optional bookingRefinementMs is honoured from 0 (the optional pass is skipped) to 1000, and a larger one is refused.",
+    run: async context => {
+      const date = addDays(context.today, 5);
+      const day = bookingDay(context, "budget", date);
+      const snapshot = { ...day.snapshot, policy: { ...day.snapshot.policy, bookingRefinementMs: 0 } };
+      const { set } = await offers(context, offersBody(context, snapshot, day.jobId, date, date), "Booking offers with no optional refinement");
+      check(set.refinement !== "SHORTENED" && set.refinement !== "SHED",
+        `Booking offers with no optional refinement: refinement ${set.refinement ?? "absent"}; an optional pass must be skipped, a required one run`);
+      const offer = set.offers[0];
+      if (offer !== undefined)
+        expectBody(await context.api.call("POST", `/api/v1/booking/offers/${encodeURIComponent(offer.offerId)}/release`, requestOnly()), 200, Api.Released, "Release");
+      const tooLong = { ...day.snapshot, policy: { ...day.snapshot.policy, bookingRefinementMs: 1001 } };
+      expectProblem(await context.api.call("POST", "/api/v1/booking/offers", offersBody(context, tooLong, day.jobId, date, date),
+        { timeoutMs: BOOKING_TIMEOUT_MS }), 400, "INVALID_REQUEST", "Booking offers with a 1001 ms refinement budget");
     },
   },
   {
