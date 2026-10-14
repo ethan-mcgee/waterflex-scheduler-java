@@ -49,7 +49,7 @@ public final class SolverBenchmark {
             provenance.put("phases", phases.name());
             provenance.put("jfr", jfr == null ? "disabled" : "profile settings, one recording per measured solve in " + jfr);
             provenance.put("engine", EngineProvenance.loaded());
-            provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", "TIMEFOLD_INTERNAL_2_6_0");
+            provenance.put("environmentMode", "NO_ASSERT"); provenance.put("instrumentation", SolverEngine.INSTRUMENTATION);
             provenance.put("roadEvidence", false); provenance.put("travelBufferPct", .2); provenance.put("travelBufferMinutes", 5);
             writer.write(json.writeValueAsString(provenance)); writer.newLine(); writer.flush();
             Map<String, SolverEngine.Definition> definitions = new HashMap<>();

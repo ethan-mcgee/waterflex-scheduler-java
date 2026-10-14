@@ -245,6 +245,9 @@ public class MatrixController {
                 DistanceCalcEarth.DIST_EARTH.calcDist(destination.lat(), destination.lng(), snapped.getLat(snapped.size() - 1), snapped.getLon(snapped.size() - 1)) <= 1000;
     }
 
+    /** The loaded GraphHopper's own version: it is part of the routing identity, so an engine upgrade starts every cache cold. */
+    static final String ENGINE_VERSION = Required.value(com.graphhopper.util.Constants.VERSION);
+
     private static String identity(String graphDir, String mapVersion, boolean chEnabled) {
         try {
             Path graph = Path.of(graphDir).toAbsolutePath();
@@ -252,7 +255,7 @@ public class MatrixController {
             String checksum = Files.isRegularFile(manifest)
                     ? new ObjectMapper().readTree(Files.readString(manifest)).path("mergedSha256").asText("") : "";
             if (checksum.isBlank()) checksum = mapVersion;
-            String settings = checksum + "|car|car_access,car_average_speed,road_access,road_environment,max_speed,ferry_speed|car.json|GraphHopper-11.0|snap-1000m";
+            String settings = checksum + "|car|car_access,car_average_speed,road_access,road_environment,max_speed,ferry_speed|car.json|GraphHopper-" + ENGINE_VERSION + "|snap-1000m";
             if (chEnabled) settings += "|CH-car-v1";
             return Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(settings.getBytes(StandardCharsets.UTF_8))));
         } catch (Exception e) { throw new IllegalStateException("Cannot identify routing graph", e); }
@@ -269,7 +272,7 @@ public class MatrixController {
 
     @GetMapping("/health")
     public Map<String, Object> health() { return Required.value(Map.<String, Object>of("ready", hopper != null, "mapVersion", mapVersion,
-            "routingIdentity", routingIdentity, "profile", "car", "engineVersion", "11.0",
+            "routingIdentity", routingIdentity, "profile", "car", "engineVersion", ENGINE_VERSION,
             "preparedConfiguration", chEnabled ? "CH-car-v1" : "flexible")); }
 
     @PreDestroy
