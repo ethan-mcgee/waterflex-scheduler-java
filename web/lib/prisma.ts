@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "@/lib/portalDatabase";
 
 // Standard Next.js dev-mode singleton to avoid exhausting connections
 // across hot reloads.
@@ -7,7 +8,7 @@ const globalForPrisma = globalThis;
 
 export const prisma =
   globalForPrisma.waterflexPrisma ??
-  new PrismaClient({
+  createPrismaClient({
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
 

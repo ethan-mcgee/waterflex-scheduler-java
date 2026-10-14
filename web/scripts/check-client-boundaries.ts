@@ -4,9 +4,10 @@
 //   DATABASE_URL=<portal test database> npx tsx scripts/check-client-boundaries.ts
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 class RolledBack extends Error {}
 
 /** Numbers the `?` placeholders as Postgres expects. */

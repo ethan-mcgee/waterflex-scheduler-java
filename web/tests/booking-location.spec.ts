@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { locationFixture, mockBookingLocation } from "./bookingLocationFixture";
 import { bookingRequest } from "../lib/contracts";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(() => prisma.$disconnect());
 for (const hasMatch of [true, false]) {
   test(`manual placement with ${hasMatch ? "exact match correction" : "no candidate"}, edits and tile outage`, async ({ page }) => {

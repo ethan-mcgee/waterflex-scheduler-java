@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
 for (const form of ["technician", "depot", "edit"] as const) {
   test(`${form} lookup preserves specific errors and drafts and discards stale responses`, async ({ page }) => {
