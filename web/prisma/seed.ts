@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { createPrismaClient } from "../lib/portalDatabase";
 import { ensureOmahaConfiguration } from "../lib/omahaConfiguration";
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function main() {
   await ensureOmahaConfiguration(prisma);
