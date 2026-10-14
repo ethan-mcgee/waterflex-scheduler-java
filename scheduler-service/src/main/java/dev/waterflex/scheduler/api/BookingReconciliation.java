@@ -6,6 +6,7 @@ import dev.waterflex.scheduler.ReservationState;
 import dev.waterflex.scheduler.api.BookingDayState.HoldState;
 import dev.waterflex.scheduler.api.BookingDayState.TechnicianState;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +40,52 @@ public final class BookingReconciliation {
     }
 
     /**
+     * A technician-day whose snapshot timestamp the stored state has already moved past.
+     *
+     * @param technicianId the technician
+     * @param recorded     the version the stored state has for it, the newest the scheduler has seen
+     */
+    public record Superseded(String technicianId, long recorded) { }
+
+    /**
+     * The technicians whose snapshot predates records the scheduler already used: it carries a version the stored state
+     * has moved past, or the unchanged version with the route from before a confirm receipt the host has not written
+     * yet (see {@link BookingDayState.Unwritten}). Such a snapshot was built before a later write and arrived late.
+     * Reconciling it would read the older routes as a new host change and lose the holds that depend on them, so the
+     * caller refuses it as stale instead. Versions are compared only for equality, so the host's clock never matters.
+     */
+    public static List<Superseded> stale(@Nullable BookingDayState stored, BookingSnapshot.Day host, Instant now) {
+        if (stored == null) return Required.value(List.of());
+        List<Superseded> stale = new ArrayList<>();
+        new TreeMap<>(host.technicians()).forEach((id, current) -> {
+            TechnicianState technician = stored.technicians().get(id);
+            List<String> hostRoute = Required.value(host.baseline().routes().get(id), "host route");
+            if (technician != null && technician.outdatedBy(Required.value(current).scheduleVersion(), hostRoute, now))
+                stale.add(new Superseded(Required.value(id), technician.version()));
+        });
+        return Required.value(List.copyOf(stale));
+    }
+
+    /**
      * @param stored        the stored state, or null when the day has none
      * @param host          the host's day as {@link RequestBooking} built it: no holds, baseline in host order
      * @param requestingJob holds of this job end as superseded, since a new search replaces them
      */
+    /** The STALE answer for a snapshot whose technician-days on {@code date} include superseded ones. */
+    public static PublicResponses.StaleProblem staleProblem(java.time.LocalDate date, List<Superseded> stale) {
+        if (stale.isEmpty()) throw new IllegalArgumentException("Nothing is stale");
+        return staleProblem(Required.value(stale.stream().map(day -> new PublicTypes.TechnicianDayVersion(day.technicianId(), date,
+                RequestBooking.instant(day.recorded()))).toList()));
+    }
+
+    /** The STALE answer listing, for each superseded technician-day, the newest timestamp the scheduler has seen. */
+    public static PublicResponses.StaleProblem staleProblem(List<PublicTypes.TechnicianDayVersion> changed) {
+        return new PublicResponses.StaleProblem("STALE", "The snapshot is older than one already used for these technician-days; "
+                + "rebuild it from current records and retry with a new requestId", changed);
+    }
+
     public static Result reconcile(@Nullable BookingDayState stored, BookingSnapshot.Day host, @Nullable String requestingJob, Instant now) {
-        if (stored == null) return fresh(host, Required.value(Map.of()));
+        if (stored == null) return fresh(host, null, Required.value(Map.of()));
         Map<String, Ending> ended = new TreeMap<>();
         Map<String, HoldState> holds = new TreeMap<>();
         stored.holds().forEach((id, hold) -> {
@@ -55,10 +96,18 @@ public final class BookingReconciliation {
         // An ended hold leaves the arrangement; the moves made for it stay, as in the portal.
         Map<String, List<String>> routes = new TreeMap<>(), expected = new TreeMap<>();
         Map<String, Long> versions = new TreeMap<>();
+        Map<String, @Nullable List<Long>> superseded = new TreeMap<>();
+        Map<String, BookingDayState.Unwritten> unwritten = new TreeMap<>();
         stored.technicians().forEach((id, technician) -> {
             routes.put(id, Required.value(technician.route().stream().filter(visit -> !ended.containsKey(visit)).toList()));
             expected.put(id, technician.expected());
             versions.put(id, technician.version());
+            superseded.put(id, technician.superseded());
+            // A receipt still counts while the host's version is the one it was made for and it has not run out.
+            BookingDayState.Unwritten pending = technician.unwritten();
+            BookingSnapshot.Technician current = host.technicians().get(id);
+            if (pending != null && pending.until().isAfter(now) && current != null && current.scheduleVersion() == technician.version())
+                unwritten.put(id, pending);
         });
         Set<String> technicians = new TreeSet<>(stored.technicians().keySet());
         technicians.addAll(host.technicians().keySet());
@@ -67,19 +116,21 @@ public final class BookingReconciliation {
             List<String> hostRoute = current == null ? null : Required.value(host.baseline().routes().get(id), "host route");
             List<String> wanted = expected.get(id);
             // Rules 1 and 2: the host has exactly the appointments, in order, that the scheduler expects.
+            TechnicianState before = stored.technicians().get(id);
+            if (current != null) superseded.put(id, before == null ? BookingDayState.FIRST_SEEN : before.movedTo(current.scheduleVersion()));
             if (current != null && hostRoute != null && hostRoute.equals(wanted)) { versions.put(id, current.scheduleVersion()); continue; }
             // Rule 3: any other change may only replace a route that no hold and no pending move depends on.
             List<String> route = routes.get(id);
-            if (route != null && !route.equals(wanted)) return fresh(host, lose(ended, holds));
-            if (current == null || hostRoute == null) { routes.remove(id); expected.remove(id); versions.remove(id); continue; }
+            if (route != null && !route.equals(wanted)) return fresh(host, stored, lose(ended, holds));
+            if (current == null || hostRoute == null) { routes.remove(id); expected.remove(id); versions.remove(id); superseded.remove(id); continue; }
             routes.put(id, hostRoute); expected.put(id, hostRoute); versions.put(id, current.scheduleVersion());
         }
         Set<String> placed = new HashSet<>();
-        for (List<String> route : routes.values()) for (String visit : route) if (!holds.containsKey(visit) && !placed.add(visit)) return fresh(host, lose(ended, holds));
-        if (!placed.equals(host.visits().keySet())) return fresh(host, lose(ended, holds));
+        for (List<String> route : routes.values()) for (String visit : route) if (!holds.containsKey(visit) && !placed.add(visit)) return fresh(host, stored, lose(ended, holds));
+        if (!placed.equals(host.visits().keySet())) return fresh(host, stored, lose(ended, holds));
         Map<String, TechnicianState> states = new TreeMap<>();
         routes.forEach((id, route) -> states.put(id, new TechnicianState(Required.value(versions.get(id), "technician version"),
-                Required.value(expected.get(id), "expected route"), Required.value(route))));
+                Required.value(expected.get(id), "expected route"), Required.value(route), superseded.get(id), unwritten.get(id))));
         Map<String, HoldState> placedHolds = new TreeMap<>();
         holds.forEach((id, hold) -> {
             String technician = null;
@@ -97,7 +148,7 @@ public final class BookingReconciliation {
     public static Result infeasible(Result reconciled, BookingSnapshot.Day host) {
         Map<String, Ending> ended = new TreeMap<>(reconciled.ended());
         reconciled.holds().keySet().forEach(id -> ended.put(id, Ending.LOST));
-        return fresh(host, ended);
+        return fresh(host, reconciled.state(), ended);
     }
 
     /** The host's day with the state's holds placed as reservations in the common arrangement. */
@@ -123,7 +174,8 @@ public final class BookingReconciliation {
         return all;
     }
 
-    private static Result fresh(BookingSnapshot.Day host, Map<String, Ending> ended) {
-        return new Result(host, BookingDayState.of(host), Required.value(Map.of()), ended);
+    /** The host's day with no holds; each technician keeps the versions {@code previous} had moved past. */
+    private static Result fresh(BookingSnapshot.Day host, @Nullable BookingDayState previous, Map<String, Ending> ended) {
+        return new Result(host, BookingDayState.of(host, previous), Required.value(Map.of()), ended);
     }
 }
