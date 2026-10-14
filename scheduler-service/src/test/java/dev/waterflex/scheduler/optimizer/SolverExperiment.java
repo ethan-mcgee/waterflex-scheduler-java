@@ -14,7 +14,7 @@ public final class SolverExperiment {
     }
     static SolverEngine.Telemetry telemetry(EngineProvenance provenance) {
         return solver -> {
-            if (!"2.6.0".equals(provenance.version()) || provenance.sha256() == null
+            if (!SolverEngine.INSTRUMENTED_TIMEFOLD.equals(provenance.version()) || provenance.sha256() == null
                     || !(solver instanceof DefaultSolver<DayPlan> measured))
                 throw new IllegalStateException("Unsupported solver diagnostics artifact");
             long[] steps = {0};
