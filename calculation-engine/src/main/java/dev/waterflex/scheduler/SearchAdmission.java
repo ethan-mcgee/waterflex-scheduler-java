@@ -272,6 +272,8 @@ public final class SearchAdmission {
     private Lease start(Kind kind, long started, Ticket ticket) {
         active++;
         long now = System.nanoTime();
+        SearchDeadline measured = SearchDeadline.current();
+        if (measured != null) measured.telemetry().admission(now - started);
         Lease lease = new Lease(kind, ticket.share(), (now - started) / 1_000_000, now + ticket.expectedNanos());
         if (kind == Kind.BACKGROUND) runningBackground.add(lease);
         else {
