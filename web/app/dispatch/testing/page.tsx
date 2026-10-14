@@ -4,8 +4,8 @@ import { localTestRequestAllowed } from "@/lib/bookingTestAccess";
 import TestingPage from "./TestingPage";
 
 export const dynamic = "force-dynamic";
-export default function Page() {
-  const requestHeaders = headers();
+export default async function Page() {
+  const requestHeaders = await headers();
   const host = requestHeaders.get("host") ?? "";
   // Cross-site top-level navigation is harmless; API calls still enforce same origin.
   if (!localTestRequestAllowed(new Request(`http://${host || "invalid"}/dispatch/testing`, { headers: { host } }))) notFound();

@@ -73,7 +73,7 @@ async function main() {
     created.push(movedSaved.id);
     assert.equal(movedSaved.homePinProvenance, "MANUALLY_CONFIRMED");
     console.log("Street pin bounds, confirmation, exact house creation, and manually adjusted house pin limits passed");
-    const patch = (id: string, body: unknown) => PATCH(new NextRequest(`http://localhost/api/technicians/${id}`, { method: "PATCH", body: JSON.stringify(body) }), { params: { id } });
+    const patch = (id: string, body: unknown) => PATCH(new NextRequest(`http://localhost/api/technicians/${id}`, { method: "PATCH", body: JSON.stringify(body) }), { params: Promise.resolve({ id }) });
     const profile = { name: "Home pin smoke tech", color: "#2563eb" };
     const address = { line1: "2125 Crest Ridge Dr", city: "Papillion", state: "NE", postalCode: "68133" };
     const houseBefore = await prisma.technician.findUniqueOrThrow({ where: { id: houseSaved.id } });

@@ -23,7 +23,7 @@ export default function PlanTiles({ current, optimized }: { current: PlanMetrics
     {TILES.map(({ key, label, format }) => {
       const before = current[key], after = optimized?.[key];
       const delta = before.state === "known" && after?.state === "known" ? after.value - before.value : null;
-      return <div className={styles.tile} key={key}>
+      return <div className={styles.tile} key={key} role="group" aria-label={label}>
         <span className={styles.eyebrow}>{label}</span>
         <div className={styles.tileRow}>
           {after === undefined ? <>
