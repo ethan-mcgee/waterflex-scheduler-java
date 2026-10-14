@@ -292,6 +292,19 @@ class DailyProposalsDatabaseIT {
         routingDown.set(false);
         proposal(proposals().create(tenant, body));
     }
+    @Test void anUnavailableRemoteSolverAnswers503AndReleasesTheClaimSoTheRetryRuns() {
+        String body = request(false);
+        // The remote solver refuses the work, as it answers 503 when it cannot take it.
+        var unavailable = org.mockito.Mockito.mock(CalculationTransport.class,
+                _ -> { throw new dev.waterflex.scheduler.HttpCalculation.Unavailable("Solver HTTP status 503", null); });
+        var remote = new DailyProposals(store, new MetroRouting(Required.value(Map.of("omaha", "http://routing-omaha:8001")), _ -> omaha), _ -> null,
+                Required.value(unavailable),
+                solvers, admission, running, Required.value(Clock.fixed(BEFORE_CUTOFF, ZoneOffset.UTC)));
+        problem(remote.create(tenant, body), 503, ErrorCode.CALCULATION_UNAVAILABLE);
+        assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "the claim was released");
+        proposal(proposals().create(tenant, body));
+    }
+
     @Test void theDayIsRoutedBeforeTheCalculationTakesASlot() {
         proposal(proposals().create(tenant, request(false)));
         assertFalse(activeWhileRouting.isEmpty(), "the day was routed");

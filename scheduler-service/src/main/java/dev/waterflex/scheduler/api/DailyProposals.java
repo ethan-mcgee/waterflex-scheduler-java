@@ -2,6 +2,7 @@ package dev.waterflex.scheduler.api;
 
 import dev.waterflex.scheduler.CalculationJson;
 import dev.waterflex.scheduler.CalculationTransport;
+import dev.waterflex.scheduler.HttpCalculation;
 import dev.waterflex.scheduler.MetroRouting;
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.RoadClient;
@@ -151,6 +152,12 @@ public class DailyProposals {
         } catch (SearchAdmission.Busy busy) {
             store.release(tenantId, requestId, owner);
             return busy(busy);
+        } catch (HttpCalculation.Unavailable unavailable) {
+            // A remote solver that is down, refused the work or answered an error: nothing was calculated, so the
+            // claim is released and the same requestId may be sent again.
+            store.release(tenantId, requestId, owner);
+            LOG.warn("Remote daily calculation unavailable for request {}: {}", requestId, unavailable.getMessage());
+            return Reply.of(503, new Problem(ErrorCode.CALCULATION_UNAVAILABLE, "The calculation service is unavailable"));
         } catch (SearchDeadline.Expired expired) {
             store.release(tenantId, requestId, owner);
             if (registered.cancelled()) return Reply.of(409, cancelled());
