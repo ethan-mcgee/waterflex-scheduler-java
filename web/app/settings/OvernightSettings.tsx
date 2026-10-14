@@ -25,6 +25,10 @@ function dayText(day: Run["days"][number]): string {
   return state[day.proposal.state];
 }
 
+async function fetchRuns(): Promise<Run[]> {
+  return (await readResponse(await fetch("/api/clients/overnight", { cache: "no-store" }), overnightSettings)).runs;
+}
+
 /** A client's overnight optimization: when it runs, "Run now", and what the latest runs proposed. */
 export default function OvernightSettings({ initialTimes }: { initialTimes: string[] }) {
   const [times, setTimes] = useState<string[]>(initialTimes);
@@ -33,11 +37,8 @@ export default function OvernightSettings({ initialTimes }: { initialTimes: stri
   const [status, setStatus] = useState<{ kind: "saved" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    const loaded = await readResponse(await fetch("/api/clients/overnight", { cache: "no-store" }), overnightSettings);
-    setRuns(loaded.runs);
-  }, []);
-  useEffect(() => { void load().catch(error => setStatus({ kind: "error", text: errorMessage(error) })); }, [load]);
+  const load = useCallback(async () => { setRuns(await fetchRuns()); }, []);
+  useEffect(() => { void fetchRuns().then(setRuns, (error: unknown) => setStatus({ kind: "error", text: errorMessage(error) })); }, []);
   const active = runs.some(run => run.status === "QUEUED" || run.status === "RUNNING");
   // While a run is queued or running, its days appear as they finish.
   useEffect(() => {

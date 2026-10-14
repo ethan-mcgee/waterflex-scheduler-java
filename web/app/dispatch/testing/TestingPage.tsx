@@ -61,10 +61,13 @@ export default function TestingPage() {
   const refreshHistory = useCallback(async () => { const data = await api(testHistory); setRuns(data.runs); setHorizon(data.horizon); }, []);
   useEffect(() => {
     mounted.current = true;
-    void refreshHistory().then(async () => { const id = new URLSearchParams(window.location.search).get("run"); if (id) setRun(await api(testRun, undefined, id)); }).catch(e => setError(errorMessage(e)));
+    void api(testHistory).then(async data => {
+      setRuns(data.runs); setHorizon(data.horizon);
+      const id = new URLSearchParams(window.location.search).get("run"); if (id) setRun(await api(testRun, undefined, id));
+    }).catch(e => setError(errorMessage(e)));
     const halt = () => { continueRef.current = false; }; window.addEventListener("pagehide", halt);
     return () => { mounted.current = false; halt(); window.removeEventListener("pagehide", halt); };
-  }, [refreshHistory]);
+  }, []);
   useEffect(() => {
     if (!pollingRunId) return;
     const timer = setInterval(() => { void api(testRun, undefined, pollingRunId).then(data => { if (mounted.current) setRun(data); }).catch(e => setError(errorMessage(e))); }, 2000);

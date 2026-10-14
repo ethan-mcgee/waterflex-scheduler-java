@@ -24,7 +24,8 @@ function commitmentMinute(value: Date, serviceDate: string, endBoundary: boolean
   return endBoundary && date === addCalendarDays(serviceDate, 1) && minute === 0 ? 1440 : null;
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const parsed = await readBody(request, updateStandardWeekRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid seven-day availability" }, { status: 400 });
   const clientId = (await activeClient(request)).id;
@@ -33,18 +34,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const today = todayInTz(CHICAGO, now);
   try {
     await prisma.$transaction(async tx => {
-      const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM technician WHERE id=${params.id} AND "clientId"=${clientId} FOR UPDATE`);
+      const locked = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM technician WHERE id=${id} AND "clientId"=${clientId} FOR UPDATE`);
       if (locked.length !== 1) throw new Error("Technician not found");
-      const versions = await tx.technicianAvailabilityVersion.findMany({ where: { technicianId: params.id },
+      const versions = await tx.technicianAvailabilityVersion.findMany({ where: { technicianId: id },
         include: { days: true }, orderBy: { effectiveDate: "asc" } });
       const current = validateVersions(versions.map(version => ({ effectiveDate: version.effectiveDate, days: version.days })));
       const future = current.filter(version => version.effectiveDate.toISOString().slice(0, 10) <= today);
       if (future.length === 0) throw new Error("Technician weekly availability is missing for the current date");
       const proposed = validateVersions([...future, { effectiveDate: dayStamp(effectiveDate), days: parsed.data.days }]);
       const [appointments, exceptions] = await Promise.all([
-        tx.appointment.findMany({ where: { technicianId: params.id, serviceDate: { gte: dayStamp(today) }, cancelledAt: null },
+        tx.appointment.findMany({ where: { technicianId: id, serviceDate: { gte: dayStamp(today) }, cancelledAt: null },
           select: { serviceDate: true, windowStart: true, windowEnd: true, plannedStart: true, plannedEnd: true } }),
-        tx.technicianShiftOverride.findMany({ where: { technicianId: params.id, serviceDate: { gte: dayStamp(today) } },
+        tx.technicianShiftOverride.findMany({ where: { technicianId: id, serviceDate: { gte: dayStamp(today) } },
           select: { serviceDate: true } }),
       ]);
       const excepted = new Set(exceptions.map(item => item.serviceDate.toISOString().slice(0, 10)));
@@ -60,8 +61,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             ends.some(minute => minute == null || minute > shiftEnd))
           throw new Error(`Existing appointment conflicts with availability on ${date}`);
       }
-      await tx.technicianAvailabilityVersion.deleteMany({ where: { technicianId: params.id, effectiveDate: { gt: dayStamp(today) } } });
-      await tx.technicianAvailabilityVersion.create({ data: { technicianId: params.id, effectiveDate: dayStamp(effectiveDate),
+      await tx.technicianAvailabilityVersion.deleteMany({ where: { technicianId: id, effectiveDate: { gt: dayStamp(today) } } });
+      await tx.technicianAvailabilityVersion.create({ data: { technicianId: id, effectiveDate: dayStamp(effectiveDate),
         days: { create: parsed.data.days } } });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   } catch (error) {

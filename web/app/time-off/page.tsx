@@ -14,7 +14,8 @@ const FILTERS = {
 type FilterKey = keyof typeof FILTERS;
 function isFilterKey(value: string | undefined): value is FilterKey { return value != null && Object.hasOwn(FILTERS, value); }
 
-export default async function TimeOffPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function TimeOffPage({ searchParams: query }: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await query;
   const selectedFilter: FilterKey = isFilterKey(searchParams.status) ? searchParams.status : "all";
   const statuses = FILTERS[selectedFilter];
   const clientId = (await activeClient()).id;

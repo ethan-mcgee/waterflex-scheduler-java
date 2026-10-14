@@ -9,19 +9,20 @@ const LABEL = { CONNECTED: "Scheduling API connected", NOT_CONNECTED: "Schedulin
 
 /** Shows whether the active client can book and dispatch, so a missing token is visible before anyone tries. */
 export default function ConnectionBadge({ activeClientId }: { activeClientId: string }) {
-  const [view, setView] = useState<View>({ kind: "checking" });
+  // The status is stored with the client it was fetched for, so a client switch shows "checking" without a reset.
+  const [fetched, setFetched] = useState<{ clientId: string; view: View } | null>(null);
+  const view: View = fetched !== null && fetched.clientId === activeClientId ? fetched.view : { kind: "checking" };
 
   useEffect(() => {
     let current = true;
-    setView({ kind: "checking" });
     fetch("/api/clients/connection", { cache: "no-store" })
       .then(async response => {
         const parsed = connectionReply.safeParse(response.ok ? await response.json() : null);
         if (!current) return;
         // A reply for another client (the cookie changed meanwhile) is not this client's status.
-        setView(parsed.success && parsed.data.clientId === activeClientId ? { kind: "known", reply: parsed.data } : { kind: "failed" });
+        setFetched({ clientId: activeClientId, view: parsed.success && parsed.data.clientId === activeClientId ? { kind: "known", reply: parsed.data } : { kind: "failed" } });
       })
-      .catch(() => { if (current) setView({ kind: "failed" }); });
+      .catch(() => { if (current) setFetched({ clientId: activeClientId, view: { kind: "failed" } }); });
     return () => { current = false; };
   }, [activeClientId]);
 
