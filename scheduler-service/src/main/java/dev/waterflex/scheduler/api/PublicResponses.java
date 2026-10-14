@@ -164,15 +164,16 @@ public final class PublicResponses {
      * short; it did not run (the insertion pass used the whole deadline, or the configured variant has none); or routing
      * or a remote engine failed it.
      */
-    public enum Refinement { COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE }
+    public enum Refinement { COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE, SHED }
 
     /**
      * Technician-days that could not be located are left out of the search and listed in {@code skippedTechnicianDays}.
-     * {@code refinement} is null only for an offer set answered before spec 1.2.0 and replayed from storage; it is then
-     * left out of the JSON, never invented.
+     * {@code refinement} is null only for an offer set answered before spec 1.2.0, and {@code incompleteDates} only for one
+     * answered before 1.3.0, when replayed from storage; each is then left out of the JSON, never invented.
      */
     public record OfferSet(String offerSetId, Instant expiresAt, List<Offer> offers, Boolean searchComplete, List<SkippedTechnicianDay> skippedTechnicianDays,
-                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Refinement refinement) {
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Refinement refinement,
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable List<LocalDate> incompleteDates) {
         public OfferSet {
             Input.id(offerSetId, "offerSetId");
             Input.present(expiresAt, "expiresAt");
@@ -182,6 +183,12 @@ public final class PublicResponses {
             for (Offer offer : offers) if (!ids.add(offer.offerId())) throw new IllegalArgumentException("Duplicate offer " + offer.offerId());
             Input.present(searchComplete, "searchComplete");
             skippedTechnicianDays = Input.list(skippedTechnicianDays, "skippedTechnicianDays");
+            if (incompleteDates != null) {
+                incompleteDates = Input.list(incompleteDates, "incompleteDates");
+                if (!new java.util.ArrayList<>(new java.util.TreeSet<>(incompleteDates)).equals(incompleteDates))
+                    throw new IllegalArgumentException("incompleteDates must be ascending without repeats");
+                if (!incompleteDates.isEmpty() && searchComplete) throw new IllegalArgumentException("A complete search has no incomplete dates");
+            }
         }
     }
 

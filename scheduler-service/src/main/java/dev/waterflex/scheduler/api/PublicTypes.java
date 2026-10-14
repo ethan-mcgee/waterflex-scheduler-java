@@ -81,12 +81,18 @@ public final class PublicTypes {
      * or confirm end to end at the scheduler; when the insertion pass finds more distinct regular arrival windows than
      * {@code regularWindowThreshold}, the refinement is optional and kept short, otherwise it may use the whole deadline.
      */
+    /**
+     * A client's policy. {@code bookingRefinementMs} is optional (spec 1.3.0): the client's budget for a booking search's
+     * optional refinement, 0 to skip it; null means the operator's configured {@code booking.search.refinement-ms}.
+     */
     public record Policy(BigDecimal fairnessBudget, DailySearch dailySearch, Integer costSearchSeconds, Integer fairnessSearchSeconds,
-                         Integer bookingDeadlineMs, Integer regularWindowThreshold) {
+                         Integer bookingDeadlineMs, Integer regularWindowThreshold, @Nullable Integer bookingRefinementMs) {
         /** Bounds of a client's booking deadline, in milliseconds; the upper one is the latency target. */
         public static final int MIN_BOOKING_DEADLINE_MS = 1000, MAX_BOOKING_DEADLINE_MS = 5000;
         /** A threshold above every window a 21-date horizon of whole-hour windows can hold, so any real choice fits. */
         public static final int MAX_REGULAR_WINDOW_THRESHOLD = 1000;
+        /** The largest optional refinement budget a client may ask for, in milliseconds. */
+        public static final int MAX_BOOKING_REFINEMENT_MS = 1000;
 
         public Policy {
             if (Input.nonNegative(fairnessBudget, "policy.fairnessBudget").compareTo(BigDecimal.ONE) > 0)
@@ -99,6 +105,7 @@ public final class PublicTypes {
                         + DailyCalculation.Allocation.MAX_SEARCH_SECONDS);
             Input.integer(bookingDeadlineMs, "policy.bookingDeadlineMs", MIN_BOOKING_DEADLINE_MS, MAX_BOOKING_DEADLINE_MS);
             Input.integer(regularWindowThreshold, "policy.regularWindowThreshold", 0, MAX_REGULAR_WINDOW_THRESHOLD);
+            if (bookingRefinementMs != null) Input.integer(bookingRefinementMs, "policy.bookingRefinementMs", 0, MAX_BOOKING_REFINEMENT_MS);
         }
 
         /** The calculation's policy rules, all from this client. */

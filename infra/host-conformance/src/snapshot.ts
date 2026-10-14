@@ -22,7 +22,7 @@ export interface Snapshot {
   metroId: string; timeZone: string;
   rates: { regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPct: string; travelBufferMinutes: number };
   policy: { fairnessBudget: string; dailySearch: "TABU" | "TABU_KOPT"; costSearchSeconds: number; fairnessSearchSeconds: number;
-    bookingDeadlineMs: number; regularWindowThreshold: number };
+    bookingDeadlineMs: number; regularWindowThreshold: number; bookingRefinementMs?: number };
   technicians: { id: string; qualifications: string[] }[];
   technicianDays: TechnicianDay[];
   appointments: Appointment[];

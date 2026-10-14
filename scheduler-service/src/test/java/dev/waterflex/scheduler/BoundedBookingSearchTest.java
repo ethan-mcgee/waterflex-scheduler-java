@@ -279,6 +279,40 @@ class BoundedBookingSearchTest {
                 BoundedBookingSearch.Limits.defaults(), () -> { }).search(Required.value(List.of()), true));
     }
 
+    @Test void aWindowWhoseOwnWorkFinishedStaysCompleteWhenTheDeadlineStopsTheOthers() {
+        // A four-hour shift holds three two-hour windows, so a deadline can fall between them.
+        BookingSnapshot base = fixture(30, false, true, 60);
+        Day day = Required.value(base.days().get(DAY));
+        Map<String, Technician> technicians = new HashMap<>(day.technicians());
+        Technician a = Required.value(technicians.get("a"));
+        technicians.put("a", new Technician("a", START, Required.value(START.plusSeconds(4 * 3600)), 300, a.maxOvertimeMinutes(),
+                a.services(), a.absences(), POINT, POINT, 1));
+        Map<LocalDate, Day> days = new HashMap<>(base.days());
+        days.put(DAY, new Day(technicians, day.visits(), day.baseline(), 1, day.roads()));
+        BookingSnapshot snapshot = new BookingSnapshot("metro", CAPTURED, "configuration", "roads", base.policy(), RATES, days, base.horizon());
+        var request = new BoundedBookingSearch.Request("new", "new-service", 13, 120, POINT);
+        assertTrue(historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(), () -> { }).windows().size() > 1);
+        for (boolean refinement : new boolean[] {false, true}) {
+            boolean mixed = false, finished = false;
+            for (int allowed = 0; allowed < 2000 && !finished; allowed++) {
+                int[] calls = {0};
+                int limit = allowed;
+                var result = historicalSearch(snapshot, request, BoundedBookingSearch.Limits.defaults(),
+                        () -> { if (calls[0]++ >= limit) throw new SearchDeadline.Expired(); }).search(refinement);
+                for (var item : result.coverage()) {
+                    if (result.complete()) assertTrue(item.complete(), "a complete pass finished every window");
+                    if (item.complete()) assertNotEquals("DEADLINE", item.stopReason(), "a finished window names how it finished");
+                    else assertEquals("DEADLINE", item.stopReason());
+                }
+                long done = result.coverage().stream().filter(item -> item.complete()).count();
+                if (!result.complete() && done > 0 && done < result.coverage().size()) mixed = true;
+                finished = result.complete();
+            }
+            assertTrue(finished, "the pass finishes given enough time");
+            assertTrue(mixed, "some deadline stopped the pass with some windows finished and others not (refinement " + refinement + ")");
+        }
+    }
+
     @Test void pendingReassignmentDoesNotChangeConfirmedDemandBeforeCustomerConfirmation() {
         BookingSnapshot original = fixture(106, false, true, 60);
         Day before = Required.value(original.days().get(DAY));
