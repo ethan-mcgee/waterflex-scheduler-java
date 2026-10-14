@@ -216,7 +216,7 @@ public final class DailyOperation {
         long remaining = Math.min(searchLimitNanos - searchNanos, deadline.explorationNanos());
         long nanos = Math.min(maximum.toNanos(), remaining);
         if (nanos < 1_000_000) throw new SearchDeadline.Expired();
-        // Timefold 2.6.0 rejects sub-millisecond spent limits. Floor, never round up the remaining allowance.
+        // Timefold rejects sub-millisecond spent limits (observed on 2.6.0). Floor, never round up the remaining allowance.
         nanos = nanos / 1_000_000 * 1_000_000;
         phaseStarted = System.nanoTime(); phaseBudget = nanos;
         return Required.value(Duration.ofMillis(nanos / 1_000_000));

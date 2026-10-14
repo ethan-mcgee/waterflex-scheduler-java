@@ -29,7 +29,7 @@ class AssertionCampaignTest {
             lock.setReuseAddress(false); lock.bind(new java.net.InetSocketAddress("127.0.0.1",47983));
             writer.write(mapper.writeValueAsString(Map.of("type","provenance","revision",revision,"mode",Required.value(mode.name()),"budgetMs",budget,
                     "seeds",Required.value(List.of(17,29,41)),"cohorts",Required.value(List.of("ASSIGNED","PARTIAL_PINNED","REPAIR","FAIRNESS")),
-                    "artifact",EngineProvenance.loaded(),"instrumentation","TIMEFOLD_INTERNAL_2_6_0","performanceEvidence",false)));
+                    "artifact",EngineProvenance.loaded(),"instrumentation",SolverEngine.INSTRUMENTATION,"performanceEvidence",false)));
             writer.newLine(); writer.flush();
             for (long seed : new long[]{17,29,41}) for (var variant : SolverEngine.Variant.values())
                 for (String cohort : List.of("ASSIGNED","PARTIAL_PINNED","REPAIR","FAIRNESS")) {

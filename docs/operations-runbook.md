@@ -157,6 +157,8 @@ Each prepared map version carries two road graphs, `graph` (flexible) and `graph
 
 A map refresh prepares a new version beside the active one and switches to it (README, "Normal local updates and restarts"). Pause booking during the switch. The routing identity in `/health` changes with the map. The scheduler's route cache is keyed by identity, so it starts cold and routing load is higher until it fills.
 
+The identity also names the GraphHopper release the routing service runs (`engineVersion` in `/health`), so upgrading GraphHopper has the same effect as a map change: deploy it like a map switch, with booking paused, and expect a cold cache. A graph prepared by an earlier release is reused when its storage versions match, which GraphHopper checks at load and logs (`version 11.1|... (9,24,7,5,2,9)`); 11.0 and 11.1 match, and on the 2026-10-13 Omaha map both returned identical legs for 400 directed pairs. A release whose storage versions differ refuses the old graph, and the map version must be prepared again with the new image.
+
 ## Backup and restore
 
 The thin store holds only what WaterFlex Software can recompute or does not need for its business record: holds, offers, proposals and receipts. The host owns the business record. Back up the scheduler database daily and keep the dumps at least as long as the retention period. On the VM:
