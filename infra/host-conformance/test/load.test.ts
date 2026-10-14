@@ -113,6 +113,7 @@ test("the scheduler view is the difference between scrapes, API routes only", ()
 test("Retry-After, docker sizes and the seeded generator", () => {
   const reply = (value: string | null) => ({ headers: new Headers(value === null ? {} : { "Retry-After": value }) }) as Reply;
   assert.deepEqual([retryAfterMs(reply("3")), retryAfterMs(reply(null)), retryAfterMs(reply("soon")), retryAfterMs(reply("0"))], [3000, 1000, 1000, 1000]);
+  assert.deepEqual([retryAfterMs(reply("300")), retryAfterMs(reply("301"))], [300_000, 1000], "a daily wait of up to 300 s is honoured");
   assert.equal(dockerBytes("1.5GiB"), 1.5 * 1024 ** 3);
   assert.equal(dockerBytes("512MiB "), 512 * 1024 ** 2);
   assert.throws(() => dockerBytes("lots"), /Unreadable/);
