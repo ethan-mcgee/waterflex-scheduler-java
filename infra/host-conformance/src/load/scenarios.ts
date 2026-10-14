@@ -77,7 +77,8 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export function retryAfterMs(reply: Reply): number {
   const header = reply.headers.get("retry-after");
   const seconds = header === null ? NaN : Number(header);
-  return Number.isInteger(seconds) && seconds >= 1 && seconds <= 60 ? seconds * 1000 : 1000;
+  // A daily proposal refused because the calculations ahead would not finish in time names their estimated wait, up to 300 s.
+  return Number.isInteger(seconds) && seconds >= 1 && seconds <= 300 ? seconds * 1000 : 1000;
 }
 
 function problem(reply: Reply): { error: string | null; message: string | null } {

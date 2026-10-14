@@ -49,6 +49,9 @@ class DailyProposalsDatabaseIT {
     private final List<DailySearch> searched = Required.value(java.util.Collections.synchronizedList(new java.util.ArrayList<>()));
     private final RoadClient omaha;
     private final DataSourceTransactionManager manager;
+    private final SearchAdmission admission = new SearchAdmission(2, 16);
+    /** Calculations admitted while the day was being routed, seen by each routing call. */
+    private final List<Integer> activeWhileRouting = Required.value(java.util.Collections.synchronizedList(new java.util.ArrayList<>()));
 
     DailyProposalsDatabaseIT() {
         var source = TestDatabase.owner();
@@ -83,6 +86,7 @@ class DailyProposalsDatabaseIT {
             String method = invocation.getMethod().getName();
             if (method.equals("activeIdentity")) return "omaha-map-v7";
             if (!method.equals("matrix")) throw new AssertionError("Unexpected routing call " + method);
+            activeWhileRouting.add(admission.state().active());
             Map<String, RoadPoint> points = Required.value(invocation.getArgument(0));
             Map<String, RoadClient.Leg> legs = new HashMap<>();
             for (String from : points.keySet()) for (String to : points.keySet())
@@ -99,7 +103,7 @@ class DailyProposalsDatabaseIT {
 
     private DailyProposals proposals(Instant now, Map<String, String> metros) {
         return new DailyProposals(store, new MetroRouting(metros, _ -> omaha), _ -> null, new CalculationTransport("EMBEDDED", "http://127.0.0.1:1", ""),
-                solvers, new SearchAdmission(2, 16), running, Required.value(Clock.fixed(now, ZoneOffset.UTC)));
+                solvers, admission, running, Required.value(Clock.fixed(now, ZoneOffset.UTC)));
     }
 
     private static final Instant BEFORE_CUTOFF = Required.value(Instant.parse("2026-10-11T12:00:00Z"));
@@ -288,6 +292,30 @@ class DailyProposalsDatabaseIT {
         routingDown.set(false);
         proposal(proposals().create(tenant, body));
     }
+    @Test void theDayIsRoutedBeforeTheCalculationTakesASlot() {
+        proposal(proposals().create(tenant, request(false)));
+        assertFalse(activeWhileRouting.isEmpty(), "the day was routed");
+        assertEquals(List.of(0), List.copyOf(new java.util.TreeSet<>(activeWhileRouting)), "no slot was held while routing");
+    }
+
+    @Test void aProposalThatCouldNotStartInTimeIsRefusedAtOnceWithRetryAfterAndRoutesNothing() {
+        // Another tenant's daily calculation holds the background slot and expects 60 more seconds.
+        try (var ahead = admission.acquire(SearchAdmission.Kind.BACKGROUND,
+                new dev.waterflex.scheduler.SearchDeadline(Required.value(Duration.ofSeconds(90))), Required.value(Duration.ofSeconds(60)))) {
+            assertTrue(ahead.queueMillis() >= 0);
+            long started = System.nanoTime();
+            var reply = proposals().create(tenant, request(false));
+            assertTrue(System.nanoTime() - started < java.util.concurrent.TimeUnit.SECONDS.toNanos(2), "refused without waiting");
+            problem(reply, 429, ErrorCode.BUSY);
+            Integer retryAfter = Required.value(reply.retryAfterSeconds(), "Retry-After");
+            assertTrue(retryAfter > 50 && retryAfter <= 60, "Retry-After " + retryAfter);
+            assertTrue(activeWhileRouting.isEmpty(), "nothing was routed for a refused proposal");
+            assertEquals(0L, jdbc.queryForObject("SELECT count(*) FROM api_request WHERE \"tenantId\"=?", Long.class, tenant), "the claim was released");
+            assertEquals(1, admission.rejections());
+        }
+        proposal(proposals().create(tenant, request(false)));
+    }
+
     @Test void eachProposalRunsTheClientsChosenSearchMethod() {
         proposal(proposals().create(tenant, request(false, policy -> policy.put("dailySearch", "TABU"))));
         assertEquals(List.of(DailySearch.TABU), List.copyOf(searched));
@@ -312,7 +340,7 @@ class DailyProposalsDatabaseIT {
         assertInstanceOf(PublicApiStore.Started.class, claim);
         Long seconds = jdbc.queryForObject("SELECT extract(epoch FROM \"leaseExpiresAt\"-clock_timestamp())::bigint FROM api_request WHERE \"tenantId\"=? AND \"requestId\"=?",
                 Long.class, tenant, request.requestId());
-        assertTrue(Required.value(seconds) > 270, "lease seconds " + seconds);
+        assertTrue(Required.value(seconds) > 270 + DailyProposals.ROUTING_ALLOWANCE.toSeconds(), "lease seconds " + seconds);
         assertThrows(IllegalArgumentException.class, () -> store.claim(tenant, Required.value(UUID.randomUUID().toString()), PublicApiStore.Operation.DAILY_PROPOSAL,
                 DailyProposals.sha256(body), Required.value(Duration.ofSeconds(30))));
     }

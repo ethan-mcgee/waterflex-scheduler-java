@@ -77,9 +77,12 @@ class ClientPolicyTest {
     }
 
     @Test void aClaimLeaseOutlivesTheLongestSearch() {
-        assertEquals(PublicApiStore.LEASE, DailyProposals.lease(snapshot(10, 5)));
-        assertEquals(Duration.ofSeconds(240 + 5 + 30), DailyProposals.lease(snapshot(240, 0)));
-        assertEquals(Duration.ofSeconds(120 + 60 + 5 + 30), DailyProposals.lease(snapshot(120, 60)));
+        // Search, the 5 second reserve, routing (which runs before the search's own allowance) and the lease margin.
+        long routing = DailyProposals.ROUTING_ALLOWANCE.toSeconds(), margin = PublicApiStore.LEASE_MARGIN.toSeconds();
+        assertEquals(Duration.ofSeconds(10 + 5 + 5 + routing + margin), DailyProposals.lease(snapshot(10, 5)));
+        assertTrue(DailyProposals.lease(snapshot(10, 5)).compareTo(PublicApiStore.LEASE) > 0, "routing makes even a short search outlive the standard lease");
+        assertEquals(Duration.ofSeconds(240 + 5 + routing + margin), DailyProposals.lease(snapshot(240, 0)));
+        assertEquals(Duration.ofSeconds(120 + 60 + 5 + routing + margin), DailyProposals.lease(snapshot(120, 60)));
     }
 
     @Test void theSpecExampleCarriesTheClientsBookingRules() {
