@@ -15,7 +15,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerMapping;
 
 /**
- * One summary line per public API call, with the operation, status and total time, and the request's log context:
+ * One summary line per public API call, with the operation, status and total time, how that time was spent when the
+ * call ran under a deadline (slot wait, routing wait, calculation engine, database, with the routing pairs and cache hits), and the request's log context:
  * {@code tenant} (set once the token is accepted), {@code requestId} (set once the body is read) and {@code operation}.
  * Every line logged while serving the call carries them, including the daily operation's receipt on its own thread.
  * Runs before tenant authentication, so a refused token is logged too, and clears the context afterwards.
@@ -26,8 +27,24 @@ public final class RequestLogging extends OncePerRequestFilter {
     private static final Logger LOG = Required.value(LoggerFactory.getLogger("dev.waterflex.scheduler.api.requests"));
     public static final String TENANT = "tenant", REQUEST_ID = "requestId", OPERATION = "operation";
 
+    /** The measurements of the deadline that finished on this thread, read once by the call's summary line. */
+    private static final ThreadLocal<SearchTelemetry.@org.jspecify.annotations.Nullable Measurements> FINISHED = new ThreadLocal<>();
+
+    public RequestLogging() { SearchDeadline.observe(FINISHED::set); }
+
     /** Adds the host's request ID to the current call's log context. */
     public static void requestId(String requestId) { MDC.put(REQUEST_ID, requestId); }
+
+    /** The summary line's breakdown of a finished deadline, or an empty string without one. */
+    static String breakdown(SearchTelemetry.@org.jspecify.annotations.Nullable Measurements measured) {
+        if (measured == null) return "";
+        Long cpu = measured.foregroundCpuNanos();
+        return " queueMs=" + measured.admissionNanos() / 1_000_000 + " routingMs=" + measured.routingNanos() / 1_000_000 + " calculationMs=" + measured.calculationNanos() / 1_000_000
+                + " dbMs=" + measured.databaseNanos() / 1_000_000 + " dbCalls=" + measured.databaseExecutions()
+                + " routingPairs=" + measured.routingPairs() + " cacheHits=" + (measured.memoryHits() + measured.persistentHits())
+                + " fetched=" + measured.sharedRoutingPairs()
+                + (cpu == null ? "" : " cpuMs=" + cpu / 1_000_000);
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -38,6 +55,7 @@ public final class RequestLogging extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         long started = System.nanoTime();
         MDC.put(OPERATION, request.getMethod() + " " + request.getRequestURI());
+        FINISHED.remove();
         try {
             chain.doFilter(request, response);
         } finally {
@@ -45,7 +63,9 @@ public final class RequestLogging extends OncePerRequestFilter {
             Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
             String operation = request.getMethod() + " " + (pattern instanceof String route ? route : request.getRequestURI());
             MDC.put(OPERATION, operation);
-            LOG.info("api operation=\"{}\" status={} elapsedMs={}", operation, response.getStatus(), (System.nanoTime() - started) / 1_000_000);
+            SearchTelemetry.Measurements measured = FINISHED.get();
+            FINISHED.remove();
+            LOG.info("api operation=\"{}\" status={} elapsedMs={}{}", operation, response.getStatus(), (System.nanoTime() - started) / 1_000_000, breakdown(measured));
             MDC.remove(TENANT); MDC.remove(REQUEST_ID); MDC.remove(OPERATION);
         }
     }

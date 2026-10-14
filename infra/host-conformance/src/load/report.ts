@@ -17,6 +17,8 @@ export interface LoadReport {
   readonly settings: {
     readonly durationS: number; readonly concurrency: number; readonly dailyConcurrency: number | null; readonly technicians: number;
     readonly appointmentsPerDay: number; readonly horizonDates: number; readonly dailyTechnicians: number; readonly dailyMode: "sync" | "async" | null; readonly jobs: "cold" | "warm";
+    /** Each desk searched its own run of dates instead of the same ones. */
+    readonly dateSpread: boolean;
     readonly confirmRate: number; readonly offerLimit: number; readonly windowHours: number; readonly policy: Snapshot["policy"]; readonly seed: number;
   };
   readonly machine: { readonly cpus: number; readonly cpuModel: string; readonly memoryBytes: number; readonly node: string };
@@ -41,7 +43,7 @@ export function loadMarkdown(report: LoadReport): string {
     `- Scenario **${report.scenario}**, ${s.concurrency} ${report.scenario === "daily" ? "planners" : "booking desks"}` +
       `${s.dailyConcurrency === null ? "" : ` and ${s.dailyConcurrency} daily planners`}, ${s.durationS} s (ran ${seconds.toFixed(0)} s)`,
     `- Scheduler ${report.scheduler}, metro ${report.metroId} (${report.timeZone}), points ${report.points}`,
-    `- Booking metro: ${s.technicians} technicians x ${s.horizonDates} dates, ${s.appointmentsPerDay} visits per day booked; jobs ${s.jobs}; ` +
+    `- Booking metro: ${s.technicians} technicians x ${s.horizonDates} dates${s.dateSpread ? " per desk, spread" : ""}, ${s.appointmentsPerDay} visits per day booked; jobs ${s.jobs}; ` +
       `confirm ${Math.round(s.confirmRate * 100)} percent; offerLimit ${s.offerLimit}, windowHours ${s.windowHours}`,
     `- Daily day: ${s.dailyTechnicians} technicians x ${s.appointmentsPerDay} visits${s.dailyMode === "async" ? ", queued (Prefer: respond-async)" : ""}; search ${s.policy.costSearchSeconds} + ${s.policy.fairnessSearchSeconds} s; ` +
       `bookingDeadlineMs ${s.policy.bookingDeadlineMs}`,

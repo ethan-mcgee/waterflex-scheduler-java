@@ -76,9 +76,25 @@ public class RoadClient {
     public void closeRoutingWork() { flights.close(); }
 
     public String currentVersion() { return routingIdentity; }
-    public String activeIdentity() { return healthIdentity(); }
+    public String activeIdentity() {
+        long started = System.nanoTime();
+        try { return healthIdentity(); }
+        finally { routingWaited(started); }
+    }
+
+    /** Attributes the wall time since {@code started} to the current call's routing wait, when one is being measured. */
+    private static void routingWaited(long started) {
+        SearchDeadline deadline = SearchDeadline.current();
+        if (deadline != null) deadline.telemetry().routingWait(System.nanoTime() - started);
+    }
 
     public JsonNode routeGeometry(List<RoadPoint> points, String expectedIdentity) {
+        long started = System.nanoTime();
+        try { return geometry(points, expectedIdentity); }
+        finally { routingWaited(started); }
+    }
+
+    private JsonNode geometry(List<RoadPoint> points, String expectedIdentity) {
         String identity = healthIdentity();
         if (!identity.equals(expectedIdentity)) throw new RoadUnavailable("Routing identity changed");
         try {
@@ -116,6 +132,12 @@ public class RoadClient {
 
     /** Directed pairs only. Absence in the result means an explicitly unroutable pair. */
     public Map<String, Leg> sparse(List<Pair> pairs, String identity) {
+        long started = System.nanoTime();
+        try { return resolve(pairs, identity); }
+        finally { routingWaited(started); }
+    }
+
+    private Map<String, Leg> resolve(List<Pair> pairs, String identity) {
         if (identity.isBlank()) throw new RoadUnavailable("Routing identity required");
         Map<String, String> ids = new LinkedHashMap<>();
         Map<String, Pair> unique = new LinkedHashMap<>();

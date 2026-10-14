@@ -230,6 +230,36 @@ Pairs ran in the order all, split, split, all.
   replica other than the one running the call; that replica's watcher stopped the call, which answered 409 `CANCELLED`.
   nginx found the replicas added while it ran without a restart.
 
+## A baseline on the VM's shape, with the time attributed (J0)
+
+Every number above came from one 24-core machine running the scheduler, routing, the database and the load generator
+at about 10 percent CPU, which measures how calls share slots, not what a partitioned VM can do. This baseline runs
+the `deploy/vm` rehearsal stack with its CPU limits (2 cores per scheduler pool, 1 for the database; the routing
+service unlimited and in flexible mode), and the request log line now says where each call's time went
+(`queueMs`, `routingMs`, `calculationMs`, `dbMs`, with the routing pairs, cache hits and fetched legs). The load tool's
+new `--date-spread` gives each desk its own dates, so the 409 `STALE` resends of earlier runs (38 percent of answers
+in L5) are gone and the numbers are the scheduler's. Load: 5 booking desks and 5 queued daily planners for 60 s
+([evidence](evidence/api-load-2026-10-14-vm-baseline.json)).
+
+| Call | Calls | Caller p50 / p95 | Server p50: slot wait | routing | engine | database | pairs needed / fetched |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | --- |
+| Booking offers (201) | 289 | 837 / 1341 ms | 424 ms | 353 ms | 12 ms | 28 ms | 511 / 239 |
+| Confirm (200) | 79 | 454 / 773 ms | 432 ms | 5 ms | 0 ms | 4 ms | 61 / 0 |
+| Daily proposal, queued | 25 | 15.1 / 18.4 s | queue wait p50 7.8 s | | 5 s search | | |
+
+- **Half of a search is the slot wait.** With 5 desks on a 2-slot booking replica, a search waits 424 ms p50 for a
+  slot before it starts; a confirm, which needs 13 ms of work, waits 432 ms behind the searches. Confirms should go
+  ahead of searches in admission; that is a few lines, measured next.
+- **The other half is routing, and it is cold legs.** Each search needs about 511 directed legs; 239 are fetched from
+  the routing service at about 1.5 ms each (the service routes a batch's pairs one after another in flexible mode,
+  and the scheduler feeds it through two worker threads). The routing container ran at 166 percent CPU for the
+  booking replica's 63 percent: routing, not the scheduler, is where the CPU goes. CH plus concurrency on both sides
+  is the next change (J).
+- **The engine is not the booking lever.** The insertion and refinement passes take 12 ms p50 (40 ms p95). The
+  booking replica's request threads used 34 ms CPU per search; the rest of its CPU is JSON, routing clients and GC.
+- **The daily replica is CPU bound by design** (180 percent of its 2 cores: two 5 s searches at a time). More daily
+  throughput is more daily replicas or cores, or faster moves per second inside the budget (L).
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing

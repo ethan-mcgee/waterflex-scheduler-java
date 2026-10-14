@@ -59,8 +59,20 @@ public final class SearchDeadline {
         if (CURRENT.get() != null) throw new IllegalStateException("Nested booking deadline");
         CURRENT.set(this);
         try { return work.get(); }
-        finally { CURRENT.remove(); }
+        finally {
+            CURRENT.remove();
+            java.util.function.Consumer<SearchTelemetry.Measurements> listener = observer;
+            if (listener != null) listener.accept(telemetry.snapshot());
+        }
     }
+
+    private static volatile java.util.function.@Nullable Consumer<SearchTelemetry.Measurements> observer;
+
+    /**
+     * Receives every finished deadline's measurements on the thread that ran it, whether the work returned or threw
+     * (the request log reads them). One observer per process; null removes it.
+     */
+    public static void observe(java.util.function.@Nullable Consumer<SearchTelemetry.Measurements> listener) { observer = listener; }
     /** Calculation scoring must depend on facts, not a caller's request clock. */
     public static <T> T withoutRequestClock(Supplier<T> work) {
         SearchDeadline previous = CURRENT.get();
