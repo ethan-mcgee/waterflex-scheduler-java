@@ -53,7 +53,7 @@ class MapFinalizeTest(unittest.TestCase):
             "graph/properties": sha256(b"flexible"),
             "graph-ch-car-v1/properties": sha256(b"prepared"), "graph-ch-car-v1/shortcuts_car": sha256(b"shortcuts"),
         }, manifest["artifacts"], "the lock file is left out, both graphs are in")
-        self.assertEqual("11.0", manifest["tools"]["graphhopper"])
+        self.assertEqual("11.1", manifest["tools"]["graphhopper"])
 
 
 if __name__ == "__main__":

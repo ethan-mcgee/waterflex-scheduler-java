@@ -84,7 +84,7 @@ const solverStatisticsV2 = legacySolverStatistics.extend({ format: z.literal(2),
   steps: z.int().nonnegative().nullable(), moveEvaluations: z.int().nonnegative().nullable(), scoreCalculations: z.int().nonnegative().nullable(),
   diagnosticsUnavailableReason: text.nullable(), timeToBestUnavailableReason: text.nullable(), terminationBasis: z.enum(["OBSERVED", "INFERRED"]),
   environmentMode: z.enum(["NO_ASSERT", "FULL_ASSERT", "NON_INTRUSIVE_FULL_ASSERT", "PHASE_ASSERT"]),
-  instrumentation: z.enum(["NONE", "TIMEFOLD_INTERNAL_2_6_0"]), provenance: engineProvenance,
+  instrumentation: z.enum(["NONE", "TIMEFOLD_INTERNAL_2_6_0", "TIMEFOLD_INTERNAL_2_7_1"]), provenance: engineProvenance,
 }).refine(v => [v.steps, v.moveEvaluations, v.scoreCalculations].every(n => (n == null) === (v.diagnosticsUnavailableReason != null)), "Unavailable counters need a reason")
   .refine(v => (v.timeToBestMs == null) === (v.timeToBestUnavailableReason != null), "Unavailable time to best needs a reason")
   .refine(v => (["SOLVE_RETURNED", "CANCELLED", "TERMINATED_EARLY", "NOT_RUN"].includes(v.termination) ? v.terminationBasis === "OBSERVED"
