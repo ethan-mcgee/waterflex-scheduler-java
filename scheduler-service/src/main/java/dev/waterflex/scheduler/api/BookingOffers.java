@@ -365,9 +365,19 @@ public class BookingOffers {
      * The portal pipeline's insertion and optional bounded refinement (BookingSearchPipeline.prepare), without its overflow
      * dates. {@code optionalMillis}: the client's budget for an optional refinement (0 skips it).
      */
+    /** Runs one engine stage and attributes its wall time to the call's calculation measurement. */
+    private static <T> T timed(java.util.function.Supplier<T> stage) {
+        long started = System.nanoTime();
+        try { return stage.get(); }
+        finally {
+            SearchDeadline deadline = SearchDeadline.current();
+            if (deadline != null) deadline.telemetry().calculation(System.nanoTime() - started);
+        }
+    }
+
     Searched calculate(RoadClient roads, BookingSnapshot snapshot, BoundedBookingSearch.Request job, int optionalMillis) {
         if (optionalMillis < 0 || optionalMillis > MAX_REFINEMENT_MS) throw new IllegalArgumentException("Invalid optional refinement budget");
-        var inserted = transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant, null, 0));
+        var inserted = timed(() -> transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant, null, 0)));
         BoundedBookingSearch.Result result = inserted.result();
         // The INSERTION variant is the whole search by configuration; nothing more is owed.
         if (variant.equals("INSERTION")) return new Searched(snapshot, result, Refinement.SKIPPED, false, unfinished(result));
@@ -397,7 +407,8 @@ public class BookingOffers {
             int remaining = optional ? Math.max(1, optionalMillis - (int) ((System.nanoTime() - started) / 1_000_000)) : 0;
             BoundedBookingSearch.Result refined;
             try {
-                refined = transport.booking(new BookingCalculation.Input(widened, job, BookingCalculation.Stage.REFINEMENT, variant, result, remaining)).result();
+                BookingCalculation.Input refinement = new BookingCalculation.Input(widened, job, BookingCalculation.Stage.REFINEMENT, variant, result, remaining);
+                refined = timed(() -> transport.booking(refinement)).result();
                 refined = BookingSearchPipeline.combine(result, refined, snapshot.policy());
             } catch (IllegalArgumentException invalid) {
                 // The refinement answered with a plan that fails validation (a remote engine drift or a bug). The insertion

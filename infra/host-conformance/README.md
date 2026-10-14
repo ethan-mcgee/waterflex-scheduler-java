@@ -97,6 +97,9 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
 - A 429 is repeated with the same `requestId` after `Retry-After`, and the wait counts in the call's time, as a host
   would see it. A search or confirm answered 409 `STALE` is sent again from current records with a new `requestId`,
   and counted. `--seed` fixes the run's points and choices; runs with different seeds share no point.
+- `--date-spread` gives each booking desk its own run of `--horizon-days` dates after the previous desk's, so desks
+  book different technician-days. Without it every desk searches the same dates, and the
+  409 `STALE` resends that follow measure the desks' conflicts as much as the scheduler.
 
 The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
 its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,

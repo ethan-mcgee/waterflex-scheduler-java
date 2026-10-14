@@ -10,7 +10,11 @@
 services:
   routing-omaha:
     profiles: ["vm-routing"]
+  # The rehearsal publishes each pool's management port on loopback (one replica per pool), so the load tool can read
+  # the replica's metrics; on the VM the replicas publish nothing and Prometheus reads them on the private network.
   scheduler-booking:
     extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:19010:9000"]
   scheduler-daily:
     extra_hosts: ["host.docker.internal:host-gateway"]
+    ports: ["127.0.0.1:19011:9000"]
