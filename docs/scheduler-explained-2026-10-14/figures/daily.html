@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily and repair proposals, then the commit</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Daily and repair proposals, then the commit</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="daily-title daily-desc">
+        <title id="daily-title">Daily and repair proposals, then the commit</title>
+        <desc id="daily-desc">Sequence of a daily or repair proposal: synchronous or queued behind Prefer respond-async, the decision it returns, and the commit with the host&#x27;s current timestamps.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="200" y="40" width="240" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="200" y="40" width="240" height="56" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="320" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">WaterFlex Software</text>
+        <text x="320" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">OVERNIGHT JOB OR A PLANNER</text>
+        <rect x="840" y="40" width="240" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="840" y="40" width="240" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="960" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Scheduler</text>
+        <text x="960" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ANY DAILY REPLICA</text>
+        <line x1="320" y1="96" x2="320" y2="572" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="960" y1="96" x2="960" y2="572" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="324" y1="136" x2="956" y2="136" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="423.96" y="116" width="432.08" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="128" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST DAILY OR REPAIR PROPOSAL · SNAPSHOT OF ONE METRO DAY</text>
+        <rect x="240" y="160" width="800" height="272" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
+        <rect x="240" y="160" width="40" height="16" rx="2" fill="#FFFFFF" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
+        <text x="260" y="172" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+        <text x="252" y="196" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[SYNCHRONOUS]</text>
+        <rect x="956" y="136" width="8" height="100" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <rect x="586.32" y="188" width="357.68" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="944" y="200" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">SEARCH: COST + FAIRNESS SECONDS, PLUS UP TO 5 S</text>
+        <line x1="956" y1="236" x2="324" y2="236" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="390.48" y="216" width="499.04" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="228" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">201 DAILYPROPOSAL · IMPROVED, NO_IMPROVEMENT OR REJECTED_BY_POLICY</text>
+        <line x1="248" y1="260" x2="1032" y2="260" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="252" y="284" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[PREFER: RESPOND-ASYNC]</text>
+        <line x1="956" y1="312" x2="324" y2="312" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="397.92" y="292" width="484.16" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="304" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">202 ACCEPTED AT ONCE · A REPLICA TAKES IT IN TURN ACROSS CLIENTS</text>
+        <rect x="956" y="312" width="8" height="92" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <line x1="324" y1="356" x2="956" y2="356" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="516.96" y="336" width="246.08" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="348" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">GET /REQUESTS/{REQUESTID} · POLL</text>
+        <line x1="956" y1="404" x2="324" y2="404" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="423.96" y="384" width="432.08" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="396" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 DAILYPROPOSAL WHEN DONE (202 WHILE QUEUED OR RUNNING)</text>
+        <line x1="324" y1="464" x2="956" y2="464" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="405.36" y="444" width="469.28" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="456" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST .../COMMIT · CURRENT LASTMODIFIED OF EVERY TECHNICIAN-DAY</text>
+        <rect x="956" y="464" width="8" height="40" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <line x1="956" y1="504" x2="324" y2="504" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="472.32" y="484" width="335.36" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="496" fill="#287A4C" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 RECEIPT · WRITTEN WITH A COMPARE-AND-SET</text>
+        <text x="1076" y="236" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Only IMPROVED can be</text>
+        <text x="1076" y="254" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">committed; the other two</text>
+        <text x="1076" y="272" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">return the current routes</text>
+        <text x="1076" y="290" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">and the reason.</text>
+        <text x="1076" y="308" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic"></text>
+        <text x="1076" y="326" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Refusals:</text>
+        <text x="1076" y="344" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">409 STALE, a day changed</text>
+        <text x="1076" y="362" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">409 NOT_COMMITTABLE</text>
+        <text x="1076" y="380" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">422, the day is frozen</text>
+        <text x="1076" y="398" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">(after 6 a.m. local)</text>
+        <text x="1076" y="416" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">429 BUSY with Retry-After</text>
+        <text x="1076" y="434" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic"></text>
+        <text x="1076" y="452" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">DELETE /requests cancels;</text>
+        <text x="1076" y="470" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">the call gets 409 CANCELLED.</text>
+        <line x1="30" y1="606" x2="1250" y2="606" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="632" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="100" y1="628" x2="136" y2="628" stroke="#0B3A66" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="146" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CALL</text>
+        <line x1="204" y1="628" x2="240" y2="628" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="250" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REPLY</text>
+        <line x1="312" y1="628" x2="348" y2="628" stroke="#287A4C" stroke-width="1.6"/>
+        <text x="358" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">HEADLINE SUCCESS</text>
+        <rect x="496" y="622" width="18" height="12" rx="2" fill="rgba(31,42,51,0.06)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="522" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SCHEDULER HOLDS CONTROL</text>
+        <text x="1250" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">one fragment: the two ways a proposal is answered</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

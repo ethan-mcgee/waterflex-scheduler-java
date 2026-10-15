@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm and offers at the caller through J2</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Confirm and offers at the caller through J2</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="confirm-title confirm-desc">
+        <title id="confirm-title">Confirm and offers at the caller through J2</title>
+        <desc id="confirm-desc">Two dumbbell charts of caller latency p50 and p95 for confirm and for offers from J&#x27;s CH run through the four J2 runs, with the median slot wait of each confirm.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="244" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Confirm at the caller</text>
+        <line x1="300" y1="80" x2="300" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="300" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0</text>
+        <line x1="360" y1="80" x2="360" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="360" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50</text>
+        <line x1="420" y1="80" x2="420" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="420" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100</text>
+        <line x1="480" y1="80" x2="480" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="480" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">150</text>
+        <line x1="540" y1="80" x2="540" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="540" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200</text>
+        <line x1="600" y1="80" x2="600" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="600" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">250</text>
+        <text x="450" y="464" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em">CALLER LATENCY, MS</text>
+        <line x1="439" y1="112" x2="557" y2="112" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="439" cy="112" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="557" cy="112" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="427" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">116</text>
+        <text x="569" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">214</text>
+        <text x="288" y="117" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">J CH</text>
+        <text x="288" y="134" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">WAIT 98 MS</text>
+        <line x1="407" y1="176" x2="446" y2="176" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="407" cy="176" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="446" cy="176" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="395" y="180" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">89</text>
+        <text x="458" y="180" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">122</text>
+        <text x="288" y="181" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">priority</text>
+        <text x="288" y="198" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">WAIT 71 MS</text>
+        <line x1="404" y1="240" x2="470" y2="240" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="404" cy="240" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="470" cy="240" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="392" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">87</text>
+        <text x="482" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">142</text>
+        <text x="288" y="245" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">priority, ZGC / Parallel</text>
+        <text x="288" y="262" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">WAIT 65 MS</text>
+        <line x1="324" y1="304" x2="342" y2="304" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="324" cy="304" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="342" cy="304" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="354" y="308" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">20 · 35</text>
+        <text x="288" y="309" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">priority + confirm slot</text>
+        <text x="288" y="326" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">WAIT 0 MS</text>
+        <line x1="324" y1="368" x2="338" y2="368" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="324" cy="368" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="338" cy="368" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="350" y="372" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">20 · 32</text>
+        <text x="288" y="373" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">slot, compact headers</text>
+        <text x="288" y="390" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">WAIT 0 MS</text>
+        <text x="844" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Offers at the caller</text>
+        <line x1="900" y1="80" x2="900" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="900" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0</text>
+        <line x1="975" y1="80" x2="975" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="975" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100</text>
+        <line x1="1050" y1="80" x2="1050" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="1050" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200</text>
+        <line x1="1125" y1="80" x2="1125" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="1125" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">300</text>
+        <line x1="1200" y1="80" x2="1200" y2="420" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="1200" y="440" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">400</text>
+        <text x="1050" y="464" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em">CALLER LATENCY, MS</text>
+        <line x1="1062" y1="112" x2="1165" y2="112" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="1062" cy="112" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="1165" cy="112" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="1050" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">216</text>
+        <text x="1177" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">353</text>
+        <text x="888" y="117" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">J CH</text>
+        <line x1="1060" y1="176" x2="1156" y2="176" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="1060" cy="176" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="1156" cy="176" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="1048" y="180" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">213</text>
+        <text x="1168" y="180" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">341</text>
+        <text x="888" y="181" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">priority</text>
+        <line x1="1058" y1="240" x2="1148" y2="240" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="1058" cy="240" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="1148" cy="240" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="1046" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">210</text>
+        <text x="1160" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">331</text>
+        <text x="888" y="245" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">priority, ZGC / Parallel</text>
+        <line x1="1070" y1="304" x2="1130" y2="304" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="1070" cy="304" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="1130" cy="304" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="1058" y="308" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">226</text>
+        <text x="1142" y="308" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">307</text>
+        <text x="888" y="309" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">priority + confirm slot</text>
+        <line x1="1071" y1="368" x2="1140" y2="368" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="1071" cy="368" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="1140" cy="368" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="1059" y="372" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">228</text>
+        <text x="1152" y="372" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">320</text>
+        <text x="888" y="373" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">slot, compact headers</text>
+        <line x1="30" y1="506" x2="1250" y2="506" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="532" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <circle cx="109" cy="528" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <text x="126" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">P50</text>
+        <circle cx="185" cy="528" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="202" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">P95</text>
+        <text x="1250" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">rows in study order; WAIT is the median slot wait the server recorded</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

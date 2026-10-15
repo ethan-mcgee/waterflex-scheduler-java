@@ -10,11 +10,22 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_pla
 
 
 def render(src: pathlib.Path, out: pathlib.Path, scale: float = 3) -> None:
+    render_all([(src, out)], scale)
+
+
+def render_all(pairs: list[tuple[pathlib.Path, pathlib.Path]], scale: float = 3) -> None:
+    """Rasterize several HTML figures with one browser."""
     if not math.isfinite(scale) or not 1 <= scale <= 4:
         raise ValueError("PNG scale must be a finite number between 1 and 4")
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page(device_scale_factor=scale)
+        for src, out in pairs:
+            _capture(browser.new_page(device_scale_factor=scale), src, out)
+        browser.close()
+
+
+def _capture(page, src: pathlib.Path, out: pathlib.Path) -> None:
+    if True:
         page.goto(src.resolve().as_uri() + "?motion=static", wait_until="domcontentloaded")
         try:
             page.wait_for_load_state("networkidle", timeout=15000)
@@ -34,7 +45,7 @@ def render(src: pathlib.Path, out: pathlib.Path, scale: float = 3) -> None:
         }""")
         svg.evaluate("el => { for (let a = el.parentElement; a; a = a.parentElement) a.style.setProperty('overflow', 'visible', 'important'); }")
         svg.screenshot(path=str(out), omit_background=False)
-        browser.close()
+        page.close()
 
 
 if __name__ == "__main__":
