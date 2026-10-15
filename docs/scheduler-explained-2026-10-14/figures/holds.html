@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holds lost and the latency tail, before and after rule 0</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Holds lost and the latency tail, before and after rule 0</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="holds-title holds-desc">
+        <title id="holds-title">Holds lost and the latency tail, before and after rule 0</title>
+        <desc id="holds-desc">Grouped bars by booking desks: the share of selected holds lost at confirm in the first load measurement (#151) and after rule 0 (#152, fresh seeds), and offers p95 at the caller against the 5.5 s bound.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="56" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Selected holds lost at confirm</text>
+        <line x1="112" y1="380" x2="440" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="104" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0%</text>
+        <line x1="112" y1="327.333" x2="440" y2="327.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="104" y="331.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10%</text>
+        <line x1="112" y1="274.667" x2="440" y2="274.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="104" y="278.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20%</text>
+        <line x1="112" y1="222" x2="440" y2="222" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="104" y="226" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">30%</text>
+        <line x1="112" y1="169.333" x2="440" y2="169.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="104" y="173.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">40%</text>
+        <line x1="112" y1="116.667" x2="440" y2="116.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="104" y="120.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">50%</text>
+        <line x1="112" y1="64" x2="440" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="104" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">60%</text>
+        <line x1="112" y1="64" x2="112" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="56" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 56 222)">% OF SELECTED HOLDS</text>
+        <text x="544" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Offers p95 at the caller</text>
+        <line x1="600" y1="380" x2="940" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="592" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="600" y1="327.333" x2="940" y2="327.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="331.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">2.5</text>
+        <line x1="600" y1="274.667" x2="940" y2="274.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="278.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
+        <line x1="600" y1="222" x2="940" y2="222" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="226" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">7.5</text>
+        <line x1="600" y1="169.333" x2="940" y2="169.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="173.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
+        <line x1="600" y1="116.667" x2="940" y2="116.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="120.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">12.5</text>
+        <line x1="600" y1="64" x2="940" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
+        <line x1="600" y1="64" x2="600" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="544" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 544 222)">SECONDS</text>
+        <line x1="600" y1="264.133" x2="940" y2="264.133" stroke="#287A4C" stroke-width="1.2" stroke-dasharray="6,4"/>
+        <rect x="606" y="246.133" width="83.02" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="606" y="258.133" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">5.5 S BOUND</text>
+        <rect x="122.667" y="380" width="40" height="0" fill="#FFFFFF"/>
+        <rect x="122.667" y="380" width="40" height="0" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="131.847" y="362" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="142.667" y="374" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0%</text>
+        <rect x="170.667" y="380" width="40" height="0" fill="#FFFFFF"/>
+        <rect x="170.667" y="380" width="40" height="0" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="179.847" y="362" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="190.667" y="374" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0%</text>
+        <text x="166.667" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">1 desk</text>
+        <rect x="232" y="185.965" width="40" height="194.035" fill="#FFFFFF"/>
+        <rect x="232" y="185.965" width="40" height="194.035" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="237.77" y="167.965" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="252" y="179.965" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">37%</text>
+        <rect x="280" y="380" width="40" height="0" fill="#FFFFFF"/>
+        <rect x="280" y="380" width="40" height="0" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="289.18" y="362" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="300" y="374" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0%</text>
+        <text x="276" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">5 desks</text>
+        <rect x="341.333" y="69.4017" width="40" height="310.598" fill="#FFFFFF"/>
+        <rect x="341.333" y="69.4017" width="40" height="310.598" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="347.103" y="51.4017" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="361.333" y="63.4017" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">59%</text>
+        <rect x="389.333" y="380" width="40" height="0" fill="#FFFFFF"/>
+        <rect x="389.333" y="380" width="40" height="0" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="398.513" y="362" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="409.333" y="374" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0%</text>
+        <text x="385.333" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">10 desks</text>
+        <rect x="612.667" y="359.207" width="40" height="20.7928" fill="#FFFFFF"/>
+        <rect x="612.667" y="359.207" width="40" height="20.7928" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="618.437" y="341.207" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="632.667" y="353.207" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">1.0</text>
+        <rect x="660.667" y="364.748" width="40" height="15.2523" fill="#FFFFFF"/>
+        <rect x="660.667" y="364.748" width="40" height="15.2523" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="666.437" y="346.748" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="680.667" y="358.748" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">0.7</text>
+        <text x="656.667" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">1 desk</text>
+        <rect x="726" y="248.691" width="40" height="131.309" fill="#FFFFFF"/>
+        <rect x="726" y="248.691" width="40" height="131.309" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="731.77" y="230.691" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="746" y="242.691" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">6.2</text>
+        <rect x="774" y="324.468" width="40" height="55.5317" fill="#FFFFFF"/>
+        <rect x="774" y="324.468" width="40" height="55.5317" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="779.77" y="306.468" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="794" y="318.468" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">2.6</text>
+        <text x="770" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">5 desks</text>
+        <rect x="839.333" y="127.074" width="40" height="252.926" fill="#FFFFFF"/>
+        <rect x="839.333" y="127.074" width="40" height="252.926" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="841.693" y="109.074" width="35.28" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="859.333" y="121.074" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">12.0</text>
+        <rect x="887.333" y="275.488" width="40" height="104.512" fill="#FFFFFF"/>
+        <rect x="887.333" y="275.488" width="40" height="104.512" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="893.103" y="257.488" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="907.333" y="269.488" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">5.0</text>
+        <text x="883.333" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">10 desks</text>
+        <line x1="40" y1="484" x2="940" y2="484" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="510" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="500" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">#151, THE FIRST MEASUREMENT</text>
+        <rect x="348" y="500" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="374" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">#152, RULE 0, FRESH SEEDS</text>
+        <text x="940" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">no hold lost in any run after the fix</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

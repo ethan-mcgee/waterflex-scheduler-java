@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The scheduler today, with the choice each thread settled</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>The scheduler today, with the choice each thread settled</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="today-title today-desc">
+        <title id="today-title">The scheduler today, with the choice each thread settled</title>
+        <desc id="today-desc">Architecture of the scheduler as it stands, each part annotated with the decision the evidence settled and the number behind it: the proxy and two pools, the daily search per client, bounded two-pass booking with the confirm slot, the embedded engine with RoadMatrix, the CH routing graph and the thin store with rule 0.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="310" y="32" width="360" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="310" y="32" width="360" height="56" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="490" y="56" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">WaterFlex Software</text>
+        <text x="490" y="76" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SNAPSHOT IN, RESULTS OUT</text>
+        <rect x="350" y="128" width="280" height="52" rx="6" fill="#FFFFFF"/>
+        <rect x="350" y="128" width="280" height="52" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="490" y="150" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">scheduler-proxy</text>
+        <text x="490" y="170" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE ADDRESS, /API/V1</text>
+        <line x1="490" y1="88" x2="490" y2="128" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="40" y="220" width="430" height="236" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="52" y="224" width="83.8528" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="60" y="235" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING POOL</text>
+        <rect x="510" y="220" width="430" height="236" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="522" y="224" width="72.544" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="530" y="235" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY POOL</text>
+        <path d="M450,180 L450,192 Q450,200 442,200 L263,200 Q255,200 255,208 L255,220" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M530,180 L530,192 Q530,200 538,200 L717,200 Q725,200 725,208 L725,220" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="56" y="248" width="398" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="56" y="248" width="398" height="56" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="72" y="272" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Bounded two-pass search</text>
+        <text x="72" y="292" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SHED UNDER LOAD: 127 TO 263 SEARCHES/MIN</text>
+        <rect x="56" y="314" width="398" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="56" y="314" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="72" y="338" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Confirm slot and priority</text>
+        <text x="72" y="358" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CONFIRM P50 116 TO 20 MS</text>
+        <rect x="56" y="380" width="398" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="56" y="380" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="72" y="404" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Embedded engine, RoadMatrix</text>
+        <text x="72" y="424" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.79X MOVES PER SECOND</text>
+        <rect x="526" y="248" width="398" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="526" y="248" width="398" height="56" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="542" y="272" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Tabu + K opt, per client</text>
+        <text x="542" y="292" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$7.55 PER CASE OVER TABU</text>
+        <rect x="526" y="314" width="398" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="526" y="314" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="542" y="338" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Fair durable queue</text>
+        <text x="542" y="358" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">EARLY 429, TURNS BY CLIENT</text>
+        <rect x="526" y="380" width="398" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="526" y="380" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="542" y="404" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Its own replicas</text>
+        <text x="542" y="424" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NO DAILY SOLVE COMPETES FOR BOOKING CORES</text>
+        <rect x="40" y="500" width="900" height="116" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="52" y="504" width="129.088" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="60" y="515" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">SHARED BY BOTH POOLS</text>
+        <rect x="56" y="528" width="398" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="56" y="528" width="398" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="255" y="560" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">routing-service per metro</text>
+        <text x="255" y="580" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CH: 289 TO 1,020 SEARCHES IN 60 S</text>
+        <rect x="526" y="528" width="398" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="526" y="528" width="398" height="72" rx="6" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="725" y="560" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">scheduler-db, the thin store</text>
+        <text x="725" y="580" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RULE 0: 14 TO 0 HOLDS LOST</text>
+        <line x1="255" y1="456" x2="255" y2="500" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="725" y1="456" x2="725" y2="500" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="40" y1="644" x2="940" y2="644" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="670" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="660" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE HEADLINE CHOICE OF EACH POOL</text>
+        <rect x="384" y="660" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="410" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A SETTLED CHOICE</text>
+        <text x="940" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">every number is from Part III</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

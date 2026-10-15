@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moves per second by fleet, and what more moves bought</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Moves per second by fleet, and what more moves bought</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="paired_fleets-title paired_fleets-desc">
+        <title id="paired_fleets-title">Moves per second by fleet, and what more moves bought</title>
+        <desc id="paired_fleets-desc">Per fleet size: median cost-phase moves per second before and after the RoadMatrix treatment with the speedup, the fairness-phase median speedup, and the paired cases that ended cheaper, tied or dearer at the same budget.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <line x1="170" y1="64" x2="170" y2="330" stroke="rgba(31,42,51,0.25)" stroke-width="0.8"/>
+        <text x="170" y="350" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0k</text>
+        <line x1="240" y1="64" x2="240" y2="330" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="240" y="350" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50k</text>
+        <line x1="310" y1="64" x2="310" y2="330" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="310" y="350" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100k</text>
+        <line x1="380" y1="64" x2="380" y2="330" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="380" y="350" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">150k</text>
+        <line x1="450" y1="64" x2="450" y2="330" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="450" y="350" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200k</text>
+        <line x1="520" y1="64" x2="520" y2="330" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="520" y="350" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">250k</text>
+        <text x="345" y="374" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">COST-PHASE MOVES PER SECOND, MEDIAN</text>
+        <line x1="353" y1="120" x2="440" y2="120" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="353" cy="120" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="440" cy="120" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="341" y="124" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">131k</text>
+        <text x="452" y="124" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">193k (1.54x)</text>
+        <text x="152" y="125" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">20 technicians</text>
+        <text x="640" y="108" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">fairness phase 1.32x</text>
+        <rect x="638" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="660" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="682" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="704" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="726" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="748" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="770" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="792" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="814" y="120" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="836" y="120" width="16" height="16" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="858" y="120" width="16" height="16" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="880" y="120" width="16" height="16" rx="2" fill="rgba(156,107,80,0.35)" stroke="#9c6b50" stroke-width="1"/>
+        <text x="640" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">9 cheaper · 2 tied · 1 dearer of 12</text>
+        <line x1="319" y1="240" x2="481" y2="240" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="319" cy="240" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="481" cy="240" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="307" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">107k</text>
+        <text x="493" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">222k (2.00x)</text>
+        <text x="152" y="245" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">50 technicians</text>
+        <text x="640" y="228" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">fairness phase 1.28x</text>
+        <rect x="638" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="660" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="682" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="704" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="726" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="748" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="770" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="792" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="814" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="836" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="858" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <rect x="880" y="240" width="16" height="16" rx="2" fill="rgba(40,122,76,0.35)" stroke="#287A4C" stroke-width="1"/>
+        <text x="640" y="276" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">12 cheaper · 0 tied · 0 dearer of 12</text>
+        <line x1="40" y1="404" x2="940" y2="404" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="430" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <circle cx="119" cy="426" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <text x="136" y="430" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">BEFORE</text>
+        <circle cx="213" cy="426" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="230" y="430" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">AFTER</text>
+        <rect x="292" y="420" width="18" height="12" rx="2" fill="rgba(40,122,76,0.35)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="318" y="430" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CHEAPER AT THE SAME BUDGET</text>
+        <rect x="524" y="420" width="18" height="12" rx="2" fill="rgba(156,107,80,0.35)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="550" y="430" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">DEARER</text>
+        <text x="940" y="430" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">no constraint violation on either side</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

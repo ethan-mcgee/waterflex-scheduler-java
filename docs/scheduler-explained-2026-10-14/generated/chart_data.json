@@ -1,0 +1,1246 @@
+{
+  "topology": {
+    "source": "figures/topology.html",
+    "boxes": [
+      "host backend",
+      "scheduler-proxy",
+      "booking pool",
+      "daily pool",
+      "routing-service per metro",
+      "Nominatim",
+      "scheduler-db",
+      "management port"
+    ]
+  },
+  "booking": {
+    "steps": [
+      "offers",
+      "select",
+      "confirm",
+      "write receipt"
+    ],
+    "refusals": [
+      "STALE",
+      "HOLD_UNAVAILABLE",
+      "HOLD_UNAVAILABLE",
+      "host write conflict"
+    ]
+  },
+  "daily": {
+    "modes": [
+      "synchronous",
+      "queued"
+    ],
+    "decisions": [
+      "IMPROVED",
+      "NO_IMPROVEMENT",
+      "REJECTED_BY_POLICY"
+    ]
+  },
+  "tiers": [
+    "1. In-flight dedup",
+    "2. Scheduler memory",
+    "3. Scheduler database",
+    "4. Routing memory"
+  ],
+  "daily_fleet": {
+    "first": {
+      "fleets": [
+        5,
+        10,
+        20,
+        50
+      ],
+      "solvers": [
+        "TABU_SIZE_3",
+        "TABU_SIZE_15",
+        "TABU_KOPT",
+        "KOPT",
+        "SUBLIST",
+        "LATE_ACCEPTANCE"
+      ],
+      "values": [
+        [
+          -0.96775,
+          7.868125,
+          11.206625,
+          5.2373125,
+          5.836078125
+        ],
+        [
+          -0.181875,
+          8.14,
+          -10.362,
+          -24.821625,
+          -6.806375
+        ],
+        [
+          1.673625,
+          9.289875,
+          8.1453125,
+          11.098125,
+          7.551734375
+        ],
+        [
+          2.63225,
+          17.2056875,
+          14.4874375,
+          -28.409875,
+          1.478875
+        ],
+        [
+          2.29075,
+          16.699625,
+          14.166125,
+          -27.2609375,
+          1.473890625
+        ],
+        [
+          1.843,
+          15.2391875,
+          13.505,
+          -26.4920625,
+          1.0237812499999999
+        ]
+      ]
+    },
+    "follow": {
+      "fleets": [
+        5,
+        10,
+        20,
+        30,
+        50
+      ],
+      "solvers": [
+        "TABU_KOPT",
+        "TABU_KOPT_SIZE_3",
+        "TABU_SIZE_3",
+        "KOPT"
+      ],
+      "values": [
+        [
+          1.7483333333333333,
+          7.5131250000000005,
+          7.08625,
+          9.806666666666667,
+          14.940625,
+          8.219
+        ],
+        [
+          0.5804166666666667,
+          10.99375,
+          12.855416666666667,
+          14.761041666666667,
+          18.304583333333333,
+          11.499041666666667
+        ],
+        [
+          -1.7516666666666667,
+          5.596875,
+          6.28,
+          8.05375,
+          9.023541666666667,
+          5.4405
+        ],
+        [
+          2.3329166666666667,
+          14.6275,
+          13.272291666666666,
+          8.371458333333333,
+          -12.797083333333333,
+          5.161416666666667
+        ]
+      ]
+    }
+  },
+  "booking_study": {
+    "held": [
+      {
+        "variant": "INSERTION",
+        "served": 346,
+        "requests": 480,
+        "mean_case_p95_ms": 2876.5176270833344
+      },
+      {
+        "variant": "BOUNDED",
+        "served": 360,
+        "requests": 480,
+        "mean_case_p95_ms": 15707.69685
+      },
+      {
+        "variant": "SHARED",
+        "served": 334,
+        "requests": 480,
+        "mean_case_p95_ms": 64149.37998958335
+      }
+    ],
+    "latency": [
+      {
+        "solver": "INSERTION",
+        "concurrency": 1,
+        "p95": 677.2983000000004
+      },
+      {
+        "solver": "INSERTION",
+        "concurrency": 5,
+        "p95": 2151.9530999999997
+      },
+      {
+        "solver": "INSERTION",
+        "concurrency": 10,
+        "p95": 4005.1746000000003
+      },
+      {
+        "solver": "BOUNDED",
+        "concurrency": 1,
+        "p95": 3588.416400000002
+      },
+      {
+        "solver": "BOUNDED",
+        "concurrency": 5,
+        "p95": 14187.464499999995
+      },
+      {
+        "solver": "BOUNDED",
+        "concurrency": 10,
+        "p95": 26302.5309
+      }
+    ]
+  },
+  "ch": [
+    {
+      "date": "2026-09-24",
+      "engine": "flexible",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        168.28859999999986,
+        214.9384,
+        311.8634999999995
+      ],
+      "p95": [
+        242.26609999999982,
+        292.34739999999965,
+        381.34929999999986
+      ]
+    },
+    {
+      "date": "2026-09-24",
+      "engine": "CH-car-v1",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        14.64889999999923,
+        14.45219999999972,
+        16.85490000000027
+      ],
+      "p95": [
+        17.98849999999993,
+        19.78439999999955,
+        19.256200000001627
+      ]
+    },
+    {
+      "date": "2026-10-14",
+      "engine": "flexible",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        29.61880000000008,
+        66.08950000000004,
+        118.86599999999999
+      ],
+      "p95": [
+        43.15680000000003,
+        88.98479999999995,
+        146.9058
+      ]
+    },
+    {
+      "date": "2026-10-14",
+      "engine": "CH-car-v1",
+      "concurrency": [
+        1,
+        5,
+        10
+      ],
+      "p50": [
+        3.685699999999997,
+        6.495100000000093,
+        8.062900000000127
+      ],
+      "p95": [
+        4.52230000000003,
+        20.28539999999998,
+        9.615299999999934
+      ]
+    }
+  ],
+  "attribution": [
+    {
+      "stage": "J0 baseline",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 832,
+      "queueMs": 424,
+      "routingMs": 353,
+      "calculationMs": 12,
+      "dbMs": 28
+    },
+    {
+      "stage": "J0 baseline",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 451,
+      "queueMs": 432,
+      "routingMs": 5,
+      "calculationMs": 0,
+      "dbMs": 4
+    },
+    {
+      "stage": "J flexible",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 488,
+      "queueMs": 228,
+      "routingMs": 197,
+      "calculationMs": 13,
+      "dbMs": 34
+    },
+    {
+      "stage": "J flexible",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 259,
+      "queueMs": 238,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 4
+    },
+    {
+      "stage": "J CH",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 212,
+      "queueMs": 94,
+      "routingMs": 65,
+      "calculationMs": 12,
+      "dbMs": 33
+    },
+    {
+      "stage": "J CH",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 112,
+      "queueMs": 98,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 3
+    },
+    {
+      "stage": "J2 shipped",
+      "operation": "POST /api/v1/booking/offers 201",
+      "elapsed_p50": 221,
+      "queueMs": 117,
+      "routingMs": 56,
+      "calculationMs": 12,
+      "dbMs": 19
+    },
+    {
+      "stage": "J2 shipped",
+      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
+      "elapsed_p50": 16,
+      "queueMs": 0,
+      "routingMs": 0,
+      "calculationMs": 0,
+      "dbMs": 3
+    }
+  ],
+  "progression": [
+    {
+      "stage": "#151",
+      "label": "booking-cold-c5",
+      "searches_per_minute": 102.0,
+      "p50": 1824,
+      "p95": 6233
+    },
+    {
+      "stage": "#152",
+      "label": "cold-recheck-c5 (seed 91)",
+      "searches_per_minute": 129.0,
+      "p50": 1335,
+      "p95": 2636
+    },
+    {
+      "stage": "#154",
+      "label": "booking-cold-c5",
+      "searches_per_minute": 123.0,
+      "p50": 963,
+      "p95": 2691
+    },
+    {
+      "stage": "#155",
+      "label": "after-c5 (seed 55)",
+      "searches_per_minute": 246.0,
+      "p50": 597,
+      "p95": 1358
+    },
+    {
+      "stage": "J0",
+      "label": "base-spread2 booking",
+      "searches_per_minute": 289.0,
+      "p50": 837,
+      "p95": 1341
+    },
+    {
+      "stage": "J flex",
+      "label": "j-flex booking",
+      "searches_per_minute": 454.0,
+      "p50": 493,
+      "p95": 746
+    },
+    {
+      "stage": "J CH",
+      "label": "j-ch booking",
+      "searches_per_minute": 1020.0,
+      "p50": 216,
+      "p95": 353
+    },
+    {
+      "stage": "J2",
+      "label": "j2-slot booking",
+      "searches_per_minute": 1161.0,
+      "p50": 226,
+      "p95": 307
+    }
+  ],
+  "daily_load": {
+    "admission": [
+      {
+        "planners": "1 planner",
+        "stage": "#151",
+        "answered_201": 11,
+        "answered_503": 1
+      },
+      {
+        "planners": "1 planner",
+        "stage": "#153",
+        "answered_201": 11,
+        "answered_503": 0
+      },
+      {
+        "planners": "4 planners",
+        "stage": "#151",
+        "answered_201": 3,
+        "answered_503": 25
+      },
+      {
+        "planners": "4 planners",
+        "stage": "#153",
+        "answered_201": 15,
+        "answered_503": 0
+      }
+    ],
+    "fairness": [
+      {
+        "mode": "sync",
+        "client": "A",
+        "planners": 4,
+        "proposals": 20
+      },
+      {
+        "mode": "sync",
+        "client": "B",
+        "planners": 1,
+        "proposals": 1
+      },
+      {
+        "mode": "async",
+        "client": "A",
+        "planners": 4,
+        "proposals": 12
+      },
+      {
+        "mode": "async",
+        "client": "B",
+        "planners": 1,
+        "proposals": 9
+      }
+    ],
+    "roles": [
+      {
+        "run": "all-1",
+        "shape": "one all",
+        "proposals": 13,
+        "queue_wait_p50": 20717
+      },
+      {
+        "run": "split-1",
+        "shape": "split",
+        "proposals": 25,
+        "queue_wait_p50": 7479
+      },
+      {
+        "run": "split-2",
+        "shape": "split",
+        "proposals": 25,
+        "queue_wait_p50": 7367
+      },
+      {
+        "run": "all-2",
+        "shape": "one all",
+        "proposals": 14,
+        "queue_wait_p50": 20169.0
+      }
+    ]
+  },
+  "confirm": [
+    {
+      "stage": "J CH",
+      "run": "j-ch",
+      "confirm_p50": 116,
+      "confirm_p95": 214,
+      "confirm_wait_p50": 98,
+      "offers_p50": 216,
+      "offers_p95": 353
+    },
+    {
+      "stage": "priority",
+      "run": "j2-confirm",
+      "confirm_p50": 89,
+      "confirm_p95": 122,
+      "confirm_wait_p50": 71,
+      "offers_p50": 213,
+      "offers_p95": 341
+    },
+    {
+      "stage": "priority,\nZGC / Parallel",
+      "run": "j2-gc",
+      "confirm_p50": 87,
+      "confirm_p95": 142,
+      "confirm_wait_p50": 65,
+      "offers_p50": 210,
+      "offers_p95": 331
+    },
+    {
+      "stage": "priority +\nconfirm slot",
+      "run": "j2-slot",
+      "confirm_p50": 20,
+      "confirm_p95": 35,
+      "confirm_wait_p50": 0,
+      "offers_p50": 226,
+      "offers_p95": 307
+    },
+    {
+      "stage": "slot, compact\nheaders",
+      "run": "j2-coh2",
+      "confirm_p50": 20,
+      "confirm_p95": 32,
+      "confirm_wait_p50": 0,
+      "offers_p50": 228,
+      "offers_p95": 320
+    }
+  ],
+  "paired": [
+    {
+      "technicians": 20,
+      "workload": "ABSENCE",
+      "seed": 17,
+      "before": 111400,
+      "after": 172099,
+      "speedup": 1.545,
+      "cost_before": 164961,
+      "cost_after": 164225
+    },
+    {
+      "technicians": 20,
+      "workload": "ABSENCE",
+      "seed": 23,
+      "before": 109334,
+      "after": 172433,
+      "speedup": 1.577,
+      "cost_before": 164562,
+      "cost_after": 163813
+    },
+    {
+      "technicians": 20,
+      "workload": "ABSENCE",
+      "seed": 41,
+      "before": 108748,
+      "after": 168499,
+      "speedup": 1.549,
+      "cost_before": 164842,
+      "cost_after": 164354
+    },
+    {
+      "technicians": 20,
+      "workload": "CLUSTERED",
+      "seed": 17,
+      "before": 117345,
+      "after": 179337,
+      "speedup": 1.528,
+      "cost_before": 168119,
+      "cost_after": 168169
+    },
+    {
+      "technicians": 20,
+      "workload": "CLUSTERED",
+      "seed": 23,
+      "before": 113568,
+      "after": 191907,
+      "speedup": 1.69,
+      "cost_before": 168039,
+      "cost_after": 167989
+    },
+    {
+      "technicians": 20,
+      "workload": "CLUSTERED",
+      "seed": 41,
+      "before": 129852,
+      "after": 193361,
+      "speedup": 1.489,
+      "cost_before": 168064,
+      "cost_after": 168064
+    },
+    {
+      "technicians": 20,
+      "workload": "DISPERSED",
+      "seed": 17,
+      "before": 133798,
+      "after": 190456,
+      "speedup": 1.423,
+      "cost_before": 183037,
+      "cost_after": 182258
+    },
+    {
+      "technicians": 20,
+      "workload": "DISPERSED",
+      "seed": 23,
+      "before": 131921,
+      "after": 206032,
+      "speedup": 1.562,
+      "cost_before": 182077,
+      "cost_after": 182077
+    },
+    {
+      "technicians": 20,
+      "workload": "DISPERSED",
+      "seed": 41,
+      "before": 135976,
+      "after": 199416,
+      "speedup": 1.467,
+      "cost_before": 182874,
+      "cost_after": 181957
+    },
+    {
+      "technicians": 20,
+      "workload": "TIGHT_WINDOW",
+      "seed": 17,
+      "before": 146673,
+      "after": 222524,
+      "speedup": 1.517,
+      "cost_before": 226971,
+      "cost_after": 225807
+    },
+    {
+      "technicians": 20,
+      "workload": "TIGHT_WINDOW",
+      "seed": 23,
+      "before": 141447,
+      "after": 224456,
+      "speedup": 1.587,
+      "cost_before": 226812,
+      "cost_after": 226352
+    },
+    {
+      "technicians": 20,
+      "workload": "TIGHT_WINDOW",
+      "seed": 41,
+      "before": 151362,
+      "after": 223633,
+      "speedup": 1.477,
+      "cost_before": 226966,
+      "cost_after": 226312
+    },
+    {
+      "technicians": 50,
+      "workload": "ABSENCE",
+      "seed": 17,
+      "before": 96227,
+      "after": 182104,
+      "speedup": 1.892,
+      "cost_before": 410226,
+      "cost_after": 408276
+    },
+    {
+      "technicians": 50,
+      "workload": "ABSENCE",
+      "seed": 23,
+      "before": 91222,
+      "after": 181459,
+      "speedup": 1.989,
+      "cost_before": 412666,
+      "cost_after": 410489
+    },
+    {
+      "technicians": 50,
+      "workload": "ABSENCE",
+      "seed": 41,
+      "before": 94131,
+      "after": 191313,
+      "speedup": 2.032,
+      "cost_before": 410901,
+      "cost_after": 407838
+    },
+    {
+      "technicians": 50,
+      "workload": "CLUSTERED",
+      "seed": 17,
+      "before": 103522,
+      "after": 207571,
+      "speedup": 2.005,
+      "cost_before": 419195,
+      "cost_after": 418275
+    },
+    {
+      "technicians": 50,
+      "workload": "CLUSTERED",
+      "seed": 23,
+      "before": 105718,
+      "after": 216999,
+      "speedup": 2.053,
+      "cost_before": 417570,
+      "cost_after": 417525
+    },
+    {
+      "technicians": 50,
+      "workload": "CLUSTERED",
+      "seed": 41,
+      "before": 97956,
+      "after": 221671,
+      "speedup": 2.263,
+      "cost_before": 417845,
+      "cost_after": 417331
+    },
+    {
+      "technicians": 50,
+      "workload": "DISPERSED",
+      "seed": 17,
+      "before": 107286,
+      "after": 227558,
+      "speedup": 2.121,
+      "cost_before": 453821,
+      "cost_after": 450633
+    },
+    {
+      "technicians": 50,
+      "workload": "DISPERSED",
+      "seed": 23,
+      "before": 113731,
+      "after": 230144,
+      "speedup": 2.024,
+      "cost_before": 453742,
+      "cost_after": 451007
+    },
+    {
+      "technicians": 50,
+      "workload": "DISPERSED",
+      "seed": 41,
+      "before": 115040,
+      "after": 222666,
+      "speedup": 1.936,
+      "cost_before": 455743,
+      "cost_after": 450392
+    },
+    {
+      "technicians": 50,
+      "workload": "TIGHT_WINDOW",
+      "seed": 17,
+      "before": 126012,
+      "after": 251747,
+      "speedup": 1.998,
+      "cost_before": 565902,
+      "cost_after": 564961
+    },
+    {
+      "technicians": 50,
+      "workload": "TIGHT_WINDOW",
+      "seed": 23,
+      "before": 129108,
+      "after": 246472,
+      "speedup": 1.909,
+      "cost_before": 565261,
+      "cost_after": 563337
+    },
+    {
+      "technicians": 50,
+      "workload": "TIGHT_WINDOW",
+      "seed": 41,
+      "before": 125050,
+      "after": 242676,
+      "speedup": 1.941,
+      "cost_before": 565726,
+      "cost_after": 564197
+    }
+  ],
+  "schematic_sources": {
+    "operations": [
+      "whoami",
+      "createDailyProposal",
+      "commitDailyProposal",
+      "evaluateRoutes",
+      "drawRoutes",
+      "createBookingOffers",
+      "selectBookingOffer",
+      "releaseBookingOffer",
+      "confirmBookingHold",
+      "createRepairProposal",
+      "getRequest",
+      "cancelRequest"
+    ],
+    "problems": 11,
+    "tables": 7,
+    "stored": 5
+  },
+  "evidence": {
+    "daily_cases": 6032,
+    "booking_requests": 3600,
+    "load_runs": 54
+  },
+  "budgets29": {
+    "budgets": [
+      15,
+      30,
+      60
+    ],
+    "values": {
+      "CURRENT_UNCAPPED": [
+        6.3775,
+        3.68125,
+        3.9925
+      ],
+      "KOPT": [
+        -15.36,
+        -3.34625,
+        8.3825
+      ],
+      "SUBLIST": [
+        -15.06,
+        -6.68375,
+        6.665
+      ],
+      "LATE_ACCEPTANCE": [
+        -13.08625,
+        0.29625,
+        5.47625
+      ],
+      "RUIN_RECREATE": [
+        -39.98,
+        -36.72375,
+        -24.40875
+      ]
+    }
+  },
+  "wtl": {
+    "chosen": {
+      "first": "TABU_KOPT",
+      "follow": "TABU_KOPT_SIZE_3"
+    },
+    "first": [
+      {
+        "wins": 429,
+        "ties": 72,
+        "losses": 139,
+        "solver": "TABU_SIZE_3",
+        "mean": 5.836078125
+      },
+      {
+        "wins": 188,
+        "ties": 124,
+        "losses": 328,
+        "solver": "TABU_SIZE_15",
+        "mean": -6.806375
+      },
+      {
+        "wins": 535,
+        "ties": 22,
+        "losses": 83,
+        "solver": "TABU_KOPT",
+        "mean": 7.551734375
+      },
+      {
+        "wins": 474,
+        "ties": 28,
+        "losses": 138,
+        "solver": "KOPT",
+        "mean": 1.478875
+      },
+      {
+        "wins": 455,
+        "ties": 29,
+        "losses": 156,
+        "solver": "SUBLIST",
+        "mean": 1.473890625
+      },
+      {
+        "wins": 439,
+        "ties": 40,
+        "losses": 161,
+        "solver": "LATE_ACCEPTANCE",
+        "mean": 1.0237812499999999
+      }
+    ],
+    "follow": [
+      {
+        "wins": 207,
+        "ties": 15,
+        "losses": 18,
+        "solver": "TABU_KOPT",
+        "mean": 8.219
+      },
+      {
+        "wins": 208,
+        "ties": 14,
+        "losses": 18,
+        "solver": "TABU_KOPT_SIZE_3",
+        "mean": 11.499041666666667
+      },
+      {
+        "wins": 166,
+        "ties": 31,
+        "losses": 43,
+        "solver": "TABU_SIZE_3",
+        "mean": 5.4405
+      },
+      {
+        "wins": 182,
+        "ties": 13,
+        "losses": 45,
+        "solver": "KOPT",
+        "mean": 5.161416666666667
+      }
+    ]
+  },
+  "late_mechanics": {
+    "fleets": [
+      5,
+      10,
+      20,
+      50
+    ],
+    "best_fraction": {
+      "TABU": [
+        0.07958100839015908,
+        0.14895810744699675,
+        0.6272259588889296,
+        0.6826651926635908
+      ],
+      "TABU_KOPT": [
+        0.1505755569327171,
+        0.4403955478879736,
+        0.6497584514464375,
+        0.6900343682458007
+      ],
+      "LATE_ACCEPTANCE": [
+        0.03652749781888319,
+        0.37528051636061893,
+        0.7896221431062681,
+        0.9575385522493043
+      ],
+      "KOPT": [
+        0.046096765416017524,
+        0.4848731068258518,
+        0.8387317169383404,
+        0.968002598074407
+      ]
+    },
+    "variance": [
+      {
+        "label": "WITH FAIRNESS (FIRST STUDY)",
+        "rows": [
+          {
+            "solver": "TABU",
+            "value": 0.008869105354080933
+          },
+          {
+            "solver": "TABU_KOPT",
+            "value": 0.010691473837234225
+          },
+          {
+            "solver": "KOPT",
+            "value": 0.014795845159786523
+          },
+          {
+            "solver": "LATE_ACCEPTANCE",
+            "value": 0.014777887973679698
+          }
+        ]
+      },
+      {
+        "label": "COST ONLY (FOLLOW-UP)",
+        "rows": [
+          {
+            "solver": "TABU",
+            "value": 0.052137175927354826
+          },
+          {
+            "solver": "TABU_KOPT",
+            "value": 0.05856772130868008
+          },
+          {
+            "solver": "TABU_KOPT_SIZE_3",
+            "value": 0.06038415388422116
+          }
+        ]
+      }
+    ]
+  },
+  "long_arm": {
+    "budgets": [
+      240,
+      480,
+      600
+    ],
+    "cases_per_point": 8,
+    "fleets": {
+      "30": {
+        "KOPT": [
+          0.8062499999999999,
+          3.3825,
+          3.8975
+        ],
+        "LATE_ACCEPTANCE": [
+          -2.69625,
+          -2.37375,
+          -2.6462499999999998
+        ],
+        "TABU": [
+          -11.94375,
+          -9.68,
+          -10.2025
+        ]
+      },
+      "50": {
+        "KOPT": [
+          -4.1875,
+          3.4875,
+          5.766249999999999
+        ],
+        "LATE_ACCEPTANCE": [
+          -7.88625,
+          -0.72875,
+          0.34875000000000017
+        ],
+        "TABU": [
+          -10.59375,
+          -10.25,
+          -10.685
+        ]
+      }
+    }
+  },
+  "workload24": [
+    {
+      "workload": "CLUSTERED",
+      "paid_min": 93.75,
+      "cost": 46.875,
+      "cases": 20
+    },
+    {
+      "workload": "DISPERSED",
+      "paid_min": 49.65,
+      "cost": 26.299,
+      "cases": 20
+    },
+    {
+      "workload": "SPARSE",
+      "paid_min": 0.1,
+      "cost": 0.08199999999999999,
+      "cases": 20
+    }
+  ],
+  "api_fixes": {
+    "incomplete": {
+      "before": [
+        102,
+        102
+      ],
+      "after": [
+        0,
+        123
+      ]
+    },
+    "shedding": {
+      "before": {
+        "label": "before-c5 (feat/search-outcome, seed 81)",
+        "per_minute": 127.0,
+        "p95": 2556
+      },
+      "after": {
+        "label": "after-c5 (this branch, seed 82)",
+        "per_minute": 263.0,
+        "p95": 1302
+      }
+    }
+  },
+  "paradox": {
+    "alone": [
+      {
+        "engine": "flexible",
+        "callers": 1,
+        "p50": 168.28859999999986
+      },
+      {
+        "engine": "CH-car-v1",
+        "callers": 1,
+        "p50": 14.64889999999923
+      },
+      {
+        "engine": "flexible",
+        "callers": 10,
+        "p50": 311.8634999999995
+      },
+      {
+        "engine": "CH-car-v1",
+        "callers": 10,
+        "p50": 16.85490000000027
+      }
+    ],
+    "booking": {
+      "requests": 720,
+      "flexible": {
+        "served": 379,
+        "p95": 4162.945300000021
+      },
+      "ch": {
+        "served": 383,
+        "p95": 4166.614499999909
+      }
+    }
+  },
+  "j_routing": [
+    {
+      "run": "J0",
+      "searches": 289,
+      "per_leg": 1.4769874476987448,
+      "routing_cores": 1.6633666666666664
+    },
+    {
+      "run": "J flex",
+      "searches": 454,
+      "per_leg": 0.7911646586345381,
+      "routing_cores": 13.238155555555556
+    },
+    {
+      "run": "J CH",
+      "searches": 1020,
+      "per_leg": 0.23297491039426524,
+      "routing_cores": 2.607355555555555
+    }
+  ],
+  "holds": [
+    {
+      "desks": 1,
+      "before_lost": 0,
+      "before_selected": 19,
+      "after_lost": 0,
+      "after_selected": 20,
+      "before_p95": 987,
+      "after_p95": 724,
+      "before_per_minute": 77.0,
+      "after_per_minute": 88.0,
+      "stale_per_search": 0.0
+    },
+    {
+      "desks": 5,
+      "before_lost": 14,
+      "before_selected": 38,
+      "after_lost": 0,
+      "after_selected": 32,
+      "before_p95": 6233,
+      "after_p95": 2636,
+      "before_per_minute": 102.0,
+      "after_per_minute": 129.0,
+      "stale_per_search": 0.6201550387596899
+    },
+    {
+      "desks": 10,
+      "before_lost": 23,
+      "before_selected": 39,
+      "after_lost": 0,
+      "after_selected": 34,
+      "before_p95": 12006,
+      "after_p95": 4961,
+      "before_per_minute": 102.0,
+      "after_per_minute": 128.0,
+      "stale_per_search": 1.328125
+    }
+  ],
+  "profile": {
+    "groups": [
+      "Immutable map probe",
+      "HashMap and copies",
+      "BigDecimal arithmetic",
+      "Engine timing methods",
+      "Instant and Duration",
+      "Timefold score director"
+    ],
+    "before": {
+      "Immutable map probe": 13.1,
+      "HashMap and copies": 16.8,
+      "BigDecimal arithmetic": 18.1,
+      "Engine timing methods": 10.6,
+      "Instant and Duration": 3.5,
+      "Timefold score director": 3.7
+    },
+    "after": {
+      "Immutable map probe": 12.6,
+      "Instant and Duration": 16.2,
+      "BigDecimal arithmetic": 22.5,
+      "Engine timing methods": 3.2,
+      "HashMap and copies": 6.3,
+      "Timefold score director": 2.9
+    },
+    "samples": {
+      "before": 3719,
+      "after": 2634
+    }
+  },
+  "paired_fleets": [
+    {
+      "fleet": 20,
+      "before_median": 130886.5,
+      "after_median": 192634.0,
+      "speedup": 1.536,
+      "fairness_speedup": 1.318,
+      "wins": 9,
+      "ties": 2,
+      "losses": 1
+    },
+    {
+      "fleet": 50,
+      "before_median": 106502.0,
+      "after_median": 222168.5,
+      "speedup": 2.002,
+      "fairness_speedup": 1.2810000000000001,
+      "wins": 12,
+      "ties": 0,
+      "losses": 0
+    }
+  ],
+  "today": {
+    "shed_before": 127.0,
+    "shed_after": 263.0,
+    "confirm_before": 116,
+    "confirm_after": 20,
+    "speedup": 1.791,
+    "daily_saving": 7.551734375,
+    "searches_before": 289,
+    "searches_after": 1020,
+    "lost_before": 14
+  }
+}

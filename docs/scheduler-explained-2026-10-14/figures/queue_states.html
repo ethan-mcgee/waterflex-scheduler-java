@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A queued proposal&#x27;s life</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>A queued proposal&#x27;s life</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="queue_states-title queue_states-desc">
+        <title id="queue_states-title">A queued proposal&#x27;s life</title>
+        <desc id="queue_states-desc">State machine of a daily or repair proposal sent with Prefer: respond-async: accepted 202 and queued, taken in turn by any replica, completed with the answer the call would have given, or completed with 429 after waiting 15 minutes.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="196" width="170" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="196" width="170" height="80" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="125" y="232" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">POST proposal</text>
+        <text x="125" y="252" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RESPOND-ASYNC</text>
+        <rect x="260" y="196" width="170" height="80" rx="10" fill="#FFFFFF"/>
+        <rect x="260" y="196" width="170" height="80" rx="10" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="345" y="234" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">QUEUED</text>
+        <text x="345" y="252" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DURABLE TABLE</text>
+        <rect x="500" y="196" width="170" height="80" rx="10" fill="#FFFFFF"/>
+        <rect x="500" y="196" width="170" height="80" rx="10" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="585" y="234" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">RUNNING</text>
+        <text x="585" y="252" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ANY REPLICA</text>
+        <rect x="740" y="196" width="200" height="80" rx="10" fill="#FFFFFF"/>
+        <rect x="740" y="196" width="200" height="80" rx="10" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1"/>
+        <text x="840" y="234" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">COMPLETED</text>
+        <text x="840" y="252" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE CALL&#x27;S ANSWER</text>
+        <line x1="210" y1="236" x2="260" y2="236" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="220.77" y="214" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="235" y="226" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">202</text>
+        <line x1="430" y1="236" x2="500" y2="236" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="433.72" y="214" width="62.56" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="465" y="226" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">ITS TURN</text>
+        <line x1="670" y1="236" x2="740" y2="236" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="687.36" y="214" width="35.28" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="705" y="226" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DONE</text>
+        <path d="M345,276 L345,352 Q345,360 353,360 L832,360 Q840,360 840,352 L840,276" fill="none" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="424.32" y="340" width="335.36" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="592" y="352" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">WAITED 15 MINUTES: COMPLETED WITH 429, NEVER RUN</text>
+        <path d="M125,196 L125,128 Q125,120 133,120 L300,120" fill="none" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="156.85" y="100" width="110.3" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="212" y="112" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">QUEUE FULL (50)</text>
+        <rect x="300" y="104" width="120" height="32" rx="2" fill="#FFFFFF"/>
+        <rect x="300" y="104" width="120" height="32" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="360" y="125" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">429 AT ONCE</text>
+        <text x="460" y="84" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">A worker takes the waiting request of the client whose</text>
+        <text x="460" y="102" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">last one started longest ago, with SKIP LOCKED: thirty</text>
+        <text x="460" y="120" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">overnight days of one client never hold back another</text>
+        <text x="460" y="138" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">client&#x27;s single day.</text>
+        <text x="40" y="412" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">The host polls GET /requests/{requestId} and reads QUEUED, RUNNING, then COMPLETED with the status and body the call</text>
+        <text x="40" y="430" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">would have answered.</text>
+        <text x="40" y="448" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">DELETE /requests/{requestId} is a best-effort cancel from any replica; the call then answers 409 CANCELLED.</text>
+        <line x1="40" y1="504" x2="940" y2="504" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="530" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="520" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STATE</text>
+        <rect x="200" y="520" width="18" height="12" rx="2" fill="rgba(40,122,76,0.1)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="226" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE ANSWER</text>
+        <line x1="324" y1="526" x2="360" y2="526" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="370" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REFUSAL PATH</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three kinds of evidence, one discipline</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Three kinds of evidence, one discipline</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="evidence-title evidence-desc">
+        <title id="evidence-title">Three kinds of evidence, one discipline</title>
+        <desc id="evidence-desc">Three cards for the daily solver studies, the September booking studies and the October load studies, with what one case is, how a comparison is made and what each cannot say; below, the pipeline every number passes through: raw files with hashes, a loader that checks shapes, the builder, and a verifier that reads the raw files again.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="32" width="296" height="248" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="32" width="296" height="248" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
+        <text x="56" y="54" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">FIXTURE QUALITY</text>
+        <text x="56" y="82" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Daily solver studies</text>
+        <text x="56" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">6,032 CASES</text>
+        <text x="56" y="124" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE CASE</text>
+        <text x="56" y="142" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">one synthetic day, one seed,</text>
+        <text x="56" y="160" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">one budget, one configuration</text>
+        <text x="56" y="178" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">COMPARED</text>
+        <text x="56" y="196" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">matched: same start, exact cents</text>
+        <text x="56" y="214" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CANNOT SAY</text>
+        <text x="56" y="232" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">payroll on a real day</text>
+        <rect x="348" y="32" width="290" height="248" rx="6" fill="#FFFFFF"/>
+        <rect x="348" y="32" width="290" height="248" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
+        <text x="364" y="54" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING QUALITY</text>
+        <text x="364" y="82" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Booking studies, September</text>
+        <text x="364" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">3,600 REQUESTS</text>
+        <text x="364" y="124" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE CASE</text>
+        <text x="364" y="142" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ten requests on one fixture</text>
+        <text x="364" y="160" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">day, one method</text>
+        <text x="364" y="178" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">COMPARED</text>
+        <text x="364" y="196" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">paired where both booked alike</text>
+        <text x="364" y="214" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CANNOT SAY</text>
+        <text x="364" y="232" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">a production desk&#x27;s experience</text>
+        <rect x="650" y="32" width="290" height="248" rx="6" fill="#FFFFFF"/>
+        <rect x="650" y="32" width="290" height="248" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
+        <text x="666" y="54" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BEHAVIOUR UNDER LOAD</text>
+        <text x="666" y="82" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Load studies, October</text>
+        <text x="666" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">54 RUNS</text>
+        <text x="666" y="124" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE CASE</text>
+        <text x="666" y="142" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">60 or 90 s of desks and</text>
+        <text x="666" y="160" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">planners on random addresses</text>
+        <text x="666" y="178" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">COMPARED</text>
+        <text x="666" y="196" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">fresh seeds, caller latency,</text>
+        <text x="666" y="214" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">one change per pull request</text>
+        <text x="666" y="232" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CANNOT SAY</text>
+        <text x="666" y="250" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">the real VM&#x27;s capacity</text>
+        <rect x="40" y="324" width="192" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="324" width="192" height="72" rx="6" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="136" y="356" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Raw files</text>
+        <text x="136" y="376" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SHA-256 RECORDED</text>
+        <rect x="276" y="324" width="192" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="276" y="324" width="192" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="372" y="356" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Loader</text>
+        <text x="372" y="376" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ASSERTS EVERY SHAPE</text>
+        <line x1="232" y1="360" x2="276" y2="360" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="512" y="324" width="192" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="512" y="324" width="192" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="608" y="356" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Builder</text>
+        <text x="608" y="376" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CHARTS, DOCUMENT</text>
+        <line x1="468" y1="360" x2="512" y2="360" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="748" y="324" width="192" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="748" y="324" width="192" height="72" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="844" y="356" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Verifier</text>
+        <text x="844" y="376" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RECOMPUTES FROM RAW</text>
+        <line x1="704" y1="360" x2="748" y2="360" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M136,396 L136,432 Q136,440 144,440 L836,440 Q844,440 844,432 L844,396" fill="none" stroke="#287A4C" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-accent)"/>
+        <rect x="332.55" y="420" width="314.9" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="490" y="432" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">READ AGAIN, WITHOUT THE LOADER OR THE BUILDER</text>
+        <line x1="40" y1="504" x2="940" y2="504" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="530" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="520" width="18" height="12" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">EVIDENCE AS RECORDED</text>
+        <rect x="300" y="520" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="326" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">BUILD STEP</text>
+        <rect x="424" y="520" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="450" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">INDEPENDENT CHECK</text>
+        <text x="940" y="530" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">none of it is customer traffic</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

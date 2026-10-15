@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A daily proposal&#x27;s search: two phases, then policy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>A daily proposal&#x27;s search: two phases, then policy</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="two_phase-title two_phase-desc">
+        <title id="two_phase-title">A daily proposal&#x27;s search: two phases, then policy</title>
+        <desc id="two_phase-desc">The day as sent goes through a cost search and then a fairness search inside the client&#x27;s seconds, and policy accepts the result only if it beats the day as sent. Below, the moves the searches make: relocate, swap, and the K opt move that reconnects several links of a route at once.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="48" width="140" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="48" width="140" height="72" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="110" y="80" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Day as sent</text>
+        <text x="110" y="100" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PROMISES FIXED</text>
+        <rect x="212" y="48" width="160" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="212" y="48" width="160" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="292" y="80" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Cost search</text>
+        <text x="292" y="100" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">COST SECONDS</text>
+        <rect x="404" y="48" width="160" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="404" y="48" width="160" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="484" y="80" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Fairness search</text>
+        <text x="484" y="100" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SPENDS AN ALLOWANCE</text>
+        <line x1="180" y1="84" x2="212" y2="84" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="372" y1="84" x2="404" y2="84" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <polygon points="668,28 752,84 668,140 584,84" fill="#FFFFFF"/>
+        <polygon points="668,28 752,84 668,140 584,84" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="668" y="80" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BEATS THE</text>
+        <text x="668" y="96" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY AS SENT?</text>
+        <line x1="564" y1="84" x2="584" y2="84" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="780" y="36" width="160" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="780" y="36" width="160" height="40" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="860" y="61" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">IMPROVED</text>
+        <rect x="780" y="96" width="160" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="780" y="96" width="160" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="860" y="120" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">NO_IMPROVEMENT</text>
+        <text x="860" y="140" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">OR REJECTED_BY_POLICY</text>
+        <path d="M752,84 L758,84 Q764,84 764,78 L764,62 Q764,56 770,56 L780,56" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <path d="M668,140 L668,162 Q668,168 674,168 L762,168 Q768,168 768,162 L768,130 Q768,124 774,124 L780,124" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="40" y="204" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every customer&#x27;s window holds and no overtime is added in either phase; the fairness</text>
+        <text x="40" y="222" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">search may give back a small allowance of the cost it found to spread work more evenly.</text>
+        <line x1="40" y1="256" x2="940" y2="256" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="280" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">THE MOVES A LOCAL SEARCH TRIES, ONE STEP AT A TIME</text>
+        <text x="40" y="318" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Relocate</text>
+        <text x="40" y="338" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE VISIT TO ANOTHER ROUTE</text>
+        <text x="346" y="318" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Swap</text>
+        <text x="346" y="338" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TWO VISITS TRADE PLACES</text>
+        <text x="652" y="318" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">K opt</text>
+        <text x="652" y="338" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SEVERAL LINKS AT ONCE</text>
+        <line x1="60" y1="398" x2="280" y2="398" stroke="rgba(31,42,51,0.35)" stroke-width="1.2"/>
+        <rect x="48" y="388" width="20" height="20" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="58" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">D</text>
+        <circle cx="102" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="102" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1</text>
+        <circle cx="146" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="146" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2</text>
+        <circle cx="190" cy="398" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="190" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">X</text>
+        <circle cx="234" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="234" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3</text>
+        <line x1="60" y1="498" x2="236" y2="498" stroke="rgba(31,42,51,0.35)" stroke-width="1.2"/>
+        <rect x="48" y="488" width="20" height="20" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="58" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">D</text>
+        <circle cx="102" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="102" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4</text>
+        <circle cx="146" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="146" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5</text>
+        <circle cx="190" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="190" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">6</text>
+        <path d="M190,410 L190,440 Q190,448 182,448 L176,448 Q168,448 168,456 L168,486" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <text x="40" y="558" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">X leaves route A and enters route B</text>
+        <line x1="366" y1="398" x2="586" y2="398" stroke="rgba(31,42,51,0.35)" stroke-width="1.2"/>
+        <rect x="354" y="388" width="20" height="20" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="364" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">D</text>
+        <circle cx="408" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="408" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1</text>
+        <circle cx="452" cy="398" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="452" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">X</text>
+        <circle cx="496" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="496" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3</text>
+        <circle cx="540" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="540" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4</text>
+        <line x1="366" y1="498" x2="542" y2="498" stroke="rgba(31,42,51,0.35)" stroke-width="1.2"/>
+        <rect x="354" y="488" width="20" height="20" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="364" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">D</text>
+        <circle cx="408" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="408" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5</text>
+        <circle cx="452" cy="498" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="452" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">Y</text>
+        <circle cx="496" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="496" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">6</text>
+        <line x1="446" y1="410" x2="446" y2="486" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <line x1="458" y1="486" x2="458" y2="410" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <text x="346" y="558" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">X and Y exchange routes in one move</text>
+        <line x1="672" y1="398" x2="936" y2="398" stroke="rgba(31,42,51,0.35)" stroke-width="1.2"/>
+        <rect x="660" y="388" width="20" height="20" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="670" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">D</text>
+        <circle cx="714" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="714" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1</text>
+        <circle cx="758" cy="398" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="758" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2</text>
+        <circle cx="802" cy="398" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="802" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3</text>
+        <circle cx="846" cy="398" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="846" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4</text>
+        <circle cx="890" cy="398" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="890" y="402" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5</text>
+        <line x1="672" y1="498" x2="936" y2="498" stroke="rgba(31,42,51,0.35)" stroke-width="1.2"/>
+        <rect x="660" y="488" width="20" height="20" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="670" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">D</text>
+        <circle cx="714" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="714" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1</text>
+        <circle cx="758" cy="498" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="758" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4</text>
+        <circle cx="802" cy="498" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="802" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3</text>
+        <circle cx="846" cy="498" r="12" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="846" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2</text>
+        <circle cx="890" cy="498" r="12" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="890" y="502" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5</text>
+        <line x1="802" y1="414" x2="802" y2="482" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="652" y="558" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">2 to 4 reversed: three links change</text>
+        <text x="652" y="576" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">together, which single steps cannot</text>
+        <line x1="40" y1="616" x2="940" y2="616" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="642" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="632" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A SEARCH STEP</text>
+        <rect x="252" y="632" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="278" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WHAT THE MOVE CHANGES</text>
+        <rect x="452" y="632" width="18" height="12" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="478" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">DEPOT</text>
+        <text x="940" y="664" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">Tabu also keeps a short list of visits it will not move back</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

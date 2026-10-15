@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What lives in a replica and what lives in the database</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>What lives in a replica and what lives in the database</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="replicas-title replicas-desc">
+        <title id="replicas-title">What lives in a replica and what lives in the database</title>
+        <desc id="replicas-desc">Architecture of three replicas behind the proxy: each keeps only its admission slots, the memory tier of the route cache and its list of running calls, while correctness lives in the shared database.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="290" y="32" width="400" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="290" y="32" width="400" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="490" y="56" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">scheduler-proxy</text>
+        <text x="490" y="76" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NO STICKY SESSIONS: ANY REPLICA, SAME ANSWER</text>
+        <rect x="40" y="136" width="284" height="236" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="52" y="140" width="100.816" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="60" y="151" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING REPLICA</text>
+        <text x="182" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SCHEDULER_ROLE=BOOKING</text>
+        <rect x="64" y="192" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="64" y="192" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="182" y="219" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search slots (admission)</text>
+        <rect x="64" y="248" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="64" y="248" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="182" y="275" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Route cache, memory tier</text>
+        <rect x="64" y="304" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="64" y="304" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="182" y="331" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Running calls</text>
+        <path d="M390,88 L390,104 Q390,112 382,112 L190,112 Q182,112 182,120 L182,136" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="182" y1="372" x2="182" y2="420" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="348" y="136" width="284" height="236" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="360" y="140" width="100.816" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="368" y="151" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING REPLICA</text>
+        <text x="490" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SCHEDULER_ROLE=BOOKING</text>
+        <rect x="372" y="192" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="372" y="192" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="490" y="219" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search slots (admission)</text>
+        <rect x="372" y="248" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="372" y="248" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="490" y="275" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Route cache, memory tier</text>
+        <rect x="372" y="304" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="372" y="304" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="490" y="331" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Running calls</text>
+        <path d="M490,88 L490,136" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="490" y1="372" x2="490" y2="420" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="656" y="136" width="284" height="236" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="668" y="140" width="89.5072" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="676" y="151" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY REPLICA</text>
+        <text x="798" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEVERAL CALCULATIONS AT ONCE</text>
+        <rect x="680" y="192" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="680" y="192" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="798" y="219" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search slots (admission)</text>
+        <rect x="680" y="248" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="680" y="248" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="798" y="275" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Route cache, memory tier</text>
+        <rect x="680" y="304" width="236" height="44" rx="6" fill="#FFFFFF"/>
+        <rect x="680" y="304" width="236" height="44" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="798" y="331" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Running calls</text>
+        <path d="M590,88 L590,104 Q590,112 598,112 L790,112 Q798,112 798,120 L798,136" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="798" y1="372" x2="798" y2="420" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="40" y="420" width="900" height="164" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="420" width="900" height="164" rx="6" fill="rgba(40,122,76,0.06)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="56" y="442" fill="#287A4C" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">SCHEDULER-DB: WHERE CORRECTNESS LIVES</text>
+        <text x="64" y="480" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Row locks + unique keys</text>
+        <text x="64" y="502" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">(TENANT, TECHNICIAN, DATE)</text>
+        <text x="364" y="480" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Timestamp comparison</text>
+        <text x="364" y="502" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">IN ONE TRANSACTION</text>
+        <text x="664" y="480" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Request claims</text>
+        <text x="664" y="502" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">HASH + 60 S LEASE</text>
+        <text x="64" y="536" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Durable queue</text>
+        <text x="64" y="558" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SKIP LOCKED, TURNS BY CLIENT</text>
+        <text x="364" y="536" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Cancel flag</text>
+        <text x="364" y="558" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SEEN BY ANY REPLICA IN ~1 S</text>
+        <line x1="40" y1="604" x2="940" y2="604" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="630" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="620" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">PER REPLICA, BY DESIGN</text>
+        <rect x="316" y="620" width="18" height="12" rx="2" fill="rgba(40,122,76,0.06)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="342" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SHARED, AND WHERE CORRECTNESS LIVES</text>
+        <text x="940" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">the role picks background work only</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

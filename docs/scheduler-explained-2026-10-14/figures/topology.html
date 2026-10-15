@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Where the scheduler runs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #FFFFFF;
+      --color-ink:     #1F2A33;
+      --color-muted:   #444444;
+      --color-accent:  #287A4C;
+      --font-sans:     'Calibri', 'Carlito', system-ui, sans-serif;
+      --font-serif:    'Calibri', 'Carlito', serif;
+      --font-mono:     'Consolas', 'Liberation Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · WaterFlex scheduler explained, figure 1</p>
+    <h1>Where the scheduler runs</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 744" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="topology-title topology-desc">
+        <title id="topology-title">Where the scheduler runs</title>
+        <desc id="topology-desc">The WaterFlex Software backend calls one address on the scheduler VM; behind it a proxy sends booking calls to the booking pool and proposals to the daily pool, and every replica reaches a routing service per metro, an optional Nominatim and the scheduler's own database.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+        </defs>
+
+        <rect x="0" y="0" width="980" height="744" fill="#FFFFFF"/>
+
+        <!-- Zone: the scheduler VM (trust boundary) -->
+        <rect x="24" y="168" width="932" height="488" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="32" y="172" width="488" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="40" y="183" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" font-weight="500" letter-spacing="0.14em">SCHEDULER VM · PRIVATE NETWORK · PARTITIONED CPU AND MEMORY · ONE JAR, MANY REPLICAS</text>
+
+        <!-- Arrows (drawn before nodes): the host calls the proxy; results return dashed -->
+        <line x1="720" y1="120" x2="720" y2="208" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="610" y="140" width="100" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="710" y="152" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">HTTPS /API/V1</text>
+        <line x1="800" y1="208" x2="800" y2="120" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="810" y="140" width="64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="810" y="152" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">RESULTS</text>
+
+        <!-- Proxy to the two pools -->
+        <line x1="152" y1="288" x2="152" y2="432" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="162" y="352" width="108" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="162" y="364" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">BOOKING CALLS</text>
+        <line x1="828" y1="288" x2="828" y2="432" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="738" y="352" width="80" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="818" y="364" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">PROPOSALS</text>
+
+        <!-- Booking pool to the three shared pieces (fanned ports on its right edge) -->
+        <path d="M248,456 H300 Q308,456 308,448 V364 Q308,356 316,356 H386" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="248" y1="480" x2="386" y2="480" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M248,504 H300 Q308,504 308,512 V580 Q308,588 316,588 H386" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Daily pool to the same three (fanned ports on its left edge) -->
+        <path d="M732,456 H680 Q672,456 672,448 V364 Q672,356 664,356 H594" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="732" y1="480" x2="594" y2="480" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M732,504 H680 Q672,504 672,512 V580 Q672,588 664,588 H594" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+        <!-- Node: the host -->
+        <rect x="600" y="40" width="300" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="600" y="40" width="300" height="80" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="608" y="46" width="40" height="16" rx="2" fill="transparent" stroke="rgba(90,107,122,0.40)" stroke-width="0.8"/>
+        <text x="628" y="58" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">HOST</text>
+        <text x="750" y="84" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">WaterFlex Software</text>
+        <text x="750" y="104" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MASTER DATA · LASTMODIFIED</text>
+
+        <!-- Node: the proxy (focal: the one address) -->
+        <rect x="56" y="208" width="868" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="56" y="208" width="868" height="80" rx="6" fill="#7DAFCB" stroke="#287A4C" stroke-width="1.6"/>
+        <rect x="64" y="214" width="48" height="16" rx="2" fill="transparent" stroke="rgba(40,122,76,0.50)" stroke-width="0.8"/>
+        <text x="88" y="226" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">ENTRY</text>
+        <text x="490" y="252" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">scheduler-proxy</text>
+        <text x="490" y="272" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NGINX :8000 · THE ONE ADDRESS A HOST CALLS</text>
+
+        <!-- Node: booking pool -->
+        <rect x="56" y="432" width="192" height="96" rx="6" fill="#FFFFFF"/>
+        <rect x="56" y="432" width="192" height="96" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="64" y="438" width="40" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.40)" stroke-width="0.8"/>
+        <text x="84" y="450" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">POOL</text>
+        <text x="152" y="476" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">Booking pool</text>
+        <text x="152" y="496" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">REPLICAS OF ONE JAR</text>
+        <text x="152" y="512" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EMBEDDED ENGINE</text>
+
+        <!-- Node: daily pool -->
+        <rect x="732" y="432" width="192" height="96" rx="6" fill="#FFFFFF"/>
+        <rect x="732" y="432" width="192" height="96" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="740" y="438" width="40" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.40)" stroke-width="0.8"/>
+        <text x="760" y="450" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">POOL</text>
+        <text x="828" y="476" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">Daily pool</text>
+        <text x="828" y="496" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">REPLICAS OF ONE JAR</text>
+        <text x="828" y="512" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EMBEDDED ENGINE</text>
+
+        <!-- Node: routing service -->
+        <rect x="386" y="320" width="208" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="386" y="320" width="208" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="394" y="326" width="76" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.40)" stroke-width="0.8"/>
+        <text x="432" y="338" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">PER METRO</text>
+        <text x="490" y="362" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">Routing service</text>
+        <text x="490" y="382" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CH ROAD GRAPH</text>
+
+        <!-- Node: Nominatim (optional) -->
+        <rect x="386" y="444" width="208" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="386" y="444" width="208" height="72" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="394" y="450" width="68" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.40)" stroke-width="0.8"/>
+        <text x="428" y="462" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">OPTIONAL</text>
+        <text x="490" y="486" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">Nominatim</text>
+        <text x="490" y="506" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EXACT HOUSE GEOCODER</text>
+
+        <!-- Node: scheduler-db -->
+        <rect x="386" y="552" width="208" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="386" y="552" width="208" height="72" rx="6" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="394" y="558" width="68" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.40)" stroke-width="0.8"/>
+        <text x="428" y="570" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">POSTGRES</text>
+        <text x="490" y="594" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">scheduler-db</text>
+        <text x="490" y="614" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THIN STORE · ROUTE CACHE</text>
+
+        <!-- Node: management port (private, not behind the proxy) -->
+        <rect x="732" y="560" width="192" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="732" y="560" width="192" height="64" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="740" y="566" width="60" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.40)" stroke-width="0.8"/>
+        <text x="770" y="578" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">PRIVATE</text>
+        <text x="828" y="598" fill="#1F2A33" font-size="16" font-weight="700" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">Management port</text>
+        <text x="828" y="618" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">:9000 · HEALTH, METRICS</text>
+
+        <!-- Callout: the boundary, as an aside beside the host -->
+        <text x="40" y="76" fill="#1F2A33" font-size="14" font-style="italic" font-family="'Calibri', 'Carlito', serif">nothing else connects: no shared database,</text>
+        <text x="40" y="94" fill="#1F2A33" font-size="14" font-style="italic" font-family="'Calibri', 'Carlito', serif">no client library, no callbacks</text>
+
+        <!-- Legend strip, two rows -->
+        <line x1="30" y1="676" x2="950" y2="676" stroke="rgba(31,42,51,0.10)" stroke-width="0.8"/>
+        <text x="30" y="700" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" letter-spacing="0.14em">LEGEND</text>
+        <rect x="100" y="690" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="126" y="700" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">SCHEDULER SERVICE</text>
+        <rect x="272" y="690" width="18" height="12" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="298" y="700" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">STORE</text>
+        <rect x="360" y="690" width="18" height="12" rx="2" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="386" y="700" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">HOST SYSTEM</text>
+        <rect x="492" y="690" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8" stroke-dasharray="3,2"/>
+        <text x="518" y="700" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">OPTIONAL OR PRIVATE</text>
+        <line x1="100" y1="718" x2="136" y2="718" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <text x="146" y="722" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">HTTPS CALL</text>
+        <line x1="244" y1="718" x2="280" y2="718" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="290" y="722" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">INTERNAL CALL</text>
+        <line x1="408" y1="718" x2="444" y2="718" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="454" y="722" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace">RETURN</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
