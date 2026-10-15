@@ -1,11 +1,12 @@
 """Verify the built report against its raw sources, without the loader's or builder's helpers.
 
-Recomputes the numerical tables and the chart datasets from the evidence files and experiment archives directly,
-compares them cell for cell with the document, and checks the preserved template parts, figure descriptions, table
-row splitting and the absence of em and en dashes.
+Recomputes the chart datasets from the evidence files and experiment archives directly, checks the timeline's pull
+request dates against the repository's merge history, and checks the preserved template parts, figure descriptions,
+table row splitting, the absence of citation markers and Appendix C, and the absence of em and en dashes.
 """
 import json
 import re
+import subprocess
 from hashlib import sha256
 from pathlib import Path
 from statistics import mean, median
@@ -21,9 +22,8 @@ REFERENCE = HERE.parent / "WaterFlex_Scheduler_Algorithm_Comparison_Explained.do
 PRESERVE = ("word/styles.xml", "word/stylesWithEffects.xml", "word/numbering.xml", "word/theme/theme1.xml", "word/fontTable.xml")
 FIRST = ROOT / "experiments/runs/20261010T040557Z-daily-tabu-variants-p6-5d15129b"
 FOLLOW = ROOT / "experiments/runs/20261013T052707Z-daily-search-followup-6454fb05"
+LONG = ROOT / "experiments/runs/20261013T103709Z-daily-search-long-budget-a317757e"
 OFFERS, CONFIRM = "POST /api/v1/booking/offers 201", "POST /api/v1/booking/holds/{holdId}/confirm 200"
-LABEL = {"TABU": "Tabu", "TABU_SIZE_3": "Tabu size 3", "TABU_SIZE_15": "Tabu size 15", "TABU_KOPT": "Tabu + K opt", "TABU_KOPT_SIZE_3": "Tabu + K opt size 3",
-         "KOPT": "K opt", "SUBLIST": "Sublist", "LATE_ACCEPTANCE": "Late acceptance"}
 checked = []
 
 
@@ -36,7 +36,7 @@ def dollars(value):
 
 
 def cases(run, keyed_by_fixture_seed):
-    """Every raw result of a run, read from the files the analysis provenance names, as (key, variant, after cost cents)."""
+    """Every raw result of a run, read from the files the analysis provenance names, as a dict of key, variant, cost, variance and best-found point."""
     analysis = sorted((run / "analysis").iterdir())[-1]
     out = []
     for item in read(analysis / "analysis-provenance.json")["inputs"]:
@@ -44,29 +44,20 @@ def cases(run, keyed_by_fixture_seed):
         assert sha256(path.read_bytes()).hexdigest() == item["sha256"], path
         raw = [r for r in map(json.loads, path.read_text().splitlines()) if r.get("type") == "result"][0]
         key = (raw["technicians"], raw["workload"], raw.get("fixtureSeed") if keyed_by_fixture_seed else None, raw["seed"], raw["budgetMs"])
-        out.append((key, raw["variant"], raw["after"]["costCents"]))
+        phase = raw["referencePhase"]
+        out.append({"key": key, "variant": raw["variant"], "cost": raw["after"]["costCents"], "variance": raw["after"]["fairness"]["variance"],
+                    "best": phase["timeToBestMs"] / phase["solveMs"]})
     return out
 
 
 def savings(rows, control):
-    twins = {k: c for k, v, c in rows if v == control}
-    return [(k, v, (twins[k] - c) / 100) for k, v, c in rows if v != control]
+    """(key, variant, saving in dollars against the matched control) for every non-control case."""
+    twins = {c["key"]: c["cost"] for c in rows if c["variant"] == control}
+    return [(c["key"], c["variant"], (twins[c["key"]] - c["cost"]) / 100) for c in rows if c["variant"] != control]
 
 
-def study_table(rows, solvers, fleets):
-    out = []
-    for s in solvers:
-        own = [(k, x) for k, v, x in rows if v == s]
-        out.append([LABEL[s], dollars(mean(x for _, x in own)), f"{sum(x > 0 for _, x in own)} / {sum(x == 0 for _, x in own)} / {sum(x < 0 for _, x in own)}",
-                    *[dollars(mean(x for k, x in own if k[0] == f)) for f in fleets]])
-    return out
-
-
-def table_rows(doc, header):
-    for t in doc.tables:
-        if [c.text for c in t.rows[0].cells] == header:
-            return [[c.text for c in r.cells] for r in t.rows[1:]]
-    raise AssertionError(header)
+def close(a, b):
+    return abs(a - b) < 1e-9
 
 
 def check(name, expected, actual):
@@ -93,26 +84,52 @@ def main():
             assert ref.read(name) == built.read(name), name
         xml = built.read("word/document.xml").decode("utf-8")
     assert "—" not in xml and "–" not in xml
+    order = (HERE / "generated/figures.txt").read_text(encoding="utf-8").split()
+    assert len(order) == len(set(order)) and {p.stem for p in (HERE / "generated").glob("*.png")} == set(order), "every figure placed once"
     descriptions = re.findall(r'<wp:docPr [^>]*descr="([^"]*)"', xml)
-    assert len(descriptions) == 12 and all(d.startswith("Figure ") for d in descriptions), len(descriptions)
+    assert len(descriptions) == len(order) and all(d.startswith(f"Figure {i}. ") for i, d in enumerate(descriptions, 1)), len(descriptions)
+    text = "\n".join(para.text for para in doc.paragraphs) + "\n".join(c.text for t in doc.tables for row in t.rows for c in row.cells)
+    assert not re.search(r"\[\d", text), "no citation markers"
+    assert "Appendix C" not in text and "References" not in [para.text for para in doc.paragraphs if para.style.name.startswith("Heading")]
     assert xml.count("<w:tr>") + xml.count("<w:tr ") == xml.count("<w:cantSplit/>"), "every row must refuse to split"
-    checked.append("template, figures, rows, dashes")
+    checked.append(f"template, {len(order)} figures, rows, dashes, no citations")
+
+    # The timeline's pull request dates against the merge history.
+    merged = {}
+    for line in subprocess.run(["git", "log", "origin/main", "--merges", "--format=%ad %s", "--date=short"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.splitlines():
+        found = re.match(r"(\d{4}-\d{2}-\d{2}) Merge pull request #(\d+) ", line)
+        if found: merged.setdefault(int(found.group(2)), found.group(1))
+    dated = [e for e in charts["timeline"] if e["pr"] is not None]
+    assert len(dated) == 12 and all(merged.get(e["pr"]) == e["date"] for e in dated), [(e["pr"], e["date"], merged.get(e["pr"])) for e in dated]
+    checked.append("timeline merge dates")
 
     # The daily paired means by budget (Sept 29).
     summary = read(EVIDENCE / "scheduler-field-2026-09-29/summary.json")
     paired = {(d["budgetSeconds"], d["variant"]): d["meanSavingsCents"] / 100 for d in summary["dailyPaired"]}
-    check("sept 29 budgets", [[f"{b} s", *[dollars(paired[(b, v)]) for v in ("CURRENT_UNCAPPED", "KOPT", "SUBLIST", "LATE_ACCEPTANCE", "RUIN_RECREATE")]] for b in (15, 30, 60)],
-          table_rows(doc, ["Budget", "Uncapped original", "K opt", "Sublist", "Late acceptance", "Ruin and recreate"]))
+    check("budgets29 chart", {"budgets": [15, 30, 60], "values": {v: [paired[(b, v)] for b in (15, 30, 60)] for v in ("CURRENT_UNCAPPED", "KOPT", "SUBLIST", "LATE_ACCEPTANCE", "RUIN_RECREATE")}},
+          charts["budgets29"])
 
     # The two daily studies, from the raw result files.
-    first = savings(cases(FIRST, False), "TABU")
-    assert len(first) == 4480 * 6 // 7
-    check("tabu variant study", study_table(first, ("TABU_SIZE_3", "TABU_SIZE_15", "TABU_KOPT", "KOPT", "SUBLIST", "LATE_ACCEPTANCE"), (5, 10, 20, 50)),
-          table_rows(doc, ["Configuration", "Mean saving vs Tabu", "Wins / ties / losses", "5 techs", "10", "20", "50"]))
-    follow = savings(cases(FOLLOW, True), "TABU")
-    assert len(follow) == 1200 * 4 // 5
-    check("follow-up study", study_table(follow, ("TABU_KOPT", "TABU_KOPT_SIZE_3", "TABU_SIZE_3", "KOPT"), (5, 10, 20, 30, 50)),
-          table_rows(doc, ["Configuration", "Mean saving vs Tabu", "Wins / ties / losses", "5 techs", "10", "20", "30", "50"]))
+    raw_first, raw_follow, raw_long = cases(FIRST, False), cases(FOLLOW, True), cases(LONG, True)
+    first, follow = savings(raw_first, "TABU"), savings(raw_follow, "TABU")
+    assert len(first) == 4480 * 6 // 7 and len(follow) == 1200 * 4 // 5 and len(raw_long) == 192
+    for key, rows in (("first", first), ("follow", follow)):
+        for entry in charts["wtl"][key]:
+            own = [x for _, v, x in rows if v == entry["solver"]]
+            assert (entry["wins"], entry["ties"], entry["losses"]) == (sum(x > 0 for x in own), sum(x == 0 for x in own), sum(x < 0 for x in own)) and close(entry["mean"], mean(own)), entry
+    assert charts["wtl"]["chosen"] == {"first": "TABU_KOPT", "follow": "TABU_KOPT_SIZE_3"}
+    checked.append("wtl chart")
+    late = charts["late_mechanics"]
+    for solver, values in late["best_fraction"].items():
+        assert all(close(v, mean(c["best"] for c in raw_first if c["variant"] == solver and c["key"][0] == f)) for v, f in zip(values, late["fleets"])), solver
+    for group, raw in zip(late["variance"], (raw_first, raw_follow)):
+        assert all(close(e["value"], mean(c["variance"] for c in raw if c["variant"] == e["solver"])) for e in group["rows"]), group["label"]
+    checked.append("late_mechanics chart")
+    arm = savings(raw_long, "TABU_KOPT")
+    for fleet, by_solver in charts["long_arm"]["fleets"].items():
+        for solver, values in by_solver.items():
+            assert all(close(v, mean(x for k, s, x in arm if s == solver and k[0] == int(fleet) and k[4] == b * 1000)) for v, b in zip(values, charts["long_arm"]["budgets"])), (fleet, solver)
+    checked.append("long_arm chart")
     for key, rows, solvers, fleets in (("first", first, charts["daily_fleet"]["first"]["solvers"], (5, 10, 20, 50)), ("follow", follow, charts["daily_fleet"]["follow"]["solvers"], (5, 10, 20, 30, 50))):
         values = [[mean(x for k, v, x in rows if v == s and k[0] == f) for f in fleets] + [mean(x for k, v, x in rows if v == s)] for s in solvers]
         assert all(abs(a - b) < 1e-9 for ra, rb in zip(values, charts["daily_fleet"][key]["values"]) for a, b in zip(ra, rb)), key
@@ -123,14 +140,11 @@ def main():
     concurrency = read(EVIDENCE / "api-load-2026-10-13-booking-concurrency.json")
     base = {r["label"]: r for r in baseline["runs"]}
     fresh = {r["label"]: r for r in concurrency["coldRemeasurement"]["runs"]}
-    lat = lambda o: f"{o['ms']['p50']:,} / {o['ms']['p95']:,} ms"
-    check("#151 runs", [[name, f"{per_minute(r):.0f}", lat(op(r, "booking offers")), f"{op(r, 'confirm')['ms']['p50']:,} ms", f"{r['booking']['holdUnavailable']} of {r['booking']['selected']}", str(op(r, "booking offers")["retriedBusy"])]
-                        for name, r in (("1 desk", base["booking-cold-c1"]), ("5 desks", base["booking-cold-c5"]), ("10 desks", base["booking-cold-c10"]))],
-          table_rows(doc, ["Run (#151)", "Searches / min", "Offers p50 / p95", "Confirm p50", "Holds lost", "Waited on 429"]))
-    check("#152 desks", [[str(n), f"{b['booking']['holdUnavailable']} of {b['booking']['selected']} / {a['booking']['holdUnavailable']} of {a['booking']['selected']}",
-                          f"{op(b, 'booking offers')['ms']['p95'] / 1000:.1f} s / {op(a, 'booking offers')['ms']['p95'] / 1000:.1f} s", f"{per_minute(b):.0f} / {per_minute(a):.0f}", f"{a['booking']['stale'] / a['booking']['searches']:.2f}"]
-                         for n, b, a in ((1, base["booking-cold-c1"], fresh["cold-recheck-c1 (seed 93)"]), (5, base["booking-cold-c5"], fresh["cold-recheck-c5 (seed 91)"]), (10, base["booking-cold-c10"], fresh["cold-recheck-c10 (seed 92)"]))],
-          table_rows(doc, ["Desks", "Holds lost before / after", "Offers p95 before / after (fresh seeds)", "Searches / min before / after", "STALE resends per search after"]))
+    check("holds chart", [{"desks": n, "before_lost": b["booking"]["holdUnavailable"], "before_selected": b["booking"]["selected"], "after_lost": a["booking"]["holdUnavailable"],
+                           "after_selected": a["booking"]["selected"], "before_p95": op(b, "booking offers")["ms"]["p95"], "after_p95": op(a, "booking offers")["ms"]["p95"],
+                           "before_per_minute": per_minute(b), "after_per_minute": per_minute(a), "stale_per_search": a["booking"]["stale"] / a["booking"]["searches"]}
+                          for n, b, a in ((1, base["booking-cold-c1"], fresh["cold-recheck-c1 (seed 93)"]), (5, base["booking-cold-c5"], fresh["cold-recheck-c5 (seed 91)"]), (10, base["booking-cold-c10"], fresh["cold-recheck-c10 (seed 92)"]))],
+          charts["holds"])
 
     # The routing runs (J0, J) and the chart datasets that use the VM runs.
     vm = {r["label"]: r for r in read(EVIDENCE / "api-load-2026-10-14-vm-baseline.json")["runs"]}
@@ -139,9 +153,11 @@ def main():
     remote = {r["label"]: r for r in read(EVIDENCE / "api-load-2026-10-14-embedded-vs-remote.json")["runs"]}
     cpu = lambda r, what: [c for c in r["booking"]["containers"] if what in c["name"]][0]["cpuPercent"]["mean"]
     per_leg = lambda r: r["serverBreakdown"][OFFERS]["routingMs"]["p50"] / r["serverBreakdown"][OFFERS]["fetched"]["p50"]
-    check("J routing", [[name, str(r["booking"]["booking"]["searches"]), lat(op(r["booking"], "booking offers")), f"{r['serverBreakdown'][OFFERS]['queueMs']['p50']:,} ms", f"{r['serverBreakdown'][OFFERS]['routingMs']['p50']:,} ms", f"{per_leg(r):.2f} ms", f"{cpu(r, 'routing'):.0f}%"]
-                        for name, r in (("J0 baseline, flexible", vm["base-spread2"]), ("J, flexible graph", routing["j-flex"]), ("J, CH graph", routing["j-ch"]))],
-          table_rows(doc, ["Run", "Searches in 60 s", "Caller p50 / p95", "Slot wait", "Routing", "Per fetched leg", "Routing CPU"]))
+    j_runs = [(name, r) for name, r in (("J0", vm["base-spread2"]), ("J flex", routing["j-flex"]), ("J CH", routing["j-ch"]))]
+    assert [e["run"] for e in charts["j_routing"]] == [n for n, _ in j_runs]
+    for entry, (name, r) in zip(charts["j_routing"], j_runs):
+        assert entry["searches"] == r["booking"]["booking"]["searches"] and close(entry["per_leg"], per_leg(r)) and close(entry["routing_cores"], cpu(r, "routing") / 100), entry
+    checked.append("j_routing chart")
     attribution = [("J0 baseline", vm["base-spread2"]), ("J flexible", routing["j-flex"]), ("J CH", routing["j-ch"]), ("J2 shipped", priority["j2-slot"]), ("K remote", remote["k-remote5"])]
     expected = [{"stage": s, "operation": o, "elapsed_p50": r["serverBreakdown"][o]["elapsedMs"]["p50"], **{k: r["serverBreakdown"][o][k]["p50"] for k in ("queueMs", "routingMs", "calculationMs", "dbMs")}} for s, r in attribution for o in (OFFERS, CONFIRM)]
     check("attribution chart", expected, charts["attribution"])
@@ -169,14 +185,22 @@ def main():
     checked.append("ch chart")
     prof = read(EVIDENCE / "solver-profiling-2026-10-14.json")
     pairs = prof["paired"]["pairs"]
-    fleet_rows = []
-    for fleet in (20, 50):
-        fp = [x for x in pairs if x["technicians"] == fleet]
-        ratios = [x["costPhaseMovesPerSecond"]["after"] / x["costPhaseMovesPerSecond"]["before"] for x in fp]
-        wins = sum(x["afterCostCents"]["after"] < x["afterCostCents"]["before"] for x in fp); ties = sum(x["afterCostCents"]["after"] == x["afterCostCents"]["before"] for x in fp)
-        fleet_rows.append([f"{fleet} technicians", f"{median(x['costPhaseMovesPerSecond']['before'] for x in fp) / 1000:.0f}k to {median(x['costPhaseMovesPerSecond']['after'] for x in fp) / 1000:.0f}k ({median(round(r, 3) for r in ratios):.2f}x)",
-                           f"{median(x['fairnessPhaseMovesPerSecond']['after'] / x['fairnessPhaseMovesPerSecond']['before'] for x in fp):.2f}x", f"{wins} of 12" + (f" ({ties} ties, {12 - wins - ties} dearer)" if wins < 12 else "")])
-    check("paired fleets", fleet_rows, table_rows(doc, ["Fleet", "Cost-phase moves per second, median before to after", "Fairness-phase speedup, median", "Cases cheaper after at the same budget"]))
+    for entry in charts["paired_fleets"]:
+        fp = [x for x in pairs if x["technicians"] == entry["fleet"]]
+        assert len(fp) == 12 and entry["before_median"] == median(x["costPhaseMovesPerSecond"]["before"] for x in fp) and entry["after_median"] == median(x["costPhaseMovesPerSecond"]["after"] for x in fp)
+        assert abs(entry["speedup"] - median(x["costPhaseMovesPerSecond"]["after"] / x["costPhaseMovesPerSecond"]["before"] for x in fp)) < 0.005, entry
+        assert abs(entry["fairness_speedup"] - median(x["fairnessPhaseMovesPerSecond"]["after"] / x["fairnessPhaseMovesPerSecond"]["before"] for x in fp)) < 0.005, entry
+        assert (entry["wins"], entry["ties"], entry["losses"]) == (sum(x["afterCostCents"]["after"] < x["afterCostCents"]["before"] for x in fp),
+                                                                   sum(x["afterCostCents"]["after"] == x["afterCostCents"]["before"] for x in fp), sum(x["afterCostCents"]["after"] > x["afterCostCents"]["before"] for x in fp)), entry
+    assert [e["fleet"] for e in charts["paired_fleets"]] == [20, 50]
+    checked.append("paired_fleets chart")
+    for side, raw in (("before", prof["profileBefore"]), ("after", prof["profileAfter"])):
+        groups = charts["profile"][side]
+        assert charts["profile"]["samples"][side] == raw["samples"] == sum(raw["recordings"].values())
+        assert abs(sum(groups.values()) - sum(raw["leafFramesPercent"].values())) < 0.5, side
+        assert groups["Immutable map probe"] == round(sum(v for k, v in raw["leafFramesPercent"].items() if k.startswith("java/util/ImmutableCollections$MapN")), 1), side
+        assert groups["BigDecimal arithmetic"] >= round(sum(v for k, v in raw["leafFramesPercent"].items() if k.startswith("java/math/BigDecimal.")), 1), side
+    checked.append("profile chart")
     assert len(charts["paired"]) == 24 and all(p["before"] == x["costPhaseMovesPerSecond"]["before"] and p["after"] == x["costPhaseMovesPerSecond"]["after"] for p, x in zip(charts["paired"], pairs))
     checked.append("paired chart")
 

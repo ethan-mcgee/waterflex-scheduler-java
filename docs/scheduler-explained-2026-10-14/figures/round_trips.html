@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Why a remote engine costs booking more than it saves</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Why a remote engine costs booking more than it saves</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="round_trips-title round_trips-desc">
+        <title id="round_trips-title">Why a remote engine costs booking more than it saves</title>
+        <desc id="round_trips-desc">Left: an embedded booking search calls the engine in process. Right: with a remote pool each of up to three engine calls (insertion, refinement, the retry on a moved day) encodes a snapshot, sends it, waits and decodes the answer; the engine share of a search grows accordingly.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="40" y="48" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Embedded (the default)</text>
+        <rect x="60" y="68" width="200" height="52" rx="6" fill="#FFFFFF"/>
+        <rect x="60" y="68" width="200" height="52" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="160" y="100" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booking replica</text>
+        <line x1="160" y1="120" x2="160" y2="470" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <path d="M164,160 H196 Q204,160 204,168 V176 Q204,184 196,184 H172" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="216" y="164" width="151.22" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="216" y="176" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">INSERTION: IN PROCESS</text>
+        <path d="M164,264 H196 Q204,264 204,272 V280 Q204,288 196,288 H172" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="216" y="268" width="158.04" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="216" y="280" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">REFINEMENT: IN PROCESS</text>
+        <path d="M164,368 H196 Q204,368 204,376 V384 Q204,392 196,392 H172" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="216" y="372" width="246.7" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="216" y="384" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">RETRY, IF THE DAY MOVED: IN PROCESS</text>
+        <rect x="40" y="480" width="560" height="76" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="480" width="560" height="76" rx="6" fill="rgba(40,122,76,0.06)" stroke="#287A4C" stroke-width="1.2"/>
+        <text x="56" y="502" fill="#287A4C" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">ENGINE TIME OF A SEARCH, P50</text>
+        <text x="56" y="530" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">15 ms of 239 ms on the server · 1058 searches in 60 s</text>
+        <text x="660" y="48" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Remote solver pool</text>
+        <rect x="680" y="68" width="200" height="52" rx="6" fill="#FFFFFF"/>
+        <rect x="680" y="68" width="200" height="52" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="780" y="100" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booking replica</text>
+        <rect x="1020" y="68" width="200" height="52" rx="6" fill="#FFFFFF"/>
+        <rect x="1020" y="68" width="200" height="52" rx="6" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="1120" y="100" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Solver pool</text>
+        <line x1="780" y1="120" x2="780" y2="470" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="1120" y1="120" x2="1120" y2="470" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="784" y1="160" x2="1116" y2="160" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="867.57" y="140" width="164.86" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="950" y="152" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">INSERTION: ENCODE, SEND</text>
+        <line x1="1116" y1="200" x2="784" y2="200" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="888.03" y="180" width="123.94" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="950" y="192" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DECODE THE ANSWER</text>
+        <line x1="784" y1="264" x2="1116" y2="264" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="864.16" y="244" width="171.68" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="950" y="256" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">REFINEMENT: ENCODE, SEND</text>
+        <line x1="1116" y1="304" x2="784" y2="304" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="888.03" y="284" width="123.94" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="950" y="296" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DECODE THE ANSWER</text>
+        <line x1="784" y1="368" x2="1116" y2="368" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="819.83" y="348" width="260.34" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="950" y="360" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RETRY, IF THE DAY MOVED: ENCODE, SEND</text>
+        <line x1="1116" y1="408" x2="784" y2="408" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="888.03" y="388" width="123.94" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="950" y="400" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">DECODE THE ANSWER</text>
+        <rect x="660" y="480" width="560" height="76" rx="6" fill="#FFFFFF"/>
+        <rect x="660" y="480" width="560" height="76" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
+        <text x="676" y="502" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">ENGINE TIME OF A SEARCH, P50</text>
+        <text x="676" y="530" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">69 ms of 367 ms on the server · 703 searches in 60 s</text>
+        <line x1="30" y1="576" x2="1250" y2="576" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="602" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="100" y1="598" x2="136" y2="598" stroke="#0B3A66" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="146" y="602" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SOLVER CALL</text>
+        <line x1="252" y1="598" x2="288" y2="598" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="298" y="602" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ANSWER</text>
+        <text x="1250" y="602" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">for a daily pool the same trip is cheap beside a 5 s search</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

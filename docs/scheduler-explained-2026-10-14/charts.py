@@ -1,11 +1,11 @@
 """Reproducible figures for the scheduler explainer: every number is computed here from the validated data, recorded in generated/chart_data.json for verify_report.py, and drawn as inline-SVG diagrams (figures/diagrams.py, the diagram-design format) that figures/render.py rasterizes."""
 import json
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
 
-from figures import diagrams
+from figures import diagrams, thread, trail
 from figures.render import render_all
-from report_data import per_fleet
+from report_data import per_fleet, wtl
 
 SOLVER_LABEL = {"TABU": "Tabu", "TABU_SIZE_3": "Tabu size 3", "TABU_SIZE_15": "Tabu size 15", "TABU_KOPT": "Tabu + K opt", "TABU_KOPT_SIZE_3": "Tabu + K opt size 3",
                 "KOPT": "K opt", "SUBLIST": "Sublist", "LATE_ACCEPTANCE": "Late acceptance"}
@@ -124,12 +124,167 @@ def make_charts(data, folder):
                                    "daily_cpu_mean": [c for c in b["containers"] if "daily" in c["name"]][0]["cpuPercent"]["mean"]})
     figures["engine"] = diagrams.engine(recorded["paired"], recorded["remote"])
 
-    # Write every generated diagram beside the hand-authored topology, then rasterize all twelve with one browser.
+    # The trail edition's figures: the front matter, the architecture, and the data behind each optimization thread.
+    trail_figures(data, recorded, figures)
+
+    # Write every generated diagram beside the hand-authored topology, then rasterize them all with one browser.
     for name, fig in figures.items():
         (here / f"{name}.html").write_text(fig.html(), encoding="utf-8")
     render_all([(here / f"{name}.html", folder / f"{name}.png") for name in ["topology", *figures]], 3)
     (folder / "chart_data.json").write_text(json.dumps(recorded, indent=2) + "\n", encoding="utf-8")
     return recorded
+
+
+def trail_figures(data, recorded, figures):
+    """Record the data of every trail-edition figure and draw it. Schematic figures draw what the design document and contract describe."""
+    perf, runs, extras, benchmarks, docs = data["perf"], data["perf"]["runs"], data["perf"]["extras"], data["perf"]["benchmarks"], data["docs"]
+    per_minute = perf["per_minute"]
+    F, M, L = data["daily"]["first"]["rows"], data["daily"]["follow"]["rows"], data["daily"]["follow"]["long"]
+    b24, f29, r24 = data["booking24"], data["field29"], data["routing24"]
+
+    def rows(table, solver, **kw):
+        out = [r for r in table if r["solver"] == solver and all(r[k] == v for k, v in kw.items())]
+        assert out, (solver, kw)
+        return out
+
+    def saving(table, solver, **kw):
+        return mean(r["saving"] for r in rows(table, solver, **kw))
+
+    b5, b1, b10 = (by_label(runs["baseline"], f"booking-cold-c{c}") for c in (5, 1, 10))
+    fresh = {n: by_label(extras["coldRemeasurement"], f"cold-recheck-c{n} (seed {s})") for n, s in ((1, 93), (5, 91), (10, 92))}
+    ab_before, ab_after = extras["abComparison"]
+    assert ab_before["label"].startswith("before-c5") and ab_after["label"].startswith("after-c5")
+    vm_b = by_run(runs["vm"], "base-spread2", "booking")
+    jf_b, jc_b = by_run(runs["routing"], "j-flex", "booking"), by_run(runs["routing"], "j-ch", "booking")
+    final = by_run(runs["priority"], "j2-slot", "booking")
+    k_emb, k_rem = by_run(runs["remote"], "k-embedded", "booking"), by_run(runs["remote"], "k-remote5", "booking")
+    prof = extras["profiling"]
+    ch_old, ch_new = ({(l["engine"], l["concurrency"]): l for l in benchmarks[d]["latency"]} for d in ("2026-09-24", "2026-10-14"))
+    held = {v: f29["booking"][("held", v)] for v in ("INSERTION", "BOUNDED")}
+    routing_cores = lambda r: [x for x in r["containers"] if "routing" in x["name"]][0]["cpuPercent"]["mean"] / 100
+    per_leg = lambda r: r["breakdown"][OFFERS]["routingMs"]["p50"] / r["breakdown"][OFFERS]["fetched"]["p50"]
+    speedup = prof["summary"]["costPhaseSpeedup"]["median"]
+    tk = rows(F, "TABU_KOPT")
+
+    # Front matter.
+    recorded["timeline"] = [{"date": d, "pr": pr, "lane": lane, "label": label} for d, pr, lane, label in data["timeline"]]
+    figures["timeline"] = trail.timeline(data["timeline"])
+    recorded["scoreboard"] = [
+        {"thread": "Daily search", "metric": "Saving per case vs Tabu", "before": "TABU, THE DEFAULT", "after": money(saving(F, "TABU_KOPT")),
+         "notes": [f"over {len(tk):,} cases", f"{money(saving(M, 'TABU_KOPT'))} on new fixtures"]},
+        {"thread": "Booking search", "metric": "Searches per minute", "before": f"{per_minute(ab_before):.0f} AT FIVE DESKS", "after": f"{per_minute(ab_after):.0f}",
+         "notes": [f"bounded served {held['BOUNDED']['served']}", f"of {held['BOUNDED']['requests']}; insertion {held['INSERTION']['served']}"]},
+        {"thread": "Routing", "metric": "16-pair request, p50", "before": f"{ch_new[('flexible', 1)]['p50Ms']:.1f} MS FLEXIBLE", "after": f"{ch_new[('CH-car-v1', 1)]['p50Ms']:.1f} ms",
+         "notes": ["searches in 60 s:", f"{vm_b['booking']['searches']} to {jc_b['booking']['searches']:,}"]},
+        {"thread": "Admission", "metric": "Holds lost, five desks", "before": f"{b5['booking']['holdUnavailable'] / b5['booking']['selected'] * 100:.0f}% OF SELECTED", "after": "none",
+         "notes": ["confirm p50:", f"{jc_b['ops']['confirm']['ms']['p50']} to {final['ops']['confirm']['ms']['p50']} ms"]},
+        {"thread": "Inside the engine", "metric": "Moves per second", "before": "STRING-KEYED LEGS", "after": f"{speedup:.2f}x",
+         "notes": [f"{prof['summary']['afterCostCentsWinTieLoss']['afterWins']} of {len(prof['pairs'])} cases cheaper", "at the same budget"]}]
+    figures["scoreboard"] = trail.scoreboard(recorded["scoreboard"])
+
+    # Parts I and II: schematic figures over the design document's own tables (each asserts the table's shape).
+    figures["delta"] = trail.delta(data["before_after"])
+    figures["ownership"] = trail.ownership(docs["ownership"][1])
+    figures["surface"] = trail.surface(docs["operations"])
+    figures["token"] = trail.token()
+    figures["reconcile"] = trail.reconcile()
+    figures["refusals"] = trail.refusals(docs["problems"][1])
+    figures["daily_pipeline"] = trail.daily_pipeline()
+    figures["booking_pipeline"] = trail.booking_pipeline()
+    figures["isolation"] = trail.isolation()
+    figures["replicas"] = trail.replicas()
+    figures["queue_states"] = trail.queue_states()
+    figures["thin_store"] = trail.thin_store(docs["tables"][1], docs["stored"][1])
+    figures["geocode"] = trail.geocode()
+    figures["map_lifecycle"] = trail.map_lifecycle()
+    recorded["schematic_sources"] = {"operations": [o["id"] for o in docs["operations"]], "problems": len(docs["problems"][1]), "tables": len(docs["tables"][1]),
+                                     "stored": len(docs["stored"][1]), "before_after": len(data["before_after"])}
+
+    # Part III.
+    recorded["evidence"] = {"daily_cases": len(F) + len(data["daily"]["first"]["confirm"]) + len(M) + len(L) + len(data["daily"]["follow"]["confirm"]), "booking_requests": b24["requests"],
+                            "load_runs": sum(len(v) for v in runs.values()) + len(extras["coldRemeasurement"]) + len(extras["abComparison"])}
+    figures["evidence"] = thread.evidence(recorded["evidence"])
+
+    # Part IV, the daily search.
+    figures["two_phase"] = thread.two_phase()
+    variants = ("CURRENT_UNCAPPED", "KOPT", "SUBLIST", "LATE_ACCEPTANCE", "RUIN_RECREATE")
+    recorded["budgets29"] = {"budgets": [15, 30, 60], "values": {v: [f29["daily"][(b, v)] for b in (15, 30, 60)] for v in variants}}
+    figures["budgets29"] = thread.budgets29(recorded["budgets29"])
+    recorded["wtl"] = {"chosen": {"first": "TABU_KOPT", "follow": "TABU_KOPT_SIZE_3"}}
+    for key, table, solvers in (("first", F, ("TABU_SIZE_3", "TABU_SIZE_15", "TABU_KOPT", "KOPT", "SUBLIST", "LATE_ACCEPTANCE")), ("follow", M, ("TABU_KOPT", "TABU_KOPT_SIZE_3", "TABU_SIZE_3", "KOPT"))):
+        recorded["wtl"][key] = [dict(zip(("wins", "ties", "losses"), wtl(rows(table, s))), solver=s, mean=saving(table, s)) for s in solvers]
+    figures["wtl"] = thread.wtl(recorded["wtl"])
+    fleets = (5, 10, 20, 50)
+    recorded["late_mechanics"] = {"fleets": list(fleets),
+                                  "best_fraction": {s: [mean(r["best_fraction"] for r in rows(F, s, fleet=fl)) for fl in fleets] for s in ("TABU", "TABU_KOPT", "LATE_ACCEPTANCE", "KOPT")},
+                                  "variance": [{"label": "WITH FAIRNESS (OCT 11)", "rows": [{"solver": s, "value": mean(r["variance"] for r in rows(F, s))} for s in ("TABU", "TABU_KOPT", "KOPT", "LATE_ACCEPTANCE")]},
+                                               {"label": "COST ONLY (OCT 13)", "rows": [{"solver": s, "value": mean(r["variance"] for r in rows(M, s))} for s in ("TABU", "TABU_KOPT", "TABU_KOPT_SIZE_3")]}]}
+    figures["late_mechanics"] = thread.late_mechanics(recorded["late_mechanics"])
+    budgets = (240000, 480000, 600000)
+    recorded["long_arm"] = {"budgets": [b // 1000 for b in budgets], "cases_per_point": len(rows(L, "KOPT", fleet=50, budget_ms=240000)),
+                            "fleets": {str(fl): {s: [saving(L, s, fleet=fl, budget_ms=b) for b in budgets] for s in ("KOPT", "LATE_ACCEPTANCE", "TABU")} for fl in (30, 50)}}
+    figures["long_arm"] = thread.long_arm(recorded["long_arm"])
+
+    # Part IV, the booking search.
+    figures["booking_methods"] = thread.booking_methods()
+    recorded["workload24"] = [{"workload": w, **b24["by_workload"][w]} for w in ("CLUSTERED", "DISPERSED", "SPARSE")]
+    figures["workload24"] = thread.workload24(recorded["workload24"])
+    figures["deadline"] = thread.deadline()
+    outcome = extras["outcome"]
+    recorded["api_fixes"] = {"incomplete": {"before": [b5["booking"]["searchIncomplete"], b5["booking"]["searches"]], "after": [outcome["searchCompleteFalse"], outcome["searches"]]},
+                             "shedding": {stage: {"label": r["label"], "per_minute": per_minute(r), "p95": r["ops"]["booking offers"]["ms"]["p95"]} for stage, r in (("before", ab_before), ("after", ab_after))}}
+    figures["api_fixes"] = thread.api_fixes(recorded["api_fixes"])
+
+    # Part IV, routing.
+    omaha = r24["omaha"]
+    assert omaha["flexible"]["requests"] == omaha["ch"]["requests"]
+    recorded["paradox"] = {"alone": [{"engine": e, "callers": c, "p50": ch_old[(e, c)]["p50Ms"]} for c in (1, 10) for e in ("flexible", "CH-car-v1")],
+                           "booking": {"requests": omaha["flexible"]["requests"], **{k: {"served": omaha[k]["served"], "p95": omaha[k]["p95Ms"]} for k in ("flexible", "ch")}}}
+    figures["paradox"] = thread.paradox(recorded["paradox"])
+    figures["ch_mechanism"] = thread.ch_mechanism()
+    recorded["j_routing"] = [{"run": name, "searches": r["booking"]["searches"], "per_leg": per_leg(r), "routing_cores": routing_cores(r)} for name, r in (("J0", vm_b), ("J flex", jf_b), ("J CH", jc_b))]
+    figures["j_routing"] = thread.j_routing(recorded["j_routing"])
+
+    # Part IV, admission.
+    recorded["holds"] = [{"desks": n, "before_lost": b["booking"]["holdUnavailable"], "before_selected": b["booking"]["selected"], "after_lost": a["booking"]["holdUnavailable"],
+                          "after_selected": a["booking"]["selected"], "before_p95": b["ops"]["booking offers"]["ms"]["p95"], "after_p95": a["ops"]["booking offers"]["ms"]["p95"],
+                          "before_per_minute": per_minute(b), "after_per_minute": per_minute(a), "stale_per_search": a["booking"]["stale"] / a["booking"]["searches"]}
+                         for n, b, a in ((1, b1, fresh[1]), (5, b5, fresh[5]), (10, b10, fresh[10]))]
+    figures["holds"] = thread.holds(recorded["holds"])
+    figures["race"] = thread.race()
+    figures["slots"] = thread.slots()
+
+    # Part IV, inside the engine.
+    groups = ["Immutable map probe", "HashMap and copies", "BigDecimal arithmetic", "Engine timing methods", "Instant and Duration", "Timefold score director"]
+    assert set(groups) == set(prof["before"]["groups"]) == set(prof["after"]["groups"])
+    recorded["profile"] = {"groups": groups, "before": prof["before"]["groups"], "after": prof["after"]["groups"], "samples": {"before": prof["before"]["samples"], "after": prof["after"]["samples"]}}
+    figures["profile"] = thread.profile(recorded["profile"])
+    figures["roadmatrix"] = thread.roadmatrix()
+    recorded["paired_fleets"] = []
+    for fleet in (20, 50):
+        fp = [x for x in prof["pairs"] if x["technicians"] == fleet]
+        recorded["paired_fleets"].append({"fleet": fleet, "before_median": median(x["costPhaseMovesPerSecond"]["before"] for x in fp), "after_median": median(x["costPhaseMovesPerSecond"]["after"] for x in fp),
+                                          "speedup": prof["summary"]["costPhaseSpeedupByFleet"][str(fleet)]["medianCostPhaseSpeedup"], "fairness_speedup": median(x["fairnessPhaseSpeedup"] for x in fp),
+                                          "wins": sum(x["afterCostCents"]["after"] < x["afterCostCents"]["before"] for x in fp),
+                                          "ties": sum(x["afterCostCents"]["after"] == x["afterCostCents"]["before"] for x in fp),
+                                          "losses": sum(x["afterCostCents"]["after"] > x["afterCostCents"]["before"] for x in fp)})
+    figures["paired_fleets"] = thread.paired_fleets(recorded["paired_fleets"])
+    recorded["round_trips"] = {k: {"calculation_p50": r["breakdown"][OFFERS]["calculationMs"]["p50"], "elapsed_p50": r["breakdown"][OFFERS]["elapsedMs"]["p50"], "searches": r["booking"]["searches"]}
+                               for k, r in (("embedded", k_emb), ("remote", k_rem))}
+    figures["round_trips"] = thread.round_trips(recorded["round_trips"])
+
+    # Part V and Part VI.
+    recorded["today"] = {"shed_before": per_minute(ab_before), "shed_after": per_minute(ab_after), "confirm_before": jc_b["ops"]["confirm"]["ms"]["p50"], "confirm_after": final["ops"]["confirm"]["ms"]["p50"],
+                         "speedup": speedup, "daily_saving": saving(F, "TABU_KOPT"), "searches_before": vm_b["booking"]["searches"], "searches_after": jc_b["booking"]["searches"],
+                         "lost_before": b5["booking"]["holdUnavailable"]}
+    figures["today"] = thread.today(recorded["today"])
+    figures["roadmap_perf"] = thread.roadmap_perf()
+    figures["cores"] = thread.cores()
+    figures["roadmap_quality"] = thread.roadmap_quality()
+
+
+def money(value):
+    return f"-${-value:,.2f}" if value < 0 else f"${value:,.2f}"
 
 
 if __name__ == "__main__":

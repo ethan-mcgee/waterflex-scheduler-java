@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The lastModified round trip</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>The lastModified round trip</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="token-title token-desc">
+        <title id="token-title">The lastModified round trip</title>
+        <desc id="token-desc">Sequence showing the host&#x27;s lastModified timestamp travelling with the snapshot, recorded with a proposal, compared for equality at commit, and used again in the host&#x27;s compare-and-set write; a changed value is answered 409 STALE.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="170" y="40" width="260" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="170" y="40" width="260" height="56" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="300" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">WaterFlex Software</text>
+        <text x="300" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">READS ITS OWN RECORDS</text>
+        <rect x="850" y="40" width="260" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="850" y="40" width="260" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="980" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Scheduler</text>
+        <text x="980" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THIN STORE</text>
+        <line x1="300" y1="96" x2="300" y2="620" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="980" y1="96" x2="980" y2="620" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <path d="M304,128 H336 Q344,128 344,136 V144 Q344,152 336,152 H312" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="356" y="133" width="451.3" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="356" y="145" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">READ EACH TECHNICIAN-DAY WITH ITS LASTMODIFIED, E.G. 09:14:02.118</text>
+        <line x1="304" y1="200" x2="976" y2="200" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="482.55" y="180" width="314.9" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="192" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SNAPSHOT · EVERY DAY CARRIES ITS LASTMODIFIED</text>
+        <rect x="976" y="200" width="8" height="52" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <rect x="717.3" y="220" width="246.7" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="964" y="232" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end" letter-spacing="0.06em">RECORD THE VALUES WITH THE PROPOSAL</text>
+        <line x1="976" y1="252" x2="304" y2="252" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="560.98" y="268" width="158.04" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="280" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">201 PROPOSAL OR OFFERS</text>
+        <line x1="304" y1="328" x2="976" y2="328" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="506.42" y="308" width="267.16" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="320" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">COMMIT OR CONFIRM · THE CURRENT VALUES</text>
+        <rect x="220" y="352" width="840" height="236" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
+        <rect x="220" y="352" width="40" height="16" rx="2" fill="#FFFFFF" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
+        <text x="240" y="364" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+        <text x="232" y="388" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">[EVERY VALUE EQUAL TO THE ONE RECORDED]</text>
+        <line x1="976" y1="412" x2="304" y2="412" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="499.6" y="392" width="280.8" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="404" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 RECEIPT · ASSIGNMENTS AND TIMESTAMPS</text>
+        <path d="M304,436 H336 Q344,436 344,444 V452 Q344,460 336,460 H312" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="356" y="441" width="533.14" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="356" y="453" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">WRITE THE RECORD WITH A COMPARE-AND-SET ON THE SAME VALUES; MOVE LASTMODIFIED</text>
+        <line x1="228" y1="488" x2="1052" y2="488" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="232" y="512" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">[ANY VALUE DIFFERENT]</text>
+        <line x1="976" y1="556" x2="304" y2="556" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="482.55" y="536" width="314.9" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="640" y="548" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">409 STALE · CHANGED LISTS THE TECHNICIAN-DAYS</text>
+        <text x="1084" y="200" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Compared for exact</text>
+        <text x="1084" y="218" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">equality, never ordered:</text>
+        <text x="1084" y="236" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">clock skew between</text>
+        <text x="1084" y="254" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">servers cannot cause a</text>
+        <text x="1084" y="272" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">wrong decision. At worst</text>
+        <text x="1084" y="290" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">an unrelated change</text>
+        <text x="1084" y="308" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">forces a retry.</text>
+        <line x1="30" y1="646" x2="1250" y2="646" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="672" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="100" y1="668" x2="136" y2="668" stroke="#0B3A66" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="146" y="672" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CALL</text>
+        <line x1="204" y1="668" x2="240" y2="668" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="250" y="672" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REPLY</text>
+        <line x1="312" y1="668" x2="348" y2="668" stroke="#287A4C" stroke-width="1.6"/>
+        <text x="358" y="672" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">HEADLINE SUCCESS</text>
+        <text x="1250" y="672" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">the same token protects proposals, offers, commits and confirms</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

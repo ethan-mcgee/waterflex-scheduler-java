@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The long-budget arm: late acceptance is slow, not wrong</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>The long-budget arm: late acceptance is slow, not wrong</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="long_arm-title long_arm-desc">
+        <title id="long_arm-title">The long-budget arm: late acceptance is slow, not wrong</title>
+        <desc id="long_arm-desc">Mean saving against Tabu + K opt at 240, 480 and 600 seconds for K opt, late acceptance and Tabu at 30 and 50 technicians in the follow-up&#x27;s long-budget arm; budgets beyond 240 s are beyond what a client can set.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="94" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">30 technicians</text>
+        <line x1="150" y1="410" x2="560" y2="410" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="142" y="414" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">-$15</text>
+        <line x1="150" y1="340.8" x2="560" y2="340.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="142" y="344.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">-$10</text>
+        <line x1="150" y1="271.6" x2="560" y2="271.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="142" y="275.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">-$5</text>
+        <line x1="150" y1="202.4" x2="560" y2="202.4" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="142" y="206.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$0</text>
+        <line x1="150" y1="133.2" x2="560" y2="133.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="142" y="137.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$5</text>
+        <line x1="150" y1="64" x2="560" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="142" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$10</text>
+        <line x1="150" y1="64" x2="150" y2="410" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="86" y="237" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 86 237)">SAVING VS TABU + K OPT, $</text>
+        <rect x="204" y="64" width="356" height="346" fill="rgba(68,68,68,0.06)"/>
+        <text x="212" y="78" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BEYOND A CLIENT&#x27;S 240 S</text>
+        <text x="180" y="432" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">240 S</text>
+        <text x="305" y="432" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">480 S</text>
+        <text x="430" y="432" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">600 S</text>
+        <polyline points="180,191.242 305,155.586 430,148.459" fill="none" stroke="#5e7a9b" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="180" cy="191.242" r="4" fill="#5e7a9b"/>
+        <circle cx="305" cy="155.586" r="4" fill="#5e7a9b"/>
+        <circle cx="430" cy="148.459" r="4" fill="#5e7a9b"/>
+        <polyline points="180,239.716 305,235.253 430,239.024" fill="none" stroke="#287A4C" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="180" cy="239.716" r="4" fill="#287A4C"/>
+        <circle cx="305" cy="235.253" r="4" fill="#287A4C"/>
+        <circle cx="430" cy="239.024" r="4" fill="#287A4C"/>
+        <polyline points="180,367.702 305,336.371 430,343.603" fill="none" stroke="#9c6b50" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="180" cy="367.702" r="4" fill="#9c6b50"/>
+        <circle cx="305" cy="336.371" r="4" fill="#9c6b50"/>
+        <circle cx="430" cy="343.603" r="4" fill="#9c6b50"/>
+        <text x="442" y="152.459" fill="#5e7a9b" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$3.90</text>
+        <text x="442" y="243.024" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">-$2.65</text>
+        <text x="442" y="347.603" fill="#9c6b50" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">-$10.20</text>
+        <rect x="158" y="208.4" width="89.84" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="158" y="220.4" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">TABU + K OPT</text>
+        <text x="704" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">50 technicians</text>
+        <line x1="760" y1="410" x2="1170" y2="410" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="752" y="414" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">-$15</text>
+        <line x1="760" y1="340.8" x2="1170" y2="340.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="752" y="344.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">-$10</text>
+        <line x1="760" y1="271.6" x2="1170" y2="271.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="752" y="275.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">-$5</text>
+        <line x1="760" y1="202.4" x2="1170" y2="202.4" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="752" y="206.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$0</text>
+        <line x1="760" y1="133.2" x2="1170" y2="133.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="752" y="137.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$5</text>
+        <line x1="760" y1="64" x2="1170" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="752" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$10</text>
+        <line x1="760" y1="64" x2="760" y2="410" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="696" y="237" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 696 237)">SAVING VS TABU + K OPT, $</text>
+        <rect x="814" y="64" width="356" height="346" fill="rgba(68,68,68,0.06)"/>
+        <text x="822" y="78" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BEYOND A CLIENT&#x27;S 240 S</text>
+        <text x="790" y="432" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">240 S</text>
+        <text x="915" y="432" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">480 S</text>
+        <text x="1040" y="432" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">600 S</text>
+        <polyline points="790,260.355 915,154.133 1040,122.595" fill="none" stroke="#5e7a9b" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="790" cy="260.355" r="4" fill="#5e7a9b"/>
+        <circle cx="915" cy="154.133" r="4" fill="#5e7a9b"/>
+        <circle cx="1040" cy="122.595" r="4" fill="#5e7a9b"/>
+        <polyline points="790,311.546 915,212.486 1040,197.573" fill="none" stroke="#287A4C" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="790" cy="311.546" r="4" fill="#287A4C"/>
+        <circle cx="915" cy="212.486" r="4" fill="#287A4C"/>
+        <circle cx="1040" cy="197.573" r="4" fill="#287A4C"/>
+        <polyline points="790,349.017 915,344.26 1040,350.28" fill="none" stroke="#9c6b50" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="790" cy="349.017" r="4" fill="#9c6b50"/>
+        <circle cx="915" cy="344.26" r="4" fill="#9c6b50"/>
+        <circle cx="1040" cy="350.28" r="4" fill="#9c6b50"/>
+        <text x="1052" y="126.595" fill="#5e7a9b" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$5.77</text>
+        <text x="1052" y="201.573" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$0.35</text>
+        <text x="1052" y="354.28" fill="#9c6b50" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">-$10.69</text>
+        <rect x="768" y="208.4" width="89.84" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="768" y="220.4" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">TABU + K OPT</text>
+        <line x1="30" y1="486" x2="1250" y2="486" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="512" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="100" y1="508" x2="136" y2="508" stroke="#287A4C" stroke-width="1.6"/>
+        <text x="146" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">LATE ACCEPTANCE</text>
+        <line x1="276" y1="508" x2="312" y2="508" stroke="#5e7a9b" stroke-width="1.6"/>
+        <text x="322" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">K OPT</text>
+        <line x1="384" y1="508" x2="420" y2="508" stroke="#9c6b50" stroke-width="1.6"/>
+        <text x="430" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU</text>
+        <text x="1250" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">8 cases per point; zero is Tabu + K opt</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

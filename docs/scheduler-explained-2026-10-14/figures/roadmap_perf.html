@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance: what to measure next, in order</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Performance: what to measure next, in order</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="roadmap_perf-title roadmap_perf-desc">
+        <title id="roadmap_perf-title">Performance: what to measure next, in order</title>
+        <desc id="roadmap_perf-desc">Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores, run the daily pool remote, and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate; fewer solver round trips only if booking ever uses a pool.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="220" width="240" height="88" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="220" width="240" height="88" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="160" y="252" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Measure on the VM</text>
+        <text x="160" y="272" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">J0, J2 AND K ACROSS</text>
+        <text x="160" y="288" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE REAL NETWORK</text>
+        <rect x="380" y="56" width="280" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="380" y="56" width="280" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="520" y="88" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booking cores</text>
+        <text x="520" y="108" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2, 3, 4 CORES; A 2ND REPLICA</text>
+        <rect x="380" y="228" width="280" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="380" y="228" width="280" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="520" y="260" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Daily pool remote</text>
+        <text x="520" y="280" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">POOL SIZED BY THE RULE</text>
+        <rect x="380" y="400" width="280" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="380" y="400" width="280" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="520" y="432" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Primitive time</text>
+        <text x="520" y="452" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INTEGER SECONDS IN TIMING</text>
+        <rect x="760" y="400" width="300" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="760" y="400" width="300" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="910" y="432" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Multithreaded solving</text>
+        <text x="910" y="452" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PLANNED; GATED BELOW</text>
+        <rect x="760" y="56" width="300" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="760" y="56" width="300" height="72" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="910" y="88" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Fewer round trips</text>
+        <text x="910" y="108" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONLY IF BOOKING USES A POOL</text>
+        <path d="M280,250 L322,250 Q330,250 330,242 L330,100 Q330,92 338,92 L380,92" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <line x1="280" y1="264" x2="380" y2="264" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <path d="M280,278 L322,278 Q330,278 330,286 L330,428 Q330,436 338,436 L380,436" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <line x1="660" y1="436" x2="760" y2="436" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="660" y1="92" x2="760" y2="92" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="699.18" y="72" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="710" y="84" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">IF</text>
+        <text x="1080" y="412" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">paired study</text>
+        <text x="1080" y="428" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">+ exactness test</text>
+        <text x="1080" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">+ the replica&#x27;s</text>
+        <text x="1080" y="460" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">core budget</text>
+        <text x="760" y="200" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every number in Part IV is from a rehearsal</text>
+        <text x="760" y="218" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">stack whose CPU limits are a shape; the</text>
+        <text x="760" y="236" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">latency target is defined at the WaterFlex</text>
+        <text x="760" y="254" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">caller, which has not been measured yet.</text>
+        <line x1="30" y1="506" x2="1250" y2="506" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="532" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="100" y="522" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="126" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST</text>
+        <rect x="188" y="522" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="214" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NEXT, ONCE THE VM NUMBERS EXIST</text>
+        <rect x="456" y="522" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8" stroke-dasharray="3,2"/>
+        <text x="482" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CONDITIONAL</text>
+        <text x="1250" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">one change per measurement, as before</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

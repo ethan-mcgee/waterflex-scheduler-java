@@ -181,11 +181,64 @@ class Figure:
     def panel_title(self, x: float, y: float, s: str) -> None:
         self.name(x, y, s, INK, "start")
 
+    # ---- connectors, decisions, cards and states ------------------------------------------------
+    def route(self, points: list[tuple[float, float]], kind: str = "muted", dash: str | None = None, r: float = 8, end_marker: bool = True) -> None:
+        """An orthogonal connector through the given points, every bend a quarter arc of radius r (the skill's rule 1)."""
+        for (ax, ay), (bx, by) in zip(points, points[1:]):
+            assert ax == bx or ay == by, (ax, ay, bx, by)
+        d = f"M{points[0][0]:g},{points[0][1]:g}"
+        for i in range(1, len(points) - 1):
+            (px, py), (cx, cy), (nx, ny) = points[i - 1], points[i], points[i + 1]
+            ux, uy = (cx > px) - (cx < px), (cy > py) - (cy < py)
+            vx, vy = (nx > cx) - (nx < cx), (ny > cy) - (ny < cy)
+            rr = min(r, abs(cx - px + cy - py) / 2, abs(nx - cx + ny - cy) / 2)
+            d += f" L{cx - ux * rr:g},{cy - uy * rr:g} Q{cx:g},{cy:g} {cx + vx * rr:g},{cy + vy * rr:g}"
+        d += f" L{points[-1][0]:g},{points[-1][1]:g}"
+        stroke, marker, sw = {"muted": (MUTED, "arrow", 1.2), "accent": (ACCENT, "arrow-accent", 1.4), "link": (LINK, "arrow-link", 1.4), "open": (MUTED, "arrow-open", 1.2)}[kind]
+        self.path(d, stroke, 1 if dash else sw, dash, marker if end_marker else None)
+
+    def diamond(self, cx: float, cy: float, w: float, h: float, lines: list[str], focal: bool = False) -> None:
+        pts = f"{cx:g},{cy - h / 2:g} {cx + w / 2:g},{cy:g} {cx:g},{cy + h / 2:g} {cx - w / 2:g},{cy:g}"
+        self.add(f'<polygon points="{pts}" fill="{PAPER}"/>')
+        self.add(f'<polygon points="{pts}" fill="{rgba(ACCENT, 0.08) if focal else PAPER2}" stroke="{ACCENT if focal else SOFT}" stroke-width="1"/>')
+        for i, line in enumerate(lines):
+            self.text(cx, cy + 4 + (i - (len(lines) - 1) / 2) * 16, line, KEY, INK, MONO, "middle")
+
+    def card(self, x: float, y: float, w: float, h: float, eyebrow: str, lines: list[tuple[str, str]], focal: bool = False) -> None:
+        """A summary card: an eyebrow tag and lines of (style, text), style one of name, big, tech, muted."""
+        self.rect(x, y, w, h, PAPER, rx=6)
+        self.rect(x, y, w, h, rgba(ACCENT, 0.06) if focal else PAPER, ACCENT if focal else ink(0.18), 1.2 if focal else 1, rx=6)
+        self.eyebrow_text(x + 16, y + 22, eyebrow.upper(), ACCENT if focal else SOFT)
+        yy = y + 50
+        for style, text in lines:
+            if style == "name":
+                self.text(x + 16, yy, text, NAME, INK, SANS, weight="700"); yy += 24
+            elif style == "big":
+                self.text(x + 16, yy + 8, text, 28, ACCENT if focal else INK, SANS, weight="700"); yy += 36
+            elif style == "tech":
+                self.text(x + 16, yy, text, TECH, INK, MONO); yy += 18
+            else:
+                self.text(x + 16, yy, text, TECH, MUTED, MONO); yy += 18
+
+    def state(self, x: float, y: float, w: float, h: float, name: str, sub: str | None = None, focal: bool = False, terminal: bool = False) -> None:
+        self.rect(x, y, w, h, PAPER, rx=10)
+        self.rect(x, y, w, h, rgba(ACCENT, 0.10) if focal else (PAPER2 if terminal else SERVICE), ACCENT if focal else SOFT, 2 if terminal else 1, rx=10)
+        if sub:
+            self.name(x + w / 2, y + h / 2 - 2, name); self.tech(x + w / 2, y + h / 2 + 16, sub, INK)
+        else:
+            self.name(x + w / 2, y + h / 2 + 6, name)
+
+    def para(self, x: float, y: float, lines: list[str], size: float = TECH, fill: str = INK, family: str = MONO, anchor: str = "start", lead: float = 18) -> None:
+        for i, line in enumerate(lines):
+            self.text(x, y + i * lead, line, size, fill, family, anchor)
+
     # ---- legend strip ---------------------------------------------------------------------
-    def legend(self, y: float, items: list[tuple[str, str, str]], x0: float = 30, note: str | None = None) -> None:
-        """items: (kind, color, text). kind in swatch, swatch-dashed, hollow-dot, solid-dot, line, line-dashed, arrow, arrow-link, arrow-dashed, hatch."""
-        self.line(x0, y - 20, self.width - x0, y - 20, ink(0.10), 0.8)
-        self.eyebrow_text(x0, y + 6, "LEGEND", MUTED)
+    def legend(self, y: float, items: list[tuple[str, str, str]], x0: float = 30, note: str | None = None, continued: bool = False) -> None:
+        """items: (kind, color, text). kind in swatch, swatch-dashed, hollow-dot, solid-dot, line, line-dashed, arrow, arrow-link, arrow-dashed, hatch.
+        continued: a second row of the same legend, with no rule and no LEGEND label."""
+        if not continued:
+            self.line(x0, y - 20, self.width - x0, y - 20, ink(0.10), 0.8)
+            self.eyebrow_text(x0, y + 6, "LEGEND", MUTED)
         x = x0 + 70
         for kind, color, text in items:
             if kind.startswith("swatch") or kind == "hatch":

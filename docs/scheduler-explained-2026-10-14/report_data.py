@@ -49,6 +49,30 @@ BEFORE_AFTER = (
     ("Clients", "One client per metro", "Many clients per metro and many metros per client, each a tenant"),
 )
 
+# The trail from the demonstration to today: (date, merged pull request or None for a study or event, thread, label).
+# Pull request dates are checked against `git log` by verify_report.py; study dates are the dates of their evidence files (Appendix A).
+TIMELINE = (
+    ("2026-09-19", None, "Architecture", "Demonstration"),
+    ("2026-09-23", None, "Routing", "Sparse pairs"),
+    ("2026-09-24", None, "Routing", "CH shelved"),
+    ("2026-09-24", None, "Booking", "Insertion vs bounded"),
+    ("2026-09-29", None, "Booking", "Bounded kept"),
+    ("2026-09-29", None, "Daily search", "Tabu kept"),
+    ("2026-10-01", None, "Daily search", "Budget study"),
+    ("2026-10-07", 70, "Architecture", "Stateless design"),
+    ("2026-10-08", 95, "Architecture", "Thin store"),
+    ("2026-10-09", 123, "Architecture", "API only"),
+    ("2026-10-11", 130, "Daily search", "Tabu variants"),
+    ("2026-10-12", 133, "Daily search", "TABU_KOPT default"),
+    ("2026-10-13", 151, "Load and engine", "Load tool"),
+    ("2026-10-13", 152, "Booking", "STALE rule"),
+    ("2026-10-13", 157, "Load and engine", "Fair queue"),
+    ("2026-10-14", 158, "Load and engine", "Two pools"),
+    ("2026-10-14", 160, "Routing", "CH default"),
+    ("2026-10-14", 162, "Booking", "Confirm slot"),
+    ("2026-10-14", 163, "Load and engine", "RoadMatrix"),
+)
+
 
 def read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -197,7 +221,7 @@ def wtl(rows):
 
 def load():
     return {"docs": load_documents(), "perf": load_performance(), "daily": load_daily_studies(), "booking24": load_booking_september(),
-            "field29": load_field_september(), "routing24": load_routing_september(), "before_after": BEFORE_AFTER}
+            "field29": load_field_september(), "routing24": load_routing_september(), "before_after": BEFORE_AFTER, "timeline": TIMELINE}
 
 
 if __name__ == "__main__":

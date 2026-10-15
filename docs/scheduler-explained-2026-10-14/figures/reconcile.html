@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconciling a technician-day before a booking search</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1320px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 1280px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>Reconciling a technician-day before a booking search</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 1280 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="reconcile-title reconcile-desc">
+        <title id="reconcile-title">Reconciling a technician-day before a booking search</title>
+        <desc id="reconcile-desc">Flowchart of the five reconciliation rules a booking search or confirm applies to each technician-day of the host&#x27;s snapshot against the stored arrangement: refuse STALE, keep as stored, accept the expected change, replace the route, or lose the holds of that date.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="16" y="118" width="100" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="16" y="118" width="100" height="64" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="66" y="146" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Snapshot</text>
+        <text x="66" y="166" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE DAY</text>
+        <line x1="116" y1="150" x2="148" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <polygon points="248,82 348,150 248,218 148,150" fill="#FFFFFF"/>
+        <polygon points="248,82 348,150 248,218 148,150" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1"/>
+        <text x="248" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ALREADY SEEN</text>
+        <text x="248" y="154" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TIMESTAMP OR</text>
+        <text x="248" y="170" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PRE-RECEIPT ROUTE?</text>
+        <line x1="348" y1="150" x2="398" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="362.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="373" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <line x1="248" y1="218" x2="248" y2="300" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="257.77" y="251" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="272" y="263" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="138" y="300" width="220" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="138" y="300" width="220" height="92" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="146" y="306" width="56" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="174" y="318" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RULE 0</text>
+        <text x="248" y="346" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">409 STALE</text>
+        <text x="248" y="366" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">refused before anything is</text>
+        <text x="248" y="380" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">reconciled; nothing lost</text>
+        <polygon points="498,82 598,150 498,218 398,150" fill="#FFFFFF"/>
+        <polygon points="498,82 598,150 498,218 398,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="498" y="146" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">LASTMODIFIED</text>
+        <text x="498" y="162" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">UNCHANGED?</text>
+        <line x1="598" y1="150" x2="648" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="612.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="623" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <line x1="498" y1="218" x2="498" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="507.77" y="251" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="522" y="263" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="388" y="300" width="220" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="388" y="300" width="220" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="396" y="306" width="56" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="424" y="318" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RULE 1</text>
+        <text x="498" y="346" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">As stored</text>
+        <text x="498" y="366" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">nothing to do</text>
+        <polygon points="748,82 848,150 748,218 648,150" fill="#FFFFFF"/>
+        <polygon points="748,82 848,150 748,218 648,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="748" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">APPOINTMENTS</text>
+        <text x="748" y="154" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EXACTLY AS</text>
+        <text x="748" y="170" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EXPECTED?</text>
+        <line x1="848" y1="150" x2="898" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="862.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="873" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <line x1="748" y1="218" x2="748" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="757.77" y="251" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="772" y="263" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="638" y="300" width="220" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="638" y="300" width="220" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="646" y="306" width="56" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="674" y="318" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RULE 2</text>
+        <text x="748" y="346" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Accepted</text>
+        <text x="748" y="366" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">the new timestamp is</text>
+        <text x="748" y="380" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">recorded</text>
+        <polygon points="998,82 1098,150 998,218 898,150" fill="#FFFFFF"/>
+        <polygon points="998,82 1098,150 998,218 898,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="998" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">STORED ROUTE HAS</text>
+        <text x="998" y="154" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">A HOLD OR A</text>
+        <text x="998" y="170" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PENDING MOVE?</text>
+        <line x1="998" y1="218" x2="998" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="1011.18" y="251" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="1022" y="263" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="888" y="300" width="220" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="888" y="300" width="220" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="896" y="306" width="56" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="924" y="318" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RULE 3</text>
+        <text x="998" y="346" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Replace route</text>
+        <text x="998" y="366" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">the host&#x27;s route becomes the</text>
+        <text x="998" y="380" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">stored one</text>
+        <line x1="1098" y1="150" x2="1132" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="1100.77" y="126" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="1115" y="138" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="1132" y="90" width="132" height="120" rx="6" fill="#FFFFFF"/>
+        <rect x="1132" y="90" width="132" height="120" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="1198" y="124" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EVERY HOLD</text>
+        <text x="1198" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ON THAT DATE</text>
+        <text x="1198" y="152" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">IS LOST; THE</text>
+        <text x="1198" y="166" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DATE RESTARTS</text>
+        <text x="1198" y="180" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">FROM THE HOST</text>
+        <rect x="40" y="440" width="1200" height="76" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="440" width="1200" height="76" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <rect x="56" y="446" width="56" height="16" rx="2" fill="transparent" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="84" y="458" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">RULE 4</text>
+        <text x="140" y="470" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Then the whole arrangement is re-evaluated with the snapshot&#x27;s current windows, durations, shifts and absences.</text>
+        <text x="140" y="494" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">If it no longer fits, every hold on that date is lost the same way. Nothing is guessed at any step.</text>
+        <line x1="30" y1="546" x2="1250" y2="546" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="30" y="572" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="100" y="562" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="126" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE RULE THE LOAD TOOL ADDED (#152)</text>
+        <rect x="392" y="562" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="418" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">KEPT</text>
+        <rect x="476" y="562" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="502" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">HOLDS LOST</text>
+        <text x="1250" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">the scheduler remembers the last 32 timestamps it moved past</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

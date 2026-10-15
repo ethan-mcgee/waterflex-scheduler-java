@@ -842,5 +842,642 @@
       "answered_503": 0,
       "daily_cpu_mean": 36.415
     }
-  ]
+  ],
+  "timeline": [
+    {
+      "date": "2026-09-19",
+      "pr": null,
+      "lane": "Architecture",
+      "label": "Demonstration"
+    },
+    {
+      "date": "2026-09-23",
+      "pr": null,
+      "lane": "Routing",
+      "label": "Sparse pairs"
+    },
+    {
+      "date": "2026-09-24",
+      "pr": null,
+      "lane": "Routing",
+      "label": "CH shelved"
+    },
+    {
+      "date": "2026-09-24",
+      "pr": null,
+      "lane": "Booking",
+      "label": "Insertion vs bounded"
+    },
+    {
+      "date": "2026-09-29",
+      "pr": null,
+      "lane": "Booking",
+      "label": "Bounded kept"
+    },
+    {
+      "date": "2026-09-29",
+      "pr": null,
+      "lane": "Daily search",
+      "label": "Tabu kept"
+    },
+    {
+      "date": "2026-10-01",
+      "pr": null,
+      "lane": "Daily search",
+      "label": "Budget study"
+    },
+    {
+      "date": "2026-10-07",
+      "pr": 70,
+      "lane": "Architecture",
+      "label": "Stateless design"
+    },
+    {
+      "date": "2026-10-08",
+      "pr": 95,
+      "lane": "Architecture",
+      "label": "Thin store"
+    },
+    {
+      "date": "2026-10-09",
+      "pr": 123,
+      "lane": "Architecture",
+      "label": "API only"
+    },
+    {
+      "date": "2026-10-11",
+      "pr": 130,
+      "lane": "Daily search",
+      "label": "Tabu variants"
+    },
+    {
+      "date": "2026-10-12",
+      "pr": 133,
+      "lane": "Daily search",
+      "label": "TABU_KOPT default"
+    },
+    {
+      "date": "2026-10-13",
+      "pr": 151,
+      "lane": "Load and engine",
+      "label": "Load tool"
+    },
+    {
+      "date": "2026-10-13",
+      "pr": 152,
+      "lane": "Booking",
+      "label": "STALE rule"
+    },
+    {
+      "date": "2026-10-13",
+      "pr": 157,
+      "lane": "Load and engine",
+      "label": "Fair queue"
+    },
+    {
+      "date": "2026-10-14",
+      "pr": 158,
+      "lane": "Load and engine",
+      "label": "Two pools"
+    },
+    {
+      "date": "2026-10-14",
+      "pr": 160,
+      "lane": "Routing",
+      "label": "CH default"
+    },
+    {
+      "date": "2026-10-14",
+      "pr": 162,
+      "lane": "Booking",
+      "label": "Confirm slot"
+    },
+    {
+      "date": "2026-10-14",
+      "pr": 163,
+      "lane": "Load and engine",
+      "label": "RoadMatrix"
+    }
+  ],
+  "scoreboard": [
+    {
+      "thread": "Daily search",
+      "metric": "Saving per case vs Tabu",
+      "before": "TABU, THE DEFAULT",
+      "after": "$7.55",
+      "notes": [
+        "over 640 cases",
+        "$8.22 on new fixtures"
+      ]
+    },
+    {
+      "thread": "Booking search",
+      "metric": "Searches per minute",
+      "before": "127 AT FIVE DESKS",
+      "after": "263",
+      "notes": [
+        "bounded served 360",
+        "of 480; insertion 346"
+      ]
+    },
+    {
+      "thread": "Routing",
+      "metric": "16-pair request, p50",
+      "before": "29.6 MS FLEXIBLE",
+      "after": "3.7 ms",
+      "notes": [
+        "searches in 60 s:",
+        "289 to 1,020"
+      ]
+    },
+    {
+      "thread": "Admission",
+      "metric": "Holds lost, five desks",
+      "before": "37% OF SELECTED",
+      "after": "none",
+      "notes": [
+        "confirm p50:",
+        "116 to 20 ms"
+      ]
+    },
+    {
+      "thread": "Inside the engine",
+      "metric": "Moves per second",
+      "before": "STRING-KEYED LEGS",
+      "after": "1.79x",
+      "notes": [
+        "21 of 24 cases cheaper",
+        "at the same budget"
+      ]
+    }
+  ],
+  "schematic_sources": {
+    "operations": [
+      "whoami",
+      "createDailyProposal",
+      "commitDailyProposal",
+      "evaluateRoutes",
+      "drawRoutes",
+      "createBookingOffers",
+      "selectBookingOffer",
+      "releaseBookingOffer",
+      "confirmBookingHold",
+      "createRepairProposal",
+      "getRequest",
+      "cancelRequest"
+    ],
+    "problems": 11,
+    "tables": 7,
+    "stored": 5,
+    "before_after": 7
+  },
+  "evidence": {
+    "daily_cases": 6032,
+    "booking_requests": 3600,
+    "load_runs": 62
+  },
+  "budgets29": {
+    "budgets": [
+      15,
+      30,
+      60
+    ],
+    "values": {
+      "CURRENT_UNCAPPED": [
+        6.3775,
+        3.68125,
+        3.9925
+      ],
+      "KOPT": [
+        -15.36,
+        -3.34625,
+        8.3825
+      ],
+      "SUBLIST": [
+        -15.06,
+        -6.68375,
+        6.665
+      ],
+      "LATE_ACCEPTANCE": [
+        -13.08625,
+        0.29625,
+        5.47625
+      ],
+      "RUIN_RECREATE": [
+        -39.98,
+        -36.72375,
+        -24.40875
+      ]
+    }
+  },
+  "wtl": {
+    "chosen": {
+      "first": "TABU_KOPT",
+      "follow": "TABU_KOPT_SIZE_3"
+    },
+    "first": [
+      {
+        "wins": 429,
+        "ties": 72,
+        "losses": 139,
+        "solver": "TABU_SIZE_3",
+        "mean": 5.836078125
+      },
+      {
+        "wins": 188,
+        "ties": 124,
+        "losses": 328,
+        "solver": "TABU_SIZE_15",
+        "mean": -6.806375
+      },
+      {
+        "wins": 535,
+        "ties": 22,
+        "losses": 83,
+        "solver": "TABU_KOPT",
+        "mean": 7.551734375
+      },
+      {
+        "wins": 474,
+        "ties": 28,
+        "losses": 138,
+        "solver": "KOPT",
+        "mean": 1.478875
+      },
+      {
+        "wins": 455,
+        "ties": 29,
+        "losses": 156,
+        "solver": "SUBLIST",
+        "mean": 1.473890625
+      },
+      {
+        "wins": 439,
+        "ties": 40,
+        "losses": 161,
+        "solver": "LATE_ACCEPTANCE",
+        "mean": 1.0237812499999999
+      }
+    ],
+    "follow": [
+      {
+        "wins": 207,
+        "ties": 15,
+        "losses": 18,
+        "solver": "TABU_KOPT",
+        "mean": 8.219
+      },
+      {
+        "wins": 208,
+        "ties": 14,
+        "losses": 18,
+        "solver": "TABU_KOPT_SIZE_3",
+        "mean": 11.499041666666667
+      },
+      {
+        "wins": 166,
+        "ties": 31,
+        "losses": 43,
+        "solver": "TABU_SIZE_3",
+        "mean": 5.4405
+      },
+      {
+        "wins": 182,
+        "ties": 13,
+        "losses": 45,
+        "solver": "KOPT",
+        "mean": 5.161416666666667
+      }
+    ]
+  },
+  "late_mechanics": {
+    "fleets": [
+      5,
+      10,
+      20,
+      50
+    ],
+    "best_fraction": {
+      "TABU": [
+        0.07958100839015908,
+        0.14895810744699675,
+        0.6272259588889296,
+        0.6826651926635908
+      ],
+      "TABU_KOPT": [
+        0.1505755569327171,
+        0.4403955478879736,
+        0.6497584514464375,
+        0.6900343682458007
+      ],
+      "LATE_ACCEPTANCE": [
+        0.03652749781888319,
+        0.37528051636061893,
+        0.7896221431062681,
+        0.9575385522493043
+      ],
+      "KOPT": [
+        0.046096765416017524,
+        0.4848731068258518,
+        0.8387317169383404,
+        0.968002598074407
+      ]
+    },
+    "variance": [
+      {
+        "label": "WITH FAIRNESS (OCT 11)",
+        "rows": [
+          {
+            "solver": "TABU",
+            "value": 0.008869105354080933
+          },
+          {
+            "solver": "TABU_KOPT",
+            "value": 0.010691473837234225
+          },
+          {
+            "solver": "KOPT",
+            "value": 0.014795845159786523
+          },
+          {
+            "solver": "LATE_ACCEPTANCE",
+            "value": 0.014777887973679698
+          }
+        ]
+      },
+      {
+        "label": "COST ONLY (OCT 13)",
+        "rows": [
+          {
+            "solver": "TABU",
+            "value": 0.052137175927354826
+          },
+          {
+            "solver": "TABU_KOPT",
+            "value": 0.05856772130868008
+          },
+          {
+            "solver": "TABU_KOPT_SIZE_3",
+            "value": 0.06038415388422116
+          }
+        ]
+      }
+    ]
+  },
+  "long_arm": {
+    "budgets": [
+      240,
+      480,
+      600
+    ],
+    "cases_per_point": 8,
+    "fleets": {
+      "30": {
+        "KOPT": [
+          0.8062499999999999,
+          3.3825,
+          3.8975
+        ],
+        "LATE_ACCEPTANCE": [
+          -2.69625,
+          -2.37375,
+          -2.6462499999999998
+        ],
+        "TABU": [
+          -11.94375,
+          -9.68,
+          -10.2025
+        ]
+      },
+      "50": {
+        "KOPT": [
+          -4.1875,
+          3.4875,
+          5.766249999999999
+        ],
+        "LATE_ACCEPTANCE": [
+          -7.88625,
+          -0.72875,
+          0.34875000000000017
+        ],
+        "TABU": [
+          -10.59375,
+          -10.25,
+          -10.685
+        ]
+      }
+    }
+  },
+  "workload24": [
+    {
+      "workload": "CLUSTERED",
+      "paid_min": 93.75,
+      "cost": 46.875,
+      "cases": 20
+    },
+    {
+      "workload": "DISPERSED",
+      "paid_min": 49.65,
+      "cost": 26.299,
+      "cases": 20
+    },
+    {
+      "workload": "SPARSE",
+      "paid_min": 0.1,
+      "cost": 0.08199999999999999,
+      "cases": 20
+    }
+  ],
+  "api_fixes": {
+    "incomplete": {
+      "before": [
+        102,
+        102
+      ],
+      "after": [
+        0,
+        123
+      ]
+    },
+    "shedding": {
+      "before": {
+        "label": "before-c5 (feat/search-outcome, seed 81)",
+        "per_minute": 127.0,
+        "p95": 2556
+      },
+      "after": {
+        "label": "after-c5 (this branch, seed 82)",
+        "per_minute": 263.0,
+        "p95": 1302
+      }
+    }
+  },
+  "paradox": {
+    "alone": [
+      {
+        "engine": "flexible",
+        "callers": 1,
+        "p50": 168.28859999999986
+      },
+      {
+        "engine": "CH-car-v1",
+        "callers": 1,
+        "p50": 14.64889999999923
+      },
+      {
+        "engine": "flexible",
+        "callers": 10,
+        "p50": 311.8634999999995
+      },
+      {
+        "engine": "CH-car-v1",
+        "callers": 10,
+        "p50": 16.85490000000027
+      }
+    ],
+    "booking": {
+      "requests": 720,
+      "flexible": {
+        "served": 379,
+        "p95": 4162.945300000021
+      },
+      "ch": {
+        "served": 383,
+        "p95": 4166.614499999909
+      }
+    }
+  },
+  "j_routing": [
+    {
+      "run": "J0",
+      "searches": 289,
+      "per_leg": 1.4769874476987448,
+      "routing_cores": 1.6633666666666664
+    },
+    {
+      "run": "J flex",
+      "searches": 454,
+      "per_leg": 0.7911646586345381,
+      "routing_cores": 13.238155555555556
+    },
+    {
+      "run": "J CH",
+      "searches": 1020,
+      "per_leg": 0.23297491039426524,
+      "routing_cores": 2.607355555555555
+    }
+  ],
+  "holds": [
+    {
+      "desks": 1,
+      "before_lost": 0,
+      "before_selected": 19,
+      "after_lost": 0,
+      "after_selected": 20,
+      "before_p95": 987,
+      "after_p95": 724,
+      "before_per_minute": 77.0,
+      "after_per_minute": 88.0,
+      "stale_per_search": 0.0
+    },
+    {
+      "desks": 5,
+      "before_lost": 14,
+      "before_selected": 38,
+      "after_lost": 0,
+      "after_selected": 32,
+      "before_p95": 6233,
+      "after_p95": 2636,
+      "before_per_minute": 102.0,
+      "after_per_minute": 129.0,
+      "stale_per_search": 0.6201550387596899
+    },
+    {
+      "desks": 10,
+      "before_lost": 23,
+      "before_selected": 39,
+      "after_lost": 0,
+      "after_selected": 34,
+      "before_p95": 12006,
+      "after_p95": 4961,
+      "before_per_minute": 102.0,
+      "after_per_minute": 128.0,
+      "stale_per_search": 1.328125
+    }
+  ],
+  "profile": {
+    "groups": [
+      "Immutable map probe",
+      "HashMap and copies",
+      "BigDecimal arithmetic",
+      "Engine timing methods",
+      "Instant and Duration",
+      "Timefold score director"
+    ],
+    "before": {
+      "Immutable map probe": 13.1,
+      "HashMap and copies": 16.8,
+      "BigDecimal arithmetic": 18.1,
+      "Engine timing methods": 10.6,
+      "Instant and Duration": 3.5,
+      "Timefold score director": 3.7
+    },
+    "after": {
+      "Immutable map probe": 12.6,
+      "Instant and Duration": 16.2,
+      "BigDecimal arithmetic": 22.5,
+      "Engine timing methods": 3.2,
+      "HashMap and copies": 6.3,
+      "Timefold score director": 2.9
+    },
+    "samples": {
+      "before": 3719,
+      "after": 2634
+    }
+  },
+  "paired_fleets": [
+    {
+      "fleet": 20,
+      "before_median": 130886.5,
+      "after_median": 192634.0,
+      "speedup": 1.536,
+      "fairness_speedup": 1.318,
+      "wins": 9,
+      "ties": 2,
+      "losses": 1
+    },
+    {
+      "fleet": 50,
+      "before_median": 106502.0,
+      "after_median": 222168.5,
+      "speedup": 2.002,
+      "fairness_speedup": 1.2810000000000001,
+      "wins": 12,
+      "ties": 0,
+      "losses": 0
+    }
+  ],
+  "round_trips": {
+    "embedded": {
+      "calculation_p50": 15,
+      "elapsed_p50": 239,
+      "searches": 1058
+    },
+    "remote": {
+      "calculation_p50": 69,
+      "elapsed_p50": 367,
+      "searches": 703
+    }
+  },
+  "today": {
+    "shed_before": 127.0,
+    "shed_after": 263.0,
+    "confirm_before": 116,
+    "confirm_after": 20,
+    "speedup": 1.791,
+    "daily_saving": 7.551734375,
+    "searches_before": 289,
+    "searches_after": 1020,
+    "lost_before": 14
+  }
 }
