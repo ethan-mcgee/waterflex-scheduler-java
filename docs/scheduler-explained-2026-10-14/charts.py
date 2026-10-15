@@ -67,23 +67,35 @@ def make_charts(data, folder):
         return fig, ax
 
     # 1. Topology: the host, the scheduler VM and what talks to what.
-    fig, ax = canvas()
-    box(ax, .2, 2.2, 2.6, 5.6, "WaterFlex Software\nbackend\n\nmaster data, every\nappointment's record,\nlastModified per\ntechnician-day,\nreceipts written with\na compare-and-set", HOST, 9)
-    box(ax, 3.6, .4, 6.2, 9.3, "", PRIVATE)
-    ax.text(6.7, 9.3, "Scheduler VM (partitioned CPU and memory, private network)", ha="center", fontsize=9.5, color=INK, fontweight="bold")
-    box(ax, 3.9, 6.2, 1.6, 1.9, "scheduler-proxy\n:8000\nnginx", SCHED, 8.5)
-    box(ax, 5.9, 7.0, 1.7, 1.5, "booking pool\nreplicas, embedded\nengine", SCHED, 8)
-    box(ax, 5.9, 5.1, 1.7, 1.5, "daily pool\nreplicas, embedded\nengine", SCHED, 8)
-    box(ax, 7.9, 7.0, 1.7, 1.5, "routing-service\nper metro\n(CH graph)", SCHED, 8)
-    box(ax, 7.9, 5.1, 1.7, 1.5, "Nominatim\n(optional)", SCHED, 8)
-    box(ax, 5.9, 2.4, 3.7, 1.9, "scheduler-db (Postgres, the scheduler's own)\nthin store: holds, offers, proposals, receipts,\ntenants and tokens, route cache", STORE, 8)
-    box(ax, 3.9, .7, 1.6, 1.2, "management\n:9000 private", PRIVATE, 8)
-    arrow(ax, (2.8, 5.6), (3.9, 7.0)); ax.text(3.35, 8.35, "HTTPS /api/v1\nsnapshot and call", ha="center", va="bottom", fontsize=8.5, color="#444444")
-    arrow(ax, (3.9, 6.6), (2.8, 4.6), color=THREAD["daily"]); ax.text(3.35, 4.4, "offers, routes,\nreceipts", ha="center", va="top", fontsize=8.5, color=THREAD["daily"])
-    arrow(ax, (5.5, 7.6), (5.9, 7.7)); arrow(ax, (5.5, 6.6), (5.9, 5.9))
-    arrow(ax, (7.6, 7.75), (7.9, 7.75)); arrow(ax, (7.6, 5.85), (7.9, 5.85)); arrow(ax, (7.6, 7.4), (7.9, 6.3)); arrow(ax, (7.6, 5.5), (7.9, 7.2))
-    arrow(ax, (6.75, 7.0), (6.75, 4.3)); arrow(ax, (7.3, 5.1), (7.3, 4.3))
-    ax.text(.2, 1.2, "Nothing else connects: no shared database,\nno client library, no callbacks.", fontsize=8.5, color="#555555", va="center")
+    # Layered top to bottom inside the VM: the entry point, the pools, then the shared pieces every replica reaches through one connector bar, so no arrow crosses another.
+    fig, ax = canvas(9, 4.3)
+    box(ax, .2, 4.9, 1.8, 4.3, "WaterFlex Software\nbackend\n\nmaster data, every\nappointment's record,\nlastModified per\ntechnician-day", HOST, 9)
+    ax.text(.2, 4.3, "Nothing else connects:\nno shared database, no\nclient library, no callbacks.", fontsize=8.5, color="#555555", va="top")
+    box(ax, 3.25, .3, 6.6, 9.4, "", PRIVATE)
+    ax.text(6.55, 9.2, "Scheduler VM: partitioned CPU and memory, private network", ha="center", fontsize=9.5, color=INK, fontweight="bold")
+    # Row 1: the entry point and the private port.
+    box(ax, 3.5, 7.3, 4.0, 1.3, "scheduler-proxy (nginx, :8000)\nbooking calls to the booking pool, proposals to the daily pool", SCHED, 8.5)
+    ax.add_patch(FancyBboxPatch((7.9, 7.3), 1.7, 1.3, boxstyle="round,pad=0.02,rounding_size=0.15", facecolor=PRIVATE, edgecolor="#5A6B7A", linewidth=.9, linestyle=(0, (3, 2))))
+    ax.text(8.75, 7.95, "management :9000\nhealth and metrics,\nnot behind the proxy", ha="center", va="center", fontsize=8, color=INK, linespacing=1.25)
+    ax.add_patch(FancyArrowPatch((2.0, 7.95), (3.25, 7.95), arrowstyle="<|-|>", mutation_scale=12, color="#444444", linewidth=1.1, shrinkA=2, shrinkB=2))
+    ax.text(2.62, 8.15, "HTTPS /api/v1", ha="center", va="bottom", fontsize=8.5, color="#444444")
+    ax.text(2.62, 7.7, "snapshot in,\nresults out", ha="center", va="top", fontsize=8.5, color=THREAD["daily"])
+    # Row 2: the two pools.
+    box(ax, 3.7, 4.7, 1.75, 1.7, "booking pool\nreplicas of one jar,\nembedded engine", SCHED, 8.5)
+    box(ax, 5.75, 4.7, 1.75, 1.7, "daily pool\nreplicas of one jar,\nembedded engine", SCHED, 8.5)
+    arrow(ax, (4.575, 7.3), (4.575, 6.4)); arrow(ax, (6.625, 7.3), (6.625, 6.4))
+    # Connector bar: every replica reaches the three shared pieces.
+    bar_y = 3.65
+    ax.plot([4.0, 9.4], [bar_y, bar_y], color="#444444", linewidth=1.4, solid_capstyle="round")
+    for x in (4.575, 6.625):
+        ax.plot([x, x], [4.7, bar_y], color="#444444", linewidth=1.1)
+    ax.text(5.6, bar_y - .12, "every replica uses all three", ha="center", va="top", fontsize=8, color="#555555", style="italic")
+    # Row 3: the shared pieces.
+    box(ax, 3.5, .9, 1.85, 1.9, "routing-service\none per metro,\nCH road graph", SCHED, 8.5)
+    box(ax, 5.6, .9, 1.7, 1.9, "Nominatim\n(optional geocoder)", SCHED, 8.5)
+    box(ax, 7.5, .9, 2.15, 1.9, "scheduler-db (Postgres)\nthe scheduler's own: holds,\noffers, proposals, receipts,\ntenants, route cache", STORE, 8)
+    for x in (4.425, 6.45, 8.575):
+        arrow(ax, (x, bar_y), (x, 2.8))
     recorded["topology"] = {"boxes": ["host backend", "scheduler-proxy", "booking pool", "daily pool", "routing-service per metro", "Nominatim", "scheduler-db", "management port"]}
     save(fig, "topology")
 
