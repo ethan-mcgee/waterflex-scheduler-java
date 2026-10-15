@@ -166,24 +166,8 @@ def trail_figures(data, recorded, figures):
     speedup = prof["summary"]["costPhaseSpeedup"]["median"]
     tk = rows(F, "TABU_KOPT")
 
-    # Front matter.
-    recorded["timeline"] = [{"date": d, "pr": pr, "lane": lane, "label": label} for d, pr, lane, label in data["timeline"]]
-    figures["timeline"] = trail.timeline(data["timeline"])
-    recorded["scoreboard"] = [
-        {"thread": "Daily search", "metric": "Saving per case vs Tabu", "before": "TABU, THE DEFAULT", "after": money(saving(F, "TABU_KOPT")),
-         "notes": [f"over {len(tk):,} cases", f"{money(saving(M, 'TABU_KOPT'))} on new fixtures"]},
-        {"thread": "Booking search", "metric": "Searches per minute", "before": f"{per_minute(ab_before):.0f} AT FIVE DESKS", "after": f"{per_minute(ab_after):.0f}",
-         "notes": [f"bounded served {held['BOUNDED']['served']}", f"of {held['BOUNDED']['requests']}; insertion {held['INSERTION']['served']}"]},
-        {"thread": "Routing", "metric": "16-pair request, p50", "before": f"{ch_new[('flexible', 1)]['p50Ms']:.1f} MS FLEXIBLE", "after": f"{ch_new[('CH-car-v1', 1)]['p50Ms']:.1f} ms",
-         "notes": ["searches in 60 s:", f"{vm_b['booking']['searches']} to {jc_b['booking']['searches']:,}"]},
-        {"thread": "Admission", "metric": "Holds lost, five desks", "before": f"{b5['booking']['holdUnavailable'] / b5['booking']['selected'] * 100:.0f}% OF SELECTED", "after": "none",
-         "notes": ["confirm p50:", f"{jc_b['ops']['confirm']['ms']['p50']} to {final['ops']['confirm']['ms']['p50']} ms"]},
-        {"thread": "Inside the engine", "metric": "Moves per second", "before": "STRING-KEYED LEGS", "after": f"{speedup:.2f}x",
-         "notes": [f"{prof['summary']['afterCostCentsWinTieLoss']['afterWins']} of {len(prof['pairs'])} cases cheaper", "at the same budget"]}]
-    figures["scoreboard"] = trail.scoreboard(recorded["scoreboard"])
-
-    # Parts I and II: schematic figures over the design document's own tables (each asserts the table's shape).
-    figures["delta"] = trail.delta(data["before_after"])
+    # Part I: schematic figures over the design document's own tables (each asserts the table's shape).
+    figures["stateless"] = trail.stateless()
     figures["ownership"] = trail.ownership(docs["ownership"][1])
     figures["surface"] = trail.surface(docs["operations"])
     figures["token"] = trail.token()
@@ -198,14 +182,14 @@ def trail_figures(data, recorded, figures):
     figures["geocode"] = trail.geocode()
     figures["map_lifecycle"] = trail.map_lifecycle()
     recorded["schematic_sources"] = {"operations": [o["id"] for o in docs["operations"]], "problems": len(docs["problems"][1]), "tables": len(docs["tables"][1]),
-                                     "stored": len(docs["stored"][1]), "before_after": len(data["before_after"])}
+                                     "stored": len(docs["stored"][1])}
 
-    # Part III.
+    # Part II.
     recorded["evidence"] = {"daily_cases": len(F) + len(data["daily"]["first"]["confirm"]) + len(M) + len(L) + len(data["daily"]["follow"]["confirm"]), "booking_requests": b24["requests"],
                             "load_runs": sum(len(v) for v in runs.values()) + len(extras["coldRemeasurement"]) + len(extras["abComparison"])}
     figures["evidence"] = thread.evidence(recorded["evidence"])
 
-    # Part IV, the daily search.
+    # Part III, the daily search.
     figures["two_phase"] = thread.two_phase()
     variants = ("CURRENT_UNCAPPED", "KOPT", "SUBLIST", "LATE_ACCEPTANCE", "RUIN_RECREATE")
     recorded["budgets29"] = {"budgets": [15, 30, 60], "values": {v: [f29["daily"][(b, v)] for b in (15, 30, 60)] for v in variants}}
@@ -217,15 +201,15 @@ def trail_figures(data, recorded, figures):
     fleets = (5, 10, 20, 50)
     recorded["late_mechanics"] = {"fleets": list(fleets),
                                   "best_fraction": {s: [mean(r["best_fraction"] for r in rows(F, s, fleet=fl)) for fl in fleets] for s in ("TABU", "TABU_KOPT", "LATE_ACCEPTANCE", "KOPT")},
-                                  "variance": [{"label": "WITH FAIRNESS (OCT 11)", "rows": [{"solver": s, "value": mean(r["variance"] for r in rows(F, s))} for s in ("TABU", "TABU_KOPT", "KOPT", "LATE_ACCEPTANCE")]},
-                                               {"label": "COST ONLY (OCT 13)", "rows": [{"solver": s, "value": mean(r["variance"] for r in rows(M, s))} for s in ("TABU", "TABU_KOPT", "TABU_KOPT_SIZE_3")]}]}
+                                  "variance": [{"label": "WITH FAIRNESS (FIRST STUDY)", "rows": [{"solver": s, "value": mean(r["variance"] for r in rows(F, s))} for s in ("TABU", "TABU_KOPT", "KOPT", "LATE_ACCEPTANCE")]},
+                                               {"label": "COST ONLY (FOLLOW-UP)", "rows": [{"solver": s, "value": mean(r["variance"] for r in rows(M, s))} for s in ("TABU", "TABU_KOPT", "TABU_KOPT_SIZE_3")]}]}
     figures["late_mechanics"] = thread.late_mechanics(recorded["late_mechanics"])
     budgets = (240000, 480000, 600000)
     recorded["long_arm"] = {"budgets": [b // 1000 for b in budgets], "cases_per_point": len(rows(L, "KOPT", fleet=50, budget_ms=240000)),
                             "fleets": {str(fl): {s: [saving(L, s, fleet=fl, budget_ms=b) for b in budgets] for s in ("KOPT", "LATE_ACCEPTANCE", "TABU")} for fl in (30, 50)}}
     figures["long_arm"] = thread.long_arm(recorded["long_arm"])
 
-    # Part IV, the booking search.
+    # Part III, the booking search.
     figures["booking_methods"] = thread.booking_methods()
     recorded["workload24"] = [{"workload": w, **b24["by_workload"][w]} for w in ("CLUSTERED", "DISPERSED", "SPARSE")]
     figures["workload24"] = thread.workload24(recorded["workload24"])
@@ -235,7 +219,7 @@ def trail_figures(data, recorded, figures):
                              "shedding": {stage: {"label": r["label"], "per_minute": per_minute(r), "p95": r["ops"]["booking offers"]["ms"]["p95"]} for stage, r in (("before", ab_before), ("after", ab_after))}}
     figures["api_fixes"] = thread.api_fixes(recorded["api_fixes"])
 
-    # Part IV, routing.
+    # Part III, routing.
     omaha = r24["omaha"]
     assert omaha["flexible"]["requests"] == omaha["ch"]["requests"]
     recorded["paradox"] = {"alone": [{"engine": e, "callers": c, "p50": ch_old[(e, c)]["p50Ms"]} for c in (1, 10) for e in ("flexible", "CH-car-v1")],
@@ -245,7 +229,7 @@ def trail_figures(data, recorded, figures):
     recorded["j_routing"] = [{"run": name, "searches": r["booking"]["searches"], "per_leg": per_leg(r), "routing_cores": routing_cores(r)} for name, r in (("J0", vm_b), ("J flex", jf_b), ("J CH", jc_b))]
     figures["j_routing"] = thread.j_routing(recorded["j_routing"])
 
-    # Part IV, admission.
+    # Part III, admission.
     recorded["holds"] = [{"desks": n, "before_lost": b["booking"]["holdUnavailable"], "before_selected": b["booking"]["selected"], "after_lost": a["booking"]["holdUnavailable"],
                           "after_selected": a["booking"]["selected"], "before_p95": b["ops"]["booking offers"]["ms"]["p95"], "after_p95": a["ops"]["booking offers"]["ms"]["p95"],
                           "before_per_minute": per_minute(b), "after_per_minute": per_minute(a), "stale_per_search": a["booking"]["stale"] / a["booking"]["searches"]}
@@ -254,7 +238,7 @@ def trail_figures(data, recorded, figures):
     figures["race"] = thread.race()
     figures["slots"] = thread.slots()
 
-    # Part IV, inside the engine.
+    # Part III, inside the engine.
     groups = ["Immutable map probe", "HashMap and copies", "BigDecimal arithmetic", "Engine timing methods", "Instant and Duration", "Timefold score director"]
     assert set(groups) == set(prof["before"]["groups"]) == set(prof["after"]["groups"])
     recorded["profile"] = {"groups": groups, "before": prof["before"]["groups"], "after": prof["after"]["groups"], "samples": {"before": prof["before"]["samples"], "after": prof["after"]["samples"]}}
@@ -273,7 +257,7 @@ def trail_figures(data, recorded, figures):
                                for k, r in (("embedded", k_emb), ("remote", k_rem))}
     figures["round_trips"] = thread.round_trips(recorded["round_trips"])
 
-    # Part V and Part VI.
+    # Part IV and Part V.
     recorded["today"] = {"shed_before": per_minute(ab_before), "shed_after": per_minute(ab_after), "confirm_before": jc_b["ops"]["confirm"]["ms"]["p50"], "confirm_after": final["ops"]["confirm"]["ms"]["p50"],
                          "speedup": speedup, "daily_saving": saving(F, "TABU_KOPT"), "searches_before": vm_b["booking"]["searches"], "searches_after": jc_b["booking"]["searches"],
                          "lost_before": b5["booking"]["holdUnavailable"]}

@@ -6,7 +6,6 @@ Facts drawn here come from the design document, the integration guide and the Op
 from __future__ import annotations
 
 import textwrap
-from datetime import date
 
 from .svglib import (ACCENT, HOST, INK, KEY, LINK, MONO, MUTED, NAME, PAPER, PAPER2, SANS, SERIES, SERVICE, SOFT, STORE, TECH,
                      Figure, ink, mono_width, rgba)
@@ -19,128 +18,23 @@ def _wrap(s: str, width: int) -> list[str]:
 
 
 # ---- Front matter ---------------------------------------------------------------------------------
-def timeline(events) -> Figure:
-    f = Figure("timeline", "The trail from the demonstration to today", "Timeline of the work from the September 19 demonstration to October 14 in five threads: architecture, daily search, booking, routing, and load and engine work, with the pull request of each change.", 980, 900)
-    start, end = date(2026, 9, 18), date(2026, 10, 15)
-    x0, x1, top, lane_h = 156, 940, 64, 148
-    span = (end - start).days
-
-    def xof(d: str) -> float:
-        return round(x0 + (date.fromisoformat(d) - start).days / span * (x1 - x0))
-
-    bottom = top + lane_h * len(LANES) + 24
-    f.height = int(bottom + 112)
-    for d in ("2026-09-19", "2026-09-26", "2026-10-03", "2026-10-10", "2026-10-14"):
-        x = xof(d)
-        f.line(x, top - 8, x, bottom, ink(0.08), 0.8)
-        f.tech(x, bottom + 22, date.fromisoformat(d).strftime("%b %d").upper(), MUTED)
-    f.line(x0, bottom, x1, bottom, ink(0.25), 1)
-    xt = xof("2026-10-14")
-    f.line(xt, top - 16, xt, bottom, ACCENT, 1.4, "6,4")
-    f.label(xt - 4, top - 24, "THE CURRENT STATE", ACCENT, KEY, "end")
-    lead = 14
-    for i, lane in enumerate(LANES):
-        y = top + i * lane_h + lane_h / 2
-        f.text(x0 - 16, y + 5, lane, KEY, INK, SANS, "end", weight="700")
-        f.line(x0, y, x1, y, ink(0.20), 1, "2,4")
-        groups: dict[str, list] = {}
-        for d, pr, l, label in events:
-            if l == lane:
-                groups.setdefault(d, []).append((pr, label))
-        placed = {True: [], False: []}  # side -> [(x_left, x_right, depth)]
-        for k, (d, items) in enumerate(sorted(groups.items())):
-            x = xof(d)
-            first = (d, lane) == ("2026-09-19", "Architecture")
-            f.circle(x, y, 6, PAPER, MUTED, 1.5) if first else f.circle(x, y, 6, SERVICE, INK, 1)
-            lines = []
-            for pr, label in items:
-                lines += _wrap(label, 10)
-                if pr:
-                    lines.append(f"#{pr}")
-            half = max(mono_width(line, KEY) for line in lines) / 2 + 8
-            # Each block goes on the side of the lane where it sits closest to the axis without overlapping a block
-            # already placed there; ties alternate, so neighbours spread above and below.
-            def depth_on(side: bool) -> int:
-                depth = 0
-                for left, right, d0, d1 in sorted(placed[side], key=lambda b: b[2]):
-                    if left < x + half and x - half < right and depth < d1 and d0 < depth + len(lines):
-                        depth = d1
-                return depth
-            preferred = k % 2 == 0
-            above = preferred if depth_on(preferred) <= depth_on(not preferred) else not preferred
-            depth = depth_on(above)
-            placed[above].append((x - half, x + half, depth, depth + len(lines)))
-            for j, line in enumerate(lines):
-                if above:
-                    yy = y - 14 - (depth + len(lines) - 1 - j) * lead
-                else:
-                    yy = y + 24 + (depth + j) * lead
-                f.label(x, yy, line, MUTED if line.startswith("#") else INK, KEY)
-    f.legend(bottom + 70, [("hollow-dot", PAPER, "THE DEMONSTRATION"), ("solid-dot", SERVICE, "A MERGED CHANGE OR A STUDY"), ("line-dashed", ACCENT, "TODAY, OCT 14")],
-             note="pull request dates are checked against git")
+# ---- Part I: the stateless API ---------------------------------------------------------------------
+def stateless(_=None) -> Figure:
+    f = Figure("stateless", "The scheduler as a service of its own", "WaterFlex Software keeps every record and calls the scheduler API with a snapshot; the scheduler answers with results and keeps only a thin store of its own, and the host writes its own database with a compare-and-set.", 980, 380)
+    f.zone(40, 40, 900, 264, "THE STATELESS SCHEDULER: A SERVICE OF ITS OWN")
+    f.node(80, 76, 240, 72, "WaterFlex Software", ["HOST · OWNS EVERY RECORD"], HOST)
+    f.node(440, 76, 240, 72, "Scheduler API", ["/API/V1 · 12 OPERATIONS"], SERVICE, ACCENT, 1.6)
+    f.node(80, 196, 240, 88, "Host database", ["THE BUSINESS RECORD", "LASTMODIFIED PER DAY"], HOST)
+    f.node(440, 196, 240, 88, "Thin store", ["ITS OWN POSTGRES", "TENANTS · ROW SECURITY"], STORE)
+    f.arrow(320, 100, 440, 100, "link"); f.label(380, 90, "SNAPSHOT", LINK, KEY)
+    f.arrow(440, 128, 320, 128, "muted", "5,4"); f.label(380, 152, "RESULTS", SOFT, KEY)
+    f.arrow(200, 148, 200, 196, "muted"); f.label(212, 177, "COMPARE-AND-SET", SOFT, KEY, "start")
+    f.arrow(560, 148, 560, 196, "muted"); f.label(572, 177, "HOLDS, RECEIPTS", SOFT, KEY, "start")
+    f.callout(720, 108, ["Every call carries the", "facts it needs; nothing", "is copied, synced or", "scheduled by the", "scheduler itself."])
+    f.legend(344, [("swatch", HOST, "WATERFLEX SOFTWARE"), ("swatch", SERVICE, "SCHEDULER"), ("swatch", STORE, "DATABASE"), ("arrow-link", LINK, "HTTPS CALL")])
     return f
 
 
-def scoreboard(cards: list[dict]) -> Figure:
-    f = Figure("scoreboard", "Where each thread started and where it stands", "One row per thread of the work, each with the first measured value and the value today: daily search, booking, routing, admission and the engine.", 980, 416)
-    cols = (40, 336, 588, 740)
-    for x, head in zip(cols, ("THREAD AND MEASURE", "FIRST MEASURED", "TODAY", "CONTEXT")):
-        f.eyebrow_text(x, 44, head, ACCENT if head == "TODAY" else SOFT)
-    for i, c in enumerate(cards):
-        y = 60 + i * 64
-        f.line(40, y, 940, y, ink(0.12), 0.8)
-        f.eyebrow_text(cols[0], y + 22, c["thread"].upper(), SOFT)
-        f.text(cols[0], y + 46, c["metric"], NAME, INK, SANS, weight="700")
-        f.text(cols[1], y + 40, c["before"], TECH, MUTED, MONO)
-        f.arrow(cols[2] - 60, y + 36, cols[2] - 16, y + 36, "muted")
-        f.text(cols[2], y + 46, c["after"], 28, INK, SANS, weight="700")
-        for j, note in enumerate(c["notes"]):
-            f.text(cols[3], y + 30 + j * 18, note, KEY, MUTED, MONO)
-    f.line(40, 380, 940, 380, ink(0.12), 0.8)
-    return f
-
-
-# ---- Part I: where it started ----------------------------------------------------------------------
-def delta(rows) -> Figure:
-    f = Figure("delta", "From a portal module to a stateless service", "Architecture delta: in September the scheduler shared the portal's database and ran its own jobs; today WaterFlex Software calls a stateless API that keeps only a thin store of its own. A ledger lists the seven changes.", 980, 1000)
-    # Before.
-    f.zone(40, 40, 900, 264, "SEPTEMBER: A MODULE OF THE PORTAL")
-    f.node(80, 76, 240, 72, "Portal", ["NEXT.JS · ITS OWN ENDPOINTS"], HOST, tag="1")
-    f.node(440, 76, 240, 72, "Scheduler", ["JAVA · 2 A.M. BATCH, WORKERS"], SERVICE, tag="4")
-    f.node(80, 196, 600, 88, "Shared Postgres", ["ABOUT 40 PORTAL TABLES · OMAHA_SETTING", "APPOINTMENTS WRITTEN UNDER ROW LOCKS"], STORE, tag="2")
-    f.arrow(320, 112, 440, 112, "muted"); f.label(380, 102, "CALLS", SOFT, KEY)
-    f.arrow(200, 148, 200, 196, "muted"); f.label(212, 177, "READS, WRITES", SOFT, KEY, "start")
-    f.arrow(560, 148, 560, 196, "muted"); f.label(572, 177, "READS, WRITES", SOFT, KEY, "start")
-    f.callout(720, 108, ["One database, one", "settings table and its", "own overnight batch:", "fine for a demo, wrong", "for a product."])
-    # After.
-    f.zone(40, 332, 900, 264, "TODAY: A SERVICE OF ITS OWN")
-    f.node(80, 368, 240, 72, "WaterFlex Software", ["HOST · OWNS EVERY RECORD"], HOST, tag="7")
-    f.node(440, 368, 240, 72, "Scheduler API", ["/API/V1 · 12 OPERATIONS"], SERVICE, ACCENT, 1.6, tag="3")
-    f.node(80, 488, 240, 88, "Host database", ["THE BUSINESS RECORD", "LASTMODIFIED PER DAY"], HOST, tag="5")
-    f.node(440, 488, 240, 88, "Thin store", ["ITS OWN POSTGRES", "TENANTS · ROW SECURITY"], STORE, tag="6")
-    f.arrow(320, 392, 440, 392, "link"); f.label(380, 382, "SNAPSHOT", LINK, KEY)
-    f.arrow(440, 420, 320, 420, "muted", "5,4"); f.label(380, 444, "RESULTS", SOFT, KEY)
-    f.arrow(200, 440, 200, 488, "muted"); f.label(212, 469, "COMPARE-AND-SET", SOFT, KEY, "start")
-    f.arrow(560, 440, 560, 488, "muted"); f.label(572, 469, "HOLDS, RECEIPTS", SOFT, KEY, "start")
-    f.callout(720, 400, ["Every call carries the", "facts it needs; nothing", "is copied, synced or", "scheduled by the", "scheduler itself."])
-    # Ledger.
-    f.eyebrow_text(40, 636, "CHANGES LEDGER", SOFT)
-    f.line(40, 644, 940, 644, ink(0.12), 0.8)
-    f.eyebrow_text(212, 664, "SEPTEMBER", SOFT); f.eyebrow_text(584, 664, "TODAY", SOFT)
-    y = 690
-    for i, (piece, before, after) in enumerate(rows):
-        b, a = _wrap(before, 50), _wrap(after, 51)
-        f.tag(40, y - 12, str(i + 1))
-        f.text(76, y + 1, piece, KEY, INK, SANS, weight="700")
-        f.para(212, y, b, KEY, MUTED, MONO, lead=14)
-        f.para(584, y, a, KEY, INK, MONO, lead=14)
-        y += 14 * max(len(b), len(a)) + 14
-    f.height = int(y + 60)
-    f.legend(y + 34, [("swatch", HOST, "WATERFLEX SOFTWARE"), ("swatch", SERVICE, "SCHEDULER"), ("swatch", STORE, "DATABASE"), ("arrow-link", LINK, "HTTPS CALL")], note="tags point to the ledger rows")
-    return f
-
-
-# ---- Part II: the stateless API ---------------------------------------------------------------------
 def ownership(rows) -> Figure:
     f = Figure("ownership", "Who owns what", "Two zones: WaterFlex Software owns master data, the business record, lastModified and each client's policy; the scheduler owns holds, offers, proposals, receipts and the road graph with its cache. A snapshot goes in, results come out, and the host writes its own record.", 980, 640)
     left = [r[0] for r in rows if r[0]]

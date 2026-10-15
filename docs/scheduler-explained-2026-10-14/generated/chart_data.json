@@ -843,174 +843,6 @@
       "daily_cpu_mean": 36.415
     }
   ],
-  "timeline": [
-    {
-      "date": "2026-09-19",
-      "pr": null,
-      "lane": "Architecture",
-      "label": "Demonstration"
-    },
-    {
-      "date": "2026-09-23",
-      "pr": null,
-      "lane": "Routing",
-      "label": "Sparse pairs"
-    },
-    {
-      "date": "2026-09-24",
-      "pr": null,
-      "lane": "Routing",
-      "label": "CH shelved"
-    },
-    {
-      "date": "2026-09-24",
-      "pr": null,
-      "lane": "Booking",
-      "label": "Insertion vs bounded"
-    },
-    {
-      "date": "2026-09-29",
-      "pr": null,
-      "lane": "Booking",
-      "label": "Bounded kept"
-    },
-    {
-      "date": "2026-09-29",
-      "pr": null,
-      "lane": "Daily search",
-      "label": "Tabu kept"
-    },
-    {
-      "date": "2026-10-01",
-      "pr": null,
-      "lane": "Daily search",
-      "label": "Budget study"
-    },
-    {
-      "date": "2026-10-07",
-      "pr": 70,
-      "lane": "Architecture",
-      "label": "Stateless design"
-    },
-    {
-      "date": "2026-10-08",
-      "pr": 95,
-      "lane": "Architecture",
-      "label": "Thin store"
-    },
-    {
-      "date": "2026-10-09",
-      "pr": 123,
-      "lane": "Architecture",
-      "label": "API only"
-    },
-    {
-      "date": "2026-10-11",
-      "pr": 130,
-      "lane": "Daily search",
-      "label": "Tabu variants"
-    },
-    {
-      "date": "2026-10-12",
-      "pr": 133,
-      "lane": "Daily search",
-      "label": "TABU_KOPT default"
-    },
-    {
-      "date": "2026-10-13",
-      "pr": 151,
-      "lane": "Load and engine",
-      "label": "Load tool"
-    },
-    {
-      "date": "2026-10-13",
-      "pr": 152,
-      "lane": "Booking",
-      "label": "STALE rule"
-    },
-    {
-      "date": "2026-10-13",
-      "pr": 157,
-      "lane": "Load and engine",
-      "label": "Fair queue"
-    },
-    {
-      "date": "2026-10-14",
-      "pr": 158,
-      "lane": "Load and engine",
-      "label": "Two pools"
-    },
-    {
-      "date": "2026-10-14",
-      "pr": 160,
-      "lane": "Routing",
-      "label": "CH default"
-    },
-    {
-      "date": "2026-10-14",
-      "pr": 162,
-      "lane": "Booking",
-      "label": "Confirm slot"
-    },
-    {
-      "date": "2026-10-14",
-      "pr": 163,
-      "lane": "Load and engine",
-      "label": "RoadMatrix"
-    }
-  ],
-  "scoreboard": [
-    {
-      "thread": "Daily search",
-      "metric": "Saving per case vs Tabu",
-      "before": "TABU, THE DEFAULT",
-      "after": "$7.55",
-      "notes": [
-        "over 640 cases",
-        "$8.22 on new fixtures"
-      ]
-    },
-    {
-      "thread": "Booking search",
-      "metric": "Searches per minute",
-      "before": "127 AT FIVE DESKS",
-      "after": "263",
-      "notes": [
-        "bounded served 360",
-        "of 480; insertion 346"
-      ]
-    },
-    {
-      "thread": "Routing",
-      "metric": "16-pair request, p50",
-      "before": "29.6 MS FLEXIBLE",
-      "after": "3.7 ms",
-      "notes": [
-        "searches in 60 s:",
-        "289 to 1,020"
-      ]
-    },
-    {
-      "thread": "Admission",
-      "metric": "Holds lost, five desks",
-      "before": "37% OF SELECTED",
-      "after": "none",
-      "notes": [
-        "confirm p50:",
-        "116 to 20 ms"
-      ]
-    },
-    {
-      "thread": "Inside the engine",
-      "metric": "Moves per second",
-      "before": "STRING-KEYED LEGS",
-      "after": "1.79x",
-      "notes": [
-        "21 of 24 cases cheaper",
-        "at the same budget"
-      ]
-    }
-  ],
   "schematic_sources": {
     "operations": [
       "whoami",
@@ -1028,8 +860,7 @@
     ],
     "problems": 11,
     "tables": 7,
-    "stored": 5,
-    "before_after": 7
+    "stored": 5
   },
   "evidence": {
     "daily_cases": 6032,
@@ -1185,7 +1016,7 @@
     },
     "variance": [
       {
-        "label": "WITH FAIRNESS (OCT 11)",
+        "label": "WITH FAIRNESS (FIRST STUDY)",
         "rows": [
           {
             "solver": "TABU",
@@ -1206,7 +1037,7 @@
         ]
       },
       {
-        "label": "COST ONLY (OCT 13)",
+        "label": "COST ONLY (FOLLOW-UP)",
         "rows": [
           {
             "solver": "TABU",

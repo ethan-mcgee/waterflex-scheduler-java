@@ -1,12 +1,11 @@
 """Verify the built report against its raw sources, without the loader's or builder's helpers.
 
-Recomputes the chart datasets from the evidence files and experiment archives directly, checks the timeline's pull
-request dates against the repository's merge history, and checks the preserved template parts, figure descriptions,
+Recomputes the chart datasets from the evidence files and experiment archives directly, and checks the preserved
+template parts, figure descriptions,
 table row splitting, the absence of citation markers and Appendix C, and the absence of em and en dashes.
 """
 import json
 import re
-import subprocess
 from hashlib import sha256
 from pathlib import Path
 from statistics import mean, median
@@ -94,14 +93,6 @@ def main():
     assert xml.count("<w:tr>") + xml.count("<w:tr ") == xml.count("<w:cantSplit/>"), "every row must refuse to split"
     checked.append(f"template, {len(order)} figures, rows, dashes, no citations")
 
-    # The timeline's pull request dates against the merge history.
-    merged = {}
-    for line in subprocess.run(["git", "log", "origin/main", "--merges", "--format=%ad %s", "--date=short"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.splitlines():
-        found = re.match(r"(\d{4}-\d{2}-\d{2}) Merge pull request #(\d+) ", line)
-        if found: merged.setdefault(int(found.group(2)), found.group(1))
-    dated = [e for e in charts["timeline"] if e["pr"] is not None]
-    assert len(dated) == 12 and all(merged.get(e["pr"]) == e["date"] for e in dated), [(e["pr"], e["date"], merged.get(e["pr"])) for e in dated]
-    checked.append("timeline merge dates")
 
     # The daily paired means by budget (Sept 29).
     summary = read(EVIDENCE / "scheduler-field-2026-09-29/summary.json")

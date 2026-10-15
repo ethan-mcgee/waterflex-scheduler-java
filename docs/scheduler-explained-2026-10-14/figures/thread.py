@@ -58,7 +58,7 @@ def end_labels(f: Figure, items: list[tuple[float, str, str]], x: float, gap: fl
         f.text(x, yy + 4, text, KEY, color, MONO)
 
 
-# ---- Part III: how the work was measured ---------------------------------------------------------
+# ---- Part II: how the work was measured ---------------------------------------------------------
 def evidence(counts: dict) -> Figure:
     f = Figure("evidence", "Three kinds of evidence, one discipline", "Three cards for the daily solver studies, the September booking studies and the October load studies, with what one case is, how a comparison is made and what each cannot say; below, the pipeline every number passes through: raw files with hashes, a loader that checks shapes, the builder, and a verifier that reads the raw files again.", 980, 560)
     cards = [("FIXTURE QUALITY", "Daily solver studies", f"{counts['daily_cases']:,} CASES", ["one synthetic day, one seed,", "one budget, one configuration"], ["matched: same start, exact cents"], ["payroll on a real day"]),
@@ -84,7 +84,7 @@ def evidence(counts: dict) -> Figure:
     return f
 
 
-# ---- Part IV: the daily search -------------------------------------------------------------------
+# ---- Part III: the daily search -------------------------------------------------------------------
 def two_phase(_=None) -> Figure:
     f = Figure("two_phase", "A daily proposal's search: two phases, then policy", "The day as sent goes through a cost search and then a fairness search inside the client's seconds, and policy accepts the result only if it beats the day as sent. Below, the moves the searches make: relocate, swap, and the K opt move that reconnects several links of a route at once.", 980, 680)
     y = 48
@@ -137,7 +137,7 @@ def two_phase(_=None) -> Figure:
 
 
 def budgets29(rec: dict) -> Figure:
-    f = Figure("budgets29", "September 29: which search beats Tabu depends on the budget", "Line chart of the mean saving against Tabu in modeled dollars per case at 15, 30 and 60 second budgets for five alternatives, from the September 29 field validation; K opt trails Tabu at 15 s and leads at 60 s.", 980, 580)
+    f = Figure("budgets29", "Which search beats Tabu depends on the budget", "Line chart of the mean saving against Tabu in modeled dollars per case at 15, 30 and 60 second budgets for five alternatives, from the field validation; K opt trails Tabu at 15 s and leads at 60 s.", 980, 580)
     p = Plot(f, 130, 48, 620, 440)
     budgets, values = rec["budgets"], rec["values"]
     allv = [v for row in values.values() for v in row]
@@ -252,7 +252,7 @@ def long_arm(rec: dict) -> Figure:
     return f
 
 
-# ---- Part IV: the booking search -----------------------------------------------------------------
+# ---- Part III: the booking search -----------------------------------------------------------------
 def _stops(f: Figure, x: float, y: float, labels: list[str], hi: tuple = (), new: str | None = None, gap: float = 64) -> list[float]:
     f.line(x + 10, y, x + 10 + gap * (len(labels) + 1), y, ink(0.35), 1.2)
     f.rect(x, y - 10, 20, 20, STORE, SOFT, 1, rx=2); f.text(x + 10, y + 4, "D", KEY, INK, MONO, "middle")
@@ -296,7 +296,7 @@ def booking_methods(_=None) -> Figure:
 
 
 def workload24(rec: list) -> Figure:
-    f = Figure("workload24", "September 24: what bounded search saved, by workload", "Bars of paid minutes and modeled dollars bounded search saved per case against insertion, by workload, over the sequential cases where both methods booked the same requests.", 980, 520)
+    f = Figure("workload24", "What bounded search saved, by workload", "Bars of paid minutes and modeled dollars bounded search saved per case against insertion, by workload, over the sequential cases where both methods booked the same requests.", 980, 520)
     for j, (key, title, unit, fmt_v) in enumerate((("paid_min", "Paid minutes saved per case", "MINUTES PER CASE", lambda v: f"{v:.1f}"), ("cost", "Modeled cost saved per case", "$ PER CASE", money))):
         p = Plot(f, 120 + j * 480, 64, 460 + j * 480, 380); p.frame(title)
         ceiling = nice_ceiling(max(e[key] for e in rec))
@@ -366,14 +366,14 @@ def api_fixes(rec: dict) -> Figure:
         f.tech(xb, y + 24, fm(b), MUTED, size=KEY); f.tech(xa, y + 24, fm(a), ACCENT, size=KEY)
         f.tech(q.x0, y + 46, f"0 TO {fm(ceiling)}", SOFT, "start", 9)
     f.tech(q.x0, 400, "FIVE DESKS, FRESH ADDRESSES", MUTED, "start", KEY)
-    f.card(700, 72, 240, 312, "#138, DECIDED 2026-10-13", [("name", "Invalid refinement"), ("tech", "used to fail the whole"), ("tech", "search; now insertion"), ("tech", "offers are published"), ("tech", "with refinement:"), ("tech", "UNAVAILABLE"), ("muted", "logged and counted;"), ("muted", "an invalid insertion"), ("muted", "result still fails;"), ("muted", "covered by tests")])
+    f.card(700, 72, 240, 312, "#138, COVERED BY TESTS", [("name", "Invalid refinement"), ("tech", "used to fail the whole"), ("tech", "search; now insertion"), ("tech", "offers are published"), ("tech", "with refinement:"), ("tech", "UNAVAILABLE"), ("muted", "logged and counted;"), ("muted", "an invalid insertion"), ("muted", "result still fails;"), ("muted", "covered by tests")])
     f.legend(504, [("hollow-dot", PAPER, "BEFORE"), ("solid-dot", ACCENT, "AFTER"), ("swatch", rgba(ACCENT, 0.12), "AFTER THE FIX")], note="every search still returned four offers")
     return f
 
 
-# ---- Part IV: routing ----------------------------------------------------------------------------
+# ---- Part III: routing ----------------------------------------------------------------------------
 def paradox(rec: dict) -> Figure:
-    f = Figure("paradox", "September's paradox: a far faster road query, no faster booking", "Left: p50 of a 16-pair routing request against the routing service alone, flexible against CH, with one and ten callers on September 24. Right: the same two graphs under a 720-request booking run on real Omaha roads: requests served and pooled p95.", 980, 540)
+    f = Figure("paradox", "September's paradox: a far faster road query, no faster booking", "Left: p50 of a 16-pair routing request against the routing service alone, flexible against CH, with one and ten callers in the first benchmark. Right: the same two graphs under a 720-request booking run on real Omaha roads: requests served and pooled p95.", 980, 540)
     alone = rec["alone"]
     p = Plot(f, 110, 72, 420, 380); p.frame("Routing service alone, p50")
     ceiling = nice_ceiling(max(e["p50"] for e in alone))
@@ -450,7 +450,7 @@ def j_routing(rec: list) -> Figure:
     return f
 
 
-# ---- Part IV: admission and concurrency ---------------------------------------------------------
+# ---- Part III: admission and concurrency ---------------------------------------------------------
 def holds(rec: list) -> Figure:
     f = Figure("holds", "Holds lost and the latency tail, before and after rule 0", "Grouped bars by booking desks: the share of selected holds lost at confirm in the first load measurement (#151) and after rule 0 (#152, fresh seeds), and offers p95 at the caller against the 5.5 s bound.", 980, 540)
     p = Plot(f, 112, 64, 440, 380); p.frame("Selected holds lost at confirm")
@@ -536,7 +536,7 @@ def slots(_=None) -> Figure:
     return f
 
 
-# ---- Part IV: inside the engine -----------------------------------------------------------------
+# ---- Part III: inside the engine -----------------------------------------------------------------
 def profile(rec: dict) -> Figure:
     f = Figure("profile", "Where a daily solve's samples went, before and after RoadMatrix", "Two stacked bars of the share of solve-scoped profiler samples by group before and after the RoadMatrix treatment; the remainder is everything the groups do not name.", 980, 440)
     groups = rec["groups"]
@@ -635,7 +635,7 @@ def round_trips(rec: dict) -> Figure:
     return f
 
 
-# ---- Part V: the system today --------------------------------------------------------------------
+# ---- Part IV: the system today --------------------------------------------------------------------
 def today(rec: dict) -> Figure:
     f = Figure("today", "The scheduler today, with the choice each thread settled", "Architecture of the scheduler as it stands, each part annotated with the decision the evidence settled and the number behind it: the proxy and two pools, the daily search per client, bounded two-pass booking with the confirm slot, the embedded engine with RoadMatrix, the CH routing graph and the thin store with rule 0.", 980, 700)
     f.node(310, 32, 360, 56, "WaterFlex Software", ["SNAPSHOT IN, RESULTS OUT"], HOST)
@@ -663,7 +663,7 @@ def today(rec: dict) -> Figure:
     return f
 
 
-# ---- Part VI: what comes next --------------------------------------------------------------------
+# ---- Part V: what comes next --------------------------------------------------------------------
 def roadmap_perf(_=None) -> Figure:
     f = Figure("roadmap_perf", "Performance: what to measure next, in order", "Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores, run the daily pool remote, and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate; fewer solver round trips only if booking ever uses a pool.", 980, 620)
     f.node(40, 220, 200, 88, "Measure on the VM", ["J0, J2 AND K ACROSS", "THE REAL NETWORK"], rgba(ACCENT, 0.08), ACCENT, 1.4)
@@ -678,7 +678,7 @@ def roadmap_perf(_=None) -> Figure:
     f.arrow(540, 436, 600, 436, "muted")
     f.arrow(540, 92, 600, 92, "muted", "5,4"); f.label(570, 84, "IF", SOFT, KEY)
     f.para(600, 500, ["GATE: THE PAIRED STUDY, THE EXACTNESS", "TEST AND THE REPLICA'S CORE BUDGET"], KEY, MUTED, MONO, lead=16)
-    f.callout(600, 200, ["Every number in Part IV is from a", "rehearsal stack whose CPU limits are", "a shape; the latency target is defined", "at the WaterFlex caller, not yet", "measured."])
+    f.callout(600, 200, ["Every number in Part III is from a", "rehearsal stack whose CPU limits are", "a shape; the latency target is defined", "at the WaterFlex caller, not yet", "measured."])
     f.legend(584, [("swatch", rgba(ACCENT, 0.08), "FIRST"), ("swatch", SERVICE, "NEXT, ONCE THE VM NUMBERS EXIST"), ("swatch-dashed", PAPER2, "CONDITIONAL")], note="one change per measurement")
     return f
 

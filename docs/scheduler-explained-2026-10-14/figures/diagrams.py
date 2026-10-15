@@ -127,7 +127,7 @@ def daily_fleet(recorded: dict, labels: dict) -> Figure:
     f = Figure("daily_fleet", "Mean saving against Tabu by fleet size", "Two heatmaps of mean saving against Tabu in dollars per case by fleet size: the Tabu variant study and the follow-up on unseen fixtures.", 980, 860)
     cell_w, cell_h, gap = 96, 44, 4
     x0, y = 240, 40
-    for key, title, focal in (("first", "Tabu variant study, Oct 11 (160 cases per cell)", "TABU_KOPT"), ("follow", "Follow-up on 40 new fixtures, Oct 13 (48 cases per cell)", "TABU_KOPT_SIZE_3")):
+    for key, title, focal in (("first", "Tabu variant study (160 cases per cell)", "TABU_KOPT"), ("follow", "Follow-up on 40 new fixtures (48 cases per cell)", "TABU_KOPT_SIZE_3")):
         d = recorded[key]
         f.panel_title(40, y + 4, title)
         cols = [str(c) for c in d["fleets"]] + ["all"]
@@ -159,9 +159,9 @@ def daily_fleet(recorded: dict, labels: dict) -> Figure:
 
 # ---- 6. Booking search study --------------------------------------------------------------------
 def booking_study(recorded: dict) -> Figure:
-    f = Figure("booking_study", "Booking search: service and latency", "Bar chart of requests served of 480 by search method in the September 29 held-out matrix, and a line chart of search p95 by concurrency in the September 24 study.", 980, 600)
+    f = Figure("booking_study", "Booking search: service and latency", "Bar chart of requests served of 480 by search method in the field validation's held-out matrix, and a line chart of search p95 by concurrency in the first booking experiment.", 980, 600)
     held = recorded["held"]; names = {"INSERTION": "Insertion", "BOUNDED": "Bounded", "SHARED": "Shared"}
-    left = Plot(f, 110, 96, 420, 420); left.frame("Held-out service, Sept 29")
+    left = Plot(f, 110, 96, 420, 420); left.frame("Held-out service, field validation")
     left.ygrid(480, 4, "REQUESTS SERVED OF 480")
     for cx, h in zip(left.columns(3), held):
         top = left.ymap(h["served"], 480)
@@ -170,7 +170,7 @@ def booking_study(recorded: dict) -> Figure:
         f.tech(cx, top - 8, f"P95 {h['mean_case_p95_ms'] / 1000:.1f} S", MUTED, size=KEY)
         f.text(cx, left.y1 + 24, names[h["variant"]], KEY, INK, SANS, "middle", weight="700")
     f.tech((left.x0 + left.x1) / 2, left.y1 + 46, "48 CASES PER METHOD", MUTED, size=KEY)
-    right = Plot(f, 560, 96, 940, 420); right.frame("Latency, Sept 24")
+    right = Plot(f, 560, 96, 940, 420); right.frame("Latency, first booking experiment")
     ceiling = nice_ceiling(max(e["p95"] for e in recorded["latency"]) / 1000)
     right.ygrid(ceiling, None, "SEARCH P95, SECONDS")
     xs = {1: right.x0 + 40, 5: (right.x0 + right.x1) / 2, 10: right.x1 - 40}
@@ -210,8 +210,8 @@ def ch(recorded: list, maps: dict) -> Figure:
         plot.polyline(pts, color, focal, dash)
         for (x, y), v in zip(pts, entry["p50"]):
             f.label(x + 44, y + 4 + (0 if entry["engine"] == "CH-car-v1" else -4), f"{v:.1f}", color, KEY)
-        keys.append(("line-dashed" if dash else "line", color, f"{'CH' if entry['engine'] == 'CH-car-v1' else 'FLEXIBLE'} · MAP {maps[entry['date']][5:]}"))
-    f.legend(544, keys, note="dashed: 2026-09-24 · solid: 2026-10-14")
+        keys.append(("line-dashed" if dash else "line", color, f"{'CH' if entry['engine'] == 'CH-car-v1' else 'FLEXIBLE'} · MAP {'CURRENT' if entry['date'] == max(maps) else 'FIRST'}"))
+    f.legend(544, keys, note="dashed: first benchmark · solid: current")
     return f
 
 
