@@ -607,32 +607,6 @@ def paired_fleets(rec: list) -> Figure:
     return f
 
 
-def round_trips(rec: dict) -> Figure:
-    f = Figure("round_trips", "Why a remote engine costs booking more than it saves", "Left: an embedded booking search calls the engine in process. Right: with a remote pool each of up to three engine calls (insertion, refinement, the retry on a moved day) encodes a snapshot, sends it, waits and decodes the answer; the engine share of a search grows accordingly.", 980, 660)
-    for j, (title, remote) in enumerate((("Embedded (the default)", False), ("Remote solver pool", True))):
-        x0 = 40 + j * 460
-        f.panel_title(x0, 48, title)
-        rx, sx = x0 + 80, x0 + 340
-        f.node(rx - 80, 68, 160, 52, "Booking replica", [], SERVICE)
-        calls = ("INSERTION", "REFINEMENT", "RETRY, DAY MOVED")
-        if remote:
-            f.node(sx - 80, 68, 160, 52, "Solver pool", [], STORE)
-            for x in (rx, sx):
-                f.line(x, 120, x, 470, ink(0.20), 1, "3,3")
-            for i, call in enumerate(calls):
-                y = 160 + i * 104
-                f.arrow(rx + 4, y, sx - 4, y, "link"); f.label((rx + sx) / 2, y - 10, f"{call}: ENCODE, SEND", LINK, KEY)
-                f.arrow(sx - 4, y + 40, rx + 4, y + 40, "muted", "5,4"); f.label((rx + sx) / 2, y + 30, "DECODE THE ANSWER", SOFT, KEY)
-        else:
-            f.line(rx, 120, rx, 470, ink(0.20), 1, "3,3")
-            for i, call in enumerate(calls):
-                y = 160 + i * 104
-                f.path(f"M{rx + 4},{y} H{rx + 36} Q{rx + 44},{y} {rx + 44},{y + 8} V{y + 16} Q{rx + 44},{y + 24} {rx + 36},{y + 24} H{rx + 12}", MUTED, 1.2, marker="arrow")
-                f.label(rx + 56, y + 16, f"{call}: IN PROCESS", INK, KEY, "start")
-        e = rec["remote" if remote else "embedded"]
-        f.card(x0, 488, 440, 104, "ENGINE TIME OF A SEARCH, P50", [("tech", f"{e['calculation_p50']:,} ms of {e['elapsed_p50']:,} ms on the server"), ("tech", f"{e['searches']:,} searches answered in 60 s")], focal=not remote)
-    f.legend(624, [("arrow-link", LINK, "SOLVER CALL"), ("arrow-dashed", MUTED, "ANSWER")], note="beside a 5 s daily search the same trip is cheap")
-    return f
 
 
 # ---- Part IV: the system today --------------------------------------------------------------------
@@ -649,7 +623,7 @@ def today(rec: dict) -> Figure:
             ("Embedded engine, RoadMatrix", f"{rec['speedup']:.2f}X MOVES PER SECOND", False)]
     right = [("Tabu + K opt, per client", f"{money(rec['daily_saving'])} PER CASE OVER TABU", True),
              ("Fair durable queue", "EARLY 429, TURNS BY CLIENT", False),
-             ("Remote-ready engine", "A DAILY-POOL LEVER, NOT A DEFAULT", False)]
+             ("Its own replicas", "NO DAILY SOLVE COMPETES FOR BOOKING CORES", False)]
     for x0, items in ((56, left), (526, right)):
         for i, (name, sub, focal) in enumerate(items):
             y = 248 + i * 66
@@ -659,27 +633,23 @@ def today(rec: dict) -> Figure:
     f.node(56, 528, 398, 72, "routing-service per metro", [f"CH: {rec['searches_before']} TO {rec['searches_after']:,} SEARCHES IN 60 S"], SERVICE)
     f.node(526, 528, 398, 72, "scheduler-db, the thin store", [f"RULE 0: {rec['lost_before']} TO 0 HOLDS LOST"], STORE)
     f.arrow(255, 456, 255, 500, "muted"); f.arrow(725, 456, 725, 500, "muted")
-    f.legend(664, [("swatch", rgba(ACCENT, 0.08), "THE HEADLINE CHOICE OF EACH POOL"), ("swatch", PAPER2, "A SETTLED CHOICE")], note="every number is from Part IV")
+    f.legend(664, [("swatch", rgba(ACCENT, 0.08), "THE HEADLINE CHOICE OF EACH POOL"), ("swatch", PAPER2, "A SETTLED CHOICE")], note="every number is from Part III")
     return f
 
 
 # ---- Part V: what comes next --------------------------------------------------------------------
 def roadmap_perf(_=None) -> Figure:
-    f = Figure("roadmap_perf", "Performance: what to measure next, in order", "Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores, run the daily pool remote, and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate; fewer solver round trips only if booking ever uses a pool.", 980, 620)
-    f.node(40, 220, 200, 88, "Measure on the VM", ["J0, J2 AND K ACROSS", "THE REAL NETWORK"], rgba(ACCENT, 0.08), ACCENT, 1.4)
-    f.node(300, 56, 240, 72, "Booking cores", ["2, 3, 4 CORES; 2ND REPLICA"], SERVICE)
-    f.node(300, 228, 240, 72, "Daily pool remote", ["POOL SIZED BY THE RULE"], SERVICE)
-    f.node(300, 400, 240, 72, "Primitive time", ["INTEGER SECONDS"], SERVICE)
-    f.node(600, 400, 240, 72, "Multithreaded solving", ["PLANNED; GATED"], SERVICE)
-    f.node(600, 56, 240, 72, "Fewer round trips", ["IF BOOKING USES A POOL"], PAPER2, SOFT, 1, dash="4,3")
-    f.route([(240, 250), (270, 250), (270, 92), (300, 92)], "accent")
-    f.arrow(240, 264, 300, 264, "accent")
-    f.route([(240, 278), (270, 278), (270, 436), (300, 436)], "accent")
-    f.arrow(540, 436, 600, 436, "muted")
-    f.arrow(540, 92, 600, 92, "muted", "5,4"); f.label(570, 84, "IF", SOFT, KEY)
-    f.para(600, 500, ["GATE: THE PAIRED STUDY, THE EXACTNESS", "TEST AND THE REPLICA'S CORE BUDGET"], KEY, MUTED, MONO, lead=16)
-    f.callout(600, 200, ["Every number in Part III is from a", "rehearsal stack whose CPU limits are", "a shape; the latency target is defined", "at the WaterFlex caller, not yet", "measured."])
-    f.legend(584, [("swatch", rgba(ACCENT, 0.08), "FIRST"), ("swatch", SERVICE, "NEXT, ONCE THE VM NUMBERS EXIST"), ("swatch-dashed", PAPER2, "CONDITIONAL")], note="one change per measurement")
+    f = Figure("roadmap_perf", "Performance: what to measure next, in order", "Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate.", 980, 540)
+    f.node(40, 220, 200, 88, "Measure on the VM", ["J0 AND J2 ACROSS", "THE REAL NETWORK"], rgba(ACCENT, 0.08), ACCENT, 1.4)
+    f.node(300, 140, 240, 72, "Booking cores", ["2, 3, 4 CORES; 2ND REPLICA"], SERVICE)
+    f.node(300, 316, 240, 72, "Primitive time", ["INTEGER SECONDS"], SERVICE)
+    f.node(600, 316, 240, 72, "Multithreaded solving", ["PLANNED; GATED"], SERVICE)
+    f.route([(240, 250), (270, 250), (270, 176), (300, 176)], "accent")
+    f.route([(240, 278), (270, 278), (270, 352), (300, 352)], "accent")
+    f.arrow(540, 352, 600, 352, "muted")
+    f.para(600, 416, ["GATE: THE PAIRED STUDY, THE EXACTNESS", "TEST AND THE REPLICA'S CORE BUDGET"], KEY, MUTED, MONO, lead=16)
+    f.callout(600, 120, ["Every number in Part III is from a", "rehearsal stack whose CPU limits are", "a shape; the latency target is defined", "at the WaterFlex caller, not yet", "measured."])
+    f.legend(504, [("swatch", rgba(ACCENT, 0.08), "FIRST"), ("swatch", SERVICE, "NEXT, ONCE THE VM NUMBERS EXIST")], note="one change per measurement")
     return f
 
 

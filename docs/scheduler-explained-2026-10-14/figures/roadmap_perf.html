@@ -23,9 +23,9 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Performance: what to measure next, in order</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="roadmap_perf-title roadmap_perf-desc">
+      <svg viewBox="0 0 980 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="roadmap_perf-title roadmap_perf-desc">
         <title id="roadmap_perf-title">Performance: what to measure next, in order</title>
-        <desc id="roadmap_perf-desc">Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores, run the daily pool remote, and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate; fewer solver round trips only if booking ever uses a pool.</desc>
+        <desc id="roadmap_perf-desc">Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate.</desc>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
 <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
@@ -37,51 +37,37 @@
         <rect x="40" y="220" width="200" height="88" rx="6" fill="#FFFFFF"/>
         <rect x="40" y="220" width="200" height="88" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
         <text x="140" y="252" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Measure on the VM</text>
-        <text x="140" y="272" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">J0, J2 AND K ACROSS</text>
+        <text x="140" y="272" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">J0 AND J2 ACROSS</text>
         <text x="140" y="288" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE REAL NETWORK</text>
-        <rect x="300" y="56" width="240" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="56" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="420" y="88" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booking cores</text>
-        <text x="420" y="108" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2, 3, 4 CORES; 2ND REPLICA</text>
-        <rect x="300" y="228" width="240" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="228" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="420" y="260" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Daily pool remote</text>
-        <text x="420" y="280" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">POOL SIZED BY THE RULE</text>
-        <rect x="300" y="400" width="240" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="400" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="420" y="432" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Primitive time</text>
-        <text x="420" y="452" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INTEGER SECONDS</text>
-        <rect x="600" y="400" width="240" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="600" y="400" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="720" y="432" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Multithreaded solving</text>
-        <text x="720" y="452" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PLANNED; GATED</text>
-        <rect x="600" y="56" width="240" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="600" y="56" width="240" height="72" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="720" y="88" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Fewer round trips</text>
-        <text x="720" y="108" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">IF BOOKING USES A POOL</text>
-        <path d="M240,250 L262,250 Q270,250 270,242 L270,100 Q270,92 278,92 L300,92" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <line x1="240" y1="264" x2="300" y2="264" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <path d="M240,278 L262,278 Q270,278 270,286 L270,428 Q270,436 278,436 L300,436" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <line x1="540" y1="436" x2="600" y2="436" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="540" y1="92" x2="600" y2="92" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <rect x="559.18" y="72" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="570" y="84" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">IF</text>
-        <text x="600" y="500" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">GATE: THE PAIRED STUDY, THE EXACTNESS</text>
-        <text x="600" y="516" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TEST AND THE REPLICA&#x27;S CORE BUDGET</text>
-        <text x="600" y="200" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every number in Part III is from a</text>
-        <text x="600" y="218" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">rehearsal stack whose CPU limits are</text>
-        <text x="600" y="236" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">a shape; the latency target is defined</text>
-        <text x="600" y="254" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">at the WaterFlex caller, not yet</text>
-        <text x="600" y="272" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">measured.</text>
-        <line x1="40" y1="564" x2="940" y2="564" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="40" y="590" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="110" y="580" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="136" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST</text>
-        <rect x="200" y="580" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="226" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NEXT, ONCE THE VM NUMBERS EXIST</text>
-        <rect x="468" y="580" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8" stroke-dasharray="3,2"/>
-        <text x="494" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CONDITIONAL</text>
-        <text x="940" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">one change per measurement</text>
+        <rect x="300" y="140" width="240" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="300" y="140" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="420" y="172" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booking cores</text>
+        <text x="420" y="192" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2, 3, 4 CORES; 2ND REPLICA</text>
+        <rect x="300" y="316" width="240" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="300" y="316" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="420" y="348" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Primitive time</text>
+        <text x="420" y="368" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INTEGER SECONDS</text>
+        <rect x="600" y="316" width="240" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="600" y="316" width="240" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="720" y="348" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Multithreaded solving</text>
+        <text x="720" y="368" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PLANNED; GATED</text>
+        <path d="M240,250 L262,250 Q270,250 270,242 L270,184 Q270,176 278,176 L300,176" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <path d="M240,278 L262,278 Q270,278 270,286 L270,344 Q270,352 278,352 L300,352" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <line x1="540" y1="352" x2="600" y2="352" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="600" y="416" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">GATE: THE PAIRED STUDY, THE EXACTNESS</text>
+        <text x="600" y="432" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TEST AND THE REPLICA&#x27;S CORE BUDGET</text>
+        <text x="600" y="120" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every number in Part III is from a</text>
+        <text x="600" y="138" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">rehearsal stack whose CPU limits are</text>
+        <text x="600" y="156" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">a shape; the latency target is defined</text>
+        <text x="600" y="174" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">at the WaterFlex caller, not yet</text>
+        <text x="600" y="192" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">measured.</text>
+        <line x1="40" y1="484" x2="940" y2="484" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="510" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="500" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST</text>
+        <rect x="200" y="500" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="226" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NEXT, ONCE THE VM NUMBERS EXIST</text>
+        <text x="940" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">one change per measurement</text>
       </svg>
     </div>
   </div>

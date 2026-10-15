@@ -358,24 +358,6 @@
       "routingMs": 0,
       "calculationMs": 0,
       "dbMs": 3
-    },
-    {
-      "stage": "K remote",
-      "operation": "POST /api/v1/booking/offers 201",
-      "elapsed_p50": 367,
-      "queueMs": 201,
-      "routingMs": 56,
-      "calculationMs": 69,
-      "dbMs": 26
-    },
-    {
-      "stage": "K remote",
-      "operation": "POST /api/v1/booking/holds/{holdId}/confirm 200",
-      "elapsed_p50": 16,
-      "queueMs": 0,
-      "routingMs": 0,
-      "calculationMs": 0,
-      "dbMs": 4
     }
   ],
   "progression": [
@@ -805,44 +787,6 @@
       "cost_after": 564197
     }
   ],
-  "remote": [
-    {
-      "run": "k-embedded",
-      "offers_p50": 244,
-      "offers_p95": 357,
-      "searches": 1058,
-      "answered_201": 25,
-      "answered_503": 0,
-      "daily_cpu_mean": 185.19699999999997
-    },
-    {
-      "run": "k-remote",
-      "offers_p50": 352,
-      "offers_p95": 485,
-      "searches": 748,
-      "answered_201": 3,
-      "answered_503": 15,
-      "daily_cpu_mean": 43.186
-    },
-    {
-      "run": "k-remote4",
-      "offers_p50": 356,
-      "offers_p95": 556,
-      "searches": 753,
-      "answered_201": 5,
-      "answered_503": 13,
-      "daily_cpu_mean": 32.943000000000005
-    },
-    {
-      "run": "k-remote5",
-      "offers_p50": 374,
-      "offers_p95": 504,
-      "searches": 703,
-      "answered_201": 25,
-      "answered_503": 0,
-      "daily_cpu_mean": 36.415
-    }
-  ],
   "schematic_sources": {
     "operations": [
       "whoami",
@@ -865,7 +809,7 @@
   "evidence": {
     "daily_cases": 6032,
     "booking_requests": 3600,
-    "load_runs": 62
+    "load_runs": 54
   },
   "budgets29": {
     "budgets": [
@@ -1288,18 +1232,6 @@
       "losses": 0
     }
   ],
-  "round_trips": {
-    "embedded": {
-      "calculation_p50": 15,
-      "elapsed_p50": 239,
-      "searches": 1058
-    },
-    "remote": {
-      "calculation_p50": 69,
-      "elapsed_p50": 367,
-      "searches": 703
-    }
-  },
   "today": {
     "shed_before": 127.0,
     "shed_after": 263.0,

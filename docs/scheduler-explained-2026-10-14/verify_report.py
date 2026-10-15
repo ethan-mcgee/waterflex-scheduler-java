@@ -141,7 +141,6 @@ def main():
     vm = {r["label"]: r for r in read(EVIDENCE / "api-load-2026-10-14-vm-baseline.json")["runs"]}
     routing = {r["label"]: r for r in read(EVIDENCE / "api-load-2026-10-14-routing.json")["runs"]}
     priority = {r["label"]: r for r in read(EVIDENCE / "api-load-2026-10-14-confirm-priority-and-jvm.json")["runs"]}
-    remote = {r["label"]: r for r in read(EVIDENCE / "api-load-2026-10-14-embedded-vs-remote.json")["runs"]}
     cpu = lambda r, what: [c for c in r["booking"]["containers"] if what in c["name"]][0]["cpuPercent"]["mean"]
     per_leg = lambda r: r["serverBreakdown"][OFFERS]["routingMs"]["p50"] / r["serverBreakdown"][OFFERS]["fetched"]["p50"]
     j_runs = [(name, r) for name, r in (("J0", vm["base-spread2"]), ("J flex", routing["j-flex"]), ("J CH", routing["j-ch"]))]
@@ -149,7 +148,7 @@ def main():
     for entry, (name, r) in zip(charts["j_routing"], j_runs):
         assert entry["searches"] == r["booking"]["booking"]["searches"] and close(entry["per_leg"], per_leg(r)) and close(entry["routing_cores"], cpu(r, "routing") / 100), entry
     checked.append("j_routing chart")
-    attribution = [("J0 baseline", vm["base-spread2"]), ("J flexible", routing["j-flex"]), ("J CH", routing["j-ch"]), ("J2 shipped", priority["j2-slot"]), ("K remote", remote["k-remote5"])]
+    attribution = [("J0 baseline", vm["base-spread2"]), ("J flexible", routing["j-flex"]), ("J CH", routing["j-ch"]), ("J2 shipped", priority["j2-slot"])]
     expected = [{"stage": s, "operation": o, "elapsed_p50": r["serverBreakdown"][o]["elapsedMs"]["p50"], **{k: r["serverBreakdown"][o][k]["p50"] for k in ("queueMs", "routingMs", "calculationMs", "dbMs")}} for s, r in attribution for o in (OFFERS, CONFIRM)]
     check("attribution chart", expected, charts["attribution"])
     stages = [("#151", base["booking-cold-c5"]), ("#152", fresh["cold-recheck-c5 (seed 91)"]), ("#154", read(EVIDENCE / "api-load-2026-10-13-search-outcome.json")["runs"][0]),
@@ -161,10 +160,6 @@ def main():
                              "offers_p50": op(r["booking"], "booking offers")["ms"]["p50"], "offers_p95": op(r["booking"], "booking offers")["ms"]["p95"]}
                             for s, run, r in (("J CH", "j-ch", routing["j-ch"]), ("priority", "j2-confirm", priority["j2-confirm"]), ("priority,\nZGC / Parallel", "j2-gc", priority["j2-gc"]),
                                               ("priority +\nconfirm slot", "j2-slot", priority["j2-slot"]), ("slot, compact\nheaders", "j2-coh2", priority["j2-coh2"]))], charts["confirm"])
-    check("remote chart", [{"run": run, "offers_p50": op(r["booking"], "booking offers")["ms"]["p50"], "offers_p95": op(r["booking"], "booking offers")["ms"]["p95"], "searches": r["booking"]["booking"]["searches"],
-                            "answered_201": op(r["daily"], "daily proposal")["statuses"].get("201", 0), "answered_503": op(r["daily"], "daily proposal")["statuses"].get("503", 0), "daily_cpu_mean": cpu(r, "daily")}
-                           for run, r in (("k-embedded", remote["k-embedded"]), ("k-remote", remote["k-remote"]), ("k-remote4", remote["k-remote4"]), ("k-remote5", remote["k-remote5"]))], charts["remote"])
-
     # The routing benchmarks and the paired solver study.
     for date, name in (("2026-09-24", "routing-ch-omaha-2026-09-24.json"), ("2026-10-14", "routing-ch-2026-10-14.json")):
         bench = read(EVIDENCE / name)

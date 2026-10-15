@@ -14,11 +14,9 @@ from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
-from PIL import Image, ImageChops
 
 from charts import by_label, by_run, make_charts
 from report_data import load, wtl
@@ -27,9 +25,6 @@ HERE = Path(__file__).resolve().parent
 REFERENCE = HERE.parent / "WaterFlex_Scheduler_Algorithm_Comparison_Explained.docx"
 REFERENCE_SHA = "5366f3017d6f18c15de295ba5fb9c1a014b6222911040f1c5e044845e57f832d"
 OUTPUT = HERE / "WaterFlex_Scheduler_Explained_2026-10-14.docx"
-# Figures fill the 6.9 inch text column (less a hair) and stop at 6.4 inches tall; renders are 3 pixels per canvas unit, and
-# a 12 unit margin is kept around each drawing once its blank border is trimmed.
-FIGURE_WIDTH, FIGURE_MAX_HEIGHT, FIGURE_PAD_PX = 6.85, 6.4, 36
 PRESERVE = ("word/styles.xml", "word/stylesWithEffects.xml", "word/numbering.xml", "word/theme/theme1.xml", "word/fontTable.xml")
 OFFERS, CONFIRM = "POST /api/v1/booking/offers 201", "POST /api/v1/booking/holds/{holdId}/confirm 200"
 CITATION = re.compile(r"\[\d")
@@ -137,26 +132,11 @@ def build():
                 for run in para.runs: run.font.name = "Calibri"; run.font.size = Pt(size); run.bold = i == 0
         spacer = p(""); spacer.paragraph_format.space_after = Pt(0); spacer.paragraph_format.line_spacing = Pt(3)
 
-    def fitted(png):
-        """Trim a rendered figure to its drawing and size it for the page: as wide as the text column, unless that would make
-        it taller than FIGURE_MAX_HEIGHT, so a figure never crowds its caption and the next paragraph off the page."""
-        image = Image.open(png).convert("RGB")
-        ink = ImageChops.difference(image, Image.new("RGB", image.size, "white")).convert("L").point(lambda v: 255 if v > 8 else 0)
-        box = ink.getbbox()
-        assert box is not None, f"{png.name} is blank"
-        pad = FIGURE_PAD_PX
-        image = image.crop((max(box[0] - pad, 0), max(box[1] - pad, 0), min(box[2] + pad, image.width), min(box[3] + pad, image.height)))
-        width = min(FIGURE_WIDTH, FIGURE_MAX_HEIGHT * image.width / image.height)
-        stream = BytesIO(); image.save(stream, "PNG"); stream.seek(0)
-        return stream, width
-
     def figure(name, caption):
         assert name not in figures, name
         figures.append(name)
         caption = f"Figure {len(figures)}. {caption}"
-        image, width = fitted(HERE / "generated" / f"{name}.png")
-        para = p(""); para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        shape = para.add_run().add_picture(image, width=Inches(width))
+        para = p(""); shape = para.add_run().add_picture(str(HERE / "generated" / f"{name}.png"), width=Inches(6.85))
         shape._inline.docPr.set("descr", clean(caption)); para.paragraph_format.keep_with_next = True
         cap = p(caption, "Caption"); cap.paragraph_format.space_after = Pt(7)
         for run in cap.runs:
@@ -176,14 +156,11 @@ def build():
     jf_b, jc_b = by_run(runs["routing"], "j-flex", "booking"), by_run(runs["routing"], "j-ch", "booking")
     j2 = {run: by_run(runs["priority"], run, "booking") for run in ("j2-confirm", "j2-gc", "j2-slot", "j2-coh2")}
     final = j2["j2-slot"]
-    k = {run: by_run(runs["remote"], run, "booking") for run in ("k-embedded", "k-remote", "k-remote4", "k-remote5")}
-    k_d = {run: by_run(runs["remote"], run, "daily") for run in k}
     prof = extras["profiling"]; pairs, summary = prof["pairs"], prof["summary"]
     ch_new = {(l["engine"], l["concurrency"]): l for l in benchmarks["2026-10-14"]["latency"]}
     ch_old = {(l["engine"], l["concurrency"]): l for l in benchmarks["2026-09-24"]["latency"]}
     routing_cpu = lambda r: [x for x in r["containers"] if "routing" in x["name"]][0]["cpuPercent"]["mean"]
     booking_cpu = lambda r: [x for x in r["containers"] if "booking" in x["name"]][0]["cpuPercent"]["mean"]
-    daily_cpu = lambda r: [x for x in r["containers"] if "daily" in x["name"]][0]["cpuPercent"]["mean"]
     per_leg = lambda r: r["breakdown"][OFFERS]["routingMs"]["p50"] / r["breakdown"][OFFERS]["fetched"]["p50"]
     part_ms = lambda r, key, op=OFFERS: r["breakdown"][op][key]["p50"]
     F, M, L, C = daily["first"]["rows"], daily["follow"]["rows"], daily["follow"]["long"], daily["follow"]["confirm"]
@@ -194,7 +171,9 @@ def build():
     direct = [tk_twins[r["key"][:-1]]["accepted_cost"] - r["accepted_cost"] for r in s3_follow]
     held = {v: f29["booking"][("held", v)] for v in ("INSERTION", "BOUNDED", "SHARED")}
     omaha = r24["omaha"]
-    total_runs = sum(len(v) for v in runs.values()) + len(extras["coldRemeasurement"]) + len(extras["abComparison"])
+    total_runs = sum(len(v) for name, v in runs.items() if name != "remote") + len(extras["coldRemeasurement"]) + len(extras["abComparison"])
+    load_studies = [study for study in perf["studies"] if study[2] != "#164"]
+    assert len(load_studies) == len(perf["studies"]) - 1, "study K (#164) is left out of this document"
     daily_cases = len(F) + len(FC) + len(M) + len(L) + len(C)
     workloads = ("CLUSTERED", "DISPERSED", "MIXED_SKILL", "TIGHT_WINDOW")
     late = charts["late_mechanics"]; best = late["best_fraction"]
@@ -213,7 +192,6 @@ def build():
     assert all(saving(F, s, fleet=50) < 0 for s in ("KOPT", "SUBLIST", "LATE_ACCEPTANCE"))
     assert held["BOUNDED"]["served"] > held["INSERTION"]["served"] > held["SHARED"]["served"]
     assert b24["paid_min"] > 0 and b24["cost"] > 0
-    assert k["k-remote5"]["ops"]["booking offers"]["ms"]["p95"] > 1.05 * k["k-embedded"]["ops"]["booking offers"]["ms"]["p95"]
     assert summary["afterCostCentsWinTieLoss"]["afterWins"] == 21 and summary["violationsAfter"] == 0 and len(loss) == 1
     assert best["LATE_ACCEPTANCE"][-1] > 0.9 and best["TABU_KOPT"][-1] < 0.75
     assert arm["50"]["LATE_ACCEPTANCE"][0] < 0 < arm["50"]["LATE_ACCEPTANCE"][2] and arm["50"]["KOPT"][0] < 0 < arm["50"]["KOPT"][1]
@@ -250,7 +228,6 @@ def build():
     lead("Routing.", "Each served metro has its own routing-service, loaded with that metro's road graph. It turns coordinates into directed road legs and sees only coordinates, never client data, so every client in a metro shares it.")
     lead("Nominatim.", "Optional. In NOMINATIM mode it locates a location that arrives with an address and no coordinates, and only as an exact house.")
     lead("The database.", "scheduler-db is Postgres 16 and holds the thin store, tenants and tokens, and the route cache. The scheduler creates and migrates it itself; nothing else connects to it.")
-    lead("The solver service.", "Optional. A remote calculation pool a scheduler pool may be pointed at with SCHEDULER_CALCULATION_MODE=REMOTE. The default is EMBEDDED; section 13 measures what remote costs and when it pays.")
     lead("The management port.", "Port 9000 serves health with components and Prometheus metrics, on the private network only and never behind the proxy.")
     heading("3 The contract")
     p(f"The machine-readable contract is docs/api/openapi-v1.yaml, OpenAPI 3.1, version {docs['version']}. Every operation is marked implemented; a test validates every example against its schema and fails if the implemented operations differ from the routes the scheduler serves, and the Java types mirror every object schema. Within version 1 a change is additive only and raises the minor version: the contract is at {docs['history'][0][0]} after {len(docs['history']) - 1} additive versions since 1.0.0.")
@@ -271,7 +248,7 @@ def build():
     p("Every calculating call carries a Snapshot of one metro: its rates and policy, the technicians it covers, one TechnicianDay per technician and date with the host's lastModified, and every committed appointment on those days. The scheduler computes a canonical hash of it, the input revision, and every proposal and offer records which revision it was computed from. What happens next is a short pipeline, and every stage of it can refuse.")
     sub("A daily proposal")
     figure("daily_pipeline", "A daily proposal through its nine stages, with the refusal each stage can return. The admission check (#153) refuses at once, with the estimated wait as Retry-After, a request that could not start in time.")
-    p("Authentication maps the bearer token to a tenant. The body is read strictly: unknown fields, duplicate keys, missing values and dangling references are 400, and contradictions between sequence and plannedStart are 422. The requestId is claimed in the thin store with a hash of the body, so a replay returns the stored answer, a different body is 400 and a running one is 429. The 6 a.m. cutoff in the metro's zone freezes a day. Admission estimates when the work ahead would finish. The day is routed under its own 30 s allowance, and an unlocatable technician-day is skipped and reported. The engine runs the cost search and the fairness search for the client's seconds plus a 5 s reserve, embedded or remote, and a watchdog ends an overrunning phase. Policy then compares the result with the day as sent, and the proposal and the timestamp of each technician-day are stored and answered 201.")
+    p("Authentication maps the bearer token to a tenant. The body is read strictly: unknown fields, duplicate keys, missing values and dangling references are 400, and contradictions between sequence and plannedStart are 422. The requestId is claimed in the thin store with a hash of the body, so a replay returns the stored answer, a different body is 400 and a running one is 429. The 6 a.m. cutoff in the metro's zone freezes a day. Admission estimates when the work ahead would finish. The day is routed under its own 30 s allowance, and an unlocatable technician-day is skipped and reported. The engine runs the cost search and the fairness search for the client's seconds plus a 5 s reserve, and a watchdog ends an overrunning phase. Policy then compares the result with the day as sent, and the proposal and the timestamp of each technician-day are stored and answered 201.")
     figure("daily", "Daily and repair proposals: synchronous or queued, then the commit with the host's current timestamps. The note on the right lists the refusals and the cancel.")
     sub("A booking search")
     figure("booking_pipeline", "A booking search inside the client's deadline. Reconciliation is where the concurrency token bites; if another booking changed the same day while the search ran, the search runs again, at most three times, while the deadline leaves time.")
@@ -305,7 +282,7 @@ def build():
     heading("8 Three kinds of evidence, one discipline")
     p("Three kinds of evidence run through Part III, and they answer different questions. Fixture studies ask which daily search finds cheaper schedules in the same seconds. The September booking studies asked which booking method serves more customers and at what latency. The October load studies ask how the service behaves when many callers use it at once. None of them is customer traffic.")
     figure("evidence", "Three kinds of evidence and what each can say. Below, the pipeline every number in this document passes through: raw files whose hashes are recorded, a loader that checks the shape of every file before a number is read, the builder, and a verifier that reads the raw files again without the loader's or the builder's help.")
-    p(f"The discipline is the same everywhere. Each study records its configuration, seeds, revision and raw results with hashes. A loader checks every file before a number is read: statuses add up to calls, matched pairs share a starting schedule, and there is no constraint violation anywhere. The report is built from those files, and a verifier recomputes every chart dataset from the raw data. This document is built that way from {len(perf['studies'])} load studies ({total_runs} runs), the solver profiling study, two routing benchmarks, the two daily search studies ({daily_cases:,} cases), the September booking study ({b24['requests']:,} requests) and the field validation summary.")
+    p(f"The discipline is the same everywhere. Each study records its configuration, seeds, revision and raw results with hashes. A loader checks every file before a number is read: statuses add up to calls, matched pairs share a starting schedule, and there is no constraint violation anywhere. The report is built from those files, and a verifier recomputes every chart dataset from the raw data. This document is built that way from {len(load_studies)} load studies ({total_runs} runs), the solver profiling study, two routing benchmarks, the two daily search studies ({daily_cases:,} cases), the September booking study ({b24['requests']:,} requests) and the field validation summary.")
     p("Two rules matter most for the load studies. Compare only fresh-seed runs, because a seed run before leaves its roads cached and makes a one-desk search about a quarter of a second faster. And read every latency as the caller's, waits and retries included, because that is where the booking target of the client's deadline plus 500 ms is defined. Appendix B defines each measure.")
     handed_on("With the measures fixed, each thread in Part III can be read the same way: first iteration, measurement, change, evidence, decision.")
 
@@ -370,7 +347,7 @@ def build():
     p("A contraction hierarchy spends time once, at import, ordering every junction by importance and adding shortcut edges wherever removing a junction would break a shortest path. A query then climbs from both ends through ever more important junctions and meets near the top after touching a few hundred nodes instead of the thousands a plain search would settle. The price is an import step of about 27 s and about 200 MiB more on disk per map version, and a routing identity of its own, so switching starts every cache cold as a map change does.")
     sub("What the attribution showed")
     p(f"The combined evidence came from study J0. It ran the load tool against the VM-shaped rehearsal stack and, for the first time, the request log attributed each call's time to its parts. A booking search at five desks took {ms(vm_b['ops']['booking offers']['ms']['p50'])} p50 at the caller: {ms(part_ms(vm_b, 'queueMs'))} waiting for a slot, {ms(part_ms(vm_b, 'routingMs'))} routing, {ms(part_ms(vm_b, 'calculationMs'))} in the engine and {ms(part_ms(vm_b, 'dbMs'))} in the database.")
-    figure("attribution", "Server time of the median booking call, split into slot wait, routing, calculation engine and database, for the VM baseline (J0), the two J runs, the J2 build that shipped (section 12) and the remote solver pool (section 13). The confirm has almost no work of its own; its bar is the wait behind searches.")
+    figure("attribution", "Server time of the median booking call, split into slot wait, routing, calculation engine and database, for the VM baseline (J0), the two J runs and the J2 build that shipped (section 12). The confirm has almost no work of its own; its bar is the wait behind searches.")
     p(f"Each search needed about {vm_b['breakdown'][OFFERS]['routingPairs']['p50']} directed legs and fetched {vm_b['breakdown'][OFFERS]['fetched']['p50']} of them cold at about {per_leg(vm_b):.2f} ms each, because the service routed a batch's pairs one after another and the scheduler fed it through two worker threads; the routing container ran at {routing_cpu(vm_b):.0f} percent of a core for the booking replica's {booking_cpu(vm_b):.0f}. By October the booking contention of September had been fixed (section 12), and routing was now the largest part of a search's own time. The engine was not the lever: {ms(part_ms(vm_b, 'calculationMs'))} of a {ms(part_ms(vm_b, 'elapsedMs'))} server time.")
     sub("The change, and what it bought")
     p("Study J (#160) changed four things the attribution pointed at. Each map version now carries a CH graph beside the flexible one, prepared with the map, listed in its manifest and required at activation, and the routing service serves it by default. The routing service routes a request's pairs on several threads at once. The scheduler trusts a routing identity it fetched within the last two seconds instead of asking /health before every lookup. And the scheduler fetches leg batches on eight workers with a queue of 64 instead of two and 16.")
@@ -404,28 +381,23 @@ def build():
 
     # ---- Part III: engine ----------------------------------------------------------------------------------------------------
     heading("13 Inside the engine")
-    p("Two studies looked at the calculation itself: where a daily solve spends its time, and whether moving the engine out of the scheduler into a pool is worth it.")
+    p("One study looked at the calculation itself: where a daily solve spends its time inside the embedded engine, and how to make that time buy more search.")
     sub("More moves per second in the same budget (study L, #163)")
     p(f"A daily proposal's latency is its queue wait plus a fixed search budget, so the daily side cannot be made faster by the load tool's measure; it can only be made better in the same seconds by evaluating more candidate moves. The benchmark harness now starts a JDK Flight Recorder recording just before each solve and stops it just after, so the samples cover the solve alone. The first profile (Tabu + K opt, 20 and 50 technicians, clustered and dispersed, a fixture seed never used for tuning, 10 s per case) collected {prof['before']['samples']:,} samples.")
     figure("profile", "Where a daily solve's profiler samples went, by group, before and after the RoadMatrix treatment. Before, looking legs up, copying arrival maps and BigDecimal arithmetic around the engine's own timing methods held about half the samples; after, BigDecimal and the clock arithmetic of Instant and Duration are the largest named shares.")
     p(f"Of the samples, the engine's own timing methods held {groups_before['Engine timing methods']:.1f} percent; the rest was what scoring did around them. Every scored route looked its road legs up in an immutable map keyed by a from-to string built for each leg ({groups_before['Immutable map probe']:.1f} percent of samples), built a HashMap of arrivals and a day plan that were then copied into a result ({groups_before['HashMap and copies']:.1f} percent), and computed its buffered travel minutes in BigDecimal per leg ({groups_before['BigDecimal arithmetic']:.1f} percent).")
     figure("roadmatrix", "One road leg lookup before and after RoadMatrix. Before, every scored route built a string key per leg, probed a map, computed minutes in BigDecimal and built an arrival map that was copied. After, endpoints are numbered once per fact revision, legs are read from two tables with the minutes precomputed, and the score-only path builds no arrival map. The scoring exactness test is the gate.")
     p("The treatment keeps every number the same and removes the work around it. RoadMatrix gives each endpoint identity a number and holds the legs in two tables with their buffered minutes computed once per fact revision, built lazily on the first scoring lookup, so a plan evaluated once outside the solver (a booking candidate) pays nothing new. The timing search evaluates a route against the plan facts directly and, on the score-only path, builds no arrival map. A scoring exactness test captured a step-limited, fixed-seed solve on three fixtures before the change and asserts the same score, move count, arrangement and independent evaluation after it. Then the engine built from the commit before the change was paired against the treated one on 24 cases, one after the other on an idle workstation.")
-    figure("engine", "Left: each paired case's cost-phase moves per second before (x) and after (y) the RoadMatrix treatment; the dotted line is no change and the dashed line is twice the rate. Right: offers at the caller for the embedded engine and three remote pool configurations in study K, with the daily proposals each pool answered.")
+    figure("engine", "Each paired case's cost-phase moves per second before (x) and after (y) the RoadMatrix treatment, in study L; the dotted line is no change and the dashed line is twice the rate.")
     figure("paired_fleets", "Moves per second by fleet: the median cost-phase rate before and after the treatment with its speedup, the fairness phase's median speedup, and each paired case marked cheaper, tied or dearer at the same budget.")
     p(f"The cost phase evaluates {summary['costPhaseSpeedup']['median']:.2f} times the moves per second (median; {summary['costPhaseSpeedup']['min']:.2f} to {summary['costPhaseSpeedup']['max']:.2f} across the 24 cases), more on 50 technicians ({pf[50]['speedup']:.2f} times) than on 20 ({pf[20]['speedup']:.2f}), because each scored route there had more legs to look up. The fairness phase gains {summary['fairnessPhaseSpeedup']['median']:.2f} times, less, because its time goes to the fairness term and the BigDecimal score, which the treatment leaves alone. Because a solve now evaluates more moves in the same seconds, {summary['afterCostCentsWinTieLoss']['afterWins']} of 24 cases ended cheaper at the same budget, {summary['afterCostCentsWinTieLoss']['ties']} tied and {len(loss)} was dearer by {loss[0]['afterCostCents']['after'] - loss[0]['afterCostCents']['before']} cents, with no constraint violation on either side. This is not a search-policy change: the acceptor, moves and tabu size are what section 9 chose, so the promotion review that belongs to policy changes was not run for it.")
-    sub("The embedded engine against a remote pool (study K, #164)")
-    p("The design's third scaling lever moves the calculation out of the scheduler into a solver pool (SCHEDULER_CALCULATION_MODE=REMOTE), and it had never been measured. K compared the two on the rehearsal stack under the same load as J2, with the pool at its compose shape (4 cores) beside the booking and daily replicas at 2 cores each, and an acceptance set beforehand: remote p95 at most 1.05 times embedded. Booking fails it.")
-    figure("round_trips", "Why a remote engine costs booking more than it saves. An embedded search calls the engine in process; with a remote pool each of up to three engine calls encodes a snapshot, sends it, and decodes the answer. The cards give the engine share of a median search's server time and the searches answered in 60 s.")
-    p(f"A remote search costs {k['k-remote5']['ops']['booking offers']['ms']['p50'] / k['k-embedded']['ops']['booking offers']['ms']['p50']:.1f} times the embedded one at the caller (p50 {k['k-remote5']['ops']['booking offers']['ms']['p50']} against {k['k-embedded']['ops']['booking offers']['ms']['p50']} ms, p95 {k['k-remote5']['ops']['booking offers']['ms']['p95']} against {k['k-embedded']['ops']['booking offers']['ms']['p95']} ms) and the replica serves two thirds of the searches, because the engine share of a search goes from {ms(part_ms(k['k-embedded'], 'calculationMs'))} to {ms(part_ms(k['k-remote5'], 'calculationMs'))}. So the embedded engine stays the default for booking.")
-    p(f"For a daily pool, remote is the lever it was meant to be: the proposal takes the same {seconds(k_d['k-remote5']['ops']['daily proposal']['ms']['p50'])} p50 (queue wait plus a fixed 5 s search) and the daily replica's CPU falls from {daily_cpu(k['k-embedded']):.0f} to {daily_cpu(k['k-remote5']):.0f} percent of its two cores, because the solve runs in the pool. Each pool has its own calculation mode, so the daily pool can go remote while booking stays embedded. The study also found and fixed a sizing fault: with the pool's previous defaults {k_d['k-remote']['ops']['daily proposal']['statuses']['503']} of {k_d['k-remote']['daily']['proposals']} daily proposals answered 503, because the solver service admitted one daily calculation at a time whatever its capacity. The pool now opens every slot to daily work by default, and the rule for an operator is that a pool's capacity is the served replicas' search capacities summed.")
     handed_on(f"After the treatment the profile's largest named shares are BigDecimal ({groups_after['BigDecimal arithmetic']:.1f} percent) and the clock arithmetic of Instant and Duration ({groups_after['Instant and Duration']:.1f} percent). They are the next performance step, and the first one Part V names after measuring on the VM.")
 
     # ---- Part IV -------------------------------------------------------------------------------------------------------------
     part("Part IV  Where it stands")
     heading("14 The system today")
     p("The five threads end in one system. The figure below is the topology of Part I with each piece annotated by the choice its thread settled and the number behind it.")
-    figure("today", "The scheduler today, with the choice each thread settled. The booking pool runs bounded two-pass search that sheds its optional pass under load, a confirm slot with priority, and the embedded engine with RoadMatrix; the daily pool runs each client's daily search (Tabu + K opt by default) from a fair durable queue, ready to move its engine to a remote pool; both share the CH routing graph and the thin store with rule 0.")
+    figure("today", "The scheduler today, with the choice each thread settled. The booking pool runs bounded two-pass search that sheds its optional pass under load, a confirm slot with priority, and the embedded engine with RoadMatrix; the daily pool runs each client's daily search (Tabu + K opt by default) from a fair durable queue; both share the CH routing graph and the thin store with rule 0.")
     p(f"Read from the top, the figure is the trail in reverse. A host's call reaches one address. A booking search runs the method September chose, inside the client's deadline, giving up its optional pass when others wait ({per_minute(ab_before):.0f} to {per_minute(ab_after):.0f} searches per minute at five desks). Its legs come from a contraction hierarchy that finally mattered once contention was gone ({vm_b['booking']['searches']} to {jc_b['booking']['searches']:,} searches in 60 s). Its confirm never waits ({ms(jc_b['ops']['confirm']['ms']['p50'])} to {ms(final['ops']['confirm']['ms']['p50'])} p50). Its holds survive late snapshots ({b5['booking']['holdUnavailable']} lost at five desks to none). A daily proposal runs the search the fixture studies chose ({dollars(saving(F, 'TABU_KOPT'))} per case over Tabu), from a queue that takes turns by client, in an engine that evaluates {summary['costPhaseSpeedup']['median']:.2f} times the moves in the same seconds.")
     p("The method behind every one of those numbers was the same: measure where the time or the money actually goes before changing anything, change one thing, and keep it only when a paired measurement on fresh inputs says so. The September CH graph and the October CH graph were the same graph; what changed between them was the evidence.")
     handed_on("Two gaps remain in that evidence: every load number is from a rehearsal stack, not the VM, and every solver number is from synthetic days. Part V starts from both.")
@@ -433,16 +405,14 @@ def build():
     # ---- Part V ------------------------------------------------------------------------------------------------------------
     part("Part V  What comes next")
     heading("15 Performance")
-    p(f"After J2 the median booking search spends {ms(part_ms(final, 'queueMs'))} waiting for a slot, {ms(part_ms(final, 'routingMs'))} routing, {ms(part_ms(final, 'dbMs'))} in the database and {ms(part_ms(final, 'calculationMs'))} in the engine, and a confirm no longer waits at all. The daily search does {summary['costPhaseSpeedup']['median']:.1f} times the work in its budget, and a remote pool can take that work off the daily replica. The evidence supports the following steps, in this order.")
-    figure("roadmap_perf", "Performance next steps in dependency order. Measuring on the real VM comes first, because every load number so far is from a rehearsal stack. Booking cores, the remote daily pool and the primitive-time work follow; multithreaded solving follows the primitive-time work through the same gate; fewer solver round trips matter only if booking ever uses a pool.")
-    lead("Measure on the VM.", "Repeat J0, J2 and K across the network on the real VM, with the load generator on the host's side. Every number in sections 11 to 13 is from a rehearsal stack whose CPU limits are a shape, not the VM's share, and the latency target is defined at the WaterFlex caller across the network, which has not been measured yet. This decides whether the target holds where it is defined.")
+    p(f"After J2 the median booking search spends {ms(part_ms(final, 'queueMs'))} waiting for a slot, {ms(part_ms(final, 'routingMs'))} routing, {ms(part_ms(final, 'dbMs'))} in the database and {ms(part_ms(final, 'calculationMs'))} in the engine, and a confirm no longer waits at all. The daily search does {summary['costPhaseSpeedup']['median']:.1f} times the work in its budget. The evidence supports the following steps, in this order.")
+    figure("roadmap_perf", "Performance next steps in dependency order. Measuring on the real VM comes first, because every load number so far is from a rehearsal stack. Booking cores and the primitive-time work follow; multithreaded solving follows the primitive-time work through the same gate.")
+    lead("Measure on the VM.", "Repeat J0 and J2 across the network on the real VM, with the load generator on the host's side. Every number in sections 11 to 13 is from a rehearsal stack whose CPU limits are a shape, not the VM's share, and the latency target is defined at the WaterFlex caller across the network, which has not been measured yet. This decides whether the target holds where it is defined.")
     lead("Booking cores.", f"The slot wait is half of a search ({ms(part_ms(final, 'queueMs'))} of {ms(part_ms(final, 'elapsedMs'))}). Measure five and ten desks at 2, 3 and 4 booking cores, and with a second booking replica. This sizes the booking pool on the VM.")
-    lead("Daily pool remote.", "Run the daily pool REMOTE on the VM with the solver pool sized by the rule of section 13, and confirm every proposal answered and the replica's CPU. This decides whether the daily pool goes remote at go-live.")
     lead("Primitive time in the timing search.", "BigDecimal and Instant and Duration are now the largest shares of a solve. Replace them with integer seconds in the route timing search, gated by the scoring exactness test, then repeat the 24-case paired study. This decides whether a 5 s search can do still more, and like RoadMatrix it changes no number the engine computes.")
     lead("Multithreaded solving.", "Planned work with a gate. The daily search runs single threaded today: parallelism comes from several solves at once on each daily replica, independent solves per core in the benchmarks, and parallel pair routing. Timefold can spread one solve's move evaluation over several threads (moveThreadCount); the production configuration sets none today and the campaign configuration refuses any value but NONE, so the first step is to make it a measured option.")
     figure("cores", "Multithreaded solving spends the same cores differently. Illustrated on a four-core daily replica: today four days solve at once on one core each; with two move threads per solve, two days solve at once, each evaluating more moves in its seconds. The gate below decides whether that trade is worth it for any client.")
     p("The gate has three parts, the same discipline as every thread in Part III. The paired study on fresh fixtures compares one thread against two on the same days, budgets and seeds, and shows whether more moves per solve buys a cheaper schedule. The scoring exactness test shows that every score stays the same. And the replica's core budget decides the cost: a solve that uses two cores halves the calculations a replica can run at once, so the fair queue must not lengthen past what clients accept. Multithreaded solving goes to a client only when all three say so, and only as a per-pool setting the measurements justify.")
-    lead("Fewer solver round trips.", "Carry insertion and refinement in one solver call. This matters only if booking is ever to use a remote pool, and it is the one change that could bring remote booking within the 1.05 bound; until then it stays unscheduled.")
     heading("16 Solver quality, booking quality and features")
     p("The daily search studies ended with a candidate that beats the current default on every new fixture from 10 technicians up, and with questions the fixtures cannot answer. The booking search has not had a quality study since the API replaced the internal endpoints. And the integration itself has steps left on the WaterFlex Software side.")
     figure("roadmap_quality", "Next steps in three lanes. The daily search: offer Tabu + K opt size 3 as a third client choice, replay real days, measure balance with the fairness search on, then decide a default. Booking: a quality study against /api/v1 on recorded days. Integration: host snapshots and receipts with the conformance kit and the integration guide, side-by-side migration and cutover, then TLS before production traffic. Below, the design document's two open questions.")
@@ -471,11 +441,11 @@ def build():
             ("2026-10-01", "Daily budget study", "docs/daily-budget-331df1f1 (report only; run archive not in the repository)", "1,280 cases; quoted, not recomputed"),
             ("2026-10-11", "Tabu variant study", "experiments/runs/20261010T040557Z-daily-tabu-variants-p6-5d15129b", f"{len(F):,} cases on {fixtures_first} fixtures; {len(FC)} sequential confirmation cases"),
             ("2026-10-13", "Daily search follow-up", "experiments/runs/20261013T052707Z-daily-search-followup-6454fb05 (+ long budget, confirmation)", f"{len(M):,} + {len(L)} + {len(C)} cases on {fixtures_follow} new fixtures")]
-    rows += [(re.search(r"\d{4}-\d{2}-\d{2}", name).group(), f"Load study {pr}", f"docs/evidence/{name}", note) for key, name, pr, note in perf["studies"]]
+    rows += [(re.search(r"\d{4}-\d{2}-\d{2}", name).group(), f"Load study {pr}", f"docs/evidence/{name}", note) for key, name, pr, note in load_studies]
     rows += [("2026-10-14", "Solver profiling (#163)", "docs/evidence/solver-profiling-2026-10-14.json", "Two solve-scoped JFR profiles; 24 paired cases"),
              ("2026-10-14", "Flexible against CH, routing alone", "docs/evidence/routing-ch-2026-10-14.json", "132 pairs, map 2026-10-13, parallel pairs")]
     table(["Date", "Study", "File", "What it holds"], rows, [.8, 1.6, 2.7, 1.8], size=9)
-    p("Every load run used the load tool infra/host-conformance/load.ts on one 24-processor workstation (AMD Ryzen 9 7900X, 63 GiB) running the scheduler, the Omaha routing service, Postgres and the load generator; the solver studies ran on the same machine with the experiment runtime's daily flags. Studies #151 to #157 ran the scheduler jar alone; #158 to #164 ran the deploy/vm rehearsal stack with its CPU limits beside five queued daily planners, and the two halves are never read as one series.")
+    p("Every load run used the load tool infra/host-conformance/load.ts on one 24-processor workstation (AMD Ryzen 9 7900X, 63 GiB) running the scheduler, the Omaha routing service, Postgres and the load generator; the solver studies ran on the same machine with the experiment runtime's daily flags. Studies #151 to #157 ran the scheduler jar alone; #158 to #162 ran the deploy/vm rehearsal stack with its CPU limits beside five queued daily planners, and the two halves are never read as one series.")
     p("The design, its decisions and its open questions are in docs/stateless-api-design.md; the contract is docs/api/openapi-v1.yaml with docs/integration-guide.md; deployment and settings are in docs/operations-runbook.md; and the load studies' narrative is docs/api-load.md. Reproduce this document with docs/scheduler-explained-2026-10-14/requirements.txt, then run report_data.py, build_report.py and verify_report.py there. The builder reads every source, regenerates all figures and chart_data.json, and writes this editable Word file; EVIDENCE.md records methods and limits.")
 
     part("Appendix B  Definitions and measures")

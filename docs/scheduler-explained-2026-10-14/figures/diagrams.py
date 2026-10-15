@@ -217,14 +217,14 @@ def ch(recorded: list, maps: dict) -> Figure:
 
 # ---- 8. Attribution of a booking call's server time --------------------------------------------
 def attribution(recorded: list) -> Figure:
-    f = Figure("attribution", "Where a booking call's server time goes", "Stacked horizontal bars of the median booking call's server time split into slot wait, routing, calculation engine and database, for offers and confirm across five builds.", 980, 580)
+    f = Figure("attribution", "Where a booking call's server time goes", "Stacked horizontal bars of the median booking call's server time split into slot wait, routing, calculation engine and database, for offers and confirm across five builds.", 980, 520)
     parts = [("queueMs", "SLOT WAIT", rgba(MUTED, 0.15), MUTED), ("routingMs", "ROUTING", rgba(ACCENT, 0.12), ACCENT), ("calculationMs", "ENGINE", rgba(SERIES[0], 0.30), SERIES[0]), ("dbMs", "DATABASE", rgba(SERIES[2], 0.30), SERIES[2])]
     stages = []
     for e in recorded:
         if e["stage"] not in stages:
             stages.append(e["stage"])
     for op, x0, x1, title in ((OFFERS, 140, 480, "Offers (the search)"), (CONFIRM, 660, 880, "Confirm")):
-        plot = Plot(f, x0, 80, x1, 420); plot.frame(title)
+        plot = Plot(f, x0, 80, x1, 360); plot.frame(title)
         rows = [e for e in recorded if e["operation"] == op]
         ceiling = nice_ceiling(max(e["elapsed_p50"] for e in rows))
         plot.xgrid(ceiling, None, "SERVER TIME OF THE MEDIAN CALL, MS" if op == OFFERS else "MEDIAN CALL, MS")
@@ -238,7 +238,7 @@ def attribution(recorded: list) -> Figure:
                     f.rect(plot.xmap(left, ceiling), y, w, 32, PAPER); f.rect(plot.xmap(left, ceiling), y, w, 32, fill, stroke, 1)
                 left += e[key]
             f.tech(plot.xmap(left, ceiling) + 8, y + 20, f"{e['elapsed_p50']} MS", MUTED, "start", KEY)
-    f.legend(544, [("swatch", fill, name) for _, name, fill, _ in parts], note="a confirm's bar is the wait behind searches")
+    f.legend(484, [("swatch", fill, name) for _, name, fill, _ in parts], note="a confirm's bar is the wait behind searches")
     return f
 
 
@@ -335,9 +335,9 @@ def confirm(recorded: list) -> Figure:
 
 
 # ---- 12. Inside the engine -----------------------------------------------------------------------
-def engine(paired: list, remote: list) -> Figure:
-    f = Figure("engine", "Inside the engine: study L and study K", "Scatter plot of each paired case's cost-phase moves per second before and after the RoadMatrix treatment, and a dumbbell chart of offers latency for the embedded engine against three remote pool configurations.", 980, 620)
-    left = Plot(f, 110, 60, 450, 480); left.frame("Study L: 24 paired solves")
+def engine(paired: list) -> Figure:
+    f = Figure("engine", "Inside the engine: study L", "Scatter plot of each paired case's cost-phase moves per second before and after the RoadMatrix treatment.", 980, 600)
+    left = Plot(f, 300, 60, 720, 480); left.frame("Study L: 24 paired solves")
     lim = nice_ceiling(max(max(p["before"], p["after"]) for p in paired) / 1000)
     left.ygrid(lim, None, "AFTER, THOUSAND MOVES PER SECOND")
     steps = tick_steps(lim)
@@ -357,14 +357,5 @@ def engine(paired: list, remote: list) -> Figure:
             f.circle(x, y, 5, PAPER); f.circle(x, y, 5, rgba(MUTED, 0.20), MUTED, 1)
         else:
             f.circle(x, y, 5, PAPER); f.circle(x, y, 5, rgba(INK, 0.55), INK, 1)
-    right = Plot(f, 700, 80, 940, 440); right.frame("Study K: embedded against remote")
-    ceiling = nice_ceiling(max(d["offers_p95"] for d in remote))
-    right.xgrid(ceiling, None, "OFFERS AT THE CALLER, MS")
-    names = {"k-embedded": "Embedded", "k-remote": "Remote, old pool defaults", "k-remote4": "Remote, capacity 4", "k-remote5": "Remote, cap. 4, all slots daily"}
-    for i, d in enumerate(remote):
-        y = right.y0 + 32 + i * 88
-        right.dumbbell(y, right.xmap(d["offers_p50"], ceiling), right.xmap(d["offers_p95"], ceiling), fmt(d["offers_p50"]), fmt(d["offers_p95"]), names[d["run"]], right.x0 - 12)
-        f.tech(right.x0 - 12, y + 22, f"DAILY {d['answered_201']} OF {d['answered_201'] + d['answered_503']} · CPU {d['daily_cpu_mean']:.0f}%", MUTED, "end", KEY)
-    f.legend(584, [("hollow-dot", PAPER, "L: 20 TECHNICIANS · K: P50"), ("solid-dot", rgba(INK, 0.55), "L: 50 TECHNICIANS"), ("solid-dot", ACCENT, "K: P95")],
-             note="K rows with the daily pool's proposals and CPU")
+    f.legend(564, [("hollow-dot", PAPER, "20 TECHNICIANS"), ("solid-dot", rgba(INK, 0.55), "50 TECHNICIANS")], note="one dot per paired case, same seed and budget")
     return f

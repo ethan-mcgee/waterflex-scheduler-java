@@ -72,9 +72,9 @@ def make_charts(data, folder):
             recorded["ch"].append({"date": date, "engine": engine, "concurrency": [l["concurrency"] for l in rows], "p50": [l["p50Ms"] for l in rows], "p95": [l["p95Ms"] for l in rows]})
     figures["ch"] = diagrams.ch(recorded["ch"], {date: doc["engines"][0]["mapVersion"] for date, doc in benchmarks.items()})
 
-    # 8. Where a booking call's server time goes, from the VM baseline to the shipped build and the remote pool.
+    # 8. Where a booking call's server time goes, from the VM baseline to the shipped build.
     attribution = [("J0 baseline", by_run(runs["vm"], "base-spread2", "booking")), ("J flexible", by_run(runs["routing"], "j-flex", "booking")), ("J CH", by_run(runs["routing"], "j-ch", "booking")),
-                   ("J2 shipped", by_run(runs["priority"], "j2-slot", "booking")), ("K remote", by_run(runs["remote"], "k-remote5", "booking"))]
+                   ("J2 shipped", by_run(runs["priority"], "j2-slot", "booking"))]
     recorded["attribution"] = []
     for stage, r in attribution:
         for op in (OFFERS, CONFIRM):
@@ -112,17 +112,11 @@ def make_charts(data, folder):
                            "offers_p50": r["ops"]["booking offers"]["ms"]["p50"], "offers_p95": r["ops"]["booking offers"]["ms"]["p95"]} for s, r in j2]
     figures["confirm"] = diagrams.confirm(recorded["confirm"])
 
-    # 12. Inside the engine: the 24 paired cases of study L, and embedded against remote (K).
+    # 12. Inside the engine: the 24 paired cases of study L.
     prof = extras["profiling"]
     recorded["paired"] = [{"technicians": p["technicians"], "workload": p["workload"], "seed": p["seed"], "before": p["costPhaseMovesPerSecond"]["before"], "after": p["costPhaseMovesPerSecond"]["after"],
                            "speedup": p["costPhaseSpeedup"], "cost_before": p["afterCostCents"]["before"], "cost_after": p["afterCostCents"]["after"]} for p in prof["pairs"]]
-    recorded["remote"] = []
-    for run in ("k-embedded", "k-remote", "k-remote4", "k-remote5"):
-        b, d = by_run(runs["remote"], run, "booking"), by_run(runs["remote"], run, "daily")
-        recorded["remote"].append({"run": run, "offers_p50": b["ops"]["booking offers"]["ms"]["p50"], "offers_p95": b["ops"]["booking offers"]["ms"]["p95"], "searches": b["booking"]["searches"],
-                                   "answered_201": d["ops"]["daily proposal"]["statuses"].get("201", 0), "answered_503": d["ops"]["daily proposal"]["statuses"].get("503", 0),
-                                   "daily_cpu_mean": [c for c in b["containers"] if "daily" in c["name"]][0]["cpuPercent"]["mean"]})
-    figures["engine"] = diagrams.engine(recorded["paired"], recorded["remote"])
+    figures["engine"] = diagrams.engine(recorded["paired"])
 
     # The trail edition's figures: the front matter, the architecture, and the data behind each optimization thread.
     trail_figures(data, recorded, figures)
@@ -157,7 +151,6 @@ def trail_figures(data, recorded, figures):
     vm_b = by_run(runs["vm"], "base-spread2", "booking")
     jf_b, jc_b = by_run(runs["routing"], "j-flex", "booking"), by_run(runs["routing"], "j-ch", "booking")
     final = by_run(runs["priority"], "j2-slot", "booking")
-    k_emb, k_rem = by_run(runs["remote"], "k-embedded", "booking"), by_run(runs["remote"], "k-remote5", "booking")
     prof = extras["profiling"]
     ch_old, ch_new = ({(l["engine"], l["concurrency"]): l for l in benchmarks[d]["latency"]} for d in ("2026-09-24", "2026-10-14"))
     held = {v: f29["booking"][("held", v)] for v in ("INSERTION", "BOUNDED")}
@@ -186,7 +179,7 @@ def trail_figures(data, recorded, figures):
 
     # Part II.
     recorded["evidence"] = {"daily_cases": len(F) + len(data["daily"]["first"]["confirm"]) + len(M) + len(L) + len(data["daily"]["follow"]["confirm"]), "booking_requests": b24["requests"],
-                            "load_runs": sum(len(v) for v in runs.values()) + len(extras["coldRemeasurement"]) + len(extras["abComparison"])}
+                            "load_runs": sum(len(v) for name, v in runs.items() if name != "remote") + len(extras["coldRemeasurement"]) + len(extras["abComparison"])}
     figures["evidence"] = thread.evidence(recorded["evidence"])
 
     # Part III, the daily search.
@@ -253,9 +246,6 @@ def trail_figures(data, recorded, figures):
                                           "ties": sum(x["afterCostCents"]["after"] == x["afterCostCents"]["before"] for x in fp),
                                           "losses": sum(x["afterCostCents"]["after"] > x["afterCostCents"]["before"] for x in fp)})
     figures["paired_fleets"] = thread.paired_fleets(recorded["paired_fleets"])
-    recorded["round_trips"] = {k: {"calculation_p50": r["breakdown"][OFFERS]["calculationMs"]["p50"], "elapsed_p50": r["breakdown"][OFFERS]["elapsedMs"]["p50"], "searches": r["booking"]["searches"]}
-                               for k, r in (("embedded", k_emb), ("remote", k_rem))}
-    figures["round_trips"] = thread.round_trips(recorded["round_trips"])
 
     # Part IV and Part V.
     recorded["today"] = {"shed_before": per_minute(ab_before), "shed_after": per_minute(ab_after), "confirm_before": jc_b["ops"]["confirm"]["ms"]["p50"], "confirm_after": final["ops"]["confirm"]["ms"]["p50"],
