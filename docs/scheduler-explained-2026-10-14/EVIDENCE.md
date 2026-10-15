@@ -63,4 +63,4 @@ python docs/scheduler-explained-2026-10-14/build_report.py
 python docs/scheduler-explained-2026-10-14/verify_report.py
 ```
 
-Calibri on Windows or Carlito on Linux is required for the figures. The sibling loaders need the experiment archives under `experiments/runs` and `.scratch/bench-2026-10-12/status.json`. Render every page after changes; LibreOffice and PyMuPDF were used for review.
+Calibri on Windows or Carlito on Linux is required for the figures. Figure 1 is authored as `figures/topology.html` (inline SVG) and rasterized by `figures/render.py` with Playwright, which needs its Chromium build once: `python -m playwright install chromium`. The sibling loaders need the experiment archives under `experiments/runs` and `.scratch/bench-2026-10-12/status.json`. Render every page after changes; LibreOffice and PyMuPDF were used for review.

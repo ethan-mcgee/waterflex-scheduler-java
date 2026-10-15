@@ -1,5 +1,6 @@
 {
   "topology": {
+    "source": "figures/topology.html",
     "boxes": [
       "host backend",
       "scheduler-proxy",
