@@ -1,6 +1,6 @@
 """Inline-SVG building blocks for the report's figures, following the diagram-design skill's grammar under the WaterFlex report skin.
 
-Tokens come from the saved `waterflex` profile of the skill (paper white, ink #1F2A33, muted #444444, soft #5A6B7A, accent #287A4C, link #0B3A66; Calibri for names and Consolas for technical text). Every figure is a 1280-wide canvas on the skill's presentation type ramp (names 16, technical labels 12, eyebrows 8), the size the skill prescribes for projected output, because the figures print at 6.85 inches and the standard ramp would fall below legibility there.
+Tokens come from the saved `waterflex` profile of the skill (paper white, ink #1F2A33, muted #444444, soft #5A6B7A, accent #287A4C, link #0B3A66; Calibri for names and Consolas for technical text). Every figure is a 980-wide canvas (divisible by 4, so the skill's grid holds) on the skill's presentation type ramp (names 16, technical labels 12, eyebrows 8). The figures print at 6.85 inches, so a 980 canvas puts a 12px label at about 6 pt on paper, 1.31 times what the earlier 1280 canvas gave.
 """
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ class Figure:
     slug: str
     title: str
     desc: str
-    width: int = 1280
+    width: int = 980
     height: int = 600
     eyebrow: str = "WaterFlex scheduler explained"
     parts: list[str] = field(default_factory=list)
@@ -214,7 +214,7 @@ class Figure:
             if style == "name":
                 self.text(x + 16, yy, text, NAME, INK, SANS, weight="700"); yy += 24
             elif style == "big":
-                self.text(x + 16, yy + 8, text, 28, ACCENT if focal else INK, SANS, weight="700"); yy += 36
+                self.text(x + 16, yy + 12, text, 28, ACCENT if focal else INK, SANS, weight="700"); yy += 40
             elif style == "tech":
                 self.text(x + 16, yy, text, TECH, INK, MONO); yy += 18
             else:
@@ -233,33 +233,42 @@ class Figure:
             self.text(x, y + i * lead, line, size, fill, family, anchor)
 
     # ---- legend strip ---------------------------------------------------------------------
-    def legend(self, y: float, items: list[tuple[str, str, str]], x0: float = 30, note: str | None = None, continued: bool = False) -> None:
+    def legend(self, y: float, items: list[tuple[str, str, str]], x0: float = 40, note: str | None = None, continued: bool = False) -> int:
         """items: (kind, color, text). kind in swatch, swatch-dashed, hollow-dot, solid-dot, line, line-dashed, arrow, arrow-link, arrow-dashed, hatch.
-        continued: a second row of the same legend, with no rule and no LEGEND label."""
+        Items wrap onto further rows 22 apart when the canvas is too narrow, and the note goes right-aligned on the last row or a row of its own.
+        continued: a second row of the same legend, with no rule and no LEGEND label. Returns the number of rows drawn."""
         if not continued:
             self.line(x0, y - 20, self.width - x0, y - 20, ink(0.10), 0.8)
             self.eyebrow_text(x0, y + 6, "LEGEND", MUTED)
-        x = x0 + 70
+        right, start, row = self.width - x0, x0 + 70, 0
+        x = start
         for kind, color, text in items:
+            need = (26 if kind.startswith(("swatch", "hatch")) or kind.endswith("dot") else 46) + mono_width(text, KEY)
+            if x > start and x + need > right:
+                row += 1; x = start
+            yy = y + row * 22
             if kind.startswith("swatch") or kind == "hatch":
-                self.rect(x, y - 4, 18, 12, color if kind != "hatch" else "url(#hatch)", SOFT, 0.8, rx=2, dash="3,2" if kind.endswith("dashed") else None)
+                self.rect(x, yy - 4, 18, 12, color if kind != "hatch" else "url(#hatch)", SOFT, 0.8, rx=2, dash="3,2" if kind.endswith("dashed") else None)
                 tx = x + 26
             elif kind.endswith("dot"):
                 if kind == "hollow-dot":
-                    self.circle(x + 9, y + 2, 6, PAPER, MUTED, 1.5)
+                    self.circle(x + 9, yy + 2, 6, PAPER, MUTED, 1.5)
                 else:
-                    self.circle(x + 9, y + 2, 6, color, INK, 1)
+                    self.circle(x + 9, yy + 2, 6, color, INK, 1)
                 tx = x + 26
             else:
                 dash = "5,4" if kind.endswith("dashed") else None
                 marker = {"arrow": "arrow", "arrow-link": "arrow-link", "arrow-dashed": "arrow"}.get(kind)
-                self.line(x, y + 2, x + 36, y + 2, color, 1.6 if kind.startswith("line") and not dash else 1.2, dash, marker)
+                self.line(x, yy + 2, x + 36, yy + 2, color, 1.6 if kind.startswith("line") and not dash else 1.2, dash, marker)
                 tx = x + 46
-            self.text(tx, y + 6, text, KEY, MUTED, MONO)
+            self.text(tx, yy + 6, text, KEY, MUTED, MONO)
             x = tx + int(mono_width(text, KEY)) + 28
             x += (4 - x % 4) % 4
         if note:
-            self.text(self.width - x0, y + 6, note, KEY, MUTED, MONO, "end")
+            if x + mono_width(note, KEY) > right:
+                row += 1
+            self.text(right, y + row * 22 + 6, note, KEY, MUTED, MONO, "end")
+        return row + 1
 
     # ---- output -----------------------------------------------------------------------------
     def html(self) -> str:
@@ -283,7 +292,7 @@ class Figure:
       --font-sans: {SANS}; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: {MONO}; }}
     body {{ font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }}
-    .frame {{ max-width: 1320px; width: 100%; }}
+    .frame {{ max-width: 1020px; width: 100%; }}
     .diagram-container {{ width: 100%; overflow-x: auto; }}
     .eyebrow {{ font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }}
     h1 {{ font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }}

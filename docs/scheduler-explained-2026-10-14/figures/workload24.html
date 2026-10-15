@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>September 24: what bounded search saved, by workload</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="workload24-title workload24-desc">
+      <svg viewBox="0 0 980 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="workload24-title workload24-desc">
         <title id="workload24-title">September 24: what bounded search saved, by workload</title>
         <desc id="workload24-desc">Bars of paid minutes and modeled dollars bounded search saved per case against insertion, by workload, over the sequential cases where both methods booked the same requests.</desc>
         <defs>
@@ -34,73 +34,73 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <text x="84" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Paid minutes saved per case</text>
-        <line x1="140" y1="380" x2="560" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="132" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
-        <line x1="140" y1="316.8" x2="560" y2="316.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="132" y="320.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
-        <line x1="140" y1="253.6" x2="560" y2="253.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="132" y="257.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">40</text>
-        <line x1="140" y1="190.4" x2="560" y2="190.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="132" y="194.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">60</text>
-        <line x1="140" y1="127.2" x2="560" y2="127.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="132" y="131.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">80</text>
-        <line x1="140" y1="64" x2="560" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="132" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">100</text>
-        <line x1="140" y1="64" x2="140" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="84" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 84 222)">MINUTES PER CASE</text>
-        <rect x="170" y="83.75" width="80" height="296.25" fill="#FFFFFF"/>
-        <rect x="170" y="83.75" width="80" height="296.25" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="210" y="75.75" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">93.8</text>
-        <text x="210" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Clustered</text>
-        <text x="210" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
-        <rect x="310" y="223.106" width="80" height="156.894" fill="#FFFFFF"/>
-        <rect x="310" y="223.106" width="80" height="156.894" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="350" y="215.106" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">49.6</text>
-        <text x="350" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Dispersed</text>
-        <text x="350" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
-        <rect x="450" y="379.684" width="80" height="0.316" fill="#FFFFFF"/>
-        <rect x="450" y="379.684" width="80" height="0.316" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="490" y="371.684" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.1</text>
-        <text x="490" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Sparse</text>
-        <text x="490" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
-        <text x="704" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Modeled cost saved per case</text>
-        <line x1="760" y1="380" x2="1180" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="752" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$0</text>
-        <line x1="760" y1="316.8" x2="1180" y2="316.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="752" y="320.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$10</text>
-        <line x1="760" y1="253.6" x2="1180" y2="253.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="752" y="257.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$20</text>
-        <line x1="760" y1="190.4" x2="1180" y2="190.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="752" y="194.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$30</text>
-        <line x1="760" y1="127.2" x2="1180" y2="127.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="752" y="131.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$40</text>
-        <line x1="760" y1="64" x2="1180" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="752" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$50</text>
-        <line x1="760" y1="64" x2="760" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="704" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 704 222)">$ PER CASE</text>
-        <rect x="790" y="83.75" width="80" height="296.25" fill="#FFFFFF"/>
-        <rect x="790" y="83.75" width="80" height="296.25" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="830" y="75.75" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$46.88</text>
-        <text x="830" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Clustered</text>
-        <text x="830" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
-        <rect x="930" y="213.79" width="80" height="166.21" fill="#FFFFFF"/>
-        <rect x="930" y="213.79" width="80" height="166.21" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="970" y="205.79" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$26.30</text>
-        <text x="970" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Dispersed</text>
-        <text x="970" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
-        <rect x="1070" y="379.482" width="80" height="0.51824" fill="#FFFFFF"/>
-        <rect x="1070" y="379.482" width="80" height="0.51824" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="1110" y="371.482" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$0.08</text>
-        <text x="1110" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Sparse</text>
-        <text x="1110" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
-        <line x1="30" y1="446" x2="1250" y2="446" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="472" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="462" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="472" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WHERE THE GAIN CONCENTRATES</text>
-        <rect x="340" y="462" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="366" y="472" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WORKLOAD</text>
-        <text x="1250" y="472" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">sequential cases where both methods booked the same ten requests</text>
+        <text x="64" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Paid minutes saved per case</text>
+        <line x1="120" y1="380" x2="460" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="112" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="120" y1="316.8" x2="460" y2="316.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="320.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
+        <line x1="120" y1="253.6" x2="460" y2="253.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="257.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">40</text>
+        <line x1="120" y1="190.4" x2="460" y2="190.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="194.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">60</text>
+        <line x1="120" y1="127.2" x2="460" y2="127.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="131.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">80</text>
+        <line x1="120" y1="64" x2="460" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">100</text>
+        <line x1="120" y1="64" x2="120" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="64" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 64 222)">MINUTES PER CASE</text>
+        <rect x="140.667" y="83.75" width="72" height="296.25" fill="#FFFFFF"/>
+        <rect x="140.667" y="83.75" width="72" height="296.25" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="176.667" y="75.75" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">93.8</text>
+        <text x="176.667" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Clustered</text>
+        <text x="176.667" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
+        <rect x="254" y="223.106" width="72" height="156.894" fill="#FFFFFF"/>
+        <rect x="254" y="223.106" width="72" height="156.894" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="290" y="215.106" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">49.6</text>
+        <text x="290" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Dispersed</text>
+        <text x="290" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
+        <rect x="367.333" y="379.684" width="72" height="0.316" fill="#FFFFFF"/>
+        <rect x="367.333" y="379.684" width="72" height="0.316" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="403.333" y="371.684" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.1</text>
+        <text x="403.333" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Sparse</text>
+        <text x="403.333" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
+        <text x="544" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Modeled cost saved per case</text>
+        <line x1="600" y1="380" x2="940" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="592" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$0</text>
+        <line x1="600" y1="316.8" x2="940" y2="316.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="320.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$10</text>
+        <line x1="600" y1="253.6" x2="940" y2="253.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="257.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$20</text>
+        <line x1="600" y1="190.4" x2="940" y2="190.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="194.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$30</text>
+        <line x1="600" y1="127.2" x2="940" y2="127.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="131.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$40</text>
+        <line x1="600" y1="64" x2="940" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="592" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$50</text>
+        <line x1="600" y1="64" x2="600" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="544" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 544 222)">$ PER CASE</text>
+        <rect x="620.667" y="83.75" width="72" height="296.25" fill="#FFFFFF"/>
+        <rect x="620.667" y="83.75" width="72" height="296.25" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="656.667" y="75.75" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$46.88</text>
+        <text x="656.667" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Clustered</text>
+        <text x="656.667" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
+        <rect x="734" y="213.79" width="72" height="166.21" fill="#FFFFFF"/>
+        <rect x="734" y="213.79" width="72" height="166.21" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="770" y="205.79" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$26.30</text>
+        <text x="770" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Dispersed</text>
+        <text x="770" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
+        <rect x="847.333" y="379.482" width="72" height="0.51824" fill="#FFFFFF"/>
+        <rect x="847.333" y="379.482" width="72" height="0.51824" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="883.333" y="371.482" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$0.08</text>
+        <text x="883.333" y="402" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Sparse</text>
+        <text x="883.333" y="420" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 CASES</text>
+        <line x1="40" y1="464" x2="940" y2="464" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="490" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="480" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WHERE THE GAIN CONCENTRATES</text>
+        <rect x="348" y="480" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="374" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WORKLOAD</text>
+        <text x="940" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">cases where both booked the same ten</text>
       </svg>
     </div>
   </div>

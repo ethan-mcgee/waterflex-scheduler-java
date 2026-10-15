@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,9 +23,9 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Where each thread started and where it stands</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 292" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="scoreboard-title scoreboard-desc">
+      <svg viewBox="0 0 980 416" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="scoreboard-title scoreboard-desc">
         <title id="scoreboard-title">Where each thread started and where it stands</title>
-        <desc id="scoreboard-desc">Five cards, one per thread of the work, each with the first measured value and the value today: daily search, booking, routing, admission and the engine.</desc>
+        <desc id="scoreboard-desc">One row per thread of the work, each with the first measured value and the value today: daily search, booking, routing, admission and the engine.</desc>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
 <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
@@ -34,56 +34,51 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <rect x="40" y="36" width="232" height="220" rx="6" fill="#FFFFFF"/>
-        <rect x="40" y="36" width="232" height="220" rx="6" fill="rgba(40,122,76,0.06)" stroke="#287A4C" stroke-width="1.2"/>
-        <text x="56" y="58" fill="#287A4C" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY SEARCH</text>
-        <text x="56" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Saving per case vs Tabu</text>
-        <text x="56" y="110" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST MEASURED</text>
-        <text x="56" y="128" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU, THE DEFAULT</text>
-        <text x="56" y="146" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TODAY</text>
-        <text x="56" y="172" fill="#287A4C" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">$7.55</text>
-        <text x="56" y="200" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">over 640 cases</text>
-        <text x="56" y="218" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$8.22 on new fixtures</text>
-        <rect x="282" y="36" width="232" height="220" rx="6" fill="#FFFFFF"/>
-        <rect x="282" y="36" width="232" height="220" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
-        <text x="298" y="58" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING SEARCH</text>
-        <text x="298" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Searches per minute</text>
-        <text x="298" y="110" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST MEASURED</text>
-        <text x="298" y="128" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">127 AT FIVE DESKS</text>
-        <text x="298" y="146" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TODAY</text>
-        <text x="298" y="172" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">263</text>
-        <text x="298" y="200" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">bounded served 360</text>
-        <text x="298" y="218" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">of 480; insertion 346</text>
-        <rect x="524" y="36" width="232" height="220" rx="6" fill="#FFFFFF"/>
-        <rect x="524" y="36" width="232" height="220" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
-        <text x="540" y="58" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">ROUTING</text>
-        <text x="540" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">16-pair request, p50</text>
-        <text x="540" y="110" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST MEASURED</text>
-        <text x="540" y="128" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">29.6 MS FLEXIBLE</text>
-        <text x="540" y="146" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TODAY</text>
-        <text x="540" y="172" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">3.7 ms</text>
-        <text x="540" y="200" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">searches in 60 s:</text>
-        <text x="540" y="218" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">289 to 1,020</text>
-        <rect x="766" y="36" width="232" height="220" rx="6" fill="#FFFFFF"/>
-        <rect x="766" y="36" width="232" height="220" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
-        <text x="782" y="58" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">ADMISSION</text>
-        <text x="782" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Holds lost, five desks</text>
-        <text x="782" y="110" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST MEASURED</text>
-        <text x="782" y="128" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">37% OF SELECTED</text>
-        <text x="782" y="146" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TODAY</text>
-        <text x="782" y="172" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">none</text>
-        <text x="782" y="200" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">confirm p50:</text>
-        <text x="782" y="218" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">116 to 20 ms</text>
-        <rect x="1008" y="36" width="232" height="220" rx="6" fill="#FFFFFF"/>
-        <rect x="1008" y="36" width="232" height="220" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
-        <text x="1024" y="58" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">INSIDE THE ENGINE</text>
-        <text x="1024" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Moves per second</text>
-        <text x="1024" y="110" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">FIRST MEASURED</text>
-        <text x="1024" y="128" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STRING-KEYED LEGS</text>
-        <text x="1024" y="146" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TODAY</text>
-        <text x="1024" y="172" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">1.79x</text>
-        <text x="1024" y="200" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">21 of 24 cases cheaper</text>
-        <text x="1024" y="218" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">at the same budget</text>
+        <text x="40" y="44" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">THREAD AND MEASURE</text>
+        <text x="336" y="44" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">FIRST MEASURED</text>
+        <text x="588" y="44" fill="#287A4C" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">TODAY</text>
+        <text x="740" y="44" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">CONTEXT</text>
+        <line x1="40" y1="60" x2="940" y2="60" stroke="rgba(31,42,51,0.12)" stroke-width="0.8"/>
+        <text x="40" y="82" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY SEARCH</text>
+        <text x="40" y="106" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Saving per case vs Tabu</text>
+        <text x="336" y="100" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU, THE DEFAULT</text>
+        <line x1="528" y1="96" x2="572" y2="96" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="588" y="106" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">$7.55</text>
+        <text x="740" y="90" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">over 640 cases</text>
+        <text x="740" y="108" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$8.22 on new fixtures</text>
+        <line x1="40" y1="124" x2="940" y2="124" stroke="rgba(31,42,51,0.12)" stroke-width="0.8"/>
+        <text x="40" y="146" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING SEARCH</text>
+        <text x="40" y="170" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Searches per minute</text>
+        <text x="336" y="164" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">127 AT FIVE DESKS</text>
+        <line x1="528" y1="160" x2="572" y2="160" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="588" y="170" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">263</text>
+        <text x="740" y="154" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">bounded served 360</text>
+        <text x="740" y="172" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">of 480; insertion 346</text>
+        <line x1="40" y1="188" x2="940" y2="188" stroke="rgba(31,42,51,0.12)" stroke-width="0.8"/>
+        <text x="40" y="210" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">ROUTING</text>
+        <text x="40" y="234" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">16-pair request, p50</text>
+        <text x="336" y="228" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">29.6 MS FLEXIBLE</text>
+        <line x1="528" y1="224" x2="572" y2="224" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="588" y="234" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">3.7 ms</text>
+        <text x="740" y="218" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">searches in 60 s:</text>
+        <text x="740" y="236" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">289 to 1,020</text>
+        <line x1="40" y1="252" x2="940" y2="252" stroke="rgba(31,42,51,0.12)" stroke-width="0.8"/>
+        <text x="40" y="274" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">ADMISSION</text>
+        <text x="40" y="298" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Holds lost, five desks</text>
+        <text x="336" y="292" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">37% OF SELECTED</text>
+        <line x1="528" y1="288" x2="572" y2="288" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="588" y="298" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">none</text>
+        <text x="740" y="282" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">confirm p50:</text>
+        <text x="740" y="300" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">116 to 20 ms</text>
+        <line x1="40" y1="316" x2="940" y2="316" stroke="rgba(31,42,51,0.12)" stroke-width="0.8"/>
+        <text x="40" y="338" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">INSIDE THE ENGINE</text>
+        <text x="40" y="362" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Moves per second</text>
+        <text x="336" y="356" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STRING-KEYED LEGS</text>
+        <line x1="528" y1="352" x2="572" y2="352" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="588" y="362" fill="#1F2A33" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">1.79x</text>
+        <text x="740" y="346" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">21 of 24 cases cheaper</text>
+        <text x="740" y="364" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">at the same budget</text>
+        <line x1="40" y1="380" x2="940" y2="380" stroke="rgba(31,42,51,0.12)" stroke-width="0.8"/>
       </svg>
     </div>
   </div>

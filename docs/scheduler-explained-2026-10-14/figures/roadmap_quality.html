@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Solver quality, booking quality and the host&#x27;s side: what comes next</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 670" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="roadmap_quality-title roadmap_quality-desc">
+      <svg viewBox="0 0 980 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="roadmap_quality-title roadmap_quality-desc">
         <title id="roadmap_quality-title">Solver quality, booking quality and the host&#x27;s side: what comes next</title>
         <desc id="roadmap_quality-desc">Three lanes of next steps: the daily search (offer Tabu + K opt size 3 as a third choice, replay real days, measure with the fairness search on, then decide a default), booking (a quality study against /api/v1 on recorded days), and integration (the host&#x27;s side-by-side migration and cutover with the conformance kit and the integration guide, then TLS before production traffic); with the design document&#x27;s two open questions.</desc>
         <defs>
@@ -34,84 +34,84 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <rect x="30" y="40" width="1220" height="124" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="46" y="106" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="700" letter-spacing="0.08em">DAILY SEARCH</text>
-        <rect x="200" y="56" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="200" y="56" width="230" height="92" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="315" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Third choice</text>
-        <text x="315" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TABU_KOPT_SIZE_3 BESIDE</text>
-        <text x="315" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TABU_KOPT AND TABU</text>
-        <rect x="460" y="56" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="460" y="56" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="575" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Replay real days</text>
-        <text x="575" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RECORDED SNAPSHOTS,</text>
-        <text x="575" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MEASURED ROADS</text>
-        <line x1="430" y1="102" x2="460" y2="102" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="720" y="56" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="720" y="56" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="835" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Fairness on</text>
-        <text x="835" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MEASURE BALANCE WITH</text>
-        <text x="835" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE SECOND PHASE</text>
-        <line x1="690" y1="102" x2="720" y2="102" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="980" y="56" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="980" y="56" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="1095" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Decide a default</text>
-        <text x="1095" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PER CLIENT, ON</text>
-        <text x="1095" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THAT EVIDENCE</text>
-        <line x1="950" y1="102" x2="980" y2="102" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="30" y="180" width="1220" height="124" rx="4" fill="#FFFFFF" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="46" y="246" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="700" letter-spacing="0.08em">BOOKING</text>
-        <rect x="200" y="196" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="200" y="196" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="315" y="230" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Quality study</text>
-        <text x="315" y="250" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AGAINST /API/V1 ON</text>
-        <text x="315" y="266" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RECORDED DAYS</text>
-        <rect x="460" y="196" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="460" y="196" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="575" y="230" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Served-customer</text>
-        <text x="575" y="250" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DENOMINATOR, AS IN</text>
-        <text x="575" y="266" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEPTEMBER</text>
-        <line x1="430" y1="242" x2="460" y2="242" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="30" y="320" width="1220" height="124" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="46" y="386" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="700" letter-spacing="0.08em">INTEGRATION</text>
-        <rect x="200" y="336" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="200" y="336" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="315" y="370" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Host snapshots</text>
-        <text x="315" y="390" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AND RECEIPTS, WITH THE</text>
-        <text x="315" y="406" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">KIT (#149), GUIDE (#150)</text>
-        <rect x="460" y="336" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="460" y="336" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="575" y="370" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Side by side</text>
-        <text x="575" y="390" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THEN CUTOVER (S7),</text>
-        <text x="575" y="406" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ON THE HOST&#x27;S SIDE</text>
-        <line x1="430" y1="382" x2="460" y2="382" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="720" y="336" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="720" y="336" width="230" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="835" y="370" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">TLS</text>
-        <text x="835" y="390" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HOST TO SCHEDULER,</text>
-        <text x="835" y="406" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ROUTING, NOMINATIM</text>
-        <line x1="690" y1="382" x2="720" y2="382" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="980" y="336" width="230" height="92" rx="6" fill="#FFFFFF"/>
-        <rect x="980" y="336" width="230" height="92" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="1095" y="378" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Production</text>
-        <text x="1095" y="398" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TRAFFIC</text>
-        <line x1="950" y1="382" x2="980" y2="382" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="30" y="452" width="1220" height="132" rx="6" fill="#FFFFFF"/>
-        <rect x="30" y="452" width="1220" height="132" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
-        <text x="46" y="474" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">OPEN QUESTIONS IN THE DESIGN DOCUMENT</text>
-        <text x="46" y="502" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1. Does WaterFlex Software&#x27;s Google Maps Platform agreement allow passing Google-geocoded coordinates to the scheduler</text>
-        <text x="46" y="520" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">   and caching them for up to 30 days?</text>
-        <text x="46" y="538" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">2. Does any client require a dedicated database? Every row already carries tenant_id, so that client&#x27;s rows</text>
-        <text x="46" y="556" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">   could move to a database of its own without an API change.</text>
-        <line x1="30" y1="616" x2="1250" y2="616" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="642" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="632" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE NEXT STEP THE EVIDENCE POINTS TO</text>
-        <rect x="400" y="632" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="426" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A STEP</text>
-        <rect x="496" y="632" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8" stroke-dasharray="3,2"/>
-        <text x="522" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE DESTINATION</text>
-        <text x="1250" y="642" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">every item is from the repository&#x27;s own plans</text>
+        <rect x="40" y="40" width="900" height="124" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="52" y="106" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="700" letter-spacing="0.04em">DAILY SEARCH</text>
+        <rect x="152" y="56" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="152" y="56" width="180" height="92" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="242" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Third choice</text>
+        <text x="242" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TABU_KOPT_SIZE_3</text>
+        <text x="242" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BESIDE THE OTHER TWO</text>
+        <rect x="348" y="56" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="348" y="56" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="438" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Replay real days</text>
+        <text x="438" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RECORDED SNAPSHOTS,</text>
+        <text x="438" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MEASURED ROADS</text>
+        <line x1="332" y1="102" x2="348" y2="102" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="544" y="56" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="544" y="56" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="634" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Fairness on</text>
+        <text x="634" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BALANCE WITH THE</text>
+        <text x="634" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SECOND PHASE ON</text>
+        <line x1="528" y1="102" x2="544" y2="102" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="740" y="56" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="740" y="56" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="830" y="90" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Decide a default</text>
+        <text x="830" y="110" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PER CLIENT, ON</text>
+        <text x="830" y="126" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THAT EVIDENCE</text>
+        <line x1="724" y1="102" x2="740" y2="102" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="40" y="180" width="900" height="124" rx="4" fill="#FFFFFF" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="52" y="246" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="700" letter-spacing="0.04em">BOOKING</text>
+        <rect x="152" y="196" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="152" y="196" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="242" y="230" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Quality study</text>
+        <text x="242" y="250" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AGAINST /API/V1 ON</text>
+        <text x="242" y="266" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RECORDED DAYS</text>
+        <rect x="348" y="196" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="348" y="196" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="438" y="230" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Served-customer</text>
+        <text x="438" y="250" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DENOMINATOR, AS IN</text>
+        <text x="438" y="266" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEPTEMBER</text>
+        <line x1="332" y1="242" x2="348" y2="242" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="40" y="320" width="900" height="124" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="52" y="386" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="700" letter-spacing="0.04em">INTEGRATION</text>
+        <rect x="152" y="336" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="152" y="336" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="242" y="370" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Host snapshots</text>
+        <text x="242" y="390" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AND RECEIPTS; KIT</text>
+        <text x="242" y="406" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">#149, GUIDE #150</text>
+        <rect x="348" y="336" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="348" y="336" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="438" y="370" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Side by side</text>
+        <text x="438" y="390" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THEN CUTOVER (S7),</text>
+        <text x="438" y="406" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE HOST&#x27;S SIDE</text>
+        <line x1="332" y1="382" x2="348" y2="382" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="544" y="336" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="544" y="336" width="180" height="92" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="634" y="370" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">TLS</text>
+        <text x="634" y="390" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HOST TO SCHEDULER,</text>
+        <text x="634" y="406" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ROUTING, NOMINATIM</text>
+        <line x1="528" y1="382" x2="544" y2="382" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="740" y="336" width="180" height="92" rx="6" fill="#FFFFFF"/>
+        <rect x="740" y="336" width="180" height="92" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="830" y="378" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Production</text>
+        <text x="830" y="398" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TRAFFIC</text>
+        <line x1="724" y1="382" x2="740" y2="382" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="40" y="452" width="900" height="150" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="452" width="900" height="150" rx="6" fill="#FFFFFF" stroke="rgba(31,42,51,0.18)" stroke-width="1"/>
+        <text x="56" y="474" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">OPEN QUESTIONS IN THE DESIGN DOCUMENT</text>
+        <text x="56" y="502" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1. Does WaterFlex Software&#x27;s Google Maps Platform agreement allow passing Google-geocoded</text>
+        <text x="56" y="520" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">   coordinates to the scheduler and caching them for up to 30 days?</text>
+        <text x="56" y="538" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">2. Does any client require a dedicated database? Every row already carries tenant_id, so</text>
+        <text x="56" y="556" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">   that client&#x27;s rows could move to a database of its own without an API change.</text>
+        <line x1="40" y1="644" x2="940" y2="644" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="670" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="660" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE NEXT STEP THE EVIDENCE POINTS TO</text>
+        <rect x="412" y="660" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="438" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A STEP</text>
+        <rect x="508" y="660" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8" stroke-dasharray="3,2"/>
+        <text x="534" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE DESTINATION</text>
+        <text x="940" y="692" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">every item is from the repository&#x27;s own plans</text>
       </svg>
     </div>
   </div>

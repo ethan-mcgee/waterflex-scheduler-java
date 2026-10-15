@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>The booking sequence and its refusals</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="booking-title booking-desc">
+      <svg viewBox="0 0 980 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="booking-title booking-desc">
         <title id="booking-title">The booking sequence and its refusals</title>
         <desc id="booking-desc">Sequence of the booking calls between WaterFlex Software and the scheduler: offers, select, confirm and the receipt write, with the refusals that send the host back to a new search.</desc>
         <defs>
@@ -34,74 +34,76 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <rect x="200" y="40" width="240" height="56" rx="6" fill="#FFFFFF"/>
-        <rect x="200" y="40" width="240" height="56" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="320" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">WaterFlex Software</text>
-        <text x="320" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HOST · DESK OR CUSTOMER FLOW</text>
-        <rect x="840" y="40" width="240" height="56" rx="6" fill="#FFFFFF"/>
-        <rect x="840" y="40" width="240" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="960" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Scheduler</text>
-        <text x="960" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ANY BOOKING REPLICA</text>
-        <line x1="320" y1="96" x2="320" y2="596" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
-        <line x1="960" y1="96" x2="960" y2="596" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
-        <rect x="956" y="136" width="8" height="36" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
-        <rect x="956" y="216" width="8" height="28" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
-        <rect x="956" y="344" width="8" height="36" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
-        <line x1="324" y1="136" x2="956" y2="136" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
-        <rect x="412.8" y="116" width="454.4" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="128" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST OFFERS · JOB, HORIZON, SNAPSHOT OF EVERY TECHNICIAN-DAY</text>
-        <line x1="956" y1="172" x2="324" y2="172" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <rect x="446.28" y="152" width="387.44" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="164" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">201 OFFER SET · WINDOWS WITH PRICES, SEARCHCOMPLETE</text>
-        <line x1="324" y1="216" x2="956" y2="216" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
-        <rect x="472.32" y="196" width="335.36" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="208" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST SELECT · THE WINDOW THE CUSTOMER PICKED</text>
-        <line x1="956" y1="244" x2="324" y2="244" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <rect x="516.96" y="224" width="246.08" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="236" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 HOLD · EXPIRES IN 10 MINUTES</text>
-        <rect x="240" y="272" width="800" height="308" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
-        <rect x="240" y="272" width="40" height="16" rx="2" fill="#FFFFFF" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
-        <text x="260" y="284" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
-        <text x="252" y="308" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[RECORDS UNCHANGED SINCE THE OFFER]</text>
-        <line x1="324" y1="344" x2="956" y2="344" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
-        <rect x="457.44" y="324" width="365.12" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="336" fill="#0B3A66" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST CONFIRM · FRESH SNAPSHOT OF THE HOLD&#x27;S DATE</text>
-        <line x1="956" y1="380" x2="324" y2="380" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <rect x="487.2" y="360" width="305.6" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="372" fill="#287A4C" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 CONFIRMED · ARRANGEMENT FOR THAT DAY</text>
-        <path d="M324,408 H356 Q364,408 364,416 V424 Q364,432 356,432 H332" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="376" y="413" width="424.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="376" y="425" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">HOST WRITES THE RECEIPT: COMPARE-AND-SET ON LASTMODIFIED</text>
-        <line x1="248" y1="456" x2="1032" y2="456" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
-        <text x="252" y="480" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[409 STALE · 409 HOLD_UNAVAILABLE · OR THE RECEIPT WRITE FAILS]</text>
-        <line x1="956" y1="516" x2="324" y2="516" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <rect x="435.12" y="496" width="409.76" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="508" fill="#5A6B7A" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">409 WITH ITS REASON (OR THE HOST&#x27;S OWN WRITE CONFLICT)</text>
-        <line x1="324" y1="556" x2="956" y2="556" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="357" y="536" width="566" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="640" y="548" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RELEASE THE SET, OR LET THE HOLD EXPIRE · SEARCH AGAIN WITH A NEW REQUESTID</text>
-        <text x="1090" y="300" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">STALE: the snapshot is older</text>
-        <text x="1090" y="318" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">than records already used.</text>
-        <text x="1090" y="336" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic"></text>
-        <text x="1090" y="354" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">HOLD_UNAVAILABLE: the hold</text>
-        <text x="1090" y="372" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">expired or was lost, another</text>
-        <text x="1090" y="390" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">offer was selected, or the day</text>
-        <text x="1090" y="408" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">no longer fits (or would add</text>
-        <text x="1090" y="426" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">overtime).</text>
-        <text x="1090" y="444" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic"></text>
-        <text x="1090" y="462" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Write conflict: a lastModified</text>
-        <text x="1090" y="480" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">moved since the receipt.</text>
-        <line x1="30" y1="606" x2="1250" y2="606" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="632" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <line x1="100" y1="628" x2="136" y2="628" stroke="#0B3A66" stroke-width="1.2" marker-end="url(#arrow-link)"/>
-        <text x="146" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CALL</text>
-        <line x1="204" y1="628" x2="240" y2="628" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
-        <text x="250" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REPLY</text>
-        <line x1="312" y1="628" x2="348" y2="628" stroke="#287A4C" stroke-width="1.6"/>
-        <text x="358" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">HEADLINE SUCCESS</text>
-        <rect x="496" y="622" width="18" height="12" rx="2" fill="rgba(31,42,51,0.06)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="522" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SCHEDULER HOLDS CONTROL</text>
-        <text x="1250" y="632" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">every 409 names its reason; time runs top to bottom</text>
+        <rect x="20" y="40" width="220" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="20" y="40" width="220" height="56" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="130" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">WaterFlex Software</text>
+        <text x="130" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HOST · DESK OR CUSTOMER</text>
+        <rect x="560" y="40" width="220" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="560" y="40" width="220" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="670" y="64" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Scheduler</text>
+        <text x="670" y="84" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ANY BOOKING REPLICA</text>
+        <line x1="130" y1="96" x2="130" y2="616" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="670" y1="96" x2="670" y2="616" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+        <rect x="666" y="136" width="8" height="36" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <rect x="666" y="216" width="8" height="28" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <rect x="666" y="344" width="8" height="36" fill="rgba(31,42,51,0.06)" stroke="#444444" stroke-width="0.8"/>
+        <line x1="134" y1="136" x2="666" y2="136" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="191.4" y="114" width="417.2" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="126" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST OFFERS · JOB, HORIZON, SNAPSHOT OF EVERY TECHNICIAN-DAY</text>
+        <line x1="666" y1="172" x2="134" y2="172" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="222.09" y="150" width="355.82" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="162" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">201 OFFER SET · WINDOWS WITH PRICES, SEARCHCOMPLETE</text>
+        <line x1="134" y1="216" x2="666" y2="216" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="245.96" y="194" width="308.08" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="206" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST SELECT · THE WINDOW THE CUSTOMER PICKED</text>
+        <line x1="666" y1="244" x2="134" y2="244" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="286.88" y="222" width="226.24" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="234" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 HOLD · EXPIRES IN 10 MINUTES</text>
+        <rect x="80" y="272" width="630" height="328" rx="4" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
+        <rect x="80" y="272" width="40" height="16" rx="2" fill="#FFFFFF" stroke="rgba(31,42,51,0.22)" stroke-width="1"/>
+        <text x="100" y="284" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.12em">ALT</text>
+        <text x="92" y="308" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[RECORDS UNCHANGED SINCE THE OFFER]</text>
+        <line x1="134" y1="344" x2="666" y2="344" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="232.32" y="322" width="335.36" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="334" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST CONFIRM · FRESH SNAPSHOT OF THE HOLD&#x27;S DATE</text>
+        <line x1="666" y1="380" x2="134" y2="380" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="259.6" y="358" width="280.8" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="370" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">200 CONFIRMED · ARRANGEMENT FOR THAT DAY</text>
+        <path d="M134,408 H166 Q174,408 174,416 V424 Q174,432 166,432 H142" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="186" y="413" width="389.92" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="186" y="425" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.06em">HOST WRITES THE RECEIPT: COMPARE-AND-SET ON LASTMODIFIED</text>
+        <line x1="88" y1="456" x2="702" y2="456" stroke="rgba(31,42,51,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="92" y="480" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.04em">[409 STALE · 409 HOLD_UNAVAILABLE · OR THE RECEIPT WRITE FAILS]</text>
+        <line x1="666" y1="520" x2="134" y2="520" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="211.86" y="498" width="376.28" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="510" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">409 WITH ITS REASON (OR THE HOST&#x27;S OWN WRITE CONFLICT)</text>
+        <line x1="134" y1="568" x2="666" y2="568" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="164.12" y="546" width="471.76" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="400" y="558" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RELEASE THE SET OR LET THE HOLD EXPIRE · SEARCH AGAIN, NEW REQUESTID</text>
+        <text x="730" y="300" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">STALE: the snapshot is</text>
+        <text x="730" y="318" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">older than records</text>
+        <text x="730" y="336" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">already used.</text>
+        <text x="730" y="354" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic"></text>
+        <text x="730" y="372" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">HOLD_UNAVAILABLE: the</text>
+        <text x="730" y="390" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">hold expired or was</text>
+        <text x="730" y="408" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">lost, another offer was</text>
+        <text x="730" y="426" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">selected, or the day no</text>
+        <text x="730" y="444" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">longer fits.</text>
+        <text x="730" y="462" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic"></text>
+        <text x="730" y="480" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Write conflict: a</text>
+        <text x="730" y="498" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">lastModified moved</text>
+        <text x="730" y="516" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">since the receipt.</text>
+        <line x1="40" y1="644" x2="940" y2="644" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="670" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="110" y1="666" x2="146" y2="666" stroke="#0B3A66" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="156" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CALL</text>
+        <line x1="212" y1="666" x2="248" y2="666" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="258" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REPLY</text>
+        <line x1="320" y1="666" x2="356" y2="666" stroke="#287A4C" stroke-width="1.6"/>
+        <text x="366" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">HEADLINE SUCCESS</text>
+        <rect x="504" y="660" width="18" height="12" rx="2" fill="rgba(31,42,51,0.06)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="530" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SCHEDULER HOLDS CONTROL</text>
+        <text x="940" y="670" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">time runs top to bottom</text>
       </svg>
     </div>
   </div>

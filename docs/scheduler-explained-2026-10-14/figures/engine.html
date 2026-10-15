@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Inside the engine: study L and study K</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="engine-title engine-desc">
+      <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="engine-title engine-desc">
         <title id="engine-title">Inside the engine: study L and study K</title>
         <desc id="engine-desc">Scatter plot of each paired case&#x27;s cost-phase moves per second before and after the RoadMatrix treatment, and a dumbbell chart of offers latency for the embedded engine against three remote pool configurations.</desc>
         <defs>
@@ -34,144 +34,144 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <text x="74" y="32" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Study L: 24 paired solves</text>
-        <line x1="130" y1="480" x2="560" y2="480" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="122" y="484" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
-        <line x1="130" y1="410" x2="560" y2="410" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="122" y="414" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">50</text>
-        <line x1="130" y1="340" x2="560" y2="340" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="122" y="344" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">100</text>
-        <line x1="130" y1="270" x2="560" y2="270" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="122" y="274" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">150</text>
-        <line x1="130" y1="200" x2="560" y2="200" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="122" y="204" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">200</text>
-        <line x1="130" y1="130" x2="560" y2="130" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="122" y="134" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">250</text>
-        <line x1="130" y1="60" x2="560" y2="60" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="122" y="64" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">300</text>
-        <line x1="130" y1="60" x2="130" y2="480" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="74" y="270" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 74 270)">AFTER ROADMATRIX, THOUSAND MOVES PER SECOND</text>
-        <text x="130" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0</text>
-        <line x1="202" y1="60" x2="202" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="202" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50</text>
-        <line x1="273" y1="60" x2="273" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="273" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100</text>
-        <line x1="345" y1="60" x2="345" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="345" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">150</text>
-        <line x1="417" y1="60" x2="417" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="417" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200</text>
-        <line x1="488" y1="60" x2="488" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="488" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">250</text>
-        <line x1="560" y1="60" x2="560" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="560" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">300</text>
-        <text x="345" y="524" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BEFORE, THOUSAND COST-PHASE MOVES PER SECOND</text>
-        <line x1="130" y1="480" x2="560" y2="60" stroke="rgba(31,42,51,0.25)" stroke-width="1" stroke-dasharray="2,3"/>
-        <rect x="498.95" y="76" width="42.1" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="520" y="88" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">EQUAL</text>
-        <line x1="130" y1="480" x2="345" y2="60" stroke="#9c6b50" stroke-width="1" stroke-dasharray="6,4"/>
-        <rect x="329.26" y="60" width="103.48" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="381" y="72" fill="#9c6b50" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TWICE THE RATE</text>
-        <circle cx="290" cy="239.061" r="5" fill="#FFFFFF"/>
-        <circle cx="290" cy="239.061" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="287" cy="238.594" r="5" fill="#FFFFFF"/>
-        <circle cx="287" cy="238.594" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="286" cy="244.101" r="5" fill="#FFFFFF"/>
-        <circle cx="286" cy="244.101" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="298" cy="228.928" r="5" fill="#FFFFFF"/>
-        <circle cx="298" cy="228.928" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="293" cy="211.33" r="5" fill="#FFFFFF"/>
-        <circle cx="293" cy="211.33" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="316" cy="209.295" r="5" fill="#FFFFFF"/>
-        <circle cx="316" cy="209.295" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="322" cy="213.362" r="5" fill="#FFFFFF"/>
-        <circle cx="322" cy="213.362" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="319" cy="191.555" r="5" fill="#FFFFFF"/>
-        <circle cx="319" cy="191.555" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="325" cy="200.818" r="5" fill="#FFFFFF"/>
-        <circle cx="325" cy="200.818" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="340" cy="168.466" r="5" fill="#FFFFFF"/>
-        <circle cx="340" cy="168.466" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="333" cy="165.762" r="5" fill="#FFFFFF"/>
-        <circle cx="333" cy="165.762" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="347" cy="166.914" r="5" fill="#FFFFFF"/>
-        <circle cx="347" cy="166.914" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
-        <circle cx="268" cy="225.054" r="5" fill="#FFFFFF"/>
-        <circle cx="268" cy="225.054" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="261" cy="225.957" r="5" fill="#FFFFFF"/>
-        <circle cx="261" cy="225.957" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="265" cy="212.162" r="5" fill="#FFFFFF"/>
-        <circle cx="265" cy="212.162" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="278" cy="189.401" r="5" fill="#FFFFFF"/>
-        <circle cx="278" cy="189.401" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="282" cy="176.201" r="5" fill="#FFFFFF"/>
-        <circle cx="282" cy="176.201" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="270" cy="169.661" r="5" fill="#FFFFFF"/>
-        <circle cx="270" cy="169.661" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="284" cy="161.419" r="5" fill="#FFFFFF"/>
-        <circle cx="284" cy="161.419" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="293" cy="157.798" r="5" fill="#FFFFFF"/>
-        <circle cx="293" cy="157.798" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="295" cy="168.268" r="5" fill="#FFFFFF"/>
-        <circle cx="295" cy="168.268" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="311" cy="127.554" r="5" fill="#FFFFFF"/>
-        <circle cx="311" cy="127.554" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="315" cy="134.939" r="5" fill="#FFFFFF"/>
-        <circle cx="315" cy="134.939" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <circle cx="309" cy="140.254" r="5" fill="#FFFFFF"/>
-        <circle cx="309" cy="140.254" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <text x="764" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Study K: embedded against a remote pool</text>
-        <line x1="820" y1="80" x2="820" y2="440" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="820" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0</text>
-        <line x1="883" y1="80" x2="883" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="883" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100</text>
-        <line x1="947" y1="80" x2="947" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="947" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200</text>
-        <line x1="1010" y1="80" x2="1010" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="1010" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">300</text>
-        <line x1="1073" y1="80" x2="1073" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="1073" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">400</text>
-        <line x1="1137" y1="80" x2="1137" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="1137" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">500</text>
-        <line x1="1200" y1="80" x2="1200" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="1200" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">600</text>
-        <text x="1010" y="484" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em">OFFERS AT THE CALLER, MS</text>
-        <line x1="975" y1="112" x2="1046" y2="112" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
-        <circle cx="975" cy="112" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
-        <circle cx="1046" cy="112" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
-        <text x="963" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">244</text>
-        <text x="1058" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">357</text>
-        <text x="808" y="117" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Embedded</text>
-        <text x="808" y="134" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 25 OF 25 · CPU 185%</text>
-        <line x1="1043" y1="200" x2="1127" y2="200" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
-        <circle cx="1043" cy="200" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
-        <circle cx="1127" cy="200" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
-        <text x="1031" y="204" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">352</text>
-        <text x="1139" y="204" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">485</text>
-        <text x="808" y="205" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Remote, old pool defaults</text>
-        <text x="808" y="222" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 3 OF 18 · CPU 43%</text>
-        <line x1="1045" y1="288" x2="1172" y2="288" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
-        <circle cx="1045" cy="288" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
-        <circle cx="1172" cy="288" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
-        <text x="1033" y="292" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">356</text>
-        <text x="1184" y="292" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">556</text>
-        <text x="808" y="293" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Remote, capacity 4</text>
-        <text x="808" y="310" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 5 OF 18 · CPU 33%</text>
-        <line x1="1057" y1="376" x2="1139" y2="376" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
-        <circle cx="1057" cy="376" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
-        <circle cx="1139" cy="376" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
-        <text x="1045" y="380" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">374</text>
-        <text x="1151" y="380" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">504</text>
-        <text x="808" y="381" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Remote, cap. 4, every slot daily</text>
-        <text x="808" y="398" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 25 OF 25 · CPU 36%</text>
-        <line x1="30" y1="546" x2="1250" y2="546" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="572" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <circle cx="109" cy="568" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
-        <text x="126" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">L: 20 TECHNICIANS · K: P50</text>
-        <circle cx="341" cy="568" r="6" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
-        <text x="358" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">L: 50 TECHNICIANS</text>
-        <circle cx="513" cy="568" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
-        <text x="530" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">K: P95</text>
-        <text x="1250" y="572" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">K rows in study order, with the daily pool&#x27;s proposals and CPU</text>
+        <text x="54" y="32" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Study L: 24 paired solves</text>
+        <line x1="110" y1="480" x2="450" y2="480" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="102" y="484" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="110" y1="410" x2="450" y2="410" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="414" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">50</text>
+        <line x1="110" y1="340" x2="450" y2="340" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="344" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">100</text>
+        <line x1="110" y1="270" x2="450" y2="270" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="274" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">150</text>
+        <line x1="110" y1="200" x2="450" y2="200" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="204" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">200</text>
+        <line x1="110" y1="130" x2="450" y2="130" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="134" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">250</text>
+        <line x1="110" y1="60" x2="450" y2="60" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="64" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">300</text>
+        <line x1="110" y1="60" x2="110" y2="480" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="54" y="270" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 54 270)">AFTER, THOUSAND MOVES PER SECOND</text>
+        <text x="110" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0</text>
+        <line x1="167" y1="60" x2="167" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="167" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50</text>
+        <line x1="223" y1="60" x2="223" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="223" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100</text>
+        <line x1="280" y1="60" x2="280" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="280" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">150</text>
+        <line x1="337" y1="60" x2="337" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="337" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200</text>
+        <line x1="393" y1="60" x2="393" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="393" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">250</text>
+        <line x1="450" y1="60" x2="450" y2="480" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="450" y="500" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">300</text>
+        <text x="280" y="524" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BEFORE, THOUSAND MOVES PER SECOND</text>
+        <line x1="110" y1="480" x2="450" y2="60" stroke="rgba(31,42,51,0.25)" stroke-width="1" stroke-dasharray="2,3"/>
+        <rect x="388.95" y="76" width="42.1" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="410" y="88" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">EQUAL</text>
+        <line x1="110" y1="480" x2="280" y2="60" stroke="#9c6b50" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="264.26" y="60" width="103.48" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="316" y="72" fill="#9c6b50" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TWICE THE RATE</text>
+        <circle cx="236" cy="239.061" r="5" fill="#FFFFFF"/>
+        <circle cx="236" cy="239.061" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="234" cy="238.594" r="5" fill="#FFFFFF"/>
+        <circle cx="234" cy="238.594" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="233" cy="244.101" r="5" fill="#FFFFFF"/>
+        <circle cx="233" cy="244.101" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="243" cy="228.928" r="5" fill="#FFFFFF"/>
+        <circle cx="243" cy="228.928" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="239" cy="211.33" r="5" fill="#FFFFFF"/>
+        <circle cx="239" cy="211.33" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="257" cy="209.295" r="5" fill="#FFFFFF"/>
+        <circle cx="257" cy="209.295" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="262" cy="213.362" r="5" fill="#FFFFFF"/>
+        <circle cx="262" cy="213.362" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="260" cy="191.555" r="5" fill="#FFFFFF"/>
+        <circle cx="260" cy="191.555" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="264" cy="200.818" r="5" fill="#FFFFFF"/>
+        <circle cx="264" cy="200.818" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="276" cy="168.466" r="5" fill="#FFFFFF"/>
+        <circle cx="276" cy="168.466" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="270" cy="165.762" r="5" fill="#FFFFFF"/>
+        <circle cx="270" cy="165.762" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="282" cy="166.914" r="5" fill="#FFFFFF"/>
+        <circle cx="282" cy="166.914" r="5" fill="rgba(68,68,68,0.2)" stroke="#444444" stroke-width="1"/>
+        <circle cx="219" cy="225.054" r="5" fill="#FFFFFF"/>
+        <circle cx="219" cy="225.054" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="213" cy="225.957" r="5" fill="#FFFFFF"/>
+        <circle cx="213" cy="225.957" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="217" cy="212.162" r="5" fill="#FFFFFF"/>
+        <circle cx="217" cy="212.162" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="227" cy="189.401" r="5" fill="#FFFFFF"/>
+        <circle cx="227" cy="189.401" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="230" cy="176.201" r="5" fill="#FFFFFF"/>
+        <circle cx="230" cy="176.201" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="221" cy="169.661" r="5" fill="#FFFFFF"/>
+        <circle cx="221" cy="169.661" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="232" cy="161.419" r="5" fill="#FFFFFF"/>
+        <circle cx="232" cy="161.419" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="239" cy="157.798" r="5" fill="#FFFFFF"/>
+        <circle cx="239" cy="157.798" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="240" cy="168.268" r="5" fill="#FFFFFF"/>
+        <circle cx="240" cy="168.268" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="253" cy="127.554" r="5" fill="#FFFFFF"/>
+        <circle cx="253" cy="127.554" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="256" cy="134.939" r="5" fill="#FFFFFF"/>
+        <circle cx="256" cy="134.939" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <circle cx="252" cy="140.254" r="5" fill="#FFFFFF"/>
+        <circle cx="252" cy="140.254" r="5" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <text x="644" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Study K: embedded against remote</text>
+        <line x1="700" y1="80" x2="700" y2="440" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="700" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0</text>
+        <line x1="740" y1="80" x2="740" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="740" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">100</text>
+        <line x1="780" y1="80" x2="780" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="780" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">200</text>
+        <line x1="820" y1="80" x2="820" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="820" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">300</text>
+        <line x1="860" y1="80" x2="860" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="860" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">400</text>
+        <line x1="900" y1="80" x2="900" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="900" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">500</text>
+        <line x1="940" y1="80" x2="940" y2="440" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="940" y="460" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">600</text>
+        <text x="820" y="484" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em">OFFERS AT THE CALLER, MS</text>
+        <line x1="798" y1="112" x2="843" y2="112" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="798" cy="112" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="843" cy="112" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="786" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">244</text>
+        <text x="855" y="116" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">357</text>
+        <text x="688" y="117" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Embedded</text>
+        <text x="688" y="134" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 25 OF 25 · CPU 185%</text>
+        <line x1="841" y1="200" x2="894" y2="200" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="841" cy="200" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="894" cy="200" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="829" y="204" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">352</text>
+        <text x="906" y="204" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">485</text>
+        <text x="688" y="205" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Remote, old pool defaults</text>
+        <text x="688" y="222" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 3 OF 18 · CPU 43%</text>
+        <line x1="842" y1="288" x2="922" y2="288" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="842" cy="288" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="922" cy="288" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="830" y="292" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">356</text>
+        <text x="934" y="292" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">556</text>
+        <text x="688" y="293" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Remote, capacity 4</text>
+        <text x="688" y="310" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 5 OF 18 · CPU 33%</text>
+        <line x1="850" y1="376" x2="902" y2="376" stroke="rgba(31,42,51,0.55)" stroke-width="1"/>
+        <circle cx="850" cy="376" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <circle cx="902" cy="376" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="838" y="380" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">374</text>
+        <text x="914" y="380" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">504</text>
+        <text x="688" y="381" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Remote, cap. 4, all slots daily</text>
+        <text x="688" y="398" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">DAILY 25 OF 25 · CPU 36%</text>
+        <line x1="40" y1="564" x2="940" y2="564" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="590" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <circle cx="119" cy="586" r="6" fill="#FFFFFF" stroke="#444444" stroke-width="1.5"/>
+        <text x="136" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">L: 20 TECHNICIANS · K: P50</text>
+        <circle cx="353" cy="586" r="6" fill="rgba(31,42,51,0.55)" stroke="#1F2A33" stroke-width="1"/>
+        <text x="370" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">L: 50 TECHNICIANS</text>
+        <circle cx="525" cy="586" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="542" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">K: P95</text>
+        <text x="940" y="590" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">K rows with the daily pool&#x27;s proposals and CPU</text>
       </svg>
     </div>
   </div>

@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Inside the deadline: when the second pass runs, and how it ends</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="deadline-title deadline-desc">
+      <svg viewBox="0 0 980 740" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="deadline-title deadline-desc">
         <title id="deadline-title">Inside the deadline: when the second pass runs, and how it ends</title>
         <desc id="deadline-desc">Flowchart of a booking search&#x27;s refinement pass: required when the first pass found few windows, optional and capped otherwise, shed when other bookings wait, and dropped in favour of the first pass&#x27;s offers when it fails; each path reports refinement and searchComplete.</desc>
         <defs>
@@ -34,89 +34,95 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <rect x="30" y="56" width="220" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="30" y="56" width="220" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="140" y="88" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Insertion pass</text>
-        <text x="140" y="108" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE REGULAR WINDOWS</text>
-        <polygon points="400,32 510,92 400,152 290,92" fill="#FFFFFF"/>
-        <polygon points="400,32 510,92 400,152 290,92" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="400" y="80" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MORE WINDOWS</text>
-        <text x="400" y="96" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THAN THE CLIENT&#x27;S</text>
-        <text x="400" y="112" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THRESHOLD?</text>
-        <line x1="250" y1="92" x2="290" y2="92" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <polygon points="720,32 830,92 720,152 610,92" fill="#FFFFFF"/>
-        <polygon points="720,32 830,92 720,152 610,92" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1"/>
-        <text x="720" y="80" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BOOKINGS</text>
-        <text x="720" y="96" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">WAITING FOR</text>
-        <text x="720" y="112" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">A SLOT?</text>
-        <line x1="510" y1="92" x2="610" y2="92" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="545.77" y="70" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="560" y="82" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <rect x="960" y="56" width="290" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="960" y="56" width="290" height="72" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="1105" y="88" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">SHED (#155)</text>
-        <text x="1105" y="108" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INSERTION OFFERS, AT ONCE</text>
-        <line x1="830" y1="92" x2="960" y2="92" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <rect x="880.77" y="70" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="895" y="82" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <rect x="560" y="236" width="320" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="560" y="236" width="320" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="720" y="268" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Optional refinement</text>
-        <text x="720" y="288" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CAPPED: 250 MS UNLESS THE CLIENT SETS</text>
-        <line x1="720" y1="152" x2="720" y2="236" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="733.18" y="186" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="744" y="198" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <rect x="80" y="236" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="80" y="236" width="380" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="270" y="268" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Required refinement</text>
-        <text x="270" y="288" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MAY USE THE REST OF THE DEADLINE</text>
-        <line x1="400" y1="152" x2="400" y2="236" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="413.18" y="186" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="424" y="198" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <polygon points="720,368 830,420 720,472 610,420" fill="#FFFFFF"/>
-        <polygon points="720,368 830,420 720,472 610,420" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="720" y="424" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RESULT VALID?</text>
-        <polygon points="270,368 380,420 270,472 160,420" fill="#FFFFFF"/>
-        <polygon points="270,368 380,420 270,472 160,420" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="270" y="424" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RESULT VALID?</text>
-        <line x1="720" y1="308" x2="720" y2="368" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="270" y1="308" x2="270" y2="368" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="960" y="384" width="290" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="960" y="384" width="290" height="72" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="1105" y="416" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">UNAVAILABLE (#138)</text>
-        <text x="1105" y="436" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INSERTION OFFERS PUBLISHED</text>
-        <line x1="830" y1="420" x2="960" y2="420" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="884.18" y="398" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="895" y="410" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <path d="M380,420 L522,420 Q530,420 530,428 L530,616 Q530,624 538,624 L1097,624 Q1105,624 1105,616 L1105,456" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="444.18" y="398" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="455" y="410" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <rect x="560" y="536" width="320" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="560" y="536" width="320" height="64" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="720" y="564" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">COMPLETE or SHORTENED</text>
-        <text x="720" y="584" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEARCHCOMPLETE STAYS TRUE (#154)</text>
-        <line x1="720" y1="472" x2="720" y2="536" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <rect x="729.77" y="500" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="744" y="512" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <rect x="30" y="536" width="480" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="30" y="536" width="480" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="270" y="564" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">COMPLETE, or cut short by the deadline</text>
-        <text x="270" y="584" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEARCHCOMPLETE FALSE AND THE DATES LISTED</text>
-        <line x1="270" y1="472" x2="270" y2="536" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="279.77" y="500" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="294" y="512" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <text x="960" y="160" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every path publishes offers that</text>
-        <text x="960" y="178" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">passed validation on their own:</text>
-        <text x="960" y="196" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">nothing unchecked is offered.</text>
-        <line x1="30" y1="656" x2="1250" y2="656" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="682" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="672" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="682" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A PASS OR AN OUTCOME</text>
-        <rect x="292" y="672" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="318" y="682" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE API-ERA CHANGES THAT KEPT OFFERS FAST</text>
-        <rect x="628" y="672" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="654" y="682" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A FAILURE KEPT SMALL</text>
-        <text x="1250" y="682" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">the whole call is bounded by bookingDeadlineMs, at most 5 s</text>
+        <rect x="130" y="32" width="200" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="130" y="32" width="200" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="230" y="60" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Insertion pass</text>
+        <text x="230" y="80" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE REGULAR WINDOWS</text>
+        <polygon points="230,116 330,172 230,228 130,172" fill="#FFFFFF"/>
+        <polygon points="230,116 330,172 230,228 130,172" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="230" y="160" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MORE WINDOWS</text>
+        <text x="230" y="176" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THAN THE CLIENT&#x27;S</text>
+        <text x="230" y="192" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THRESHOLD?</text>
+        <line x1="230" y1="96" x2="230" y2="116" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <polygon points="560,116 660,172 560,228 460,172" fill="#FFFFFF"/>
+        <polygon points="560,116 660,172 560,228 460,172" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1"/>
+        <text x="560" y="160" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">BOOKINGS</text>
+        <text x="560" y="176" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">WAITING FOR</text>
+        <text x="560" y="192" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">A SLOT?</text>
+        <line x1="330" y1="172" x2="460" y2="172" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="380.77" y="150" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="395" y="162" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="744" y="136" width="196" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="744" y="136" width="196" height="72" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="842" y="168" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">SHED (#155)</text>
+        <text x="842" y="188" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INSERTION OFFERS AT ONCE</text>
+        <line x1="660" y1="172" x2="744" y2="172" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="687.77" y="150" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="702" y="162" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="110" y="280" width="240" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="110" y="280" width="240" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="230" y="308" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Required refinement</text>
+        <text x="230" y="328" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MAY USE THE REST</text>
+        <text x="230" y="344" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">OF THE DEADLINE</text>
+        <line x1="230" y1="228" x2="230" y2="280" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="241.18" y="246" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="252" y="258" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="440" y="280" width="240" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="440" y="280" width="240" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="560" y="308" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Optional refinement</text>
+        <text x="560" y="328" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CAPPED AT 250 MS UNLESS</text>
+        <text x="560" y="344" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE CLIENT SETS ONE</text>
+        <line x1="560" y1="228" x2="560" y2="280" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="571.18" y="246" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="582" y="258" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <polygon points="230,402 330,452 230,502 130,452" fill="#FFFFFF"/>
+        <polygon points="230,402 330,452 230,502 130,452" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="230" y="456" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RESULT VALID?</text>
+        <polygon points="560,402 660,452 560,502 460,452" fill="#FFFFFF"/>
+        <polygon points="560,402 660,452 560,502 460,452" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="560" y="456" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">RESULT VALID?</text>
+        <line x1="230" y1="360" x2="230" y2="402" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="560" y1="360" x2="560" y2="402" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="744" y="416" width="196" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="744" y="416" width="196" height="72" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="842" y="448" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">UNAVAILABLE (#138)</text>
+        <text x="842" y="468" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">INSERTION OFFERS</text>
+        <line x1="660" y1="452" x2="744" y2="452" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="691.18" y="430" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="702" y="442" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <path d="M330,452 L392,452 Q400,452 400,460 L400,632 Q400,640 408,640 L834,640 Q842,640 842,632 L842,488" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="355.18" y="430" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="366" y="442" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="440" y="548" width="240" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="440" y="548" width="240" height="80" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="560" y="576" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">COMPLETE or SHORTENED</text>
+        <text x="560" y="596" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEARCHCOMPLETE STAYS</text>
+        <text x="560" y="612" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TRUE (#154)</text>
+        <line x1="560" y1="502" x2="560" y2="548" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="571.77" y="518" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="586" y="530" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="110" y="548" width="240" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="110" y="548" width="240" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="230" y="576" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">COMPLETE or CUT SHORT</text>
+        <text x="230" y="596" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SEARCHCOMPLETE FALSE,</text>
+        <text x="230" y="612" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">THE DATES LISTED</text>
+        <line x1="230" y1="502" x2="230" y2="548" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="241.77" y="518" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="256" y="530" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <text x="744" y="260" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every path publishes</text>
+        <text x="744" y="278" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">offers that passed</text>
+        <text x="744" y="296" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">validation on their</text>
+        <text x="744" y="314" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">own: nothing unchecked</text>
+        <text x="744" y="332" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">is offered.</text>
+        <line x1="40" y1="684" x2="940" y2="684" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="710" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="700" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="710" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A PASS OR AN OUTCOME</text>
+        <rect x="300" y="700" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="326" y="710" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE API-ERA CHANGES</text>
+        <rect x="484" y="700" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="510" y="710" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">A FAILURE KEPT SMALL</text>
+        <text x="940" y="732" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">bounded by bookingDeadlineMs, at most 5 s</text>
       </svg>
     </div>
   </div>

@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Daily proposals: admission, fairness and pools</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="daily_load-title daily_load-desc">
+      <svg viewBox="0 0 980 580" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="daily_load-title daily_load-desc">
         <title id="daily_load-title">Daily proposals: admission, fairness and pools</title>
         <desc id="daily_load-desc">Three bar charts of daily proposals: answered or refused with 503 before and after #153, two clients&#x27; shares synchronously and queued, and one replica against booking and daily pools.</desc>
         <defs>
@@ -34,125 +34,125 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <text x="64" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Answered or refused (#151 to #153)</text>
-        <line x1="120" y1="400" x2="420" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="112" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
-        <line x1="120" y1="346.667" x2="420" y2="346.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="350.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
-        <line x1="120" y1="293.333" x2="420" y2="293.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="297.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
-        <line x1="120" y1="240" x2="420" y2="240" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
-        <line x1="120" y1="186.667" x2="420" y2="186.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="190.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
-        <line x1="120" y1="133.333" x2="420" y2="133.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="137.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">25</text>
-        <line x1="120" y1="80" x2="420" y2="80" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="84" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">30</text>
-        <line x1="120" y1="80" x2="120" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="64" y="240" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 64 240)">PROPOSALS IN 60 S</text>
-        <rect x="135.5" y="282.667" width="44" height="117.333" fill="#FFFFFF"/>
-        <rect x="135.5" y="282.667" width="44" height="117.333" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <rect x="135.5" y="272" width="44" height="10.6667" fill="#FFFFFF"/>
-        <rect x="135.5" y="272" width="44" height="10.6667" fill="url(#hatch)" stroke="#444444" stroke-width="1"/>
-        <text x="157.5" y="264" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">11 + 1</text>
-        <text x="157.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#151</text>
-        <rect x="210.5" y="282.667" width="44" height="117.333" fill="#FFFFFF"/>
-        <rect x="210.5" y="282.667" width="44" height="117.333" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="232.5" y="274.667" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">11</text>
-        <text x="232.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#153</text>
-        <rect x="285.5" y="368" width="44" height="32" fill="#FFFFFF"/>
-        <rect x="285.5" y="368" width="44" height="32" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <rect x="285.5" y="101.333" width="44" height="266.667" fill="#FFFFFF"/>
-        <rect x="285.5" y="101.333" width="44" height="266.667" fill="url(#hatch)" stroke="#444444" stroke-width="1"/>
-        <text x="307.5" y="93.3333" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3 + 25</text>
-        <text x="307.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#151</text>
-        <rect x="360.5" y="240" width="44" height="160" fill="#FFFFFF"/>
-        <rect x="360.5" y="240" width="44" height="160" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="382.5" y="232" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">15</text>
-        <text x="382.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#153</text>
-        <text x="195" y="444" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1 PLANNER</text>
-        <text x="345" y="444" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4 PLANNERS</text>
-        <text x="484" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Two clients, one replica (#157)</text>
-        <line x1="540" y1="400" x2="800" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="532" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
-        <line x1="540" y1="336" x2="800" y2="336" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="532" y="340" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
-        <line x1="540" y1="272" x2="800" y2="272" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="532" y="276" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
-        <line x1="540" y1="208" x2="800" y2="208" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="532" y="212" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
-        <line x1="540" y1="144" x2="800" y2="144" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="532" y="148" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
-        <line x1="540" y1="80" x2="800" y2="80" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="532" y="84" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">25</text>
-        <line x1="540" y1="80" x2="540" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="484" y="240" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 484 240)">PROPOSALS IN 90 S</text>
-        <rect x="552.5" y="144" width="40" height="256" fill="#FFFFFF"/>
-        <rect x="552.5" y="144" width="40" height="256" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="572.5" y="136" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20</text>
-        <text x="572.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A x4</text>
-        <text x="572.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SYNC</text>
-        <rect x="617.5" y="387.2" width="40" height="12.8" fill="#FFFFFF"/>
-        <rect x="617.5" y="387.2" width="40" height="12.8" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="637.5" y="379.2" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1</text>
-        <text x="637.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">B x1</text>
-        <text x="637.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SYNC</text>
-        <rect x="682.5" y="246.4" width="40" height="153.6" fill="#FFFFFF"/>
-        <rect x="682.5" y="246.4" width="40" height="153.6" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="702.5" y="238.4" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">12</text>
-        <text x="702.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A x4</text>
-        <text x="702.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">QUEUED</text>
-        <rect x="747.5" y="284.8" width="40" height="115.2" fill="#FFFFFF"/>
-        <rect x="747.5" y="284.8" width="40" height="115.2" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="767.5" y="276.8" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">9</text>
-        <text x="767.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">B x1</text>
-        <text x="767.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">QUEUED</text>
-        <text x="884" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">One replica or two pools (#158)</text>
-        <line x1="940" y1="400" x2="1200" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="932" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
-        <line x1="940" y1="346.667" x2="1200" y2="346.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="932" y="350.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
-        <line x1="940" y1="293.333" x2="1200" y2="293.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="932" y="297.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
-        <line x1="940" y1="240" x2="1200" y2="240" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="932" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
-        <line x1="940" y1="186.667" x2="1200" y2="186.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="932" y="190.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
-        <line x1="940" y1="133.333" x2="1200" y2="133.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="932" y="137.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">25</text>
-        <line x1="940" y1="80" x2="1200" y2="80" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="932" y="84" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">30</text>
-        <line x1="940" y1="80" x2="940" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="884" y="240" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 884 240)">PROPOSALS IN 60 S</text>
-        <rect x="952.5" y="261.333" width="40" height="138.667" fill="#FFFFFF"/>
-        <rect x="952.5" y="261.333" width="40" height="138.667" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="972.5" y="253.333" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">13</text>
-        <text x="972.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">all 1</text>
-        <text x="972.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE ALL</text>
-        <rect x="1017.5" y="133.333" width="40" height="266.667" fill="#FFFFFF"/>
-        <rect x="1017.5" y="133.333" width="40" height="266.667" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="1037.5" y="125.333" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">25</text>
-        <text x="1037.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">split 1</text>
-        <text x="1037.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SPLIT</text>
-        <rect x="1082.5" y="133.333" width="40" height="266.667" fill="#FFFFFF"/>
-        <rect x="1082.5" y="133.333" width="40" height="266.667" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="1102.5" y="125.333" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">25</text>
-        <text x="1102.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">split 2</text>
-        <text x="1102.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SPLIT</text>
-        <rect x="1147.5" y="250.667" width="40" height="149.333" fill="#FFFFFF"/>
-        <rect x="1147.5" y="250.667" width="40" height="149.333" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="1167.5" y="242.667" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">14</text>
-        <text x="1167.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">all 2</text>
-        <text x="1167.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE ALL</text>
-        <line x1="30" y1="486" x2="1250" y2="486" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="512" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="502" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ANSWERED 201</text>
-        <rect x="236" y="502" width="18" height="12" rx="2" fill="url(#hatch)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="262" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REFUSED 503 (LABEL: ANSWERED + REFUSED)</text>
-        <rect x="556" y="502" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="582" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE RESULT EACH CHANGE WAS AFTER</text>
+        <text x="44" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Answered or refused</text>
+        <line x1="100" y1="400" x2="330" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="92" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="100" y1="346.667" x2="330" y2="346.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="92" y="350.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
+        <line x1="100" y1="293.333" x2="330" y2="293.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="92" y="297.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
+        <line x1="100" y1="240" x2="330" y2="240" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="92" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
+        <line x1="100" y1="186.667" x2="330" y2="186.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="92" y="190.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
+        <line x1="100" y1="133.333" x2="330" y2="133.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="92" y="137.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">25</text>
+        <line x1="100" y1="80" x2="330" y2="80" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="92" y="84" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">30</text>
+        <line x1="100" y1="80" x2="100" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="44" y="240" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 44 240)">PROPOSALS IN 60 S</text>
+        <rect x="108.75" y="282.667" width="40" height="117.333" fill="#FFFFFF"/>
+        <rect x="108.75" y="282.667" width="40" height="117.333" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="108.75" y="272" width="40" height="10.6667" fill="#FFFFFF"/>
+        <rect x="108.75" y="272" width="40" height="10.6667" fill="url(#hatch)" stroke="#444444" stroke-width="1"/>
+        <text x="128.75" y="264" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">11 + 1</text>
+        <text x="128.75" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#151</text>
+        <rect x="166.25" y="282.667" width="40" height="117.333" fill="#FFFFFF"/>
+        <rect x="166.25" y="282.667" width="40" height="117.333" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="186.25" y="274.667" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">11</text>
+        <text x="186.25" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#153</text>
+        <rect x="223.75" y="368" width="40" height="32" fill="#FFFFFF"/>
+        <rect x="223.75" y="368" width="40" height="32" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <rect x="223.75" y="101.333" width="40" height="266.667" fill="#FFFFFF"/>
+        <rect x="223.75" y="101.333" width="40" height="266.667" fill="url(#hatch)" stroke="#444444" stroke-width="1"/>
+        <text x="243.75" y="93.3333" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3 + 25</text>
+        <text x="243.75" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#151</text>
+        <rect x="281.25" y="240" width="40" height="160" fill="#FFFFFF"/>
+        <rect x="281.25" y="240" width="40" height="160" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="301.25" y="232" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">15</text>
+        <text x="301.25" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">#153</text>
+        <text x="157.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1 PLANNER</text>
+        <text x="272.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4 PLANNERS</text>
+        <text x="364" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Two clients (#157)</text>
+        <line x1="420" y1="400" x2="640" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="412" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="420" y1="336" x2="640" y2="336" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="412" y="340" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
+        <line x1="420" y1="272" x2="640" y2="272" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="412" y="276" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
+        <line x1="420" y1="208" x2="640" y2="208" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="412" y="212" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
+        <line x1="420" y1="144" x2="640" y2="144" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="412" y="148" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
+        <line x1="420" y1="80" x2="640" y2="80" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="412" y="84" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">25</text>
+        <line x1="420" y1="80" x2="420" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="364" y="240" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 364 240)">PROPOSALS IN 90 S</text>
+        <rect x="429.5" y="144" width="36" height="256" fill="#FFFFFF"/>
+        <rect x="429.5" y="144" width="36" height="256" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="447.5" y="136" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20</text>
+        <text x="447.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A x4</text>
+        <text x="447.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SYNC</text>
+        <rect x="484.5" y="387.2" width="36" height="12.8" fill="#FFFFFF"/>
+        <rect x="484.5" y="387.2" width="36" height="12.8" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="502.5" y="379.2" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1</text>
+        <text x="502.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">B x1</text>
+        <text x="502.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SYNC</text>
+        <rect x="539.5" y="246.4" width="36" height="153.6" fill="#FFFFFF"/>
+        <rect x="539.5" y="246.4" width="36" height="153.6" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="557.5" y="238.4" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">12</text>
+        <text x="557.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A x4</text>
+        <text x="557.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">QUEUED</text>
+        <rect x="594.5" y="284.8" width="36" height="115.2" fill="#FFFFFF"/>
+        <rect x="594.5" y="284.8" width="36" height="115.2" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="612.5" y="276.8" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">9</text>
+        <text x="612.5" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">B x1</text>
+        <text x="612.5" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">QUEUED</text>
+        <text x="674" y="52" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Pools (#158)</text>
+        <line x1="730" y1="400" x2="940" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="722" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="730" y1="346.667" x2="940" y2="346.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="722" y="350.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5</text>
+        <line x1="730" y1="293.333" x2="940" y2="293.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="722" y="297.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">10</text>
+        <line x1="730" y1="240" x2="940" y2="240" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="722" y="244" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">15</text>
+        <line x1="730" y1="186.667" x2="940" y2="186.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="722" y="190.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20</text>
+        <line x1="730" y1="133.333" x2="940" y2="133.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="722" y="137.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">25</text>
+        <line x1="730" y1="80" x2="940" y2="80" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="722" y="84" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">30</text>
+        <line x1="730" y1="80" x2="730" y2="400" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="674" y="240" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 674 240)">PROPOSALS IN 60 S</text>
+        <rect x="738.25" y="261.333" width="36" height="138.667" fill="#FFFFFF"/>
+        <rect x="738.25" y="261.333" width="36" height="138.667" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="756.25" y="253.333" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">13</text>
+        <text x="756.25" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">all 1</text>
+        <text x="756.25" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE ALL</text>
+        <rect x="790.75" y="133.333" width="36" height="266.667" fill="#FFFFFF"/>
+        <rect x="790.75" y="133.333" width="36" height="266.667" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="808.75" y="125.333" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">25</text>
+        <text x="808.75" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">split 1</text>
+        <text x="808.75" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SPLIT</text>
+        <rect x="843.25" y="133.333" width="36" height="266.667" fill="#FFFFFF"/>
+        <rect x="843.25" y="133.333" width="36" height="266.667" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="861.25" y="125.333" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">25</text>
+        <text x="861.25" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">split 2</text>
+        <text x="861.25" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SPLIT</text>
+        <rect x="895.75" y="250.667" width="36" height="149.333" fill="#FFFFFF"/>
+        <rect x="895.75" y="250.667" width="36" height="149.333" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="913.75" y="242.667" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">14</text>
+        <text x="913.75" y="422" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">all 2</text>
+        <text x="913.75" y="444" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE ALL</text>
+        <line x1="40" y1="524" x2="940" y2="524" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="550" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="540" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="550" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ANSWERED 201</text>
+        <rect x="248" y="540" width="18" height="12" rx="2" fill="url(#hatch)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="274" y="550" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REFUSED 503 (ANSWERED + REFUSED)</text>
+        <rect x="520" y="540" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="546" y="550" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE RESULT EACH CHANGE WAS AFTER</text>
       </svg>
     </div>
   </div>

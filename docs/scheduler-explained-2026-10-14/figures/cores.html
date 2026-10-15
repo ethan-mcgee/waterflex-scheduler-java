@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Multithreaded solving: the same cores, spent differently</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cores-title cores-desc">
+      <svg viewBox="0 0 980 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="cores-title cores-desc">
         <title id="cores-title">Multithreaded solving: the same cores, spent differently</title>
         <desc id="cores-desc">Illustration with a four-core daily replica: today several daily solves run at once on one core each; with moveThreadCount two, each solve spreads its move evaluation over two cores, so half as many solves run at once. Which is better for a client&#x27;s day is what the gate measures.</desc>
         <defs>
@@ -36,79 +36,79 @@
         <rect width="100%" height="100%" fill="#FFFFFF"/>
         <text x="40" y="48" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Today</text>
         <text x="40" y="70" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SEVERAL SOLVES, ONE CORE EACH</text>
-        <rect x="40" y="88" width="580" height="240" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="40" y="88" width="440" height="240" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
         <rect x="52" y="92" width="225.213" height="14" rx="2" fill="#FFFFFF"/>
         <text x="60" y="103" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY REPLICA, 4 CORES (ILLUSTRATION)</text>
-        <rect x="64" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="64" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="124" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 1</text>
-        <text x="124" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 1</text>
-        <rect x="200" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="200" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="260" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 2</text>
-        <text x="260" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 2</text>
-        <rect x="336" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="336" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="396" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 3</text>
-        <text x="396" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 3</text>
-        <rect x="472" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="472" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="532" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 4</text>
-        <text x="532" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 4</text>
-        <rect x="64" y="212" width="120" height="40" rx="6" fill="#FFFFFF"/>
-        <rect x="64" y="212" width="120" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="124" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 1</text>
-        <rect x="200" y="212" width="120" height="40" rx="6" fill="#FFFFFF"/>
-        <rect x="200" y="212" width="120" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="260" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 2</text>
-        <rect x="336" y="212" width="120" height="40" rx="6" fill="#FFFFFF"/>
-        <rect x="336" y="212" width="120" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="396" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 3</text>
-        <rect x="472" y="212" width="120" height="40" rx="6" fill="#FFFFFF"/>
-        <rect x="472" y="212" width="120" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="532" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 4</text>
-        <text x="64" y="296" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">4 days solve at once</text>
-        <text x="660" y="48" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Planned</text>
-        <text x="660" y="70" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE SOLVE ON SEVERAL CORES</text>
-        <rect x="660" y="88" width="580" height="240" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
-        <rect x="672" y="92" width="225.213" height="14" rx="2" fill="#FFFFFF"/>
-        <text x="680" y="103" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY REPLICA, 4 CORES (ILLUSTRATION)</text>
-        <rect x="684" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="684" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="744" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 1</text>
-        <text x="744" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 1</text>
-        <rect x="820" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="820" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="880" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 2</text>
-        <text x="880" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 1</text>
-        <rect x="956" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="956" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="1016" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 3</text>
-        <text x="1016" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 2</text>
-        <rect x="1092" y="128" width="120" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="1092" y="128" width="120" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="1152" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 4</text>
-        <text x="1152" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 2</text>
-        <rect x="684" y="212" width="256" height="40" rx="6" fill="#FFFFFF"/>
-        <rect x="684" y="212" width="256" height="40" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="812" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 1: MORE MOVES IN ITS SECONDS</text>
-        <rect x="956" y="212" width="256" height="40" rx="6" fill="#FFFFFF"/>
-        <rect x="956" y="212" width="256" height="40" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="1084" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 2: MORE MOVES IN ITS SECONDS</text>
-        <text x="684" y="296" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">2 days solve at once</text>
-        <rect x="40" y="360" width="1200" height="120" rx="6" fill="#FFFFFF"/>
-        <rect x="40" y="360" width="1200" height="120" rx="6" fill="rgba(40,122,76,0.06)" stroke="#287A4C" stroke-width="1.2"/>
+        <rect x="60" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="60" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="106" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 1</text>
+        <text x="106" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 1</text>
+        <rect x="162" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="162" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="208" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 2</text>
+        <text x="208" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 2</text>
+        <rect x="264" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="264" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="310" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 3</text>
+        <text x="310" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 3</text>
+        <rect x="366" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="366" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="412" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 4</text>
+        <text x="412" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 4</text>
+        <rect x="60" y="212" width="92" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="60" y="212" width="92" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="106" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 1</text>
+        <rect x="162" y="212" width="92" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="162" y="212" width="92" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="208" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 2</text>
+        <rect x="264" y="212" width="92" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="264" y="212" width="92" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="310" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 3</text>
+        <rect x="366" y="212" width="92" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="366" y="212" width="92" height="40" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="412" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 4</text>
+        <text x="60" y="296" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">4 days solve at once</text>
+        <text x="500" y="48" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Planned</text>
+        <text x="500" y="70" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE SOLVE ON SEVERAL CORES</text>
+        <rect x="500" y="88" width="440" height="240" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="512" y="92" width="225.213" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="520" y="103" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAILY REPLICA, 4 CORES (ILLUSTRATION)</text>
+        <rect x="520" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="520" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="566" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 1</text>
+        <text x="566" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 1</text>
+        <rect x="622" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="622" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="668" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 2</text>
+        <text x="668" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 1</text>
+        <rect x="724" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="724" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="770" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 3</text>
+        <text x="770" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 2</text>
+        <rect x="826" y="128" width="92" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="826" y="128" width="92" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="872" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CORE 4</text>
+        <text x="872" y="176" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">solve 2</text>
+        <rect x="520" y="212" width="194" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="520" y="212" width="194" height="40" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="617" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 1: MORE MOVES</text>
+        <rect x="724" y="212" width="194" height="40" rx="6" fill="#FFFFFF"/>
+        <rect x="724" y="212" width="194" height="40" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="821" y="237" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY 2: MORE MOVES</text>
+        <text x="520" y="296" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">2 days solve at once</text>
+        <rect x="40" y="360" width="900" height="120" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="360" width="900" height="120" rx="6" fill="rgba(40,122,76,0.06)" stroke="#287A4C" stroke-width="1.2"/>
         <text x="56" y="382" fill="#287A4C" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">THE GATE BEFORE ANY CLIENT GETS IT</text>
         <text x="56" y="410" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1. The paired study on fresh fixtures: the same days, budgets and seeds, one thread against two.</text>
         <text x="56" y="428" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">2. The scoring exactness test: every score the engine computes stays the same.</text>
-        <text x="56" y="446" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">3. The replica&#x27;s core budget: fewer solves at once must not lengthen the fair queue past what clients accept.</text>
-        <line x1="30" y1="506" x2="1250" y2="506" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="532" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="522" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE SOLVE PER CORE</text>
-        <rect x="276" y="522" width="18" height="12" rx="2" fill="rgba(40,122,76,0.1)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="302" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE SOLVE ACROSS TWO CORES</text>
-        <text x="1250" y="532" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">today no solver configuration sets move threads</text>
+        <text x="56" y="446" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">3. The core budget: fewer solves at once must not lengthen the fair queue past what clients accept.</text>
+        <line x1="40" y1="544" x2="940" y2="544" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="570" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="560" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE SOLVE PER CORE</text>
+        <rect x="288" y="560" width="18" height="12" rx="2" fill="rgba(40,122,76,0.1)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="314" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">ONE SOLVE ACROSS TWO CORES</text>
+        <text x="940" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">no configuration sets move threads today</text>
       </svg>
     </div>
   </div>

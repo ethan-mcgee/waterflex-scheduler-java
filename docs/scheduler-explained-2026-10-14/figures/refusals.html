@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Every refusal, by what the host does next</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="refusals-title refusals-desc">
+      <svg viewBox="0 0 980 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="refusals-title refusals-desc">
         <title id="refusals-title">Every refusal, by what the host does next</title>
         <desc id="refusals-desc">Every status code the API can refuse with, grouped by the host&#x27;s next action: fix the request, check the token, rebuild from current records, search again, wait and retry, or nothing.</desc>
         <defs>
@@ -34,88 +34,92 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <rect x="40" y="252" width="180" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="40" y="252" width="180" height="72" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="130" y="284" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A refusal</text>
-        <text x="130" y="304" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PROBLEM+JSON BODY</text>
-        <path d="M220,288 L252,288 Q260,288 260,280 L260,84 Q260,76 268,76 L300,76" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="300" y="40" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="40" width="380" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="316" y="70" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Fix the request</text>
-        <text x="316" y="92" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">send it again with a new requestId; never unchanged</text>
-        <rect x="712" y="64" width="149.58" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="712" y="64" width="149.58" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="786.79" y="80" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">400 INVALID_REQUEST</text>
-        <rect x="873.58" y="64" width="156.4" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="873.58" y="64" width="156.4" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="951.78" y="80" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">422 INCOMPLETE_FACTS</text>
-        <line x1="680" y1="76" x2="712" y2="76" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <path d="M220,288 L252,288 Q260,288 260,280 L260,176 Q260,168 268,168 L300,168" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="300" y="132" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="132" width="380" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="316" y="162" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Check the token</text>
-        <text x="316" y="184" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">do not retry</text>
-        <rect x="712" y="156" width="40.46" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="712" y="156" width="40.46" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="732.23" y="172" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">401</text>
-        <line x1="680" y1="168" x2="712" y2="168" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <path d="M220,288 L252,288 Q260,288 260,280 L260,268 Q260,260 268,260 L300,260" fill="none" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <rect x="300" y="224" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="224" width="380" height="72" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="316" y="254" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Rebuild from current records</text>
-        <text x="316" y="276" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">commit: a new proposal; booking: same call, new requestId</text>
-        <rect x="712" y="248" width="81.38" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="712" y="248" width="81.38" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="752.69" y="264" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 STALE</text>
-        <line x1="680" y1="260" x2="712" y2="260" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <path d="M220,288 L252,288 Q260,288 260,296 L260,344 Q260,352 268,352 L300,352" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="300" y="316" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="316" width="380" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="316" y="346" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Search again</text>
-        <text x="316" y="368" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">a new requestId</text>
-        <rect x="712" y="340" width="156.4" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="712" y="340" width="156.4" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="790.2" y="356" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 HOLD_UNAVAILABLE</text>
-        <line x1="680" y1="352" x2="712" y2="352" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <path d="M220,288 L252,288 Q260,288 260,296 L260,436 Q260,444 268,444 L300,444" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="300" y="408" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="408" width="380" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="316" y="438" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Wait, then retry the same requestId</text>
-        <text x="316" y="460" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Retry-After or backoff</text>
-        <rect x="712" y="432" width="74.56" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="712" y="432" width="74.56" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="749.28" y="448" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">429 BUSY</text>
-        <rect x="798.56" y="432" width="176.86" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="798.56" y="432" width="176.86" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="886.99" y="448" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">503 ROUTING_UNAVAILABLE</text>
-        <rect x="987.42" y="432" width="204.14" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="987.42" y="432" width="204.14" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="1089.49" y="448" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">503 CALCULATION_UNAVAILABLE</text>
-        <line x1="680" y1="444" x2="712" y2="444" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <path d="M220,288 L252,288 Q260,288 260,296 L260,528 Q260,536 268,536 L300,536" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="300" y="500" width="380" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="300" y="500" width="380" height="72" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="316" y="530" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Nothing to do</text>
-        <text x="316" y="552" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">or repeat a cancelled call if still wanted</text>
-        <rect x="712" y="524" width="108.66" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="712" y="524" width="108.66" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="766.33" y="540" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">404 NOT_FOUND</text>
-        <rect x="832.66" y="524" width="149.58" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="832.66" y="524" width="149.58" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="907.45" y="540" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 NOT_COMMITTABLE</text>
-        <rect x="994.24" y="524" width="108.66" height="24" rx="2" fill="#FFFFFF"/>
-        <rect x="994.24" y="524" width="108.66" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
-        <text x="1048.57" y="540" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 CANCELLED</text>
-        <line x1="680" y1="536" x2="712" y2="536" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <line x1="30" y1="586" x2="1250" y2="586" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="612" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="602" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="612" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE HOST&#x27;S ACTION</text>
-        <rect x="272" y="602" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="298" y="612" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STATUS AND CODE</text>
-        <rect x="428" y="602" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="454" y="612" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE ONE THE TOKEN DESIGN RELIES ON</text>
-        <text x="1250" y="612" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">source: the integration guide&#x27;s problem table</text>
+        <rect x="40" y="284" width="160" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="284" width="160" height="72" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="120" y="316" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A refusal</text>
+        <text x="120" y="336" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PROBLEM+JSON</text>
+        <line x1="200" y1="320" x2="228" y2="320" stroke="#444444" stroke-width="1.2"/>
+        <line x1="228" y1="80" x2="228" y2="560" stroke="#444444" stroke-width="1.2"/>
+        <line x1="228" y1="80" x2="260" y2="80" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="260" y="40" width="340" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="260" y="40" width="340" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="276" y="68" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Fix the request</text>
+        <text x="276" y="88" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">send it again with a new requestId; never</text>
+        <text x="276" y="102" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">unchanged</text>
+        <rect x="632" y="52" width="149.58" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="52" width="149.58" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="706.79" y="68" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">400 INVALID_REQUEST</text>
+        <rect x="632" y="84" width="156.4" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="84" width="156.4" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="710.2" y="100" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">422 INCOMPLETE_FACTS</text>
+        <line x1="600" y1="64" x2="632" y2="64" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <line x1="228" y1="176" x2="260" y2="176" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="260" y="136" width="340" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="260" y="136" width="340" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="276" y="164" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Check the token</text>
+        <text x="276" y="184" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">do not retry</text>
+        <rect x="632" y="164" width="40.46" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="164" width="40.46" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="652.23" y="180" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">401</text>
+        <line x1="600" y1="176" x2="632" y2="176" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <line x1="228" y1="272" x2="260" y2="272" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="260" y="232" width="340" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="260" y="232" width="340" height="80" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="276" y="260" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Rebuild from current records</text>
+        <text x="276" y="280" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">commit: a new proposal; booking: same call,</text>
+        <text x="276" y="294" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">new requestId</text>
+        <rect x="632" y="260" width="81.38" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="260" width="81.38" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="672.69" y="276" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 STALE</text>
+        <line x1="600" y1="272" x2="632" y2="272" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <line x1="228" y1="368" x2="260" y2="368" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="260" y="328" width="340" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="260" y="328" width="340" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="276" y="356" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Search again</text>
+        <text x="276" y="376" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">a new requestId</text>
+        <rect x="632" y="356" width="156.4" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="356" width="156.4" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="710.2" y="372" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 HOLD_UNAVAILABLE</text>
+        <line x1="600" y1="368" x2="632" y2="368" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <line x1="228" y1="464" x2="260" y2="464" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="260" y="424" width="340" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="260" y="424" width="340" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="276" y="452" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Wait, then retry the same requestId</text>
+        <text x="276" y="472" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Retry-After or backoff</text>
+        <rect x="632" y="436" width="74.56" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="436" width="74.56" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="669.28" y="452" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">429 BUSY</text>
+        <rect x="718.56" y="436" width="176.86" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="718.56" y="436" width="176.86" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="806.99" y="452" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">503 ROUTING_UNAVAILABLE</text>
+        <rect x="632" y="468" width="204.14" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="468" width="204.14" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="734.07" y="484" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">503 CALCULATION_UNAVAILABLE</text>
+        <line x1="600" y1="448" x2="632" y2="448" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <line x1="228" y1="560" x2="260" y2="560" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="260" y="520" width="340" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="260" y="520" width="340" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="276" y="548" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Nothing to do</text>
+        <text x="276" y="568" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">or repeat a cancelled call if still wanted</text>
+        <rect x="632" y="532" width="108.66" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="532" width="108.66" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="686.33" y="548" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">404 NOT_FOUND</text>
+        <rect x="752.66" y="532" width="149.58" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="752.66" y="532" width="149.58" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="827.45" y="548" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 NOT_COMMITTABLE</text>
+        <rect x="632" y="564" width="108.66" height="24" rx="2" fill="#FFFFFF"/>
+        <rect x="632" y="564" width="108.66" height="24" rx="2" fill="#F4F6F8" stroke="rgba(31,42,51,0.4)" stroke-width="0.8"/>
+        <text x="686.33" y="580" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">409 CANCELLED</text>
+        <line x1="600" y1="544" x2="632" y2="544" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <line x1="40" y1="624" x2="940" y2="624" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="650" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="640" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="650" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE HOST&#x27;S ACTION</text>
+        <rect x="280" y="640" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="306" y="650" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STATUS AND CODE</text>
+        <rect x="436" y="640" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="462" y="650" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE ONE THE TOKEN DESIGN RELIES ON</text>
+        <text x="940" y="650" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">source: the integration guide</text>
       </svg>
     </div>
   </div>

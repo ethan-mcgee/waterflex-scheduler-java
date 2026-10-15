@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,7 +23,7 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Where a stop&#x27;s coordinates come from</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="geocode-title geocode-desc">
+      <svg viewBox="0 0 980 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="geocode-title geocode-desc">
         <title id="geocode-title">Where a stop&#x27;s coordinates come from</title>
         <desc id="geocode-desc">Flowchart of locating a stop: coordinates in the snapshot are used as given; an address without coordinates is located by Nominatim only in NOMINATIM mode and only as an exact house; anything else is not located.</desc>
         <defs>
@@ -34,65 +34,66 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <rect x="40" y="114" width="180" height="72" rx="6" fill="#FFFFFF"/>
-        <rect x="40" y="114" width="180" height="72" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="130" y="146" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A location</text>
-        <text x="130" y="166" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">IN THE SNAPSHOT</text>
-        <polygon points="380,90 490,150 380,210 270,150" fill="#FFFFFF"/>
-        <polygon points="380,90 490,150 380,210 270,150" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1"/>
-        <text x="380" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">LATITUDE AND</text>
-        <text x="380" y="154" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">LONGITUDE</text>
-        <text x="380" y="170" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">GIVEN?</text>
-        <polygon points="700,90 800,150 700,210 600,150" fill="#FFFFFF"/>
-        <polygon points="700,90 800,150 700,210 600,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="700" y="146" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NOMINATIM</text>
-        <text x="700" y="162" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MODE?</text>
-        <polygon points="1010,90 1120,150 1010,210 900,150" fill="#FFFFFF"/>
-        <polygon points="1010,90 1120,150 1010,210 900,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="1010" y="146" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ZIP, NUMBER AND</text>
-        <text x="1010" y="162" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">STREET AGREE?</text>
-        <line x1="220" y1="150" x2="270" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <line x1="490" y1="150" x2="600" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="534.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="545" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <line x1="800" y1="150" x2="900" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="835.77" y="128" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="850" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <line x1="380" y1="210" x2="380" y2="300" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
-        <rect x="387.77" y="272" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="402" y="284" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <rect x="270" y="300" width="220" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="270" y="300" width="220" height="64" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="380" y="328" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Route as given</text>
-        <text x="380" y="348" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NEVER GEOCODED AGAIN</text>
-        <line x1="700" y1="210" x2="700" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="711.18" y="272" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="722" y="284" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <rect x="590" y="300" width="220" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="590" y="300" width="220" height="64" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="700" y="328" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Not located</text>
-        <text x="700" y="348" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MODE OFF, OR NOT EXACT</text>
-        <line x1="1010" y1="210" x2="1010" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="1017.77" y="272" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="1032" y="284" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
-        <rect x="900" y="300" width="220" height="64" rx="6" fill="#FFFFFF"/>
-        <rect x="900" y="300" width="220" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="1010" y="328" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Located</text>
-        <text x="1010" y="348" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AN EXACT HOUSE</text>
-        <path d="M1120,150 L1192,150 Q1200,150 1200,158 L1200,396 Q1200,404 1192,404 L728,404 Q720,404 720,396 L720,364" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
-        <rect x="1149.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="1160" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
-        <rect x="870.75" y="384" width="178.5" height="16" rx="2" fill="#FFFFFF"/>
-        <text x="960" y="396" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">STREET-LEVEL OR AMBIGUOUS</text>
-        <line x1="30" y1="436" x2="1250" y2="436" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="462" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <rect x="100" y="452" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="126" y="462" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE NORMAL PATH</text>
-        <rect x="256" y="452" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="282" y="462" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">LOCATED</text>
-        <rect x="360" y="452" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="386" y="462" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NOT LOCATED</text>
-        <text x="1250" y="462" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">every drawn stop records where its coordinates came from</text>
+        <rect x="40" y="114" width="150" height="72" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="114" width="150" height="72" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="115" y="146" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">A location</text>
+        <text x="115" y="166" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">IN THE SNAPSHOT</text>
+        <polygon points="310,90 410,150 310,210 210,150" fill="#FFFFFF"/>
+        <polygon points="310,90 410,150 310,210 210,150" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1"/>
+        <text x="310" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">LATITUDE AND</text>
+        <text x="310" y="154" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">LONGITUDE</text>
+        <text x="310" y="170" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">GIVEN?</text>
+        <polygon points="570,90 660,150 570,210 480,150" fill="#FFFFFF"/>
+        <polygon points="570,90 660,150 570,210 480,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="570" y="146" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NOMINATIM</text>
+        <text x="570" y="162" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MODE?</text>
+        <polygon points="810,90 900,150 810,210 720,150" fill="#FFFFFF"/>
+        <polygon points="810,90 900,150 810,210 720,150" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="810" y="138" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ZIP, NUMBER</text>
+        <text x="810" y="154" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AND STREET</text>
+        <text x="810" y="170" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AGREE?</text>
+        <line x1="190" y1="150" x2="210" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="410" y1="150" x2="480" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="434.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="445" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <line x1="660" y1="150" x2="720" y2="150" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="675.77" y="128" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="690" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <line x1="310" y1="210" x2="310" y2="300" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="317.77" y="272" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="332" y="284" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="210" y="300" width="200" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="210" y="300" width="200" height="64" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="310" y="328" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Route as given</text>
+        <text x="310" y="348" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NEVER GEOCODED AGAIN</text>
+        <line x1="570" y1="210" x2="570" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="581.18" y="272" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="592" y="284" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="470" y="300" width="200" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="470" y="300" width="200" height="64" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="570" y="328" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Not located</text>
+        <text x="570" y="348" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MODE OFF, OR NOT EXACT</text>
+        <line x1="810" y1="210" x2="810" y2="300" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="817.77" y="272" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="832" y="284" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <rect x="710" y="300" width="200" height="64" rx="6" fill="#FFFFFF"/>
+        <rect x="710" y="300" width="200" height="64" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="810" y="328" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Located</text>
+        <text x="810" y="348" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">AN EXACT HOUSE</text>
+        <path d="M900,150 L916,150 Q924,150 924,158 L924,404 Q924,412 916,412 L598,412 Q590,412 590,404 L590,364" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="901.18" y="128" width="21.64" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="912" y="140" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+        <rect x="667.75" y="392" width="178.5" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="757" y="404" fill="#5A6B7A" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">STREET-LEVEL OR AMBIGUOUS</text>
+        <line x1="40" y1="464" x2="940" y2="464" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="490" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="480" width="18" height="12" rx="2" fill="rgba(40,122,76,0.08)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE NORMAL PATH</text>
+        <rect x="268" y="480" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="294" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">LOCATED</text>
+        <rect x="372" y="480" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="398" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NOT LOCATED</text>
+        <text x="940" y="490" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">every stop records its source</text>
       </svg>
     </div>
   </div>

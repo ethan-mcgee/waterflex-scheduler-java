@@ -10,11 +10,11 @@
       --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
     body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
       display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
-    .frame { max-width: 1320px; width: 100%; }
+    .frame { max-width: 1020px; width: 100%; }
     .diagram-container { width: 100%; overflow-x: auto; }
     .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
     h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
-    svg { width: 100%; min-width: 1280px; display: block; }
+    svg { width: 100%; min-width: 980px; display: block; }
     @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
   </style>
 </head>
@@ -23,9 +23,9 @@
     <p class="eyebrow">WaterFlex scheduler explained</p>
     <h1>Why late acceptance loses on large fleets, and what Tabu + K opt costs</h1>
     <div class="diagram-container">
-      <svg viewBox="0 0 1280 580" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="late_mechanics-title late_mechanics-desc">
+      <svg viewBox="0 0 980 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="late_mechanics-title late_mechanics-desc">
         <title id="late_mechanics-title">Why late acceptance loses on large fleets, and what Tabu + K opt costs</title>
-        <desc id="late_mechanics-desc">Left: the point in the cost phase where each search found its best schedule, by fleet size, in the Tabu variant study. Right: mean fairness variance of the accepted schedules, with the fairness search on (first study) and with the cost search only (follow-up).</desc>
+        <desc id="late_mechanics-desc">Top: the point in the cost phase where each search found its best schedule, by fleet size, in the Tabu variant study. Bottom: mean fairness variance of the accepted schedules, with the fairness search on (first study) and with the cost search only (follow-up).</desc>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
 <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
@@ -34,101 +34,102 @@
 <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
         </defs>
         <rect width="100%" height="100%" fill="#FFFFFF"/>
-        <text x="64" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">When the best schedule was found</text>
-        <line x1="120" y1="420" x2="560" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="112" y="424" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0%</text>
-        <line x1="120" y1="348.8" x2="560" y2="348.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="352.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20%</text>
-        <line x1="120" y1="277.6" x2="560" y2="277.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="281.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">40%</text>
-        <line x1="120" y1="206.4" x2="560" y2="206.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="210.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">60%</text>
-        <line x1="120" y1="135.2" x2="560" y2="135.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="139.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">80%</text>
-        <line x1="120" y1="64" x2="560" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="112" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">100%</text>
-        <line x1="120" y1="64" x2="120" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="64" y="242" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 64 242)">% OF THE COST PHASE</text>
-        <text x="160" y="442" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5</text>
-        <text x="280" y="442" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">10</text>
-        <text x="400" y="442" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20</text>
-        <text x="520" y="442" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50</text>
-        <text x="340" y="466" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TECHNICIANS</text>
-        <polyline points="160,391.669 280,366.971 400,196.708 520,176.971" fill="none" stroke="#b8915a" stroke-width="1.8" stroke-linejoin="round"/>
-        <circle cx="160" cy="391.669" r="4" fill="#b8915a"/>
-        <circle cx="280" cy="366.971" r="4" fill="#b8915a"/>
-        <circle cx="400" cy="196.708" r="4" fill="#b8915a"/>
-        <circle cx="520" cy="176.971" r="4" fill="#b8915a"/>
-        <polyline points="160,366.395 280,263.219 400,188.686 520,174.348" fill="none" stroke="#287A4C" stroke-width="1.8" stroke-linejoin="round"/>
-        <circle cx="160" cy="366.395" r="4" fill="#287A4C"/>
-        <circle cx="280" cy="263.219" r="4" fill="#287A4C"/>
-        <circle cx="400" cy="188.686" r="4" fill="#287A4C"/>
-        <circle cx="520" cy="174.348" r="4" fill="#287A4C"/>
-        <polyline points="160,406.996 280,286.4 400,138.895 520,79.1163" fill="none" stroke="#9c6b50" stroke-width="1.8" stroke-linejoin="round"/>
-        <circle cx="160" cy="406.996" r="4" fill="#9c6b50"/>
-        <circle cx="280" cy="286.4" r="4" fill="#9c6b50"/>
-        <circle cx="400" cy="138.895" r="4" fill="#9c6b50"/>
-        <circle cx="520" cy="79.1163" r="4" fill="#9c6b50"/>
-        <polyline points="160,403.59 280,247.385 400,121.412 520,75.3911" fill="none" stroke="#6e6479" stroke-width="1.8" stroke-linejoin="round"/>
-        <circle cx="160" cy="403.59" r="4" fill="#6e6479"/>
-        <circle cx="280" cy="247.385" r="4" fill="#6e6479"/>
-        <circle cx="400" cy="121.412" r="4" fill="#6e6479"/>
-        <circle cx="520" cy="75.3911" r="4" fill="#6e6479"/>
-        <text x="534" y="79.3911" fill="#6e6479" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">K opt 97%</text>
-        <text x="534" y="95.3911" fill="#9c6b50" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Late acceptance 96%</text>
-        <text x="534" y="178.348" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Tabu + K opt 69%</text>
-        <text x="534" y="194.348" fill="#b8915a" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Tabu 68%</text>
-        <text x="804" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Fairness variance, lower is more even</text>
-        <line x1="860" y1="420" x2="1240" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="852" y="424" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
-        <line x1="860" y1="331" x2="1240" y2="331" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="852" y="335" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.02</text>
-        <line x1="860" y1="242" x2="1240" y2="242" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="852" y="246" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.04</text>
-        <line x1="860" y1="153" x2="1240" y2="153" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="852" y="157" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.06</text>
-        <line x1="860" y1="64" x2="1240" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
-        <text x="852" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.08</text>
-        <line x1="860" y1="64" x2="860" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
-        <text x="804" y="242" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 804 242)">MEAN VARIANCE</text>
-        <rect x="869.5" y="380.532" width="28.5" height="39.4675" fill="#FFFFFF"/>
-        <rect x="869.5" y="380.532" width="28.5" height="39.4675" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
-        <text x="883.75" y="374.532" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0089</text>
-        <text x="883.75" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu</text>
-        <rect x="917" y="372.423" width="28.5" height="47.5771" fill="#FFFFFF"/>
-        <rect x="917" y="372.423" width="28.5" height="47.5771" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="931.25" y="366.423" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0107</text>
-        <text x="931.25" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">T+K</text>
-        <rect x="964.5" y="354.158" width="28.5" height="65.8415" fill="#FFFFFF"/>
-        <rect x="964.5" y="354.158" width="28.5" height="65.8415" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="978.75" y="348.158" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0148</text>
-        <text x="978.75" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">K opt</text>
-        <rect x="1012" y="354.238" width="28.5" height="65.7616" fill="#FFFFFF"/>
-        <rect x="1012" y="354.238" width="28.5" height="65.7616" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="1026.25" y="348.238" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0148</text>
-        <text x="1026.25" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">LA</text>
-        <text x="955" y="460" fill="#444444" font-size="10" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">WITH FAIRNESS (OCT 11)</text>
-        <rect x="1107" y="187.99" width="28.5" height="232.01" fill="#FFFFFF"/>
-        <rect x="1107" y="187.99" width="28.5" height="232.01" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
-        <text x="1121.25" y="181.99" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0521</text>
-        <text x="1121.25" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu</text>
-        <rect x="1154.5" y="159.374" width="28.5" height="260.626" fill="#FFFFFF"/>
-        <rect x="1154.5" y="159.374" width="28.5" height="260.626" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
-        <text x="1168.75" y="153.374" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0586</text>
-        <text x="1168.75" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">T+K</text>
-        <rect x="1202" y="151.291" width="28.5" height="268.709" fill="#FFFFFF"/>
-        <rect x="1202" y="151.291" width="28.5" height="268.709" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
-        <text x="1216.25" y="145.291" fill="#444444" font-size="9" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0604</text>
-        <text x="1216.25" y="438" fill="#1F2A33" font-size="10" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">T+K s3</text>
-        <text x="1168.75" y="460" fill="#444444" font-size="10" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">COST ONLY (OCT 13)</text>
-        <line x1="30" y1="526" x2="1250" y2="526" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
-        <text x="30" y="552" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
-        <line x1="100" y1="548" x2="136" y2="548" stroke="#287A4C" stroke-width="1.6"/>
-        <text x="146" y="552" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU + K OPT (T+K)</text>
-        <rect x="296" y="542" width="18" height="12" rx="2" fill="rgba(94,122,155,0.3)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="322" y="552" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU, THE CONTROL</text>
-        <rect x="468" y="542" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
-        <text x="494" y="552" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">OTHERS (LA: LATE ACCEPTANCE)</text>
+        <text x="74" y="36" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">When the best schedule was found</text>
+        <line x1="130" y1="380" x2="700" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="122" y="384" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0%</text>
+        <line x1="130" y1="316.8" x2="700" y2="316.8" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="320.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">20%</text>
+        <line x1="130" y1="253.6" x2="700" y2="253.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="257.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">40%</text>
+        <line x1="130" y1="190.4" x2="700" y2="190.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="194.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">60%</text>
+        <line x1="130" y1="127.2" x2="700" y2="127.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="131.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">80%</text>
+        <line x1="130" y1="64" x2="700" y2="64" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="68" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">100%</text>
+        <line x1="130" y1="64" x2="130" y2="380" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="74" y="222" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 74 222)">% OF THE COST PHASE</text>
+        <text x="170" y="402" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5</text>
+        <text x="333.333" y="402" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">10</text>
+        <text x="496.667" y="402" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20</text>
+        <text x="660" y="402" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50</text>
+        <text x="415" y="426" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">TECHNICIANS</text>
+        <polyline points="170,354.852 333.333,332.929 496.667,181.797 660,164.278" fill="none" stroke="#b8915a" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="170" cy="354.852" r="4" fill="#b8915a"/>
+        <circle cx="333.333" cy="332.929" r="4" fill="#b8915a"/>
+        <circle cx="496.667" cy="181.797" r="4" fill="#b8915a"/>
+        <circle cx="660" cy="164.278" r="4" fill="#b8915a"/>
+        <polyline points="170,332.418 333.333,240.835 496.667,174.676 660,161.949" fill="none" stroke="#287A4C" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="170" cy="332.418" r="4" fill="#287A4C"/>
+        <circle cx="333.333" cy="240.835" r="4" fill="#287A4C"/>
+        <circle cx="496.667" cy="174.676" r="4" fill="#287A4C"/>
+        <circle cx="660" cy="161.949" r="4" fill="#287A4C"/>
+        <polyline points="170,368.457 333.333,261.411 496.667,130.479 660,77.4178" fill="none" stroke="#9c6b50" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="170" cy="368.457" r="4" fill="#9c6b50"/>
+        <circle cx="333.333" cy="261.411" r="4" fill="#9c6b50"/>
+        <circle cx="496.667" cy="130.479" r="4" fill="#9c6b50"/>
+        <circle cx="660" cy="77.4178" r="4" fill="#9c6b50"/>
+        <polyline points="170,365.433 333.333,226.78 496.667,114.961 660,74.1112" fill="none" stroke="#6e6479" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="170" cy="365.433" r="4" fill="#6e6479"/>
+        <circle cx="333.333" cy="226.78" r="4" fill="#6e6479"/>
+        <circle cx="496.667" cy="114.961" r="4" fill="#6e6479"/>
+        <circle cx="660" cy="74.1112" r="4" fill="#6e6479"/>
+        <text x="712" y="78.1112" fill="#6e6479" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">K opt 97%</text>
+        <text x="712" y="94.1112" fill="#9c6b50" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Late acceptance 96%</text>
+        <text x="712" y="165.949" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Tabu + K opt 69%</text>
+        <text x="712" y="181.949" fill="#b8915a" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">Tabu 68%</text>
+        <text x="74" y="492" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Fairness variance, lower is more even</text>
+        <line x1="130" y1="760" x2="940" y2="760" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="122" y="764" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="130" y1="700" x2="940" y2="700" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="704" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.02</text>
+        <line x1="130" y1="640" x2="940" y2="640" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="644" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.04</text>
+        <line x1="130" y1="580" x2="940" y2="580" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="584" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.06</text>
+        <line x1="130" y1="520" x2="940" y2="520" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="122" y="524" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.08</text>
+        <line x1="130" y1="520" x2="130" y2="760" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="74" y="640" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 74 640)">MEAN VARIANCE</text>
+        <rect x="152.275" y="733.393" width="56.7" height="26.6073" fill="#FFFFFF"/>
+        <rect x="152.275" y="733.393" width="56.7" height="26.6073" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="180.625" y="725.393" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0089</text>
+        <text x="180.625" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu</text>
+        <rect x="253.525" y="727.926" width="56.7" height="32.0744" fill="#FFFFFF"/>
+        <rect x="253.525" y="727.926" width="56.7" height="32.0744" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="281.875" y="719.926" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0107</text>
+        <text x="281.875" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu + K opt</text>
+        <rect x="354.775" y="715.612" width="56.7" height="44.3875" fill="#FFFFFF"/>
+        <rect x="354.775" y="715.612" width="56.7" height="44.3875" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="383.125" y="707.612" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0148</text>
+        <text x="383.125" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">K opt</text>
+        <rect x="456.025" y="715.666" width="56.7" height="44.3337" fill="#FFFFFF"/>
+        <rect x="456.025" y="715.666" width="56.7" height="44.3337" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="484.375" y="707.666" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0148</text>
+        <text x="484.375" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Late acceptance</text>
+        <text x="332.5" y="804" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">WITH FAIRNESS (OCT 11)</text>
+        <rect x="658.525" y="603.588" width="56.7" height="156.412" fill="#FFFFFF"/>
+        <rect x="658.525" y="603.588" width="56.7" height="156.412" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="686.875" y="595.588" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0521</text>
+        <text x="686.875" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu</text>
+        <rect x="759.775" y="584.297" width="56.7" height="175.703" fill="#FFFFFF"/>
+        <rect x="759.775" y="584.297" width="56.7" height="175.703" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="788.125" y="576.297" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0586</text>
+        <text x="788.125" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu + K opt</text>
+        <rect x="861.025" y="578.848" width="56.7" height="181.152" fill="#FFFFFF"/>
+        <rect x="861.025" y="578.848" width="56.7" height="181.152" fill="rgba(68,68,68,0.15)" stroke="#444444" stroke-width="1"/>
+        <text x="889.375" y="570.848" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.0604</text>
+        <text x="889.375" y="780" fill="#1F2A33" font-size="11" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Tabu + K opt size 3</text>
+        <text x="788.125" y="804" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">COST ONLY (OCT 13)</text>
+        <line x1="40" y1="844" x2="940" y2="844" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="870" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="110" y1="866" x2="146" y2="866" stroke="#287A4C" stroke-width="1.6"/>
+        <text x="156" y="870" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU + K OPT</text>
+        <rect x="268" y="860" width="18" height="12" rx="2" fill="rgba(94,122,155,0.3)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="294" y="870" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">TABU, THE CONTROL</text>
+        <rect x="440" y="860" width="18" height="12" rx="2" fill="rgba(68,68,68,0.15)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="466" y="870" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">OTHER SEARCHES</text>
+        <text x="940" y="870" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">the two groups compare only within themselves</text>
       </svg>
     </div>
   </div>
