@@ -83,7 +83,7 @@ async function setUp() {
   await technician("a");
   await technician("b");
   const saved = await storeSolverSettings(clientId, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-    travelBufferPercent: "10", travelBufferMinutes: 2, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
+    travelBufferPercent: "10", travelBufferMinutes: 2, fairnessBudgetPercent: "2", offerLimit: 2, windowHours: 4, bookingHorizonWeekdays: 2, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
   assert.ok("saved" in saved);
   const { token } = await issueToken(clientId, clientId, "API overnight smoke");
   process.env.SCHEDULER_API_URL = base;
@@ -130,7 +130,7 @@ async function main() {
     const runId = await claimOwn();
     assert.equal(runId, scheduled.id);
     assert.equal(await claimRun(), null, "A running run is not claimed twice");
-    assert.equal(await executeRun(runId, clientId, { dates: () => [FROZEN_DATE, DATE, EMPTY_DATE] }), "FINISHED");
+    assert.equal(await executeRun(runId, clientId, { dates: async () => [FROZEN_DATE, DATE, EMPTY_DATE] }), "FINISHED");
 
     // The run kept a proposal per day and applied nothing.
     const [finished] = await recentRuns(clientId);
@@ -164,7 +164,7 @@ async function main() {
     assert.equal(manual.run.status, "QUEUED");
     const claims = await Promise.all([claimRun(), claimRun(), claimRun()]);
     assert.equal(claims.filter(claim => claim !== null).length, 1, "Concurrent workers claim a run once");
-    assert.equal(await executeRun(manual.run.runId, clientId, { dates: () => [DATE], stopping: () => true }), "ABANDONED");
+    assert.equal(await executeRun(manual.run.runId, clientId, { dates: async () => [DATE], stopping: () => true }), "ABANDONED");
     assert.equal((await recentRuns(clientId))[0]?.days.length, 0);
 
     // A run whose worker stopped reporting is abandoned, and a day it was still proposing keeps nothing.
@@ -173,7 +173,7 @@ async function main() {
     await prisma.$executeRaw`UPDATE portal_overnight_run SET "heartbeatAt" = clock_timestamp() - interval '11 minutes' WHERE id = ${stalled}::uuid`;
     assert.ok(await abandonStaleRuns() >= 1);
     const proposalsBefore = await prisma.portalApiDailyProposal.count({ where: { clientId } });
-    assert.equal(await executeRun(stalled, clientId, { dates: () => [DATE] }), "ABANDONED");
+    assert.equal(await executeRun(stalled, clientId, { dates: async () => [DATE] }), "ABANDONED");
     assert.equal(await prisma.portalApiDailyProposal.count({ where: { clientId } }), proposalsBefore, "No proposal is kept without its run's record");
     const [abandoned] = await recentRuns(clientId);
     assert.equal(abandoned?.status, "ABANDONED");
