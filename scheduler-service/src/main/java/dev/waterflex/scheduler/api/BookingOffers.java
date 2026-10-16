@@ -430,6 +430,11 @@ public class BookingOffers {
             return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned);
         } catch (HttpCalculation.Unavailable unavailable) {
             return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned);
+        } catch (SearchAdmission.Busy busy) {
+            // The refinement's routes could not get a database connection or shared routing capacity in time (a cold
+            // search on a large fleet spends most of its deadline fetching legs). The search already holds the insertion
+            // pass's offers: publishing them beats answering BUSY, which a retry of the same search would answer again.
+            return new Searched(widened, incomplete(result, "REFINEMENT_BUSY"), Refinement.UNAVAILABLE, required, unreturned);
         }
     }
 
