@@ -1071,7 +1071,8 @@ components:
             How the search's refinement pass ended. COMPLETE: it finished. SHORTENED: its cap or the deadline ended
             it; the offers are the best found so far. SKIPPED: it did not run, because the first pass used the whole
             deadline, the client's bookingRefinementMs is 0, or the scheduler is configured for one pass. UNAVAILABLE:
-            routing or a remote engine failed it, and the first pass's offers are returned. SHED: it was optional and
+            routing or a remote engine failed it, or it could not get routing or database capacity before the
+            deadline, and the first pass's offers are returned. SHED: it was optional and
             other booking requests were waiting for a slot, so the slot went to them. Informational: searchComplete
             already says whether the offers are complete. Sent on every offer set since 1.2.0; a replay of an offer
             set answered by an earlier version leaves it out.
