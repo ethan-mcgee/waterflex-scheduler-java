@@ -49,6 +49,24 @@ class BookingOffersRefinementTest {
         assertEquals(dates(searched.result()), searched.incompleteDates(), "and no date it searched is proven");
     }
 
+    /**
+     * A cold search on a large fleet spent its exploration budget fetching legs; the refinement's routes were then refused a
+     * database connection. Before, that refusal answered the whole search 429 BUSY, and the identical retry did the same.
+     */
+    @Test void aRefinementRefusedCapacityKeepsTheInsertionOffers() {
+        for (int threshold : new int[]{REQUIRED, OPTIONAL}) {
+            var failing = failingRefinement(threshold, () -> new SearchAdmission.Busy("Insufficient deadline remaining for database admission"));
+            var searched = failing.offers.calculate(failing.roads, failing.input.snapshot(), failing.input.request(), BUDGET_MS);
+
+            assertEquals(2, failing.stages.get(), "Insertion ran, then the refinement was attempted");
+            assertEquals("REFINEMENT_BUSY", searched.result().stopReason());
+            assertFalse(searched.result().candidates().isEmpty(), "Insertion offers survive the refused refinement");
+            BookingCalculation.validate(searched.snapshot(), failing.input.request(), searched.result());
+            assertEquals(Refinement.UNAVAILABLE, searched.refinement());
+            assertEquals(threshold == REQUIRED, !searched.complete(), "only a required refinement leaves the search incomplete");
+        }
+    }
+
     @Test void invalidRefinementKeepsInsertionWitnessesAndIsCounted() {
         var failing = failingRefinement(REQUIRED, () -> new IllegalArgumentException("Returned fairness mismatch"));
         var searched = failing.offers.calculate(failing.roads, failing.input.snapshot(), failing.input.request(), BUDGET_MS);
