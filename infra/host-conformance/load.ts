@@ -10,6 +10,7 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { Id } from "./src/api.ts";
 import { SchedulerApi } from "./src/client.ts";
+import { dynamicHorizon, isWeekday, weekdayWindow } from "./src/load/horizon.ts";
 import { HostStore, type MetroShape } from "./src/load/host.ts";
 import { scrape, serverView, type Sample, type ServerView } from "./src/load/metrics.ts";
 import { loadMarkdown, type LoadReport } from "./src/load/report.ts";
@@ -24,7 +25,11 @@ const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --met
     [--concurrency 5] [--daily-concurrency 1] [--technicians 10] [--appointments 2] [--horizon-days 5]
     [--daily-technicians 20] [--daily-mode sync|async] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
     [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--date-spread] [--metrics-url <prometheus URL>]
-    [--docker <container,...>] [--label <text>] [--out <directory>]`;
+    [--horizon fixed|dynamic] [--horizon-weekdays <1-15>] [--lead-weekdays 2] [--full-percent 85]
+    [--booked-weekdays 0] [--booked-appointments 4] [--docker <container,...>] [--label <text>] [--out <directory>]
+  --horizon dynamic chooses each search's dates from the booking metro's current records, as the portal's dynamic horizon
+  does, with --horizon-weekdays as its cap (15 by default). --booked-weekdays gives the first weekdays
+  --booked-appointments visits per technician-day before the run, so those days start booked out.`;
 
 class UsageError extends Error { }
 
@@ -36,7 +41,8 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
 
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
   "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
-  "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "label", "out"] as const;
+  "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "label", "out",
+  "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments"] as const;
 const FLAG_OPTIONS = ["date-spread", "help"] as const;
 
 function settings() {
@@ -77,7 +83,16 @@ function settings() {
   const costSeconds = integer("cost-seconds", KIT_POLICY.costSearchSeconds, 5, 240);
   const fairnessSeconds = integer("fairness-seconds", KIT_POLICY.fairnessSearchSeconds, 0, 240);
   if (costSeconds + fairnessSeconds > 240) throw new UsageError("--cost-seconds and --fairness-seconds together are at most 240");
+  const horizonMode = oneOf(text("horizon") ?? "fixed", ["fixed", "dynamic"] as const, "--horizon");
+  if (text("horizon-days") !== undefined && text("horizon-weekdays") !== undefined) throw new UsageError("Give --horizon-days or --horizon-weekdays, not both");
+  if (horizonMode === "dynamic" && text("horizon-days") !== undefined) throw new UsageError("--horizon dynamic takes --horizon-weekdays as its cap");
+  if (horizonMode === "fixed" && (text("lead-weekdays") !== undefined || text("full-percent") !== undefined))
+    throw new UsageError("--lead-weekdays and --full-percent apply only with --horizon dynamic");
+  const horizonWeekdays = text("horizon-weekdays") !== undefined ? integer("horizon-weekdays", 15, 1, 15) : horizonMode === "dynamic" ? 15 : null;
+  if (values["date-spread"] === true && horizonWeekdays !== null) throw new UsageError("--date-spread works with --horizon-days only");
   return {
+    horizonMode, horizonWeekdays, leadWeekdays: integer("lead-weekdays", 2, 1, 5), fullPercent: integer("full-percent", 85, 50, 100),
+    bookedWeekdays: integer("booked-weekdays", 0, 0, 15), bookedAppointments: integer("booked-appointments", 4, 0, 4),
     api: new SchedulerApi(required("url"), token), metroId, timeZone: requireTimeZone(required("time-zone")),
     area: text("area") === undefined ? null : parseArea(required("area")), scenario,
     durationS: (() => { required("duration-s"); return integer("duration-s", 0, 5, 3600); })(),
@@ -121,15 +136,29 @@ async function main(): Promise<number> {
   // technician-days instead of all contending for the same ones (which answers 409 STALE and measures the test rather
   // than the scheduler).
   const spread = options.dateSpread && options.scenario !== "daily" ? (options.concurrency - 1) * options.horizonDays : 0;
-  const allDates = Array.from({ length: options.horizonDays + spread }, (_, offset) => addDays(today, 2 + offset));
-  const horizon = allDates.slice(0, options.horizonDays);
+  // With --horizon-weekdays (always with --horizon dynamic) the dates are weekdays from the first bookable date, weekends
+  // between included, as the portal counts them; a dynamic horizon is chosen from all of them before each search.
+  const firstDate = addDays(today, 2);
+  const window = options.horizonWeekdays === null ? null : weekdayWindow(firstDate, options.horizonWeekdays);
+  const allDates = window ?? Array.from({ length: options.horizonDays + spread }, (_, offset) => addDays(today, 2 + offset));
+  const horizon = window ?? allDates.slice(0, options.horizonDays);
+  const runWeekdays = allDates.filter(isWeekday);
+  if (options.bookedWeekdays > runWeekdays.length) {
+    console.error(`--booked-weekdays ${options.bookedWeekdays} is more than the run's ${runWeekdays.length} weekdays`);
+    return 2;
+  }
+  const bookedDates = new Set(runWeekdays.slice(0, options.bookedWeekdays));
   const dailyDate = addDays(today, 2);
   const point = pointSource(options.area, options.seed);
   const policy = { ...KIT_POLICY, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds };
-  const shape = (name: string, technicians: number, dates: readonly string[]): MetroShape => ({ metroId: options.metroId, timeZone: options.timeZone, serviceId,
-    prefix: `${prefix}-${name}`, technicians, appointmentsPerDay: options.appointments, dates, rates: KIT_RATES, policy });
-  const bookingStore = new HostStore(shape("book", options.technicians, allDates), point, point);
-  const dailyStore = new HostStore(shape("daily", options.dailyTechnicians, [dailyDate]), point, point);
+  const shape = (name: string, technicians: number, dates: readonly string[], booked: ReadonlySet<string>): MetroShape => ({ metroId: options.metroId,
+    timeZone: options.timeZone, serviceId, prefix: `${prefix}-${name}`, technicians, appointmentsPerDay: options.appointments,
+    bookedDates: booked, bookedAppointments: options.bookedAppointments, dates, rates: KIT_RATES, policy });
+  const bookingStore = new HostStore(shape("book", options.technicians, allDates, bookedDates), point, point);
+  const dailyStore = new HostStore(shape("daily", options.dailyTechnicians, [dailyDate], new Set()), point, point);
+  const rule = { capWeekdays: options.horizonWeekdays ?? 15, leadWeekdays: options.leadWeekdays, fullPercent: options.fullPercent };
+  const chosen = () => dynamicHorizon(firstDate, bookingStore.snapshot(allDates), rule).dates;
+  const startingHorizon = options.horizonMode === "dynamic" ? chosen() : horizon;
   const warm = Array.from({ length: 8 }, () => point());
   let warmIndex = 0;
   const jobLocation = options.jobs === "cold" ? point : () => warm[warmIndex++ % warm.length] ?? point();
@@ -144,9 +173,11 @@ async function main(): Promise<number> {
   console.log(`Load run ${prefix}: ${options.scenario} for ${options.durationS} s against ${options.api.base}`);
   const loops: Promise<void>[] = [];
   if (options.scenario !== "daily")
-    for (let desk = 1; desk <= options.concurrency; desk++)
-      loops.push(bookingLoop(run, { store: bookingStore, horizon: spread === 0 ? horizon : allDates.slice((desk - 1) * options.horizonDays, desk * options.horizonDays),
+    for (let desk = 1; desk <= options.concurrency; desk++) {
+      const own = spread === 0 ? horizon : allDates.slice((desk - 1) * options.horizonDays, desk * options.horizonDays);
+      loops.push(bookingLoop(run, { store: bookingStore, horizon: options.horizonMode === "dynamic" ? chosen : () => own,
         offerLimit: options.offerLimit, windowHours: options.windowHours, jobMinutes: 60, confirmRate: options.confirmRate, jobLocation }, desk, options.deadlineMs));
+    }
   if (options.scenario !== "booking")
     for (let planner = 0; planner < (options.scenario === "daily" ? options.concurrency : options.dailyConcurrency); planner++)
       loops.push(dailyLoop(run, { store: dailyStore, date: dailyDate, mode: options.dailyMode }, (options.costSeconds + options.fairnessSeconds + 5) * 1000 + 30_000));
@@ -165,7 +196,10 @@ async function main(): Promise<number> {
     points: options.area === null ? "fixture" : `area ${options.area.south},${options.area.west},${options.area.north},${options.area.east}`,
     run: prefix, startedAt: startedAt.toISOString(), finishedAt: finishedAt.toISOString(),
     settings: { durationS: options.durationS, concurrency: options.concurrency, dailyConcurrency: options.scenario === "mixed" ? options.dailyConcurrency : null,
-      technicians: options.technicians, appointmentsPerDay: options.appointments, horizonDates: horizon.length, dailyTechnicians: options.dailyTechnicians,
+      technicians: options.technicians, appointmentsPerDay: options.appointments, horizonDates: startingHorizon.length, dailyTechnicians: options.dailyTechnicians,
+      horizon: { mode: options.horizonMode, weekdays: options.horizonWeekdays,
+        leadWeekdays: options.horizonMode === "dynamic" ? options.leadWeekdays : null, fullPercent: options.horizonMode === "dynamic" ? options.fullPercent : null,
+        bookedWeekdays: options.bookedWeekdays, bookedAppointments: options.bookedWeekdays === 0 ? null : options.bookedAppointments },
       dailyMode: options.scenario === "booking" ? null : options.dailyMode,
       jobs: options.jobs, confirmRate: options.confirmRate, offerLimit: options.offerLimit, windowHours: options.windowHours, policy, seed: options.seed,
       dateSpread: spread > 0 },

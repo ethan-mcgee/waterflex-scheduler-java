@@ -1,9 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { HORIZON_MODES, MAX_FULL_PERCENT, MAX_LEAD_WEEKDAYS, MIN_FULL_PERCENT, MIN_LEAD_WEEKDAYS, type HorizonMode, type HorizonRule } from "./bookingHorizonCore";
 
 /**
  * A client's booking and routing settings: what the portal sends as `rates`, `policy` (including the daily search method
- * and times, booking deadline and window threshold), `offerLimit`, `windowHours` and the booking horizon with every public API calculation for that client. Money and fractions stay exact decimals end to end.
+ * and times, booking deadline and window threshold), `offerLimit`, `windowHours` and the booking horizon (fixed, or dynamic under a cap) with every public API calculation for that client. Money and fractions stay exact decimals end to end.
  * Percentages are what people edit; the API takes fractions ("20" percent is "0.2").
  */
 
@@ -17,6 +18,7 @@ const percent = z.string().trim().regex(/^(0|[1-9][0-9]{0,2})(\.[0-9]{1,2})?$/, 
 export const DAILY_SEARCHES = ["TABU_KOPT", "TABU"] as const;
 export const dailySearch = z.enum(DAILY_SEARCHES);
 export type DailySearch = z.infer<typeof dailySearch>;
+export const horizonMode = z.enum(HORIZON_MODES);
 /** Cost and fairness search seconds together may be at most this. */
 export const MAX_SEARCH_SECONDS = 240;
 /** A booking search or confirm deadline at the scheduler, in milliseconds; the upper bound is the latency target. */
@@ -35,6 +37,9 @@ export const solverSettingsInput = z.object({
   offerLimit: z.int().min(1).max(4),
   windowHours: z.int().min(1).max(8),
   bookingHorizonWeekdays: z.int().min(1).max(15),
+  horizonMode,
+  horizonLeadWeekdays: z.int().min(MIN_LEAD_WEEKDAYS).max(MAX_LEAD_WEEKDAYS),
+  horizonFullPercent: z.int().min(MIN_FULL_PERCENT).max(MAX_FULL_PERCENT),
   dailySearch,
   costSearchSeconds: z.int().min(5).max(MAX_SEARCH_SECONDS),
   fairnessSearchSeconds: z.int().min(0).max(MAX_SEARCH_SECONDS),
@@ -52,6 +57,8 @@ export interface StoredSolverSettings {
   regularHourly: Prisma.Decimal; overtimeHourly: Prisma.Decimal; mileagePerMile: Prisma.Decimal;
   travelBufferPct: Prisma.Decimal; travelBufferMinutes: number; fairnessBudget: Prisma.Decimal;
   offerLimit: number; windowHours: number; bookingHorizonWeekdays: number;
+  /** Stored as text under a CHECK constraint; validated with `horizonMode` before use. */
+  horizonMode: string; horizonLeadWeekdays: number; horizonFullPercent: number;
   /** Stored as text under a CHECK constraint; validated with `dailySearch` before use. */
   dailySearch: string; costSearchSeconds: number; fairnessSearchSeconds: number;
   bookingDeadlineMs: number; regularWindowThreshold: number; version: number; updatedAt: Date;
@@ -77,6 +84,9 @@ export function toStored(input: SolverSettingsInput) {
     offerLimit: input.offerLimit,
     windowHours: input.windowHours,
     bookingHorizonWeekdays: input.bookingHorizonWeekdays,
+    horizonMode: input.horizonMode,
+    horizonLeadWeekdays: input.horizonLeadWeekdays,
+    horizonFullPercent: input.horizonFullPercent,
     dailySearch: input.dailySearch,
     costSearchSeconds: input.costSearchSeconds,
     fairnessSearchSeconds: input.fairnessSearchSeconds,
@@ -90,6 +100,12 @@ function storedSearch(stored: StoredSolverSettings): DailySearch {
   return dailySearch.parse(stored.dailySearch);
 }
 
+/** How the client's booking horizon is chosen, checked: a stored mode outside the allowed set fails instead of being used. */
+export function storedHorizon(stored: StoredSolverSettings): { mode: HorizonMode; rule: HorizonRule } {
+  return { mode: horizonMode.parse(stored.horizonMode),
+    rule: { capWeekdays: stored.bookingHorizonWeekdays, leadWeekdays: stored.horizonLeadWeekdays, fullPercent: stored.horizonFullPercent } };
+}
+
 export function toView(stored: StoredSolverSettings): SolverSettingsView {
   return {
     regularHourly: canonicalDecimal(stored.regularHourly),
@@ -101,6 +117,9 @@ export function toView(stored: StoredSolverSettings): SolverSettingsView {
     offerLimit: stored.offerLimit,
     windowHours: stored.windowHours,
     bookingHorizonWeekdays: stored.bookingHorizonWeekdays,
+    horizonMode: horizonMode.parse(stored.horizonMode),
+    horizonLeadWeekdays: stored.horizonLeadWeekdays,
+    horizonFullPercent: stored.horizonFullPercent,
     dailySearch: storedSearch(stored),
     costSearchSeconds: stored.costSearchSeconds,
     fairnessSearchSeconds: stored.fairnessSearchSeconds,
