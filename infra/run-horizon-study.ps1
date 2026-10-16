@@ -1,7 +1,7 @@
 # Dynamic booking horizon study: how SHED, SHORTENED and incompleteDates behave when each search's horizon follows the
 # schedule instead of a fixed ten weekdays. Runs the load tool against a scheduler that is already running, then
 # combines every report into one evidence file. Long (about 55 minutes with the defaults); the owner starts it.
-#   pwsh infra/run-horizon-study.ps1 -Url http://127.0.0.1:8000 -TokenFile .\conformance.token `
+#   powershell -ExecutionPolicy Bypass -File infra/run-horizon-study.ps1 -Url http://127.0.0.1:8000 -TokenFile .\conformance.token `
 #     -MetricsUrl http://127.0.0.1:9000/actuator/prometheus -Stack 'local jars, SCHEDULER_SEARCH_CAPACITY=2, Omaha routing'
 param(
     [Parameter(Mandatory)][string]$Url,
@@ -14,8 +14,9 @@ param(
     [string]$Area = '41.22,-96.05,41.28,-95.95',
     [ValidateRange(30, 600)][int]$DurationS = 120,
     [ValidateRange(1, 5)][int]$Repeats = 3,
-    # Seeds are 1000 + this base + the run's index, so no two runs (or two studies with different bases) share an address.
-    [ValidateRange(0, 8000)][int]$SeedBase = 400
+    # Seeds are this base + the run's index (the load tool takes 0 to 1000, and five repeats make 40 runs), so no two
+    # runs, or two studies with bases at least 40 apart, share an address.
+    [ValidateRange(0, 960)][int]$SeedBase = 400
 )
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path $PSScriptRoot -Parent
@@ -48,7 +49,7 @@ try {
     for ($repeat = 1; $repeat -le $Repeats; $repeat++) {
         foreach ($desks in $concurrency) { foreach ($profile in $profiles) { foreach ($mode in $modes) {
             $index++
-            $seed = 1000 + $SeedBase + $index
+            $seed = $SeedBase + $index
             $label = "$($profile.name) $($mode.name) c$desks seed $seed"
             Write-Output "[$index] $label"
             $arguments = @('tsx', 'load.ts', '--url', $Url, '--token-file', $token, '--metro', $Metro, '--time-zone', $TimeZone,
@@ -64,6 +65,9 @@ try {
 
 $reports = Get-ChildItem -LiteralPath $runs -Filter 'load-booking-*.json' | Sort-Object Name | ForEach-Object { Get-Content $_.FullName -Raw | ConvertFrom-Json }
 if ($reports.Count -ne $index) { throw "Expected $index reports, found $($reports.Count) in $runs" }
+# A run whose every search failed (routing unreachable, a wrong token for the routing service) measured nothing.
+$unanswered = @($reports | Where-Object { $_.booking.searches -eq $_.booking.failedSearches } | ForEach-Object { $_.label })
+if ($unanswered.Count -gt 0) { throw "No search was answered in: $($unanswered -join '; ') (see the run logs in $runs)" }
 [ordered]@{
     study = 'Dynamic booking horizon: refinement outcomes, incompleteDates and latency by horizon length'
     scheduler = $Stack

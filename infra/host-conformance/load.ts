@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { Id } from "./src/api.ts";
 import { SchedulerApi } from "./src/client.ts";
-import { dynamicHorizon, isWeekday, weekdayWindow } from "./src/load/horizon.ts";
+import { dynamicHorizon, isWeekday, recordDates, weekdayWindow } from "./src/load/horizon.ts";
 import { HostStore, type MetroShape } from "./src/load/host.ts";
 import { scrape, serverView, type Sample, type ServerView } from "./src/load/metrics.ts";
 import { loadMarkdown, type LoadReport } from "./src/load/report.ts";
@@ -137,10 +137,12 @@ async function main(): Promise<number> {
   // than the scheduler).
   const spread = options.dateSpread && options.scenario !== "daily" ? (options.concurrency - 1) * options.horizonDays : 0;
   // With --horizon-weekdays (always with --horizon dynamic) the dates are weekdays from the first bookable date, weekends
-  // between included, as the portal counts them; a dynamic horizon is chosen from all of them before each search.
+  // between included, as the portal counts them; a dynamic horizon is chosen from all of them before each search. The
+  // host's records run on through the last booked weekday, so a client booked out past its horizon has those days too.
   const firstDate = addDays(today, 2);
   const window = options.horizonWeekdays === null ? null : weekdayWindow(firstDate, options.horizonWeekdays);
-  const allDates = window ?? Array.from({ length: options.horizonDays + spread }, (_, offset) => addDays(today, 2 + offset));
+  const allDates = options.horizonWeekdays === null ? Array.from({ length: options.horizonDays + spread }, (_, offset) => addDays(today, 2 + offset))
+    : recordDates(firstDate, options.horizonWeekdays, options.bookedWeekdays);
   const horizon = window ?? allDates.slice(0, options.horizonDays);
   const runWeekdays = allDates.filter(isWeekday);
   if (options.bookedWeekdays > runWeekdays.length) {
@@ -157,7 +159,7 @@ async function main(): Promise<number> {
   const bookingStore = new HostStore(shape("book", options.technicians, allDates, bookedDates), point, point);
   const dailyStore = new HostStore(shape("daily", options.dailyTechnicians, [dailyDate], new Set()), point, point);
   const rule = { capWeekdays: options.horizonWeekdays ?? 15, leadWeekdays: options.leadWeekdays, fullPercent: options.fullPercent };
-  const chosen = () => dynamicHorizon(firstDate, bookingStore.snapshot(allDates), rule).dates;
+  const chosen = () => dynamicHorizon(firstDate, bookingStore.snapshot(window ?? allDates), rule).dates;
   const startingHorizon = options.horizonMode === "dynamic" ? chosen() : horizon;
   const warm = Array.from({ length: 8 }, () => point());
   let warmIndex = 0;
