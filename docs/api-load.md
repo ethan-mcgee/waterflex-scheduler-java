@@ -425,6 +425,99 @@ nothing at admission and no run found a contract breach. Scheduler CPU stayed at
   the same dates (no `--date-spread`, which a weekday horizon cannot use), and a short horizon puts all of them on
   the same few days. Each STALE resend counts in the search's time.
 
+## Window threshold (W)
+
+`regularWindowThreshold` (default 2, `20260924010000_scheduling_policy`) decides when a booking search must refine:
+when the insertion pass finds no more distinct regular windows than the threshold, the refinement is required, never
+shed and never capped, and only `bookingDeadlineMs` (5000) stops it. Otherwise it is optional: shed when other
+bookings are queued, and capped at `bookingRefinementMs` (250). This study asks what raising the threshold buys in
+the offers and what it costs in throughput, on the local compose stack, Omaha routing, with
+`infra/run-threshold-study.ps1` ([evidence](evidence/api-load-2026-10-16-window-threshold.json)). Both profiles are the
+horizon study's, on a fixed 10 weekdays (13 dates).
+
+- **Quality** (`quality.ts`): per profile, 2 schedules, each optimized date by date with daily proposals first (every
+  date came back `IMPROVED` and was committed), then 20 job addresses searched once per threshold (2, 10, 25, 50,
+  1000) on the same records, in a rotated order. The best offer of each search was confirmed and priced with
+  `routes/evaluate` against the day before it, and never written.
+- **Efficiency** (`load.ts`): 120 s cold booking runs at thresholds 2, 25 and 1000, 1 and 5 desks, 2 repeats,
+  interleaved.
+
+### Offer quality
+
+| Profile, schedule | Threshold | Refinement | Best offer adds, mean | Visits reassigned | Same offers as 2 | Earlier / later first offer | Cheaper / dearer | Mean change | Search p50 |
+| --- | ---: | --- | ---: | ---: | ---: | --- | --- | ---: | ---: |
+| Low, 1 | 2 | SHORTENED 20 | $31.81 | 0 | | | | | 302 ms |
+| Low, 1 | 10, 25, 50 | SHORTENED 20 | $31.81 to $31.88 | 0 | 19 to 20 | 0 to 1 / 0 | 0 / 0 to 1 | $0.00 to +$0.07 | 302 ms |
+| Low, 1 | 1000 | COMPLETE 20 | $30.94 | 16 | 10 | 1 / 4 | 6 / 1 | -$0.88 | 1999 ms |
+| Low, 2 | 2 | SHORTENED 20 | $31.74 | 9 | | | | | 303 ms |
+| Low, 2 | 10, 25, 50 | SHORTENED 20 | $31.70 to $32.00 | 2 to 4 | 13 | 3 / 1 to 2 | 1 to 3 / 2 | -$0.04 to +$0.25 | 302 ms |
+| Low, 2 | 1000 | COMPLETE 20 | $31.42 | 24 | 5 | 6 / 3 | 9 / 4 | -$0.32 | 2022 ms |
+| High, 1 | 2 | SHORTENED 20 | $2.05 | 2 | | | | | 307 ms |
+| High, 1 | 10, 25, 50 | SHORTENED 20 | $2.05 to $2.28 | 2 to 3 | 14 to 16 | 0 / 0 | 0 / 0 to 2 | $0.00 to +$0.23 | 306 ms |
+| High, 1 | 1000 | COMPLETE 20 | $1.93 | 4 | 13 | 0 / 1 | 2 / 0 | -$0.12 | 567 ms |
+| High, 2 | 2 | SHORTENED 20 | $7.23 | 19 | | | | | 306 ms |
+| High, 2 | 10, 25, 50 | SHORTENED 20 | $5.17 to $6.10 | 19 to 20 | 15 | 0 to 1 / 1 to 2 | 1 to 2 / 1 to 2 | -$2.06 to -$1.13 | 307 ms |
+| High, 2 | 1000 | COMPLETE 20 | $6.88 | 23 | 14 | 1 / 1 | 5 / 1 | -$0.35 | 593 ms |
+
+Every search answered with 4 offers, none answered `searchComplete: false`, and every best offer was priced.
+
+- **Thresholds 10 to 50 never triggered.** All 240 of their searches were SHORTENED, exactly as at 2: on these
+  schedules the insertion pass always found more than 50 distinct windows, so the refinement stayed optional and
+  capped. Their rows are therefore the run's noise floor: the same code path as threshold 2, differing only in where
+  the 250 ms cap happened to stop the search. That noise changes the offers on up to 7 of 20 cases and the mean cost
+  by up to $2.06 (high, schedule 2, where one dear outlier moves the mean; the p50 is $4.42 at 2, 10 and 25).
+- **Threshold 1000 changes the offers more than the noise does, and the price barely.** Its refinement ran to
+  completion on every search and reassigned more existing visits (16 and 24 against 0 and 9 at low volume), but the
+  best offer got cheaper by $0.12 to $0.88 a booking: 1 to 3 percent of the $31 a low-volume booking adds, and inside
+  the noise floor on high demand. The first offer moved earlier on about as many cases as it moved later (8 earlier,
+  9 later over the four schedules). The hypothesis that low-volume offers rarely change is half right: they change,
+  but not in a way a customer or the fleet cost would notice. The hypothesis that high demand gains earlier or cheaper
+  offers is rejected: 13 to 14 of 20 cases kept the same offers and none of the differences cleared the noise.
+- **A booking on a busy day is cheap.** A best offer adds $2 to $7 on the high-demand schedule against $31 on the low
+  one: the technician is already in the area, where at low volume a booking adds most of a trip.
+
+### Efficiency
+
+| Profile, desks | Threshold | Searches per minute | Refinement | Search p50 / p95 | Confirmed | Notes |
+| --- | ---: | ---: | --- | --- | ---: | --- |
+| Low, 1 | 2 | 160 | SHORTENED 100 percent | 362 / 380 ms | 94 | |
+| Low, 1 | 25 | 160 | SHORTENED 100 percent | 356 / 380 ms | 103 | |
+| Low, 1 | 1000 | 29 | COMPLETE 100 percent | 1984 / 2649 ms | 14 | |
+| High, 1 | 2 | 158 | SHORTENED 98 percent | 367 / 385 ms | 96 | |
+| High, 1 | 25 | 158 | SHORTENED 100 percent | 366 / 384 ms | 92 | |
+| High, 1 | 1000 | 99 | COMPLETE 100 percent | 574 / 758 ms | 58 | |
+| Low, 5 | 2 | 638 | SHED 99 percent | 202 / 478 ms | 396 | |
+| Low, 5 | 25 | 678 | SHED 99 percent | 203 / 463 ms | 385 | |
+| Low, 5 | 1000 | 42 | COMPLETE 51, SHORTENED 49 percent | 4031 / 9044 ms | 24 | 7 searches 503 `CALCULATION_UNAVAILABLE`; 80 of 163 answered `searchComplete: false` |
+| High, 5 | 2 | 636 | COMPLETE 58, SHED 42 percent | 265 / 603 ms | 180 | 1409 of 2543 offered nothing (55 percent) |
+| High, 5 | 25 | 542 | COMPLETE 50, SHED 50 percent | 261 / 925 ms | 180 | 839 of 2166 offered nothing (39 percent) |
+| High, 5 | 1000 | 77 | COMPLETE 100 percent | 1669 / 4022 ms | 41 | none offered nothing; the schedule never filled |
+
+Figures are the mean of the two repeats. The scheduler rejected nothing at admission, no run found a contract breach
+or host anomaly, and the scheduler's CPU stayed at 3 to 10 percent of the machine. At 5 desks the desks search the
+same dates, so 409 `STALE` resends count in search time, as in the horizon study.
+
+- **One desk:** threshold 1000 cuts throughput by 82 percent at low volume (p50 0.36 to 1.98 s) and 37 percent on
+  high demand (0.37 to 0.57 s), with no BUSY waits. The hypothesis held for high demand; at low volume the cost is
+  about five times the probe's, because 13 dates of open days give the complete refinement far more to try.
+  Threshold 25 is indistinguishable from 2.
+- **Five desks:** a required refinement is never shed, so searches queue behind each other. Threshold 1000 runs 42 to
+  77 searches a minute against 636 to 638, with a p95 of 4 to 9 s; at low volume half its answers hit the 5 s deadline
+  and 7 searches found nothing before it. CPU stayed low, so the queue, not the machine, is the limit. The hypothesis
+  held, more steeply than the probe.
+- **Threshold 25 matters only once a schedule fills.** At low volume it was inert again. On high demand at 5 desks,
+  where three technicians book out within the run, searches with 3 to 25 windows left had their refinement made
+  required. COMPLETE outcomes exceeded the searches that offered nothing by about 27 a run at threshold 2 and 118 at
+  25 (the tally does not join the two per search), at 15 percent less throughput and a p95 of 925 ms against 603. It
+  offered something on more searches (61 against 45 percent), but with the same 180 confirmed bookings in both, the
+  run cannot separate a better search from a schedule that took longer to fill.
+
+**Recommendation: keep the threshold at 2.** On an optimized schedule a higher threshold buys at most a dollar a
+booking at low volume and nothing measurable on a busy schedule, while 1000 costs a factor of 1.6 to 5.5 in latency
+at one desk and of 8 to 15 in throughput under load, with deadline failures. Values from 10 to 50 cost nothing while a
+schedule has room, and only start to change searches, at a throughput cost, once it is nearly booked out, which is
+where the dynamic horizon (H) already keeps offers coming.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
