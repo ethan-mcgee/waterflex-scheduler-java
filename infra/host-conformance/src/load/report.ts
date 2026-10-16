@@ -19,6 +19,12 @@ export interface LoadReport {
     readonly appointmentsPerDay: number; readonly horizonDates: number; readonly dailyTechnicians: number; readonly dailyMode: "sync" | "async" | null; readonly jobs: "cold" | "warm";
     /** Each desk searched its own run of dates instead of the same ones. */
     readonly dateSpread: boolean;
+    /**
+     * How each search's dates were chosen. `weekdays` is the fixed length or the dynamic cap, null for --horizon-days;
+     * `horizonDates` above is the first search's count. Booked weekdays started with `bookedAppointments` visits per day.
+     */
+    readonly horizon: { readonly mode: "fixed" | "dynamic"; readonly weekdays: number | null; readonly leadWeekdays: number | null;
+      readonly fullPercent: number | null; readonly bookedWeekdays: number; readonly bookedAppointments: number | null };
     readonly confirmRate: number; readonly offerLimit: number; readonly windowHours: number; readonly policy: Snapshot["policy"]; readonly seed: number;
   };
   readonly machine: { readonly cpus: number; readonly cpuModel: string; readonly memoryBytes: number; readonly node: string };
@@ -35,6 +41,21 @@ export interface LoadReport {
 const gib = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
 const entries = (record: Record<string, number>) => Object.entries(record).map(([key, value]) => `${key} ${value}`).join(", ") || "none";
 
+/** Searches by horizon length, so refinement outcomes and incompleteness read against how many dates were searched. */
+export function horizonLines(s: LoadReport["settings"], b: BookingTally): string[] {
+  const h = s.horizon;
+  const rows = Object.entries(b.byHorizon).sort(([a], [z]) => Number(a) - Number(z)).map(([dates, t]) => {
+    const ms = [...t.offersMs].sort((x, y) => x - y);
+    return `| ${dates} | ${t.searches} | ${t.failed} | ${t.searchIncomplete} | ${t.incompleteDates} | ${ms.length === 0 ? "-" : (t.offers / ms.length).toFixed(2)} | ` +
+      `${t.noOffers} | ${entries(t.refinements)} | ${ms.length === 0 ? "-" : percentile(ms, 0.5)} | ${ms.length === 0 ? "-" : percentile(ms, 0.95)} |`;
+  });
+  return ["## Horizon", "",
+    h.mode === "dynamic" ? `- Dynamic: ${h.leadWeekdays} weekdays past the furthest weekday at least ${h.fullPercent} percent full, at most ${h.weekdays} weekdays`
+      : `- Fixed: ${h.weekdays === null ? `${s.horizonDates} dates` : `${h.weekdays} weekdays`}`,
+    "", "| Dates | Searches | Failed | searchComplete false | incompleteDates | Offers per answered | No offer | Refinement | p50 ms | p95 ms |",
+    "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |", ...rows];
+}
+
 export function loadMarkdown(report: LoadReport): string {
   const seconds = (Date.parse(report.finishedAt) - Date.parse(report.startedAt)) / 1000;
   const s = report.settings;
@@ -43,7 +64,8 @@ export function loadMarkdown(report: LoadReport): string {
     `- Scenario **${report.scenario}**, ${s.concurrency} ${report.scenario === "daily" ? "planners" : "booking desks"}` +
       `${s.dailyConcurrency === null ? "" : ` and ${s.dailyConcurrency} daily planners`}, ${s.durationS} s (ran ${seconds.toFixed(0)} s)`,
     `- Scheduler ${report.scheduler}, metro ${report.metroId} (${report.timeZone}), points ${report.points}`,
-    `- Booking metro: ${s.technicians} technicians x ${s.horizonDates} dates${s.dateSpread ? " per desk, spread" : ""}, ${s.appointmentsPerDay} visits per day booked; jobs ${s.jobs}; ` +
+    `- Booking metro: ${s.technicians} technicians x ${s.horizonDates} dates${s.horizon.mode === "dynamic" ? " at the start" : ""}${s.dateSpread ? " per desk, spread" : ""}, ` +
+      `${s.appointmentsPerDay} visits per day booked${s.horizon.bookedWeekdays === 0 ? "" : ` (${s.horizon.bookedAppointments} on the first ${s.horizon.bookedWeekdays} weekdays)`}; jobs ${s.jobs}; ` +
       `confirm ${Math.round(s.confirmRate * 100)} percent; offerLimit ${s.offerLimit}, windowHours ${s.windowHours}`,
     `- Daily day: ${s.dailyTechnicians} technicians x ${s.appointmentsPerDay} visits${s.dailyMode === "async" ? ", queued (Prefer: respond-async)" : ""}; search ${s.policy.costSearchSeconds} + ${s.policy.fairnessSearchSeconds} s; ` +
       `bookingDeadlineMs ${s.policy.bookingDeadlineMs}`,
@@ -64,6 +86,7 @@ export function loadMarkdown(report: LoadReport): string {
       `- Refinement: ${entries(b.refinements)}`,
       `- Offers per answered search: ${answered === 0 ? "-" : (b.offers / answered).toFixed(2)}; searches with no offer: ${b.noOffers}`,
       `- Selected ${b.selected}, confirmed and written ${b.confirmed}, HOLD_UNAVAILABLE ${b.holdUnavailable}, host write conflicts ${b.hostWriteConflicts}, released ${b.released}, sent again after STALE ${b.stale}`);
+    lines.push("", ...horizonLines(s, b));
   }
   if (report.daily !== null) {
     lines.push("", "## Daily outcomes", "", `- Proposals requested ${report.daily.proposals}; decisions: ${entries(report.daily.decisions)}`);

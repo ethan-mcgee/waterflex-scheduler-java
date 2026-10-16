@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BUSY_RETRIES, busyRetryDelayMs, dueSlot, MAX_BUSY_WAIT_MS, minuteOf, overnightDates, runTimes, SCHEDULE_GRACE_MS, timeOf } from "./overnightCore";
+import { BUSY_RETRIES, busyRetryDelayMs, dueSlot, MAX_BUSY_WAIT_MS, minuteOf, overnightDates, overnightEnd, runTimes, SCHEDULE_GRACE_MS, timeOf } from "./overnightCore";
 
 test("run times are 24-hour local times, each listed once, and none means manual only", () => {
   assert.equal(minuteOf("02:00"), 120);
@@ -54,6 +54,17 @@ test("a run proposes the scheduler's overnight days: from today until ten weekda
   const saturday = overnightDates(new Date("2026-10-17T07:00:00Z"));
   assert.deepEqual(saturday.slice(0, 3), ["2026-10-17", "2026-10-18", "2026-10-19"]);
   assert.equal(saturday.at(-1), "2026-10-30");
+});
+
+test("a dynamic-horizon run proposes from today through the horizon's end, or the last booked day when later", () => {
+  // Wednesday 2026-10-14 at 02:00, horizon through Monday 2026-10-19.
+  assert.deepEqual(overnightDates(new Date("2026-10-14T07:00:00Z"), "2026-10-19"),
+    ["2026-10-14", "2026-10-15", "2026-10-16", "2026-10-17", "2026-10-18", "2026-10-19"]);
+  assert.deepEqual(overnightDates(new Date("2026-10-14T11:00:00Z"), "2026-10-15"), ["2026-10-15"], "After 06:00 today is frozen");
+  assert.deepEqual(overnightDates(new Date("2026-10-14T11:00:00Z"), "2026-10-14"), [], "A horizon ending on a frozen today leaves nothing");
+  assert.equal(overnightEnd("2026-10-19", null), "2026-10-19");
+  assert.equal(overnightEnd("2026-10-19", "2026-10-16"), "2026-10-19");
+  assert.equal(overnightEnd("2026-10-19", "2026-10-23"), "2026-10-23", "A day booked before the horizon shrank is still optimized");
 });
 
 test("a busy overnight day waits as long as the scheduler asks, then backs off, and gives up after the last retry", () => {

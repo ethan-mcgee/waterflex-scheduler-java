@@ -100,6 +100,16 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
 - `--date-spread` gives each booking desk its own run of `--horizon-days` dates after the previous desk's, so desks
   book different technician-days. Without it every desk searches the same dates, and the
   409 `STALE` resends that follow measure the desks' conflicts as much as the scheduler.
+- `--horizon dynamic` chooses each search's dates from the booking metro's current records, as the portal's dynamic
+  booking horizon does (`web/lib/bookingHorizonCore.ts`; the kit's copy is `src/load/horizon.ts`): through
+  `--lead-weekdays` (default 2) weekdays past the furthest weekday whose route spans fill `--full-percent` (default 85)
+  of the technicians' open minutes, at most `--horizon-weekdays` (default 15). Confirmed bookings lengthen the spans, so
+  the horizon can grow during a run. `--horizon-weekdays` alone with the default `--horizon fixed` searches that many
+  weekdays every time. `--booked-weekdays N` gives the first N weekdays `--booked-appointments` (default 4) visits per
+  technician-day, each held to the hour it starts, which with the kit's 08:00 to 17:00 shift spans 86 percent, so those
+  days start booked out and stay so as bookings land. They may run past a fixed horizon, as a booked-out dealership's do. The
+  report's Horizon table splits searches by their number of dates, with refinement outcomes, `searchComplete: false`,
+  `incompleteDates` and latency for each. `infra/run-horizon-study.ps1` runs the fixed and dynamic study matrix.
 
 The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
 its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,

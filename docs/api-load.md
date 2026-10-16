@@ -381,6 +381,50 @@ beforehand was remote p95 at most 1.05 times embedded.
   the API: a 5 s search is a 5 s search, so the proposal latency is unchanged by design; what changed is how many
   moves it evaluates (docs/solver-benchmarks.md).
 
+## Dynamic booking horizon (H)
+
+A client's booking horizon can follow its schedule: through two weekdays past the furthest weekday whose route spans
+fill 85 percent of the technicians' open time, at most 15 weekdays (`web/lib/bookingHorizonCore.ts`). This study
+compares it with the fixed 10 weekdays on the local compose stack, Omaha routing, with `infra/run-horizon-study.ps1`
+([evidence](evidence/api-load-2026-10-16-dynamic-horizon.json)): 120 s cold booking runs, 1 and 5 desks, 3 seeds a
+cell. Low volume is 6 technicians with 1 visit a day; high demand is 3 technicians with 2, the first 12 weekdays
+booked out at 4. Every desk confirms 30 percent of its searches, so the schedule fills as a run goes on. The kit's
+technicians work weekends too, so a fixed 10 weekdays is 13 dates here.
+
+| Cell | Dates searched | Searches per minute | Refinement | Offers per search | Searches with no offer | Search p50 / p95 |
+| --- | --- | ---: | --- | ---: | ---: | --- |
+| Low, fixed, 1 desk | 13 | 161 | SHORTENED 100 percent | 4.00 | 0 | 354 / 381 ms |
+| Low, dynamic, 1 desk | 3 to 4 | 190 | SHORTENED 53, COMPLETE 47 percent | 3.96 | 0 | 303 / 332 ms |
+| High, fixed, 1 desk | 13 | 155 | SHORTENED 99 percent | 4.00 | 0 | 372 / 395 ms |
+| High, dynamic, 1 desk | 18 to 19 | 146 | SHORTENED 100 percent | 4.00 | 0 | 394 / 423 ms |
+| Low, fixed, 5 desks | 13 | 645 | SHED 99 percent | 4.00 | 0 | 350 / 1047 ms |
+| Low, dynamic, 5 desks | 3 growing to 12 | 628 | SHED 98 percent | 4.00 | 0 | 282 / 1676 ms |
+| High, fixed, 5 desks | 13 | 610 | COMPLETE 54, SHED 46 percent | 1.86 | 1892 of 3677 (51 percent) | 476 / 788 ms |
+| High, dynamic, 5 desks | 19 to 20 (the cap) | 523 | SHED 91, COMPLETE 9 percent | 3.66 | 195 of 3159 (6 percent), all at the cap | 416 / 1556 ms |
+
+No search failed, none answered `searchComplete: false`, no date was reported incomplete, the scheduler rejected
+nothing at admission and no run found a contract breach. Scheduler CPU stayed at 4 to 8 percent of the machine.
+
+- **The dynamic horizon does what it is for on a booked-out schedule.** With five desks filling three technicians,
+  the fixed horizon ran out of room: half its searches offered nothing. Its 1981 COMPLETE refinements track its 1892
+  empty searches, which have little or nothing to refine (the tally does not join the two per search). The dynamic horizon kept moving past the filled days and offered on
+  94 percent of searches; its 195 empty searches came once it reached the 15-weekday cap (20 dates), which is
+  where a sustained rush would stop it too.
+- **A longer horizon costs little.** At one desk, 19 dates take 394 ms at p50 against 372 ms for 13, and the
+  insertion pass never came near the 5000 ms deadline: the hypothesis of more deadline SHORTENED and incomplete
+  dates on long horizons is rejected at this size (3 technicians). SHORTENED at one desk is the 250 ms refinement
+  cap, whatever the horizon.
+- **A short horizon gets the refinement finished.** At one desk, 3 to 4 dates are 14 percent faster at p50 and the
+  refinement completes within its cap on 47 percent of searches instead of none.
+- **Shedding follows the queue, not the horizon.** At five desks a booking is nearly always queued, so the optional
+  refinement is shed on 91 to 99 percent of searches whatever the horizon length; the hypothesis of fewer SHED on
+  short horizons is rejected. Under load the low-volume horizon also stopped being short: as the desks booked, it grew
+  from 3 dates to 12, as the rule intends.
+- **The five-desk tails are desk contention, not horizon length.** In the low dynamic cell the p95 is 1.5 to 1.8 s
+  at every length from 3 dates to 11, and 1133 of 2400 offer calls in one run answered 409 `STALE`: the desks search
+  the same dates (no `--date-spread`, which a weekday horizon cannot use), and a short horizon puts all of them on
+  the same few days. Each STALE resend counts in the search's time.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
