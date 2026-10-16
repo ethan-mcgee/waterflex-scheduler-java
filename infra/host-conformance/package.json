@@ -8,6 +8,7 @@
   "scripts": {
     "conformance": "tsx conformance.ts",
     "load": "tsx load.ts",
+    "quality": "tsx quality.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts"
   },

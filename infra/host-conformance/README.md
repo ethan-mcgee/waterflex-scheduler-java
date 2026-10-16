@@ -111,6 +111,20 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
   report's Horizon table splits searches by their number of dates, with refinement outcomes, `searchComplete: false`,
   `incompleteDates` and latency for each. `infra/run-horizon-study.ps1` runs the fixed and dynamic study matrix.
 
+- `--window-threshold` sets the policy's `regularWindowThreshold` (default 2). A search whose first pass finds no more
+  distinct regular windows than the threshold must run the refinement, which is then never shed and never capped;
+  1000 makes every refinement required.
+
+`quality.ts` compares the offers themselves across window thresholds, on the same records. It builds one booking metro
+(the same options as above), optimizes every date with daily proposals as the overnight run would, then for each of
+`--cases` job addresses searches once per `--thresholds` value (default `2,1000`, the first the baseline) in a rotated
+order. The best offer of each search is confirmed and priced: its receipt is applied to a copy of the day and both are
+timed with `/api/v1/routes/evaluate`, so the report gives what the booking adds to the modeled fleet cost and how many
+existing visits it moved. Nothing is written to the host; the confirmed days are stamped as written and cancelled, so
+the next search is not refused as STALE. The report (`quality-report/`) lists, per threshold, offers, days to the first
+offer, days offered, the best offer's added cost, visits moved and search latency, then each threshold against the
+baseline case by case. `infra/run-threshold-study.ps1` runs both tools over the study matrix.
+
 The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
 its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,
 holds lost, host write conflicts) and daily decisions. With `--metrics-url` (the scheduler's private management port)
