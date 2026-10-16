@@ -35,6 +35,14 @@ export function weekdayWindow(first: string, weekdays: number): string[] {
   return dates;
 }
 
+/**
+ * The dates the host keeps records for: the search window, or through the last booked weekday when the client is booked
+ * out past it, as a dealership with a fixed horizon can be. Searches still cover only `weekdayWindow(first, weekdays)`.
+ */
+export function recordDates(first: string, weekdays: number, bookedWeekdays: number): string[] {
+  return weekdayWindow(first, Math.max(weekdays, bookedWeekdays));
+}
+
 function coveredMinutes(start: number, end: number, windows: ReadonlyArray<{ start: string; end: string }>): number {
   const clipped = windows.map(window => [Math.max(start, instant(window.start)), Math.min(end, instant(window.end))] as const)
     .filter(([from, to]) => from < to).sort((a, b) => a[0] - b[0]);

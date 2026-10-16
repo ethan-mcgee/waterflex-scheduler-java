@@ -1,7 +1,7 @@
 // The same cases as web/lib/bookingHorizonCore.test.ts, so the load tool's copy of the rule cannot drift from the portal's.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dayFullness, dynamicHorizon, isWeekday, weekdayWindow, type HorizonRule } from "../src/load/horizon.ts";
+import { dayFullness, dynamicHorizon, isWeekday, recordDates, weekdayWindow, type HorizonRule } from "../src/load/horizon.ts";
 import { HostStore, type MetroShape } from "../src/load/host.ts";
 import { horizonLines } from "../src/load/report.ts";
 import { KIT_POLICY, KIT_RATES, type Snapshot } from "../src/snapshot.ts";
@@ -65,6 +65,27 @@ test("a store with booked-out weekdays reads as full there, and open after them"
   const decision = dynamicHorizon(SATURDAY, host.snapshot(dates), RULE);
   assert.equal(decision.lastFullDate, [...booked].at(-1));
   assert.equal(decision.dates.filter(isWeekday).length, 14, "Twelve booked-out weekdays and two more");
+  // A booking confirmed on a booked-out day returns new planned starts for its visits; were the visits free to start an
+  // hour early, the day's span would fall from 86 to 75 percent and the horizon collapse mid-run.
+  const appointments = host.snapshot(dates).appointments;
+  for (const appointment of appointments.filter(a => booked.has(a.serviceDate)))
+    assert.equal(appointment.window.start, appointment.plannedStart, "A booked-out visit cannot start before its hour");
+  assert.ok(appointments.some(a => !booked.has(a.serviceDate) && Date.parse(a.window.start) < Date.parse(a.plannedStart)), "Other days keep their wide windows");
+});
+
+test("a fixed horizon shorter than the booked-out weekdays keeps their records, and searches only its own dates", () => {
+  // The study's high-demand, fixed-10 cell: twelve weekdays booked out, ten searched.
+  const records = recordDates(SATURDAY, 10, 12);
+  assert.equal(records.filter(isWeekday).length, 12);
+  assert.deepEqual(recordDates(SATURDAY, 15, 12), weekdayWindow(SATURDAY, 15), "A wider horizon already holds every booked day");
+  const booked = new Set(records.filter(isWeekday));
+  const shape: MetroShape = { metroId: "metro-omaha", timeZone: "America/Chicago", serviceId: "svc", prefix: "t", technicians: 3,
+    appointmentsPerDay: 2, bookedDates: booked, bookedAppointments: 4, dates: records, rates: KIT_RATES, policy: KIT_POLICY };
+  const host = new HostStore(shape, () => point, () => point, Date.parse("2026-10-09T12:00:00Z"));
+  const search = weekdayWindow(SATURDAY, 10);
+  assert.deepEqual(host.snapshot(search).technicianDays.map(day => day.serviceDate).filter((date, n, all) => all.indexOf(date) === n), search,
+    "The search's snapshot holds only its own dates");
+  assert.equal(dynamicHorizon(SATURDAY, host.snapshot(search), { ...RULE, capWeekdays: 10 }).capped, true, "Every searched weekday is booked out");
 });
 
 test("the report lists searches by horizon length, with their refinement outcomes and incomplete dates", () => {

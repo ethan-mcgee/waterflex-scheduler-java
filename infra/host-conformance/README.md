@@ -106,7 +106,8 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
   of the technicians' open minutes, at most `--horizon-weekdays` (default 15). Confirmed bookings lengthen the spans, so
   the horizon can grow during a run. `--horizon-weekdays` alone with the default `--horizon fixed` searches that many
   weekdays every time. `--booked-weekdays N` gives the first N weekdays `--booked-appointments` (default 4) visits per
-  technician-day, which with the kit's 08:00 to 17:00 shift spans 86 percent, so those days start booked out. The
+  technician-day, each held to the hour it starts, which with the kit's 08:00 to 17:00 shift spans 86 percent, so those
+  days start booked out and stay so as bookings land. They may run past a fixed horizon, as a booked-out dealership's do. The
   report's Horizon table splits searches by their number of dates, with refinement outcomes, `searchComplete: false`,
   `incompleteDates` and latency for each. `infra/run-horizon-study.ps1` runs the fixed and dynamic study matrix.
 
