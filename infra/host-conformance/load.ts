@@ -26,10 +26,12 @@ const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --met
     [--daily-technicians 20] [--daily-mode sync|async] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
     [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--date-spread] [--metrics-url <prometheus URL>]
     [--horizon fixed|dynamic] [--horizon-weekdays <1-15>] [--lead-weekdays 2] [--full-percent 85]
-    [--booked-weekdays 0] [--booked-appointments 4] [--window-threshold 2] [--docker <container,...>] [--label <text>] [--out <directory>]
+    [--booked-weekdays 0] [--booked-appointments 4] [--window-threshold 2] [--refinement-ms <0-1000>] [--docker <container,...>] [--label <text>] [--out <directory>]
   --window-threshold is the policy's regularWindowThreshold: a search whose first pass finds no more distinct regular
-  windows than it must run the refinement (never shed, never capped). --horizon dynamic chooses each search's dates from the booking metro's current records, as the portal's dynamic horizon
-  does, with --horizon-weekdays as its cap (15 by default). --booked-weekdays gives the first weekdays
+  windows than it must run the refinement (never shed, never capped). --refinement-ms is the policy's
+  bookingRefinementMs, the cap on an optional refinement; without it the scheduler's configured cap applies.
+  --horizon dynamic chooses each search's dates from the booking metro's current records, as the portal's dynamic
+  horizon does, with --horizon-weekdays as its cap (15 by default). --booked-weekdays gives the first weekdays
   --booked-appointments visits per technician-day before the run, so those days start booked out.`;
 
 class UsageError extends Error { }
@@ -43,7 +45,7 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
   "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
   "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "label", "out",
-  "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "window-threshold"] as const;
+  "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "window-threshold", "refinement-ms"] as const;
 const FLAG_OPTIONS = ["date-spread", "help"] as const;
 
 function settings() {
@@ -95,6 +97,7 @@ function settings() {
     horizonMode, horizonWeekdays, leadWeekdays: integer("lead-weekdays", 2, 1, 5), fullPercent: integer("full-percent", 85, 50, 100),
     bookedWeekdays: integer("booked-weekdays", 0, 0, 15), bookedAppointments: integer("booked-appointments", 4, 0, 4),
     windowThreshold: integer("window-threshold", KIT_POLICY.regularWindowThreshold, 0, 1000),
+    refinementMs: text("refinement-ms") === undefined ? null : integer("refinement-ms", 0, 0, 1000),
     api: new SchedulerApi(required("url"), token), metroId, timeZone: requireTimeZone(required("time-zone")),
     area: text("area") === undefined ? null : parseArea(required("area")), scenario,
     durationS: (() => { required("duration-s"); return integer("duration-s", 0, 5, 3600); })(),
@@ -154,7 +157,8 @@ async function main(): Promise<number> {
   const bookedDates = new Set(runWeekdays.slice(0, options.bookedWeekdays));
   const dailyDate = addDays(today, 2);
   const point = pointSource(options.area, options.seed);
-  const policy = { ...KIT_POLICY, regularWindowThreshold: options.windowThreshold, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds };
+  const policy = { ...KIT_POLICY, regularWindowThreshold: options.windowThreshold, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds,
+    ...(options.refinementMs === null ? {} : { bookingRefinementMs: options.refinementMs }) };
   const shape = (name: string, technicians: number, dates: readonly string[], booked: ReadonlySet<string>): MetroShape => ({ metroId: options.metroId,
     timeZone: options.timeZone, serviceId, prefix: `${prefix}-${name}`, technicians, appointmentsPerDay: options.appointments,
     bookedDates: booked, bookedAppointments: options.bookedAppointments, dates, rates: KIT_RATES, policy });
