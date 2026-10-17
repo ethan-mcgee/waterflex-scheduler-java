@@ -39,8 +39,8 @@ export function parseVariants(text: string): Variant[] {
     const match = /^(\d{1,4})(?::(\d{1,4}))?$/.exec(item.trim());
     const threshold = Number(match?.[1]), cap = match?.[2];
     const refinementMs = cap === undefined ? null : Number(cap);
-    if (match === null || threshold > 1000 || refinementMs !== null && refinementMs > 1000)
-      throw new Error(`Variant ${JSON.stringify(item.trim())} is not threshold[:refinement ms], each from 0 to 1000`);
+    if (match === null || threshold > 1000 || refinementMs !== null && refinementMs > 3000)
+      throw new Error(`Variant ${JSON.stringify(item.trim())} is not threshold[:refinement ms], a threshold from 0 to 1000 and a cap from 0 to 3000`);
     return { name: refinementMs === null ? `${threshold}` : `${threshold}:${refinementMs}`, threshold, refinementMs };
   });
   if (new Set(variants.map(item => item.name)).size !== variants.length) throw new Error("Variants must be distinct");
@@ -52,11 +52,17 @@ export interface Searched {
   readonly variant: string;
   readonly threshold: number;
   readonly refinementMs: number | null;
+  /** The search's API requestId, which the scheduler's request log carries, so its server time can be attributed to the variant. */
+  readonly requestId: string;
   /** The search's final HTTP status after BUSY retries; null when no answer came. */
   readonly status: number | null;
   /** Caller milliseconds of an answered search (201), BUSY waits included. */
   readonly ms: number | null;
   readonly refinement: string | null;
+  /** What ended a SHORTENED refinement (CAP or DEADLINE); null for any other outcome or before spec 1.5.0. */
+  readonly refinementStop: string | null;
+  /** The first pass's distinct regular windows, the count the threshold is compared with; null when that pass did not finish. */
+  readonly regularWindowsFound: number | null;
   readonly searchComplete: boolean | null;
   readonly incompleteDates: number | null;
   readonly offers: readonly OfferedWindow[];
@@ -128,6 +134,10 @@ export interface VariantSummary {
   readonly variant: string;
   readonly searches: number; readonly failed: number; readonly searchIncomplete: number;
   readonly refinements: Record<string, number>;
+  /** SHORTENED refinements by what stopped them. */
+  readonly refinementStops: Record<string, number>;
+  /** The first pass's regular window count over the searches that reported it. */
+  readonly regularWindowsFound: { readonly reported: number; readonly p50: number; readonly min: number; readonly max: number } | null;
   readonly offersPerSearch: number | null; readonly noOffer: number;
   /** Mean days from the horizon's first date to the earliest offer, over searches with an offer. */
   readonly earliestLeadDays: number | null;
@@ -160,9 +170,14 @@ export function summarizeVariant(cases: readonly QualityCase[], variant: string)
   const ms = answered.flatMap(({ entry }) => entry.ms === null ? [] : [entry.ms]).sort((a, b) => a - b);
   const refinements: Record<string, number> = {};
   for (const { entry } of answered) refinements[entry.refinement ?? "ABSENT"] = (refinements[entry.refinement ?? "ABSENT"] ?? 0) + 1;
+  const refinementStops: Record<string, number> = {};
+  for (const { entry } of answered) if (entry.refinementStop !== null) refinementStops[entry.refinementStop] = (refinementStops[entry.refinementStop] ?? 0) + 1;
+  const windows = answered.flatMap(({ entry }) => entry.regularWindowsFound === null ? [] : [entry.regularWindowsFound]).sort((a, b) => a - b);
+  const first = windows[0], last = windows[windows.length - 1];
   return {
     variant, searches: searched.length, failed: searched.length - answered.length,
-    searchIncomplete: answered.filter(({ entry }) => entry.searchComplete === false).length, refinements,
+    searchIncomplete: answered.filter(({ entry }) => entry.searchComplete === false).length, refinements, refinementStops,
+    regularWindowsFound: first === undefined || last === undefined ? null : { reported: windows.length, p50: percentile(windows, 0.5), min: first, max: last },
     offersPerSearch: mean(answered.map(({ entry }) => entry.offers.length)), noOffer: answered.length - withOffers.length,
     earliestLeadDays: mean(withOffers.map(({ entry, firstDate }) => datesBetween(firstDate, earliest(entry.offers) ?? firstDate) - 1)),
     distinctDatesPerSearch: mean(withOffers.map(({ entry }) => new Set(entry.offers.map(offer => offer.serviceDate)).size)),
@@ -204,15 +219,16 @@ export function qualityLines(variants: readonly string[], cases: readonly Qualit
   const baseline = variants[0];
   if (baseline === undefined) throw new Error("No variants");
   const rows = variants.map(variant => summarizeVariant(cases, variant)).map(s =>
-    `| ${s.variant} | ${s.searches} | ${s.failed} | ${s.searchIncomplete} | ${entries(s.refinements)} | ${fixed(s.offersPerSearch, 2)} | ${s.noOffer} | ` +
+    `| ${s.variant} | ${s.searches} | ${s.failed} | ${s.searchIncomplete} | ${entries(s.refinements)} | ${entries(s.refinementStops)} | ` +
+    `${s.regularWindowsFound === null ? "-" : `${s.regularWindowsFound.p50} (${s.regularWindowsFound.min} to ${s.regularWindowsFound.max})`} | ${fixed(s.offersPerSearch, 2)} | ${s.noOffer} | ` +
     `${fixed(s.earliestLeadDays, 2)} | ${fixed(s.distinctDatesPerSearch, 2)} | ${s.addedCostCents === null ? "-" : `${(s.addedCostCents.mean / 100).toFixed(2)} / ${(s.addedCostCents.p50 / 100).toFixed(2)}`} | ` +
     `${s.reassignedVisits} / ${s.reorderedDays} | ${s.ms === null ? "-" : `${s.ms.p50} / ${s.ms.p95}`} |`);
   const paired = variants.slice(1).map(variant => pairedAgainst(cases, baseline, variant)).map(p =>
     `| ${p.variant} | ${p.cases} | ${p.sameOffers} | ${p.moreOffers} / ${p.fewerOffers} | ${p.earlierFirstOffer} / ${p.laterFirstOffer} | ` +
     `${p.costCompared} | ${p.cheaper} / ${p.dearer} | ${p.meanCostChangeCents === null ? "-" : (p.meanCostChangeCents / 100).toFixed(2)} |`);
   return ["## Offers by variant (window threshold[:refinement cap ms])", "",
-    "| Variant | Searches | Failed | searchComplete false | Refinement | Offers per search | No offer | Days to first offer | Days offered | Best offer adds, mean / p50 ($) | Visits reassigned / days reordered | Search p50 / p95 ms |",
-    "| ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- | --- | --- |", ...rows,
+    "| Variant | Searches | Failed | searchComplete false | Refinement | Stopped by | Windows found p50 (min to max) | Offers per search | No offer | Days to first offer | Days offered | Best offer adds, mean / p50 ($) | Visits reassigned / days reordered | Search p50 / p95 ms |",
+    "| ---: | ---: | ---: | ---: | --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |", ...rows,
     ...(paired.length === 0 ? [] : ["", `## Against ${baseline} on the same cases`, "",
       "| Variant | Cases | Same offers | More / fewer offers | Earlier / later first offer | Best offers priced | Cheaper / dearer | Mean cost change ($) |",
       "| ---: | ---: | ---: | --- | --- | ---: | --- | ---: |", ...paired])];
