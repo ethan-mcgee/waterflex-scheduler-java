@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { HostStore, type MetroShape } from "../src/load/host.ts";
-import { disturbance, pairedAgainst, qualityLines, summarizeThreshold, withReceipt, type QualityCase, type Receipt, type Searched } from "../src/load/quality.ts";
+import { disturbance, pairedAgainst, parseVariants, qualityLines, summarizeVariant, withReceipt, type QualityCase, type Receipt, type Searched } from "../src/load/quality.ts";
 import { KIT_POLICY, KIT_RATES, type Snapshot } from "../src/snapshot.ts";
 
 const DATE = "2026-10-12";
@@ -53,31 +53,39 @@ test("touching a technician-day stamps it newer without changing it", () => {
 });
 
 const offer = (serviceDate: string, hour: number) => ({ serviceDate, start: `${serviceDate}T${hour}:00:00Z`, end: `${serviceDate}T${hour + 2}:00:00Z` });
-const searched = (threshold: number, offers: Searched["offers"], added: number | null, refinement = "COMPLETE"): Searched => ({ threshold, status: 201, ms: 100 * (threshold === 2 ? 3 : 6),
+const searched = (threshold: number, offers: Searched["offers"], added: number | null, refinement = "COMPLETE"): Searched => ({ variant: `${threshold}`, threshold, refinementMs: null, status: 201, ms: 100 * (threshold === 2 ? 3 : 6),
   refinement, searchComplete: true, incompleteDates: 0, offers,
   priced: added === null ? null : { beforeCostCents: 1000, afterCostCents: 1000 + added, addedCostCents: added, reassignedVisits: threshold === 2 ? 0 : 1, reorderedDays: 0 },
   pricingFailure: null });
 
-test("thresholds are summarized and compared on the same cases", () => {
+test("variants are summarized and compared on the same cases", () => {
   const cases: QualityCase[] = [
-    { index: 1, firstDate: "2026-10-12", dates: 13, order: [2, 1000],
+    { index: 1, firstDate: "2026-10-12", dates: 13, order: ["2", "1000"],
       searched: [searched(2, [offer("2026-10-14", 9), offer("2026-10-15", 9)], 2500, "SHORTENED"), searched(1000, [offer("2026-10-13", 9), offer("2026-10-15", 9), offer("2026-10-15", 13)], 2300)] },
-    { index: 2, firstDate: "2026-10-12", dates: 13, order: [1000, 2],
+    { index: 2, firstDate: "2026-10-12", dates: 13, order: ["1000", "2"],
       searched: [searched(2, [offer("2026-10-14", 9)], 2400, "SHED"), searched(1000, [offer("2026-10-14", 9)], 2400)] },
-    { index: 3, firstDate: "2026-10-12", dates: 13, order: [2, 1000],
+    { index: 3, firstDate: "2026-10-12", dates: 13, order: ["2", "1000"],
       searched: [searched(2, [], null, "SHED"), { ...searched(1000, [], null), status: 503, ms: null, refinement: null, searchComplete: null, incompleteDates: null, pricingFailure: "search answered 503" }] },
   ];
-  const low = summarizeThreshold(cases, 2);
+  const low = summarizeVariant(cases, "2");
   assert.deepEqual({ searches: low.searches, failed: low.failed, noOffer: low.noOffer, refinements: low.refinements, priced: low.priced },
     { searches: 3, failed: 0, noOffer: 1, refinements: { SHORTENED: 1, SHED: 2 }, priced: 2 });
   assert.equal(low.earliestLeadDays, 2, "Both searches with offers first offered two days after the horizon's first date");
   assert.deepEqual(low.addedCostCents, { mean: 2450, p50: 2400 });
-  const high = summarizeThreshold(cases, 1000);
+  const high = summarizeVariant(cases, "1000");
   assert.equal(high.failed, 1);
   assert.equal(high.distinctDatesPerSearch, 1.5);
-  assert.deepEqual(pairedAgainst(cases, 2, 1000), { threshold: 1000, cases: 2, sameOffers: 1, moreOffers: 1, fewerOffers: 0, earlierFirstOffer: 1,
+  assert.deepEqual(pairedAgainst(cases, "2", "1000"), { variant: "1000", cases: 2, sameOffers: 1, moreOffers: 1, fewerOffers: 0, earlierFirstOffer: 1,
     laterFirstOffer: 0, costCompared: 2, cheaper: 1, dearer: 0, meanCostChangeCents: -100 }, "The failed search's case is left out of the comparison");
-  const lines = qualityLines([2, 1000], cases);
+  const lines = qualityLines(["2", "1000"], cases);
   assert.equal(lines.find(line => line.startsWith("| 1000 | 2 |")), "| 1000 | 2 | 1 | 1 / 0 | 1 / 0 | 2 | 1 / 0 | -1.00 |");
-  assert.throws(() => qualityLines([], cases), /No thresholds/);
+  assert.throws(() => qualityLines([], cases), /No variants/);
+});
+
+test("variants name a threshold and an optional refinement cap, the first the baseline", () => {
+  assert.deepEqual(parseVariants("2, 2:500,1000"), [{ name: "2", threshold: 2, refinementMs: null }, { name: "2:500", threshold: 2, refinementMs: 500 },
+    { name: "1000", threshold: 1000, refinementMs: null }]);
+  assert.deepEqual(parseVariants("2:0"), [{ name: "2:0", threshold: 2, refinementMs: 0 }], "A cap of 0 skips the optional refinement");
+  for (const bad of ["", "2:", "x", "1001", "2:1001", "-1", "2:500:1"]) assert.throws(() => parseVariants(bad), /is not threshold\[:refinement ms\]/, bad);
+  assert.throws(() => parseVariants("2,2:250,2:250"), /distinct/);
 });

@@ -1,7 +1,7 @@
-// The window threshold study's quality measures. Each case searches the same records and job once per threshold, so
-// the offer sets compare directly: how many offers, how soon, on how many days, what the best one adds to the fleet's
-// modeled cost (its receipt applied to the day and timed by /api/v1/routes/evaluate, never written to the host), and
-// how many existing visits that booking moves.
+// The window threshold and refinement cap studies' quality measures. Each case searches the same records and job once
+// per variant (a threshold, and optionally a refinement cap), so the offer sets compare directly: how many offers, how
+// soon, on how many days, what the best one adds to the fleet's modeled cost (its receipt applied to the day and timed
+// by /api/v1/routes/evaluate, never written to the host), and how many existing visits that booking moves.
 import type { z } from "zod";
 import type * as Api from "../api.ts";
 import type { Appointment, Snapshot, Window } from "../snapshot.ts";
@@ -24,8 +24,34 @@ export interface Priced {
   readonly reorderedDays: number;
 }
 
-export interface Searched {
+/** A search setting under comparison: the policy's regularWindowThreshold and, when set, its bookingRefinementMs. */
+export interface Variant {
+  /** `2`, or `2:500` with a refinement cap of 500 ms. */
+  readonly name: string;
   readonly threshold: number;
+  /** Null leaves bookingRefinementMs out, so the scheduler's configured cap applies. */
+  readonly refinementMs: number | null;
+}
+
+/** Parses `2,2:500,1000`: distinct variants, the first the baseline. */
+export function parseVariants(text: string): Variant[] {
+  const variants = text.split(",").map(item => {
+    const match = /^(\d{1,4})(?::(\d{1,4}))?$/.exec(item.trim());
+    const threshold = Number(match?.[1]), cap = match?.[2];
+    const refinementMs = cap === undefined ? null : Number(cap);
+    if (match === null || threshold > 1000 || refinementMs !== null && refinementMs > 1000)
+      throw new Error(`Variant ${JSON.stringify(item.trim())} is not threshold[:refinement ms], each from 0 to 1000`);
+    return { name: refinementMs === null ? `${threshold}` : `${threshold}:${refinementMs}`, threshold, refinementMs };
+  });
+  if (new Set(variants.map(item => item.name)).size !== variants.length) throw new Error("Variants must be distinct");
+  return variants;
+}
+
+export interface Searched {
+  /** The variant's name; its threshold and cap follow. */
+  readonly variant: string;
+  readonly threshold: number;
+  readonly refinementMs: number | null;
   /** The search's final HTTP status after BUSY retries; null when no answer came. */
   readonly status: number | null;
   /** Caller milliseconds of an answered search (201), BUSY waits included. */
@@ -44,9 +70,9 @@ export interface QualityCase {
   /** The horizon's first date and its number of dates. */
   readonly firstDate: string;
   readonly dates: number;
-  /** In the order of the thresholds list; `order` is the order they were searched in. */
+  /** In the order of the variants list; `order` is the order they were searched in. */
   readonly searched: readonly Searched[];
-  readonly order: readonly number[];
+  readonly order: readonly string[];
 }
 
 /** The day as it would be after the receipt is written: the host's own write, applied to a copy. */
@@ -98,8 +124,8 @@ const signature = (offers: readonly OfferedWindow[]) => offers.map(offer => `${o
 const earliest = (offers: readonly OfferedWindow[]) => offers.reduce<string | null>((first, offer) => first === null || offer.serviceDate < first ? offer.serviceDate : first, null);
 const mean = (values: readonly number[]) => values.length === 0 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
 
-export interface ThresholdSummary {
-  readonly threshold: number;
+export interface VariantSummary {
+  readonly variant: string;
   readonly searches: number; readonly failed: number; readonly searchIncomplete: number;
   readonly refinements: Record<string, number>;
   readonly offersPerSearch: number | null; readonly noOffer: number;
@@ -112,9 +138,9 @@ export interface ThresholdSummary {
   readonly ms: { readonly p50: number; readonly p95: number } | null;
 }
 
-/** Each threshold against the baseline (the first in the list) on the same cases. */
+/** Each variant against the baseline (the first in the list) on the same cases. */
 export interface Paired {
-  readonly threshold: number;
+  readonly variant: string;
   readonly cases: number;
   readonly sameOffers: number;
   readonly moreOffers: number; readonly fewerOffers: number;
@@ -125,8 +151,8 @@ export interface Paired {
   readonly meanCostChangeCents: number | null;
 }
 
-export function summarizeThreshold(cases: readonly QualityCase[], threshold: number): ThresholdSummary {
-  const searched = cases.flatMap(item => item.searched.filter(entry => entry.threshold === threshold).map(entry => ({ entry, firstDate: item.firstDate })));
+export function summarizeVariant(cases: readonly QualityCase[], variant: string): VariantSummary {
+  const searched = cases.flatMap(item => item.searched.filter(entry => entry.variant === variant).map(entry => ({ entry, firstDate: item.firstDate })));
   const answered = searched.filter(({ entry }) => entry.status === 201);
   const withOffers = answered.filter(({ entry }) => entry.offers.length > 0);
   const priced = answered.flatMap(({ entry }) => entry.priced === null ? [] : [entry.priced]);
@@ -135,7 +161,7 @@ export function summarizeThreshold(cases: readonly QualityCase[], threshold: num
   const refinements: Record<string, number> = {};
   for (const { entry } of answered) refinements[entry.refinement ?? "ABSENT"] = (refinements[entry.refinement ?? "ABSENT"] ?? 0) + 1;
   return {
-    threshold, searches: searched.length, failed: searched.length - answered.length,
+    variant, searches: searched.length, failed: searched.length - answered.length,
     searchIncomplete: answered.filter(({ entry }) => entry.searchComplete === false).length, refinements,
     offersPerSearch: mean(answered.map(({ entry }) => entry.offers.length)), noOffer: answered.length - withOffers.length,
     earliestLeadDays: mean(withOffers.map(({ entry, firstDate }) => datesBetween(firstDate, earliest(entry.offers) ?? firstDate) - 1)),
@@ -147,11 +173,11 @@ export function summarizeThreshold(cases: readonly QualityCase[], threshold: num
   };
 }
 
-export function pairedAgainst(cases: readonly QualityCase[], baseline: number, threshold: number): Paired {
+export function pairedAgainst(cases: readonly QualityCase[], baseline: string, variant: string): Paired {
   let compared = 0, sameOffers = 0, moreOffers = 0, fewerOffers = 0, earlierFirstOffer = 0, laterFirstOffer = 0, cheaper = 0, dearer = 0;
   const changes: number[] = [];
   for (const item of cases) {
-    const base = item.searched.find(entry => entry.threshold === baseline), other = item.searched.find(entry => entry.threshold === threshold);
+    const base = item.searched.find(entry => entry.variant === baseline), other = item.searched.find(entry => entry.variant === variant);
     if (base === undefined || other === undefined || base.status !== 201 || other.status !== 201) continue;
     compared++;
     if (signature(base.offers) === signature(other.offers)) sameOffers++;
@@ -167,27 +193,27 @@ export function pairedAgainst(cases: readonly QualityCase[], baseline: number, t
       if (change > 0) dearer++;
     }
   }
-  return { threshold, cases: compared, sameOffers, moreOffers, fewerOffers, earlierFirstOffer, laterFirstOffer,
+  return { variant, cases: compared, sameOffers, moreOffers, fewerOffers, earlierFirstOffer, laterFirstOffer,
     costCompared: changes.length, cheaper, dearer, meanCostChangeCents: mean(changes) };
 }
 
 const fixed = (value: number | null, digits: number) => value === null ? "-" : value.toFixed(digits);
 const entries = (record: Record<string, number>) => Object.entries(record).map(([key, value]) => `${key} ${value}`).join(", ") || "none";
 
-export function qualityLines(thresholds: readonly number[], cases: readonly QualityCase[]): string[] {
-  const baseline = thresholds[0];
-  if (baseline === undefined) throw new Error("No thresholds");
-  const rows = thresholds.map(threshold => summarizeThreshold(cases, threshold)).map(s =>
-    `| ${s.threshold} | ${s.searches} | ${s.failed} | ${s.searchIncomplete} | ${entries(s.refinements)} | ${fixed(s.offersPerSearch, 2)} | ${s.noOffer} | ` +
+export function qualityLines(variants: readonly string[], cases: readonly QualityCase[]): string[] {
+  const baseline = variants[0];
+  if (baseline === undefined) throw new Error("No variants");
+  const rows = variants.map(variant => summarizeVariant(cases, variant)).map(s =>
+    `| ${s.variant} | ${s.searches} | ${s.failed} | ${s.searchIncomplete} | ${entries(s.refinements)} | ${fixed(s.offersPerSearch, 2)} | ${s.noOffer} | ` +
     `${fixed(s.earliestLeadDays, 2)} | ${fixed(s.distinctDatesPerSearch, 2)} | ${s.addedCostCents === null ? "-" : `${(s.addedCostCents.mean / 100).toFixed(2)} / ${(s.addedCostCents.p50 / 100).toFixed(2)}`} | ` +
     `${s.reassignedVisits} / ${s.reorderedDays} | ${s.ms === null ? "-" : `${s.ms.p50} / ${s.ms.p95}`} |`);
-  const paired = thresholds.slice(1).map(threshold => pairedAgainst(cases, baseline, threshold)).map(p =>
-    `| ${p.threshold} | ${p.cases} | ${p.sameOffers} | ${p.moreOffers} / ${p.fewerOffers} | ${p.earlierFirstOffer} / ${p.laterFirstOffer} | ` +
+  const paired = variants.slice(1).map(variant => pairedAgainst(cases, baseline, variant)).map(p =>
+    `| ${p.variant} | ${p.cases} | ${p.sameOffers} | ${p.moreOffers} / ${p.fewerOffers} | ${p.earlierFirstOffer} / ${p.laterFirstOffer} | ` +
     `${p.costCompared} | ${p.cheaper} / ${p.dearer} | ${p.meanCostChangeCents === null ? "-" : (p.meanCostChangeCents / 100).toFixed(2)} |`);
-  return ["## Offers by window threshold", "",
-    "| Threshold | Searches | Failed | searchComplete false | Refinement | Offers per search | No offer | Days to first offer | Days offered | Best offer adds, mean / p50 ($) | Visits reassigned / days reordered | Search p50 / p95 ms |",
+  return ["## Offers by variant (window threshold[:refinement cap ms])", "",
+    "| Variant | Searches | Failed | searchComplete false | Refinement | Offers per search | No offer | Days to first offer | Days offered | Best offer adds, mean / p50 ($) | Visits reassigned / days reordered | Search p50 / p95 ms |",
     "| ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: | --- | --- | --- |", ...rows,
-    ...(paired.length === 0 ? [] : ["", `## Against threshold ${baseline} on the same cases`, "",
-      "| Threshold | Cases | Same offers | More / fewer offers | Earlier / later first offer | Best offers priced | Cheaper / dearer | Mean cost change ($) |",
+    ...(paired.length === 0 ? [] : ["", `## Against ${baseline} on the same cases`, "",
+      "| Variant | Cases | Same offers | More / fewer offers | Earlier / later first offer | Best offers priced | Cheaper / dearer | Mean cost change ($) |",
       "| ---: | ---: | ---: | --- | --- | ---: | --- | ---: |", ...paired])];
 }

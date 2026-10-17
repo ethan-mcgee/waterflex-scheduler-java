@@ -68,7 +68,7 @@ export function loadMarkdown(report: LoadReport): string {
       `${s.appointmentsPerDay} visits per day booked${s.horizon.bookedWeekdays === 0 ? "" : ` (${s.horizon.bookedAppointments} on the first ${s.horizon.bookedWeekdays} weekdays)`}; jobs ${s.jobs}; ` +
       `confirm ${Math.round(s.confirmRate * 100)} percent; offerLimit ${s.offerLimit}, windowHours ${s.windowHours}`,
     `- Daily day: ${s.dailyTechnicians} technicians x ${s.appointmentsPerDay} visits${s.dailyMode === "async" ? ", queued (Prefer: respond-async)" : ""}; search ${s.policy.costSearchSeconds} + ${s.policy.fairnessSearchSeconds} s; ` +
-      `bookingDeadlineMs ${s.policy.bookingDeadlineMs}`,
+      `bookingDeadlineMs ${s.policy.bookingDeadlineMs}, regularWindowThreshold ${s.policy.regularWindowThreshold}, bookingRefinementMs ${s.policy.bookingRefinementMs ?? "the scheduler's"}`,
     `- Machine: ${report.machine.cpus} CPUs (${report.machine.cpuModel}), ${gib(report.machine.memoryBytes)}, Node ${report.machine.node}`, "",
     "## Caller-side latency", "",
     "| Operation | Calls | Statuses | Errors | Waited on BUSY | p50 ms | p95 ms | p99 ms | max ms |", "| --- | ---: | --- | --- | ---: | ---: | ---: | ---: | ---: |",

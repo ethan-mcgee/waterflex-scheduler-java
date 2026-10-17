@@ -1,10 +1,10 @@
-// Offer quality by window threshold: builds one host metro and optimizes every date with daily proposals, as the
-// overnight run would. Each case is then a new job address, searched once per --thresholds value on the same records
+// Offer quality by window threshold and refinement cap: builds one host metro and optimizes every date with daily
+// proposals, as the overnight run would. Each case is then a new job address, searched once per --variants value on the same records
 // (in a rotated order, so the route cache warmed by the first search favours none). The best offer is confirmed and
 // priced with /api/v1/routes/evaluate against the day before the booking; the host writes nothing, and stamps the
 // confirmed days as written and cancelled, so the next search's records are newer than the confirm's.
 //   npx tsx quality.ts --url http://127.0.0.1:8000 --token-file ./token --metro metro-omaha --time-zone America/Chicago \
-//     --area 41.22,-96.05,41.28,-95.95 --thresholds 2,1000 --cases 30
+//     --area 41.22,-96.05,41.28,-95.95 --variants 2,2:1000,1000 --cases 30
 // Use a dedicated tenant: it confirms jobs under its own IDs on dates two days ahead and later.
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -16,22 +16,24 @@ import * as Api from "./src/api.ts";
 import { SchedulerApi, type Reply } from "./src/client.ts";
 import { dynamicHorizon, isWeekday, recordDates, weekdayWindow } from "./src/load/horizon.ts";
 import { HostStore, type Job, type MetroShape } from "./src/load/host.ts";
-import { disturbance, qualityLines, withReceipt, type OfferedWindow, type QualityCase, type Searched } from "./src/load/quality.ts";
+import { disturbance, parseVariants, qualityLines, withReceipt, type OfferedWindow, type QualityCase, type Searched, type Variant } from "./src/load/quality.ts";
 import { retryAfterMs } from "./src/load/scenarios.ts";
 import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES, type Snapshot } from "./src/snapshot.ts";
 import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
 
 const USAGE = `Usage: npx tsx quality.ts --url <base URL> --token-file <file> --metro <metroId> --time-zone <IANA zone>
-    (--area <south,west,north,east> | --points fixture) [--thresholds 2,1000] [--cases 30] [--technicians 3]
+    (--area <south,west,north,east> | --points fixture) [--variants 2,1000 | --thresholds 2,1000] [--cases 30] [--technicians 3]
     [--appointments 2] [--horizon fixed|dynamic] [--horizon-weekdays 10] [--lead-weekdays 2] [--full-percent 85]
     [--booked-weekdays 0] [--booked-appointments 4] [--offer-limit 4] [--window-hours 2] [--deadline-ms 5000]
     [--seed 1] [--label <text>] [--out <directory>]
-  The first threshold is the baseline every other is compared with on the same cases.`;
+  A variant is a regularWindowThreshold, optionally with a bookingRefinementMs cap: 2:500 is threshold 2 with a 500 ms
+  cap, and 2 alone leaves the scheduler's configured cap. --thresholds lists variants without caps. The first variant
+  is the baseline every other is compared with on the same cases.`;
 
 class UsageError extends Error { }
 
-const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "thresholds", "cases", "technicians", "appointments",
+const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "thresholds", "variants", "cases", "technicians", "appointments",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "offer-limit", "window-hours",
   "deadline-ms", "seed", "label", "out"] as const;
 
@@ -55,9 +57,11 @@ function settings() {
     if (!Number.isInteger(value) || value < min || value > max) throw new UsageError(`--${name} must be a whole number from ${min} to ${max}`);
     return value;
   };
-  const thresholds = (text("thresholds") ?? "2,1000").split(",").map(item => Number(item.trim()));
-  if (thresholds.length < 1 || thresholds.some(item => !Number.isInteger(item) || item < 0 || item > 1000) || new Set(thresholds).size !== thresholds.length)
-    throw new UsageError("--thresholds is a list of distinct whole numbers from 0 to 1000");
+  if (text("thresholds") !== undefined && text("variants") !== undefined) throw new UsageError("Give --variants or --thresholds, not both");
+  const listed = text("variants") ?? text("thresholds") ?? "2,1000";
+  if (text("thresholds") !== undefined && listed.includes(":")) throw new UsageError("--thresholds takes no refinement caps; use --variants");
+  let variants: Variant[];
+  try { variants = parseVariants(listed); } catch (error) { throw new UsageError(error instanceof Error ? error.message : String(error)); }
   const metroId = required("metro");
   if (!Api.Id.safeParse(metroId).success) throw new UsageError("--metro is not a valid ID");
   if ((text("area") === undefined) === (text("points") === undefined)) throw new UsageError("Give exactly one of --area and --points fixture");
@@ -73,7 +77,7 @@ function settings() {
   }
   return {
     api: new SchedulerApi(required("url"), token), metroId, timeZone: requireTimeZone(required("time-zone")),
-    area: text("area") === undefined ? null : parseArea(required("area")), thresholds, cases: integer("cases", 30, 1, 500),
+    area: text("area") === undefined ? null : parseArea(required("area")), variants, cases: integer("cases", 30, 1, 500),
     technicians: integer("technicians", 3, 1, 200), appointments: integer("appointments", 2, 0, 4),
     horizonMode, horizonWeekdays: integer("horizon-weekdays", horizonMode === "dynamic" ? 15 : 10, 1, 15),
     leadWeekdays: integer("lead-weekdays", 2, 1, 5), fullPercent: integer("full-percent", 85, 50, 100),
@@ -139,7 +143,7 @@ async function main(): Promise<number> {
   const breaches: string[] = [];
   const cases: QualityCase[] = [];
   const startedAt = new Date();
-  console.log(`Quality run ${prefix}: ${o.cases} cases, thresholds ${o.thresholds.join(", ")}, against ${o.api.base}`);
+  console.log(`Quality run ${prefix}: ${o.cases} cases, variants ${o.variants.map(item => item.name).join(", ")}, against ${o.api.base}`);
 
   // One metro, optimized first as the overnight run leaves a schedule, so a booking is priced against a day that has no
   // slack of its own to give up; without this the refinement is credited with savings the overnight run would make.
@@ -166,27 +170,28 @@ async function main(): Promise<number> {
   if (first === undefined || last === undefined) throw new Error("Empty booking horizon");
 
   for (let index = 1; index <= o.cases; index++) {
-    // Each case is a new job address on the same schedule, searched once per threshold in a rotated order.
+    // Each case is a new job address on the same schedule, searched once per variant in a rotated order.
     const location = point();
-    const order = o.thresholds.map((_, n) => o.thresholds[(n + index - 1) % o.thresholds.length] ?? 0);
-    const searched = new Map<number, Searched>();
-    for (const threshold of order) {
-      const policy = { ...basePolicy, regularWindowThreshold: threshold };
+    const order = o.variants.map((_, n) => o.variants[(n + index - 1) % o.variants.length] ?? (() => { throw new Error("No variants"); })());
+    const searched = new Map<string, Searched>();
+    for (const variant of order) {
+      const { name, threshold, refinementMs } = variant;
+      const policy = { ...basePolicy, regularWindowThreshold: threshold, ...(refinementMs === null ? {} : { bookingRefinementMs: refinementMs }) };
       const snapshot = (days: readonly string[]): Snapshot => ({ ...store.snapshot(days), policy });
-      const job: Job = { id: `${prefix}-job-${index}-t${threshold}`, serviceId, durationMinutes: 60, location };
+      const job: Job = { id: `${prefix}-job-${index}-t${threshold}${refinementMs === null ? "" : `r${refinementMs}`}`, serviceId, durationMinutes: 60, location };
       const started = performance.now();
       const reply = await call(o.api, "/api/v1/booking/offers", { requestId: randomUUID(), job, horizon: { firstDate: first, lastDate: last },
         offerLimit: o.offerLimit, windowHours: o.windowHours, snapshot: snapshot(dates) }, timeoutMs);
       const ms = Math.round(performance.now() - started);
       const set = reply?.status === 201 ? parsed(breaches, reply, Api.OfferSet, "Booking offers") : null;
-      const empty = { threshold, status: reply?.status ?? null, ms: null, refinement: null, searchComplete: null, incompleteDates: null, offers: [], priced: null };
-      if (set === null) { searched.set(threshold, { ...empty, pricingFailure: reply === null ? "no answer" : `search answered ${reply.status}` }); continue; }
+      const empty = { variant: name, threshold, refinementMs, status: reply?.status ?? null, ms: null, refinement: null, searchComplete: null, incompleteDates: null, offers: [], priced: null };
+      if (set === null) { searched.set(name, { ...empty, pricingFailure: reply === null ? "no answer" : `search answered ${reply.status}` }); continue; }
       const offers: OfferedWindow[] = set.offers.map(offer => ({ serviceDate: offer.serviceDate, start: offer.window.start, end: offer.window.end }));
-      const result = { threshold, status: 201, ms, refinement: set.refinement ?? null, searchComplete: set.searchComplete,
+      const result = { variant: name, threshold, refinementMs, status: 201, ms, refinement: set.refinement ?? null, searchComplete: set.searchComplete,
         incompleteDates: set.incompleteDates?.length ?? null, offers };
       const best = set.offers[0];
-      if (best === undefined) { searched.set(threshold, { ...result, priced: null, pricingFailure: null }); continue; }
-      const failed = (why: string) => searched.set(threshold, { ...result, priced: null, pricingFailure: why });
+      if (best === undefined) { searched.set(name, { ...result, priced: null, pricingFailure: null }); continue; }
+      const failed = (why: string) => searched.set(name, { ...result, priced: null, pricingFailure: why });
       const selected = await call(o.api, `/api/v1/booking/offers/${encodeURIComponent(best.offerId)}/select`, { requestId: randomUUID() }, 10_000);
       const hold = selected?.status === 200 ? parsed(breaches, selected, Api.Hold, "Select") : null;
       if (hold === null) { failed(`select answered ${selected?.status ?? "nothing"}`); continue; }
@@ -210,11 +215,11 @@ async function main(): Promise<number> {
       if (typeof was === "string") { failed(`before: ${was}`); continue; }
       const now = await evaluate(after);
       if (typeof now === "string") { failed(`after: ${now}`); continue; }
-      searched.set(threshold, { ...result, priced: { beforeCostCents: was, afterCostCents: now, addedCostCents: now - was, ...disturbance(day, after, job.id) }, pricingFailure: null });
+      searched.set(name, { ...result, priced: { beforeCostCents: was, afterCostCents: now, addedCostCents: now - was, ...disturbance(day, after, job.id) }, pricingFailure: null });
     }
-    const inListOrder = o.thresholds.map(threshold => searched.get(threshold) ?? (() => { throw new Error(`Threshold ${threshold} was not searched`); })());
-    cases.push({ index, firstDate: first, dates: dates.length, searched: inListOrder, order });
-    const line = inListOrder.map(s => `t${s.threshold}: ${s.offers.length} offers, ${s.refinement ?? s.status}, ` +
+    const inListOrder = o.variants.map(({ name }) => searched.get(name) ?? (() => { throw new Error(`Variant ${name} was not searched`); })());
+    cases.push({ index, firstDate: first, dates: dates.length, searched: inListOrder, order: order.map(item => item.name) });
+    const line = inListOrder.map(s => `${s.variant}: ${s.offers.length} offers, ${s.refinement ?? s.status}, ` +
       `${s.priced === null ? s.pricingFailure ?? "not priced" : `adds ${(s.priced.addedCostCents / 100).toFixed(2)}`}`).join("; ");
     console.log(`[${index}/${o.cases}] ${dates.length} dates; ${line}`);
   }
@@ -222,7 +227,7 @@ async function main(): Promise<number> {
   const finishedAt = new Date();
   const report = { label: o.label, scheduler: o.api.base, metroId: o.metroId, timeZone: o.timeZone, run: prefix,
     startedAt: startedAt.toISOString(), finishedAt: finishedAt.toISOString(),
-    settings: { thresholds: o.thresholds, cases: o.cases, technicians: o.technicians, appointmentsPerDay: o.appointments,
+    settings: { variants: o.variants, cases: o.cases, technicians: o.technicians, appointmentsPerDay: o.appointments,
       horizon: { mode: o.horizonMode, weekdays: o.horizonWeekdays, leadWeekdays: o.horizonMode === "dynamic" ? o.leadWeekdays : null,
         fullPercent: o.horizonMode === "dynamic" ? o.fullPercent : null, bookedWeekdays: o.bookedWeekdays, bookedAppointments: o.bookedWeekdays === 0 ? null : o.bookedAppointments },
       offerLimit: o.offerLimit, windowHours: o.windowHours, policy: basePolicy, seed: o.seed,
@@ -232,7 +237,7 @@ async function main(): Promise<number> {
   const lines = [`# Quality run ${prefix}${o.label === null ? "" : `: ${o.label}`}`, "",
     `- ${o.cases} cases of ${o.technicians} technicians x ${o.appointments} visits a day${o.bookedWeekdays === 0 ? "" : ` (${o.bookedAppointments} on the first ${o.bookedWeekdays} weekdays)`}; ` +
       `horizon ${o.horizonMode} ${o.horizonWeekdays} weekdays; offerLimit ${o.offerLimit}, windowHours ${o.windowHours}, bookingDeadlineMs ${o.deadlineMs}`,
-    `- Ran ${((finishedAt.getTime() - startedAt.getTime()) / 1000).toFixed(0)} s against ${o.api.base}`, "", ...qualityLines(o.thresholds, cases),
+    `- Ran ${((finishedAt.getTime() - startedAt.getTime()) / 1000).toFixed(0)} s against ${o.api.base}`, "", ...qualityLines(o.variants.map(item => item.name), cases),
     ...(breaches.length === 0 ? [] : ["", "## Defects found", "", ...breaches.map(item => `- Contract: ${item}`)])];
   mkdirSync(o.out, { recursive: true });
   const name = `quality-${startedAt.toISOString().replace(/[:.]/g, "-")}`;
