@@ -106,13 +106,73 @@ class BookingOffersRefinementTest {
         var optional = refining(OPTIONAL, "BOUNDED", capped);
         var searched = optional.offers.calculate(optional.roads, optional.input.snapshot(), optional.input.request(), BUDGET_MS);
         assertEquals(Refinement.SHORTENED, searched.refinement());
+        assertEquals(PublicResponses.RefinementStop.CAP, searched.stop(), "the engine stopped at the refinement cap");
         assertTrue(searched.complete(), "the optional refinement's cap does not make the search incomplete");
 
         var required = refining(REQUIRED, "BOUNDED", capped);
         searched = required.offers.calculate(required.roads, required.input.snapshot(), required.input.request(), BUDGET_MS);
         assertEquals(Refinement.SHORTENED, searched.refinement());
+        assertEquals(PublicResponses.RefinementStop.CAP, searched.stop());
         assertFalse(searched.complete(), "a required refinement that did not finish leaves the search incomplete");
         assertEquals(dates(searched.result()), searched.incompleteDates(), "on the dates of the windows it had not finished");
+    }
+
+    @Test void whatStoppedAShortenedRefinementIsNamedAndEveryOtherOutcomeHasNoStop() {
+        var byCap = failingRefinement(OPTIONAL, BoundedBookingSearch.RefinementLimit::new);
+        var searched = byCap.offers.calculate(byCap.roads, byCap.input.snapshot(), byCap.input.request(), BUDGET_MS);
+        assertEquals(Refinement.SHORTENED, searched.refinement());
+        assertEquals(PublicResponses.RefinementStop.CAP, searched.stop(), "the routing checkpoint reached the cap");
+
+        var byDeadline = failingRefinement(REQUIRED, SearchDeadline.Expired::new);
+        searched = byDeadline.offers.calculate(byDeadline.roads, byDeadline.input.snapshot(), byDeadline.input.request(), BUDGET_MS);
+        assertEquals(Refinement.SHORTENED, searched.refinement());
+        assertEquals(PublicResponses.RefinementStop.DEADLINE, searched.stop(), "the deadline ended the refinement");
+
+        var finished = refining(OPTIONAL, "BOUNDED", output -> output);
+        searched = finished.offers.calculate(finished.roads, finished.input.snapshot(), finished.input.request(), BUDGET_MS);
+        assertEquals(Refinement.COMPLETE, searched.refinement());
+        assertNull(searched.stop(), "a finished refinement was stopped by nothing");
+
+        var unavailable = failingRefinement(OPTIONAL, () -> new RoadClient.RoadUnavailable("routing down"));
+        searched = unavailable.offers.calculate(unavailable.roads, unavailable.input.snapshot(), unavailable.input.request(), BUDGET_MS);
+        assertEquals(Refinement.UNAVAILABLE, searched.refinement());
+        assertNull(searched.stop(), "an unavailable refinement has no stop: it did not run to a cap or the deadline");
+        var last = searched;
+        assertThrows(IllegalArgumentException.class, () -> new BookingOffers.Searched(last.snapshot(), last.result(), Refinement.COMPLETE, false,
+                last.incompleteDates(), PublicResponses.RefinementStop.CAP, null), "a stop belongs to a SHORTENED refinement only");
+    }
+
+    @Test void theFirstPassesRegularWindowCountIsReportedWhenThatPassFinished() {
+        var fixture = refining(OPTIONAL, "BOUNDED", output -> output);
+        var searched = fixture.offers.calculate(fixture.roads, fixture.input.snapshot(), fixture.input.request(), BUDGET_MS);
+        Integer found = searched.regularWindowsFound();
+        assertNotNull(found, "the insertion pass finished, so its count is known");
+        assertEquals(BookingCalculation.run(fixture.input).result().distinctRegularWindows(), found, "the engine's own count of the insertion pass");
+        assertTrue(found > OPTIONAL, "above the threshold, which is why the refinement was optional");
+
+        var skipped = refining(OPTIONAL, "INSERTION", output -> output);
+        searched = skipped.offers.calculate(skipped.roads, skipped.input.snapshot(), skipped.input.request(), BUDGET_MS);
+        assertEquals(found, searched.regularWindowsFound(), "the count is the first pass's, whatever follows it");
+        var last = searched;
+        assertThrows(IllegalArgumentException.class, () -> new BookingOffers.Searched(last.snapshot(), last.result(), Refinement.SKIPPED, false,
+                last.incompleteDates(), null, -1));
+    }
+
+    @Test void thePublishReserveIsASettingWithinItsBounds() {
+        var transport = mock(CalculationTransport.class);
+        java.util.function.IntFunction<BookingOffers> withReserve = reserve -> new BookingOffers(mock(PublicApiStore.class), mock(BookingStore.class),
+                mock(MetroRouting.class), mock(DailyPreparation.AddressLocator.class), transport, new SearchAdmission(2, 16), new RunningRequests(),
+                "BOUNDED", 250, reserve, Required.value(Clock.systemUTC()));
+        assertEquals(java.time.Duration.ofMillis(500), withReserve.apply(500).publishReserve());
+        assertEquals(java.time.Duration.ofMillis(BookingOffers.MIN_PUBLISH_RESERVE_MS), withReserve.apply(BookingOffers.MIN_PUBLISH_RESERVE_MS).publishReserve());
+        assertEquals(java.time.Duration.ofSeconds(1), withReserve.apply(BookingOffers.MAX_PUBLISH_RESERVE_MS).publishReserve(), "the second every search kept before");
+        assertThrows(IllegalArgumentException.class, () -> withReserve.apply(BookingOffers.MIN_PUBLISH_RESERVE_MS - 1));
+        assertThrows(IllegalArgumentException.class, () -> withReserve.apply(BookingOffers.MAX_PUBLISH_RESERVE_MS + 1));
+        assertEquals(BookingCalculation.MAX_REFINEMENT_MS, BookingOffers.MAX_REFINEMENT_MS, "one cap for the engine, the operator and the client");
+        assertEquals(3000, BookingOffers.MAX_REFINEMENT_MS);
+        assertThrows(IllegalArgumentException.class, () -> new BookingOffers(mock(PublicApiStore.class), mock(BookingStore.class),
+                mock(MetroRouting.class), mock(DailyPreparation.AddressLocator.class), transport, new SearchAdmission(2, 16), new RunningRequests(),
+                "BOUNDED", BookingOffers.MAX_REFINEMENT_MS + 1, Required.value(Clock.systemUTC())), "the operator's default is bounded by the same cap");
     }
 
     @Test void anOptionalRefinementIsShedWhileOtherBookingsWaitForASlot() throws Exception {

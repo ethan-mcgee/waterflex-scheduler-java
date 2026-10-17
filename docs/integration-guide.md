@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.4.1);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.5.0);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -197,8 +197,13 @@ It answers 201 within the client's `bookingDeadlineMs`:
   other customers were waiting for a booking slot and the optional pass gave its time to them). It is for monitoring
   and needs no action. A replay of an offer set answered before spec 1.2.0 leaves out `refinement`, and before 1.3.0
   `incompleteDates`.
-- `policy.bookingRefinementMs` (optional) sets how long a client's optional refinement may run, 0 to 1000 ms; 0 turns
-  it off and leaves the first pass's offers. Without it the scheduler operator's default applies.
+- `policy.bookingRefinementMs` (optional) sets how long a client's optional refinement may run, 0 to 3000 ms (1000
+  before spec 1.5.0); 0 turns it off and leaves the first pass's offers. Without it the scheduler operator's default
+  applies. The deadline still ends a refinement that would run past it.
+- `refinementStop` (spec 1.5.0) says what ended a `SHORTENED` refinement: `CAP`, its own budget, or `DEADLINE`. It is
+  sent only with `SHORTENED`. `regularWindowsFound` (spec 1.5.0) is how many distinct regular windows the first pass
+  found, the number compared with `regularWindowThreshold`; it is left out when the first pass did not finish. Both
+  are for tuning the policy and need no action.
 - `job.id` must differ from every appointment and technician ID in the snapshot. A date already past its 6 a.m. local
   cutoff is a 422; start the horizon after it.
 - A new search for the same job ends its earlier offers. Search again whenever the customer changes their mind.
@@ -451,7 +456,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.4.1). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.5.0). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor

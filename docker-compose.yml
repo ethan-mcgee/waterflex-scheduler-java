@@ -101,6 +101,10 @@ services:
       SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-http://solver-service:8002}
       SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_SEARCH_CAPACITY:-0}
+      # Connections: more than the capacity and confirm slots together, with headroom; the publish reserve is the part
+      # of a client's bookingDeadlineMs kept back to validate and publish the offers (200 to 1000).
+      SCHEDULER_DB_POOL_SIZE: ${SCHEDULER_DB_POOL_SIZE:-10}
+      SCHEDULER_BOOKING_PUBLISH_RESERVE_MS: ${SCHEDULER_BOOKING_PUBLISH_RESERVE_MS:-1000}
       # Public API locations sent with an address only: COORDINATES_REQUIRED never locates them; NOMINATIM looks
       # them up in the scheduler's own Nominatim and accepts only an exact house.
       GEOCODING_MODE: ${GEOCODING_MODE:-COORDINATES_REQUIRED}

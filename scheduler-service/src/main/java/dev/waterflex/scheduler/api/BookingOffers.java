@@ -85,28 +85,47 @@ public class BookingOffers {
     private final RunningRequests running;
     private final String variant;
     private final int refinementMillis;
+    /** The part of a client's deadline kept back from exploration to validate, prepare and publish the offers. */
+    private final Duration publishReserve;
     private final Clock clock;
     /** Refinement results that failed validation since this process started; each one kept the insertion offers. */
     private final LongAdder invalidRefinements = new LongAdder();
     private final LongAdder shedRefinements = new LongAdder();
     /** The largest optional refinement budget, for the operator's default and a client's own. */
-    static final int MAX_REFINEMENT_MS = 1000;
+    static final int MAX_REFINEMENT_MS = BookingCalculation.MAX_REFINEMENT_MS;
+    /**
+     * Bounds of the publish reserve, in milliseconds. The floor is a small fleet's commit at a stretch; the ceiling is the
+     * second every search kept before the reserve became a setting, so a deadline of 1000 ms still leaves no exploration.
+     */
+    static final int MIN_PUBLISH_RESERVE_MS = 200, MAX_PUBLISH_RESERVE_MS = 1000;
 
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
                          SearchAdmission admission, RunningRequests running,
-                         @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:250}") int refinementMillis) {
-        this(store, bookings, routing, locator, transport, admission, running, variant, refinementMillis, Required.value(Clock.systemUTC()));
+                         @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:250}") int refinementMillis,
+                         @Value("${booking.search.publish-reserve-ms:1000}") int publishReserveMillis) {
+        this(store, bookings, routing, locator, transport, admission, running, variant, refinementMillis, publishReserveMillis, Required.value(Clock.systemUTC()));
+    }
+
+    /** The one second publish reserve every search had before it became a setting. */
+    public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
+                         SearchAdmission admission, RunningRequests running, String variant, int refinementMillis, Clock clock) {
+        this(store, bookings, routing, locator, transport, admission, running, variant, refinementMillis, MAX_PUBLISH_RESERVE_MS, clock);
     }
 
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
-                         SearchAdmission admission, RunningRequests running, String variant, int refinementMillis, Clock clock) {
+                         SearchAdmission admission, RunningRequests running, String variant, int refinementMillis, int publishReserveMillis, Clock clock) {
         if (!VARIANTS.contains(variant)) throw new IllegalArgumentException("Unknown booking search variant " + variant);
         if (refinementMillis < 0 || refinementMillis > MAX_REFINEMENT_MS) throw new IllegalArgumentException("Invalid optional refinement budget");
+        if (publishReserveMillis < MIN_PUBLISH_RESERVE_MS || publishReserveMillis > MAX_PUBLISH_RESERVE_MS)
+            throw new IllegalArgumentException("booking.search.publish-reserve-ms must be " + MIN_PUBLISH_RESERVE_MS + " to " + MAX_PUBLISH_RESERVE_MS);
         this.store = store; this.bookings = bookings; this.routing = routing; this.locator = locator; this.transport = transport;
         this.admission = admission; this.running = running; this.variant = variant;
-        this.refinementMillis = refinementMillis; this.clock = clock;
+        this.refinementMillis = refinementMillis; this.publishReserve = Required.value(Duration.ofMillis(publishReserveMillis)); this.clock = clock;
     }
+
+    /** The publish reserve this service keeps back from every booking search's exploration. */
+    public Duration publishReserve() { return publishReserve; }
 
     public Reply create(String tenantId, String body) {
         BookingOffersRequest request;
@@ -140,8 +159,9 @@ public class BookingOffers {
             return Reply.of(429, new Problem(ErrorCode.BUSY, Required.value(already.getMessage())));
         }
         try {
-            // The client's own booking deadline bounds the whole search, admission and publication included.
-            SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())));
+            // The client's own booking deadline bounds the whole search, admission and publication included; the operator's
+            // publish reserve is the part of it kept back from exploration for validating, preparing and publishing.
+            SearchDeadline deadline = new SearchDeadline(Required.value(Duration.ofMillis(request.snapshot().policy().bookingDeadlineMs())), publishReserve);
             registered.attach(deadline);
             OfferSet offers = deadline.within(() -> {
                 // A request refused for its facts, or a late snapshot, is answered before it waits for a search slot. The
@@ -316,7 +336,7 @@ public class BookingOffers {
             writes.put(day.key(), new BookingStore.DayWrite(day.stored().version(), next, ended, placed));
         }
         var body = new OfferSet(offerSetId, expiresAt, Required.value(List.copyOf(offers)), searched.complete() && bundle.completed(), built.skipped(),
-                searched.refinement(), Required.value(List.copyOf(searched.incompleteDates())));
+                searched.refinement(), Required.value(List.copyOf(searched.incompleteDates())), searched.stop(), searched.regularWindowsFound());
         SearchDeadline.beforeCommit();
         bookings.publish(tenantId, owner, writes, heldBefore, new BookingStore.Publication(offerSetId, request.requestId(), job.jobId(), metro, expiresAt, body, newOffers));
         return body;
@@ -335,10 +355,16 @@ public class BookingOffers {
      * A search result, the snapshot holding every leg it was found with, and how the search ended. {@code refinementRequired}:
      * the insertion pass found no more distinct regular windows than the client's threshold, so the offers are not complete
      * until the refinement finishes too. {@code incompleteDates}: the dates where a pass the offers need did not finish.
+     * {@code stop}: what ended a SHORTENED refinement, null for every other outcome. {@code regularWindowsFound}: the
+     * insertion pass's distinct regular windows, null when that pass did not finish and the count is only a lower bound.
      */
     record Searched(BookingSnapshot snapshot, BoundedBookingSearch.Result result, Refinement refinement, boolean refinementRequired,
-                    SortedSet<LocalDate> incompleteDates) {
-        Searched { incompleteDates = Required.value(Collections.unmodifiableSortedSet(new TreeSet<>(incompleteDates))); }
+                    SortedSet<LocalDate> incompleteDates, @Nullable RefinementStop stop, @Nullable Integer regularWindowsFound) {
+        Searched {
+            incompleteDates = Required.value(Collections.unmodifiableSortedSet(new TreeSet<>(incompleteDates)));
+            if (stop != null && refinement != Refinement.SHORTENED) throw new IllegalArgumentException("Only a SHORTENED refinement has a stop");
+            if (regularWindowsFound != null && regularWindowsFound < 0) throw new IllegalArgumentException("Negative regular window count");
+        }
 
         /**
          * The search part of the public {@code searchComplete}: every date's needed passes finished. An optional refinement
@@ -379,19 +405,21 @@ public class BookingOffers {
         if (optionalMillis < 0 || optionalMillis > MAX_REFINEMENT_MS) throw new IllegalArgumentException("Invalid optional refinement budget");
         var inserted = timed(() -> transport.booking(new BookingCalculation.Input(snapshot, job, BookingCalculation.Stage.INSERTION, variant, null, 0)));
         BoundedBookingSearch.Result result = inserted.result();
+        // The count the threshold is compared with; an insertion pass the deadline stopped only knows a lower bound.
+        @Nullable Integer found = result.complete() ? result.distinctRegularWindows() : null;
         // The INSERTION variant is the whole search by configuration; nothing more is owed.
-        if (variant.equals("INSERTION")) return new Searched(snapshot, result, Refinement.SKIPPED, false, unfinished(result));
+        if (variant.equals("INSERTION")) return new Searched(snapshot, result, Refinement.SKIPPED, false, unfinished(result), null, found);
         // With more distinct regular windows than the threshold the offers are already plentiful and the refinement is optional.
         boolean required = result.distinctRegularWindows() <= snapshot.policy().regularWindowThreshold();
         if ("DEADLINE".equals(result.stopReason()))
-            return new Searched(snapshot, result, Refinement.SKIPPED, required, required ? searched(result) : unfinished(result));
+            return new Searched(snapshot, result, Refinement.SKIPPED, required, required ? searched(result) : unfinished(result), null, found);
         boolean optional = !required;
         SortedSet<LocalDate> inserting = unfinished(result);
-        if (optional && optionalMillis == 0) return new Searched(snapshot, incomplete(result, "REFINEMENT_SKIPPED"), Refinement.SKIPPED, false, inserting);
+        if (optional && optionalMillis == 0) return new Searched(snapshot, incomplete(result, "REFINEMENT_SKIPPED"), Refinement.SKIPPED, false, inserting, null, found);
         if (optional && admission.state().queuedBookings() > 0) {
             // Other customers are waiting for a booking slot: give them this one instead of improving plentiful offers.
             shedRefinements.increment();
-            return new Searched(snapshot, incomplete(result, "REFINEMENT_SHED"), Refinement.SHED, false, inserting);
+            return new Searched(snapshot, incomplete(result, "REFINEMENT_SHED"), Refinement.SHED, false, inserting, null, found);
         }
         // A required refinement that did not return leaves every date unproven; an optional one leaves the insertion pass's.
         SortedSet<LocalDate> unreturned = optional ? inserting : searched(result);
@@ -417,25 +445,37 @@ public class BookingOffers {
                 invalidRefinements.increment();
                 LOG.error("Refinement result for job {} failed validation ({} since this process started); keeping the insertion offers: {}",
                         job.jobId(), invalidRefinements.sum(), invalid.getMessage(), invalid);
-                return new Searched(widened, incomplete(result, "REFINEMENT_INVALID"), Refinement.UNAVAILABLE, required, unreturned);
+                return new Searched(widened, incomplete(result, "REFINEMENT_INVALID"), Refinement.UNAVAILABLE, required, unreturned, null, found);
             }
             // The engine stops at its cap or the deadline by returning what it found, marked incomplete window by window.
             return new Searched(widened, refined, refined.complete() ? Refinement.COMPLETE : Refinement.SHORTENED, required,
-                    optional ? inserting : unfinished(refined));
+                    optional ? inserting : unfinished(refined), refined.complete() ? null : stopOf(refined.stopReason()), found);
         } catch (BoundedBookingSearch.RefinementLimit limit) {
-            return new Searched(widened, incomplete(result, "REFINEMENT_TIME_LIMIT"), Refinement.SHORTENED, required, unreturned);
+            return new Searched(widened, incomplete(result, "REFINEMENT_TIME_LIMIT"), Refinement.SHORTENED, required, unreturned, RefinementStop.CAP, found);
         } catch (SearchDeadline.Expired expired) {
-            return new Searched(widened, incomplete(result, "DEADLINE"), Refinement.SHORTENED, required, unreturned);
+            return new Searched(widened, incomplete(result, "DEADLINE"), Refinement.SHORTENED, required, unreturned, RefinementStop.DEADLINE, found);
         } catch (RoadClient.RoadUnavailable unavailable) {
-            return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned);
+            return new Searched(widened, incomplete(result, "ROUTING_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned, null, found);
         } catch (HttpCalculation.Unavailable unavailable) {
-            return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned);
+            return new Searched(widened, incomplete(result, "REFINEMENT_UNAVAILABLE"), Refinement.UNAVAILABLE, required, unreturned, null, found);
         } catch (SearchAdmission.Busy busy) {
             // The refinement's routes could not get a database connection or shared routing capacity in time (a cold
             // search on a large fleet spends most of its deadline fetching legs). The search already holds the insertion
             // pass's offers: publishing them beats answering BUSY, which a retry of the same search would answer again.
-            return new Searched(widened, incomplete(result, "REFINEMENT_BUSY"), Refinement.UNAVAILABLE, required, unreturned);
+            return new Searched(widened, incomplete(result, "REFINEMENT_BUSY"), Refinement.UNAVAILABLE, required, unreturned, null, found);
         }
+    }
+
+    /**
+     * What ended a refinement the engine returned unfinished: its cap ({@code REFINEMENT_TIME_LIMIT}) or the deadline. The
+     * engine stops for nothing else, so any other reason is a protocol drift and is reported as neither.
+     */
+    private static @Nullable RefinementStop stopOf(String stopReason) {
+        return switch (stopReason) {
+            case "REFINEMENT_TIME_LIMIT" -> RefinementStop.CAP;
+            case "DEADLINE" -> RefinementStop.DEADLINE;
+            default -> null;
+        };
     }
 
     /** Optional refinements skipped since this process started because other booking requests were waiting for a slot. */
