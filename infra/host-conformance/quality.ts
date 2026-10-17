@@ -18,6 +18,7 @@ import { dynamicHorizon, isWeekday, recordDates, weekdayWindow } from "./src/loa
 import { HostStore, type Job, type MetroShape } from "./src/load/host.ts";
 import { disturbance, parseVariants, qualityLines, withReceipt, type OfferedWindow, type QualityCase, type Searched, type Variant } from "./src/load/quality.ts";
 import { retryAfterMs } from "./src/load/scenarios.ts";
+import { breakdownLines, containerShareLines, readRequestLog, serverBreakdown, tenantOf, type ContainerShare, type ServerBreakdown } from "./src/load/serverlog.ts";
 import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES, type Snapshot } from "./src/snapshot.ts";
 import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
@@ -26,7 +27,9 @@ const USAGE = `Usage: npx tsx quality.ts --url <base URL> --token-file <file> --
     (--area <south,west,north,east> | --points fixture) [--variants 2,1000 | --thresholds 2,1000] [--cases 30] [--technicians 3]
     [--appointments 2] [--horizon fixed|dynamic] [--horizon-weekdays 10] [--lead-weekdays 2] [--full-percent 85]
     [--booked-weekdays 0] [--booked-appointments 4] [--offer-limit 4] [--window-hours 2] [--deadline-ms 5000]
-    [--seed 1] [--label <text>] [--out <directory>]
+    [--seed 1] [--scheduler-log <container,...>] [--label <text>] [--out <directory>]
+  --scheduler-log reads the named scheduler containers' request log for the run (docker logs) and reports the server's
+  own attribution of each variant's searches: slot wait, routing, engine, database, commit, pairs and CPU.
   A variant is a regularWindowThreshold, optionally with a bookingRefinementMs cap: 2:500 is threshold 2 with a 500 ms
   cap, and 2 alone leaves the scheduler's configured cap. --thresholds lists variants without caps. The first variant
   is the baseline every other is compared with on the same cases.`;
@@ -35,7 +38,7 @@ class UsageError extends Error { }
 
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "thresholds", "variants", "cases", "technicians", "appointments",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "offer-limit", "window-hours",
-  "deadline-ms", "seed", "label", "out"] as const;
+  "deadline-ms", "seed", "scheduler-log", "label", "out"] as const;
 
 function settings() {
   let values: Record<string, string | boolean | undefined>;
@@ -84,6 +87,7 @@ function settings() {
     bookedWeekdays: integer("booked-weekdays", 0, 0, 15), bookedAppointments: integer("booked-appointments", 4, 0, 4),
     offerLimit: integer("offer-limit", 4, 1, 4), windowHours: integer("window-hours", 2, 1, 8),
     deadlineMs: integer("deadline-ms", KIT_POLICY.bookingDeadlineMs, 1000, 5000), seed: integer("seed", 1, 0, 1000),
+    schedulerLog: text("scheduler-log")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
     label: text("label") ?? null, out: resolve(text("out") ?? "quality-report"),
   };
 }
@@ -103,6 +107,16 @@ function pointSource(area: ReturnType<typeof settings>["area"], seed: number): (
 }
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/** One server-time table per variant, the booking offers rows only: what each setting cost the scheduler. */
+function variantBreakdownLines(attributed: Record<string, ServerBreakdown>): string[] {
+  const lines = ["## Server time by variant (request log, booking offers)", ""];
+  for (const [variant, breakdown] of Object.entries(attributed)) {
+    const offers = Object.fromEntries(Object.entries(breakdown).filter(([key]) => key.startsWith("POST /api/v1/booking/offers ")));
+    lines.push(...breakdownLines(offers, `### Variant ${variant}`), "");
+  }
+  return lines;
+}
 
 /** Calls, repeating a 429 BUSY with the same body after Retry-After as a host would; null when no answer came. */
 async function call(api: SchedulerApi, path: string, body: object, timeoutMs: number): Promise<Reply | null> {
@@ -143,6 +157,7 @@ async function main(): Promise<number> {
   const breaches: string[] = [];
   const cases: QualityCase[] = [];
   const startedAt = new Date();
+  const tenant = o.schedulerLog.length === 0 ? null : await tenantOf(o.api);
   console.log(`Quality run ${prefix}: ${o.cases} cases, variants ${o.variants.map(item => item.name).join(", ")}, against ${o.api.base}`);
 
   // One metro, optimized first as the overnight run leaves a schedule, so a booking is priced against a day that has no
@@ -180,14 +195,16 @@ async function main(): Promise<number> {
       const snapshot = (days: readonly string[]): Snapshot => ({ ...store.snapshot(days), policy });
       const job: Job = { id: `${prefix}-job-${index}-t${threshold}${refinementMs === null ? "" : `r${refinementMs}`}`, serviceId, durationMinutes: 60, location };
       const started = performance.now();
-      const reply = await call(o.api, "/api/v1/booking/offers", { requestId: randomUUID(), job, horizon: { firstDate: first, lastDate: last },
+      const requestId = randomUUID();
+      const reply = await call(o.api, "/api/v1/booking/offers", { requestId, job, horizon: { firstDate: first, lastDate: last },
         offerLimit: o.offerLimit, windowHours: o.windowHours, snapshot: snapshot(dates) }, timeoutMs);
       const ms = Math.round(performance.now() - started);
       const set = reply?.status === 201 ? parsed(breaches, reply, Api.OfferSet, "Booking offers") : null;
-      const empty = { variant: name, threshold, refinementMs, status: reply?.status ?? null, ms: null, refinement: null, searchComplete: null, incompleteDates: null, offers: [], priced: null };
+      const empty = { variant: name, threshold, refinementMs, requestId, status: reply?.status ?? null, ms: null, refinement: null, refinementStop: null, regularWindowsFound: null, searchComplete: null, incompleteDates: null, offers: [], priced: null };
       if (set === null) { searched.set(name, { ...empty, pricingFailure: reply === null ? "no answer" : `search answered ${reply.status}` }); continue; }
       const offers: OfferedWindow[] = set.offers.map(offer => ({ serviceDate: offer.serviceDate, start: offer.window.start, end: offer.window.end }));
-      const result = { variant: name, threshold, refinementMs, status: 201, ms, refinement: set.refinement ?? null, searchComplete: set.searchComplete,
+      const result = { variant: name, threshold, refinementMs, requestId, status: 201, ms, refinement: set.refinement ?? null, refinementStop: set.refinementStop ?? null,
+        regularWindowsFound: set.regularWindowsFound ?? null, searchComplete: set.searchComplete,
         incompleteDates: set.incompleteDates?.length ?? null, offers };
       const best = set.offers[0];
       if (best === undefined) { searched.set(name, { ...result, priced: null, pricingFailure: null }); continue; }
@@ -225,6 +242,18 @@ async function main(): Promise<number> {
   }
 
   const finishedAt = new Date();
+  // The server's attribution per variant: the log lines of that variant's searches, by their request IDs.
+  let attributed: Record<string, ServerBreakdown> | null = null;
+  let serverLog: ContainerShare[] | null = null;
+  if (tenant !== null) {
+    const log = await readRequestLog(o.schedulerLog, startedAt, tenant);
+    serverLog = [...log.containers];
+    attributed = {};
+    for (const variant of o.variants) {
+      const ids = new Set(cases.flatMap(item => item.searched.filter(entry => entry.variant === variant.name).map(entry => entry.requestId)));
+      attributed[variant.name] = serverBreakdown(log.lines, { tenant, requestIds: ids });
+    }
+  }
   const report = { label: o.label, scheduler: o.api.base, metroId: o.metroId, timeZone: o.timeZone, run: prefix,
     startedAt: startedAt.toISOString(), finishedAt: finishedAt.toISOString(),
     settings: { variants: o.variants, cases: o.cases, technicians: o.technicians, appointmentsPerDay: o.appointments,
@@ -233,11 +262,13 @@ async function main(): Promise<number> {
       offerLimit: o.offerLimit, windowHours: o.windowHours, policy: basePolicy, seed: o.seed,
       points: area === null ? "fixture" : `area ${area.south},${area.west},${area.north},${area.east}` },
     machine: { cpus: cpus().length, cpuModel: cpus()[0]?.model ?? "unknown", node: process.version },
-    optimized, cases, contractBreaches: breaches };
+    optimized, cases, serverBreakdown: attributed, serverLog, contractBreaches: breaches };
   const lines = [`# Quality run ${prefix}${o.label === null ? "" : `: ${o.label}`}`, "",
     `- ${o.cases} cases of ${o.technicians} technicians x ${o.appointments} visits a day${o.bookedWeekdays === 0 ? "" : ` (${o.bookedAppointments} on the first ${o.bookedWeekdays} weekdays)`}; ` +
       `horizon ${o.horizonMode} ${o.horizonWeekdays} weekdays; offerLimit ${o.offerLimit}, windowHours ${o.windowHours}, bookingDeadlineMs ${o.deadlineMs}`,
     `- Ran ${((finishedAt.getTime() - startedAt.getTime()) / 1000).toFixed(0)} s against ${o.api.base}`, "", ...qualityLines(o.variants.map(item => item.name), cases),
+    ...(attributed === null ? [] : ["", ...variantBreakdownLines(attributed)]),
+    ...(serverLog === null ? [] : ["", ...containerShareLines(serverLog)]),
     ...(breaches.length === 0 ? [] : ["", "## Defects found", "", ...breaches.map(item => `- Contract: ${item}`)])];
   mkdirSync(o.out, { recursive: true });
   const name = `quality-${startedAt.toISOString().replace(/[:.]/g, "-")}`;

@@ -374,7 +374,7 @@ export const CASES: readonly Case[] = [
   },
   {
     group: "Booking", name: "client refinement budget", proves:
-      "A client's optional bookingRefinementMs is honoured from 0 (the optional pass is skipped) to 1000, and a larger one is refused.",
+      "A client's optional bookingRefinementMs is honoured from 0 (the optional pass is skipped) to 3000, and a larger one is refused.",
     run: async context => {
       const date = addDays(context.today, 5);
       const day = bookingDay(context, "budget", date);
@@ -385,9 +385,17 @@ export const CASES: readonly Case[] = [
       const offer = set.offers[0];
       if (offer !== undefined)
         expectBody(await context.api.call("POST", `/api/v1/booking/offers/${encodeURIComponent(offer.offerId)}/release`, requestOnly()), 200, Api.Released, "Release");
-      const tooLong = { ...day.snapshot, policy: { ...day.snapshot.policy, bookingRefinementMs: 1001 } };
+      const longest = { ...day.snapshot, policy: { ...day.snapshot.policy, bookingRefinementMs: 3000 } };
+      const { set: capped } = await offers(context, offersBody(context, longest, day.jobId, date, date), "Booking offers with a 3000 ms refinement budget");
+      check(capped.refinementStop === undefined || capped.refinement === "SHORTENED",
+        `Booking offers with a 3000 ms refinement budget: refinementStop ${capped.refinementStop} on a ${capped.refinement} refinement`);
+      check(capped.regularWindowsFound === undefined || capped.regularWindowsFound >= 0, "Booking offers with a 3000 ms refinement budget: regularWindowsFound is a count");
+      const cappedOffer = capped.offers[0];
+      if (cappedOffer !== undefined)
+        expectBody(await context.api.call("POST", `/api/v1/booking/offers/${encodeURIComponent(cappedOffer.offerId)}/release`, requestOnly()), 200, Api.Released, "Release");
+      const tooLong = { ...day.snapshot, policy: { ...day.snapshot.policy, bookingRefinementMs: 3001 } };
       expectProblem(await context.api.call("POST", "/api/v1/booking/offers", offersBody(context, tooLong, day.jobId, date, date),
-        { timeoutMs: BOOKING_TIMEOUT_MS }), 400, "INVALID_REQUEST", "Booking offers with a 1001 ms refinement budget");
+        { timeoutMs: BOOKING_TIMEOUT_MS }), 400, "INVALID_REQUEST", "Booking offers with a 3001 ms refinement budget");
     },
   },
   {

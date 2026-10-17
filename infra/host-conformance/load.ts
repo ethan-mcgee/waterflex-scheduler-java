@@ -15,6 +15,7 @@ import { HostStore, type MetroShape } from "./src/load/host.ts";
 import { scrape, serverView, type Sample, type ServerView } from "./src/load/metrics.ts";
 import { loadMarkdown, type LoadReport } from "./src/load/report.ts";
 import { bookingLoop, dailyLoop, newTallies, sampleContainers, sampleMetrics, seeded, type ContainerUsage, type Run } from "./src/load/scenarios.ts";
+import { readRequestLog, serverBreakdown, tenantOf, type ServerBreakdown } from "./src/load/serverlog.ts";
 import { summarize } from "./src/load/stats.ts";
 import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES } from "./src/snapshot.ts";
@@ -26,7 +27,10 @@ const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --met
     [--daily-technicians 20] [--daily-mode sync|async] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
     [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--date-spread] [--metrics-url <prometheus URL>]
     [--horizon fixed|dynamic] [--horizon-weekdays <1-15>] [--lead-weekdays 2] [--full-percent 85]
-    [--booked-weekdays 0] [--booked-appointments 4] [--window-threshold 2] [--refinement-ms <0-1000>] [--docker <container,...>] [--label <text>] [--out <directory>]
+    [--booked-weekdays 0] [--booked-appointments 4] [--window-threshold 2] [--refinement-ms <0-3000>] [--docker <container,...>] [--scheduler-log <container,...>]
+    [--label <text>] [--out <directory>]
+  --scheduler-log reads the named scheduler containers' request log for the run (docker logs) and reports the server's
+  own attribution of this tenant's calls: slot wait, routing, engine, database, commit, pairs and CPU per call.
   --window-threshold is the policy's regularWindowThreshold: a search whose first pass finds no more distinct regular
   windows than it must run the refinement (never shed, never capped). --refinement-ms is the policy's
   bookingRefinementMs, the cap on an optional refinement; without it the scheduler's configured cap applies.
@@ -44,7 +48,7 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
 
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
   "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
-  "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "label", "out",
+  "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "scheduler-log", "label", "out",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "window-threshold", "refinement-ms"] as const;
 const FLAG_OPTIONS = ["date-spread", "help"] as const;
 
@@ -97,7 +101,7 @@ function settings() {
     horizonMode, horizonWeekdays, leadWeekdays: integer("lead-weekdays", 2, 1, 5), fullPercent: integer("full-percent", 85, 50, 100),
     bookedWeekdays: integer("booked-weekdays", 0, 0, 15), bookedAppointments: integer("booked-appointments", 4, 0, 4),
     windowThreshold: integer("window-threshold", KIT_POLICY.regularWindowThreshold, 0, 1000),
-    refinementMs: text("refinement-ms") === undefined ? null : integer("refinement-ms", 0, 0, 1000),
+    refinementMs: text("refinement-ms") === undefined ? null : integer("refinement-ms", 0, 0, 3000),
     api: new SchedulerApi(required("url"), token), metroId, timeZone: requireTimeZone(required("time-zone")),
     area: text("area") === undefined ? null : parseArea(required("area")), scenario,
     durationS: (() => { required("duration-s"); return integer("duration-s", 0, 5, 3600); })(),
@@ -107,6 +111,7 @@ function settings() {
     offerLimit: integer("offer-limit", 4, 1, 4), windowHours: integer("window-hours", 2, 1, 8),
     deadlineMs: integer("deadline-ms", KIT_POLICY.bookingDeadlineMs, 1000, 5000), costSeconds, fairnessSeconds, seed: integer("seed", 1, 0, 1000),
     metricsUrl: text("metrics-url") ?? null, docker: text("docker")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
+    schedulerLog: text("scheduler-log")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
     label: text("label") ?? null, out: resolve(text("out") ?? "load-report"),
     dateSpread: values["date-spread"] === true,
   };
@@ -171,6 +176,8 @@ async function main(): Promise<number> {
   let warmIndex = 0;
   const jobLocation = options.jobs === "cold" ? point : () => warm[warmIndex++ % warm.length] ?? point();
 
+  // Known before the run so a wrong token or an unreachable scheduler fails here, not after the run's minutes.
+  const tenant = options.schedulerLog.length === 0 ? null : await tenantOf(options.api);
   const before: Sample[] | null = options.metricsUrl === null ? null : await scrape(options.metricsUrl);
   const metrics = options.metricsUrl === null ? null : sampleMetrics(options.metricsUrl, 2000);
   const containers = options.docker.length === 0 ? null : sampleContainers(options.docker, 5000);
@@ -199,6 +206,8 @@ async function main(): Promise<number> {
     server = serverView(before, await scrape(options.metricsUrl), sampled.samples);
   }
   const usage: ContainerUsage[] | null = containers === null ? null : await containers.stop();
+  const log = tenant === null ? null : await readRequestLog(options.schedulerLog, startedAt, tenant);
+  const attributed: ServerBreakdown | null = log === null || tenant === null ? null : serverBreakdown(log.lines, { tenant });
   const report: LoadReport = {
     label: options.label, scenario: options.scenario, scheduler: options.api.base, metroId: options.metroId, timeZone: options.timeZone,
     points: options.area === null ? "fixture" : `area ${options.area.south},${options.area.west},${options.area.north},${options.area.east}`,
@@ -213,7 +222,7 @@ async function main(): Promise<number> {
       dateSpread: spread > 0 },
     machine: { cpus: cpus().length, cpuModel: cpus()[0]?.model ?? "unknown", memoryBytes: totalmem(), node: process.version },
     operations: summarize(run.records), booking: options.scenario === "daily" ? null : run.booking,
-    daily: options.scenario === "booking" ? null : run.daily, server, metricFailures, containers: usage,
+    daily: options.scenario === "booking" ? null : run.daily, server, metricFailures, containers: usage, serverBreakdown: attributed, serverLog: log === null ? null : log.containers,
     contractBreaches: run.contractBreaches, hostAnomalies: [...bookingStore.anomalies, ...dailyStore.anomalies],
   };
   mkdirSync(options.out, { recursive: true });

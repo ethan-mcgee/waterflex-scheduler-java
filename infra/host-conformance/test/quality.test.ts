@@ -53,8 +53,8 @@ test("touching a technician-day stamps it newer without changing it", () => {
 });
 
 const offer = (serviceDate: string, hour: number) => ({ serviceDate, start: `${serviceDate}T${hour}:00:00Z`, end: `${serviceDate}T${hour + 2}:00:00Z` });
-const searched = (threshold: number, offers: Searched["offers"], added: number | null, refinement = "COMPLETE"): Searched => ({ variant: `${threshold}`, threshold, refinementMs: null, status: 201, ms: 100 * (threshold === 2 ? 3 : 6),
-  refinement, searchComplete: true, incompleteDates: 0, offers,
+const searched = (threshold: number, offers: Searched["offers"], added: number | null, refinement = "COMPLETE"): Searched => ({ variant: `${threshold}`, threshold, refinementMs: null, requestId: `r-${threshold}`, status: 201, ms: 100 * (threshold === 2 ? 3 : 6),
+  refinement, refinementStop: refinement === "SHORTENED" ? "CAP" : null, regularWindowsFound: threshold === 2 ? 7 : 9, searchComplete: true, incompleteDates: 0, offers,
   priced: added === null ? null : { beforeCostCents: 1000, afterCostCents: 1000 + added, addedCostCents: added, reassignedVisits: threshold === 2 ? 0 : 1, reorderedDays: 0 },
   pricingFailure: null });
 
@@ -65,7 +65,7 @@ test("variants are summarized and compared on the same cases", () => {
     { index: 2, firstDate: "2026-10-12", dates: 13, order: ["1000", "2"],
       searched: [searched(2, [offer("2026-10-14", 9)], 2400, "SHED"), searched(1000, [offer("2026-10-14", 9)], 2400)] },
     { index: 3, firstDate: "2026-10-12", dates: 13, order: ["2", "1000"],
-      searched: [searched(2, [], null, "SHED"), { ...searched(1000, [], null), status: 503, ms: null, refinement: null, searchComplete: null, incompleteDates: null, pricingFailure: "search answered 503" }] },
+      searched: [searched(2, [], null, "SHED"), { ...searched(1000, [], null), status: 503, ms: null, refinement: null, refinementStop: null, regularWindowsFound: null, searchComplete: null, incompleteDates: null, pricingFailure: "search answered 503" }] },
   ];
   const low = summarizeVariant(cases, "2");
   assert.deepEqual({ searches: low.searches, failed: low.failed, noOffer: low.noOffer, refinements: low.refinements, priced: low.priced },
@@ -86,6 +86,7 @@ test("variants name a threshold and an optional refinement cap, the first the ba
   assert.deepEqual(parseVariants("2, 2:500,1000"), [{ name: "2", threshold: 2, refinementMs: null }, { name: "2:500", threshold: 2, refinementMs: 500 },
     { name: "1000", threshold: 1000, refinementMs: null }]);
   assert.deepEqual(parseVariants("2:0"), [{ name: "2:0", threshold: 2, refinementMs: 0 }], "A cap of 0 skips the optional refinement");
-  for (const bad of ["", "2:", "x", "1001", "2:1001", "-1", "2:500:1"]) assert.throws(() => parseVariants(bad), /is not threshold\[:refinement ms\]/, bad);
+  assert.deepEqual(parseVariants("2:3000"), [{ name: "2:3000", threshold: 2, refinementMs: 3000 }], "The longest cap the API allows");
+  for (const bad of ["", "2:", "x", "1001", "2:3001", "-1", "2:500:1"]) assert.throws(() => parseVariants(bad), /is not threshold\[:refinement ms\]/, bad);
   assert.throws(() => parseVariants("2,2:250,2:250"), /distinct/);
 });

@@ -1,6 +1,7 @@
 // The load run's evidence: JSON for comparison across runs, markdown for docs/api-load.md and reviews.
 import type { Snapshot } from "../snapshot.ts";
 import type { ServerView } from "./metrics.ts";
+import { breakdownLines, containerShareLines, type ContainerShare, type ServerBreakdown } from "./serverlog.ts";
 import type { BookingTally, ContainerUsage, DailyTally } from "./scenarios.ts";
 import { percentile, type OperationSummary } from "./stats.ts";
 
@@ -34,6 +35,10 @@ export interface LoadReport {
   readonly server: ServerView | null;
   readonly metricFailures: number;
   readonly containers: readonly ContainerUsage[] | null;
+  /** The scheduler's own attribution of this tenant's calls, from its request log (--scheduler-log); null when not read. */
+  readonly serverBreakdown: ServerBreakdown | null;
+  /** Each scheduler container's share of this tenant's request lines (which replicas served the run); null when not read. */
+  readonly serverLog: readonly ContainerShare[] | null;
   readonly contractBreaches: readonly string[];
   readonly hostAnomalies: readonly string[];
 }
@@ -41,19 +46,26 @@ export interface LoadReport {
 const gib = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
 const entries = (record: Record<string, number>) => Object.entries(record).map(([key, value]) => `${key} ${value}`).join(", ") || "none";
 
+/** The first pass's window counts (a histogram keyed by count) as p50, min and max over the searches that reported one. */
+export function windowsLine(histogram: Record<string, number>): string {
+  const counts = Object.entries(histogram).flatMap(([count, searches]) => Array.from({ length: searches }, () => Number(count))).sort((a, b) => a - b);
+  const first = counts[0], last = counts[counts.length - 1];
+  return first === undefined || last === undefined ? "not reported" : `p50 ${percentile(counts, 0.5)}, ${first} to ${last}, over ${counts.length} searches`;
+}
+
 /** Searches by horizon length, so refinement outcomes and incompleteness read against how many dates were searched. */
 export function horizonLines(s: LoadReport["settings"], b: BookingTally): string[] {
   const h = s.horizon;
   const rows = Object.entries(b.byHorizon).sort(([a], [z]) => Number(a) - Number(z)).map(([dates, t]) => {
     const ms = [...t.offersMs].sort((x, y) => x - y);
     return `| ${dates} | ${t.searches} | ${t.failed} | ${t.searchIncomplete} | ${t.incompleteDates} | ${ms.length === 0 ? "-" : (t.offers / ms.length).toFixed(2)} | ` +
-      `${t.noOffers} | ${entries(t.refinements)} | ${ms.length === 0 ? "-" : percentile(ms, 0.5)} | ${ms.length === 0 ? "-" : percentile(ms, 0.95)} |`;
+      `${t.noOffers} | ${entries(t.refinements)} | ${entries(t.refinementStops)} | ${ms.length === 0 ? "-" : percentile(ms, 0.5)} | ${ms.length === 0 ? "-" : percentile(ms, 0.95)} |`;
   });
   return ["## Horizon", "",
     h.mode === "dynamic" ? `- Dynamic: ${h.leadWeekdays} weekdays past the furthest weekday at least ${h.fullPercent} percent full, at most ${h.weekdays} weekdays`
       : `- Fixed: ${h.weekdays === null ? `${s.horizonDates} dates` : `${h.weekdays} weekdays`}`,
-    "", "| Dates | Searches | Failed | searchComplete false | incompleteDates | Offers per answered | No offer | Refinement | p50 ms | p95 ms |",
-    "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |", ...rows];
+    "", "| Dates | Searches | Failed | searchComplete false | incompleteDates | Offers per answered | No offer | Refinement | Stopped by | p50 ms | p95 ms |",
+    "| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |", ...rows];
 }
 
 export function loadMarkdown(report: LoadReport): string {
@@ -83,7 +95,8 @@ export function loadMarkdown(report: LoadReport): string {
     lines.push("", "## Booking outcomes", "",
       `- Searches ${b.searches} (${(b.searches / (seconds / 60)).toFixed(1)} per minute), answered ${answered}, failed ${b.failedSearches}`,
       `- searchComplete false: ${b.searchIncomplete} (${answered === 0 ? "-" : ((b.searchIncomplete / answered) * 100).toFixed(1)} percent of answered)`,
-      `- Refinement: ${entries(b.refinements)}`,
+      `- Refinement: ${entries(b.refinements)}; SHORTENED stopped by: ${entries(b.refinementStops)}`,
+      `- Regular windows the first pass found: ${windowsLine(b.windowsFound)}`,
       `- Offers per answered search: ${answered === 0 ? "-" : (b.offers / answered).toFixed(2)}; searches with no offer: ${b.noOffers}`,
       `- Selected ${b.selected}, confirmed and written ${b.confirmed}, HOLD_UNAVAILABLE ${b.holdUnavailable}, host write conflicts ${b.hostWriteConflicts}, released ${b.released}, sent again after STALE ${b.stale}`);
     lines.push("", ...horizonLines(s, b));
@@ -105,6 +118,8 @@ export function loadMarkdown(report: LoadReport): string {
   if (report.containers !== null)
     lines.push("", "## Containers (docker stats)", "", "| Container | CPU mean | CPU max | Memory max |", "| --- | ---: | ---: | ---: |",
       ...report.containers.map(c => `| ${c.name} | ${c.cpuPercent.mean.toFixed(0)} percent | ${c.cpuPercent.max.toFixed(0)} percent | ${gib(c.memoryMaxBytes)} |`));
+  if (report.serverBreakdown !== null) lines.push("", ...breakdownLines(report.serverBreakdown));
+  if (report.serverLog !== null) lines.push("", ...containerShareLines(report.serverLog));
   if (report.contractBreaches.length > 0 || report.hostAnomalies.length > 0)
     lines.push("", "## Defects found", "", ...report.contractBreaches.map(item => `- Contract: ${item}`), ...report.hostAnomalies.map(item => `- Receipt: ${item}`));
   return `${lines.join("\n")}\n`;
