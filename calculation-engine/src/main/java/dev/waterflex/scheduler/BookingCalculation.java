@@ -7,12 +7,18 @@ import org.jspecify.annotations.Nullable;
 /** Each stage has all immutable facts and roads. The caller orchestrates routing. */
 public final class BookingCalculation {
     public enum Stage { INSERTION, REFINEMENT }
+    /**
+     * The longest cap on an optional refinement, in milliseconds: the operator's default, a client's own budget and the
+     * engine's input all stay within it. A booking deadline of 5 s keeps 1 s back to publish, so a cap above 3 s could
+     * never run to its end.
+     */
+    public static final int MAX_REFINEMENT_MS = 3000;
     public record Input(BookingSnapshot snapshot, BoundedBookingSearch.Request request, Stage stage, String variant,
                         BoundedBookingSearch.@Nullable Result insertion, int refinementMillis) {
         public Input {
             Required.value(snapshot); Required.value(request); Required.value(stage);
             if (!Set.of("INSERTION","BOUNDED","EXPANDED","RUIN_RECREATE","SHARED").contains(variant)) throw new IllegalArgumentException("Unknown booking variant");
-            if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid refinement cap");
+            if (refinementMillis < 0 || refinementMillis > MAX_REFINEMENT_MS) throw new IllegalArgumentException("Invalid refinement cap");
             if (stage == Stage.REFINEMENT && insertion == null || stage != Stage.REFINEMENT && insertion != null)
                 throw new IllegalArgumentException("Invalid insertion seed for booking stage");
         }

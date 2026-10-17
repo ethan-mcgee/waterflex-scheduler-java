@@ -114,7 +114,7 @@ class BookingOffersDatabaseIT {
         held.put(firstHold, new BookingDayState.HoldState("job-311", first, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-1", null));
         held.put(secondHold, new BookingDayState.HoldState("job-311", second, setId, expiresAt, "softener-install", start, end, 90, 41.235, -96.042, start, "tech-2", PublicTypes.CoordinateSource.HOST));
         var body = new OfferSet(setId, expiresAt, Required.value(List.of(new Offer(first, DAY, new PublicTypes.Window(start, end)), new Offer(second, DAY, new PublicTypes.Window(start, end)))),
-                true, Required.value(List.of()), PublicResponses.Refinement.COMPLETE, Required.value(List.<LocalDate>of()));
+                true, Required.value(List.of()), PublicResponses.Refinement.COMPLETE, Required.value(List.<LocalDate>of()), null, null);
         var started = assertInstanceOf(PublicApiStore.Started.class, store.claim(tenant, requestId, PublicApiStore.Operation.BOOKING_OFFERS, Required.value("c".repeat(64))));
         var key = new BookingStore.DayKey("omaha", DAY);
         bookings.publish(tenant, started.ownerToken(), Required.value(Map.of(key, new BookingStore.DayWrite(0, new BookingDayState(technicians, held), Required.value(Map.of()), true))),
@@ -648,7 +648,7 @@ class BookingOffersDatabaseIT {
         var started = assertInstanceOf(PublicApiStore.Started.class, store.claim(tenant, requestId, PublicApiStore.Operation.BOOKING_OFFERS, Required.value("d".repeat(64))));
         try {
             bookings.publish(tenant, started.ownerToken(), writes, heldBefore, new BookingStore.Publication(setId, requestId, job, "omaha", expiresAt,
-                    new OfferSet(setId, expiresAt, Required.value(List.of()), true, Required.value(List.of()), PublicResponses.Refinement.COMPLETE, Required.value(List.<LocalDate>of())), Required.value(List.of())));
+                    new OfferSet(setId, expiresAt, Required.value(List.of()), true, Required.value(List.of()), PublicResponses.Refinement.COMPLETE, Required.value(List.<LocalDate>of()), null, null), Required.value(List.of())));
         } catch (RuntimeException refused) {
             store.release(tenant, requestId, started.ownerToken());
             throw refused;

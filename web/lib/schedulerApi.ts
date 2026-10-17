@@ -26,9 +26,15 @@ export const problem = z.object({ error: z.enum(["INVALID_REQUEST", "NOT_FOUND",
   "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED"]), message: z.string().min(1),
   changed: z.array(technicianDayVersion).min(1).optional() }).strict()
   .refine(value => (value.changed !== undefined) === (value.error === "STALE"), "Only a STALE problem lists changed technician-days");
-/** `refinement` is absent only on a replay of an offer set answered before spec 1.2.0, and `incompleteDates` before 1.3.0. */
+/**
+ * `refinement` is absent only on a replay of an offer set answered before spec 1.2.0, and `incompleteDates` before 1.3.0.
+ * `refinementStop` (what ended a SHORTENED refinement) and `regularWindowsFound` (the first pass's distinct regular
+ * windows) arrived in 1.5.0; each is absent when it does not apply or on a replay from before it.
+ */
 export const offerSet = z.object({ offerSetId: id, expiresAt: instant, searchComplete: z.boolean(),
   refinement: z.enum(["COMPLETE", "SHORTENED", "SKIPPED", "UNAVAILABLE", "SHED"]).optional(),
+  refinementStop: z.enum(["CAP", "DEADLINE"]).optional(),
+  regularWindowsFound: z.int().min(0).optional(),
   incompleteDates: z.array(serviceDate).optional(),
   offers: z.array(z.object({ offerId: id, serviceDate, window }).strict()).max(4),
   skippedTechnicianDays: z.array(skippedTechnicianDay),

@@ -16,7 +16,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 /**
  * One summary line per public API call, with the operation, status and total time, how that time was spent when the
- * call ran under a deadline (slot wait, routing wait, calculation engine, database, with the routing pairs and cache hits), and the request's log context:
+ * call ran under a deadline (slot wait, routing wait, calculation engine, database, the commit phase inside the reserve, with the routing pairs and cache hits), and the request's log context:
  * {@code tenant} (set once the token is accepted), {@code requestId} (set once the body is read) and {@code operation}.
  * Every line logged while serving the call carries them, including the daily operation's receipt on its own thread.
  * Runs before tenant authentication, so a refused token is logged too, and clears the context afterwards.
@@ -39,10 +39,12 @@ public final class RequestLogging extends OncePerRequestFilter {
     static String breakdown(SearchTelemetry.@org.jspecify.annotations.Nullable Measurements measured) {
         if (measured == null) return "";
         Long cpu = measured.foregroundCpuNanos();
+        Long commit = measured.commitNanos();
         return " queueMs=" + measured.admissionNanos() / 1_000_000 + " routingMs=" + measured.routingNanos() / 1_000_000 + " calculationMs=" + measured.calculationNanos() / 1_000_000
                 + " dbMs=" + measured.databaseNanos() / 1_000_000 + " dbCalls=" + measured.databaseExecutions()
                 + " routingPairs=" + measured.routingPairs() + " cacheHits=" + (measured.memoryHits() + measured.persistentHits())
                 + " fetched=" + measured.sharedRoutingPairs()
+                + (commit == null ? "" : " commitMs=" + commit / 1_000_000)
                 + (cpu == null ? "" : " cpuMs=" + cpu / 1_000_000);
     }
 

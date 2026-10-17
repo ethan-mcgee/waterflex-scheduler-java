@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.4.1
+  version: 1.5.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -35,6 +35,10 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.5.0 (2026-10-17): Policy.bookingRefinementMs may be up to 3000 (was 1000). OfferSet gains refinementStop, what
+      ended a SHORTENED refinement (CAP or DEADLINE), and regularWindowsFound, how many distinct regular windows the
+      first pass found, the count compared with regularWindowThreshold. Both are optional and absent on a replay of
+      an offer set answered by an earlier version.
     - 1.4.1 (2026-10-13): cancelRequest reaches every call in progress from any replica, so a load balancer may send
       it anywhere: a replica that does not run the call records the cancel, and the replica running it stops the call
       within a second. No schema changes.
@@ -740,12 +744,13 @@ components:
         bookingRefinementMs:
           type: integer
           minimum: 0
-          maximum: 1000
+          maximum: 3000
           description: >-
             Optional. Milliseconds a booking search may spend on an optional refinement (one after a first pass that
             found more distinct regular windows than regularWindowThreshold); 0 skips it. A required refinement is not
             limited by it, only by bookingDeadlineMs. When absent, the scheduler operator's configured budget applies
-            (booking.search.refinement-ms, 250 unless changed).
+            (booking.search.refinement-ms, 250 unless changed). At most 3000 since 1.5.0 (1000 before); the deadline
+            still ends a refinement that would run past it, with refinementStop DEADLINE.
         regularWindowThreshold:
           type: integer
           minimum: 0
@@ -1076,6 +1081,20 @@ components:
             other booking requests were waiting for a slot, so the slot went to them. Informational: searchComplete
             already says whether the offers are complete. Sent on every offer set since 1.2.0; a replay of an offer
             set answered by an earlier version leaves it out.
+        refinementStop:
+          type: string
+          enum: [CAP, DEADLINE]
+          description: >-
+            What ended a SHORTENED refinement: CAP, its own budget (bookingRefinementMs or the operator's default, an
+            optional refinement only), or DEADLINE, the search's bookingDeadlineMs. Sent only when refinement is
+            SHORTENED, since 1.5.0; a replay of an offer set answered by an earlier version leaves it out.
+        regularWindowsFound:
+          type: integer
+          minimum: 0
+          description: >-
+            How many distinct regular arrival windows the first pass found, the count compared with
+            regularWindowThreshold to decide whether the refinement was required. Left out when the first pass did
+            not finish (the count is then only a lower bound) and on a replay of an offer set answered before 1.5.0.
         incompleteDates:
           type: array
           description: >-
@@ -1377,6 +1396,8 @@ components:
         expiresAt: '2026-10-12T15:10:00-05:00'
         searchComplete: true
         refinement: SHORTENED
+        refinementStop: CAP
+        regularWindowsFound: 7
         incompleteDates: []
         skippedTechnicianDays: []
         offers:
