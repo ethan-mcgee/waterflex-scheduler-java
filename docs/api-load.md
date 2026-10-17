@@ -518,6 +518,86 @@ at one desk and of 8 to 15 in throughput under load, with deadline failures. Val
 schedule has room, and only start to change searches, at a throughput cost, once it is nearly booked out, which is
 where the dynamic horizon (H) already keeps offers coming.
 
+### By fleet size
+
+The same study was repeated at 5, 10, 20 and 30 technicians per date, thresholds 2, 25 and 1000, one repeat of
+each load run ([evidence](evidence/api-load-2026-10-16-window-threshold-fleet.json), `-Fleets '5,10,20,30'`). The
+profiles are otherwise unchanged. Before the run, the 30-technician self-check found that a cold search on a large
+fleet could answer 429 `BUSY`: its routes used most of the deadline, so the refinement was refused a database
+connection, and validating some 200 candidates used the rest of the publish reserve. The scheduler now publishes the
+insertion pass's offers with the refinement `UNAVAILABLE` (stop reason `REFINEMENT_BUSY`), and validation computes
+what no candidate changes once per date; the study ran on that build. No run found a contract breach or host
+anomaly, the scheduler rejected nothing at admission, and its CPU stayed under 11 percent of the machine.
+
+**Offer quality.** Both schedules of each profile together, 40 cases; the threshold 25 column is the noise floor.
+
+| Profile, technicians | Best offer adds at 2 | 1000: same offers as 2 | Earlier / later first offer | Cheaper / dearer | Mean change at 1000 | Mean change at 25 | Search p50 at 2 / 1000 | 1000 incomplete |
+| --- | ---: | ---: | --- | --- | ---: | ---: | --- | ---: |
+| Low, 5 | $31.71, $31.82 | 18 | 14 / 4 | 20 / 3 | -$0.37, -$0.85 | -$0.38, +$0.02 | 286 / 927 ms | 0 |
+| Low, 10 | $31.81, $31.98 | 18 | 6 / 6 | 17 / 2 | -$0.47, -$0.14 | -$0.44, +$0.04 | 309 / 2290 ms | 0 |
+| Low, 20 | $31.66, $31.65 | 19 | 5 / 12 | 24 / 0 | -$0.44, -$0.37 | -$0.01, +$0.21 | 361 / 4054 ms | 24 |
+| Low, 30 | $31.52, $31.71 | 13 | 11 / 8 | 16 / 7 | -$0.24, -$0.12 | -$0.02, +$0.02 | 425 / 4071 ms | 31 |
+| High, 5 | $27.01, $25.11 | 5 | 16 / 14 | 19 / 11 | -$0.60, +$0.58 | +$0.45, +$0.73 | 314 / 1314 ms | 0 |
+| High, 10 | $30.81, $30.01 | 4 | 27 / 9 | 29 / 10 | -$1.89, -$1.77 | -$0.30, +$0.71 | 360 / 2097 ms | 0 |
+| High, 20 | $30.77, $29.98 | 0 | 31 / 7 | 30 / 10 | -$2.34, -$1.38 | +$0.92, +$0.19 | 461 / 2874 ms | 0 |
+| High, 30 | $31.07, $27.08 | 12 | 17 / 7 | 22 / 4 | -$1.21, -$1.27 | +$2.40, +$1.77 | 596 / 3556 ms | 6 |
+
+Every search answered 201 with 4 offers and every best offer was priced. At 2 and 25 every refinement was
+SHORTENED; at 1000 it was COMPLETE except where the deadline stopped it (the incomplete column, answered
+`searchComplete: false`). The two figures in a cell are the two schedules; p50s are their mean.
+
+**Efficiency.** Searches per minute at thresholds 2 / 25 / 1000, with search p50 (and p95 at 5 desks).
+
+| Profile, technicians | 1 desk | p50 at 2 / 1000 | 1000 incomplete | 5 desks | p50 / p95 at 2 | p50 / p95 at 1000 | 1000 incomplete, 503s |
+| --- | --- | --- | ---: | --- | --- | --- | --- |
+| Low, 5 | 176 / 175 / 53 | 328 / 1106 ms | 0 of 105 | 704 / 694 / 71 | 171 / 437 ms | 1897 / 4022 ms | 5 of 142, 0 |
+| Low, 10 | 160 / 161 / 20 | 358 / 3078 ms | 1 of 39 | 608 / 623 / 37 | 235 / 548 ms | 4036 / 9089 ms | 50 of 74, 3 |
+| Low, 20 | 128 / 128 / 16 | 453 / 4047 ms | 22 of 31 | 414 / 424 / 45 | 365 / 765 ms | 4054 / 9110 ms | 76 of 89, 12 |
+| Low, 30 | 98 / 98 / 15 | 595 / 4063 ms | 30 of 30 | 303 / 301 / 49 | 566 / 1027 ms | 4070 / 8953 ms | 86 of 98, 12 |
+| High, 5 | 146 / 149 / 32 | 394 / 1789 ms | 1 of 63 | 503 / 425 / 37 | 226 / 955 ms | 4014 / 9251 ms | 29 of 73, 6 |
+| High, 10 | 116 / 116 / 15 | 492 / 4072 ms | 18 of 30 | 334 / 336 / 34 | 382 / 802 ms | 4093 / 14247 ms | 57 of 67, 7 |
+| High, 20 | 63 / 63 / 15 | 865 / 4116 ms | 29 of 29 | 165 / 165 / 33 | 851 / 1644 ms | 4158 / 10300 ms | 58 of 65, 7 |
+| High, 30 | 49 / 48 / 15 | 1169 / 4164 ms | 29 of 29 | 100 / 97 / 28 | 1265 / 2764 ms | 4190 / 11459 ms | 51 of 56, 5 |
+
+At 5 desks thresholds 2 and 25 shed 95 to 100 percent of refinements. No search at 2 or 25 failed or answered
+`searchComplete: false`. The 503s are `CALCULATION_UNAVAILABLE`, a search that found nothing before its deadline.
+At 1000 with 5 desks, 1 to 9 percent of refinements were `UNAVAILABLE`, mostly at 20 and 30 technicians: the
+searches the fix keeps from answering 429 `BUSY`, which publish the first pass's offers instead. Only the high,
+5-technician run at 5 desks booked anything out (28 searches at threshold 2 offered nothing).
+
+The four hypotheses written before the run:
+
+- **Thresholds between 2 and 1000 stay inert: held.** All 320 quality searches at 25 were SHORTENED, as at 2, and
+  their load runs match threshold 2 within a run's variation at every fleet size. A regular window is a date and a
+  start, counted once however many technicians could take it, so a bigger fleet does not bring the count near 25.
+  Threshold 25's mean change reached +$2.40 at 30 technicians on high demand, from a few dear outliers (its median
+  was unchanged); that is the noise floor a threshold 1000 effect has to clear.
+- **The threshold 2 search slows as the fleet grows: held, more steeply on high demand.** At 1 desk the p50 went
+  from 328 to 595 ms at low volume and from 394 to 1169 ms on high demand between 5 and 30 technicians, and
+  throughput fell by 44 and 66 percent (57 and 80 percent at 5 desks). Each search here is for a new address, so its
+  roads are fetched: routing pairs per search grew from 251 to 1018 at low volume and from 601 to 4627 on high
+  demand. Every threshold 2 search stayed well inside the deadline (worst p95 2.8 s, high, 30 technicians, 5 desks).
+- **The gap between 2 and 1000 in best-offer cost widens with the fleet: half held.** On high demand it did, from
+  no clear direction at 5 technicians (19 cheaper, 11 dearer, mean -$0.60 and +$0.58) to $1.38 to $2.34 a booking
+  cheaper at 10 and 20, 5 to 8 percent of the $30 a booking adds, with 29 or 30 of 40 offers cheaper and the first offer
+  earlier on 27 to 31. At 30 the deadline stopped some refinements and the gain fell back to about $1.25, inside the
+  noise floor. At low volume it never widened: 1000 saved $0.12 to $0.85 at every fleet size, as at 6 technicians
+  in the first study, because one appointment a day leaves little for a refinement to move.
+- **At 1000 the deadline stops the refinement from about 20 technicians: held at low volume, earlier under load
+  on high demand.** In the quality runs, 24 and 31 of 40 low-volume searches answered `searchComplete: false` at 20
+  and 30 technicians, while high demand, on its optimized schedules, completed at 20 within 2.9 s. In the load runs,
+  whose schedules are not optimized and fill as bookings land, 1 desk was deadline-bound from 10 technicians on high
+  demand (18 of 30 searches) and from 20 at low volume. From there threshold 1000 runs a flat 15 searches a minute
+  at 1 desk, each search using its full deadline.
+
+**The recommendation stands: keep the threshold at 2, at every fleet size measured.** The only fleets where 1000
+bought a measurable saving were high demand at 10 to 20 technicians, about $2 a booking, and there it cost 4 to 8
+times the throughput at 1 desk and 5 to 10 times at 5 desks, with p95s of 10 to 14 s and a few searches finding
+nothing. What a larger fleet does change is the cost of every search: at 30 technicians, threshold 2 manages 98
+searches a minute per desk at low volume and 49 on high demand, against 176 and 146 at 5, mostly in fetching new
+roads. One limit is left: validation still grows with the number of candidates, inside a fixed 1 s publish reserve,
+so a fleet much larger than 30 could reach it again.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
