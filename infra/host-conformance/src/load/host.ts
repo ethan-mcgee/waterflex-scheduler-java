@@ -15,6 +15,12 @@ export interface MetroShape {
   readonly technicians: number;
   /** Visits already booked on each technician-day, from 09:00 two hours apart. */
   readonly appointmentsPerDay: number;
+  /**
+   * Dates booked out before the run: each technician-day there has `bookedAppointments` visits instead, each held to the
+   * hour it starts, so a booking added there cannot re-time the day earlier and leave it reading less full.
+   */
+  readonly bookedDates?: ReadonlySet<string>;
+  readonly bookedAppointments?: number;
   readonly dates: readonly string[];
   readonly rates: Snapshot["rates"];
   readonly policy: Snapshot["policy"];
@@ -27,6 +33,11 @@ export type WriteOutcome = "WRITTEN" | "CONFLICT";
 const SHIFT_START = 480, SHIFT_END = 1020, FIRST_VISIT = 540, SPACING = 120, VISIT_MINUTES = 45;
 
 const key = (technicianId: string, serviceDate: string) => `${technicianId}|${serviceDate}`;
+
+function required<T>(value: T | undefined, what: string): T {
+  if (value === undefined) throw new Error(`Missing ${what}`);
+  return value;
+}
 
 export class HostStore {
   readonly #days = new Map<string, TechnicianDay>();
@@ -46,12 +57,15 @@ export class HostStore {
       for (const date of shape.dates) {
         this.#days.set(key(technicianId, date), { technicianId, serviceDate: date, lastModified: this.#stamp(),
           shift: { start: at(date, SHIFT_START), end: at(date, SHIFT_END) }, absences: [], start, end: start, maxPaidMinutes: 540 });
-        for (let sequence = 0; sequence < shape.appointmentsPerDay; sequence++) {
+        const booked = shape.bookedDates?.has(date) === true;
+        const visits = booked ? required(shape.bookedAppointments, "bookedAppointments with bookedDates") : shape.appointmentsPerDay;
+        for (let sequence = 0; sequence < visits; sequence++) {
           const planned = FIRST_VISIT + sequence * SPACING;
           if (planned + VISIT_MINUTES > SHIFT_END) throw new Error("Too many appointments per day for one shift");
           const id = `${shape.prefix}-appt-${n}-${date}-${sequence}`;
           this.#appointments.set(id, { id, technicianId, serviceDate: date, serviceId: shape.serviceId, durationMinutes: VISIT_MINUTES,
-            window: { start: at(date, Math.max(SHIFT_START, planned - 60)), end: at(date, Math.min(SHIFT_END, planned + 180)) },
+            window: booked ? { start: at(date, planned), end: at(date, planned + 60) }
+              : { start: at(date, Math.max(SHIFT_START, planned - 60)), end: at(date, Math.min(SHIFT_END, planned + 180)) },
             location: visit(), sequence, plannedStart: at(date, planned) });
         }
       }
