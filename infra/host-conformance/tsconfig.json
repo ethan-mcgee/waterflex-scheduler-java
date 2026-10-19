@@ -18,5 +18,5 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["conformance.ts", "load.ts", "src/**/*.ts", "test/**/*.ts"]
+  "include": ["conformance.ts", "load.ts", "quality.ts", "src/**/*.ts", "test/**/*.ts"]
 }

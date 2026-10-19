@@ -111,6 +111,34 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
   report's Horizon table splits searches by their number of dates, with refinement outcomes, `searchComplete: false`,
   `incompleteDates` and latency for each. `infra/run-horizon-study.ps1` runs the fixed and dynamic study matrix.
 
+- `--window-threshold` sets the policy's `regularWindowThreshold` (default 2). A search whose first pass finds no more
+  distinct regular windows than the threshold must run the refinement, which is then never shed and never capped;
+  1000 makes every refinement required. `--refinement-ms` sets the policy's `bookingRefinementMs`, the cap on an
+  optional refinement (0 to 3000); without it the scheduler's configured cap applies (250 unless changed). The report
+  counts SHORTENED refinements by what stopped them (`CAP` or `DEADLINE`) and the first pass's distinct regular window
+  counts (`regularWindowsFound`), the number the threshold is compared with.
+- `--scheduler-log <container,...>` (both tools) reads the named scheduler containers' request log for the run with
+  `docker logs` and reports the scheduler's own attribution of this tenant's calls per operation and status: slot wait,
+  routing, engine, database, the commit phase, routing pairs and fetched legs, and CPU (`serverBreakdown` in the JSON, the
+  shape of the October 14 performance evidence). `quality.ts` attributes per variant by the searches' request IDs. The
+  plain console format and the VM's ECS JSON are both read. The tenant comes from `/api/v1/whoami`. With several
+  containers named (a replica pool behind the proxy), `serverLog` lists each container's share of this tenant's request
+  lines, which shows which replicas served the run.
+
+`quality.ts` compares the offers themselves across window thresholds and refinement caps, on the same records. It
+builds one booking metro (the same options as above), optimizes every date with daily proposals as the overnight run
+would, then for each of `--cases` job addresses searches once per `--variants` value in a rotated order. A variant is a
+threshold, optionally with a refinement cap: `2:500` is threshold 2 with `bookingRefinementMs` 500, `1000` is threshold
+1000 with the scheduler's cap (default `2,1000`, the first the baseline; `--thresholds` lists variants without caps).
+The best offer of each search is confirmed and priced: its receipt is applied to a copy of the day and both are timed
+with `/api/v1/routes/evaluate`, so the report gives what the booking adds to the modeled fleet cost and how many
+existing visits it moved. Nothing is written to the host; the confirmed days are stamped as written and cancelled, so
+the next search is not refused as STALE. The report (`quality-report/`) lists, per variant, offers, days to the first
+offer, days offered, the best offer's added cost, visits moved and search latency, then each variant against the
+baseline case by case. `infra/run-threshold-study.ps1` runs both tools over the window threshold matrix, and
+`infra/run-refinement-study.ps1` over the refinement cap and search capacity matrix (its capacity part runs one
+tenant per simulated client, each with one desk, against a scheduler it restarts with 2 and then 5 search slots).
+
 The report (`load-report/` by default, JSON and markdown) gives each operation's caller-side p50, p95, p99 and maximum,
 its statuses and error codes, the booking outcomes (searches per minute, `searchComplete` rate, offers per search,
 holds lost, host write conflicts) and daily decisions. With `--metrics-url` (the scheduler's private management port)

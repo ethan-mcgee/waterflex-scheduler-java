@@ -90,12 +90,12 @@ test("a fixed horizon shorter than the booked-out weekdays keeps their records, 
 
 test("the report lists searches by horizon length, with their refinement outcomes and incomplete dates", () => {
   const bucket = (searches: number, refinements: Record<string, number>, ms: number[]) =>
-    ({ searches, failed: 0, searchIncomplete: 1, incompleteDates: 2, offers: 4 * ms.length, noOffers: 0, refinements, offersMs: ms });
+    ({ searches, failed: 0, searchIncomplete: 1, incompleteDates: 2, offers: 4 * ms.length, noOffers: 0, refinements, refinementStops: refinements.SHORTENED === undefined ? {} : { CAP: refinements.SHORTENED }, offersMs: ms });
   const tally = { searches: 5, searchIncomplete: 2, offers: 20, noOffers: 0, selected: 0, holdUnavailable: 0, confirmed: 0, hostWriteConflicts: 0,
-    released: 0, failedSearches: 0, stale: 0, refinements: {}, byHorizon: { "19": bucket(2, { SHORTENED: 2 }, [900, 1100]), "4": bucket(3, { SHED: 1, COMPLETE: 2 }, [100, 200, 300]) } };
+    released: 0, failedSearches: 0, stale: 0, refinements: {}, refinementStops: {}, windowsFound: {}, byHorizon: { "19": bucket(2, { SHORTENED: 2 }, [900, 1100]), "4": bucket(3, { SHED: 1, COMPLETE: 2 }, [100, 200, 300]) } };
   const settings = { horizonDates: 4, horizon: { mode: "dynamic", weekdays: 15, leadWeekdays: 2, fullPercent: 85, bookedWeekdays: 12, bookedAppointments: 4 } } as const;
   const lines = horizonLines(settings as unknown as Parameters<typeof horizonLines>[0], tally);
   assert.equal(lines[2], "- Dynamic: 2 weekdays past the furthest weekday at least 85 percent full, at most 15 weekdays");
-  assert.deepEqual(lines.slice(-2), ["| 4 | 3 | 0 | 1 | 2 | 4.00 | 0 | SHED 1, COMPLETE 2 | 200 | 300 |", "| 19 | 2 | 0 | 1 | 2 | 4.00 | 0 | SHORTENED 2 | 900 | 1100 |"],
+  assert.deepEqual(lines.slice(-2), ["| 4 | 3 | 0 | 1 | 2 | 4.00 | 0 | SHED 1, COMPLETE 2 | none | 200 | 300 |", "| 19 | 2 | 0 | 1 | 2 | 4.00 | 0 | SHORTENED 2 | CAP 2 | 900 | 1100 |"],
     "Rows run from the shortest horizon to the longest");
 });

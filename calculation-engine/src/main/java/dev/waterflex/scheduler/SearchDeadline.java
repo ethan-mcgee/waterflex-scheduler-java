@@ -21,15 +21,20 @@ public final class SearchDeadline {
     private long durationNanos;
     private final long reserveNanos;
     private boolean committing;
+    /** When the current commit phase began, or -1 outside one; its length is attributed when it ends. */
+    private long commitStarted = -1;
     private volatile boolean cancelled;
+
+    /** The reserve kept back from exploration for the commit phase when none is given. */
+    public static final Duration DEFAULT_RESERVE = Required.value(Duration.ofSeconds(1));
 
     public SearchDeadline(Duration duration) { this(duration, System::nanoTime); }
     SearchDeadline(Duration duration, LongSupplier clock) {
-        this(duration, Required.value(Duration.ofSeconds(1)), clock);
+        this(duration, DEFAULT_RESERVE, clock);
     }
-    /** Explicit offline campaign reserve; normal requests retain their one second reserve. */
+    /** An explicit reserve: the operator's publish reserve for a booking, or an offline campaign's. */
     public SearchDeadline(Duration duration, Duration reserve) { this(duration, reserve, System::nanoTime); }
-    private SearchDeadline(Duration duration, Duration reserve, LongSupplier clock) {
+    SearchDeadline(Duration duration, Duration reserve, LongSupplier clock) {
         if (duration.isNegative() || duration.isZero() || duration.compareTo(MAXIMUM) > 0)
             throw new IllegalArgumentException("Invalid search duration");
         this.clock = clock;
@@ -37,6 +42,14 @@ public final class SearchDeadline {
         this.durationNanos = duration.toNanos();
         if (reserve.isNegative()) throw new IllegalArgumentException("Negative deadline reserve");
         reserveNanos = reserve.toNanos();
+    }
+    /** The reserve kept back from exploration, in nanoseconds. */
+    public long reserveNanos() { return reserveNanos; }
+    /** Closes an open commit phase, attributing its wall time to the telemetry. */
+    private void endCommit() {
+        if (commitStarted < 0) return;
+        telemetry.commit(clock.getAsLong() - commitStarted);
+        commitStarted = -1;
     }
     public long elapsedMillis() { return Math.max(0, clock.getAsLong() - started) / 1_000_000; }
     public long remainingNanos() { return Math.max(0, durationNanos - (clock.getAsLong() - started)); }
@@ -61,6 +74,7 @@ public final class SearchDeadline {
         try { return work.get(); }
         finally {
             CURRENT.remove();
+            endCommit();
             java.util.function.Consumer<SearchTelemetry.Measurements> listener = observer;
             if (listener != null) listener.accept(telemetry.snapshot());
         }
@@ -91,10 +105,13 @@ public final class SearchDeadline {
     }
     public static void beginCommit() {
         SearchDeadline current = CURRENT.get();
-        if (current != null) { current.committing = true; current.requireTime(); }
+        if (current == null) return;
+        current.committing = true;
+        if (current.commitStarted < 0) current.commitStarted = current.clock.getAsLong();
+        current.requireTime();
     }
     public static void beginExploration() {
         SearchDeadline current = CURRENT.get();
-        if (current != null) { current.committing = false; checkpoint(); }
+        if (current != null) { current.committing = false; current.endCommit(); checkpoint(); }
     }
 }
