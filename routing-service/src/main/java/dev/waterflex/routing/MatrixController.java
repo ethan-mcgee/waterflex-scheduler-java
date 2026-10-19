@@ -45,19 +45,38 @@ public class MatrixController {
     public record Leg(boolean routable, @Nullable Long seconds, @Nullable Long meters) { }
     public record Matrix(String mapVersion, String routingIdentity, List<List<Leg>> legs) { }
     public record Pair(String id, Point origin, Point destination) {
+        // JSON null still reaches these components (the strict mapper rejects null only for primitives), so each is
+        // checked through a helper that declares its parameter nullable and returns the value it accepted.
         public Pair {
-            if (id == null || id.isBlank() || id.length() > 300) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pair ID");
-            validatePoint(origin); validatePoint(destination);
+            id = requireId(id);
+            origin = requirePoint(origin); destination = requirePoint(destination);
         }
     }
     public record SparseRequest(List<Pair> pairs, String expectedRoutingIdentity) {
         public SparseRequest {
-            if (pairs == null || pairs.isEmpty() || pairs.size() > 256 || expectedRoutingIdentity == null || expectedRoutingIdentity.isBlank())
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pairs and routing identity required");
+            pairs = requirePairs(pairs);
+            expectedRoutingIdentity = requireIdentity(expectedRoutingIdentity);
             var ids = new java.util.HashSet<String>();
-            for (Pair pair : pairs) if (pair == null || !ids.add(pair.id())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate or missing pair");
+            for (Pair pair : pairs) if (!ids.add(pair.id())) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate pair");
             pairs = Required.value(List.copyOf(pairs));
         }
+    }
+    private static String requireId(@Nullable String id) {
+        if (id == null || id.isBlank() || id.length() > 300) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pair ID");
+        return id;
+    }
+    private static Point requirePoint(@Nullable Point point) {
+        validatePoint(point);
+        return Required.value(point);
+    }
+    private static List<Pair> requirePairs(@Nullable List<Pair> pairs) {
+        if (pairs == null || pairs.isEmpty() || pairs.size() > 256) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pairs and routing identity required");
+        for (Pair pair : pairs) if (pair == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate or missing pair");
+        return pairs;
+    }
+    private static String requireIdentity(@Nullable String identity) {
+        if (identity == null || identity.isBlank()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pairs and routing identity required");
+        return identity;
     }
     public record PairResult(String id, Leg leg) { }
     public record SparseResponse(String routingIdentity, List<PairResult> pairs) { }

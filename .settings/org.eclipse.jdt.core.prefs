@@ -14,3 +14,4 @@ org.eclipse.jdt.core.compiler.problem.uncheckedTypeOperation=error
 org.eclipse.jdt.core.compiler.problem.suppressOptionalErrors=enabled
 org.eclipse.jdt.core.compiler.problem.nonnullTypeVariableFromLegacyInvocation=error
 org.eclipse.jdt.core.compiler.problem.nonnullParameterAnnotationDropped=error
+org.eclipse.jdt.core.compiler.problem.deadCode=warning

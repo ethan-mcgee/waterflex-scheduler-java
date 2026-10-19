@@ -266,7 +266,7 @@ public class BookingOffers {
             DayKey key = Required.value(entry.getKey());
             heldBefore.addAll(Required.value(entry.getValue()));
             if (key.metroId().equals(metro) && days.containsKey(key.serviceDate())) continue;
-            StoredDay elsewhere = Required.value(bookings.days(tenantId, key.metroId(), Required.value(List.of(key.serviceDate()))).get(key.serviceDate()));
+            StoredDay elsewhere = Required.value(bookings.days(tenantId, key.metroId(), List.of(key.serviceDate())).get(key.serviceDate()));
             BookingDayState state = elsewhere.state();
             if (state == null) continue;
             Set<String> superseded = new java.util.TreeSet<>(Required.value(entry.getValue()));
@@ -330,7 +330,8 @@ public class BookingOffers {
             BookingDayState next = prepared == null ? day.result().state()
                     : withOffers(day.result().state(), prepared.day().baseline(), Required.value(newHolds.getOrDefault(date, Required.value(Map.of()))));
             Map<String, BookingReconciliation.Ending> ended = day.result().ended();
-            if (next.equals(day.stored().state())) {
+            // The stored state is null for a day the store has never written; such a day never equals a computed one.
+            if (java.util.Objects.equals(next, day.stored().state())) {
                 // Every ending removes a hold from the state, so an unchanged day has none.
                 if (!ended.isEmpty()) throw new IllegalStateException("Holds ended on " + date + " without a change of its state");
                 continue;
