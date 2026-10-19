@@ -69,6 +69,34 @@ class RequestLoggingTest {
         SearchDeadline.observe(null);
     }
 
+    @Test void aFinishedDeadlinesPhasesAreRecordedAsTimersTaggedByRouteAndPhase() throws Exception {
+        var registry = new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var logging = new RequestLogging(registry);
+        try {
+            var request = new MockHttpServletRequest("POST", "/api/v1/booking/offers");
+            request.setAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, "/api/v1/booking/offers");
+            logging.doFilter(request, new MockHttpServletResponse(), (_, _) -> {
+                var deadline = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)));
+                deadline.telemetry().admission(40_000_000L);
+                deadline.telemetry().routingWait(120_000_000L);
+                deadline.telemetry().calculation(15_000_000L);
+                deadline.telemetry().database(7_000_000L, false);
+                deadline.within(() -> Boolean.TRUE);
+            });
+            String operation = "POST /api/v1/booking/offers";
+            for (var expected : java.util.Map.of("queue", 40L, "routing", 120L, "calculation", 15L, "db", 7L).entrySet()) {
+                var timer = registry.find("scheduler.request.phase").tag("operation", operation).tag("phase", Required.value(expected.getKey())).timer();
+                assertNotNull(timer, expected.getKey());
+                assertEquals(1, timer.count());
+                assertEquals(expected.getValue(), Math.round(timer.totalTime(java.util.concurrent.TimeUnit.MILLISECONDS)), expected.getKey());
+            }
+            assertNull(registry.find("scheduler.request.phase").tag("phase", "commit").timer(), "no commit phase began, so none is recorded");
+            // A call without a deadline records nothing.
+            logging.doFilter(new MockHttpServletRequest("GET", "/api/v1/whoami"), new MockHttpServletResponse(), (_, _) -> { });
+            assertNull(registry.find("scheduler.request.phase").tag("operation", "GET /api/v1/whoami").timer());
+        } finally { SearchDeadline.observe(null); }
+    }
+
     @Test void theCommitPhaseIsTimedFromBeginCommitToTheDeadlinesEndAndTheReserveIsASetting() {
         var measured = new AtomicReference<SearchTelemetry.@Nullable Measurements>();
         SearchDeadline.observe(measured::set);

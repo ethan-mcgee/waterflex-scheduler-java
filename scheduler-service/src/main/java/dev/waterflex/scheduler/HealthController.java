@@ -64,7 +64,12 @@ public class HealthController {
         checks.put("schema", () -> { schema.verify(); return null; });
         for (String listed : routing.metros()) {
             String metro = Required.value(listed);
-            checks.put("routing:" + metro, () -> routing.client(metro).activeIdentity());
+            // Up while any replica of the metro's routing answers; with several, the detail says how many are in rotation.
+            checks.put("routing:" + metro, () -> {
+                RoadClient roads = routing.client(metro);
+                String identity = roads.activeIdentity();
+                return roads.endpoints() == 1 ? identity : identity + " (" + roads.availableEndpoints() + " of " + roads.endpoints() + " replicas)";
+            });
         }
         if (transport.remote()) checks.put("calculation", () -> { transport.checkRemote(CHECK_TIMEOUT); return null; });
         if (geocoding.looksUpAddresses()) checks.put("geocoding", () -> { geocoding.checkLookup(CHECK_TIMEOUT); return null; });

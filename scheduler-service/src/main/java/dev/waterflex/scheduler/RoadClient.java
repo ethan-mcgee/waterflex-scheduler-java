@@ -37,7 +37,16 @@ public class RoadClient {
     private volatile long identityFetchedAt;
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper = new ObjectMapper();
-    private final String url;
+    /**
+     * The routing service's replicas, one or more, given as base URLs separated by {@code |}. They serve one metro
+     * with one map, so this client's caches and identity are shared by all of them. Calls rotate over the replicas; one
+     * that fails, answers 5xx or refuses the identity (409) is parked for {@link #PARK} and tried only after the others.
+     */
+    private final List<String> endpoints;
+    private final java.util.concurrent.atomic.AtomicInteger nextEndpoint = new java.util.concurrent.atomic.AtomicInteger();
+    /** When each parked endpoint may be preferred again (System.nanoTime). */
+    private final java.util.concurrent.ConcurrentHashMap<String, Long> parkedUntil = new java.util.concurrent.ConcurrentHashMap<>();
+    static final Duration PARK = Required.value(Duration.ofSeconds(5));
     /** Bearer token for routing-service computation endpoints; null only when none is configured (fixture routers). */
     private final @Nullable String authorization;
     private final HttpClient http = Required.value(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build());
@@ -75,7 +84,14 @@ public class RoadClient {
         this.identityTtlNanos = TimeUnit.MILLISECONDS.toNanos(identityTtlMillis);
         this.flights = new DirectedLegFlights(flightThreads, flightQueue);
         this.jdbc = jdbc;
-        this.url = url;
+        List<String> listed = new ArrayList<>();
+        for (String endpoint : url.split("\\|", -1)) {
+            String trimmed = Required.value(endpoint.strip());
+            if (trimmed.isEmpty()) throw new IllegalArgumentException("Empty routing URL in " + url);
+            listed.add(trimmed.endsWith("/") ? Required.value(trimmed.substring(0, trimmed.length() - 1)) : trimmed);
+        }
+        if (new HashSet<>(listed).size() != listed.size()) throw new IllegalArgumentException("A routing URL appears twice in " + url);
+        this.endpoints = Required.value(List.copyOf(listed));
         this.authorization = token.isEmpty() ? null : "Bearer " + token;
         this.cacheTtl = Required.value(Duration.ofMinutes(Math.max(1, ttlMinutes)));
         cacheTransactions = new TransactionTemplate(transactions);
@@ -91,6 +107,60 @@ public class RoadClient {
     public void closeRoutingWork() { flights.close(); }
 
     public String currentVersion() { return routingIdentity; }
+
+    /** The replicas this client routes through, and how many are not parked now. */
+    public int endpoints() { return endpoints.size(); }
+    public int availableEndpoints() {
+        long now = System.nanoTime();
+        return (int) endpoints.stream().filter(endpoint -> !parked(Required.value(endpoint), now)).count();
+    }
+
+    private boolean parked(String endpoint, long now) {
+        Long until = parkedUntil.get(endpoint);
+        return until != null && now - until < 0;
+    }
+
+    private void park(String endpoint) {
+        if (endpoints.size() > 1) parkedUntil.put(endpoint, System.nanoTime() + PARK.toNanos());
+    }
+
+    /** Every endpoint once, in the order to try them: the unparked ones from the next in turn, then the parked ones. */
+    List<String> rotation() {
+        int count = endpoints.size();
+        if (count == 1) return endpoints;
+        int start = Math.floorMod(nextEndpoint.getAndIncrement(), count);
+        long now = System.nanoTime();
+        List<String> ready = new ArrayList<>(count), waiting = new ArrayList<>();
+        for (int offset = 0; offset < count; offset++) {
+            String endpoint = Required.value(endpoints.get((start + offset) % count));
+            (parked(endpoint, now) ? waiting : ready).add(endpoint);
+        }
+        ready.addAll(waiting);
+        return ready;
+    }
+
+    /**
+     * Sends a computing POST to the first replica that answers it: one that cannot be reached, answers 5xx or refuses
+     * the identity (409) is parked and the next is tried. Any other answer than 200 is final. The last failure is
+     * thrown when no replica answered.
+     */
+    private HttpResponse<String> post(String path, byte[] body, Duration timeout, String failure) throws InterruptedException {
+        @Nullable RoadUnavailable last = null;
+        for (String listed : rotation()) {
+            String endpoint = Required.value(listed);
+            var request = authorized(Required.value(HttpRequest.newBuilder(URI.create(endpoint + path)).timeout(SearchDeadline.networkTimeout(timeout))
+                    .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)))).build();
+            HttpResponse<String> response;
+            try { response = Required.value(http.send(request, HttpResponse.BodyHandlers.ofString())); }
+            catch (java.io.IOException unreachable) { park(endpoint); last = requestFailure(unreachable, failure); continue; }
+            SearchDeadline.checkpoint();
+            if (response.statusCode() == 409) { identityFetchedAt = 0; park(endpoint); last = new RoadUnavailable("Routing identity changed"); continue; }
+            if (response.statusCode() >= 500) { park(endpoint); last = new RoadUnavailable(failure + ": HTTP " + response.statusCode()); continue; }
+            if (response.statusCode() != 200) throw new RoadUnavailable(failure + ": HTTP " + response.statusCode());
+            return response;
+        }
+        throw Required.value(last, "routing failure");
+    }
     public String activeIdentity() {
         long started = System.nanoTime();
         try { return healthIdentity(); }
@@ -113,15 +183,9 @@ public class RoadClient {
         String identity = healthIdentity();
         if (!identity.equals(expectedIdentity)) throw new RoadUnavailable("Routing identity changed");
         try {
-            byte[] body = mapper.writeValueAsBytes(Map.of("points", points, "expectedRoutingIdentity", identity));
-            var request = authorized(Required.value(HttpRequest.newBuilder(URI.create(url + "/internal/route"))
-                    .timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10)))).header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofByteArray(body)))).build();
+            byte[] body = Required.value(mapper.writeValueAsBytes(Map.of("points", points, "expectedRoutingIdentity", identity)));
             geometryRequests.incrementAndGet();
-            var response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            SearchDeadline.checkpoint();
-            if (response.statusCode() == 409) { identityFetchedAt = 0; throw new RoadUnavailable("Routing identity changed"); }
-            if (response.statusCode() != 200) throw new RoadUnavailable("Road geometry unavailable: HTTP " + response.statusCode());
+            var response = post("/internal/route", body, Required.value(Duration.ofSeconds(10)), "Road geometry unavailable");
             JsonNode data = mapper.readTree(response.body());
             if (!identity.equals(data.path("routingIdentity").asText()) || !data.path("legs").isArray()
                     || data.path("legs").size() != points.size() - 1)
@@ -216,14 +280,9 @@ public class RoadClient {
         }
         if (!requested.isEmpty()) {
             try {
-                byte[] body = mapper.writeValueAsBytes(Map.of("pairs", requested, "expectedRoutingIdentity", identity));
-                var request = authorized(Required.value(HttpRequest.newBuilder(URI.create(url + "/internal/legs")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(10))))
-                        .header("Content-Type", "application/json").POST(HttpRequest.BodyPublishers.ofByteArray(body)))).build();
+                byte[] body = Required.value(mapper.writeValueAsBytes(Map.of("pairs", requested, "expectedRoutingIdentity", identity)));
                 legRequests.incrementAndGet(); requestedPairs.addAndGet(requested.size());
-                var response = http.send(request, HttpResponse.BodyHandlers.ofString());
-                SearchDeadline.checkpoint();
-                if (response.statusCode() == 409) { identityFetchedAt = 0; throw new RoadUnavailable("Routing identity changed"); }
-                if (response.statusCode() != 200) throw new RoadUnavailable("Sparse routing unavailable: HTTP " + response.statusCode());
+                var response = post("/internal/legs", body, Required.value(Duration.ofSeconds(10)), "Sparse routing unavailable");
                 JsonNode data = mapper.readTree(response.body());
                 if (!identity.equals(data.path("routingIdentity").asText()) || !data.path("pairs").isArray()
                         || data.path("pairs").size() != requested.size()) throw new RoadUnavailable("Malformed sparse routing response or changed identity");
@@ -291,9 +350,23 @@ public class RoadClient {
         return identity;
     }
 
+    /**
+     * The identity the first ready replica reports, in rotation order. A replica on another identity (a map switch
+     * rolled one replica at a time) answers its computing calls with 409 and is parked until it agrees.
+     */
     private String fetchIdentity() {
+        @Nullable RoadUnavailable last = null;
+        for (String listed : rotation()) {
+            String endpoint = Required.value(listed);
+            try { return fetchIdentity(endpoint); }
+            catch (RoadUnavailable down) { park(endpoint); last = down; }
+        }
+        throw Required.value(last, "routing failure");
+    }
+
+    private String fetchIdentity(String endpoint) {
         try {
-            var request = HttpRequest.newBuilder(URI.create(url + "/health")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(5)))).GET().build();
+            var request = HttpRequest.newBuilder(URI.create(endpoint + "/health")).timeout(SearchDeadline.networkTimeout(Required.value(Duration.ofSeconds(5)))).GET().build();
             identityRequests.incrementAndGet();
             var response = http.send(request, HttpResponse.BodyHandlers.ofString());
             SearchDeadline.checkpoint();

@@ -42,9 +42,25 @@ public class DailyQueueWorker implements SmartLifecycle {
     private final LongAdder started = new LongAdder();
     private final LongAdder expired = new LongAdder();
     private final LongAdder failed = new LongAdder();
+    /** How long a stop waits for running jobs to finish before it stops them and queues them again elsewhere. */
+    private final Duration drain;
+    /** The job each worker is running, by worker name. */
+    private final java.util.concurrent.ConcurrentHashMap<String, DailyJobs.Taken> current = new java.util.concurrent.ConcurrentHashMap<>();
+    /** Jobs this replica stopped because it is shutting down (tenant and request ID). */
+    private final java.util.Set<RunningRequests.Key> stoppedForShutdown = Required.value(java.util.concurrent.ConcurrentHashMap.newKeySet());
+    /** The longest a stopped job takes to unwind and be queued again after its solve is told to stop. */
+    static final Duration UNWIND = Required.value(Duration.ofSeconds(5));
 
     public DailyQueueWorker(DailyJobs jobs, DailyProposals proposals, DailyQueue queue, SearchAdmission admission, RunningRequests running) {
+        this(jobs, proposals, queue, admission, running, 25_000);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public DailyQueueWorker(DailyJobs jobs, DailyProposals proposals, DailyQueue queue, SearchAdmission admission, RunningRequests running,
+                            @org.springframework.beans.factory.annotation.Value("${scheduler.daily.queue.drain-ms:25000}") long drainMillis) {
+        if (drainMillis < 0 || drainMillis > 600_000) throw new IllegalArgumentException("scheduler.daily.queue.drain-ms must be 0 to 600000");
         this.jobs = jobs; this.proposals = proposals; this.queue = queue; this.admission = admission; this.running = running;
+        this.drain = Required.value(Duration.ofMillis(drainMillis));
         this.name = host() + "/" + UUID.randomUUID().toString().substring(0, 8);
     }
 
@@ -73,19 +89,54 @@ public class DailyQueueWorker implements SmartLifecycle {
     }
 
     /**
-     * Lets each worker finish the job it is running (interrupting it would record a failure the host did not cause),
-     * and wakes idle ones. A job still running when the process ends is taken again elsewhere once its lease passes.
+     * Stops taking jobs and wakes idle workers, then lets each running job finish within {@code scheduler.daily.queue.drain-ms}
+     * (interrupting it would record a failure the host did not cause). A job still running after that is told to stop
+     * and is queued again at once with its attempt not counted, so another replica takes it without waiting for its
+     * lease to pass.
      */
     @Override
-    public synchronized void stop() {
-        stopping = true;
-        for (int index = 0; index < threads.size(); index++) queue.queued();
-        for (Thread thread : threads) {
-            try { thread.join(Required.value(Duration.ofSeconds(5)).toMillis()); }
-            catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); break; }
-        }
-        threads.clear();
+    public void stop() {
+        java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        stop(done::countDown);
+        try { done.await(); }
+        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
     }
+
+    @Override
+    public void stop(Runnable callback) {
+        List<Thread> stopped;
+        synchronized (this) {
+            stopping = true;
+            stopped = new ArrayList<>(threads);
+            threads.clear();
+        }
+        for (int index = 0; index < stopped.size(); index++) queue.queued();
+        // The phase waits for the callback; draining on its own thread keeps the context's other phases moving.
+        Thread.ofPlatform().daemon().name("daily-queue-drain").start(() -> {
+            try { drain(stopped); }
+            finally { callback.run(); }
+        });
+    }
+
+    private void drain(List<Thread> workers) {
+        long deadline = System.nanoTime() + drain.toNanos();
+        try {
+            for (Thread thread : workers) {
+                long left = deadline - System.nanoTime();
+                if (left > 0) thread.join(Required.value(Duration.ofNanos(left)));
+            }
+            for (DailyJobs.Taken job : current.values()) {
+                RunningRequests.Key key = new RunningRequests.Key(job.tenantId(), job.requestId());
+                stoppedForShutdown.add(key);
+                if (running.stop(job.tenantId(), job.requestId()))
+                    LOG.info("Daily queue job {} still running at shutdown; stopping it to queue it again elsewhere", job.requestId());
+            }
+            for (Thread thread : workers) thread.join(UNWIND);
+        } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+    }
+
+    /** Stop before the web server drains its requests (Boot runs it at DEFAULT_PHASE - 1024), so no job starts meanwhile. */
+    @Override public int getPhase() { return SmartLifecycle.DEFAULT_PHASE - 512; }
 
     @Override public synchronized boolean isRunning() { return !threads.isEmpty(); }
 
@@ -117,6 +168,12 @@ public class DailyQueueWorker implements SmartLifecycle {
     boolean runOnce(String worker) {
         DailyJobs.Taken job = jobs.next(worker, queue.maxWait());
         if (job == null) return false;
+        if (stopping && !job.expired()) {
+            // Taken as this replica began to stop: give it straight back, its attempt not counted.
+            jobs.requeue(job, Required.value(Duration.ZERO), false);
+            return true;
+        }
+        current.put(worker, job);
         MDC.put(RequestLogging.TENANT, job.tenantId());
         MDC.put(RequestLogging.REQUEST_ID, job.requestId());
         MDC.put(RequestLogging.OPERATION, "QUEUED " + job.operation());
@@ -124,7 +181,8 @@ public class DailyQueueWorker implements SmartLifecycle {
         Thread watcher = job.expired() ? null : Thread.ofVirtual().name("daily-queue-cancel").start(() -> watch(job));
         try {
             if (job.expired()) expired.increment(); else started.increment();
-            proposals.runJob(job);
+            RunningRequests.Key key = new RunningRequests.Key(job.tenantId(), job.requestId());
+            proposals.runJob(job, () -> stoppedForShutdown.contains(key));
             LOG.info("Daily queue job finished in {} ms (attempt {})", (System.nanoTime() - begun) / 1_000_000, job.attempts());
         } catch (RuntimeException failure) {
             failed.increment();
@@ -132,6 +190,8 @@ public class DailyQueueWorker implements SmartLifecycle {
             try { jobs.requeue(job, FAILURE_BACKOFF, true); }
             catch (RuntimeException requeue) { LOG.error("Could not queue the failed job again; its lease ends it", requeue); }
         } finally {
+            current.remove(worker, job);
+            stoppedForShutdown.remove(new RunningRequests.Key(job.tenantId(), job.requestId()));
             if (watcher != null) watcher.interrupt();
             MDC.remove(RequestLogging.TENANT); MDC.remove(RequestLogging.REQUEST_ID); MDC.remove(RequestLogging.OPERATION);
         }

@@ -43,6 +43,7 @@ services:
     restart: "no"
   routing-service:
     image: waterflex-scheduler-routing:local
+    stop_grace_period: 20s
     pull_policy: build
     build:
       context: .
@@ -67,6 +68,7 @@ services:
   solver-service:
     profiles: ["remote-solver"]
     image: waterflex-calculation-solver:local
+    stop_grace_period: 45s
     pull_policy: build
     build:
       context: .
@@ -80,6 +82,8 @@ services:
     expose: ["8002"]
   scheduler-service:
     image: waterflex-scheduler-engine:local
+    # Drain the web server and the daily queue (each up to 30 s) before Docker's SIGKILL.
+    stop_grace_period: 75s
     pull_policy: build
     build:
       context: .
