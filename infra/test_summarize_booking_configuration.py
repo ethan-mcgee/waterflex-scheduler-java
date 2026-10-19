@@ -1,3 +1,4 @@
+import gzip
 import json
 import tempfile
 import unittest
@@ -135,6 +136,19 @@ class SummaryTests(unittest.TestCase):
         text = summary.summarize(self.evidence(), ["quality", "load", "price", "capacity", "reserve"])
         for heading in ("## Offer quality", "## One desk", "## The price of quality", "## Clients at once", "## The publish reserve"):
             self.assertIn(heading, text)
+
+    def test_groups_order_fleets_by_size_and_schedules_from_empty_to_full(self):
+        items = [{"fleet": fleet, "profile": profile} for fleet in (30, 5, 10) for profile in ("full", "empty", "half", "light")]
+        keys = list(summary.group(items, "fleet", "profile"))
+        self.assertEqual(keys[:4], [(5, "empty"), (5, "light"), (5, "half"), (5, "full")])
+        self.assertEqual([key[0] for key in keys[::4]], [5, 10, 30])
+
+    def test_gzipped_evidence_is_read_as_the_plain_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "study.json.gz"
+            with gzip.open(path, "wt", encoding="utf-8") as handle:
+                json.dump(self.evidence(), handle)
+            self.assertEqual(len(summary.read_evidence(path)["cells"]), len(self.evidence()["cells"]))
 
     def test_evidence_without_cells_is_refused(self):
         with tempfile.TemporaryDirectory() as directory:

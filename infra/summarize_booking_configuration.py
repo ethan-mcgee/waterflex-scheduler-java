@@ -10,6 +10,7 @@ of a cell; reserve reads the commit phase against the reserve. Verdicts on the h
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import statistics
 import sys
@@ -18,10 +19,12 @@ from pathlib import Path
 
 OFFERS = "POST /api/v1/booking/offers 201"
 REFERENCE = "1000"
+PROFILES = ("empty", "light", "half", "full")
 
 
 def read_evidence(path: Path) -> dict:
-    with path.open(encoding="utf-8-sig") as handle:
+    # The committed evidence is gzipped: a study of every cell's reports runs to hundreds of megabytes of JSON.
+    with (gzip.open(path, "rt", encoding="utf-8-sig") if path.suffix == ".gz" else path.open(encoding="utf-8-sig")) as handle:
         evidence = json.load(handle)
     if not isinstance(evidence.get("cells"), list):
         raise ValueError(f"{path} has no cells: not a booking configuration study")
@@ -48,11 +51,20 @@ def fixed(value: float | None, digits: int = 0) -> str:
     return "-" if value is None else f"{value:.{digits}f}"
 
 
+def order_key(part: object) -> tuple:
+    """Numbers by value (5 before 10), schedule profiles from empty to full, anything else by its text."""
+    if isinstance(part, (int, float)) and not isinstance(part, bool):
+        return (0, part, "")
+    if part in PROFILES:
+        return (1, PROFILES.index(part), "")
+    return (2, 0, str(part))
+
+
 def group(items: list[dict], *keys: str) -> dict[tuple, list[dict]]:
     grouped: dict[tuple, list[dict]] = defaultdict(list)
     for item in items:
         grouped[tuple(item[key] for key in keys)].append(item)
-    return dict(sorted(grouped.items(), key=lambda entry: tuple(str(part) for part in entry[0])))
+    return dict(sorted(grouped.items(), key=lambda entry: tuple(order_key(part) for part in entry[0])))
 
 
 def variant_order(names: set[str]) -> list[str]:

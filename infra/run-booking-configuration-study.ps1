@@ -377,6 +377,7 @@ $read = { param($cell)
 $entries = @()
 $missing = @()
 $defects = @()
+$unanswered = @()
 foreach ($cell in $cells) {
     $reports = & $read $cell
     if ($reports.Count -lt $cell.clients) { $missing += "$($cell.part)/$(& $slugOf $cell)"; continue }
@@ -386,7 +387,13 @@ foreach ($cell in $cells) {
         if ($breaches -gt 0) { $defects += $report.label }
         $answered = if ($cell.tool -eq 'quality') { @($report.cases | ForEach-Object { $_.searched } | Where-Object { $_.status -eq 201 }).Count }
                     else { $report.booking.searches - $report.booking.failedSearches }
-        if ($answered -eq 0) { throw "No search was answered in $($report.label) (see $runs)" }
+        if ($answered -eq 0) {
+            # A publish reserve below the database admission guard (connection plus validation timeout) refuses the publish
+            # of every search that explores to the end of its time, as a required refinement does: that is the reserve
+            # part's finding, recorded. Anywhere else a run without one answer is a broken stack.
+            if ($cell.part -ne 'reserve') { throw "No search was answered in $($report.label) (see $runs)" }
+            $unanswered += [ordered]@{ label = $report.label; statuses = $report.operations[0].statuses; errors = $report.operations[0].errors }
+        }
     }
     $layout = if ($null -eq $cell.layout) { [ordered]@{ replicas = $Replicas; slots = $Capacity; cpus = $Cpus } } else { [ordered]@{ replicas = $cell.layout.replicas; slots = $cell.layout.slots; cpus = $cell.layout.slots } }
     $entries += [ordered]@{ part = $cell.part; fleet = $cell.fleet; profile = $cell.profile; variant = $(if ($cell.tool -eq 'quality') { $null } else { $cell.variant })
@@ -394,6 +401,12 @@ foreach ($cell in $cells) {
         clients = $cell.clients; layout = $layout; reserveMs = $cell.reserve; reports = $reports }
 }
 if ($missing.Count -gt 0) { throw "Cells without their reports (run the same command again to finish them): $($missing -join '; ')" }
+# Read from the token files rather than this invocation's runs, so a resumed run that skipped every cell still lists them, once each.
+$clientTokens = @(Get-ChildItem -LiteralPath (Join-Path $repository $ClientTokenDirectory) -Filter 'client-*.token.id' -ErrorAction SilentlyContinue |
+    ForEach-Object { $n = [int]([regex]::Match($_.Name, '^client-(\d+)\.token\.id$').Groups[1].Value)
+        [ordered]@{ client = $n; tenant = "loadtest-client-$n"; tokenId = (Get-Content -LiteralPath $_.FullName -Raw).Trim() } } | Sort-Object { $_.client })
+# Every shape the study set, from the overrides it wrote; shapesVerified holds the replicas inspected by this invocation only.
+$shapesConfigured = @(Get-ChildItem -LiteralPath $runs -Filter 'shape-*.yml' | ForEach-Object { $_.BaseName -replace '^shape-', '' } | Sort-Object)
 [ordered]@{
     study = 'Booking configuration: window threshold crossed with the optional refinement cap (to 3000 ms), on empty to full schedules under the dynamic horizon, at 5 to 30 technicians, with the booking pool layouts and the publish reserve, on the VM rehearsal'
     scheduler = $Stack
@@ -411,9 +424,11 @@ if ($missing.Count -gt 0) { throw "Cells without their reports (run the same com
     )
     runnerRevision = (git -C $repository rev-parse HEAD).Trim()
     runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    shapesConfigured = $shapesConfigured
     shapesVerified = $shapes
     clientTokens = $clientTokens
     runsWithDefects = $defects
+    unansweredRuns = $unanswered
     cells = $entries
 } | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $evidence -Encoding utf8
 Write-Output "Evidence: $evidence (reports and logs in $runs)"
