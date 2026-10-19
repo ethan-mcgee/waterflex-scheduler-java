@@ -639,8 +639,8 @@ the uncapped search on the same 40 cases, from the rerun:
 - **The threshold is inert.** The first pass found at least 16 windows on 2-date horizons and 168 on full ones, so no
   threshold up to 10 ever made the refinement required (up to 20 on full schedules).
 - **Under several clients the refinement is shed.** At 10 clients 80 to 100 percent of refinements were shed on every
-  layout up to 4 vCPU, so every variant behaves like insertion only. One replica with more slots (1x3, 1x4) gave the
-  best throughput and p95; several replicas shed less but queue blindly behind the proxy and were slower.
+  layout up to 4 vCPU, so every variant behaves like insertion only. At 3 and 4 vCPU one replica with more slots
+  won (1x4 gave the best throughput and p95, 1x3 beat 3x1); at 2 vCPU two single-slot replicas beat 1x2.
 - **The publish reserve floor is 800 ms.** At 500 and 250 ms every uncapped long search was refused BUSY at publish
   (20 runs unanswered) because `SearchDatabaseTelemetry` needs the pool's connection plus validation timeout (500 ms)
   left; the commit phase itself stays under 260 ms p95 at 30 technicians. At 800 ms nothing was refused at any fleet.
