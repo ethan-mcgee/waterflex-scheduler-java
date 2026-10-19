@@ -165,6 +165,12 @@ async function main(): Promise<number> {
   const shape: MetroShape = { metroId: o.metroId, timeZone: o.timeZone, serviceId, prefix, technicians: o.technicians,
     appointmentsPerDay: o.appointments, bookedDates: booked, bookedAppointments: o.bookedAppointments, dates: records, rates: KIT_RATES, policy: basePolicy };
   const store = new HostStore(shape, point, point);
+  // The horizon is read from the booked-out schedule as the host built it, before the optimization below: an optimized
+  // day's route span no longer reaches the full mark, so read afterwards every profile collapsed to the two lead dates
+  // (the booking configuration study of 2026-10-17, whose quality part searched 2 dates on half and full schedules).
+  const dates = o.horizonMode === "dynamic"
+    ? dynamicHorizon(firstDate, store.snapshot(window), { capWeekdays: o.horizonWeekdays, leadWeekdays: o.leadWeekdays, fullPercent: o.fullPercent }).dates
+    : window;
   const optimized: Array<{ serviceDate: string; decision: string; costCents: number }> = [];
   for (const serviceDate of records) {
     const proposed = await call(o.api, "/api/v1/daily/proposals", { requestId: randomUUID(), serviceDate, snapshot: store.snapshot([serviceDate]) }, 60_000);
@@ -178,9 +184,6 @@ async function main(): Promise<number> {
     if (receipt === null || store.write(receipt) !== "WRITTEN") throw new Error(`Committing the proposal for ${serviceDate} answered ${committed?.status ?? "nothing"}`);
   }
   console.log(`Optimized ${optimized.filter(day => day.decision === "IMPROVED").length} of ${records.length} dates`);
-  const dates = o.horizonMode === "dynamic"
-    ? dynamicHorizon(firstDate, store.snapshot(window), { capWeekdays: o.horizonWeekdays, leadWeekdays: o.leadWeekdays, fullPercent: o.fullPercent }).dates
-    : window;
   const first = dates[0], last = dates[dates.length - 1];
   if (first === undefined || last === undefined) throw new Error("Empty booking horizon");
 

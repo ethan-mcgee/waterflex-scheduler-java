@@ -158,12 +158,24 @@ class BookingOffersRefinementTest {
                 last.incompleteDates(), null, -1));
     }
 
+    @Test void thePublishReserveFloorLeavesPublishItsDatabaseConnection() throws java.io.IOException {
+        // A search that explores to the end of its time reaches publish with only the reserve left; the connection guard
+        // refuses a connection with less than the pool's connection plus validation timeout, so the floor must exceed both.
+        var properties = new java.util.Properties();
+        try (var in = Required.value(BookingOffers.class.getResourceAsStream("/application.properties"), "application.properties")) { properties.load(in); }
+        int guard = Integer.parseInt(Required.value(properties.getProperty("spring.datasource.hikari.connection-timeout"), "connection-timeout").trim())
+                + Integer.parseInt(Required.value(properties.getProperty("spring.datasource.hikari.validation-timeout"), "validation-timeout").trim());
+        assertTrue(BookingOffers.MIN_PUBLISH_RESERVE_MS - guard >= 270,
+                "the floor leaves the guard's " + guard + " ms plus the 270 ms validation and preparation measured at 30 technicians");
+    }
+
     @Test void thePublishReserveIsASettingWithinItsBounds() {
         var transport = mock(CalculationTransport.class);
         java.util.function.IntFunction<BookingOffers> withReserve = reserve -> new BookingOffers(mock(PublicApiStore.class), mock(BookingStore.class),
                 mock(MetroRouting.class), mock(DailyPreparation.AddressLocator.class), transport, new SearchAdmission(2, 16), new RunningRequests(),
                 "BOUNDED", 250, reserve, Required.value(Clock.systemUTC()));
-        assertEquals(java.time.Duration.ofMillis(500), withReserve.apply(500).publishReserve());
+        assertEquals(java.time.Duration.ofMillis(900), withReserve.apply(900).publishReserve());
+        assertThrows(IllegalArgumentException.class, () -> withReserve.apply(500), "below the database connection guard every long search would answer BUSY");
         assertEquals(java.time.Duration.ofMillis(BookingOffers.MIN_PUBLISH_RESERVE_MS), withReserve.apply(BookingOffers.MIN_PUBLISH_RESERVE_MS).publishReserve());
         assertEquals(java.time.Duration.ofSeconds(1), withReserve.apply(BookingOffers.MAX_PUBLISH_RESERVE_MS).publishReserve(), "the second every search kept before");
         assertThrows(IllegalArgumentException.class, () -> withReserve.apply(BookingOffers.MIN_PUBLISH_RESERVE_MS - 1));

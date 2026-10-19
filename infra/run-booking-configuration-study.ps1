@@ -7,7 +7,7 @@
 #   load      per fleet, profile, variant and repeat: one desk booking cold addresses for -DurationS (load.ts).
 #   capacity  the booking pool restarted per layout (replicas x slots, one CPU a slot); -Clients dealerships at once,
 #             each its own tenant with one desk.
-#   reserve   the publish reserve (SCHEDULER_BOOKING_PUBLISH_RESERVE_MS) at 500 and 250 ms instead of 1000.
+#   reserve   the publish reserve (SCHEDULER_BOOKING_PUBLISH_RESERVE_MS) below its default of 1000 ms, at -Reserves.
 # Every run records the scheduler's own attribution from its request log (--scheduler-log), its metrics with one
 # replica (--metrics-url) and docker stats. Resumable: a run whose report exists is skipped, so the matrix can be run
 # over several nights with the same command; the reports live under -RunsDirectory. Long (about 60 hours with the
@@ -54,12 +54,12 @@ param(
     [string]$CapacityFleets = '5,10',
     [string]$CapacityProfiles = 'half,full',
     [string]$CapacityVariants = '2:250,2:1000,2:3000,1000',
-    # Part reserve: the publish reserve in milliseconds (200 to 1000) the booking pool is restarted with.
-    [string]$Reserves = '500,250',
+    # Part reserve: the publish reserve in milliseconds (800 to 1000, the scheduler's bounds) the booking pool is restarted with.
+    [string]$Reserves = '800',
     [string]$ReserveFleets = '5,10,15,30',
     [string]$ReserveProfiles = 'half,full',
     [string]$ReserveVariants = '2:3000,1000',
-    [ValidateRange(200, 1000)][int]$DefaultReserve = 1000,
+    [ValidateRange(800, 1000)][int]$DefaultReserve = 1000,
     # Seeds are this base plus a small cell index (the tools take 0 to 1000); the variants of a cell share a seed, so
     # they search the same addresses.
     [ValidateRange(0, 700)][int]$SeedBase = 500,
@@ -119,7 +119,7 @@ $clientList = & $parseList $Clients 'Clients' 1 20
 $capacityFleetList = & $parseList $CapacityFleets 'CapacityFleets' 1 200
 $capacityProfileList = & $parseNames $CapacityProfiles 'CapacityProfiles' @($profileArgs.Keys)
 $capacityVariantList = & $parseVariants $CapacityVariants 'CapacityVariants'
-$reserveList = & $parseList $Reserves 'Reserves' 200 1000
+$reserveList = & $parseList $Reserves 'Reserves' 800 1000
 $reserveFleetList = & $parseList $ReserveFleets 'ReserveFleets' 1 200
 $reserveProfileList = & $parseNames $ReserveProfiles 'ReserveProfiles' @($profileArgs.Keys)
 $reserveVariantList = & $parseVariants $ReserveVariants 'ReserveVariants'

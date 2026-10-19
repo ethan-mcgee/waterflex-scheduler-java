@@ -94,10 +94,14 @@ public class BookingOffers {
     /** The largest optional refinement budget, for the operator's default and a client's own. */
     static final int MAX_REFINEMENT_MS = BookingCalculation.MAX_REFINEMENT_MS;
     /**
-     * Bounds of the publish reserve, in milliseconds. The floor is a small fleet's commit at a stretch; the ceiling is the
-     * second every search kept before the reserve became a setting, so a deadline of 1000 ms still leaves no exploration.
+     * Bounds of the publish reserve, in milliseconds. Publishing takes a database connection, and the connection guard
+     * (SearchDatabaseTelemetry) refuses one with less than the pool's connection plus validation timeout left (250 + 250);
+     * a search that explores to the end of its time reaches publish with only the reserve, so a smaller reserve answers
+     * every such search BUSY. The floor is that guard plus the slowest validation and preparation measured (270 ms p95,
+     * 30 technicians on full schedules, booking configuration study). The ceiling is the second every search kept before
+     * the reserve became a setting, so a deadline of 1000 ms still leaves no exploration.
      */
-    static final int MIN_PUBLISH_RESERVE_MS = 200, MAX_PUBLISH_RESERVE_MS = 1000;
+    static final int MIN_PUBLISH_RESERVE_MS = 800, MAX_PUBLISH_RESERVE_MS = 1000;
 
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,

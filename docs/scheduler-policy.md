@@ -80,7 +80,7 @@ Spring properties can be supplied as command-line arguments or their standard en
 | --- | --- |
 | `booking.search.variant` | `BOUNDED`; the booking search variant (bounded rearrangement after insertion) |
 | `booking.search.refinement-ms` | 250 (`SCHEDULER_BOOKING_REFINEMENT_MS`); optional abundant-capacity refinement, range 0..3000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued |
-| `booking.search.publish-reserve-ms` | 1000 (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`); the part of a client's `bookingDeadlineMs` kept back from exploration to validate, prepare and publish the offers, range 200..1000; the request log's `commitMs` says how much of it a search used |
+| `booking.search.publish-reserve-ms` | 1000 (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`); the part of a client's `bookingDeadlineMs` kept back from exploration to validate, prepare and publish the offers, range 800..1000; the request log's `commitMs` says how much of it a search used |
 | `scheduler.search.capacity` | 0 selects CPU-aware one/two default |
 | `scheduler.search.queue-limit` | 16; bounded queue |
 | `scheduler.search.confirm-slots` | 1 (`SCHEDULER_SEARCH_CONFIRM_SLOTS`); slots beyond the capacity open to confirms alone, 0 to the capacity; confirms start before waiting searches in any case |
