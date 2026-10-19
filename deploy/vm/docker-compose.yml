@@ -98,7 +98,7 @@ services:
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_BOOKING_SEARCH_CAPACITY:-2}
       # Connections per replica: more than the capacity and confirm slots together, with headroom (the replica checks).
       SCHEDULER_DB_POOL_SIZE: ${SCHEDULER_BOOKING_DB_POOL_SIZE:-10}
-      # The part of a client's bookingDeadlineMs kept back to validate and publish the offers (200 to 1000).
+      # The part of a client's bookingDeadlineMs kept back to validate and publish the offers (800 to 1000).
       SCHEDULER_BOOKING_PUBLISH_RESERVE_MS: ${SCHEDULER_BOOKING_PUBLISH_RESERVE_MS:-1000}
       # JVM flags of this pool (measured in docs/api-load.md, "Confirm priority and JVM settings"); the heap is three
       # quarters of the container's memory limit.
