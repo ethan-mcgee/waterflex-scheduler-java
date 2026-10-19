@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.5.0);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.5.1);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -379,6 +379,7 @@ Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 40
 | Status | `error` | Meaning | What to do |
 | --- | --- | --- | --- |
 | 400 | `INVALID_REQUEST` | Malformed body, unknown field, duplicate key, missing value, a reference the snapshot does not hold, horizon over 21 dates, a reused `requestId` | Fix the request; send it with a new `requestId`. Never retry unchanged. |
+| 413 | `INVALID_REQUEST` | The body is larger than 8 MiB (8388608 bytes); nothing was claimed or calculated | Send less in one call (fewer dates or technician-days); do not repeat it unchanged. |
 | 401 | (no body, `WWW-Authenticate: Bearer`) | Missing, malformed, unknown or revoked token, or a disabled tenant | Check the token; do not retry. |
 | 404 | `NOT_FOUND` | No such proposal, offer, hold or running request for this tenant | Do nothing (or search again for a booking). |
 | 409 | `STALE` | Commit: a technician-day changed since the proposal was computed. Booking search or confirm: the snapshot is older than records already used. `changed` lists the technician-days | Commit: new proposal from current facts. Booking: the same call from current records with a new `requestId`. |
@@ -456,7 +457,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.5.0). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.5.1). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor

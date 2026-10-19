@@ -234,7 +234,14 @@ public class DailyProposals {
      * with the request, or recorded on the job with the claim released, or the job waits again when this replica had
      * no calculation slot in time.
      */
-    public void runJob(DailyJobs.Taken job) {
+    public void runJob(DailyJobs.Taken job) { runJob(job, () -> false); }
+
+    /**
+     * As {@link #runJob(DailyJobs.Taken)}; {@code stoppedForShutdown} is true when this replica stopped the job because
+     * it is shutting down. Such a job is queued again at once for another replica, with its attempt not counted, instead
+     * of ending as cancelled, unless the host cancelled it too.
+     */
+    public void runJob(DailyJobs.Taken job, java.util.function.BooleanSupplier stoppedForShutdown) {
         if (job.expired()) {
             jobs.finishReleased(job, DailyJobs.result(429, new Problem(ErrorCode.BUSY, "The request waited longer than "
                     + queue.maxWait().toMinutes() + " minutes in the queue without starting; send it again"), QUEUE_RETRY_SECONDS));
@@ -251,8 +258,11 @@ public class DailyProposals {
         Ran ran = execute(job.tenantId(), job.requestId(), job.ownerToken(), parsed.proposer());
         switch (ran) {
             case Stored _ -> jobs.finish(job);
-            case Released released -> jobs.finishReleased(job, new DailyJobs.Result(released.reply().status(), released.reply().json(),
-                    released.reply().retryAfterSeconds()));
+            case Released released -> {
+                if (stoppedForShutdown.getAsBoolean() && !jobs.cancelRequested(job)) jobs.requeue(job, Required.value(Duration.ZERO), false);
+                else jobs.finishReleased(job, new DailyJobs.Result(released.reply().status(), released.reply().json(),
+                        released.reply().retryAfterSeconds()));
+            }
             case Deferred deferred -> jobs.requeue(job, deferred.after(), false);
         }
     }

@@ -521,6 +521,34 @@ class DailyProposalsDatabaseIT {
         assertEquals("CANCELLED", result.path("body").path("error").asText());
     }
 
+    @Test void aJobStillRunningWhenItsReplicaStopsIsQueuedAgainForAnotherReplica() throws Exception {
+        slow.set(true);
+        String body = request(false, policy -> policy.put("costSearchSeconds", 60).put("fairnessSearchSeconds", 0));
+        String id = requestId(body);
+        status(proposals().createAsync(tenant, body), 202, "QUEUED");
+        DailyQueueWorker stopping = new DailyQueueWorker(jobs, proposals(), queue, admission, running, 200);
+        assertTrue(stopping.getPhase() > org.springframework.context.SmartLifecycle.DEFAULT_PHASE - 1024,
+                "the worker stops before the web server drains its requests");
+        stopping.start();
+        assertTrue(solving.await(10, java.util.concurrent.TimeUnit.SECONDS), "the search started");
+        var stopped = new java.util.concurrent.CountDownLatch(1);
+        long began = System.nanoTime();
+        stopping.stop(stopped::countDown);
+        assertTrue(stopped.await(10, java.util.concurrent.TimeUnit.SECONDS), "the stop completes within its drain and unwind");
+        assertTrue(System.nanoTime() - began < Duration.ofSeconds(6).toNanos(), "the 60 second search is not waited for");
+        assertFalse(stopping.isRunning());
+        JsonNode requeued = status(proposals().describe(tenant, id), 200, "QUEUED");
+        assertFalse(requeued.has("result"), "the host is not told the job was cancelled");
+        assertEquals(0, running.cancellations(), "a shutdown stop is not counted as a host cancellation");
+
+        slow.set(false);
+        DailyJobs.Taken again = Required.value(jobs.next("replica-b", queue.maxWait()));
+        assertEquals(1, again.attempts(), "the stopped run's attempt is not counted");
+        jobs.requeue(again, Required.value(Duration.ZERO), false);
+        assertTrue(worker(proposals(), running).runOnce("replica-b"));
+        assertEquals(201, status(proposals().describe(tenant, id), 200, "COMPLETED").path("result").path("status").asInt());
+    }
+
     @Test void aJobLeftRunningByAStoppedReplicaIsTakenAgainAndEndsWith503AfterItsAttempts() {
         String body = request(false);
         String id = requestId(body);

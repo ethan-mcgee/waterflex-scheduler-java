@@ -146,7 +146,10 @@ public final class DailyOperation {
         // The worker logs with the caller's context (tenant, host request ID), so its receipt line correlates with the call.
         java.util.Map<String, String> context = org.slf4j.MDC.getCopyOfContextMap();
         // Admission bounds active work and its waiting queue. No application thread pool queue resets the clock.
-        Thread.ofVirtual().name("daily-" + operation.id).start(() -> {
+        // A platform thread, not a virtual one: the solve holds the CPU for its whole search and never blocks, so on a
+        // virtual thread it would pin a carrier the whole time, and two such solves on a two-core replica would leave no
+        // carrier for the health checks and cancel watchers that are virtual.
+        Thread.ofPlatform().daemon().name("daily-" + operation.id).start(() -> {
             if (context != null) org.slf4j.MDC.setContextMap(context);
             try { operation.run(admission, prepare, completion); }
             finally { org.slf4j.MDC.clear(); }
