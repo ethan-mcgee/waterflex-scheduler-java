@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What the reserve has to cover</title>
+<style>
+  :root { --paper: #FFFFFF; --ink: #1F2A33; --muted: #444444; --accent: #B22222; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'Calibri', 'Carlito', system-ui, sans-serif; }
+  .wrap { overflow-x: auto; }
+  svg { display: block; width: 1000px; min-width: 1000px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<svg role="img" aria-labelledby="reserve-title reserve-desc" viewBox="0 0 1000 560" xmlns="http://www.w3.org/2000/svg">
+<title id="reserve-title">What the reserve has to cover</title>
+<desc id="reserve-desc">A stacked bar per fleet size of the 500 ms the database admission guard demands plus the worse commit p95 at the 800 ms reserve, against the 800 ms floor and the 1000 ms default.</desc>
+<rect x="0" y="0" width="1000" height="560" fill="#FFFFFF"/>
+<text x="80" y="32" fill="#444444" font-size="13" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.14em">TIME NEEDED INSIDE THE PUBLISH RESERVE, FULL SCHEDULES AT THE 800 MS RESERVE</text>
+<line x1="80" y1="420.0" x2="960" y2="420.0" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+<text x="72" y="425.0" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0 ms</text>
+<line x1="80" y1="356.7" x2="960" y2="356.7" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+<text x="72" y="361.7" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">200 ms</text>
+<line x1="80" y1="293.3" x2="960" y2="293.3" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+<text x="72" y="298.3" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">400 ms</text>
+<line x1="80" y1="230.0" x2="960" y2="230.0" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+<text x="72" y="235.0" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">600 ms</text>
+<line x1="80" y1="166.7" x2="960" y2="166.7" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+<text x="72" y="171.7" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">800 ms</text>
+<line x1="80" y1="103.3" x2="960" y2="103.3" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+<text x="72" y="108.3" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1,000 ms</text>
+<line x1="80" y1="40.0" x2="960" y2="40.0" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+<text x="72" y="45.0" fill="#444444" font-size="15" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1,200 ms</text>
+<line x1="80" y1="40" x2="80" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+<line x1="80" y1="166.7" x2="960" y2="166.7" stroke="#1F2A33" stroke-width="1" stroke-dasharray="6,4"/>
+<text x="956" y="160.7" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end">800 ms floor</text>
+<line x1="80" y1="103.3" x2="960" y2="103.3" stroke="#1F2A33" stroke-width="1" stroke-dasharray="2,4"/>
+<text x="956" y="97.3" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end">1000 ms default</text>
+<rect x="110" y="261.7" width="91" height="158.3" fill="#FFFFFF"/>
+<rect data-bar="5 technicians" data-part="guard" data-value="500.0" x="110" y="261.7" width="91" height="158.3" fill="rgba(31,42,51,0.15)" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="155.5" y="345.85" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">500 ms</text>
+<rect x="110" y="238.4" width="91" height="23.3" fill="#FFFFFF"/>
+<rect data-bar="5 technicians" data-part="commit" data-value="73.5" x="110" y="238.4" width="91" height="23.3" fill="#B22222" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="155.5" y="230.4" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">574 ms</text>
+<text x="155.5" y="444" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="600">5 technicians</text>
+<rect x="262" y="261.7" width="91" height="158.3" fill="#FFFFFF"/>
+<rect data-bar="10 technicians" data-part="guard" data-value="500.0" x="262" y="261.7" width="91" height="158.3" fill="rgba(31,42,51,0.15)" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="307.5" y="345.85" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">500 ms</text>
+<rect x="262" y="224.6" width="91" height="37.1" fill="#FFFFFF"/>
+<rect data-bar="10 technicians" data-part="commit" data-value="117.0" x="262" y="224.6" width="91" height="37.1" fill="#B22222" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="307.5" y="248.14999999999998" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">117 ms</text>
+<text x="307.5" y="216.6" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">617 ms</text>
+<text x="307.5" y="444" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="600">10 technicians</text>
+<rect x="414" y="261.7" width="91" height="158.3" fill="#FFFFFF"/>
+<rect data-bar="15 technicians" data-part="guard" data-value="500.0" x="414" y="261.7" width="91" height="158.3" fill="rgba(31,42,51,0.15)" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="459.5" y="345.85" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">500 ms</text>
+<rect x="414" y="213.7" width="91" height="48.0" fill="#FFFFFF"/>
+<rect data-bar="15 technicians" data-part="commit" data-value="151.5" x="414" y="213.7" width="91" height="48.0" fill="#B22222" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="459.5" y="242.7" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">152 ms</text>
+<text x="459.5" y="205.7" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">652 ms</text>
+<text x="459.5" y="444" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="600">15 technicians</text>
+<rect x="566" y="261.7" width="91" height="158.3" fill="#FFFFFF"/>
+<rect data-bar="20 technicians" data-part="guard" data-value="500.0" x="566" y="261.7" width="91" height="158.3" fill="rgba(31,42,51,0.15)" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="611.5" y="345.85" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">500 ms</text>
+<rect x="566" y="201.8" width="91" height="59.9" fill="#FFFFFF"/>
+<rect data-bar="20 technicians" data-part="commit" data-value="189.0" x="566" y="201.8" width="91" height="59.9" fill="#B22222" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="611.5" y="236.75" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">189 ms</text>
+<text x="611.5" y="193.8" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">689 ms</text>
+<text x="611.5" y="444" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="600">20 technicians</text>
+<rect x="718" y="261.7" width="91" height="158.3" fill="#FFFFFF"/>
+<rect data-bar="30 technicians" data-part="guard" data-value="500.0" x="718" y="261.7" width="91" height="158.3" fill="rgba(31,42,51,0.15)" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="763.5" y="345.85" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">500 ms</text>
+<rect x="718" y="179.7" width="91" height="82.0" fill="#FFFFFF"/>
+<rect data-bar="30 technicians" data-part="commit" data-value="259.0" x="718" y="179.7" width="91" height="82.0" fill="#B22222" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="763.5" y="225.7" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">259 ms</text>
+<rect x="733.5" y="157.7" width="60" height="18" fill="#FFFFFF"/>
+<text x="763.5" y="171.7" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle">759 ms</text>
+<text x="763.5" y="444" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="600">30 technicians</text>
+<line x1="80" y1="478" x2="960" y2="478" stroke="rgba(31,42,51,0.12)" stroke-width="1"/>
+<text x="80" y="500" fill="#444444" font-size="13" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" letter-spacing="0.14em">LEGEND</text>
+<rect x="180" y="488" width="16" height="12" fill="rgba(31,42,51,0.15)" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="204" y="500" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start">Database admission guard</text>
+<rect x="401" y="488" width="16" height="12" fill="#B22222" stroke="rgba(31,42,51,0.60)" stroke-width="0.8"/>
+<text x="425" y="500" fill="#444444" font-size="15" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start">Commit p95, worse of 1000 and 2:3000</text>
+<text x="80" y="526" fill="#444444" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start">The guard is the pool&#x27;s connect plus validation timeout (500 ms), read from application.properties; the commit is the scheduler&#x27;s own p95 from its request log.</text>
+<text x="80" y="546" fill="#444444" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start">Searches per minute at each reserve are in the table above.</text>
+</svg>
+</div>
+</body>
+</html>

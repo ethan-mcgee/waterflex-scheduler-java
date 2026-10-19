@@ -98,6 +98,18 @@ export class HostStore {
   }
 
   /**
+   * Stamps technician-days as just written without changing them, as a host's records read after it wrote a booking and
+   * then cancelled it: the scheduler, which saw the booking confirmed, then gets records newer than the confirm's.
+   */
+  touch(days: ReadonlyArray<{ technicianId: string; serviceDate: string }>): void {
+    for (const version of days) {
+      const day = this.#days.get(key(version.technicianId, version.serviceDate));
+      if (day === undefined) throw new Error(`No technician-day ${version.technicianId} ${version.serviceDate}`);
+      day.lastModified = this.#stamp();
+    }
+  }
+
+  /**
    * Writes a receipt with a compare-and-set: when every listed technician-day still has the receipt's timestamp, every
    * listed assignment is written (a new job's appointment created from `job` and its offered window) and each written
    * day gets a new timestamp; otherwise nothing is written.

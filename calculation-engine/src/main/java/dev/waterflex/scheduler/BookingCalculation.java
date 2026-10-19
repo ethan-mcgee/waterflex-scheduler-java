@@ -7,12 +7,18 @@ import org.jspecify.annotations.Nullable;
 /** Each stage has all immutable facts and roads. The caller orchestrates routing. */
 public final class BookingCalculation {
     public enum Stage { INSERTION, REFINEMENT }
+    /**
+     * The longest cap on an optional refinement, in milliseconds: the operator's default, a client's own budget and the
+     * engine's input all stay within it. A booking deadline of 5 s keeps 1 s back to publish, so a cap above 3 s could
+     * never run to its end.
+     */
+    public static final int MAX_REFINEMENT_MS = 3000;
     public record Input(BookingSnapshot snapshot, BoundedBookingSearch.Request request, Stage stage, String variant,
                         BoundedBookingSearch.@Nullable Result insertion, int refinementMillis) {
         public Input {
             Required.value(snapshot); Required.value(request); Required.value(stage);
             if (!Set.of("INSERTION","BOUNDED","EXPANDED","RUIN_RECREATE","SHARED").contains(variant)) throw new IllegalArgumentException("Unknown booking variant");
-            if (refinementMillis < 0 || refinementMillis > 1000) throw new IllegalArgumentException("Invalid refinement cap");
+            if (refinementMillis < 0 || refinementMillis > MAX_REFINEMENT_MS) throw new IllegalArgumentException("Invalid refinement cap");
             if (stage == Stage.REFINEMENT && insertion == null || stage != Stage.REFINEMENT && insertion != null)
                 throw new IllegalArgumentException("Invalid insertion seed for booking stage");
         }
@@ -104,17 +110,23 @@ public final class BookingCalculation {
         for (var item : result.coverage()) if (!windows.contains(item.window()) || !coverage.add(item.window())
                 || item.routesExamined() < 0 || item.arrangementsExamined() < 0 || item.movesGenerated() < 0 || item.candidateEvaluations() < 0
                 || result.complete() && !item.complete()) throw new IllegalArgumentException("Invalid returned booking coverage");
+        // Every candidate is checked in full, but what does not depend on the candidate is computed once per date: the
+        // baseline's cost and fairness, and the route evaluations a candidate leaves unchanged (BookingEvaluation caches
+        // each route by its technician and visits). Validation runs in the publish reserve, so on a large fleet whose
+        // search returns hundreds of candidates, repeating that work per candidate left too little time to publish.
+        Map<LocalDate,Validated> dates = new HashMap<>();
         for (var candidate : result.candidates()) {
             SearchDeadline.checkpoint();
             if (!windows.contains(candidate.window())) throw new IllegalArgumentException("Returned window not in snapshot");
             Day day = Required.value(snapshot.days().get(candidate.window().day()));
+            Validated date = dates.computeIfAbsent(candidate.window().day(), _ -> Validated.of(day, snapshot.rates(), request.serviceId()));
             Technician technician = Required.value(day.technicians().get(candidate.technicianId()));
             if (!technician.services().contains(request.serviceId())) throw new IllegalArgumentException("Returned technician unqualified");
             var visit = new Visit(request.jobId(),request.jobId(),request.serviceId(),candidate.window().start(),candidate.window().end(),
                     request.durationMinutes(),request.location(),candidate.technicianId(),candidate.window().start(),false);
             Map<String,Visit> facts = new HashMap<>(day.visits()); facts.put(visit.id(),visit);
             var validation = day.evaluate(candidate.arrangement(), facts,snapshot.rates());
-            var baseline = day.evaluate(day.baseline(),day.visits(),snapshot.rates());
+            var baseline = date.baseline();
             if (!validation.feasible() || !validation.equals(candidate.validation())
                     || Math.subtractExact(validation.costCents(),baseline.costCents()) != candidate.costDeltaCents()
                     || Math.subtractExact(validation.overtimeMinutes(),baseline.overtimeMinutes()) != candidate.overtimeDelta())
@@ -122,11 +134,9 @@ public final class BookingCalculation {
             List<String> order = Required.value(candidate.arrangement().routes().get(technician.id()));
             if (candidate.insertionPosition() < 0 || candidate.insertionPosition() >= order.size() || !order.get(candidate.insertionPosition()).equals(request.jobId()))
                 throw new IllegalArgumentException("Returned insertion position mismatch");
-            if (!day.evaluate(candidate.arrangement(),facts,snapshot.rates()).feasible()
-                    || !RouteEvaluator.evaluate(day.plan(candidate.arrangement(),facts,snapshot.rates(),true)).feasible())
+            if (!RouteEvaluator.evaluate(day.plan(candidate.arrangement(),facts,snapshot.rates(),true)).feasible())
                 throw new IllegalArgumentException("Returned confirmed workload infeasible");
-            var evaluation = new BookingEvaluation(day,snapshot.rates(),request.serviceId(),SearchDeadline::checkpoint);
-            var fairness = evaluation.fairness(candidate.arrangement(),facts).subtract(evaluation.fairness(day.baseline(),day.visits()));
+            var fairness = date.evaluation().fairness(candidate.arrangement(),facts).subtract(date.fairness());
             if (fairness.compareTo(candidate.fairnessDelta()) != 0) throw new IllegalArgumentException("Returned fairness mismatch");
             int changed = 0;
             for (var route : candidate.arrangement().routes().entrySet()) for (String id : route.getValue()) if (!id.equals(request.jobId())) {
@@ -136,5 +146,13 @@ public final class BookingCalculation {
             if (changed != candidate.changedAssignments()) throw new IllegalArgumentException("Returned changed assignment count mismatch");
         }
         if (result.overtimeAuthorized()) throw new IllegalArgumentException("Zero overtime policy prohibits authorization");
+    }
+
+    /** One date's validation facts that no candidate changes. */
+    private record Validated(RouteEvaluator.Result baseline, BookingEvaluation evaluation, java.math.BigDecimal fairness) {
+        static Validated of(Day day, Rates rates, String service) {
+            var evaluation = new BookingEvaluation(day, rates, service, SearchDeadline::checkpoint);
+            return new Validated(day.evaluate(day.baseline(), day.visits(), rates), evaluation, evaluation.fairness(day.baseline(), day.visits()));
+        }
     }
 }

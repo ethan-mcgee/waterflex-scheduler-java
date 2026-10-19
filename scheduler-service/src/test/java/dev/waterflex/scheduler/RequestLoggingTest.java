@@ -55,6 +55,9 @@ class RequestLoggingTest {
         deadline.telemetry().routing(300, 200, 50, 50);
         String line = RequestLogging.breakdown(deadline.telemetry().snapshot());
         assertTrue(line.startsWith(" queueMs=40 routingMs=1234 calculationMs=250 dbMs=7 dbCalls=1 routingPairs=300 cacheHits=250 fetched=50"), line);
+        assertFalse(line.contains("commitMs"), "a call that never began its commit phase has no commit time: " + line);
+        deadline.telemetry().commit(321_000_000L);
+        assertTrue(RequestLogging.breakdown(deadline.telemetry().snapshot()).contains(" fetched=50 commitMs=321"), "the commit phase's time follows the fetched legs");
         assertEquals("", RequestLogging.breakdown(null), "a call without a deadline has no breakdown");
 
         // The observer hands the measurements to the filter on the request thread, even when the work throws.
@@ -64,6 +67,42 @@ class RequestLoggingTest {
         var again = new MockHttpServletRequest("POST", "/api/v1/booking/offers");
         logging.doFilter(again, new MockHttpServletResponse(), (_, _) -> { });
         SearchDeadline.observe(null);
+    }
+
+    @Test void theCommitPhaseIsTimedFromBeginCommitToTheDeadlinesEndAndTheReserveIsASetting() {
+        var measured = new AtomicReference<SearchTelemetry.@Nullable Measurements>();
+        SearchDeadline.observe(measured::set);
+        try {
+            var deadline = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)), Required.value(java.time.Duration.ofMillis(500)));
+            assertEquals(500_000_000L, deadline.reserveNanos());
+            assertTrue(deadline.explorationNanos() > 4_400_000_000L && deadline.explorationNanos() <= 4_500_000_000L,
+                    "exploration is the deadline minus the reserve: " + deadline.explorationNanos());
+            deadline.within(() -> {
+                SearchDeadline.beginCommit();
+                try { Thread.sleep(20); } catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
+                return null;
+            });
+            SearchTelemetry.Measurements finished = measured.get();
+            assertNotNull(finished);
+            Long commit = finished.commitNanos();
+            assertNotNull(commit, "the commit phase ran");
+            assertTrue(commit >= 20_000_000L && commit < 4_000_000_000L, "about the time spent after beginCommit: " + commit);
+
+            var explored = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)));
+            assertEquals(SearchDeadline.DEFAULT_RESERVE.toNanos(), explored.reserveNanos(), "one second unless the operator says otherwise");
+            explored.within(() -> { SearchDeadline.checkpoint(); return null; });
+            assertNull(Required.value(measured.get()).commitNanos(), "a call that never committed has no commit time, not zero");
+
+            var retried = new SearchDeadline(Required.value(java.time.Duration.ofSeconds(5)));
+            retried.within(() -> {
+                SearchDeadline.beginCommit();
+                SearchDeadline.beginExploration();
+                SearchDeadline.beginCommit();
+                return null;
+            });
+            Long twice = Required.value(measured.get()).commitNanos();
+            assertNotNull(twice, "a search that committed, searched again and committed counts both commit phases");
+        } finally { SearchDeadline.observe(null); }
     }
 
     @Test void theDailyWorkerLogsWithTheCallersRequestId() {
