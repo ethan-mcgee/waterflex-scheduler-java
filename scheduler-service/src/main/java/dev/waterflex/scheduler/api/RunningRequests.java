@@ -81,6 +81,17 @@ public class RunningRequests {
         return true;
     }
 
+    /**
+     * Stops the tenant's request running here because this replica is shutting down. Not a host cancellation, so it is
+     * not counted as one; false when the request is not running here.
+     */
+    public boolean stop(String tenantId, String requestId) {
+        Running found = running.get(new Key(tenantId, requestId));
+        if (found == null) return false;
+        found.cancel();
+        return true;
+    }
+
     /** The requests running here now. */
     public java.util.List<Key> keys() { return Required.value(java.util.List.copyOf(running.keySet())); }
 

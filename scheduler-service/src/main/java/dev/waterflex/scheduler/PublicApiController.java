@@ -120,8 +120,32 @@ public class PublicApiController {
      * through message converters: the application's JSON converter is registered ahead of the plain-text one, so it
      * would refuse a JSON object bound to a String and would encode a JSON reply a second time.
      */
-    private static String body(HttpServletRequest request) throws IOException {
-        return new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    static String body(HttpServletRequest request) throws IOException {
+        // The same ceiling as a calculation payload: a larger body is refused before it is read in full or parsed.
+        if (request.getContentLengthLong() > CalculationJson.MAX_BYTES) throw new TooLarge();
+        byte[] bytes = request.getInputStream().readNBytes(CalculationJson.MAX_BYTES + 1);
+        if (bytes.length > CalculationJson.MAX_BYTES) throw new TooLarge();
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    /** A request body over {@link CalculationJson#MAX_BYTES}. */
+    static final class TooLarge extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        TooLarge() { super("The request body exceeds " + CalculationJson.MAX_BYTES + " bytes"); }
+    }
+
+    /** 413 with the API's problem body, before anything was claimed or calculated. */
+    @org.springframework.web.bind.annotation.ExceptionHandler(TooLarge.class)
+    public void tooLarge(TooLarge refused, HttpServletResponse response) throws IOException { writeTooLarge(refused, response); }
+
+    static void writeTooLarge(TooLarge refused, HttpServletResponse response) throws IOException {
+        byte[] json = CalculationJson.write(new dev.waterflex.scheduler.api.PublicResponses.Problem(
+                dev.waterflex.scheduler.api.PublicResponses.ErrorCode.INVALID_REQUEST, Required.value(refused.getMessage())))
+                .getBytes(StandardCharsets.UTF_8);
+        response.setStatus(413);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setContentLength(json.length);
+        response.getOutputStream().write(json);
     }
 
     /** Whether the request's Prefer headers (RFC 7240) include respond-async. */

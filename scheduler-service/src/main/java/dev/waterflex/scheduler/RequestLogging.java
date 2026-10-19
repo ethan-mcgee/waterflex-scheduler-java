@@ -30,7 +30,40 @@ public final class RequestLogging extends OncePerRequestFilter {
     /** The measurements of the deadline that finished on this thread, read once by the call's summary line. */
     private static final ThreadLocal<SearchTelemetry.@org.jspecify.annotations.Nullable Measurements> FINISHED = new ThreadLocal<>();
 
-    public RequestLogging() { SearchDeadline.observe(FINISHED::set); }
+    /**
+     * Where each call's phase times are also recorded, as {@code scheduler.request.phase} timers tagged with the
+     * operation (the matched route, so IDs in the path never become tags) and the phase.
+     */
+    private final io.micrometer.core.instrument.MeterRegistry registry;
+
+    /** A filter whose phase timers go nowhere, for tests that read only the log line. */
+    public RequestLogging() { this(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()); }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RequestLogging(io.micrometer.core.instrument.MeterRegistry registry) {
+        this.registry = registry;
+        SearchDeadline.observe(FINISHED::set);
+    }
+
+    /** Records a finished deadline's phases; nothing for a call that ran under none. */
+    void recordPhases(String operation, SearchTelemetry.@org.jspecify.annotations.Nullable Measurements measured) {
+        if (measured == null) return;
+        phase(operation, "queue", measured.admissionNanos());
+        phase(operation, "routing", measured.routingNanos());
+        phase(operation, "calculation", measured.calculationNanos());
+        phase(operation, "db", measured.databaseNanos());
+        Long commit = measured.commitNanos();
+        if (commit != null) phase(operation, "commit", commit);
+    }
+
+    private void phase(String operation, String phase, long nanos) {
+        io.micrometer.core.instrument.Timer.builder("scheduler.request.phase")
+                .description("Time a public API call spent in one phase of its deadline")
+                .tag("operation", operation).tag("phase", phase)
+                .publishPercentileHistogram()
+                .register(registry)
+                .record(Math.max(0, nanos), java.util.concurrent.TimeUnit.NANOSECONDS);
+    }
 
     /** Adds the host's request ID to the current call's log context. */
     public static void requestId(String requestId) { MDC.put(REQUEST_ID, requestId); }
@@ -68,6 +101,7 @@ public final class RequestLogging extends OncePerRequestFilter {
             SearchTelemetry.Measurements measured = FINISHED.get();
             FINISHED.remove();
             LOG.info("api operation=\"{}\" status={} elapsedMs={}{}", operation, response.getStatus(), (System.nanoTime() - started) / 1_000_000, breakdown(measured));
+            recordPhases(operation, measured);
             MDC.remove(TENANT); MDC.remove(REQUEST_ID); MDC.remove(OPERATION);
         }
     }

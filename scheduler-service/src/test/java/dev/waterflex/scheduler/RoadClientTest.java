@@ -194,4 +194,76 @@ class RoadClientTest {
             assertEquals(2, requests.get(), "An outage must not be cached as unreachable");
         } finally { server.stop(0); }
     }
+
+    /** A routing replica that answers its health and legs with {@code identity}, or 409 when it serves another map. */
+    private static HttpServer replica(String identity, boolean otherMap, AtomicInteger legs) throws java.io.IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        var json = new com.fasterxml.jackson.databind.ObjectMapper();
+        server.createContext("/health", exchange -> {
+            byte[] bytes = ("{\"ready\":true,\"routingIdentity\":\"" + (otherMap ? "other-map" : identity) + "\"}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length); exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.createContext("/internal/legs", exchange -> {
+            legs.incrementAndGet();
+            var body = json.readTree(exchange.getRequestBody());
+            if (otherMap) { exchange.sendResponseHeaders(409, -1); exchange.close(); return; }
+            var result = json.createObjectNode().put("routingIdentity", identity);
+            var pairs = result.putArray("pairs");
+            for (var pair : body.path("pairs")) pairs.addObject().put("id", pair.path("id").asText()).putObject("leg")
+                    .put("routable", true).put("seconds", 60).put("meters", 42);
+            byte[] bytes = json.writeValueAsBytes(result);
+            exchange.sendResponseHeaders(200, bytes.length); exchange.getResponseBody().write(bytes); exchange.close();
+        });
+        server.start();
+        return server;
+    }
+
+    private static String base(HttpServer server) { return "http://127.0.0.1:" + server.getAddress().getPort(); }
+
+    private static List<RoadClient.Pair> pair(int n) {
+        return Required.value(List.of(new RoadClient.Pair("p" + n, new RoadPoint(0, 0), new RoadPoint(0.001 * n + 0.01, 1))));
+    }
+
+    @Test void severalReplicasOfAMetrosRoutingShareItsCallsAndOneThatIsDownOrOnAnotherMapIsSkipped() throws Exception {
+        AtomicInteger first = new AtomicInteger(), second = new AtomicInteger(), stale = new AtomicInteger();
+        HttpServer a = replica("test", false, first), b = replica("test", false, second), c = replica("test", true, stale);
+        var transactions = mock(org.springframework.transaction.PlatformTransactionManager.class);
+        RoadClient roads = new RoadClient(mock(JdbcTemplate.class), base(a) + "|" + base(b) + "/", "", 10, 10, transactions, 0, 2, 16);
+        try {
+            assertEquals(2, roads.endpoints());
+            for (int n = 0; n < 6; n++) assertEquals(Map.of("p" + n, new RoadClient.Leg(60, 42)), roads.sparse(pair(n), "test"));
+            assertEquals(6, first.get() + second.get());
+            assertTrue(first.get() > 0 && second.get() > 0, "calls are spread over both replicas: " + first + " and " + second);
+
+            b.stop(0);
+            for (int n = 6; n < 10; n++) assertEquals(Map.of("p" + n, new RoadClient.Leg(60, 42)), roads.sparse(pair(n), "test"), "a replica that is down is skipped");
+            assertEquals(1, roads.availableEndpoints(), "the stopped replica is parked");
+            assertEquals("test", roads.activeIdentity());
+        } finally { roads.closeRoutingWork(); a.stop(0); }
+
+        AtomicInteger good = new AtomicInteger();
+        HttpServer d = replica("test", false, good);
+        RoadClient rolling = new RoadClient(mock(JdbcTemplate.class), base(c) + "|" + base(d), "", 10, 10, transactions, 0, 2, 16);
+        try {
+            for (int n = 0; n < 4; n++) assertEquals(Map.of("p" + n, new RoadClient.Leg(60, 42)), rolling.sparse(pair(n), "test"),
+                    "a replica already on the next map refuses with 409 and the call is answered by the other");
+            assertEquals(4, good.get());
+            assertTrue(stale.get() <= 1, "the replica on another map is parked after its first refusal: " + stale);
+        } finally { rolling.closeRoutingWork(); c.stop(0); d.stop(0); }
+
+        HttpServer e = replica("test", true, new AtomicInteger());
+        RoadClient alone = new RoadClient(mock(JdbcTemplate.class), base(e), "", 10, 10, transactions, 0, 2, 16);
+        try {
+            var refused = assertThrows(RoadClient.RoadUnavailable.class, () -> alone.sparse(pair(0), "test"));
+            assertEquals("Routing identity changed", refused.getMessage(), "a single replica keeps its answer to a changed identity");
+        } finally { alone.closeRoutingWork(); e.stop(0); }
+    }
+
+    @Test void aMetroMayListSeveralRoutingReplicas() {
+        assertEquals(Map.of("omaha", "http://a:1|http://b:1", "lincoln", "http://c:1"),
+                MetroRouting.parse("omaha=http://a:1|http://b:1/,lincoln=http://c:1"));
+        assertThrows(IllegalArgumentException.class, () -> MetroRouting.parse("omaha=http://a:1|http://a:1"), "a replica listed twice");
+        assertThrows(IllegalArgumentException.class, () -> MetroRouting.parse("omaha=http://a:1|ftp://b:1"), "every replica must be http or https");
+        assertThrows(IllegalArgumentException.class, () -> MetroRouting.parse("omaha=http://a:1|"), "an empty replica");
+    }
 }

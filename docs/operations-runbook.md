@@ -19,7 +19,7 @@ Until then, keep every port on the private network, as Compose does by binding t
 | --- | --- | --- |
 | `SCHEDULER_RETENTION_DAYS` | Yes, no default | Days the thin store keeps requests, proposals, offers and receipts (1 to 3650). The scheduler refuses to start without it. |
 | `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD` | Yes | The scheduler's database login. It must be a member of `scheduler_app`, never the schema owner. The operator commands use the same variables with the owner's login. |
-| `ROUTING_METRO_URLS` | Yes | One `metro=url` entry per served metro. |
+| `ROUTING_METRO_URLS` | Yes | One `metro=url` entry per served metro. A busy metro may list several replicas of its routing service separated by `\|` (`omaha=http://routing-omaha-1:8001\|http://routing-omaha-2:8001`); see "Scaling, in order". |
 | `ROUTING_AUTH_TOKEN` | Yes | Shared bearer token of the routing services, at least 32 characters. |
 | `GEOCODING_MODE`, `NOMINATIM_URL` | No | `COORDINATES_REQUIRED` (default) or `NOMINATIM`. |
 | `SCHEDULER_CALCULATION_MODE`, `SCHEDULER_CALCULATION_URL`, `SCHEDULER_CALCULATION_AUTH_TOKEN` | No | `EMBEDDED` (default) or `REMOTE` with a solver pool. Measured for a daily pool, not for booking (docs/api-load.md, "Embedded against remote calculation"). The pool's `SOLVER_CAPACITY` is the replicas' search capacities summed; its `SOLVER_BACKGROUND_LIMIT` (0: every slot) must cover the daily replicas' background limits, or their second concurrent calculation answers 503. |
@@ -31,6 +31,8 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `SCHEDULER_SEARCH_CONFIRM_SLOTS` | No | Slots beyond the search capacity that only confirms may take, 0 to the capacity, default 1: a confirm (a few milliseconds of work) then never waits for a running search to finish. Confirms also start before any waiting search. |
 | `SCHEDULER_SEARCH_BACKGROUND_LIMIT` | No | Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas. |
 | `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`. |
+| `SCHEDULER_SHUTDOWN_GRACE` | No | How long each shutdown phase may take, default `30s`: the daily queue's drain, then the web server's drain of calls in progress. A container's stop grace must exceed twice it (the compose files set 75 s). The solver pool reads `SOLVER_SHUTDOWN_GRACE` the same way. |
+| `SCHEDULER_DAILY_QUEUE_DRAIN_MS` | No | How long a stopping replica lets its running queued jobs finish, default 25000 (0 to 600000), within the grace above. A job still running then is stopped and queued again at once for another replica, with its attempt not counted. |
 | `SCHEDULER_CANCEL_POLL_MS` | No | How often a replica reads the cancellations other replicas recorded for the calls it runs, default 500. |
 | `ROUTING_IDENTITY_TTL_MS` | No | How long a routing identity fetched from a routing service's `/health` is trusted, default 2000; the service still refuses a call with a changed identity (409), which drops the remembered one. |
 | `ROUTING_FLIGHTS_THREADS`, `ROUTING_FLIGHTS_QUEUE` | No | Leg batches a replica fetches from a routing service at once (8) and lets wait (64). |
@@ -70,7 +72,7 @@ The running scheduler logs in as a member of `scheduler_app`, which holds exactl
 
 Start order: database, `--command=migrate` (migrations and the login), routing services, Nominatim (if used), the solver pool (if remote), then the scheduler. The scheduler starts without its dependencies, but `/health` answers 503 until they answer.
 
-Stop the scheduler first. A call in progress is lost and the host retries it with the same `requestId`; an unfinished claim is taken over when its lease expires. A queued proposal stays queued; one that was running is taken again by another replica's worker once its lease passes, at most three times.
+Stop the scheduler first. A stopping replica stops taking queued jobs, lets running ones finish for `SCHEDULER_DAILY_QUEUE_DRAIN_MS`, and queues any still running again at once for another replica. The web server then drains the calls in progress (booking searches end within their deadline) for up to `SCHEDULER_SHUTDOWN_GRACE`. A call cut off by a forced kill is lost and the host retries it with the same `requestId`; an unfinished claim is taken over when its lease expires, and a running job that was not handed back is taken again by another replica's worker once its lease passes, at most three times. The solver pool tells any solve still running after its own drain to stop.
 
 Upgrade:
 
@@ -91,8 +93,8 @@ Rolling back past #152 (late snapshots keep holds) needs one more step. From #15
 | --- | --- | --- |
 | `database` | `SELECT 1` | No calculation can claim its request; calls answer 503. |
 | `schema` | The database's migration history matches this build | The database was not migrated to this version; run `--command=migrate`. |
-| `routing:<metro>` | The routing service's `/health`; the detail is its routing identity | Calls for that metro fail. Other metros are unaffected. |
-| `calculation` | The solver pool's `/health`, only in `REMOTE` mode | Calculations answer 503. |
+| `routing:<metro>` | The routing service's `/health`; the detail is its routing identity, and with several replicas how many are in rotation (`<identity> (2 of 3 replicas)`) | Calls for that metro fail. Other metros are unaffected. With several replicas it is down only when none answers. |
+| `calculation` | The solver pool's `/health`, only in `REMOTE` mode. Its body reports `capacity`, `active`, `queued`, `transient` (solves registered) and `stuck`; it answers 503 when a solve is still registered longer than the longest allowance plus a minute | Calculations answer 503. A `stuck` solve means a pool worker never finished: restart that pool replica. |
 | `geocoding` | Nominatim's `/status`, only in `NOMINATIM` mode | Address-only locations are reported as skipped. |
 
 `GET /health/live` reads nothing and always answers 200. Use it for restarts, and `/health` for taking a replica out of a load balancer. Restarting on `/health` would restart the scheduler when routing is down, which fixes nothing.
@@ -131,6 +133,7 @@ Lines to act on:
 | `scheduler_admission_evictions_total` | Queued searches that gave their place in a full queue to a search of a client with fewer waiting, or to an arriving confirm (confirms start before waiting searches and are never evicted). Rising: one client's desks fill the booking queue; add booking capacity. |
 | `scheduler_daily_queue_started_total`, `scheduler_daily_queue_expired_total`, `scheduler_daily_queue_failed_total` | Queued proposals this replica started; ones that waited longer than `MAX_WAIT_MINUTES` (hosts got 429: add daily capacity); ones that failed unexpectedly and were queued again (read the logs). The queue's depth is `SELECT state, count(*) FROM api_daily_job WHERE state <> 'DONE' GROUP BY state` as the owner role. |
 | `scheduler_retention_deleted_total` | Grows once a day after the first period has passed. |
+| `scheduler_request_phase_seconds` by `operation` and `phase` (`queue`, `routing`, `calculation`, `db`, `commit`) | The request log's phase times as histograms: graph p95 per phase to see whether a slow booking search waited for a slot, for routing, for the engine or for the database. |
 | `scheduler_replica_info{role}`, `scheduler_admission_background_limit` | The replica's role and how many daily calculations it runs at once. |
 
 ## Retention
@@ -181,7 +184,7 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 2. More scheduler replicas on the same database behind a load balancer. Any replica answers any call: queued proposals (`Prefer: respond-async`) are taken by any replica's worker, and `DELETE /api/v1/requests/{requestId}` cancels a call wherever it runs (the replica that receives it records the cancel; the replica running the call stops it within about a second).
 3. Replica roles: a booking pool and a daily pool of the same jar behind one address (see "Replica roles"), each scaled on its own.
 4. `REMOTE` calculation with a solver pool, so solving scales apart from the API.
-5. More routing capacity for a busy metro.
+5. More routing capacity for a busy metro: run more replicas of its routing service on the same map version and list them in `ROUTING_METRO_URLS` separated by `|`. The scheduler spreads routing calls over them and shares one route cache for the metro. A replica that cannot be reached, answers 5xx or reports another routing identity is left out for 5 seconds at a time while the others answer, so a map switch can be rolled one replica at a time. `routing:<metro>` stays up while any replica answers, and its detail says how many are in rotation.
 
 ## Replica roles
 

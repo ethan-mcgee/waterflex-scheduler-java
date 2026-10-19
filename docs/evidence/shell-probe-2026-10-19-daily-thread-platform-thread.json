@@ -1,0 +1,2356 @@
+﻿{
+    "probe":  "daily-thread",
+    "scheduler":  "local compose daily probe: scheduler cpus 2, background limit 2, 2 queue workers, embedded calculation, build c826a07 (PR #182, platform thread)",
+    "runnerRevision":  "c826a07144bc1f6796e6c5bc7b67d959906d89ef",
+    "runnerSha256":  "6fc246faf6efd70d49abb89c968960276992fdfa26258729196e57e772afbdf6",
+    "runsWithDefects":  [
+
+                        ],
+    "runs":  [
+                 {
+                     "label":  "daily-thread 2 queued proposals, 120 s search each",
+                     "scenario":  "daily",
+                     "scheduler":  "http://127.0.0.1:8000",
+                     "metroId":  "metro-omaha",
+                     "timeZone":  "America/Chicago",
+                     "points":  "area 41.22,-96.05,41.28,-95.95",
+                     "run":  "load-510feba2",
+                     "startedAt":  "2026-10-19T23:05:15.446Z",
+                     "finishedAt":  "2026-10-19T23:11:20.584Z",
+                     "settings":  {
+                                      "durationS":  270,
+                                      "concurrency":  2,
+                                      "dailyConcurrency":  null,
+                                      "technicians":  10,
+                                      "appointmentsPerDay":  2,
+                                      "horizonDates":  5,
+                                      "dailyTechnicians":  20,
+                                      "horizon":  {
+                                                      "mode":  "fixed",
+                                                      "weekdays":  null,
+                                                      "leadWeekdays":  null,
+                                                      "fullPercent":  null,
+                                                      "bookedWeekdays":  0,
+                                                      "bookedAppointments":  null
+                                                  },
+                                      "dailyMode":  "async",
+                                      "jobs":  "cold",
+                                      "confirmRate":  0.3,
+                                      "offerLimit":  4,
+                                      "windowHours":  2,
+                                      "policy":  {
+                                                     "fairnessBudget":  "0",
+                                                     "dailySearch":  "TABU",
+                                                     "costSearchSeconds":  120,
+                                                     "fairnessSearchSeconds":  0,
+                                                     "bookingDeadlineMs":  5000,
+                                                     "regularWindowThreshold":  2
+                                                 },
+                                      "seed":  301,
+                                      "dateSpread":  false
+                                  },
+                     "machine":  {
+                                     "cpus":  24,
+                                     "cpuModel":  "AMD Ryzen 9 7900X 12-Core Processor            ",
+                                     "memoryBytes":  67870916608,
+                                     "node":  "v22.20.0"
+                                 },
+                     "operations":  [
+                                        {
+                                            "operation":  "daily proposal",
+                                            "calls":  6,
+                                            "statuses":  {
+                                                             "201":  6
+                                                         },
+                                            "errors":  {
+
+                                                       },
+                                            "reasons":  {
+
+                                                        },
+                                            "retriedBusy":  0,
+                                            "ms":  {
+                                                       "p50":  120668,
+                                                       "p95":  123864,
+                                                       "p99":  123864,
+                                                       "max":  123864,
+                                                       "mean":  121711
+                                                   }
+                                        },
+                                        {
+                                            "operation":  "daily queue",
+                                            "calls":  6,
+                                            "statuses":  {
+                                                             "202":  6
+                                                         },
+                                            "errors":  {
+
+                                                       },
+                                            "reasons":  {
+
+                                                        },
+                                            "retriedBusy":  0,
+                                            "ms":  {
+                                                       "p50":  25,
+                                                       "p95":  176,
+                                                       "p99":  176,
+                                                       "max":  176,
+                                                       "mean":  74
+                                                   }
+                                        }
+                                    ],
+                     "booking":  null,
+                     "daily":  {
+                                   "proposals":  6,
+                                   "decisions":  {
+                                                     "IMPROVED":  6
+                                                 },
+                                   "queueWaitsMs":  [
+                                                        4,
+                                                        9,
+                                                        5,
+                                                        3,
+                                                        3,
+                                                        4
+                                                    ]
+                               },
+                     "server":  {
+                                    "operations":  [
+                                                       {
+                                                           "uri":  "/api/v1/daily/proposals",
+                                                           "method":  "POST",
+                                                           "status":  "202",
+                                                           "calls":  6,
+                                                           "meanMs":  68
+                                                       },
+                                                       {
+                                                           "uri":  "/api/v1/requests/{requestId}",
+                                                           "method":  "GET",
+                                                           "status":  "200",
+                                                           "calls":  242,
+                                                           "meanMs":  4
+                                                       }
+                                                   ],
+                                    "admissionRejections":  0,
+                                    "routingPairs":  0,
+                                    "routingLegRequests":  0,
+                                    "routingIdentityRequests":  182,
+                                    "processCpu":  {
+                                                       "mean":  0.97975463262228,
+                                                       "max":  1
+                                                   },
+                                    "heapUsedMaxBytes":  726801912
+                                },
+                     "metricFailures":  0,
+                     "containers":  null,
+                     "serverBreakdown":  null,
+                     "serverLog":  null,
+                     "contractBreaches":  [
+
+                                          ],
+                     "hostAnomalies":  [
+
+                                       ]
+                 }
+             ],
+    "protocol":  "Two daily proposals queued at once (Prefer: respond-async), 120 s cost search each, no fairness phase; /health read once a second meanwhile.",
+    "hypothesis":  "With the solve on a virtual thread and both carriers of a 2 CPU replica pinned, /health slows past its 1 s component checks or answers 503 while both solves run; on a platform thread it stays fast.",
+    "health":  [
+                   {
+                       "at":  "2026-10-19T23:05:13.9220538Z",
+                       "elapsedMs":  120,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:14.8286553Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:15.8422242Z",
+                       "elapsedMs":  12,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:16.8638015Z",
+                       "elapsedMs":  28,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:17.8547492Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:18.8955615Z",
+                       "elapsedMs":  42,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:19.8977168Z",
+                       "elapsedMs":  40,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:20.8702149Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:21.8918191Z",
+                       "elapsedMs":  19,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:22.8875996Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:23.8922845Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:24.9029613Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:25.9075752Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:26.9156246Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:27.9209563Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:28.9253223Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:29.9325226Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:30.9370492Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:31.9404008Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:32.9451701Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:33.9528727Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:34.9639468Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:35.9681643Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:36.9734699Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:37.9752901Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:38.9852650Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:39.9882232Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:41.0126902Z",
+                       "elapsedMs":  22,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:42.0067836Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:43.0147763Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:44.0176876Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:45.0273818Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:46.0339423Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:47.0459296Z",
+                       "elapsedMs":  12,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:48.0472307Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:49.0559560Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:50.0626519Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:51.0696298Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:52.0721138Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:53.0802805Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:54.0847970Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:55.0938911Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:56.0997098Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:57.1067237Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:58.1103792Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:05:59.1148335Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:00.1169637Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:01.1262266Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:02.1310618Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:03.1388198Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:04.1453221Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:05.1562170Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:06.1611765Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:07.1660654Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:08.1699456Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:09.1800855Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:10.1841144Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:11.1926745Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:12.1960254Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:13.2045294Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:14.2073539Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:15.2165791Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:16.2159530Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:17.2254489Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:18.2313322Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:19.2403551Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:20.2429644Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:21.2528503Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:22.2591878Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:23.2661957Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:24.2683476Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:25.2797462Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:26.2852323Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:27.2919769Z",
+                       "elapsedMs":  12,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:28.2954546Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:29.3036094Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:30.3098497Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:31.3189231Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:32.3241343Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:33.3324241Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:34.3362236Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:35.3443304Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:36.3452164Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:37.3559697Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:38.3602856Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:39.3720558Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:40.3775743Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:41.3836707Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:42.3911369Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:43.3981452Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:44.4019579Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:45.4124568Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:46.4191409Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:47.4440079Z",
+                       "elapsedMs":  23,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:48.4342973Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:49.4430000Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:50.4467305Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:51.4540609Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:52.4575480Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:53.4677612Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:54.4797648Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:55.4864105Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:56.4906769Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:57.4968172Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:58.5008124Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:06:59.5136816Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:00.5152490Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:01.5223552Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:02.5252918Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:03.5354334Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:04.5395115Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:05.5473995Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:06.5559034Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:07.5640359Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:08.5680720Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:09.5726947Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:10.5811442Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:11.5901028Z",
+                       "elapsedMs":  11,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:12.5944500Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:13.6063761Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:14.6072669Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:15.6185785Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:16.6218374Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:17.6266168Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:18.6283340Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:19.6373783Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:20.6414596Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:21.6503039Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:22.6525517Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:23.6628532Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:24.6663955Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:25.6723454Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:26.6733017Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:27.6829634Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:28.6877789Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:29.6966164Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:30.7012425Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:31.7117728Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:32.7136496Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:33.7249885Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:34.7291169Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:35.7379922Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:36.7447531Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:37.7548170Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:38.7615138Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:39.7682054Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:40.7770236Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:41.7888748Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:42.7980765Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:43.8081462Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:44.8136009Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:45.8249476Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:46.8305334Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:47.8367768Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:48.8402714Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:49.8424920Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:50.8494496Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:51.8572594Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:52.8600892Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:53.8710363Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:54.8719966Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:55.8799654Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:56.8852211Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:57.8970273Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:58.9072523Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:07:59.9135375Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:00.9170596Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:01.9210755Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:02.9242410Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:03.9389787Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:04.9454800Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:05.9530868Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:06.9587565Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:07.9658288Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:08.9716423Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:09.9873766Z",
+                       "elapsedMs":  11,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:10.9863779Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:11.9929551Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:12.9985633Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:14.0090327Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:15.0158233Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:16.0274491Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:17.0311987Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:18.0398092Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:19.0418001Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:20.0530296Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:21.0632922Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:22.0688824Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:23.0746693Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:24.0786265Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:25.0865840Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:26.0948595Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:27.1058034Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:28.1161004Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:29.1235723Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:30.1331302Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:31.1361047Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:32.1417791Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:33.1428717Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:34.1488922Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:35.1534779Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:36.1599859Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:37.1647952Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:38.1690807Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:39.1735469Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:40.1830649Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:41.1855186Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:42.1951867Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:43.1973324Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:44.2079714Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:45.2132300Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:46.2202767Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:47.2266899Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:48.2335651Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:49.2388560Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:50.2504162Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:51.2560445Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:52.2663225Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:53.2687666Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:54.2770808Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:55.2839209Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:56.2888425Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:57.3036686Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:58.3120875Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:08:59.3166866Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:00.3256208Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:01.3314057Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:02.3393763Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:03.3419404Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:04.3450006Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:05.3519006Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:06.3607632Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:07.3679346Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:08.3759289Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:09.3765586Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:10.3875518Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:11.3957794Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:12.4029047Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:13.4124610Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:14.4210972Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:15.4264950Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:16.4331974Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:17.4369572Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:18.4411265Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:19.4474990Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:20.4855390Z",
+                       "elapsedMs":  29,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:21.4685094Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:22.4753619Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:23.4828679Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:24.4880332Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:25.5039943Z",
+                       "elapsedMs":  10,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:26.5037398Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:27.5089688Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:28.5119614Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:29.5192000Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:30.5236441Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:31.5315322Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:32.5374451Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:33.5443930Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:34.5497913Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:35.5579192Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:36.5630067Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:37.5682702Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:38.5758082Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:39.5843094Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:40.5953214Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:41.6001608Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:42.6063772Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:43.6195362Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:44.6219565Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:45.6273618Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:46.6327989Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:47.6400013Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:48.6452437Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:49.6523221Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:50.6600079Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:51.6737001Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:52.6815839Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:53.6891569Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:54.6965886Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:55.7020855Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:56.7058573Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:57.7140401Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:58.7193288Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:09:59.7254214Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:00.7306346Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:01.7365815Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:02.7367969Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:03.7438008Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:04.7463353Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:05.7520712Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:06.7567950Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:07.7625498Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:08.7668866Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:09.7743905Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:10.7732667Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:11.7859648Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:12.7908324Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:13.7981563Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:14.8021770Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:15.8122915Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:16.8157571Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:17.8256504Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:18.8316159Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:19.8374646Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:20.8418814Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:21.8491299Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:22.8551856Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:23.8627001Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:24.8666624Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:25.8742354Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:26.8808403Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:27.8878813Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:28.8927259Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:29.8978677Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:30.9064354Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:31.9157768Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:32.9217513Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:33.9323548Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:34.9375298Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:35.9444521Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:36.9474186Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:37.9534950Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:38.9564109Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:39.9616807Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:40.9665534Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:41.9715341Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:42.9744345Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:43.9846701Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:44.9897004Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:45.9942653Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:46.9979516Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:48.0054772Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:49.0107032Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:50.0190300Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:51.0240377Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:52.0327757Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:53.0401043Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:54.0490220Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:55.0527051Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:56.0638260Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:57.0662817Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:58.0753590Z",
+                       "elapsedMs":  9,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:10:59.0761842Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:00.0813204Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:01.0853828Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:02.0917022Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:03.1011782Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:04.1098517Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:05.1133192Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:06.1215934Z",
+                       "elapsedMs":  8,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:07.1274229Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:08.1379590Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:09.1428352Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:10.1479322Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:11.1513059Z",
+                       "elapsedMs":  4,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:12.1569912Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:13.1600715Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:14.1649254Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:15.1750577Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:16.1813821Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:17.1865838Z",
+                       "elapsedMs":  7,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:18.1927872Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:19.2015799Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:20.2087118Z",
+                       "elapsedMs":  6,
+                       "status":  200,
+                       "down":  ""
+                   },
+                   {
+                       "at":  "2026-10-19T23:11:21.2133332Z",
+                       "elapsedMs":  5,
+                       "status":  200,
+                       "down":  ""
+                   }
+               ]
+}

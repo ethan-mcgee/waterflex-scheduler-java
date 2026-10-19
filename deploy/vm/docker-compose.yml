@@ -40,6 +40,8 @@ x-scheduler-runtime: &scheduler-runtime
 x-scheduler-replica: &scheduler-replica
   <<: *scheduler-image
   expose: ["8000", "9000"]
+  # Drain the web server and the daily queue (each up to 30 s) before Docker's SIGKILL.
+  stop_grace_period: 75s
   healthcheck:
     test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /health HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200 '"]
     interval: 10s
@@ -151,6 +153,7 @@ services:
   # then copied here); ACTIVE_MAP_VERSION picks one. GraphHopper locks the graph directory, so the volume is writable.
   routing-omaha:
     image: waterflex-scheduler-routing:vm
+    stop_grace_period: 20s
     pull_policy: build
     build:
       context: ../..
@@ -205,6 +208,8 @@ services:
   solver-service:
     profiles: ["remote-solver"]
     image: waterflex-calculation-solver:vm
+    # The web server drains solves for up to 30 s first.
+    stop_grace_period: 45s
     pull_policy: build
     build:
       context: ../..
