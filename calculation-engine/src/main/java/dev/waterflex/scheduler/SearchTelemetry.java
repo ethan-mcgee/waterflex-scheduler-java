@@ -31,7 +31,10 @@ public final class SearchTelemetry {
     /** Wall time the call waited for a search slot. */
     public void admission(long nanos) { admissionNanos += Math.max(0, nanos); }
     /** Wall time the call spent in its commit phase, inside the deadline's reserve (validating, preparing and publishing). */
-    public void commit(long nanos) { commitNanos = (commitNanos == null ? 0 : commitNanos) + Math.max(0, nanos); }
+    public void commit(long nanos) {
+        Long before = commitNanos;  // Read once: null analysis cannot carry a check on a field across the expression.
+        commitNanos = (before == null ? 0L : before) + Math.max(0, nanos);
+    }
     public Measurements snapshot() {
         long now = cpu();
         return new Measurements(databaseExecutions, databaseNanos, lockStatementNanos, routingPairs, memoryHits, persistentHits,
