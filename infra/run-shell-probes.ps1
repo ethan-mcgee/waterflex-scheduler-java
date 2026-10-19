@@ -10,9 +10,10 @@
 # daily-thread: two queued daily proposals with long searches (both background lanes of a daily replica busy) while
 # /health is read every second. Answers whether CPU-bound solves starve the replica's virtual threads (health checks,
 # cancel watchers): a slow or 503 /health while both solves run. Run it on the build before and after the platform
-# thread change, on a daily replica limited to 2 CPUs with SCHEDULER_SEARCH_BACKGROUND_LIMIT=2. About 6 minutes.
+# thread change, on a daily replica limited to 2 CPUs with background limit 2 and 2 queue workers
+# (SCHEDULER_SEARCH_BACKGROUNDLIMIT=2, SCHEDULER_DAILY_QUEUE_WORKERS=2; one worker runs one solve at a time). About 8 minutes.
 #   powershell -ExecutionPolicy Bypass -File infra/run-shell-probes.ps1 -Probe daily-thread -Url http://127.0.0.1:8000 `
-#     -TokenFile .scratch/loadtest.token -Stack 'daily replica, 2 CPUs, background limit 2, build <sha>'
+#     -TokenFile .scratch/loadtest.token -Stack 'daily replica, 2 CPUs, background limit 2, build <sha>' -Name platform-thread
 param(
     [Parameter(Mandatory)][ValidateSet('db-stall', 'daily-thread')][string]$Probe,
     [Parameter(Mandatory)][string]$Url,
@@ -30,13 +31,16 @@ param(
     [ValidateRange(30, 600)][int]$DurationS = 120,
     # daily-thread: each proposal's cost search in seconds (both run at once, so the probe lasts about this long twice).
     [ValidateRange(30, 240)][int]$SearchS = 120,
-    [ValidateRange(0, 900)][int]$SeedBase = 300
+    [ValidateRange(0, 900)][int]$SeedBase = 300,
+    # Appended to the evidence file name, so a before and an after run of one probe on one day keep apart.
+    [ValidatePattern('^[a-z0-9-]*$')][string]$Name = ''
 )
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path $PSScriptRoot -Parent
 $kit = Join-Path $repository 'infra/host-conformance'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
-$evidence = Join-Path $repository "docs/evidence/shell-probe-$stamp-$Probe.json"
+$suffix = if ($Name -ne '') { "-$Name" } else { '' }
+$evidence = Join-Path $repository "docs/evidence/shell-probe-$stamp-$Probe$suffix.json"
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
 $runs = Join-Path $repository ".scratch/shell-probe-$Probe-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
@@ -99,8 +103,11 @@ try {
                 if ($LASTEXITCODE -eq 1) { $failures += $label } elseif ($LASTEXITCODE -ne 0) { throw "Run failed: $label (see run-$index.log)" }
             } finally {
                 New-Item -ItemType File -Force $stop | Out-Null
-                $stalls = @(Receive-Job $staller -Wait -AutoRemoveJob)
-                docker unpause $Database *> $null
+                Wait-Job $staller | Out-Null
+                $stalls = @(Receive-Job $staller)
+                Remove-Job $staller -Force
+                # Never leave the database paused; unpausing a running container is an error, so ask first.
+                if ((docker inspect -f '{{.State.Paused}}' $Database) -eq 'true') { docker unpause $Database | Out-Null }
                 @{ label = $label; stalls = $stalls } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runs "stalls-$index.json") -Encoding utf8
             }
         } }
@@ -120,7 +127,9 @@ try {
             if ($LASTEXITCODE -eq 1) { $failures += $label } elseif ($LASTEXITCODE -ne 0) { throw "Run failed: $label (see run-1.log)" }
         } finally {
             New-Item -ItemType File -Force $stop | Out-Null
-            Receive-Job $watcher -Wait -AutoRemoveJob | Out-Null
+            Wait-Job $watcher | Out-Null
+            Receive-Job $watcher | Out-Null
+            Remove-Job $watcher -Force
         }
     }
 } finally { Pop-Location }

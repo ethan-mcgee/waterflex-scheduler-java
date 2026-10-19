@@ -712,6 +712,58 @@ vCPU. Half schedules were not rerun after the horizon fix, so their quality figu
 tenant, and a measured run before onboarding a fleet over 30 technicians; the share of refinement `UNAVAILABLE`; and
 the refinement outcome mix per tenant against this study's.
 
+## Service shell probes (S)
+
+Two short probes from `infra/run-shell-probes.ps1`, run on 2026-10-19 on the local compose stack with Omaha routing
+(map 2026-10-13) and embedded calculation.
+
+### Database stalls
+
+Cold booking load for 120 s at 1 and 5 desks, while the `scheduler-db` container was paused for 0 ms, 300 ms and 1 s
+every 10 s (build c826a07, [evidence](evidence/shell-probe-2026-10-19-db-stall.json)). The question was whether the
+Hikari `connection-timeout` and `validation-timeout` (250 ms each) turn a short stall into refusals.
+
+| Pause | Desks | Searches | p95 ms | p99 ms | max ms | 429 retried | 500 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| none | 1 | 318 | 489 | 510 | 526 | 0 | 0 |
+| 300 ms | 1 | 289 | 423 | 785 | 808 | 0 | 0 |
+| 1 s | 1 | 280 | 438 | 1488 | 1559 | 0 | 0 |
+| none | 5 | 1921 | 649 | 1447 | 1900 | 63 | 0 |
+| 300 ms | 5 | 1909 | 783 | 1399 | 3197 | 55 | 0 |
+| 1 s | 5 | 1842 | 1241 | 1566 | 2839 | 58 | 6 |
+
+At 5 desks, every arm had about 900 `409 STALE` answers, including the arm with no pause. They come from desks
+searching the same days, not from the stalls.
+
+- **A stall costs latency, not answers.** Every search that reached the booking code completed. A pause moved the
+  tail, and a 1 s pause raised the 5 desk p95 by about 0.6 s. The 429 retries stayed at the no-pause level.
+- **One gap: the token lookup.** All six 500s came from `TenantTokens.tenantFor`, inside the authentication filter.
+  During a 1 s pause, Hikari dropped a connection that failed validation. The replacement could not open within
+  250 ms, and the `CannotGetJdbcConnectionException` escaped the filter as a bare 500 with no problem body. The
+  request log line for each of them says `status=200`, because the filter logs before the container writes the error.
+
+**Recommendation, for the owner:** keep 250 ms for both timeouts, since the booking path absorbs stalls up to 1 s
+without refusals. Make the authentication filter answer `503 UNAVAILABLE` with `Retry-After` when the token store
+cannot be reached, and make the request log record the status the client received. Both are small follow-ups, not
+part of PR #182.
+
+### Daily solve thread
+
+Two queued daily proposals, each with a 120 s cost search and no fairness phase, ran together on a scheduler limited
+to 2 CPUs. It had background limit 2 and 2 queue workers (`SCHEDULER_SEARCH_BACKGROUNDLIMIT=2`,
+`SCHEDULER_DAILY_QUEUE_WORKERS=2`), and `/health` was read once a second. With one queue worker, the default, two
+background lanes still run one solve at a time, so the worker count must match the limit. The run is the same on main
+before PR #182 (04e78e5, solve on a virtual thread) and on c826a07 (solve on a platform daemon thread).
+
+| Build | Proposals | Proposal p50 ms | Scheduler CPU | `/health` reads | not 200 | slowest ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| virtual thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-virtual-thread.json)) | 6 | 120621 | 98% | 366 | 0 | 118 |
+| platform thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-platform-thread.json)) | 6 | 120668 | 98% | 366 | 0 | 120 |
+
+The starvation this probe looked for did not happen on this stack. Two CPU-bound solves held the replica's CPU, and
+`/health` and the cancel watchers still ran within their 1 s checks on either build. The platform thread change is kept
+because it is cheap and removes the dependence on the carrier pool's size, not because a failure was measured.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
