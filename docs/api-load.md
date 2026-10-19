@@ -598,6 +598,60 @@ searches a minute per desk at low volume and 49 on high demand, against 176 and 
 roads. One limit is left: validation still grows with the number of candidates, inside a fixed 1 s publish reserve,
 so a fleet much larger than 30 could reach it again.
 
+## Booking configuration (C)
+
+One study crossed the window threshold (0, 2, 5, 10, and 1000 as the uncapped reference) with the optional refinement
+cap (0 to 3000 ms) on empty, light, half and full schedules under the dynamic horizon, at 5 to 30 technicians, then
+measured one desk, 5 and 10 clients on seven booking pool layouts inside 4 vCPU, and the publish reserve. It ran on
+the VM rehearsal stack (proxy, booking pool of 1 replica x 3 slots on 3 vCPU, VM caps, shipped routing defaults):
+1184 cells in `docs/evidence/api-load-2026-10-19-booking-configuration.json.gz`, then a 35-cell full-schedule rerun in
+`docs/evidence/api-load-2026-10-19-booking-configuration-full.json.gz` after two fixes (530d356): `quality.ts` read the
+horizon after its overnight optimization, so every quality case searched 2 dates, and the publish reserve floor was
+below what the database admission guard needs. The report with charts and the hypotheses' verdicts is
+`docs/reports/booking-configuration-study-2026-10-19.docx`; the full tables come from
+`python infra/summarize_booking_configuration.py <evidence>`. No run broke the contract.
+
+Full schedules (15 weekdays booked, 168 regular windows on every first pass), mean added cost per booking against
+the uncapped search on the same 40 cases, from the rerun:
+
+| Technicians | 2:0 | 2:250 (today) | 2:1000 | 2:2000 | 2:3000 | 1000 stopped by the deadline | p50 ms, 2:250 / 2:3000 / 1000 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 5 | +$0.92 | +$0.97 | +$0.70 | +$0.00 | +$0.06 | 1 of 40 | 338 / 2714 / 2702 |
+| 10 | +$2.78 | +$3.70 | +$2.92 | +$1.21 | -$0.05 | 8 of 40 | 411 / 3186 / 3894 |
+| 15 | +$1.02 | +$0.85 | +$0.66 | +$0.25 | +$0.09 | 31 of 40 | 488 / 3270 / 4159 |
+| 20 | +$1.97 | +$2.53 | +$2.16 | +$0.88 | +$0.79 | 39 of 40 | 580 / 3366 / 4209 |
+| 30 | +$1.56 | +$1.56 | +$1.61 | +$1.33 | +$0.36 | 40 of 40 | 832 / 3586 / 4282 |
+
+| Technicians | Searches / min at 1 desk, 2:250 / 2:1000 / 2:3000 / 1000 | Commit p95 ms at the 800 ms reserve | BUSY or 503 at 800 ms |
+| ---: | --- | ---: | ---: |
+| 5 | 152 / 52 / 19 / 16 | 74 | 0 |
+| 10 | 140 / 48 / 18 / 15 | 117 | 0 |
+| 15 | 97 / 43 / 18 / 15 | 152 | 0 |
+| 20 | 70 / 38 / 17 / 15 | 189 | 0 |
+| 30 | 41 / 31 / 15 / 15 | 259 | 0 |
+
+- **On a long horizon 250 ms buys nothing; 3000 ms buys nearly all of it.** Today's 2:250 is as dear as no
+  refinement on full schedules. The gap closes with the cap and is under $0.80 mean, median $0.00, at 3000 ms, which
+  stops on its own cap in 38 or more of 40 cases. The uncapped reference is itself cut short by the deadline from
+  15 technicians, so it is the best a 5 s deadline allows, not an optimum.
+- **On 2-date horizons (empty and light schedules) 250 ms is enough**: empty schedules give identical offers for
+  every variant, light ones cost $0.18 to $0.64 without a refinement and within $0.13 with 250 ms.
+- **The threshold is inert.** The first pass found at least 16 windows on 2-date horizons and 168 on full ones, so no
+  threshold up to 10 ever made the refinement required (up to 20 on full schedules).
+- **Under several clients the refinement is shed.** At 10 clients 80 to 100 percent of refinements were shed on every
+  layout up to 4 vCPU, so every variant behaves like insertion only. One replica with more slots (1x3, 1x4) gave the
+  best throughput and p95; several replicas shed less but queue blindly behind the proxy and were slower.
+- **The publish reserve floor is 800 ms.** At 500 and 250 ms every uncapped long search was refused BUSY at publish
+  (20 runs unanswered) because `SearchDatabaseTelemetry` needs the pool's connection plus validation timeout (500 ms)
+  left; the commit phase itself stays under 260 ms p95 at 30 technicians. At 800 ms nothing was refused at any fleet.
+  The extra 200 ms only lengthens deadline-bound searches, with no quality gain beyond noise, so the default stays
+  1000 ms.
+
+**Recommendation, for the owner:** keep threshold 2; raise the scheduler's default optional refinement cap from 250 to
+3000 ms (2000 ms if a 3 s p50 is too slow for the desk), since it is shed under load rather than refusing bookings;
+keep the reserve at 1000 ms with the 800 ms floor; lay the booking pool out as one replica with as many slots as
+vCPU. Half schedules were not rerun after the horizon fix, so their quality figures are for 2-date searches.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
