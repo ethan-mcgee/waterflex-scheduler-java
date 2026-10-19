@@ -32,6 +32,20 @@ class MatrixControllerTest {
                         .contentType("application/json").content(Required.value(body))))
                         .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
             }
+            // JSON null reaches the sparse request's non-null components too; each is refused before graph access.
+            String point = "{\"lat\":0,\"lng\":0}";
+            String pair = "{\"id\":\"p\",\"origin\":" + point + ",\"destination\":" + point + "}";
+            for (String body : List.of("{\"pairs\":null,\"expectedRoutingIdentity\":\"x\"}",
+                    "{\"pairs\":[null],\"expectedRoutingIdentity\":\"x\"}",
+                    "{\"pairs\":[{\"id\":null,\"origin\":" + point + ",\"destination\":" + point + "}],\"expectedRoutingIdentity\":\"x\"}",
+                    "{\"pairs\":[{\"id\":\"p\",\"origin\":null,\"destination\":" + point + "}],\"expectedRoutingIdentity\":\"x\"}",
+                    "{\"pairs\":[" + pair + "]}",
+                    "{\"pairs\":[" + pair + "],\"expectedRoutingIdentity\":null}",
+                    "{\"pairs\":[" + pair + "," + pair + "],\"expectedRoutingIdentity\":\"x\"}")) {
+                http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/internal/legs")
+                        .contentType("application/json").content(Required.value(body))))
+                        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest());
+            }
         } finally { controller.close(); }
     }
 

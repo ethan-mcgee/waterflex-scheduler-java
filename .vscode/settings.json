@@ -19,5 +19,6 @@
   ],
   "java.compile.nullAnalysis.nonnullbydefault": [
     "org.jspecify.annotations.NullMarked"
-  ]
+  ],
+  "maven.view": "hierarchical"
 }
