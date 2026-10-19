@@ -2,6 +2,7 @@ package dev.waterflex.scheduler;
 
 import java.net.URI;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,8 @@ public class MetroRouting {
     /**
      * Reads {@code metro=url} entries separated by commas, for example
      * {@code omaha=http://routing-omaha:8001,lincoln=http://routing-lincoln:8001}. An empty value configures no metro.
+     * A busy metro may list several replicas of its routing service separated by {@code |}
+     * ({@code omaha=http://routing-omaha-1:8001|http://routing-omaha-2:8001}); its client spreads calls over them.
      */
     static Map<String, String> parse(String value) {
         Map<String, String> urls = new LinkedHashMap<>();
@@ -65,7 +68,10 @@ public class MetroRouting {
             String metro = Required.value(Required.value(parts[0]).strip()), url = Required.value(Required.value(parts[1]).strip());
             if (metro.isEmpty() || metro.chars().anyMatch(Character::isWhitespace)) throw new IllegalArgumentException("Invalid metro in routing.metro-urls: '" + metro + "'");
             if (urls.containsKey(metro)) throw new IllegalArgumentException("Metro " + metro + " appears twice in routing.metro-urls");
-            urls.put(metro, url(metro, url));
+            List<String> replicas = new java.util.ArrayList<>();
+            for (String replica : url.split("\\|", -1)) replicas.add(url(metro, Required.value(replica.strip())));
+            if (new java.util.HashSet<>(replicas).size() != replicas.size()) throw new IllegalArgumentException("Metro " + metro + " lists a routing URL twice");
+            urls.put(metro, Required.value(String.join("|", replicas)));
         }
         return urls;
     }

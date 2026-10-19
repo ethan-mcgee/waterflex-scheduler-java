@@ -24,6 +24,14 @@ class DailyOperationTest {
         }));
         assertEquals(1, cleaned.get()); assertEquals(0, admission.state().active());
     }
+    @Test void theSolveRunsOnAPlatformDaemonThreadSoItNeverPinsAVirtualCarrier() {
+        var admission = new SearchAdmission(1, 16);
+        String kind = DailyOperation.executePrepared(admission, () -> new DailyOperation.Preparation<>(() -> {
+            Thread worker = Thread.currentThread();
+            return (worker.isVirtual() ? "virtual" : "platform") + (worker.isDaemon() ? " daemon" : "") + " " + worker.getName().startsWith("daily-");
+        }, true, _ -> { }));
+        assertEquals("platform daemon true", kind);
+    }
     @Test void reusedResultDoesNotQueueBehindAnActiveWorker() {
         var admission = new SearchAdmission(1, 16);
         try (var lease = admission.acquire(SearchAdmission.Kind.BACKGROUND, new SearchDeadline(seconds(20)))) {
