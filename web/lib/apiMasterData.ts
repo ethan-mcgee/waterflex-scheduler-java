@@ -125,6 +125,7 @@ export async function assignApiTechnicianDepot(clientId: string, technicianId: s
   if (crossMetro) {
     const settings = await prisma.clientSolverSettings.findUnique({ where: { clientId }, select: { bookingHorizonWeekdays: true } });
     // Without settings the client has never been offered a time through the API, so no offer can depend on this depot.
+    // bookingHorizonWeekdays is the fixed length or the dynamic cap, so this end is never before any horizon offered.
     const horizonEnd = settings === null ? null : bookingHorizon(today, settings.bookingHorizonWeekdays).at(-1);
     if (horizonEnd !== undefined && horizonEnd !== null && effectiveDate <= horizonEnd)
       throw new ChangeRefused(409, "Cross-metro moves must start after the current booking horizon");

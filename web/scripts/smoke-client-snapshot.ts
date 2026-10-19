@@ -50,7 +50,7 @@ async function setUp() {
       plannedEnd: new Date(`${DATE}T15:30:00Z`), sequence: 0 } });
   }
   const saved = await storeSolverSettings(clients.a, null, { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67",
-    travelBufferPercent: "20", travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
+    travelBufferPercent: "20", travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
   assert.ok("saved" in saved);
 }
 

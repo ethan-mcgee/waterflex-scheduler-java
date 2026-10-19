@@ -127,6 +127,11 @@ public final class SearchAdmission {
         this.confirmSlots = confirmSlots;
     }
 
+    /** Searches this replica runs at once. */
+    public int capacity() { return capacity; }
+    /** Slots beyond the capacity that only confirms may take. */
+    public int confirmSlots() { return confirmSlots; }
+
     public Lease acquire(Kind kind, SearchDeadline deadline) {
         return acquire(kind, deadline, Required.value(Duration.ZERO));
     }

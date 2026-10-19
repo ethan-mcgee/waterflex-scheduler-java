@@ -228,16 +228,17 @@ class PublicApiContractTest {
         var offers = PublicRequests.read(example("OfferSet"), PublicResponses.OfferSet.class);
         List<PublicResponses.Offer> five = new ArrayList<>();
         for (int i = 0; i < 5; i++) five.add(Required.value(offers.offers().getFirst()));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays(), offers.refinement(), offers.incompleteDates()));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), five, true, offers.skippedTechnicianDays(), offers.refinement(), offers.incompleteDates(), offers.refinementStop(), offers.regularWindowsFound()));
         List<PublicResponses.Offer> twice = Required.value(List.of(Required.value(offers.offers().getFirst()), Required.value(offers.offers().getFirst())));
-        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays(), offers.refinement(), offers.incompleteDates()));
+        assertThrows(IllegalArgumentException.class, () -> new PublicResponses.OfferSet(offers.offerSetId(), offers.expiresAt(), twice, true, offers.skippedTechnicianDays(), offers.refinement(), offers.incompleteDates(), offers.refinementStop(), offers.regularWindowsFound()));
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read("{\"requestId\":\"0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d\",\"technicianDays\":[]}", PublicRequests.CommitRequest.class));
     }
 
     @Test void anOfferSetStoredBeforeTheRefinementFieldReplaysWithoutInventingOne() {
         String current = example("OfferSet");
         assertTrue(current.contains("\"refinement\":\"SHORTENED\""), current);
-        String stored = Required.value(current.replace("\"refinement\":\"SHORTENED\",", ""));
+        // An offer set from before 1.2.0 has no refinement, so none of what 1.5.0 says about a SHORTENED one either.
+        String stored = Required.value(current.replace("\"refinement\":\"SHORTENED\",", "").replace("\"refinementStop\":\"CAP\",", ""));
         var old = PublicRequests.read(stored, PublicResponses.OfferSet.class);
         assertNull(old.refinement(), "an offer set from before 1.2.0 has no refinement");
         assertFalse(CalculationJson.write(old).contains("refinement"), "and its replay leaves the field out rather than sending null");
@@ -261,5 +262,27 @@ class PublicApiContractTest {
                 "\"incompleteDates\":[\"2026-10-12\",\"2026-10-12\"]")), PublicResponses.OfferSet.class), "repeated");
         assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("\"incompleteDates\":[]",
                 "\"incompleteDates\":[\"2026-10-12\"]")), PublicResponses.OfferSet.class), "a complete search lists none");
+    }
+
+    @Test void anOfferSetSaysWhatStoppedAShortenedRefinementAndHowManyWindowsTheFirstPassFound() {
+        String current = example("OfferSet");
+        assertTrue(current.contains("\"refinementStop\":\"CAP\""), current);
+        assertTrue(current.contains("\"regularWindowsFound\":7"), current);
+        var read = PublicRequests.read(current, PublicResponses.OfferSet.class);
+        assertEquals(PublicResponses.RefinementStop.CAP, read.refinementStop());
+        assertEquals(7, read.regularWindowsFound());
+        var old = PublicRequests.read(Required.value(current.replace("\"refinementStop\":\"CAP\",", "").replace("\"regularWindowsFound\":7,", "")), PublicResponses.OfferSet.class);
+        assertNull(old.refinementStop(), "an offer set from before 1.5.0 has no stop");
+        assertNull(old.regularWindowsFound(), "nor a window count");
+        String replayed = CalculationJson.write(old);
+        assertFalse(replayed.contains("refinementStop") || replayed.contains("regularWindowsFound"), "and its replay leaves both out rather than sending null");
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("\"refinement\":\"SHORTENED\"", "\"refinement\":\"COMPLETE\"")),
+                PublicResponses.OfferSet.class), "only a SHORTENED refinement has a stop");
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("\"refinementStop\":\"CAP\"", "\"refinementStop\":\"BUDGET\"")),
+                PublicResponses.OfferSet.class), "unknown stop");
+        assertThrows(IllegalArgumentException.class, () -> PublicRequests.read(Required.value(current.replace("\"regularWindowsFound\":7", "\"regularWindowsFound\":-1")),
+                PublicResponses.OfferSet.class), "a negative count");
+        var deadline = PublicRequests.read(Required.value(current.replace("\"refinementStop\":\"CAP\"", "\"refinementStop\":\"DEADLINE\"")), PublicResponses.OfferSet.class);
+        assertEquals(PublicResponses.RefinementStop.DEADLINE, deadline.refinementStop());
     }
 }

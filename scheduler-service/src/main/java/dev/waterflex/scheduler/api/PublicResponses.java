@@ -166,14 +166,23 @@ public final class PublicResponses {
      */
     public enum Refinement { COMPLETE, SHORTENED, SKIPPED, UNAVAILABLE, SHED }
 
+    /** What ended a SHORTENED refinement: its own cap (an optional refinement only) or the search's deadline. */
+    public enum RefinementStop { CAP, DEADLINE }
+
     /**
      * Technician-days that could not be located are left out of the search and listed in {@code skippedTechnicianDays}.
      * {@code refinement} is null only for an offer set answered before spec 1.2.0, and {@code incompleteDates} only for one
      * answered before 1.3.0, when replayed from storage; each is then left out of the JSON, never invented.
+     * {@code refinementStop} (spec 1.5.0) says what ended a SHORTENED refinement and is null for any other outcome, or
+     * for an offer set answered before 1.5.0. {@code regularWindowsFound} (spec 1.5.0) is how many distinct regular
+     * windows the first pass found, the number compared with the client's threshold; null when the first pass did not
+     * finish, so the count is not known, or before 1.5.0.
      */
     public record OfferSet(String offerSetId, Instant expiresAt, List<Offer> offers, Boolean searchComplete, List<SkippedTechnicianDay> skippedTechnicianDays,
                            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Refinement refinement,
-                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable List<LocalDate> incompleteDates) {
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable List<LocalDate> incompleteDates,
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable RefinementStop refinementStop,
+                           @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) @Nullable Integer regularWindowsFound) {
         public OfferSet {
             Input.id(offerSetId, "offerSetId");
             Input.present(expiresAt, "expiresAt");
@@ -189,6 +198,8 @@ public final class PublicResponses {
                     throw new IllegalArgumentException("incompleteDates must be ascending without repeats");
                 if (!incompleteDates.isEmpty() && searchComplete) throw new IllegalArgumentException("A complete search has no incomplete dates");
             }
+            if (refinementStop != null && refinement != Refinement.SHORTENED) throw new IllegalArgumentException("Only a SHORTENED refinement has a refinementStop");
+            if (regularWindowsFound != null) Input.integer(regularWindowsFound, "regularWindowsFound", 0, Integer.MAX_VALUE);
         }
     }
 

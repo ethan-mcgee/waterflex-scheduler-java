@@ -9,7 +9,7 @@ import { loadSolverSettings, storeSolverSettings } from "../lib/clientSettingsSt
 
 const clientId = `settings-it-${randomUUID()}`;
 const input = { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED" as const, horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
 
 async function main() {
   await prisma.client.create({ data: { id: clientId, name: "Settings smoke" } });
@@ -38,7 +38,9 @@ async function main() {
     for (const [column, value] of [["offerLimit", 5], ["windowHours", 0], ["windowHours", 9], ["bookingHorizonWeekdays", 16], ["travelBufferMinutes", 121],
       ["travelBufferPct", 1.5], ["fairnessBudget", 1.01], ["regularHourly", -1], ["dailySearch", "KOPT"], ["dailySearch", "tabu_kopt"],
       ["costSearchSeconds", 4], ["costSearchSeconds", 241], ["fairnessSearchSeconds", -1], ["fairnessSearchSeconds", 241],
-      ["bookingDeadlineMs", 999], ["bookingDeadlineMs", 5001], ["regularWindowThreshold", -1], ["regularWindowThreshold", 1001]] as const) {
+      ["bookingDeadlineMs", 999], ["bookingDeadlineMs", 5001], ["regularWindowThreshold", -1], ["regularWindowThreshold", 1001],
+      ["horizonMode", "ROLLING"], ["horizonMode", "dynamic"], ["horizonLeadWeekdays", 0], ["horizonLeadWeekdays", 6],
+      ["horizonFullPercent", 49], ["horizonFullPercent", 101]] as const) {
       await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = ${value} WHERE "clientId" = ${clientId}`,
         `The database rejects ${column} = ${value}`);
     }
@@ -48,6 +50,12 @@ async function main() {
       "The database rejects a missing search method");
     await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "bookingDeadlineMs" = NULL WHERE "clientId" = ${clientId}`,
       "The database rejects a missing booking deadline");
+    for (const column of ["horizonMode", "horizonLeadWeekdays", "horizonFullPercent"])
+      await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = NULL WHERE "clientId" = ${clientId}`,
+        `The database rejects a missing ${column}`);
+    const dynamic = await storeSolverSettings(clientId, 2, { ...input, horizonMode: "DYNAMIC", bookingHorizonWeekdays: 15, horizonLeadWeekdays: 3, horizonFullPercent: 90 });
+    assert.ok("saved" in dynamic && dynamic.saved.horizonMode === "DYNAMIC" && dynamic.saved.horizonLeadWeekdays === 3 && dynamic.saved.horizonFullPercent === 90,
+      "A dynamic horizon saves its cap, lead and full share");
     await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "regularWindowThreshold" = NULL WHERE "clientId" = ${clientId}`,
       "The database rejects a missing window threshold");
     const omahaSetting = await prisma.$queryRaw<Array<{ present: boolean }>>`SELECT to_regclass('public.omaha_setting') IS NOT NULL AS present`;

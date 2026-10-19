@@ -3,7 +3,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { DispatchRefused, NO_TECHNICIANS, proposeApiDay } from "./apiDispatch";
 import { frozen } from "./apiTimeOffCore";
-import { ABANDON_AFTER_MINUTES, busyRetryDelayMs, dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, timeOf } from "./overnightCore";
+import { ABANDON_AFTER_MINUTES, busyRetryDelayMs, dueSlot, OVERNIGHT_TIME_ZONE, overnightDates, overnightEnd, timeOf } from "./overnightCore";
+import { dynamicHorizon, lastBookedDate, scanWindow } from "./bookingHorizonCore";
+import { storedHorizon } from "./clientSettings";
+import { loadSolverSettings } from "./clientSettingsStore";
+import { buildClientSnapshot } from "./clientSnapshot";
+import { required } from "./contracts";
+import { todayInTz } from "./date";
 
 /**
  * The portal's overnight optimization, acting as the host for each client: a run asks the scheduling API for a daily
@@ -127,15 +133,38 @@ async function recordDay(tx: Prisma.TransactionClient, runId: string, metroId: s
 export interface RunDependencies {
   propose: typeof proposeApiDay;
   now: () => Date;
-  /** The days to propose; the scheduler's overnight days by default. */
-  dates: (now: Date) => string[];
+  /** The days to propose in a metro; by default ten weekdays, or the client's dynamic horizon there. */
+  dates: (now: Date, clientId: string, metroId: string) => Promise<string[]>;
   /** Checked between days; true stops the run and abandons it, keeping the days already done. */
   stopping: () => boolean;
   /** Waits before a day is asked again after the scheduler answered 429. */
   sleep: (ms: number) => Promise<void>;
 }
 
-const defaults: RunDependencies = { propose: proposeApiDay, now: () => new Date(), dates: overnightDates, stopping: () => false,
+/**
+ * Ten weekdays for a fixed horizon. A dynamic horizon is chosen from the metro's schedule as a booking search would, and
+ * reaches the last booked day too. When the schedule cannot be read the run covers the whole cap window, so no booked
+ * day is skipped and each day records its own outcome.
+ */
+async function runDates(now: Date, clientId: string, metroId: string): Promise<string[]> {
+  const settings = await loadSolverSettings(clientId);
+  if (settings === null) return overnightDates(now);
+  const today = todayInTz(OVERNIGHT_TIME_ZONE, now);
+  const { mode, rule } = storedHorizon(settings);
+  if (mode === "FIXED") return overnightDates(now);
+  try {
+    const scan = await buildClientSnapshot(clientId, metroId, scanWindow(today, rule));
+    const decision = dynamicHorizon(today, scan, rule), booked = lastBookedDate(scan);
+    const end = overnightEnd(required(decision.dates.at(-1), "dynamic horizon end"), booked);
+    console.info("Overnight horizon", clientId, metroId, { dates: decision.dates.length, lastFullDate: decision.lastFullDate, capped: decision.capped, lastBookedDate: booked, end });
+    return overnightDates(now, end);
+  } catch (error) {
+    console.error("Overnight horizon unavailable; covering the cap window", clientId, metroId, error);
+    return overnightDates(now, required(scanWindow(today, rule).at(-1), "cap window end"));
+  }
+}
+
+const defaults: RunDependencies = { propose: proposeApiDay, now: () => new Date(), dates: runDates, stopping: () => false,
   sleep: ms => new Promise(resolve => setTimeout(resolve, ms)) };
 
 /**
@@ -145,10 +174,9 @@ const defaults: RunDependencies = { propose: proposeApiDay, now: () => new Date(
 export async function executeRun(runId: string, clientId: string, dependencies: Partial<RunDependencies> = {}): Promise<RunStatus> {
   const { propose, now, dates, stopping, sleep } = { ...defaults, ...dependencies };
   const metros = await prisma.depot.findMany({ where: { dealership: { clientId } }, select: { metroId: true }, distinct: ["metroId"], orderBy: { metroId: "asc" } });
-  const days = dates(now());
   try {
     for (const { metroId } of metros)
-      for (const serviceDate of days) {
+      for (const serviceDate of await dates(now(), clientId, metroId)) {
         if (stopping()) {
           await prisma.portalOvernightRun.updateMany({ where: { id: runId, status: "RUNNING" }, data: { status: "ABANDONED", finishedAt: new Date() } });
           return "ABANDONED";

@@ -91,8 +91,8 @@ public final class PublicTypes {
         public static final int MIN_BOOKING_DEADLINE_MS = 1000, MAX_BOOKING_DEADLINE_MS = 5000;
         /** A threshold above every window a 21-date horizon of whole-hour windows can hold, so any real choice fits. */
         public static final int MAX_REGULAR_WINDOW_THRESHOLD = 1000;
-        /** The largest optional refinement budget a client may ask for, in milliseconds. */
-        public static final int MAX_BOOKING_REFINEMENT_MS = 1000;
+        /** The largest optional refinement budget a client may ask for, in milliseconds (3000 since spec 1.5.0, 1000 before). */
+        public static final int MAX_BOOKING_REFINEMENT_MS = dev.waterflex.scheduler.BookingCalculation.MAX_REFINEMENT_MS;
 
         public Policy {
             if (Input.nonNegative(fairnessBudget, "policy.fairnessBudget").compareTo(BigDecimal.ONE) > 0)

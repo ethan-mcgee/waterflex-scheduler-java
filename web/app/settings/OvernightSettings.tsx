@@ -72,7 +72,7 @@ export default function OvernightSettings({ initialTimes }: { initialTimes: stri
     <section className={ui.card} aria-label="Overnight optimization">
       <h2>Overnight optimization</h2>
       <p className={ui.sectionLabel}>
-        Proposes an optimized day for every day ahead (ten weekdays) in each of this client&apos;s metros. Improvements wait on the
+        Proposes an optimized day for every day ahead in each of this client&apos;s metros: ten weekdays, or the booking horizon and any later booked day when the horizon follows the schedule. Improvements wait on the
         dispatch board for a dispatcher to apply them. Times are {OVERNIGHT_TIME_ZONE} time.
       </p>
       <div className={styles.times}>

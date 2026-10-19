@@ -101,7 +101,14 @@ model ClientSolverSettings {
   fairnessBudget         Decimal  @db.Decimal(6, 4)
   offerLimit             Int
   windowHours            Int
+  // The fixed horizon's length, or the dynamic horizon's cap: 1 to 15 weekdays (CHECK constraint).
   bookingHorizonWeekdays Int
+  // FIXED or DYNAMIC (CHECK constraint); read through clientSettings.ts, which validates it.
+  horizonMode            String
+  // 1 to 5 (CHECK constraint): weekdays a dynamic horizon books past the furthest booked-out weekday.
+  horizonLeadWeekdays    Int
+  // 50 to 100 (CHECK constraint): the route span share at which a weekday counts as booked out.
+  horizonFullPercent     Int
   // TABU or TABU_KOPT (CHECK constraint); read through clientSettings.ts, which validates it.
   dailySearch            String
   costSearchSeconds      Int
