@@ -62,9 +62,18 @@ export const Offer = z.strictObject({ offerId: Id, serviceDate: ServiceDate, win
 
 export const Refinement = z.enum(["COMPLETE", "SHORTENED", "SKIPPED", "UNAVAILABLE", "SHED"]);
 
-/** `refinement` is absent only on a replay of an offer set answered before spec 1.2.0, and `incompleteDates` before 1.3.0. */
+/** What ended a SHORTENED refinement (spec 1.5.0): its own cap, or the search's deadline. */
+export const RefinementStop = z.enum(["CAP", "DEADLINE"]);
+
+/**
+ * `refinement` is absent only on a replay of an offer set answered before spec 1.2.0, and `incompleteDates` before 1.3.0.
+ * `refinementStop` is present only when the refinement is SHORTENED; `regularWindowsFound` is the first pass's distinct
+ * regular window count, absent when that pass did not finish (both since 1.5.0, absent on a replay from before it).
+ */
 export const OfferSet = z.strictObject({ offerSetId: Id, expiresAt: Instant, offers: z.array(Offer).max(4), searchComplete: z.boolean(),
-  refinement: Refinement.optional(), incompleteDates: z.array(ServiceDate).optional(), skippedTechnicianDays: z.array(SkippedTechnicianDay) });
+  refinement: Refinement.optional(), incompleteDates: z.array(ServiceDate).optional(), skippedTechnicianDays: z.array(SkippedTechnicianDay),
+  refinementStop: RefinementStop.optional(), regularWindowsFound: z.number().int().min(0).optional() })
+  .refine(set => set.refinementStop === undefined || set.refinement === "SHORTENED", "refinementStop belongs to a SHORTENED refinement only");
 
 export const Hold = z.strictObject({ holdId: Id, offerId: Id, expiresAt: Instant });
 

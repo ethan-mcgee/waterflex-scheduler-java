@@ -96,6 +96,10 @@ services:
       <<: *scheduler-runtime
       SCHEDULER_ROLE: booking
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_BOOKING_SEARCH_CAPACITY:-2}
+      # Connections per replica: more than the capacity and confirm slots together, with headroom (the replica checks).
+      SCHEDULER_DB_POOL_SIZE: ${SCHEDULER_BOOKING_DB_POOL_SIZE:-10}
+      # The part of a client's bookingDeadlineMs kept back to validate and publish the offers (800 to 1000).
+      SCHEDULER_BOOKING_PUBLISH_RESERVE_MS: ${SCHEDULER_BOOKING_PUBLISH_RESERVE_MS:-1000}
       # JVM flags of this pool (measured in docs/api-load.md, "Confirm priority and JVM settings"); the heap is three
       # quarters of the container's memory limit.
       JAVA_TOOL_OPTIONS: ${SCHEDULER_BOOKING_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}
@@ -112,6 +116,7 @@ services:
       <<: *scheduler-runtime
       SCHEDULER_ROLE: daily
       SCHEDULER_SEARCH_CAPACITY: ${SCHEDULER_DAILY_SEARCH_CAPACITY:-2}
+      SCHEDULER_DB_POOL_SIZE: ${SCHEDULER_DAILY_DB_POOL_SIZE:-10}
       SCHEDULER_SEARCH_BACKGROUND_LIMIT: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
       SCHEDULER_DAILY_QUEUE_WORKERS: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
       JAVA_TOOL_OPTIONS: ${SCHEDULER_DAILY_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}

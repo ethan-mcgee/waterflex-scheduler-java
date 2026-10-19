@@ -18,7 +18,8 @@ import type { CallRecord } from "./stats.ts";
 
 export interface BookingSettings {
   readonly store: HostStore;
-  readonly horizon: readonly string[];
+  /** The dates of the next search: a fixed run, or chosen from the store's current records before each search. */
+  readonly horizon: () => readonly string[];
   readonly offerLimit: number;
   readonly windowHours: number;
   readonly jobMinutes: number;
@@ -41,6 +42,21 @@ export interface BookingTally {
   stale: number;
   /** Answered searches by how their refinement pass ended; `ABSENT` counts a replayed offer set from before spec 1.2.0. */
   refinements: Record<string, number>;
+  /** SHORTENED refinements by what stopped them (CAP or DEADLINE, spec 1.5.0). */
+  refinementStops: Record<string, number>;
+  /** Answered searches by the first pass's distinct regular window count (the number the threshold is compared with), keyed by the count. */
+  windowsFound: Record<string, number>;
+  /** Searches by the number of dates their horizon had. */
+  byHorizon: Record<string, HorizonTally>;
+}
+
+export interface HorizonTally {
+  searches: number; failed: number; searchIncomplete: number;
+  /** Dates named in incompleteDates, summed over answered searches; `ABSENT` offer sets add none. */
+  incompleteDates: number;
+  offers: number; noOffers: number; refinements: Record<string, number>; refinementStops: Record<string, number>;
+  /** Caller milliseconds of each answered search, STALE resends included. */
+  offersMs: number[];
 }
 
 export interface DailyTally {
@@ -67,7 +83,7 @@ export interface Run {
 export function newTallies(): { booking: BookingTally; daily: DailyTally } {
   return {
     booking: { searches: 0, searchIncomplete: 0, offers: 0, noOffers: 0, selected: 0, holdUnavailable: 0, confirmed: 0, hostWriteConflicts: 0,
-      released: 0, failedSearches: 0, stale: 0, refinements: {} },
+      released: 0, failedSearches: 0, stale: 0, refinements: {}, refinementStops: {}, windowsFound: {}, byHorizon: {} },
     daily: { proposals: 0, decisions: {}, queueWaitsMs: [] },
   };
 }
@@ -156,26 +172,41 @@ export async function bookingLoop(run: Run, settings: BookingSettings, desk: num
   const timeoutMs = deadlineMs + 10_000;
   for (let n = 1; Date.now() < run.endsAt; n++) {
     const job: Job = { id: `${run.prefix}-job-${desk}-${n}`, serviceId: run.serviceId, durationMinutes: settings.jobMinutes, location: settings.jobLocation() };
-    const first = settings.horizon[0], last = settings.horizon[settings.horizon.length - 1];
+    const dates = settings.horizon();
+    const first = dates[0], last = dates[dates.length - 1];
     if (first === undefined || last === undefined) throw new Error("Empty booking horizon");
     run.booking.searches++;
+    const bucket = run.booking.byHorizon[String(dates.length)] ??= { searches: 0, failed: 0, searchIncomplete: 0, incompleteDates: 0, offers: 0, noOffers: 0, refinements: {}, refinementStops: {}, offersMs: [] };
+    bucket.searches++;
+    const started = performance.now();
     const reply = await current(run, "booking offers", "/api/v1/booking/offers", () => ({ requestId: randomUUID(), job,
       horizon: { firstDate: first, lastDate: last }, offerLimit: settings.offerLimit, windowHours: settings.windowHours,
-      snapshot: settings.store.snapshot(settings.horizon) }), timeoutMs);
+      snapshot: settings.store.snapshot(dates) }), timeoutMs);
     if (reply === null || reply.status !== 201) {
       run.booking.failedSearches++;
+      bucket.failed++;
       await sleep(200);
       continue;
     }
     const set = parsed(run, reply, Api.OfferSet, "Booking offers");
     if (set === null) continue;
-    if (!set.searchComplete) run.booking.searchIncomplete++;
+    bucket.offersMs.push(Math.round(performance.now() - started));
+    if (!set.searchComplete) { run.booking.searchIncomplete++; bucket.searchIncomplete++; }
+    bucket.incompleteDates += set.incompleteDates?.length ?? 0;
     const refinement = set.refinement ?? "ABSENT";
     run.booking.refinements[refinement] = (run.booking.refinements[refinement] ?? 0) + 1;
+    bucket.refinements[refinement] = (bucket.refinements[refinement] ?? 0) + 1;
+    if (set.refinementStop !== undefined) {
+      run.booking.refinementStops[set.refinementStop] = (run.booking.refinementStops[set.refinementStop] ?? 0) + 1;
+      bucket.refinementStops[set.refinementStop] = (bucket.refinementStops[set.refinementStop] ?? 0) + 1;
+    }
+    if (set.regularWindowsFound !== undefined) run.booking.windowsFound[String(set.regularWindowsFound)] = (run.booking.windowsFound[String(set.regularWindowsFound)] ?? 0) + 1;
     run.booking.offers += set.offers.length;
+    bucket.offers += set.offers.length;
     const offer = set.offers[0];
     if (offer === undefined) {
       run.booking.noOffers++;
+      bucket.noOffers++;
       continue;
     }
     const offerPath = (action: string) => `/api/v1/booking/offers/${encodeURIComponent(offer.offerId)}/${action}`;
