@@ -608,7 +608,8 @@ the VM rehearsal stack (proxy, booking pool of 1 replica x 3 slots on 3 vCPU, VM
 `docs/evidence/api-load-2026-10-19-booking-configuration-full.json.gz` after two fixes (530d356): `quality.ts` read the
 horizon after its overnight optimization, so every quality case searched 2 dates, and the publish reserve floor was
 below what the database admission guard needs. The report with charts and the hypotheses' verdicts is
-`docs/reports/booking-configuration-study-2026-10-19.docx`; the full tables come from
+`docs/booking-configuration-study-2026-10-19/Booking_Configuration_Study_2026-10-19_Report.docx`, rebuilt and
+checked from the evidence by the scripts beside it; the full tables come from
 `python infra/summarize_booking_configuration.py <evidence>`. No run broke the contract.
 
 Full schedules (15 weekdays booked, 168 regular windows on every first pass), mean added cost per booking against
@@ -621,6 +622,11 @@ the uncapped search on the same 40 cases, from the rerun:
 | 15 | +$1.02 | +$0.85 | +$0.66 | +$0.25 | +$0.09 | 31 of 40 | 488 / 3270 / 4159 |
 | 20 | +$1.97 | +$2.53 | +$2.16 | +$0.88 | +$0.79 | 39 of 40 | 580 / 3366 / 4209 |
 | 30 | +$1.56 | +$1.56 | +$1.61 | +$1.33 | +$0.36 | 40 of 40 | 832 / 3586 / 4282 |
+
+Against 2:250, 2000 ms closes $5.93 of the $8.37 that 3000 ms closes over the five fleets (71 percent) for about 1 s
+less per search; the shortfall is at 10 and 30 technicians. Thresholds 0, 2, 5 and 10 ran the identical search here
+(none fired), so their spread is a repeatability measure: up to $0.38 at 250 ms and $0.82 at 3000 ms, and the two
+insertion-only variants 0:0 and 2:0 differ by up to $0.73. Gaps under about $0.80 are noise.
 
 | Technicians | Searches / min at 1 desk, 2:250 / 2:1000 / 2:3000 / 1000 | Commit p95 ms at the 800 ms reserve | BUSY or 503 at 800 ms |
 | ---: | --- | ---: | ---: |
@@ -645,12 +651,66 @@ the uncapped search on the same 40 cases, from the rerun:
   (20 runs unanswered) because `SearchDatabaseTelemetry` needs the pool's connection plus validation timeout (500 ms)
   left; the commit phase itself stays under 260 ms p95 at 30 technicians. At 800 ms nothing was refused at any fleet.
   The extra 200 ms only lengthens deadline-bound searches, with no quality gain beyond noise, so the default stays
-  1000 ms.
+  1000 ms. At 800 ms, 12 of 57 2:3000 searches at 20 technicians ended with refinement `UNAVAILABLE` (no routing or
+  database capacity before the deadline) and returned first-pass offers; at 1000 ms the same cell finished all 68 on
+  its cap. The commit margin at the floor (300 ms after the 500 ms guard, less commit p95) is 226 ms at 5
+  technicians and 41 ms at 30.
+- **A required refinement turns load into refusals.** The uncapped variant is never shed: under 5 and 10 clients it
+  held 58 to 122 searches a minute on every layout and answered 503 in every cell, up to 135 times in a run. A
+  threshold that made most refinements required would do the same, so the threshold stays low.
+- **Under load the cap only shows where refinements still run.** One-replica layouts shed nearly every refinement,
+  so 2:250 and 2:3000 behave alike there. Multi-replica layouts shed less, so their unshed searches run the full
+  3000 ms: 3x1 at 5 clients falls from 332 to 133 searches a minute, p95 4.1 s.
+- **Server time at one desk.** Engine time equals the cap plus the first pass (18 ms at 5 technicians, 455 ms at 30
+  for 2:0); commit time grows with the fleet, not the cap (22 to 60 ms at 5, 110 to 236 ms at 30); slot wait is 0.
+  The uncapped search is incomplete on every search from 10 technicians, and at 20 and 30 spends about 3 s of it in
+  routing.
+
+Why the results come out this way (mechanisms read from `BookingOffers`, inferences marked):
+
+- **The cap's clock includes the refinement's route fetches.** The refinement first widens the snapshot with routes
+  for the neighborhoods around the insertion candidates, inside its cap. On a full schedule that is 21 days and 168
+  windows; at 20 and 30 technicians 2:250 spends 160 and 266 ms more in routing (p50) than 2:0, most or all of the
+  cap. At 5 to 15 technicians the fetch is cheap and the engine simply needs more than 250 ms on that search space
+  (inference).
+- **3000 ms is about the most a 5 s deadline can use.** The reserve leaves about 4 s for the first pass and the
+  refinement; at 30 technicians the first pass takes 0.5 s and 2:3000 already reaches 3.6 s p50 with 2 of 40 cut by
+  the deadline. A larger cap would turn into the deadline. The uncapped reference is cut by it from 15 technicians,
+  and at 20 and 30 it spends about 3 s of its 4 s in routing, so it is weakest where 2:3000 looks furthest from it.
+- **Shedding is a queue check.** An optional refinement is skipped whenever any booking waits in that replica's
+  admission queue (`queuedBookings() > 0`). One replica sees every client's waiting call, so it sheds nearly all and
+  answers fast; several replicas split the queue, refine more, and hold slots for the whole cap. Required
+  refinements skip both the shed check and the cap, which is why the uncapped variant turns load into 503s.
+- **The reserve must cover the admission guard and the commit in turn:** 500 ms for the guard plus up to 259 ms of
+  commit at 30 technicians, which 800 ms covers with 41 ms to spare and 500 ms cannot. The 800 ms `UNAVAILABLE`
+  refinements at 20 technicians, and the same cell stopping on the deadline at 800 ms but on its cap at 1000 ms, are
+  not explained (which fetch was refused was not logged); a repeat would tell a real effect from a slow run.
+- **The 2 vCPU reversal (2x1 over 1x2) is measured, not explained.** The confirm-only slot is added on top of the
+  search capacity, so it is not the cause.
+- **Gaps under about $0.80 are noise**, cause open: the four thresholds that ran the identical search spread by up
+  to $0.82, and insertion-only 0:0 and 2:0 by up to $0.73.
+
+10 technicians, full schedules, 10 clients (5-client and 5-technician grids in the summarizer output):
+
+| Layout | vCPU | 2:250 / min, p95, shed | 2:3000 / min, p95, shed | 1000 / min, 503s |
+| --- | ---: | --- | --- | --- |
+| 1x2 | 2 | 215, 3.4 s, 100% | 400, 2.7 s, 100% | 101, 68 |
+| 2x1 | 2 | 442, 3.1 s, 97% | 425, 3.4 s, 97% | 113, 135 |
+| 1x3 | 3 | 592, 2.2 s, 100% | 735, 1.9 s, 100% | 104, 58 |
+| 3x1 | 3 | 560, 2.2 s, 93% | 322, 4.0 s, 88% | 122, 111 |
+| 1x4 | 4 | 758, 1.1 s, 100% | 803, 1.0 s, 100% | 111, 29 |
+| 2x2 | 4 | 582, 2.0 s, 94% | 423, 3.6 s, 90% | 120, 69 |
+| 4x1 | 4 | 402, 3.1 s, 82% | 283, 4.2 s, 78% | 122, 87 |
 
 **Recommendation, for the owner:** keep threshold 2; raise the scheduler's default optional refinement cap from 250 to
 3000 ms (2000 ms if a 3 s p50 is too slow for the desk), since it is shed under load rather than refusing bookings;
 keep the reserve at 1000 ms with the 800 ms floor; lay the booking pool out as one replica with as many slots as
 vCPU. Half schedules were not rerun after the horizon fix, so their quality figures are for 2-date searches.
+
+**What to watch after the change:** booking search p95 (2.7 to 3.6 s p50 on booked-out schedules, under 0.8 s on
+2-date horizons); slot wait and `scheduler_booking_refinement_shed_total` on multi-replica pools; `commitMs` p95 per
+tenant, and a measured run before onboarding a fleet over 30 technicians; the share of refinement `UNAVAILABLE`; and
+the refinement outcome mix per tenant against this study's.
 
 ## Repeating the measurement
 
