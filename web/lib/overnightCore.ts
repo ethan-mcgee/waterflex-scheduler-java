@@ -83,13 +83,13 @@ function weekday(date: string): boolean {
 
 /**
  * The days an overnight run proposes: from today, every day not yet frozen by the 6 a.m. cutoff, until ten weekdays
- * are covered. Weekend days in between are included.
+ * are covered, or through `through` when the client's horizon follows its schedule. Weekend days in between are included.
  */
-export function overnightDates(now: Date): string[] {
+export function overnightDates(now: Date, through?: string): string[] {
   const dates: string[] = [];
   let date = todayInTz(OVERNIGHT_TIME_ZONE, now);
   let weekdays = 0;
-  while (weekdays < OVERNIGHT_WEEKDAYS) {
+  while (through === undefined ? weekdays < OVERNIGHT_WEEKDAYS : date <= through) {
     if (!frozen(date, now, OVERNIGHT_TIME_ZONE)) {
       dates.push(date);
       if (weekday(date)) weekdays++;
@@ -97,4 +97,12 @@ export function overnightDates(now: Date): string[] {
     date = addCalendarDays(date, 1);
   }
   return dates;
+}
+
+/**
+ * The last day a dynamic-horizon run proposes: the horizon's end, or the last booked day when that is later, so days
+ * booked before the horizon shrank (after cancellations) are still optimized.
+ */
+export function overnightEnd(horizonEnd: string, lastBookedDate: string | null): string {
+  return lastBookedDate !== null && lastBookedDate > horizonEnd ? lastBookedDate : horizonEnd;
 }
