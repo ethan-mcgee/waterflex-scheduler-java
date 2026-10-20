@@ -51,8 +51,19 @@ class StudyReceiptsTest {
         assertEquals(reference.costCents(), read.get("costCents"));
         assertEquals(reference.fairness().variance().toPlainString(), read.get("variance"));
         assertEquals(policy.costCeiling(reference.costCents()), receipt.get("costCeilingCents"));
-        assertFalse(((Map<?, ?>) Required.value(receipt.get("proposed"))).containsKey("unavailable"));
+        var proposed = (Map<?, ?>) Required.value(receipt.get("proposed"));
+        assertFalse(proposed.containsKey("unavailable"));
+        // The five measures, read as the harness reads them, for both plans.
+        long ceiling = policy.costCeiling(reference.costCents());
+        assertMeasures(read, calculation.reference(), calculation.reference(), ceiling);
+        assertMeasures(proposed, calculation.plan(), calculation.reference(), ceiling);
         assertTrue(CalculationJson.write(receipt).contains("\"proposalId\":\"p1\""));
+    }
+
+    private static void assertMeasures(Map<?, ?> written, DayPlan plan, DayPlan reference, long ceiling) {
+        var readings = FairnessReadings.readings(plan, reference, ceiling);
+        for (String name : List.of("variance", "maximumUtilization", "utilizationSpread", "absoluteDeviation", "loadBalance"))
+            assertEquals(Required.value(readings.get(name)).toPlainString(), written.get(name), name);
     }
 
     /** A plan the policy cannot measure is reported with its reason, never as zero readings. */
