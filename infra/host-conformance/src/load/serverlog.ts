@@ -169,14 +169,21 @@ export async function containerLogs(containers: readonly string[], since: Date):
 
 const Unavailable = z.strictObject({ unavailable: z.enum(["INVALID_PLAN", "UNASSIGNED_VISITS"]) });
 const Decimal = z.string().regex(/^\d+(\.\d+)?$/);
+// The spread, absolute deviation and load balance come with every measured plan once the reference is measured (the
+// harness's FairnessReadings); a receipt from an image before them carries the variance and highest utilization only.
 const Measured = z.strictObject({ costCents: z.number().int().nonnegative(), overtimeMinutes: z.number().int().nonnegative(),
-  variance: Decimal, maximumUtilization: Decimal });
+  variance: Decimal, maximumUtilization: Decimal, utilizationSpread: Decimal.optional(), absoluteDeviation: Decimal.optional(), loadBalance: Decimal.optional() });
+// With SCHEDULER_STUDY_PROFILES on, each phase's flight recording (file name in the replica's profiles directory) and the
+// thread the phases ran on, or why the recordings cannot stand for the phases.
+const Profile = z.union([z.strictObject({ thread: z.string().min(1), recordings: z.record(z.string().min(1), z.string().min(1)) }),
+  z.strictObject({ unavailable: z.string().min(1) })]);
 export const StudyReceiptBody = z.strictObject({
   proposalId: z.string().min(1), serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), variant: z.string().min(1), seed: z.number().int(),
   technicians: z.number().int().nonnegative(), visits: z.number().int().nonnegative(),
   phases: z.array(z.strictObject({ name: z.string().min(1), budgetMs: z.number().int().nonnegative(), solveMs: z.number().int().nonnegative(), termination: z.string().min(1) })),
   fairness: z.string().min(1), accepted: z.boolean(), reason: z.string().min(1),
   reference: z.union([Measured, Unavailable]), costCeilingCents: z.number().int().nonnegative().optional(), proposed: z.union([Measured, Unavailable]),
+  profile: Profile.optional(),
 });
 export type StudyReceiptBody = z.infer<typeof StudyReceiptBody>;
 
@@ -250,6 +257,8 @@ export interface StudySummary {
   readonly phases: readonly StudyPhase[];
   /** Receipts whose solver lines did not number its phases (Timefold at WARN, or an extra solve), so no phase took their speeds. */
   readonly unpairedSpeeds: number;
+  /** Receipts whose every phase has a flight recording (SCHEDULER_STUDY_PROFILES on). */
+  readonly profiled: number;
   /** Medians over the receipts whose plan was measured; null when none was. */
   readonly referenceCostCents: number | null; readonly proposedCostCents: number | null;
   readonly referenceVariance: string | null; readonly proposedVariance: string | null;
@@ -271,7 +280,7 @@ export function studySummary(all: readonly StudyReceipt[], tenant: string): Stud
   const receipts = all.filter(receipt => receipt.tenant === tenant);
   const decisions: Record<string, number> = {}, unmeasured: Record<string, number> = {};
   const byPhase = new Map<string, { solve: number[]; speed: number[]; terminations: Record<string, number> }>();
-  let unpairedSpeeds = 0;
+  let unpairedSpeeds = 0, profiled = 0;
   const cost = { reference: [] as number[], proposed: [] as number[] };
   const variance = { reference: [] as string[], proposed: [] as string[] }, maximum = { reference: [] as string[], proposed: [] as string[] };
   for (const { body, solves } of receipts) {
@@ -279,6 +288,8 @@ export function studySummary(all: readonly StudyReceipt[], tenant: string): Stud
     decisions[decision] = (decisions[decision] ?? 0) + 1;
     const paired = solves.length === body.phases.length;
     if (!paired) unpairedSpeeds++;
+    const profile = body.profile;
+    if (profile !== undefined && "recordings" in profile && body.phases.every(phase => phase.name in profile.recordings)) profiled++;
     body.phases.forEach((phase, index) => {
       const entry = byPhase.get(phase.name) ?? { solve: [], speed: [], terminations: {} };
       entry.solve.push(phase.solveMs);
@@ -299,7 +310,7 @@ export function studySummary(all: readonly StudyReceipt[], tenant: string): Stud
     return { phase, runs: entry.solve.length, solveMs, movesPerSecond: stat(entry.speed), terminations: entry.terminations };
   });
   const middle = (values: number[]) => stat(values)?.p50 ?? null;
-  return { receipts: receipts.length, decisions, phases, unpairedSpeeds,
+  return { receipts: receipts.length, decisions, phases, unpairedSpeeds, profiled,
     referenceCostCents: middle(cost.reference), proposedCostCents: middle(cost.proposed),
     referenceVariance: medianDecimal(variance.reference), proposedVariance: medianDecimal(variance.proposed),
     referenceMaximumUtilization: medianDecimal(maximum.reference), proposedMaximumUtilization: medianDecimal(maximum.proposed), unmeasured };
@@ -311,7 +322,7 @@ export function studyLines(summary: StudySummary): string[] {
   const or = (value: number | string | null) => value === null ? "-" : String(value);
   const pair = (value: Stat | null) => value === null ? "-" : `${value.p50} / ${value.p95}`;
   return ["## Study receipts (daily replica)", "",
-    `- Receipts ${summary.receipts}; decisions: ${tally(summary.decisions)}${summary.unpairedSpeeds === 0 ? "" : `; ${summary.unpairedSpeeds} without per-phase speeds`}`,
+    `- Receipts ${summary.receipts}; decisions: ${tally(summary.decisions)}${summary.unpairedSpeeds === 0 ? "" : `; ${summary.unpairedSpeeds} without per-phase speeds`}${summary.profiled === 0 ? "" : `; ${summary.profiled} with every phase flight-recorded`}`,
     `- Cost p50: reference ${or(summary.referenceCostCents)} c, proposed ${or(summary.proposedCostCents)} c`,
     `- Variance p50: reference ${or(summary.referenceVariance)}, proposed ${or(summary.proposedVariance)}`,
     `- Highest utilization p50: reference ${or(summary.referenceMaximumUtilization)}, proposed ${or(summary.proposedMaximumUtilization)}`,
