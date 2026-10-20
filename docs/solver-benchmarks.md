@@ -75,6 +75,35 @@ cannot be built, because multithreaded solving is a Timefold Enterprise feature 
 https://docs.timefold.ai/timefold-solver/latest/commercial-editions/commercial-editions, retrieved 2026-10-14) and
 `CampaignSolverConfiguration` refuses any value but `NONE` for the Community artifact this project builds with.
 
+## Score and time representation (CR08, 2026-10)
+
+The CR07 profile left two representation costs in the scoring path. `Duration.between` and `Instant.until` held 16 percent, and BigDecimal about 20 percent. CR08 deferred the score representation until the numeric contract was written down and the BigDecimal share was split between the score impacts and the variance formula. This study measures both as separate treatments, and then together. The contract is in [scheduler-policy.md](scheduler-policy.md), "Numeric contract".
+
+| Arm | Code | What changes |
+| --- | --- | --- |
+| baseline | commit `ec0efc4`, `TABU_KOPT` | nothing: production scoring, timing on `Instant` |
+| S | commit `ec0efc4`, `TABU_KOPT_LONG_SCORE` | long score levels, and the variance in rounded units of 1e-9 computed in binary64 |
+| T | commit `fa62792`, `TABU_KOPT` | route timing on long nanoseconds after the shift start |
+| T+S | commit `fa62792`, `TABU_KOPT_LONG_SCORE` | both |
+
+Equivalence came before any timing.
+- T passes `ScoringExactnessTest` unchanged: same score, moves, arrangement and independent evaluation on its three fixtures. New `RouteTimelineTest` cases pin the `Duration` readings on fractional and negative spans.
+- S passes `ScoreRepresentationTest`. Its integer levels are exact and the variance is within half a unit. It ranks every pair of plans of one target the same way, and the cost ceiling boundary is the same level. Step-limited searches take the same moves in both phases, and the levels stay inside the long range at 50 technicians.
+- Both pass the `FULL_ASSERT` assertion campaign, which covers every variant in four cohorts.
+
+`TABU_KOPT_LONG_SCORE` is experiment-only. A solve on it returns a `DayPlan` rescored with the decimal levels, so acceptance and every reader still see the decimal score.
+
+The run is `infra/run-representation-study.ps1`, which the owner starts on an idle workstation.
+- Each commit is frozen into its own tree and built once.
+- It uses the engine study's 24 cases: `TABU_KOPT`; 20 and 50 technicians; `CLUSTERED`, `DISPERSED`, `ABSENCE`, `TIGHT_WINDOW`; seeds 17, 23, 41; fixture seed 7001; 10 s.
+- Every case is its own JVM per tree (`-Xmx1536m -XX:ActiveProcessorCount=2 -XX:+UseSerialGC`). The tree order and the variant order alternate from case to case.
+- There are two repetitions, followed by one solve-scoped JFR pass per tree.
+- `infra/representation_study.py` pairs every treatment with the baseline of the same case and repetition. It attributes the JFR samples by stack: decimal work in the variance, in money, and in the score impacts; `java.time`; the score engine; the rest. It then applies the bars set before the run:
+  - T is promoted if its median moves per second is at least the baseline's in both phases. It changes no semantics, so no promotion review applies.
+  - S is promoted only at a median 1.25x on the fairness phase with no case dearer than the baseline beyond that case's own spread between repetitions. Otherwise BigDecimal is not the bottleneck and CR08 closes.
+
+Results: pending the owner's run. Evidence will be `docs/evidence/solver-representation-<date>.json`.
+
 ## Measured configuration choice
 
 [Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41. The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations. Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
