@@ -18,20 +18,28 @@ import static org.junit.jupiter.api.Assertions.*;
  * The equivalence gate of treatment S (docs/scheduler-policy.md, "Numeric contract"): the long score must carry every
  * integral level exactly and the fairness variance as rounded units, so it ranks any two plans of one revision as the
  * decimal score does, except that it may tie two plans whose variances differ by less than one unit. Any other
- * difference fails with both plans' scores in the message.
+ * difference fails with both plans' scores in the message. Option (b) of the variance formula study keeps the decimal
+ * score and carries the same rounded units ({@link BinaryVarianceConstraintProvider}), so it must equal the decimal
+ * score on every other level and rank exactly as the long score does.
  */
 class ScoreRepresentationTest {
     private static final SolverEngine.Definition DECIMAL = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17);
     private static final SolverEngine.Definition LONG = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_LONG_SCORE, 17);
+    private static final SolverEngine.Definition BINARY = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_BINARY_VARIANCE, 17);
     private static final BigDecimal UNITS = Required.value(BigDecimal.valueOf(RouteScoringFacts.VARIANCE_UNITS));
     private static final BigDecimal HALF_UNIT = Required.value(new BigDecimal("0.5000001"));
 
     /** {@code targeted}: a fairness-phase plan, whose soft objective level is the variance rather than overtime minutes. */
-    private record Scored(String label, boolean targeted, BendableBigDecimalScore decimal, BendableScore integral) { }
+    private record Scored(String label, boolean targeted, BendableBigDecimalScore decimal, BendableScore integral, BendableBigDecimalScore binary) { }
 
     static BendableBigDecimalScore decimal(DayPlan plan) {
         DayPlan copy = PlanCopies.copy(plan);
         SolutionManager.<DayPlan, BendableBigDecimalScore>create(DECIMAL.factory()).update(copy);
+        return Required.value(copy.getScore());
+    }
+    static BendableBigDecimalScore binary(DayPlan plan) {
+        DayPlan copy = PlanCopies.copy(plan);
+        SolutionManager.<DayPlan, BendableBigDecimalScore>create(BINARY.factory()).update(copy);
         return Required.value(copy.getScore());
     }
     static BendableScore integral(DayPlan plan) {
@@ -96,7 +104,7 @@ class ScoreRepresentationTest {
             List<DayPlan> members = Required.value(groups.get(group));
             for (int index = 0; index < members.size(); index++) {
                 DayPlan plan = Required.value(members.get(index));
-                plans.add(new Scored(name + "/" + group + "#" + index, plan.getScoringFacts().target() != null, decimal(plan), integral(plan)));
+                plans.add(new Scored(name + "/" + group + "#" + index, plan.getScoringFacts().target() != null, decimal(plan), integral(plan), binary(plan)));
             }
             scored.add(plans);
         }
@@ -144,6 +152,24 @@ class ScoreRepresentationTest {
         assertTrue(pairs >= 9_000, "too few pairs compared: " + pairs);
     }
 
+    /** Option (b): every level but the variance is the decimal one, and the variance level is the long level's units exactly. */
+    @Test void theBinaryVarianceScoreIsTheDecimalScoreWithTheLongVarianceLevel() {
+        int targeted = 0;
+        for (List<Scored> family : families()) for (Scored plan : family) {
+            for (int level = 0; level < 5; level++) assertEquals(0, plan.decimal().hardScore(level).compareTo(plan.binary().hardScore(level)), plan.label() + " hard " + level);
+            assertEquals(0, plan.decimal().softScore(DayScores.COST).compareTo(plan.binary().softScore(DayScores.COST)), plan.label() + " cost");
+            BigDecimal objective = plan.binary().softScore(DayScores.PHASE_OBJECTIVE);
+            if (plan.targeted()) {
+                targeted++;
+                assertEquals(plan.integral().softScore(DayScores.PHASE_OBJECTIVE), objective.multiply(UNITS).longValueExact(), plan.label() + " variance units");
+            } else assertEquals(0, plan.decimal().softScore(DayScores.PHASE_OBJECTIVE).compareTo(objective), plan.label() + " overtime");
+        }
+        assertTrue(targeted > 0);
+        for (List<Scored> family : families()) for (Scored first : family) for (Scored second : family)
+            assertEquals(Integer.signum(first.integral().compareTo(second.integral())), Integer.signum(first.binary().compareTo(second.binary())),
+                    first.label() + " against " + second.label());
+    }
+
     @Test void theCostCeilingBoundaryIsTheSameLevel() {
         DayPlan base = SolverBenchmarkData.create(20, SolverBenchmarkData.Workload.CLUSTERED, 7001);
         long cost = RouteEvaluator.evaluate(base).costCents();
@@ -169,7 +195,9 @@ class ScoreRepresentationTest {
     private static SolverEngine.Result stepLimited(SolverEngine.Definition base, DayPlan plan, int steps) {
         String limit = "<termination><spentLimit>PT10M</spentLimit><stepCountLimit>" + steps + "</stepCountLimit></termination>";
         String xml = Required.value(base.configurationXml().replace("<termination><spentLimit>PT15S</spentLimit></termination>", limit));
-        String decimalXml = Required.value(DECIMAL.configurationXml().replace("<termination><spentLimit>PT15S</spentLimit></termination>", limit));
+        // The decimal factory runs the variant's own constraints, unless the search runs on the long score beside it.
+        String decimalXml = base.longScore() == null ? xml
+                : Required.value(DECIMAL.configurationXml().replace("<termination><spentLimit>PT15S</spentLimit></termination>", limit));
         assertNotEquals(base.configurationXml(), xml, "the generated configuration changed shape");
         var decimal = Required.value(SolverFactory.<DayPlan>create(Required.value(SolverConfig.createFromXmlReader(new StringReader(decimalXml)).withRandomSeed(17L))));
         @org.jspecify.annotations.Nullable SolverFactory<LongScoreDayPlan> integral = base.longScore() == null ? null
@@ -194,6 +222,10 @@ class ScoreRepresentationTest {
             DayPlan seed = PlanCopies.copy(reference);
             seed.setScoringFacts(seed.getScoringFacts().withTarget(reference, SchedulingPolicy.Rules.defaults().costCeiling(RouteEvaluator.evaluate(reference).costCents())));
             assertEquals(trajectory(stepLimited(DECIMAL, seed, 30)), trajectory(stepLimited(LONG, seed, 30)), "fairness phase " + fixture[1]);
+            // Option (b) orders plans exactly as the long score does, so it takes the same moves; its final score is the decimal one.
+            String binary = trajectory(stepLimited(BINARY, seed, 30)), integral = trajectory(stepLimited(LONG, seed, 30));
+            assertEquals(integral.substring(integral.indexOf(" moves=")), binary.substring(binary.indexOf(" moves=")), "fairness phase moves " + fixture[1]);
+            assertEquals(trajectory(decimalCost), trajectory(stepLimited(BINARY, base, 30)), "cost phase " + fixture[1]);
         }
     }
 
