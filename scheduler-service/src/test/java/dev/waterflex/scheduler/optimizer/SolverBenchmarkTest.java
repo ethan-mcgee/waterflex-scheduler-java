@@ -75,7 +75,7 @@ class SolverBenchmarkTest {
         assertEquals(200L, ((SolverEngine.Statistics) Required.value(legacy.get("referencePhase"))).budgetMs());
     }
 
-    /** The fairness measure study: a policy arm is accepted on its own measure, and every row reads all five measures. */
+    /** A policy arm (load balance) is accepted on its own measure, and every row reads all five measures. */
     @Test void aPolicyArmIsAcceptedOnItsOwnMeasureAndEveryRowReadsEveryMeasure() {
         var fixture = SolverBenchmarkData.create(10, SolverBenchmarkData.Workload.CLUSTERED, 1);
         var baseline = SolverBenchmark.run(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17), fixture, 600);
