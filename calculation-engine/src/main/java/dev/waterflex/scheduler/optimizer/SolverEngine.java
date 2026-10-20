@@ -20,26 +20,11 @@ public final class SolverEngine {
                           /** TABU tuning: entity tabu size 3 or 15 (experiment-only), or TABU with the KOPT move set (a client choice, see DailySearch). */
                           TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT,
                           /** TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined (a client choice, see DailySearch). */
-                          TABU_KOPT_SIZE_3,
-                          /**
-                           * TABU_KOPT scored with long levels ({@link LongScoreDayPlan}), experiment-only: the score representation
-                           * study's treatment S. Never a client choice; a solve returns a {@link DayPlan} with its decimal score.
-                           */
-                          TABU_KOPT_LONG_SCORE }
+                          TABU_KOPT_SIZE_3 }
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
-    /**
-     * {@code factory} scores with the decimal levels every reader uses. {@code longScore} is present only for
-     * {@link Variant#TABU_KOPT_LONG_SCORE}, whose search runs on it, and is null for every other variant.
-     */
     public record Definition(Variant variant, long seed, EnvironmentMode environmentMode, boolean construction,
-            String configurationXml, String fingerprint, @Nullable Integer stepLimit, SolverFactory<DayPlan> factory,
-            @Nullable SolverFactory<LongScoreDayPlan> longScore) {
-        public Definition(Variant variant, long seed, EnvironmentMode environmentMode, boolean construction,
-                String configurationXml, String fingerprint, @Nullable Integer stepLimit, SolverFactory<DayPlan> factory) {
-            this(variant, seed, environmentMode, construction, configurationXml, fingerprint, stepLimit, factory, null);
-        }
-    }
+            String configurationXml, String fingerprint, @Nullable Integer stepLimit, SolverFactory<DayPlan> factory) { }
     public record Statistics(String variant, long seed, String configurationFingerprint, String termination,
             long budgetMs, @Nullable Integer stepLimit, @Nullable Long steps, @Nullable Long moveEvaluations,
             @Nullable Long scoreCalculations, long solveMs, @Nullable Long timeToBestMs,
@@ -67,10 +52,9 @@ public final class SolverEngine {
      * limit; a client's limit is whole seconds, so a real unimproved stop is far earlier.
      */
     static final long UNIMPROVED_MARGIN_MS = 100;
-    /** A solver of either score representation; the instrumentation reads counters, never the solution. */
-    @FunctionalInterface interface Telemetry { Probe attach(Solver<?> solver); }
+    @FunctionalInterface interface Telemetry { Probe attach(Solver<DayPlan> solver); }
     interface Cancellation {
-        void started(Solver<?> solver);
+        void started(Solver<DayPlan> solver);
         void stopped();
         /** True when the enclosing operation was cancelled, as opposed to a phase budget stop. */
         boolean cancelled();
@@ -106,11 +90,9 @@ public final class SolverEngine {
             } catch (java.io.IOException failure) { throw new IllegalStateException("Solver configuration unavailable", failure); }
             if (variant == Variant.CURRENT_UNCAPPED) xml = xml.replace("<stepCountLimit>1000</stepCountLimit>", "");
         } else {
-            boolean longScore = variant == Variant.TABU_KOPT_LONG_SCORE;
             boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT
-                    || variant == Variant.TABU_KOPT_SIZE_3 || longScore;
-            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3
-                    || longScore;
+                    || variant == Variant.TABU_KOPT_SIZE_3;
+            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3;
             boolean advanced = variant == Variant.SUBLIST || kOpt;
             String moves = "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>";
             if (variant != Variant.LATE_ACCEPTANCE_CHANGE)
@@ -132,20 +114,9 @@ public final class SolverEngine {
         xml = xml.replace("<environmentMode>NO_ASSERT</environmentMode>", "<environmentMode>" + key.mode().name() + "</environmentMode>");
         if (construction) xml = xml.replace("<localSearch>", "<constructionHeuristic/><localSearch>");
         SolverConfig config = Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(seed));
-        @Nullable SolverFactory<LongScoreDayPlan> longScore = null;
-        if (variant == Variant.TABU_KOPT_LONG_SCORE) {
-            // The recorded configuration is the one the search runs on; the decimal factory scores the result.
-            xml = xml.replace("<solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass>",
-                            "<solutionClass>dev.waterflex.scheduler.optimizer.LongScoreDayPlan</solutionClass>")
-                    .replace("<constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass>",
-                            "<constraintProviderClass>dev.waterflex.scheduler.optimizer.LongScoreConstraintProvider</constraintProviderClass>");
-            if (!xml.contains("LongScoreDayPlan") || !xml.contains("LongScoreConstraintProvider")) throw new IllegalStateException("Long score configuration changed shape");
-            longScore = Required.value(SolverFactory.<LongScoreDayPlan>create(Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(seed))));
-        }
         try {
             String fingerprint = Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((xml + "|seed=" + seed + "|score=" + DailyDataset.SCORE_MODEL).getBytes(StandardCharsets.UTF_8))));
-            return new Definition(variant, seed, key.mode(), construction, Required.value(xml), fingerprint, Required.value(config.getTerminationConfig()).getStepCountLimit(),
-                    Required.value(SolverFactory.create(config)), longScore);
+            return new Definition(variant, seed, key.mode(), construction, Required.value(xml), fingerprint, Required.value(config.getTerminationConfig()).getStepCountLimit(), Required.value(SolverFactory.create(config)));
         } catch (java.security.NoSuchAlgorithmException failure) { throw new IllegalStateException(failure); }
     }
 
@@ -186,13 +157,7 @@ public final class SolverEngine {
         // Two limits in one termination stop the phase at whichever is reached first.
         if (unimproved != null) termination.overwriteUnimprovedSpentLimit(unimproved);
         termination.setStepCountLimit(definition.stepLimit());
-        @Nullable SolverFactory<LongScoreDayPlan> longScore = definition.longScore();
-        // Exactly one of the two is built: the decimal search, or the long score search of TABU_KOPT_LONG_SCORE.
-        @Nullable Solver<DayPlan> decimal = longScore != null ? null
-                : Required.value(definition.factory().buildSolver(new SolverConfigOverride().withTerminationConfig(termination)));
-        @Nullable Solver<LongScoreDayPlan> search = longScore == null ? null
-                : Required.value(longScore.buildSolver(new SolverConfigOverride().withTerminationConfig(termination)));
-        Solver<?> solver = decimal != null ? decimal : Required.value(search, "long score solver");
+        Solver<DayPlan> solver = Required.value(definition.factory().buildSolver(new SolverConfigOverride().withTerminationConfig(termination)));
         @Nullable Probe probe = null;
         @Nullable String unavailable = telemetry == null ? "NOT_ENABLED" : null;
         if (telemetry != null) {
@@ -200,16 +165,12 @@ public final class SolverEngine {
             catch (RuntimeException | LinkageError failure) { unavailable = "ATTACH_FAILED:" + failure.getClass().getSimpleName(); }
         }
         started = System.nanoTime();
-        @Nullable DayPlan decimalBest = null;
-        @Nullable LongScoreDayPlan longBest = null;
+        DayPlan solved;
         try {
             if (cancellation != null) cancellation.started(solver);
-            if (decimal != null) decimalBest = Required.value(decimal.solve(working));
-            else longBest = Required.value(Required.value(search, "long score solver").solve(new LongScoreDayPlan(working)));
+            solved = Required.value(solver.solve(working));
         } finally { if (cancellation != null) cancellation.stopped(); }
         long solveMs = elapsed(started);
-        // Outside the measured solve: a long score search's arrangement is rescored with the decimal levels.
-        DayPlan solved = decimalBest != null ? decimalBest : decimal(Required.value(longBest, "long score solution"), working.getMode(), definition);
         @Nullable Measurements measured = null;
         if (probe != null) {
             try { measured = Required.value(probe.finish()); }
@@ -239,12 +200,6 @@ public final class SolverEngine {
                 telemetry == null ? "NONE" : INSTRUMENTATION);
         if (required && measured == null) throw new DiagnosticsFailure(result);
         return result;
-    }
-    /** A long score search's best arrangement as a plan scored by the decimal levels every reader uses. */
-    private static DayPlan decimal(LongScoreDayPlan best, DayPlan.Mode mode, Definition definition) {
-        DayPlan solved = best.toDayPlan(mode);
-        ai.timefold.solver.core.api.solver.SolutionManager.create(definition.factory()).update(solved);
-        return solved;
     }
     private static long elapsed(long started) { return (System.nanoTime() - started) / 1_000_000; }
     private static Result result(Definition definition, DayPlan plan, Duration budget, @Nullable Duration unimproved, long solveMs, String termination,
