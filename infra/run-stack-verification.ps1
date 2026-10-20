@@ -154,11 +154,14 @@ $useImage = { param($name)
     Write-Output "Stack on $name ($($image.tag))"
     & $docker (@('compose') + $rehearsal + @('up', '-d', '--no-build', '--remove-orphans')) (Join-Path $runs "up-$name.log")
     if (-not (& $health 300)) { throw "The stack did not come up on $($image.tag) (see up-$name.log)" }
-    foreach ($id in (& $dailyContainers) + (& $bookingContainers)) {
+    # Every replica runs the pinned image with Timefold at INFO; receipts are a daily pool setting, so only daily replicas carry them.
+    $daily = & $dailyContainers
+    foreach ($id in @($daily) + @(& $bookingContainers)) {
         $inspect = (& $dockerOutput @('inspect', $id)) | ConvertFrom-Json
         $settings = @($inspect[0].Config.Env | Where-Object { $_ -like 'SCHEDULER_STUDY_RECEIPTS=*' -or $_ -like 'TIMEFOLD_LOG_LEVEL=*' })
-        if ($inspect[0].Image -ne $image.imageId -or $settings -notcontains 'SCHEDULER_STUDY_RECEIPTS=true' -or $settings -notcontains 'TIMEFOLD_LOG_LEVEL=INFO') {
-            throw "Container $id does not run $($image.tag) with study receipts and Timefold at INFO" }
+        if ($inspect[0].Image -ne $image.imageId -or $settings -notcontains 'TIMEFOLD_LOG_LEVEL=INFO') {
+            throw "Container $id does not run $($image.tag) with Timefold at INFO" }
+        if ($daily -contains $id -and $settings -notcontains 'SCHEDULER_STUDY_RECEIPTS=true') { throw "Daily replica $id runs without study receipts" }
         $script:verified += [ordered]@{ image = $name; container = $id; imageId = $inspect[0].Image; nanoCpus = $inspect[0].HostConfig.NanoCpus; memory = $inspect[0].HostConfig.Memory; environment = $settings }
     }
     $script:running = $name
