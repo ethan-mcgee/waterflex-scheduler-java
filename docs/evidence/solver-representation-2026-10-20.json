@@ -1,0 +1,2482 @@
+{
+ "study": "Score and time representation (PR F)",
+ "manifest": {
+  "study": "score and time representation",
+  "durationMs": 10000,
+  "repetitions": 2,
+  "revisions": {
+   "s": "ec0efc4655532bab1f72817cf9e07e85b6ec7d4e",
+   "t": "fa62792df523e020723c95350473f0e421ae3c99"
+  },
+  "sizes": [
+   "20",
+   "50"
+  ],
+  "jvm": [
+   "-Xmx1536m",
+   "-XX:ActiveProcessorCount=2",
+   "-XX:+UseSerialGC"
+  ],
+  "startedAt": "2026-10-20T02:36:41.0085100Z",
+  "order": "per case: tree and variant order alternate",
+  "smoke": false,
+  "java": "java version \"25.0.1\" 2025-10-21 LTS",
+  "workloads": [
+   "CLUSTERED",
+   "DISPERSED",
+   "ABSENCE",
+   "TIGHT_WINDOW"
+  ],
+  "fixtureSeed": 7001,
+  "seeds": [
+   "17",
+   "23",
+   "41"
+  ],
+  "processors": 24,
+  "profileSeeds": [
+   "17"
+  ]
+ },
+ "revisions": [
+  "representation-study tree=s revision=ec0efc4655532bab1f72817cf9e07e85b6ec7d4e",
+  "representation-study tree=t revision=fa62792df523e020723c95350473f0e421ae3c99"
+ ],
+ "paired": {
+  "cases": 24,
+  "repetitions": 2,
+  "violations": 0,
+  "summary": {
+   "S": {
+    "referencePhaseSpeedup": {
+     "median": 1.035,
+     "min": 0.832,
+     "max": 1.324,
+     "pairs": 48
+    },
+    "fairnessPhaseSpeedup": {
+     "median": 4.009,
+     "min": 2.629,
+     "max": 7.516,
+     "pairs": 48
+    },
+    "byFleet": {
+     "20": {
+      "referencePhase": {
+       "median": 1.035,
+       "min": 0.832,
+       "max": 1.253,
+       "pairs": 24
+      },
+      "fairnessPhase": {
+       "median": 3.007,
+       "min": 2.629,
+       "max": 3.305,
+       "pairs": 24
+      }
+     },
+     "50": {
+      "referencePhase": {
+       "median": 1.046,
+       "min": 0.876,
+       "max": 1.324,
+       "pairs": 24
+      },
+      "fairnessPhase": {
+       "median": 5.618,
+       "min": 4.712,
+       "max": 7.516,
+       "pairs": 24
+      }
+     }
+    },
+    "cases": {
+     "cheaper": 11,
+     "ties": 4,
+     "dearer": 9,
+     "dearerBeyondNoise": 3
+    }
+   },
+   "T": {
+    "referencePhaseSpeedup": {
+     "median": 1.149,
+     "min": 0.987,
+     "max": 1.376,
+     "pairs": 48
+    },
+    "fairnessPhaseSpeedup": {
+     "median": 1.046,
+     "min": 0.874,
+     "max": 1.126,
+     "pairs": 48
+    },
+    "byFleet": {
+     "20": {
+      "referencePhase": {
+       "median": 1.133,
+       "min": 0.987,
+       "max": 1.296,
+       "pairs": 24
+      },
+      "fairnessPhase": {
+       "median": 1.046,
+       "min": 0.964,
+       "max": 1.123,
+       "pairs": 24
+      }
+     },
+     "50": {
+      "referencePhase": {
+       "median": 1.162,
+       "min": 0.996,
+       "max": 1.376,
+       "pairs": 24
+      },
+      "fairnessPhase": {
+       "median": 1.046,
+       "min": 0.874,
+       "max": 1.126,
+       "pairs": 24
+      }
+     }
+    },
+    "cases": {
+     "cheaper": 16,
+     "ties": 5,
+     "dearer": 3,
+     "dearerBeyondNoise": 1
+    }
+   },
+   "T+S": {
+    "referencePhaseSpeedup": {
+     "median": 1.189,
+     "min": 0.845,
+     "max": 1.547,
+     "pairs": 48
+    },
+    "fairnessPhaseSpeedup": {
+     "median": 4.363,
+     "min": 2.818,
+     "max": 8.332,
+     "pairs": 48
+    },
+    "byFleet": {
+     "20": {
+      "referencePhase": {
+       "median": 1.161,
+       "min": 0.845,
+       "max": 1.438,
+       "pairs": 24
+      },
+      "fairnessPhase": {
+       "median": 3.313,
+       "min": 2.818,
+       "max": 3.648,
+       "pairs": 24
+      }
+     },
+     "50": {
+      "referencePhase": {
+       "median": 1.241,
+       "min": 0.955,
+       "max": 1.547,
+       "pairs": 24
+      },
+      "fairnessPhase": {
+       "median": 6.593,
+       "min": 5.078,
+       "max": 8.332,
+       "pairs": 24
+      }
+     }
+    },
+    "cases": {
+     "cheaper": 17,
+     "ties": 2,
+     "dearer": 5,
+     "dearerBeyondNoise": 2
+    }
+   }
+  },
+  "repetitionAgreement": {
+   "medianRelativeDifference": 0.031,
+   "maximum": 0.287
+  },
+  "decision": {
+   "T": {
+    "promoted": true,
+    "bar": "median moves per second at least the baseline in both phases (exactness is already shown by ScoringExactnessTest)"
+   },
+   "S": {
+    "promoted": false,
+    "bar": "median fairness-phase moves per second at least 1.25x the baseline and no case dearer than the baseline beyond its own run-to-run spread"
+   }
+  },
+  "pairs": [
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 17,
+    "baselineCostCents": [
+     164225,
+     164180
+    ],
+    "armCostCents": [
+     164227,
+     164227
+    ],
+    "baselineSpreadCents": 45,
+    "meanDifferenceCents": 24.5,
+    "referenceSpeedup": [
+     0.844,
+     0.832
+    ],
+    "fairnessSpeedup": [
+     2.793,
+     2.673
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 23,
+    "baselineCostCents": [
+     163813,
+     163813
+    ],
+    "armCostCents": [
+     163782,
+     163782
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -31,
+    "referenceSpeedup": [
+     1.235,
+     1.243
+    ],
+    "fairnessSpeedup": [
+     2.805,
+     2.629
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 41,
+    "baselineCostCents": [
+     164080,
+     164354
+    ],
+    "armCostCents": [
+     164322,
+     164322
+    ],
+    "baselineSpreadCents": 274,
+    "meanDifferenceCents": 105,
+    "referenceSpeedup": [
+     0.895,
+     0.928
+    ],
+    "fairnessSpeedup": [
+     2.843,
+     2.723
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 17,
+    "baselineCostCents": [
+     168169,
+     168169
+    ],
+    "armCostCents": [
+     168169,
+     168169
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     0.911,
+     0.961
+    ],
+    "fairnessSpeedup": [
+     3.09,
+     2.908
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 23,
+    "baselineCostCents": [
+     167989,
+     167989
+    ],
+    "armCostCents": [
+     167989,
+     167989
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.253,
+     1.058
+    ],
+    "fairnessSpeedup": [
+     3.067,
+     3.001
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 41,
+    "baselineCostCents": [
+     168024,
+     168064
+    ],
+    "armCostCents": [
+     168024,
+     168064
+    ],
+    "baselineSpreadCents": 40,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.004,
+     1.012
+    ],
+    "fairnessSpeedup": [
+     2.977,
+     3.013
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 17,
+    "baselineCostCents": [
+     182917,
+     182258
+    ],
+    "armCostCents": [
+     182244,
+     182137
+    ],
+    "baselineSpreadCents": 659,
+    "meanDifferenceCents": -397.0,
+    "referenceSpeedup": [
+     1.22,
+     1.109
+    ],
+    "fairnessSpeedup": [
+     2.977,
+     3.156
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 23,
+    "baselineCostCents": [
+     182077,
+     182077
+    ],
+    "armCostCents": [
+     182078,
+     182078
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 1,
+    "referenceSpeedup": [
+     0.96,
+     0.971
+    ],
+    "fairnessSpeedup": [
+     2.791,
+     3.025
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 41,
+    "baselineCostCents": [
+     182007,
+     181957
+    ],
+    "armCostCents": [
+     181935,
+     181935
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -47,
+    "referenceSpeedup": [
+     1.141,
+     1.116
+    ],
+    "fairnessSpeedup": [
+     2.957,
+     3.125
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 17,
+    "baselineCostCents": [
+     225752,
+     225802
+    ],
+    "armCostCents": [
+     225807,
+     225807
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 30,
+    "referenceSpeedup": [
+     1.214,
+     1.218
+    ],
+    "fairnessSpeedup": [
+     3.183,
+     3.303
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 23,
+    "baselineCostCents": [
+     226457,
+     226457
+    ],
+    "armCostCents": [
+     226457,
+     225192
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -632.5,
+    "referenceSpeedup": [
+     0.977,
+     0.94
+    ],
+    "fairnessSpeedup": [
+     3.181,
+     3.151
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 41,
+    "baselineCostCents": [
+     226312,
+     226616
+    ],
+    "armCostCents": [
+     226312,
+     226312
+    ],
+    "baselineSpreadCents": 304,
+    "meanDifferenceCents": -152,
+    "referenceSpeedup": [
+     1.106,
+     1.199
+    ],
+    "fairnessSpeedup": [
+     3.305,
+     3.133
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 17,
+    "baselineCostCents": [
+     407982,
+     407932
+    ],
+    "armCostCents": [
+     408247,
+     408247
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 290,
+    "referenceSpeedup": [
+     0.926,
+     0.902
+    ],
+    "fairnessSpeedup": [
+     4.844,
+     5.286
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 23,
+    "baselineCostCents": [
+     410734,
+     410784
+    ],
+    "armCostCents": [
+     410457,
+     410538
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -261.5,
+    "referenceSpeedup": [
+     1.235,
+     1.17
+    ],
+    "fairnessSpeedup": [
+     4.712,
+     4.763
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 41,
+    "baselineCostCents": [
+     407838,
+     407788
+    ],
+    "armCostCents": [
+     407810,
+     407855
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 19.5,
+    "referenceSpeedup": [
+     0.962,
+     0.876
+    ],
+    "fairnessSpeedup": [
+     5.06,
+     5.049
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 17,
+    "baselineCostCents": [
+     418225,
+     418275
+    ],
+    "armCostCents": [
+     418265,
+     418270
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 17.5,
+    "referenceSpeedup": [
+     0.951,
+     0.914
+    ],
+    "fairnessSpeedup": [
+     5.985,
+     5.732
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 23,
+    "baselineCostCents": [
+     417575,
+     417475
+    ],
+    "armCostCents": [
+     417576,
+     417576
+    ],
+    "baselineSpreadCents": 100,
+    "meanDifferenceCents": 51,
+    "referenceSpeedup": [
+     1.209,
+     1.082
+    ],
+    "fairnessSpeedup": [
+     5.504,
+     5.218
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 41,
+    "baselineCostCents": [
+     417331,
+     417381
+    ],
+    "armCostCents": [
+     417331,
+     417381
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     0.962,
+     0.997
+    ],
+    "fairnessSpeedup": [
+     6.105,
+     6.273
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 17,
+    "baselineCostCents": [
+     452000,
+     450810
+    ],
+    "armCostCents": [
+     450006,
+     450006
+    ],
+    "baselineSpreadCents": 1190,
+    "meanDifferenceCents": -1399,
+    "referenceSpeedup": [
+     1.292,
+     1.174
+    ],
+    "fairnessSpeedup": [
+     5.295,
+     5.487
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 23,
+    "baselineCostCents": [
+     450823,
+     450823
+    ],
+    "armCostCents": [
+     450792,
+     450792
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -31,
+    "referenceSpeedup": [
+     0.982,
+     0.975
+    ],
+    "fairnessSpeedup": [
+     6.078,
+     6.166
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 41,
+    "baselineCostCents": [
+     451751,
+     451751
+    ],
+    "armCostCents": [
+     450236,
+     450286
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -1490,
+    "referenceSpeedup": [
+     1.243,
+     1.232
+    ],
+    "fairnessSpeedup": [
+     5.081,
+     5.139
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 17,
+    "baselineCostCents": [
+     564961,
+     565171
+    ],
+    "armCostCents": [
+     564397,
+     564911
+    ],
+    "baselineSpreadCents": 210,
+    "meanDifferenceCents": -412,
+    "referenceSpeedup": [
+     1.148,
+     1.153
+    ],
+    "fairnessSpeedup": [
+     7.343,
+     6.335
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 23,
+    "baselineCostCents": [
+     562982,
+     563032
+    ],
+    "armCostCents": [
+     563182,
+     563337
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 252.5,
+    "referenceSpeedup": [
+     1.01,
+     0.94
+    ],
+    "fairnessSpeedup": [
+     7.516,
+     7.03
+    ]
+   },
+   {
+    "arm": "S",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 41,
+    "baselineCostCents": [
+     564337,
+     564406
+    ],
+    "armCostCents": [
+     564097,
+     564097
+    ],
+    "baselineSpreadCents": 69,
+    "meanDifferenceCents": -274.5,
+    "referenceSpeedup": [
+     1.147,
+     1.324
+    ],
+    "fairnessSpeedup": [
+     6.574,
+     6.061
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 17,
+    "baselineCostCents": [
+     164225,
+     164180
+    ],
+    "armCostCents": [
+     164225,
+     164175
+    ],
+    "baselineSpreadCents": 45,
+    "meanDifferenceCents": -2.5,
+    "referenceSpeedup": [
+     1.116,
+     1.135
+    ],
+    "fairnessSpeedup": [
+     1.05,
+     1.083
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 23,
+    "baselineCostCents": [
+     163813,
+     163813
+    ],
+    "armCostCents": [
+     163813,
+     163813
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.238,
+     1.2
+    ],
+    "fairnessSpeedup": [
+     1.079,
+     1.026
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 41,
+    "baselineCostCents": [
+     164080,
+     164354
+    ],
+    "armCostCents": [
+     163915,
+     163915
+    ],
+    "baselineSpreadCents": 274,
+    "meanDifferenceCents": -302,
+    "referenceSpeedup": [
+     1.151,
+     1.131
+    ],
+    "fairnessSpeedup": [
+     1.123,
+     1.057
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 17,
+    "baselineCostCents": [
+     168169,
+     168169
+    ],
+    "armCostCents": [
+     168169,
+     168169
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.098,
+     1.17
+    ],
+    "fairnessSpeedup": [
+     0.989,
+     1.043
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 23,
+    "baselineCostCents": [
+     167989,
+     167989
+    ],
+    "armCostCents": [
+     167989,
+     167989
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.296,
+     1.152
+    ],
+    "fairnessSpeedup": [
+     1.033,
+     1.028
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 41,
+    "baselineCostCents": [
+     168024,
+     168064
+    ],
+    "armCostCents": [
+     168024,
+     168024
+    ],
+    "baselineSpreadCents": 40,
+    "meanDifferenceCents": -20,
+    "referenceSpeedup": [
+     1.128,
+     1.148
+    ],
+    "fairnessSpeedup": [
+     1.063,
+     1.049
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 17,
+    "baselineCostCents": [
+     182917,
+     182258
+    ],
+    "armCostCents": [
+     182258,
+     182258
+    ],
+    "baselineSpreadCents": 659,
+    "meanDifferenceCents": -329.5,
+    "referenceSpeedup": [
+     1.212,
+     0.987
+    ],
+    "fairnessSpeedup": [
+     1.02,
+     1.075
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 23,
+    "baselineCostCents": [
+     182077,
+     182077
+    ],
+    "armCostCents": [
+     182077,
+     182077
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.149,
+     1.07
+    ],
+    "fairnessSpeedup": [
+     0.999,
+     1.01
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 41,
+    "baselineCostCents": [
+     182007,
+     181957
+    ],
+    "armCostCents": [
+     181957,
+     181957
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -25,
+    "referenceSpeedup": [
+     1.096,
+     1.045
+    ],
+    "fairnessSpeedup": [
+     1.052,
+     1.057
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 17,
+    "baselineCostCents": [
+     225752,
+     225802
+    ],
+    "armCostCents": [
+     225807,
+     225807
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 30,
+    "referenceSpeedup": [
+     1.074,
+     1.104
+    ],
+    "fairnessSpeedup": [
+     1.067,
+     1.027
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 23,
+    "baselineCostCents": [
+     226457,
+     226457
+    ],
+    "armCostCents": [
+     226457,
+     226457
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.072,
+     1.147
+    ],
+    "fairnessSpeedup": [
+     1.028,
+     0.964
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 41,
+    "baselineCostCents": [
+     226312,
+     226616
+    ],
+    "armCostCents": [
+     226312,
+     226312
+    ],
+    "baselineSpreadCents": 304,
+    "meanDifferenceCents": -152,
+    "referenceSpeedup": [
+     1.112,
+     1.206
+    ],
+    "fairnessSpeedup": [
+     1.025,
+     1.058
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 17,
+    "baselineCostCents": [
+     407982,
+     407932
+    ],
+    "armCostCents": [
+     407327,
+     407236
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -675.5,
+    "referenceSpeedup": [
+     1.085,
+     1.15
+    ],
+    "fairnessSpeedup": [
+     0.989,
+     1.126
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 23,
+    "baselineCostCents": [
+     410734,
+     410784
+    ],
+    "armCostCents": [
+     410262,
+     410467
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -394.5,
+    "referenceSpeedup": [
+     1.247,
+     1.221
+    ],
+    "fairnessSpeedup": [
+     1.02,
+     1.05
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 41,
+    "baselineCostCents": [
+     407838,
+     407788
+    ],
+    "armCostCents": [
+     407547,
+     407447
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -316,
+    "referenceSpeedup": [
+     1.184,
+     1.149
+    ],
+    "fairnessSpeedup": [
+     0.874,
+     1.056
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 17,
+    "baselineCostCents": [
+     418225,
+     418275
+    ],
+    "armCostCents": [
+     417685,
+     417730
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -542.5,
+    "referenceSpeedup": [
+     1.113,
+     1.201
+    ],
+    "fairnessSpeedup": [
+     1.062,
+     1.122
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 23,
+    "baselineCostCents": [
+     417575,
+     417475
+    ],
+    "armCostCents": [
+     417525,
+     417575
+    ],
+    "baselineSpreadCents": 100,
+    "meanDifferenceCents": 25,
+    "referenceSpeedup": [
+     1.359,
+     0.996
+    ],
+    "fairnessSpeedup": [
+     1.028,
+     1.06
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 41,
+    "baselineCostCents": [
+     417331,
+     417381
+    ],
+    "armCostCents": [
+     417331,
+     417331
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -25,
+    "referenceSpeedup": [
+     1.144,
+     1.202
+    ],
+    "fairnessSpeedup": [
+     1.029,
+     1.078
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 17,
+    "baselineCostCents": [
+     452000,
+     450810
+    ],
+    "armCostCents": [
+     450523,
+     449966
+    ],
+    "baselineSpreadCents": 1190,
+    "meanDifferenceCents": -1160.5,
+    "referenceSpeedup": [
+     1.257,
+     1.176
+    ],
+    "fairnessSpeedup": [
+     1.03,
+     1.039
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 23,
+    "baselineCostCents": [
+     450823,
+     450823
+    ],
+    "armCostCents": [
+     450742,
+     450773
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -65.5,
+    "referenceSpeedup": [
+     1.169,
+     1.126
+    ],
+    "fairnessSpeedup": [
+     1.028,
+     1.061
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 41,
+    "baselineCostCents": [
+     451751,
+     451751
+    ],
+    "armCostCents": [
+     449136,
+     449816
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -2275,
+    "referenceSpeedup": [
+     1.376,
+     1.301
+    ],
+    "fairnessSpeedup": [
+     0.942,
+     1.015
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 17,
+    "baselineCostCents": [
+     564961,
+     565171
+    ],
+    "armCostCents": [
+     564142,
+     564856
+    ],
+    "baselineSpreadCents": 210,
+    "meanDifferenceCents": -567,
+    "referenceSpeedup": [
+     1.145,
+     1.109
+    ],
+    "fairnessSpeedup": [
+     1.119,
+     1.118
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 23,
+    "baselineCostCents": [
+     562982,
+     563032
+    ],
+    "armCostCents": [
+     563182,
+     563182
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 175,
+    "referenceSpeedup": [
+     1.103,
+     1.129
+    ],
+    "fairnessSpeedup": [
+     1.066,
+     1.045
+    ]
+   },
+   {
+    "arm": "T",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 41,
+    "baselineCostCents": [
+     564337,
+     564406
+    ],
+    "armCostCents": [
+     564102,
+     564152
+    ],
+    "baselineSpreadCents": 69,
+    "meanDifferenceCents": -244.5,
+    "referenceSpeedup": [
+     1.154,
+     1.309
+    ],
+    "fairnessSpeedup": [
+     1.046,
+     0.879
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 17,
+    "baselineCostCents": [
+     164225,
+     164180
+    ],
+    "armCostCents": [
+     164227,
+     164227
+    ],
+    "baselineSpreadCents": 45,
+    "meanDifferenceCents": 24.5,
+    "referenceSpeedup": [
+     1.055,
+     1.072
+    ],
+    "fairnessSpeedup": [
+     3.061,
+     3.09
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 23,
+    "baselineCostCents": [
+     163813,
+     163813
+    ],
+    "armCostCents": [
+     163732,
+     163782
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -56,
+    "referenceSpeedup": [
+     1.403,
+     1.423
+    ],
+    "fairnessSpeedup": [
+     3.268,
+     3.107
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "ABSENCE",
+    "seed": 41,
+    "baselineCostCents": [
+     164080,
+     164354
+    ],
+    "armCostCents": [
+     163914,
+     163960
+    ],
+    "baselineSpreadCents": 274,
+    "meanDifferenceCents": -280,
+    "referenceSpeedup": [
+     1.089,
+     1.093
+    ],
+    "fairnessSpeedup": [
+     3.183,
+     2.818
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 17,
+    "baselineCostCents": [
+     168169,
+     168169
+    ],
+    "armCostCents": [
+     168169,
+     168169
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.116,
+     1.158
+    ],
+    "fairnessSpeedup": [
+     3.406,
+     3.503
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 23,
+    "baselineCostCents": [
+     167989,
+     167989
+    ],
+    "armCostCents": [
+     167989,
+     167989
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 0,
+    "referenceSpeedup": [
+     1.438,
+     1.285
+    ],
+    "fairnessSpeedup": [
+     3.44,
+     3.514
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "CLUSTERED",
+    "seed": 41,
+    "baselineCostCents": [
+     168024,
+     168064
+    ],
+    "armCostCents": [
+     168024,
+     168024
+    ],
+    "baselineSpreadCents": 40,
+    "meanDifferenceCents": -20,
+    "referenceSpeedup": [
+     1.118,
+     1.081
+    ],
+    "fairnessSpeedup": [
+     3.26,
+     3.102
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 17,
+    "baselineCostCents": [
+     182917,
+     182258
+    ],
+    "armCostCents": [
+     181528,
+     181528
+    ],
+    "baselineSpreadCents": 659,
+    "meanDifferenceCents": -1059.5,
+    "referenceSpeedup": [
+     1.372,
+     1.219
+    ],
+    "fairnessSpeedup": [
+     3.438,
+     3.528
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 23,
+    "baselineCostCents": [
+     182077,
+     182077
+    ],
+    "armCostCents": [
+     182078,
+     182078
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": 1,
+    "referenceSpeedup": [
+     1.12,
+     1.096
+    ],
+    "fairnessSpeedup": [
+     3.082,
+     3.301
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "DISPERSED",
+    "seed": 41,
+    "baselineCostCents": [
+     182007,
+     181957
+    ],
+    "armCostCents": [
+     181822,
+     181935
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -103.5,
+    "referenceSpeedup": [
+     1.284,
+     1.165
+    ],
+    "fairnessSpeedup": [
+     3.285,
+     2.904
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 17,
+    "baselineCostCents": [
+     225752,
+     225802
+    ],
+    "armCostCents": [
+     225502,
+     225502
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -275,
+    "referenceSpeedup": [
+     1.32,
+     1.344
+    ],
+    "fairnessSpeedup": [
+     3.564,
+     3.648
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 23,
+    "baselineCostCents": [
+     226457,
+     226457
+    ],
+    "armCostCents": [
+     225192,
+     226457
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -632.5,
+    "referenceSpeedup": [
+     0.845,
+     1.155
+    ],
+    "fairnessSpeedup": [
+     3.324,
+     3.6
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 20,
+    "workload": "TIGHT_WINDOW",
+    "seed": 41,
+    "baselineCostCents": [
+     226312,
+     226616
+    ],
+    "armCostCents": [
+     226312,
+     226312
+    ],
+    "baselineSpreadCents": 304,
+    "meanDifferenceCents": -152,
+    "referenceSpeedup": [
+     1.249,
+     1.353
+    ],
+    "fairnessSpeedup": [
+     3.64,
+     3.412
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 17,
+    "baselineCostCents": [
+     407982,
+     407932
+    ],
+    "armCostCents": [
+     407650,
+     407247
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -508.5,
+    "referenceSpeedup": [
+     1.037,
+     1.103
+    ],
+    "fairnessSpeedup": [
+     5.285,
+     6.143
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 23,
+    "baselineCostCents": [
+     410734,
+     410784
+    ],
+    "armCostCents": [
+     409762,
+     409762
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -997,
+    "referenceSpeedup": [
+     1.461,
+     1.458
+    ],
+    "fairnessSpeedup": [
+     5.078,
+     5.708
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "ABSENCE",
+    "seed": 41,
+    "baselineCostCents": [
+     407838,
+     407788
+    ],
+    "armCostCents": [
+     407521,
+     407807
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -149,
+    "referenceSpeedup": [
+     1.16,
+     1.076
+    ],
+    "fairnessSpeedup": [
+     5.933,
+     6.064
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 17,
+    "baselineCostCents": [
+     418225,
+     418275
+    ],
+    "armCostCents": [
+     418265,
+     417756
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": -239.5,
+    "referenceSpeedup": [
+     0.962,
+     1.2
+    ],
+    "fairnessSpeedup": [
+     6.975,
+     7.158
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 23,
+    "baselineCostCents": [
+     417575,
+     417475
+    ],
+    "armCostCents": [
+     417531,
+     417531
+    ],
+    "baselineSpreadCents": 100,
+    "meanDifferenceCents": 6,
+    "referenceSpeedup": [
+     1.507,
+     1.282
+    ],
+    "fairnessSpeedup": [
+     6.62,
+     6.195
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "CLUSTERED",
+    "seed": 41,
+    "baselineCostCents": [
+     417331,
+     417381
+    ],
+    "armCostCents": [
+     417381,
+     417381
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 25,
+    "referenceSpeedup": [
+     1.132,
+     1.177
+    ],
+    "fairnessSpeedup": [
+     6.565,
+     7.034
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 17,
+    "baselineCostCents": [
+     452000,
+     450810
+    ],
+    "armCostCents": [
+     449669,
+     449669
+    ],
+    "baselineSpreadCents": 1190,
+    "meanDifferenceCents": -1736,
+    "referenceSpeedup": [
+     1.54,
+     1.415
+    ],
+    "fairnessSpeedup": [
+     6.163,
+     6.302
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 23,
+    "baselineCostCents": [
+     450823,
+     450823
+    ],
+    "armCostCents": [
+     450811,
+     450811
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -12,
+    "referenceSpeedup": [
+     1.09,
+     1.148
+    ],
+    "fairnessSpeedup": [
+     6.925,
+     7.125
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "DISPERSED",
+    "seed": 41,
+    "baselineCostCents": [
+     451751,
+     451751
+    ],
+    "armCostCents": [
+     449578,
+     449796
+    ],
+    "baselineSpreadCents": 0,
+    "meanDifferenceCents": -2064,
+    "referenceSpeedup": [
+     1.53,
+     1.441
+    ],
+    "fairnessSpeedup": [
+     6.178,
+     6.118
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 17,
+    "baselineCostCents": [
+     564961,
+     565171
+    ],
+    "armCostCents": [
+     564397,
+     564397
+    ],
+    "baselineSpreadCents": 210,
+    "meanDifferenceCents": -669,
+    "referenceSpeedup": [
+     1.31,
+     1.334
+    ],
+    "fairnessSpeedup": [
+     8.332,
+     7.418
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 23,
+    "baselineCostCents": [
+     562982,
+     563032
+    ],
+    "armCostCents": [
+     563337,
+     563182
+    ],
+    "baselineSpreadCents": 50,
+    "meanDifferenceCents": 252.5,
+    "referenceSpeedup": [
+     0.955,
+     1.114
+    ],
+    "fairnessSpeedup": [
+     7.604,
+     8.049
+    ]
+   },
+   {
+    "arm": "T+S",
+    "technicians": 50,
+    "workload": "TIGHT_WINDOW",
+    "seed": 41,
+    "baselineCostCents": [
+     564337,
+     564406
+    ],
+    "armCostCents": [
+     563482,
+     563482
+    ],
+    "baselineSpreadCents": 69,
+    "meanDifferenceCents": -889.5,
+    "referenceSpeedup": [
+     1.414,
+     1.547
+    ],
+    "fairnessSpeedup": [
+     7.756,
+     6.919
+    ]
+   }
+  ]
+ },
+ "profiles": {
+  "S cost": {
+   "samples": {
+    "collections": 2035,
+    "time": 981,
+    "score engine": 362,
+    "engine": 807,
+    "decimal: money": 197,
+    "scheduler code": 666,
+    "other": 19,
+    "decimal: score impacts": 17
+   },
+   "allocationBytes": {
+    "collections": 17105240784,
+    "other": 1329559947088,
+    "scheduler code": 14640973712,
+    "time": 37808106984,
+    "engine": 3385740192,
+    "score engine": 7547013920,
+    "decimal: money": 10972785752
+   },
+   "withoutStack": 9,
+   "recordings": 8,
+   "samplesPercent": {
+    "collections": 40.0,
+    "time": 19.3,
+    "engine": 15.9,
+    "scheduler code": 13.1,
+    "score engine": 7.1,
+    "decimal: money": 3.9,
+    "other": 0.4,
+    "decimal: score impacts": 0.3
+   },
+   "allocationBytesPercent": {
+    "other": 93.6,
+    "time": 2.7,
+    "collections": 1.2,
+    "scheduler code": 1.0,
+    "decimal: money": 0.8,
+    "score engine": 0.5,
+    "engine": 0.2
+   },
+   "leafFramesPercent": {
+    "java.util.ImmutableCollections$MapN.probe": 23.4,
+    "java.time.Duration.between": 17.3,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 3.8,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 3.6,
+    "java.util.HashMap.getNode": 2.9,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 2.7,
+    "java.math.BigDecimal.add": 2.6,
+    "dev.waterflex.scheduler.optimizer.RoadMatrix.number": 2.6,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 1.8,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.4,
+    "java.util.ImmutableCollections$Set12.contains": 1.4,
+    "java.util.IdentityHashMap.get": 1.3,
+    "ai.timefold.solver.core.impl.domain.score.descriptor.ScoreDescriptor.setScore": 1.2,
+    "java.util.ArrayDeque.addLast": 1.2,
+    "java.util.HashMap$TreeNode.getTreeNode": 1.1,
+    "java.util.LinkedHashMap.afterNodeInsertion": 1.0,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000002522d478.accept": 1.0,
+    "java.time.Instant.until": 1.0,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 0.9
+   }
+  },
+  "S fairness": {
+   "samples": {
+    "other": 19,
+    "collections": 820,
+    "scheduler code": 351,
+    "decimal: money": 125,
+    "score engine": 199,
+    "time": 416,
+    "engine": 444,
+    "variance (non-decimal)": 54,
+    "decimal: score impacts": 2
+   },
+   "allocationBytes": {
+    "collections": 334245792936,
+    "other": 1107292036720,
+    "time": 14058118184,
+    "score engine": 3714040304,
+    "scheduler code": 7258095680,
+    "decimal: money": 6754465560,
+    "engine": 1664511680,
+    "variance (non-decimal)": 5661152
+   },
+   "withoutStack": 5,
+   "recordings": 8,
+   "samplesPercent": {
+    "collections": 33.7,
+    "engine": 18.3,
+    "time": 17.1,
+    "scheduler code": 14.4,
+    "score engine": 8.2,
+    "decimal: money": 5.1,
+    "variance (non-decimal)": 2.2,
+    "other": 0.8,
+    "decimal: score impacts": 0.1
+   },
+   "allocationBytesPercent": {
+    "other": 75.1,
+    "collections": 22.7,
+    "time": 1.0,
+    "scheduler code": 0.5,
+    "decimal: money": 0.5,
+    "score engine": 0.3,
+    "engine": 0.1,
+    "variance (non-decimal)": 0.0
+   },
+   "leafFramesPercent": {
+    "java.util.ImmutableCollections$MapN.probe": 18.4,
+    "java.time.Duration.between": 15.3,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 4.3,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 3.9,
+    "java.math.BigDecimal.add": 3.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 3.0,
+    "java.util.HashMap.getNode": 2.3,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.varianceUnits": 2.2,
+    "dev.waterflex.scheduler.optimizer.RoadMatrix.number": 2.1,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 1.9,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 1.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 1.9,
+    "java.util.HashMap$TreeNode.getTreeNode": 1.6,
+    "ai.timefold.solver.core.impl.domain.score.descriptor.ScoreDescriptor.setScore": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000002522d478.accept": 1.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.2,
+    "java.util.IdentityHashMap.get": 1.2,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.solve": 1.1,
+    "java.util.ArrayDeque.addLast": 1.1
+   }
+  },
+  "T cost": {
+   "samples": {
+    "decimal: money": 220,
+    "collections": 2403,
+    "scheduler code": 789,
+    "other": 18,
+    "time": 3,
+    "engine": 930,
+    "decimal: score impacts": 398,
+    "score engine": 303
+   },
+   "allocationBytes": {
+    "collections": 329282518608,
+    "other": 763533793616,
+    "scheduler code": 15749408008,
+    "decimal: score impacts": 15303941216,
+    "engine": 3300213672,
+    "decimal: money": 12006094888,
+    "time": 1103858656,
+    "score engine": 277461304
+   },
+   "withoutStack": 9,
+   "recordings": 8,
+   "samplesPercent": {
+    "collections": 47.5,
+    "engine": 18.4,
+    "scheduler code": 15.6,
+    "decimal: score impacts": 7.9,
+    "score engine": 6.0,
+    "decimal: money": 4.3,
+    "other": 0.4,
+    "time": 0.1
+   },
+   "allocationBytesPercent": {
+    "other": 66.9,
+    "collections": 28.9,
+    "scheduler code": 1.4,
+    "decimal: score impacts": 1.3,
+    "decimal: money": 1.1,
+    "engine": 0.3,
+    "time": 0.1,
+    "score engine": 0.0
+   },
+   "leafFramesPercent": {
+    "java.util.ImmutableCollections$MapN.probe": 21.5,
+    "java.util.LinkedHashMap.afterNodeInsertion": 9.6,
+    "java.math.BigDecimal.add": 6.4,
+    "java.util.HashMap.getNode": 4.5,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 4.5,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 4.3,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 3.7,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 3.0,
+    "ai.timefold.solver.core.impl.bavet.common.AbstractJoinNode.innerUpdateLeft": 2.3,
+    "java.util.IdentityHashMap.get": 1.8,
+    "dev.waterflex.scheduler.optimizer.RoadMatrix.number": 1.6,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniBigDecimalImpactHandler.impactNaked": 1.6,
+    "java.math.BigDecimal.valueOf": 1.5,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 1.4,
+    "ai.timefold.solver.core.impl.domain.variable.ListVariableStateCarrier.processElementPosition": 1.0,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 1.0,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000000322d478.accept": 1.0,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 0.9,
+    "java.util.ImmutableCollections$Set12.contains": 0.9,
+    "ai.timefold.solver.core.impl.move.VariableChangeRecordingScoreDirector.undoChanges": 0.8
+   }
+  },
+  "T fairness": {
+   "samples": {
+    "other": 13,
+    "decimal: variance": 1445,
+    "collections": 373,
+    "engine": 140,
+    "variance (non-decimal)": 136,
+    "scheduler code": 135,
+    "decimal: score impacts": 79,
+    "decimal: money": 30,
+    "score engine": 47
+   },
+   "allocationBytes": {
+    "collections": 465148615392,
+    "variance (non-decimal)": 41064357456,
+    "decimal: score impacts": 2139658968,
+    "decimal: variance": 42603309264,
+    "other": 684593180544,
+    "scheduler code": 1806011616,
+    "decimal: money": 1290877632,
+    "time": 79254624,
+    "engine": 503868632,
+    "score engine": 33964016
+   },
+   "withoutStack": 5,
+   "recordings": 8,
+   "samplesPercent": {
+    "decimal: variance": 60.3,
+    "collections": 15.6,
+    "engine": 5.8,
+    "variance (non-decimal)": 5.7,
+    "scheduler code": 5.6,
+    "decimal: score impacts": 3.3,
+    "score engine": 2.0,
+    "decimal: money": 1.3,
+    "other": 0.5
+   },
+   "allocationBytesPercent": {
+    "other": 55.2,
+    "collections": 37.5,
+    "decimal: variance": 3.4,
+    "variance (non-decimal)": 3.3,
+    "decimal: score impacts": 0.2,
+    "scheduler code": 0.1,
+    "decimal: money": 0.1,
+    "engine": 0.0,
+    "time": 0.0,
+    "score engine": 0.0
+   },
+   "leafFramesPercent": {
+    "java.math.MutableBigInteger.divideMagnitude": 12.8,
+    "java.util.ImmutableCollections$MapN.probe": 6.5,
+    "java.math.BigDecimal.commonNeedIncrement": 6.3,
+    "java.math.MutableBigInteger.getLowestSetBit": 6.0,
+    "java.math.BigDecimal.doRound": 5.7,
+    "java.math.BigDecimal.add": 5.4,
+    "java.math.MutableBigInteger.divideKnuth": 4.9,
+    "java.math.BigDecimal.divideAndRound": 4.7,
+    "java.util.LinkedHashMap.afterNodeInsertion": 3.5,
+    "java.math.BigDecimal.multiplyAndRound": 3.5,
+    "java.math.BigInteger.stripLeadingZeroInts": 3.3,
+    "dev.waterflex.scheduler.optimizer.SchedulingPolicy.fairness": 2.0,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 1.6,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 1.6,
+    "java.math.MutableBigInteger.add": 1.6,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 1.5,
+    "java.util.HashMap.putVal": 1.4,
+    "java.util.Arrays.copyOf": 1.2,
+    "java.math.MutableBigInteger.toBigDecimal": 1.1,
+    "ai.timefold.solver.core.impl.bavet.common.AbstractJoinNode.innerUpdateLeft": 0.9
+   }
+  },
+  "T+S cost": {
+   "samples": {
+    "decimal: money": 245,
+    "engine": 988,
+    "collections": 2532,
+    "scheduler code": 873,
+    "score engine": 417,
+    "other": 26,
+    "time": 3
+   },
+   "allocationBytes": {
+    "collections": 38030254696,
+    "other": 1089229790272,
+    "scheduler code": 16809605320,
+    "engine": 3583469256,
+    "decimal: money": 12659694872,
+    "score engine": 8062121376,
+    "time": 1268174672
+   },
+   "withoutStack": 7,
+   "recordings": 8,
+   "samplesPercent": {
+    "collections": 49.8,
+    "engine": 19.4,
+    "scheduler code": 17.2,
+    "score engine": 8.2,
+    "decimal: money": 4.8,
+    "other": 0.5,
+    "time": 0.1
+   },
+   "allocationBytesPercent": {
+    "other": 93.1,
+    "collections": 3.3,
+    "scheduler code": 1.4,
+    "decimal: money": 1.1,
+    "score engine": 0.7,
+    "engine": 0.3,
+    "time": 0.1
+   },
+   "leafFramesPercent": {
+    "java.util.ImmutableCollections$MapN.probe": 22.0,
+    "java.util.LinkedHashMap.afterNodeInsertion": 10.6,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 5.1,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 4.0,
+    "java.util.HashMap.getNode": 3.9,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 3.3,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 3.1,
+    "java.math.BigDecimal.add": 2.5,
+    "ai.timefold.solver.core.impl.bavet.common.AbstractJoinNode.innerUpdateLeft": 2.5,
+    "dev.waterflex.scheduler.optimizer.RoadMatrix.number": 1.7,
+    "java.util.IdentityHashMap.get": 1.7,
+    "ai.timefold.solver.core.impl.domain.variable.ListVariableStateCarrier.processElementPosition": 1.4,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 1.4,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 1.3,
+    "java.math.BigDecimal.commonNeedIncrement": 1.1,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000000322d478.accept": 1.1,
+    "java.util.HashMap$TreeNode.getTreeNode": 1.1,
+    "java.util.ImmutableCollections$Set12.contains": 1.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 1.0,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.0
+   }
+  },
+  "T+S fairness": {
+   "samples": {
+    "other": 19,
+    "collections": 1094,
+    "scheduler code": 397,
+    "score engine": 223,
+    "decimal: money": 131,
+    "engine": 513,
+    "variance (non-decimal)": 52
+   },
+   "allocationBytes": {
+    "collections": 294977661576,
+    "other": 897108613472,
+    "scheduler code": 8531441120,
+    "engine": 1805957704,
+    "decimal: money": 7275773632,
+    "time": 583159432,
+    "score engine": 3606519296
+   },
+   "withoutStack": 5,
+   "recordings": 8,
+   "samplesPercent": {
+    "collections": 45.0,
+    "engine": 21.1,
+    "scheduler code": 16.3,
+    "score engine": 9.2,
+    "decimal: money": 5.4,
+    "variance (non-decimal)": 2.1,
+    "other": 0.8
+   },
+   "allocationBytesPercent": {
+    "other": 73.9,
+    "collections": 24.3,
+    "scheduler code": 0.7,
+    "decimal: money": 0.6,
+    "score engine": 0.3,
+    "engine": 0.1,
+    "time": 0.0
+   },
+   "leafFramesPercent": {
+    "java.util.ImmutableCollections$MapN.probe": 18.7,
+    "java.util.LinkedHashMap.afterNodeInsertion": 10.3,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 4.4,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 4.0,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 4.0,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 3.9,
+    "java.util.HashMap.getNode": 3.4,
+    "java.math.BigDecimal.add": 2.7,
+    "ai.timefold.solver.core.impl.bavet.common.AbstractJoinNode.innerUpdateLeft": 2.5,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.varianceUnits": 2.1,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 1.8,
+    "dev.waterflex.scheduler.optimizer.RoadMatrix.number": 1.6,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 1.5,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.5,
+    "ai.timefold.solver.core.impl.domain.variable.ListVariableStateCarrier.processElementPosition": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 1.2,
+    "java.math.BigDecimal.commonNeedIncrement": 1.2,
+    "java.util.ArrayList.sort": 1.2,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000000322d478.accept": 1.1,
+    "java.util.HashMap.putVal": 1.1
+   }
+  },
+  "baseline cost": {
+   "samples": {
+    "collections": 1816,
+    "scheduler code": 692,
+    "engine": 802,
+    "score engine": 266,
+    "time": 955,
+    "other": 16,
+    "decimal: score impacts": 316,
+    "decimal: money": 202
+   },
+   "allocationBytes": {
+    "collections": 284608965080,
+    "other": 1033658964376,
+    "scheduler code": 13624599680,
+    "decimal: score impacts": 13664360328,
+    "decimal: money": 10770948664,
+    "time": 35190352016,
+    "score engine": 639552552,
+    "engine": 3266079424
+   },
+   "withoutStack": 11,
+   "recordings": 8,
+   "samplesPercent": {
+    "collections": 35.9,
+    "time": 18.9,
+    "engine": 15.8,
+    "scheduler code": 13.7,
+    "decimal: score impacts": 6.2,
+    "score engine": 5.3,
+    "decimal: money": 4.0,
+    "other": 0.3
+   },
+   "allocationBytesPercent": {
+    "other": 74.1,
+    "collections": 20.4,
+    "time": 2.5,
+    "decimal: score impacts": 1.0,
+    "scheduler code": 1.0,
+    "decimal: money": 0.8,
+    "engine": 0.2,
+    "score engine": 0.0
+   },
+   "leafFramesPercent": {
+    "java.util.ImmutableCollections$MapN.probe": 20.8,
+    "java.time.Duration.between": 16.5,
+    "java.math.BigDecimal.add": 5.6,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 3.9,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 3.5,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 3.3,
+    "java.util.HashMap.getNode": 2.3,
+    "dev.waterflex.scheduler.optimizer.RoadMatrix.number": 2.2,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 2.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.6,
+    "java.math.BigDecimal.valueOf": 1.6,
+    "java.util.ArrayDeque.addLast": 1.3,
+    "java.time.Instant.until": 1.2,
+    "ai.timefold.solver.core.impl.domain.score.descriptor.ScoreDescriptor.setScore": 1.2,
+    "java.util.ImmutableCollections$Set12.contains": 1.2,
+    "java.util.IdentityHashMap.get": 1.1,
+    "java.util.HashMap$TreeNode.getTreeNode": 1.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.1,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniBigDecimalImpactHandler.impactNaked": 1.1,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 1.0
+   }
+  },
+  "baseline fairness": {
+   "samples": {
+    "other": 5,
+    "decimal: variance": 1305,
+    "engine": 131,
+    "collections": 294,
+    "variance (non-decimal)": 283,
+    "score engine": 48,
+    "time": 134,
+    "scheduler code": 96,
+    "decimal: score impacts": 62,
+    "decimal: money": 38
+   },
+   "allocationBytes": {
+    "collections": 14739409480,
+    "other": 1390462644144,
+    "decimal: score impacts": 2066503224,
+    "decimal: variance": 40033386656,
+    "variance (non-decimal)": 39988054216,
+    "scheduler code": 1551357376,
+    "time": 4212382104,
+    "decimal: money": 1081453440,
+    "engine": 192475320,
+    "score engine": 33966720
+   },
+   "withoutStack": 3,
+   "recordings": 8,
+   "samplesPercent": {
+    "decimal: variance": 54.5,
+    "collections": 12.3,
+    "variance (non-decimal)": 11.8,
+    "time": 5.6,
+    "engine": 5.5,
+    "scheduler code": 4.0,
+    "decimal: score impacts": 2.6,
+    "score engine": 2.0,
+    "decimal: money": 1.6,
+    "other": 0.2
+   },
+   "allocationBytesPercent": {
+    "other": 93.0,
+    "decimal: variance": 2.7,
+    "variance (non-decimal)": 2.7,
+    "collections": 1.0,
+    "time": 0.3,
+    "decimal: score impacts": 0.1,
+    "scheduler code": 0.1,
+    "decimal: money": 0.1,
+    "engine": 0.0,
+    "score engine": 0.0
+   },
+   "leafFramesPercent": {
+    "java.math.MutableBigInteger.divideMagnitude": 13.3,
+    "dev.waterflex.scheduler.optimizer.SchedulingPolicy.fairness": 7.5,
+    "java.math.BigDecimal.add": 6.8,
+    "java.util.ImmutableCollections$MapN.probe": 6.6,
+    "java.math.BigDecimal.doRound": 5.8,
+    "java.math.MutableBigInteger.divideKnuth": 5.6,
+    "java.time.Duration.between": 5.1,
+    "java.math.BigDecimal.divideAndRound": 4.8,
+    "java.math.MutableBigInteger.getLowestSetBit": 4.3,
+    "java.math.BigDecimal.multiplyAndRound": 3.1,
+    "java.math.BigInteger.stripLeadingZeroInts": 2.8,
+    "java.math.MutableBigInteger.add": 1.7,
+    "java.util.HashMap.putVal": 1.5,
+    "java.math.BigDecimal.compareTo": 1.4,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 1.2,
+    "ai.timefold.solver.core.impl.domain.variable.descriptor.VariableDescriptor.getValue": 1.1,
+    "java.util.HashMap.getNode": 0.9,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 0.9,
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 0.8,
+    "java.math.BigDecimal.compareMagnitude": 0.8
+   }
+  }
+ }
+}
