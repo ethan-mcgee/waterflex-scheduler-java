@@ -458,6 +458,26 @@ export const CASES: readonly Case[] = [
     },
   },
   {
+    group: "Daily", name: "unimproved limit", proves:
+      "A policy's optional unimprovedSearchSeconds ends a settled day's search early (spec 1.6.0), with TABU_KOPT_SIZE_3, and 0 or more than the cost search time is refused.",
+    run: async context => {
+      const date = addDays(context.today, 2);
+      const day = sharedVisit(context, "unimproved", date);
+      const policy = { ...day.snapshot.policy, dailySearch: "TABU_KOPT_SIZE_3" as const, costSearchSeconds: 30, fairnessSearchSeconds: 0, unimprovedSearchSeconds: 2 };
+      const started = Date.now();
+      const proposal = await propose(context, { requestId: randomUUID(), serviceDate: date, snapshot: { ...day.snapshot, policy } },
+        "Daily proposal with a 2 second unimproved limit");
+      const elapsed = Date.now() - started;
+      check(proposal.decision === "IMPROVED", `Daily proposal with an unimproved limit: ${proposal.decision}: ${proposal.reason}`);
+      checkRoutesCover(proposal, day.visits, "Daily proposal with an unimproved limit");
+      check(elapsed < 20_000, `Daily proposal with a 2 second unimproved limit on a two-visit day took ${elapsed} ms of its 30 second search`);
+      for (const [unimprovedSearchSeconds, label] of [[0, "0"], [31, "more than the cost search time"]] as const)
+        expectProblem(await context.api.call("POST", "/api/v1/daily/proposals",
+          { requestId: randomUUID(), serviceDate: date, snapshot: { ...day.snapshot, policy: { ...policy, unimprovedSearchSeconds } } },
+          { timeoutMs: PROPOSAL_TIMEOUT_MS }), 400, "INVALID_REQUEST", `A daily proposal with an unimproved limit of ${label}`);
+    },
+  },
+  {
     group: "Daily", name: "stale and incomplete commits", proves:
       "A commit missing a technician-day is a 400; one whose lastModified changed is 409 STALE listing the change, and nothing is committed.",
     run: async context => {

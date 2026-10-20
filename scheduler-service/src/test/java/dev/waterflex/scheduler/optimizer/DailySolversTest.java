@@ -10,12 +10,14 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Clients choose between exactly two daily searches, each with its own phase times. */
+/** Clients choose between exactly three daily searches, each with its own phase times. */
 class DailySolversTest {
-    @Test void onlyTabuAndTabuKoptAreClientChoices() {
-        assertEquals(List.of(DailySearch.TABU, DailySearch.TABU_KOPT), List.of(DailySearch.values()));
+    @Test void onlyTabuTabuKoptAndTabuKoptSize3AreClientChoices() {
+        assertEquals(List.of(DailySearch.TABU, DailySearch.TABU_KOPT, DailySearch.TABU_KOPT_SIZE_3), List.of(DailySearch.values()));
         assertEquals(SolverEngine.Variant.TABU_KOPT, DailySearch.TABU_KOPT.variant());
+        assertEquals(SolverEngine.Variant.TABU_KOPT_SIZE_3, DailySearch.TABU_KOPT_SIZE_3.variant());
         assertEquals(DailySearch.TABU_KOPT, DailySearch.of("TABU_KOPT"));
+        assertEquals(DailySearch.TABU_KOPT_SIZE_3, DailySearch.of("TABU_KOPT_SIZE_3"));
         assertNull(DailySearch.of("KOPT"));
         assertNull(DailySearch.of(null));
     }
