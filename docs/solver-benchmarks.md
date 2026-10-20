@@ -249,7 +249,51 @@ It uses fleets of 10, 30 and 50 technicians, the four workloads, seeds 17, 23 an
 
 ### Results
 
-Pending the run.
+Evidence: `docs/evidence/solver-matrix-2026-10-20.json`. The run started at 15:55 UTC on 2026-10-20 and covered 432 solves with no violation and nothing outside a ceiling. The full report, with figures, is `docs/road-matrix-numbering-2026-10-20/Road_Matrix_Numbering_2026-10-20_Report.docx`; `stacks.json` there attributes the run's recordings to their callers.
+
+The fix, each variant on tree n against the same variant on tree o, median of 72 paired solves:
+
+| Comparison, phase | All fleets (min to max) | 10 technicians | 30 technicians | 50 technicians |
+| --- | --- | --- | --- | --- |
+| Production, cost phase | 1.38x (1.12 to 2.23) | 1.61x | 1.37x | 1.31x |
+| Production, fairness phase | 1.10x (0.85 to 1.47) | 1.17x | 1.06x | 1.05x |
+| b, cost phase | 1.41x (1.03 to 2.28) | 1.58x | 1.34x | 1.32x |
+| b, fairness phase | 1.30x (1.05 to 1.61) | 1.45x | 1.27x | 1.23x |
+
+- **The fix is promoted.** It is not slower in either phase. Both former sites are gone from tree n's recordings: the identity probe (20.1 percent of production's cost phase before) and the options map (12.3 percent).
+- **The gain is largest on small fleets.** The work removed is per leg, while the fleet-wide part of a move grows with the fleet. That reading comes from the profile; it was not measured separately.
+- **Production's fairness phase gains only 1.10x,** because 57 percent of its samples are still the DECIMAL128 variance.
+- **The extra moves made days cheaper.** Production's median final cost fell 136.25 cents a day (reference plans 63.25 cents), cheaper beyond the old arm's spread in 17 of 36 cases and dearer in none. b's fell 238 cents (19 cheaper, 2 dearer beyond noise).
+- **Final fairness moved a little the other way:** a median variance ratio of 1.028 for production (16 less fair and 4 fairer beyond noise) and 1.011 for b (12 and 6). The reference plans were as fair as before (1.004), so this is the fairness phase working under a ceiling measured from a cheaper plan. Whether to spend some of the saving on fairness is the allowance's size, a client setting.
+
+b and c on the faster engine, against the fixed production:
+
+| Option | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) | Passes |
+| --- | --- | --- | --- | --- | --- |
+| b | 5.20x (2.07 to 9.24) | 0.988x | 29 / 7 / 0 / 0 | +0 cents (13 / 10 / 13) | Yes |
+| c | 5.23x (1.92 to 9.70) | 0.944x | 28 / 7 / 1 / 1 | +0 cents (11 / 10 / 15) | No: fairness |
+
+- **b is promoted again.** Its fairness-phase gain grows with the fleet: 2.79x at 10 technicians, 5.20x at 30, 7.10x at 50. Its median variance is 0.74 of production's (0.99, 0.73 and 0.59 by fleet). At 10 technicians it mostly ties production.
+- **c is not promoted.** It fails the fairness bar on 30 `DISPERSED` 17: production's repetitions ended at 15.10 and 14.39 thousandths, c's second at 20.35.
+
+Load balance, as the median ratio to the fixed production on each measure (lower is fairer):
+
+| Arm | Variance | Highest utilization | Spread | Absolute deviation | Load balance | Median cost difference | Fairness-phase speed | Cost-phase speed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| b | 0.74 | 0.94 | 0.93 | 0.78 | 0.86 | +0 cents | 5.20x | 0.99x |
+| load-balance | 0.58 | 0.93 | 0.90 | 0.68 | 0.76 | +0 cents | 4.72x | 0.90x |
+
+- **On these fleets load balance is fairer than b on all five measures.** Its variance was lower than b's in 19 cases and higher in 6 (13 lower and 3 higher beyond b's spread). By fleet its variance is 0.87, 0.59 and 0.57 of production's, against b's 0.99, 0.73 and 0.59.
+- **The lead is on 10 and 30 technicians,** sizes the fairness measure study did not run. At 50, the size both studies share, the two are close, as they were then.
+- **It costs a little more.** Its median cost is 10 cents above b's (10 dearer and 4 cheaper beyond b's spread), and its cost phase runs at 0.90x because Timefold keeps its collector on every move.
+- **No policy change on this evidence.** A head-to-head of load balance against b on its own fleets and budgets comes first.
+
+After the fix, b's fairness phase is scheduler code 30 percent (the timing search's own loop 14.6), Timefold's engine 28, BigDecimal score impacts 16, collections 16 and BigDecimal money 6.
+
+Next, in order:
+1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting, and remove c and the three rejected policies. Verify on the VM rehearsal stack.
+2. The scoring path without BigDecimal (a long score, long money, fleet sums without `toList()`) and the timing search, measured as treatments at a 1.05x gate, then verified on the stack.
+3. Load balance against b, head to head, at 5, 10, 20 and 50 technicians and 15 s and 60 s.
 
 ## Measured configuration choice
 

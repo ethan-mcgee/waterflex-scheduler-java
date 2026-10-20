@@ -1,0 +1,101 @@
+{
+ "run": "matrix-study-20261020T155528",
+ "profiles": {
+  "old cost": {
+   "samples": 11484,
+   "sitesPercent": {
+    "BigDecimal money (Monetary)": 5.1,
+    "BigDecimal score impacts and other decimal work": 6.9,
+    "Timefold's own maps": 5.6,
+    "identity probe (RoadMatrix.number)": 20.1,
+    "segment options map (RouteTimingSearch.segments)": 12.3,
+    "timing search's own work (RouteTimingSearch.segments)": 1.4
+   },
+   "recordings": {
+    "10-ABSENCE-7001-TABU_KOPT-17-cost.jfr": "c7edca681385b3aa1d92713abd31e7fbf4b0cc3dfc7f3790bb34a921c4866dd0",
+    "10-CLUSTERED-7001-TABU_KOPT-17-cost.jfr": "9812285dea617b7762040abebf92d8c2b47784b9569b69513fe340cac4a26e2f",
+    "10-DISPERSED-7001-TABU_KOPT-17-cost.jfr": "5f480d138ab626ee03674b4f69e376eeea70831075db5ec33470ae732675ebf1",
+    "10-TIGHT_WINDOW-7001-TABU_KOPT-17-cost.jfr": "7d6158f4973d3dfc9e1958ead1e268fc27821051b94dd619f4ad604e7be3b114",
+    "30-ABSENCE-7001-TABU_KOPT-17-cost.jfr": "9e40191122f4b1fe670bef705ab04b4c8e11454f326086ad2da3cbd790c03e97",
+    "30-CLUSTERED-7001-TABU_KOPT-17-cost.jfr": "6d92f61cb160074bea5b1f600f94b261fa453a23a24a8e63816df4d244aaa5b3",
+    "30-DISPERSED-7001-TABU_KOPT-17-cost.jfr": "e494a46f269a487ec85a0e8ee4f26233543496b69ce6e17dc81d8c43d5ade7f9",
+    "30-TIGHT_WINDOW-7001-TABU_KOPT-17-cost.jfr": "34890aa6100a55143281e867b47351c9e1cc9d691fb65a84a59389122f67e00e",
+    "50-ABSENCE-7001-TABU_KOPT-17-cost.jfr": "ab9d1370d594eeb6dd44fc30e9540a593fa486250b2de0afa1d4f4828516cf85",
+    "50-CLUSTERED-7001-TABU_KOPT-17-cost.jfr": "9a73bbb545635fc1d15337609ca2b5f6e6b2c4e6a01e8a49c4977a16e6ab4c2c",
+    "50-DISPERSED-7001-TABU_KOPT-17-cost.jfr": "fe5e4c22fe79484ecc30c2465edcff86b4cdf05bf290b84fcfd2c5066e1959e8",
+    "50-TIGHT_WINDOW-7001-TABU_KOPT-17-cost.jfr": "6204e6ff96d72f68fad1fc5877947274049ea8d3a345497ac66364635ab3cadc"
+   }
+  },
+  "old-b fairness": {
+   "samples": 5541,
+   "sitesPercent": {
+    "BigDecimal money (Monetary)": 6.0,
+    "BigDecimal score impacts and other decimal work": 7.9,
+    "Timefold's own maps": 5.1,
+    "identity probe (RoadMatrix.number)": 17.3,
+    "segment options map (RouteTimingSearch.segments)": 11.2,
+    "timing search's own work (RouteTimingSearch.segments)": 1.4
+   },
+   "recordings": {
+    "10-ABSENCE-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "9e7ff9a9674fd27ad49b128524717736382750442c1934fd668d497192c0d75c",
+    "10-CLUSTERED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "92267c2e1fa241031a9a116df325999cf862c7a30cc39ff9cf04c97d050fcd32",
+    "10-DISPERSED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "0e2c20b6877fa1c7bb8c4f69997b4ec0b8ebe264b46dbb9f7b886060a030935f",
+    "10-TIGHT_WINDOW-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "2757c0a22f6c660a17fb1f916e050cdd4094497681f65be5d7b3ee032bd4de6c",
+    "30-ABSENCE-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "65c1a9a543c348ebbbc1438048d46ac70c2d6e341687724e9432111f0d8984ee",
+    "30-CLUSTERED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "6c7f6787dcf8b591b2e87e4f6c2f1d5af663ddd9182d0a69c6b21be46d1dc2ca",
+    "30-DISPERSED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "353435c4fe3e64979612fb1f5389b159800575c3bc324d4af5a1a3561bb47ce2",
+    "30-TIGHT_WINDOW-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "4629dc867839334f62dbde42a2b6633073fb0ee779b8142bfc879440fa028ca9",
+    "50-ABSENCE-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "c3a56f17288c5e441fb41d51ac6906fa745115194c883c0cc6107ccaddb4c334",
+    "50-CLUSTERED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "12d27fa0f639616df6ec69cc97b41a5cbbd2ef31d463e76467a7272dd6752667",
+    "50-DISPERSED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "fae1459b65794b73fad6def6b0e83bc704a957d423cbe01aa995512e66335489",
+    "50-TIGHT_WINDOW-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "47db0cbd6278bc06df0a0f417ca8fd148c7bb4c91d4253415880d9714c8dbb32"
+   }
+  },
+  "baseline cost": {
+   "samples": 11426,
+   "sitesPercent": {
+    "BigDecimal money (Monetary)": 5.9,
+    "BigDecimal score impacts and other decimal work": 9.9,
+    "Timefold's own maps": 6.5,
+    "timing search's own work (RouteTimingSearch.segments)": 17.0
+   },
+   "recordings": {
+    "10-ABSENCE-7001-TABU_KOPT-17-cost.jfr": "0d09d4bd47e63be09321bf59941abce77a1b045ae72bc4c87035448a7983698e",
+    "10-CLUSTERED-7001-TABU_KOPT-17-cost.jfr": "4cb4b151b6d895a0560272952d04b31ae2ffe11b662e3683dd431ebdb0d11598",
+    "10-DISPERSED-7001-TABU_KOPT-17-cost.jfr": "74c80d317304888302ce39e6e7314fafd1cc2fe9138f2759f51e64fb4fc95bba",
+    "10-TIGHT_WINDOW-7001-TABU_KOPT-17-cost.jfr": "5334a4c72a6d3eb07c2b259cd66a0686063affbe2f88a1ac3a4601f10d02fef2",
+    "30-ABSENCE-7001-TABU_KOPT-17-cost.jfr": "208590d74efa7759d66b63d7609b0cc512527594089a61de16526bf49a773ac1",
+    "30-CLUSTERED-7001-TABU_KOPT-17-cost.jfr": "373470cf6b1c72ed6167f3f08b284986f6620a0ee3b833841432f112099ee5ea",
+    "30-DISPERSED-7001-TABU_KOPT-17-cost.jfr": "8053452176f3e1d516ee45a1632649d5930f39881d283ee7f5c0a8c51be2b32e",
+    "30-TIGHT_WINDOW-7001-TABU_KOPT-17-cost.jfr": "ad9bca429dfc2bd2c210373e402e0e9d9dcdece0aad6835f475e58987f0b7866",
+    "50-ABSENCE-7001-TABU_KOPT-17-cost.jfr": "7b1d234806798ad8ae028bc90a7988bb0bf7a429a3590f74a98ce9e5cd490a98",
+    "50-CLUSTERED-7001-TABU_KOPT-17-cost.jfr": "c5f0ef053b8cf183e6a337ba0f444b70a5c39882da8a9647f14631393bb06b3f",
+    "50-DISPERSED-7001-TABU_KOPT-17-cost.jfr": "37b4e76987703fe75fc874f6cd46f847f09c5c258db39314adeb6560ee14fbb0",
+    "50-TIGHT_WINDOW-7001-TABU_KOPT-17-cost.jfr": "6c6a8e95da965cb19c4575556a270faa27b131264b29789de9c7491f07867f79"
+   }
+  },
+  "b fairness": {
+   "samples": 5501,
+   "sitesPercent": {
+    "BigDecimal money (Monetary)": 6.2,
+    "BigDecimal score impacts and other decimal work": 10.1,
+    "Timefold's own maps": 6.2,
+    "timing search's own work (RouteTimingSearch.segments)": 14.6
+   },
+   "recordings": {
+    "10-ABSENCE-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "81caa0bcad7ffe13e96d5eeca04d8b6cbe39661d5782a678f4abb9c7a34cb7be",
+    "10-CLUSTERED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "821964d9c0af9a61bdf60134dc72118ee6705986ea531509eb57d894d9d15684",
+    "10-DISPERSED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "5f23ff30d5212a0106d3ec792b093d358a13c4ad334d621615d01ae435b7b0b5",
+    "10-TIGHT_WINDOW-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "5700ae6457dd4578659ec26ff89b22cb5222f72d6f99697a15d25f7c30b2543c",
+    "30-ABSENCE-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "0bdf570f7ac4996bf378fe797cb1cb4ff5fd412055293d7158a5436cf48c3396",
+    "30-CLUSTERED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "c48ba9a91f3dd0883d2a78fc18c8e7396ce18ac7f5b6052f0771e76d84daf6cc",
+    "30-DISPERSED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "4e3bd2527ccb25b1bdf35db3d8198b162e16c88738c7af0f46bfa206ddf9bc33",
+    "30-TIGHT_WINDOW-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "33c4f4a7e747ff8734ad38bef1e7de77a39a6c94c1ec2ea53a36bcb4bdb91c47",
+    "50-ABSENCE-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "d4b91f4ef5d85fd9922c8cfb4c61a969263316104c61ecd66e94688c0de9efff",
+    "50-CLUSTERED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "c34e354d985897fc99e925e2779788327b83134abb27294ee3175c6ab24faf37",
+    "50-DISPERSED-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "6620abda4aa2fa976b67afa7aeb9570b423aaad5939b4aeef0029635f4ca70fb",
+    "50-TIGHT_WINDOW-7001-TABU_KOPT_BINARY_VARIANCE-17-fairness.jfr": "d1872430c84956f01c0ad44c3795908f762220d42a4179f83090e7da78709dfd"
+   }
+  }
+ }
+}
