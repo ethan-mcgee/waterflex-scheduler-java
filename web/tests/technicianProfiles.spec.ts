@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { z } from "zod";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability, nextTemplateEffectiveDate } from "../lib/technicianAvailability";
 import { addCalendarDays, formatUsDate, localMidnightUtc } from "../lib/date";
@@ -204,7 +205,7 @@ test("a weekly edit for a client without solver settings is refused, since its b
     const response = await request.put("/api/technicians/no-such-technician/standard-availability",
       { headers: { Cookie: `wf_client=${client.id}` }, data: { days: initialAvailability(480, 1020).create.days.create } });
     expect(response.status()).toBe(409);
-    expect((await response.json()).error).toMatch(/no solver settings/);
+    expect(z.object({ error: z.string() }).parse(await response.json()).error).toMatch(/no solver settings/);
   } finally {
     await prisma.client.delete({ where: { id: client.id } });
   }
