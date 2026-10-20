@@ -80,8 +80,12 @@ def variance(row):
 
 
 def measure(row, name):
-    value = row['measures']['after'][name]
-    check(isinstance(value, (Decimal, int)), name + ' must be a number')
+    return stage(row, 'after', name)
+
+
+def stage(row, plan, name):
+    value = row['measures'][plan][name]
+    check(isinstance(value, (Decimal, int)), plan + ' ' + name + ' must be a number')
     return Decimal(value)
 
 
@@ -153,10 +157,13 @@ def paired(rows):
 
 
 def runs(by):
-    """Every arm's every run, for figures and per-case reading: cost, ceiling, reason, phase speeds and all five final measures."""
+    """Every arm's every run, for figures and per-case reading: the reference and final cost, ceiling, reason, phase speeds,
+    and all five measures of the reference and final plans."""
     return [{'arm': arm, 'technicians': case[0], 'workload': case[1], 'seed': case[2], 'rep': rep,
-             'costCents': row['after']['costCents'], 'costCeilingCents': row['costCeilingCents'], 'acceptanceReason': row['acceptanceReason'],
+             'referenceCostCents': row['reference']['costCents'], 'costCents': row['after']['costCents'],
+             'costCeilingCents': row['costCeilingCents'], 'acceptanceReason': row['acceptanceReason'],
              'referenceMovesPerSecond': round(rate(row, 'referencePhase'), 1), 'fairnessMovesPerSecond': round(rate(row, 'fairnessPhase'), 1),
+             'referenceMeasures': {name: str(stage(row, 'reference', name)) for name in MEASURES},
              'measures': {name: str(measure(row, name)) for name in MEASURES}}
             for (arm, case, rep), row in sorted(by.items(), key=lambda item: (list(ARMS.values()).index(item[0][0]), item[0][1], item[0][2]))]
 
