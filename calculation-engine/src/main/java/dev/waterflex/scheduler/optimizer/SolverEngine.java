@@ -19,7 +19,7 @@ public final class SolverEngine {
                           TABU, SUBLIST, KOPT, RUIN_RECREATE,
                           /** TABU tuning: entity tabu size 3 or 15 (experiment-only), or TABU with the KOPT move set (a client choice, see DailySearch). */
                           TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT,
-                          /** Experiment-only: TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined. */
+                          /** TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined (a client choice, see DailySearch). */
                           TABU_KOPT_SIZE_3 }
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
@@ -30,7 +30,10 @@ public final class SolverEngine {
             @Nullable Long scoreCalculations, long solveMs, @Nullable Long timeToBestMs,
             int format, String terminationBasis, @Nullable String diagnosticsUnavailableReason,
             String environmentMode, String instrumentation, EngineProvenance provenance,
-            @Nullable String timeToBestUnavailableReason) { }
+            @Nullable String timeToBestUnavailableReason, @Nullable Long unimprovedMs) {
+        /** Format 3 adds {@code unimprovedMs}, the phase's unimproved stop when the client set one, and the UNIMPROVED_LIMIT reason. */
+        public static final int FORMAT = 3;
+    }
     public record Result(DayPlan plan, Statistics statistics, DailyOutcome outcome) { }
     public record Measurements(long steps, long moveEvaluations, long scoreCalculations, long solveMs, @Nullable Long timeToBestMs) {
         public Measurements {
@@ -43,6 +46,12 @@ public final class SolverEngine {
     public static final String INSTRUMENTED_TIMEFOLD = "2.7.1";
     /** Diagnostics' name for that instrumentation. Evidence recorded on 2.6.0 says TIMEFOLD_INTERNAL_2_6_0, which readers still accept. */
     public static final String INSTRUMENTATION = "TIMEFOLD_INTERNAL_" + INSTRUMENTED_TIMEFOLD.replace('.', '_');
+    /**
+     * Timefold's time limit runs on its own clock, so a phase it stopped on the budget can measure a few milliseconds
+     * short of it here. Without telemetry, only a return at least this much before the budget is read as the unimproved
+     * limit; a client's limit is whole seconds, so a real unimproved stop is far earlier.
+     */
+    static final long UNIMPROVED_MARGIN_MS = 100;
     @FunctionalInterface interface Telemetry { Probe attach(Solver<DayPlan> solver); }
     interface Cancellation {
         void started(Solver<DayPlan> solver);
@@ -112,29 +121,41 @@ public final class SolverEngine {
     }
 
     public static Result solve(Definition definition, DayPlan initial, Duration budget) {
-        return solve(definition, initial, budget, null, false);
+        return solve(definition, initial, budget, null, null, false, null);
+    }
+    /** {@code unimproved}, when present, also stops the phase once the best score has not improved for that long. */
+    public static Result solve(Definition definition, DayPlan initial, Duration budget, @Nullable Duration unimproved) {
+        return solve(definition, initial, budget, unimproved, null, false, null);
     }
     static Result solve(Definition definition, DayPlan initial, Duration budget, @Nullable Telemetry telemetry, boolean required) {
-        return solve(definition, initial, budget, telemetry, required, null);
+        return solve(definition, initial, budget, null, telemetry, required, null);
     }
     static Result solve(Definition definition, DayPlan initial, Duration budget, @Nullable Telemetry telemetry, boolean required,
             @Nullable Cancellation cancellation) {
+        return solve(definition, initial, budget, null, telemetry, required, cancellation);
+    }
+    static Result solve(Definition definition, DayPlan initial, Duration budget, @Nullable Duration unimproved, @Nullable Telemetry telemetry,
+            boolean required, @Nullable Cancellation cancellation) {
         if (budget.isNegative() || budget.isZero() || budget.toMillis() == 0) throw new IllegalArgumentException("Positive millisecond solver budget required");
+        if (unimproved != null && (unimproved.isNegative() || unimproved.toMillis() == 0))
+            throw new IllegalArgumentException("Positive millisecond unimproved limit required");
         initial.validateInputMode(); initial.getFacts().requireSearchRoads();
         if (definition.variant() == Variant.RUIN_RECREATE && initial.getRoutes().stream().anyMatch(route -> route.getPinnedPrefix() > 0))
             throw new IllegalArgumentException("RUIN_RECREATE with pinned prefixes is unsupported: observed list corruption during undo on Timefold 2.6.0, not re-tested since");
         if (!initial.getUnassignedVisitIds().isEmpty() && !definition.construction())
-            return solve(configuration(definition.variant(), definition.seed(), definition.environmentMode(), true), initial, budget, telemetry, required, cancellation);
+            return solve(configuration(definition.variant(), definition.seed(), definition.environmentMode(), true), initial, budget, unimproved, telemetry, required, cancellation);
         DayPlan working = PlanCopies.copy(initial);
         long started = System.nanoTime();
         if (initial.getVisits().isEmpty() || initial.getRoutes().isEmpty()) {
             ai.timefold.solver.core.api.solver.SolutionManager.create(definition.factory()).update(working);
-            return result(definition, working, budget, elapsed(started), "NOT_RUN", "OBSERVED", null, "NO_SEARCH", "NONE");
+            return result(definition, working, budget, unimproved, elapsed(started), "NOT_RUN", "OBSERVED", null, "NO_SEARCH", "NONE");
         }
         // The public override replaces termination: retain all declared early stopping rules.
         var termination = Required.value(ai.timefold.solver.core.config.solver.SolverConfig.createFromXmlReader(
                 new java.io.StringReader(definition.configurationXml())).getTerminationConfig()).copyConfig();
         termination.overwriteSpentLimit(budget);
+        // Two limits in one termination stop the phase at whichever is reached first.
+        if (unimproved != null) termination.overwriteUnimprovedSpentLimit(unimproved);
         termination.setStepCountLimit(definition.stepLimit());
         Solver<DayPlan> solver = Required.value(definition.factory().buildSolver(new SolverConfigOverride().withTerminationConfig(termination)));
         @Nullable Probe probe = null;
@@ -160,25 +181,34 @@ public final class SolverEngine {
         String reason = !solver.isTerminateEarly() ? "SOLVE_RETURNED"
                 : cancellation != null && cancellation.cancelled() ? "CANCELLED" : "TERMINATED_EARLY";
         String basis = "OBSERVED";
+        Integer cap = definition.stepLimit();
         if (!solver.isTerminateEarly() && measured != null) {
-            Integer cap = definition.stepLimit();
             boolean stepLimit = cap != null && measured.steps() >= cap;
             boolean timeLimit = solveMs >= budget.toMillis();
-            reason = stepLimit && timeLimit ? "STEP_AND_TIME_LIMIT" : stepLimit ? "STEP_LIMIT" : timeLimit ? "TIME_LIMIT" : "PHASE_COMPLETED";
+            Long best = measured.timeToBestMs();
+            // The best score last improved at timeToBestMs: a stop at least the unimproved limit after it, before the budget, is that limit.
+            boolean unimprovedLimit = unimproved != null && !stepLimit && !timeLimit && best != null && solveMs - best >= unimproved.toMillis();
+            reason = stepLimit && timeLimit ? "STEP_AND_TIME_LIMIT" : stepLimit ? "STEP_LIMIT" : timeLimit ? "TIME_LIMIT"
+                    : unimprovedLimit ? "UNIMPROVED_LIMIT" : "PHASE_COMPLETED";
+            basis = "INFERRED";
+        } else if (!solver.isTerminateEarly() && unimproved != null && cap == null && solveMs + UNIMPROVED_MARGIN_MS < budget.toMillis()) {
+            // Without telemetry: a local search with no step cap returns before its budget only on the unimproved limit.
+            reason = "UNIMPROVED_LIMIT";
             basis = "INFERRED";
         }
-        Result result = result(definition, solved, budget, solveMs, reason, basis, measured, unavailable,
+        Result result = result(definition, solved, budget, unimproved, solveMs, reason, basis, measured, unavailable,
                 telemetry == null ? "NONE" : INSTRUMENTATION);
         if (required && measured == null) throw new DiagnosticsFailure(result);
         return result;
     }
     private static long elapsed(long started) { return (System.nanoTime() - started) / 1_000_000; }
-    private static Result result(Definition definition, DayPlan plan, Duration budget, long solveMs, String termination,
+    private static Result result(Definition definition, DayPlan plan, Duration budget, @Nullable Duration unimproved, long solveMs, String termination,
             String basis, @Nullable Measurements measured, @Nullable String unavailable, String instrumentation) {
         return new Result(plan, new Statistics(Required.value(definition.variant().name()), definition.seed(), definition.fingerprint(), termination,
                 budget.toMillis(), definition.stepLimit(), measured == null ? null : measured.steps(),
                 measured == null ? null : measured.moveEvaluations(), measured == null ? null : measured.scoreCalculations(), solveMs,
-                measured == null ? null : measured.timeToBestMs(), 2, basis, unavailable, Required.value(definition.environmentMode().name()),
-                instrumentation, EngineProvenance.loaded(), measured == null ? unavailable : measured.timeToBestMs() == null ? "NOT_REPORTED" : null), DailyOutcome.assess(plan));
+                measured == null ? null : measured.timeToBestMs(), Statistics.FORMAT, basis, unavailable, Required.value(definition.environmentMode().name()),
+                instrumentation, EngineProvenance.loaded(), measured == null ? unavailable : measured.timeToBestMs() == null ? "NOT_REPORTED" : null,
+                unimproved == null ? null : unimproved.toMillis()), DailyOutcome.assess(plan));
     }
 }

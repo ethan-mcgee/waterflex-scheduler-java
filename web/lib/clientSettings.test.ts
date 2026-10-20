@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { canonicalDecimal, publicPolicy, publicRates, saveSolverSettings, solverSettingsInput, storedHorizon, toStored, toView } from "./clientSettings";
 
 const input = { regularHourly: "30", overtimeHourly: "45.50", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2.5", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
 
 function stored() {
   return { ...toStored(solverSettingsInput.parse(input)), version: 3, updatedAt: new Date("2026-10-08T12:00:00Z") };
@@ -80,6 +80,8 @@ test("out-of-range or malformed settings are rejected, never clamped or defaulte
     { horizonMode: "dynamic" }, { horizonMode: undefined }, { horizonMode: null },
     { horizonLeadWeekdays: 0 }, { horizonLeadWeekdays: 6 }, { horizonLeadWeekdays: 1.5 }, { horizonLeadWeekdays: undefined },
     { horizonFullPercent: 49 }, { horizonFullPercent: 101 }, { horizonFullPercent: 85.5 }, { horizonFullPercent: "85" }, { horizonFullPercent: null },
+    { unimprovedSearchSeconds: undefined }, { unimprovedSearchSeconds: 0 }, { unimprovedSearchSeconds: -1 }, { unimprovedSearchSeconds: 2.5 },
+    { unimprovedSearchSeconds: "5" }, { unimprovedSearchSeconds: 11 },
   ];
   for (const change of bad) assert.equal(solverSettingsInput.safeParse({ ...input, ...change }).success, false, JSON.stringify(change));
   assert.equal(solverSettingsInput.safeParse({ ...input, travelBufferPercent: "100", fairnessBudgetPercent: "0" }).success, true);
@@ -87,6 +89,17 @@ test("out-of-range or malformed settings are rejected, never clamped or defaulte
   assert.equal(solverSettingsInput.safeParse({ ...input, costSearchSeconds: 200, fairnessSearchSeconds: 40 }).success, true);
   assert.equal(solverSettingsInput.safeParse({ ...input, bookingDeadlineMs: 1000, regularWindowThreshold: 0 }).success, true);
   assert.equal(solverSettingsInput.safeParse({ ...input, bookingDeadlineMs: 5000, regularWindowThreshold: 1000 }).success, true);
+  assert.equal(solverSettingsInput.safeParse({ ...input, dailySearch: "TABU_KOPT_SIZE_3" }).success, true);
+  assert.equal(solverSettingsInput.safeParse({ ...input, unimprovedSearchSeconds: 1 }).success, true);
+  assert.equal(solverSettingsInput.safeParse({ ...input, unimprovedSearchSeconds: 10 }).success, true, "up to the cost search time");
+});
+
+test("an unimproved limit is sent only when the client set one, and round-trips through the view", () => {
+  const limited = { ...toStored(solverSettingsInput.parse({ ...input, unimprovedSearchSeconds: 6 })), version: 1, updatedAt: new Date("2026-10-20T12:00:00Z") };
+  assert.equal(publicPolicy(limited).unimprovedSearchSeconds, 6);
+  assert.equal(toView(limited).unimprovedSearchSeconds, 6);
+  assert.equal("unimprovedSearchSeconds" in publicPolicy(stored()), false, "no limit: the field is left out, so every search spends its whole time");
+  assert.equal(toView(stored()).unimprovedSearchSeconds, null);
 });
 
 test("a save must say which version it edits, or null for a client without settings", () => {

@@ -116,6 +116,38 @@ class SolverEngineTest {
             assertTrue(allowed.contains(blocks.getFirst()), variant + " declares unexpected termination " + blocks.getFirst());
         }
     }
+    /** A small converged day stops on the unimproved limit long before its budget, and says so with or without telemetry. */
+    @Test void anUnimprovedLimitEndsAConvergedSearchBeforeItsBudgetAndIsReportedAsSuch() {
+        var definition = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17);
+        Duration budget = Required.value(Duration.ofSeconds(30)), unimproved = Required.value(Duration.ofMillis(500));
+        var plain = SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), budget, unimproved);
+        assertTrue(plain.statistics().solveMs() < 10_000, "stopped well before the 30 s budget: " + plain.statistics().solveMs());
+        assertEquals("UNIMPROVED_LIMIT", plain.statistics().termination());
+        assertEquals("INFERRED", plain.statistics().terminationBasis());
+        assertEquals(500L, plain.statistics().unimprovedMs());
+        assertEquals(SolverEngine.Statistics.FORMAT, plain.statistics().format());
+        assertTrue(plain.outcome().policyEligible());
+
+        var measured = SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), budget, unimproved,
+                SolverExperiment.telemetry(EngineProvenance.loaded()), true, null);
+        assertEquals("UNIMPROVED_LIMIT", measured.statistics().termination(), "telemetry shows the last improvement at least the limit before the stop");
+        Long best = measured.statistics().timeToBestMs();
+        assertNotNull(best);
+        assertTrue(measured.statistics().solveMs() - best >= 500, "the stop came at least the limit after the best score");
+
+        var whole = SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), Required.value(Duration.ofMillis(300)));
+        assertNull(whole.statistics().unimprovedMs(), "no limit, none recorded");
+        assertEquals("SOLVE_RETURNED", whole.statistics().termination(), "without a limit or telemetry nothing is inferred");
+        // Timefold's clock may stop the phase a few milliseconds before this measures the budget as spent.
+        assertTrue(whole.statistics().solveMs() + SolverEngine.UNIMPROVED_MARGIN_MS >= 300, "it spent its budget: " + whole.statistics().solveMs());
+
+        // A limit as long as the budget cannot end the phase first: the time limit does, and nothing is misread.
+        var timed = SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), Required.value(Duration.ofMillis(400)), Required.value(Duration.ofMillis(400)));
+        assertEquals("SOLVE_RETURNED", timed.statistics().termination(), "a stop at the budget is not called unimproved: " + timed.statistics().solveMs());
+
+        assertThrows(IllegalArgumentException.class, () -> SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), budget, Required.value(Duration.ZERO)));
+        assertThrows(IllegalArgumentException.class, () -> SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), budget, Required.value(Duration.ofMillis(-1))));
+    }
     @Test void earlyTerminationDistinguishesOperationCancellationFromPhaseBudgetStop() {
         var definition = SolverEngine.configuration(SolverEngine.Variant.TABU, 17);
         for (boolean cancelled : new boolean[]{true, false}) {

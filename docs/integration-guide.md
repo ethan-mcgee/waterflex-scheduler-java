@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.5.1);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.6.0);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -113,8 +113,10 @@ or filled in. In particular:
 - IDs are your own opaque strings, 1 to 128 characters with no leading or trailing space.
 
 **Policy and rates are the client's own**, sent with every call; the scheduler holds none. `fairnessBudget` is a share
-(`"0"` for none, `"0.02"` for 2 percent). `dailySearch` is `TABU_KOPT` or `TABU`. `costSearchSeconds` (5 to 240) and
-`fairnessSearchSeconds` (0 to 240, at most 240 together) set how long a proposal searches. `bookingDeadlineMs` (1000 to
+(`"0"` for none, `"0.02"` for 2 percent). `dailySearch` is `TABU_KOPT`, `TABU` or `TABU_KOPT_SIZE_3`. `costSearchSeconds`
+(5 to 240) and `fairnessSearchSeconds` (0 to 240, at most 240 together) set how long a proposal searches. The optional
+`unimprovedSearchSeconds` (1 to `costSearchSeconds`) ends each of those searches once its best plan has not improved for
+that long, so a day that settles early answers early; without it, each search spends its whole time. `bookingDeadlineMs` (1000 to
 5000) bounds a booking search or confirm; `regularWindowThreshold` (0 to 1000) tunes its refinement pass.
 
 **Order.** On each technician-day, `sequence` and `plannedStart` must put the appointments in the same order (ties by
@@ -457,7 +459,7 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.5.1). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.6.0). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor
