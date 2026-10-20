@@ -180,6 +180,7 @@ $common = @('--url', $Url, '--metro', $Metro, '--time-zone', $TimeZone, '--area'
     '--cost-seconds', "$CostSeconds", '--fairness-seconds', "$FairnessSeconds", '--appointments', "$Appointments", '--duration-s', '3600')
 $index = 0
 $skipped = 0
+$tokenChecked = $false
 $previous = @{ SCHEDULER_IMAGE = $env:SCHEDULER_IMAGE; SCHEDULER_PULL_POLICY = $env:SCHEDULER_PULL_POLICY; SCHEDULER_STUDY_RECEIPTS = $env:SCHEDULER_STUDY_RECEIPTS; TIMEFOLD_LOG_LEVEL = $env:TIMEFOLD_LOG_LEVEL }
 Push-Location $kit
 try {
@@ -190,12 +191,25 @@ try {
         $slug = & $slugOf $cell
         if ($null -ne (& $reportOf $cell)) { $skipped++; continue }
         & $useImage $cell.image
+        # A token from an earlier rehearsal database answers 401 here: it is kept aside as .stale and a new one issued.
+        if ((Test-Path -LiteralPath $token) -and -not $tokenChecked) {
+            $status = try { [int](Invoke-WebRequest "$Url/api/v1/whoami" -UseBasicParsing -TimeoutSec 10 -Headers @{ Authorization = "Bearer $((Get-Content -LiteralPath $token -Raw).Trim())" }).StatusCode }
+                catch { if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 } }
+            if ($status -eq 401) {
+                Write-Output "The token in $token is not known to this rehearsal database; keeping it as $token.stale and issuing a new one"
+                Move-Item -LiteralPath $token -Destination "$token.stale" -Force
+                if (Test-Path -LiteralPath "$token.id") { Move-Item -LiteralPath "$token.id" -Destination "$token.id.stale" -Force }
+            } elseif ($status -ne 200) { throw "whoami answered $status with the study's token" }
+            $tokenChecked = $true
+        }
         if (-not (Test-Path -LiteralPath $token)) {
             $output = & $dockerOutput (@('compose') + $rehearsal + @('run', '--rm', 'scheduler-admin', '--command=issue-token', 'loadtest', 'Load test', 'stack verification'))
             $value = [regex]::Match($output, '(?m)^token: (wfs_\S+)').Groups[1].Value
             if ($value -eq '') { throw "Could not issue the study's token`n$output" }
             New-Item -ItemType Directory -Force (Split-Path $token -Parent) | Out-Null
             Set-Content -LiteralPath $token -Value $value -Encoding ascii -NoNewline
+            # The ID revokes it later: scheduler-admin --command=revoke-token <id>.
+            Set-Content -LiteralPath "$token.id" -Value ([regex]::Match($output, '(?m)^id: (\S+)').Groups[1].Value) -Encoding ascii -NoNewline
             Write-Output "Issued the study's token into $token"
         }
         $directory = Join-Path $runs $slug
