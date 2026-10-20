@@ -86,3 +86,5 @@ curl http://127.0.0.1:18080/health
 ```
 
 `rehearsal.override.yml` moves `routing-omaha` into an unused profile and points both pools at the development router, so the Omaha graph is not loaded twice. Moving to the real VM is this directory, a `.env`, the map volume and a token.
+
+A before-and-after verification runs one image per commit: build each in its own worktree under its own tag, then bring the stack up with `SCHEDULER_IMAGE=<tag> SCHEDULER_PULL_POLICY=never` and without `--build`, so the tag is what runs. `infra/run-stack-verification.ps1` does this, with `SCHEDULER_STUDY_RECEIPTS=true` and `TIMEFOLD_LOG_LEVEL=INFO` for the study's readings.

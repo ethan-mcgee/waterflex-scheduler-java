@@ -13,9 +13,11 @@
 # and its per-replica CPU and memory; each limit applies to every replica of the pool.
 name: scheduler-vm
 
+# A study pins a tag built from one commit with SCHEDULER_IMAGE and SCHEDULER_PULL_POLICY=never, so compose runs that
+# image rather than rebuilding the working tree (infra/run-stack-verification.ps1). Normal use leaves both unset.
 x-scheduler-image: &scheduler-image
-  image: waterflex-scheduler-engine:vm
-  pull_policy: build
+  image: ${SCHEDULER_IMAGE:-waterflex-scheduler-engine:vm}
+  pull_policy: ${SCHEDULER_PULL_POLICY:-build}
   build:
     context: ../..
     dockerfile: scheduler-service/Dockerfile
@@ -124,6 +126,7 @@ services:
       SCHEDULER_DB_POOL_SIZE: ${SCHEDULER_DAILY_DB_POOL_SIZE:-10}
       SCHEDULER_SEARCH_BACKGROUND_LIMIT: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
       SCHEDULER_DAILY_QUEUE_WORKERS: ${SCHEDULER_DAILY_BACKGROUND_LIMIT:-2}
+      SCHEDULER_STUDY_RECEIPTS: ${SCHEDULER_STUDY_RECEIPTS:-false}
       JAVA_TOOL_OPTIONS: ${SCHEDULER_DAILY_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}
     deploy:
       replicas: ${SCHEDULER_DAILY_REPLICAS:-1}
