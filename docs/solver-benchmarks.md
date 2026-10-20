@@ -211,8 +211,45 @@ Next, in order:
 1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting.
 2. Remove c and the four policy providers from main, keeping them on this branch.
 3. Re-measure the 10 s and 5 s phase split, since b's fairness phase now needs less time.
-4. Carry each visit's `RoadMatrix` number on the visit. `MapN.probe`, the identity-to-number lookup, is now 17.5 percent of the fairness phase's leaf frames.
+4. Carry each visit's `RoadMatrix` number on the visit. `MapN.probe`, the identity-to-number lookup, is now 17.5 percent of the fairness phase's leaf frames. This is under way; see "Road matrix numbering" below.
 5. Repeat the VM daily load with b.
+
+## Road matrix numbering (PR 187)
+
+The fairness measure study's profiles kept only leaf frames, so naming the `MapN.probe` caller rested on the CR07 write-up. The study's recordings, read again with full stacks (seed 17, 15 s, eight recordings per arm and phase), confirm it and name the rest of the collection work:
+
+| Leaf frames | b, fairness phase | Production, cost phase | Caller |
+| --- | ---: | ---: | --- |
+| `ImmutableCollections$MapN.probe` | 17.5 percent | 20.4 percent | `RoadMatrix.number`, all of it: from `RouteTimingSearch.segments` (11.8 and 12.7 percent) and `RouteTimeline.evaluate` (5.7 and 7.6 percent) |
+| `HashMap.putVal`, `LinkedHashMap.afterNodeInsertion`, `HashMap.resize` under `RouteTimingSearch.segments` | 10.0 percent | 11.5 percent | `segments`, building its options map on every call |
+| `HashMap.getNode`, `IdentityHashMap.get`, `HashMap$TreeNode.getTreeNode` | 5.1 percent | 4.9 percent | Timefold's own frames, not the scheduler's |
+| `Set12.contains`, `Collections.disjoint`, `Arrays.copyOf` | 2.3 percent | 2.8 percent | the route's qualifications, eligibility and capacity, the same for every move |
+
+Every leg evaluated looked its visit up by identity. The map's keys were cut from the `from>to` road keys, so they are never the visit's own string, and each lookup compared the whole identity.
+
+The fix, commit `ed97d8b`, changes no rule:
+- **Numbers kept on the entities.** Each `PlanVisit` and `TechRoute` keeps its matrix number together with the fact revision that gave it. A lookup is one reference comparison. A revision that reuses the entities (`PlanCopies.withAbsence`, booking's per-route plans) resolves them again. `RouteTimelineTest.roadNumbersFollowTheRevisionTheyAreScoredAgainst` covers this, and it fails when the revision check is removed.
+- **Arrays for the timing search.** The segment options and the interval frontier are arrays indexed by the number of visits covered, walked in the ascending order the maps iterated in.
+- **Route constants kept.** A frozen route keeps its regular capacity and eligibility per revision.
+- **Gate:** `ScoringExactnessTest` passes unchanged: the same score, move count, arrangement and independent evaluation on its three fixtures, the absence fixture among them.
+
+What it reaches: the daily proposal solve in both phases, embedded or in the solver pool, and the final validation through `DayScoreCalculator`. Booking searches rank candidates with `RouteEvaluator`, which reads legs by their `from>to` keys and stays independent of the scoring path, so booking does not change.
+
+The study, `infra/run-matrix-study.ps1`, which the owner starts. It runs two frozen trees, `o` (`d571d83`, before the fix) and `n` (`ed97d8b`). The tree order alternates and the variant order rotates from case to case:
+
+| Arm | Tree, variant | Judged by |
+| --- | --- | --- |
+| old | o, `TABU_KOPT` | the reference for the fix |
+| old-b | o, `TABU_KOPT_BINARY_VARIANCE` | the reference for b's own gain from the fix |
+| baseline | n, `TABU_KOPT` | the fix: at least as fast as old in both phases, as T was |
+| b, c | n, the two variance options | the fairness measure study's four bars, against this baseline |
+| load-balance | n, `TABU_KOPT_LOAD_BALANCE` | every measure against this baseline, no bars |
+
+It uses fleets of 10, 30 and 50 technicians, the four workloads, seeds 17, 23 and 41, fixture seed 7001, two repetitions and the 15 s production budget. Every speed is also reported by fleet. A JFR pass per tree follows, about 2 hours 30 minutes in all. `infra/matrix_study.py` pairs and judges the run. The evidence will be `docs/evidence/solver-matrix-<date>.json`.
+
+### Results
+
+Pending the run.
 
 ## Measured configuration choice
 

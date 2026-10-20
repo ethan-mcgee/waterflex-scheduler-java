@@ -112,52 +112,60 @@ def paired(rows):
     outside = sorted(key[0] + ' ' + repr(key[1]) + ' rep ' + str(key[2]) for key, row in by.items() if not within_ceiling(row))
     summary, pairs = {}, []
     for arm in TREATMENTS:
-        speedups = {phase: [] for phase in PHASES}
-        cost_differences, fairer, same, less_fair, less_fair_beyond_noise = [], 0, 0, 0, 0
-        for case in cases:
-            base_variance = [variance(by[('baseline', case, rep)]) for rep in reps]
-            arm_variance = [variance(by[(arm, case, rep)]) for rep in reps]
-            noise = max(base_variance) - min(base_variance)
-            gap = sum(arm_variance) / len(reps) - sum(base_variance) / len(reps)
-            if gap < 0:
-                fairer += 1
-            elif gap == 0:
-                same += 1
-            else:
-                less_fair += 1
-                if gap > noise:
-                    less_fair_beyond_noise += 1
-            base_cost = [by[('baseline', case, rep)]['after']['costCents'] for rep in reps]
-            arm_cost = [by[(arm, case, rep)]['after']['costCents'] for rep in reps]
-            difference = statistics.mean(arm_cost) - statistics.mean(base_cost)
-            cost_differences.append(difference)
-            for rep in reps:
-                for phase in PHASES:
-                    speedups[phase].append(rate(by[(arm, case, rep)], phase) / rate(by[('baseline', case, rep)], phase))
-            pairs.append({'arm': arm, 'technicians': case[0], 'workload': case[1], 'seed': case[2],
-                          'baselineVariance': [str(value) for value in base_variance], 'armVariance': [str(value) for value in arm_variance],
-                          'baselineVarianceSpread': str(noise), 'meanVarianceDifference': str(gap),
-                          'baselineCostCents': base_cost, 'armCostCents': arm_cost, 'meanCostDifferenceCents': difference})
-        ratios = [float(sum(variance(by[(arm, case, rep)]) for rep in reps) / sum(variance(by[('baseline', case, rep)]) for rep in reps))
-                  for case in cases if sum(variance(by[('baseline', case, rep)]) for rep in reps) > 0]
-        summary[arm] = {'referencePhaseSpeedup': spread(speedups['referencePhase']), 'fairnessPhaseSpeedup': spread(speedups['fairnessPhase']),
-                        'fairness': {'fairer': fairer, 'same': same, 'lessFair': less_fair, 'lessFairBeyondNoise': less_fair_beyond_noise,
-                                     'medianVarianceRatio': round(statistics.median(ratios), 3) if ratios else None},
-                        'cost': {'medianDifferenceCents': statistics.median(cost_differences), 'meanDifferenceCents': round(statistics.mean(cost_differences), 1),
-                                 'cheaper': sum(1 for value in cost_differences if value < 0), 'ties': sum(1 for value in cost_differences if value == 0),
-                                 'dearer': sum(1 for value in cost_differences if value > 0)}}
-        arm_outside = [entry for entry in outside if entry.startswith(arm + ' ')]
-        summary[arm]['bars'] = {'speed': summary[arm]['fairnessPhaseSpeedup']['median'] >= SPEED_BAR,
-                                'fairness': less_fair_beyond_noise == 0,
-                                'cost': statistics.median(cost_differences) <= 0,
-                                'ceiling': not arm_outside and all(by[(arm, case, rep)]['violations'] == 0 for case in cases for rep in reps)}
-        summary[arm]['passes'] = all(summary[arm]['bars'].values())
+        summary[arm], arm_pairs = judge(by, cases, reps, arm, outside)
+        pairs += arm_pairs
     return {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'outsideCeiling': outside, 'summary': summary,
-            'comparison': comparison(by, cases, reps), 'pairs': pairs, 'runs': runs(by)}
+            'comparison': comparison(by, cases, reps, ARMS.values()), 'pairs': pairs, 'runs': runs(by, list(ARMS.values()))}
 
 
-def runs(by):
-    """Every arm's every run, for figures and per-case reading: the reference and final cost, ceiling, reason, phase speeds,
+def judge(by, cases, reps, arm, outside, base='baseline'):
+    """One variance treatment against {@code base} in the same cases and repetitions, with the four bars applied."""
+    pairs = []
+    speedups = {phase: [] for phase in PHASES}
+    cost_differences, fairer, same, less_fair, less_fair_beyond_noise = [], 0, 0, 0, 0
+    for case in cases:
+        base_variance = [variance(by[(base, case, rep)]) for rep in reps]
+        arm_variance = [variance(by[(arm, case, rep)]) for rep in reps]
+        noise = max(base_variance) - min(base_variance)
+        gap = sum(arm_variance) / len(reps) - sum(base_variance) / len(reps)
+        if gap < 0:
+            fairer += 1
+        elif gap == 0:
+            same += 1
+        else:
+            less_fair += 1
+            if gap > noise:
+                less_fair_beyond_noise += 1
+        base_cost = [by[(base, case, rep)]['after']['costCents'] for rep in reps]
+        arm_cost = [by[(arm, case, rep)]['after']['costCents'] for rep in reps]
+        difference = statistics.mean(arm_cost) - statistics.mean(base_cost)
+        cost_differences.append(difference)
+        for rep in reps:
+            for phase in PHASES:
+                speedups[phase].append(rate(by[(arm, case, rep)], phase) / rate(by[(base, case, rep)], phase))
+        pairs.append({'arm': arm, 'technicians': case[0], 'workload': case[1], 'seed': case[2],
+                      'baselineVariance': [str(value) for value in base_variance], 'armVariance': [str(value) for value in arm_variance],
+                      'baselineVarianceSpread': str(noise), 'meanVarianceDifference': str(gap),
+                      'baselineCostCents': base_cost, 'armCostCents': arm_cost, 'meanCostDifferenceCents': difference})
+    ratios = [float(sum(variance(by[(arm, case, rep)]) for rep in reps) / sum(variance(by[(base, case, rep)]) for rep in reps))
+              for case in cases if sum(variance(by[(base, case, rep)]) for rep in reps) > 0]
+    entry = {'referencePhaseSpeedup': spread(speedups['referencePhase']), 'fairnessPhaseSpeedup': spread(speedups['fairnessPhase']),
+             'fairness': {'fairer': fairer, 'same': same, 'lessFair': less_fair, 'lessFairBeyondNoise': less_fair_beyond_noise,
+                          'medianVarianceRatio': round(statistics.median(ratios), 3) if ratios else None},
+             'cost': {'medianDifferenceCents': statistics.median(cost_differences), 'meanDifferenceCents': round(statistics.mean(cost_differences), 1),
+                      'cheaper': sum(1 for value in cost_differences if value < 0), 'ties': sum(1 for value in cost_differences if value == 0),
+                      'dearer': sum(1 for value in cost_differences if value > 0)}}
+    arm_outside = [item for item in outside if item.startswith(arm + ' ')]
+    entry['bars'] = {'speed': entry['fairnessPhaseSpeedup']['median'] >= SPEED_BAR,
+                     'fairness': less_fair_beyond_noise == 0,
+                     'cost': statistics.median(cost_differences) <= 0,
+                     'ceiling': not arm_outside and all(by[(arm, case, rep)]['violations'] == 0 for case in cases for rep in reps)}
+    entry['passes'] = all(entry['bars'].values())
+    return entry, pairs
+
+
+def runs(by, order):
+    """Every arm's every run, in this arm order, for figures and per-case reading: the reference and final cost, ceiling, reason, phase speeds,
     and all five measures of the reference and final plans."""
     return [{'arm': arm, 'technicians': case[0], 'workload': case[1], 'seed': case[2], 'rep': rep,
              'referenceCostCents': row['reference']['costCents'], 'costCents': row['after']['costCents'],
@@ -165,14 +173,14 @@ def runs(by):
              'referenceMovesPerSecond': round(rate(row, 'referencePhase'), 1), 'fairnessMovesPerSecond': round(rate(row, 'fairnessPhase'), 1),
              'referenceMeasures': {name: str(stage(row, 'reference', name)) for name in MEASURES},
              'measures': {name: str(measure(row, name)) for name in MEASURES}}
-            for (arm, case, rep), row in sorted(by.items(), key=lambda item: (list(ARMS.values()).index(item[0][0]), item[0][1], item[0][2]))]
+            for (arm, case, rep), row in sorted(by.items(), key=lambda item: (order.index(item[0][0]), item[0][1], item[0][2]))]
 
 
-def comparison(by, cases, reps):
-    """Every arm on every measure: the median over cases of each case's mean and, against the baseline, the median ratio
+def comparison(by, cases, reps, arms):
+    """These arms on every measure: the median over cases of each case's mean and, against the baseline, the median ratio
     and the cases where the arm is lower or higher; with the cost difference, the fairness-phase speed and the reasons."""
     table = {}
-    for arm in ARMS.values():
+    for arm in arms:
         entry = {'acceptedOn': ACCEPTED_ON.get(arm, 'variance'), 'measures': {}}
         for name in MEASURES:
             means = [sum(measure(by[(arm, case, rep)], name) for rep in reps) / len(reps) for case in cases]
