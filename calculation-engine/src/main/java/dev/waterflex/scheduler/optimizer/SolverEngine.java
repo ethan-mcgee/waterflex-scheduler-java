@@ -25,7 +25,12 @@ public final class SolverEngine {
                            * TABU_KOPT scored with long levels ({@link LongScoreDayPlan}), experiment-only: the score representation
                            * study's treatment S. Never a client choice; a solve returns a {@link DayPlan} with its decimal score.
                            */
-                          TABU_KOPT_LONG_SCORE }
+                          TABU_KOPT_LONG_SCORE,
+                          /**
+                           * TABU_KOPT with the fairness variance in binary64 on the decimal score ({@link BinaryVarianceConstraintProvider}),
+                           * experiment-only: the variance formula study's option (b). Never a client choice.
+                           */
+                          TABU_KOPT_BINARY_VARIANCE }
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
     /**
@@ -106,11 +111,11 @@ public final class SolverEngine {
             } catch (java.io.IOException failure) { throw new IllegalStateException("Solver configuration unavailable", failure); }
             if (variant == Variant.CURRENT_UNCAPPED) xml = xml.replace("<stepCountLimit>1000</stepCountLimit>", "");
         } else {
-            boolean longScore = variant == Variant.TABU_KOPT_LONG_SCORE;
+            boolean longScore = variant == Variant.TABU_KOPT_LONG_SCORE, binaryVariance = variant == Variant.TABU_KOPT_BINARY_VARIANCE;
             boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT
-                    || variant == Variant.TABU_KOPT_SIZE_3 || longScore;
+                    || variant == Variant.TABU_KOPT_SIZE_3 || longScore || binaryVariance;
             boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3
-                    || longScore;
+                    || longScore || binaryVariance;
             boolean advanced = variant == Variant.SUBLIST || kOpt;
             String moves = "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>";
             if (variant != Variant.LATE_ACCEPTANCE_CHANGE)
@@ -131,6 +136,11 @@ public final class SolverEngine {
         }
         xml = xml.replace("<environmentMode>NO_ASSERT</environmentMode>", "<environmentMode>" + key.mode().name() + "</environmentMode>");
         if (construction) xml = xml.replace("<localSearch>", "<constructionHeuristic/><localSearch>");
+        if (variant == Variant.TABU_KOPT_BINARY_VARIANCE) {
+            xml = xml.replace("<constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass>",
+                    "<constraintProviderClass>dev.waterflex.scheduler.optimizer.BinaryVarianceConstraintProvider</constraintProviderClass>");
+            if (!xml.contains("BinaryVarianceConstraintProvider")) throw new IllegalStateException("Binary variance configuration changed shape");
+        }
         SolverConfig config = Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(seed));
         @Nullable SolverFactory<LongScoreDayPlan> longScore = null;
         if (variant == Variant.TABU_KOPT_LONG_SCORE) {

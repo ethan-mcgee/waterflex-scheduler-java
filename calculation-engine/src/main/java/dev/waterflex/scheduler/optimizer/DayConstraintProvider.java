@@ -7,9 +7,16 @@ import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import org.jspecify.annotations.Nullable;
 import java.math.BigDecimal;
+import java.util.List;
+import org.jspecify.annotations.NonNull;
 
-/** List moves update affected route tuples; unchanged routes retain their metrics. */
-public final class DayConstraintProvider implements ConstraintProvider {
+/**
+ * List moves update affected route tuples; unchanged routes retain their metrics. Open for one reason only: the
+ * variance formula study ({@link BinaryVarianceConstraintProvider}) replaces {@link #variance}.
+ */
+public class DayConstraintProvider implements ConstraintProvider {
+    /** The fairness phase's objective: the DECIMAL128 workload variance of {@link SchedulingPolicy#fairness}. */
+    protected BigDecimal variance(List<RouteScoringFacts.@NonNull ScoredRoute> results, RouteScoringFacts facts) { return facts.fairness(results); }
     @Override public Constraint[] defineConstraints(@Nullable ConstraintFactory nullableFactory) {
         ConstraintFactory factory = Required.value(nullableFactory, "constraint factory");
         var routes = factory.forEach(TechRoute.class).join(RouteScoringFacts.class)
@@ -40,7 +47,7 @@ public final class DayConstraintProvider implements ConstraintProvider {
                         .penalizeBigDecimal(DayScores.hard(DayScores.COST_CEILING), (results, facts) -> BigDecimal.valueOf(facts.costExcess(Required.value(results))))
                         .asConstraint("Fairness cost ceiling excess"),
                 fleet.filter((_, facts) -> facts.target() != null)
-                        .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (results, facts) -> facts.fairness(Required.value(results)))
+                        .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (results, facts) -> variance(Required.value(results), Required.value(facts)))
                         .asConstraint("Capacity weighted workload variance")
         };
     }
