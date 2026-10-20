@@ -169,8 +169,10 @@ export async function containerLogs(containers: readonly string[], since: Date):
 
 const Unavailable = z.strictObject({ unavailable: z.enum(["INVALID_PLAN", "UNASSIGNED_VISITS"]) });
 const Decimal = z.string().regex(/^\d+(\.\d+)?$/);
+// The spread, absolute deviation and load balance come with every measured plan once the reference is measured (the
+// harness's FairnessReadings); a receipt from an image before them carries the variance and highest utilization only.
 const Measured = z.strictObject({ costCents: z.number().int().nonnegative(), overtimeMinutes: z.number().int().nonnegative(),
-  variance: Decimal, maximumUtilization: Decimal });
+  variance: Decimal, maximumUtilization: Decimal, utilizationSpread: Decimal.optional(), absoluteDeviation: Decimal.optional(), loadBalance: Decimal.optional() });
 // With SCHEDULER_STUDY_PROFILES on, each phase's flight recording (file name in the replica's profiles directory) and the
 // thread the phases ran on, or why the recordings cannot stand for the phases.
 const Profile = z.union([z.strictObject({ thread: z.string().min(1), recordings: z.record(z.string().min(1), z.string().min(1)) }),

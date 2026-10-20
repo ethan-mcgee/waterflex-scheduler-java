@@ -88,6 +88,15 @@ test("a study receipt takes its own request's solver speeds in order, across int
   assert.ok(studyLines(summary).some(line => line.startsWith("| REFERENCE | 2 |")));
 });
 
+test("a receipt carries the five fairness measures of each plan, each an exact decimal string", () => {
+  const five = { costCents: 120000, overtimeMinutes: 0, variance: "0.0123", maximumUtilization: "0.9", utilizationSpread: "0.3", absoluteDeviation: "0.08", loadBalance: "1234.5" };
+  const body = { ...RECEIPT_BODY, reference: five, proposed: { ...five, variance: "0.01" } };
+  const [receipt] = parseStudyReceipts(ecsLine("r1", `Study receipt ${JSON.stringify(body)}`));
+  assert.ok(receipt !== undefined && "loadBalance" in receipt.body.proposed && receipt.body.proposed.loadBalance === "1234.5");
+  assert.throws(() => parseStudyReceipts(ecsLine("r2", `Study receipt ${JSON.stringify({ ...body, proposed: { ...five, loadBalance: 1234.5 } })}`)), /out of contract/,
+    "a measure as a JSON number could lose digits");
+});
+
 test("a receipt names its flight recordings only when every phase has one", () => {
   const recorded = { ...RECEIPT_BODY, profile: { thread: "daily-queue-0", recordings: { REFERENCE: "dp_1-REFERENCE.jfr", FAIRNESS: "dp_1-FAIRNESS.jfr" } } };
   const partial = { ...RECEIPT_BODY, proposalId: "dp_2", profile: { thread: "daily-queue-1", recordings: { REFERENCE: "dp_2-REFERENCE.jfr" } } };
