@@ -773,6 +773,60 @@ The starvation this probe looked for did not happen on this stack. Two CPU-bound
 `/health` and the cancel watchers still ran within their 1 s checks on either build. The platform thread change is kept
 because it is cheap and removes the dependence on the carrier pool's size, not because a failure was measured.
 
+## Option b on the stack (V)
+
+The fairness measure and road matrix numbering studies promoted option b, the fleet's utilization variance computed
+in binary64 and carried in units of 1e-9, on the workstation harness (5.20x on the fairness phase). This run checks
+that it holds behind the public API. It ran on 2026-10-20 on the rehearsal stack (proxy, booking and daily pools at
+their VM caps, the development routing service capped to 2 CPUs, embedded calculation), with images built from two
+commits and pinned with `SCHEDULER_IMAGE` (`infra/run-stack-verification.ps1`,
+[evidence](evidence/api-load-2026-10-20-binary-variance.json)).
+
+- **before** `cdd19a6`: main's decimal variance objective, with the study receipt added.
+- **after** `68828b5`: option b (score model v3).
+
+Both ran the same daily proposals: 10 s cost and 5 s fairness search, 3 visits per technician, cold roads.
+- **Step 1:** one planner, synchronous, 4 proposals for each fleet and points seed.
+- **Step 2:** two planners queuing on 20 technicians, 12 proposals, the daily pool's shape (background limit 2 on
+  2 CPUs).
+
+Images ran before then after in step 1, and after then before in step 2. Moves per second are Timefold's own
+end-of-phase readings at `TIMEFOLD_LOG_LEVEL=INFO`, paired with each calculation's study receipt by request ID. The
+table gives the median over the 3 seeds of each seed's after/before ratio of the per-proposal medians. Absolute rates
+are this stack's, not the harness's.
+
+| Fleet | Reference phase | Fairness phase | Fairness phase range by seed | Decisions, before and after | Proposal p50 |
+| ---: | ---: | ---: | --- | --- | --- |
+| 10 | 0.99x | **2.43x** | 2.40x to 2.54x | 12 of 12 improved, both | 15.0 s, both |
+| 20 | 0.99x | **3.32x** | 3.30x to 3.46x | 12 of 12 improved, both | 15.1 s, both |
+| 50 | 1.00x | **5.94x** | 5.85x to 6.06x | 12 of 12 improved, both | 15.8 s before, 15.9 s after |
+| 20, queued, 2 planners | 1.03x | **3.42x** | one run each | 12 of 12 improved, both | 18.1 s, both; queue wait p50 3 ms |
+
+- **The fairness phase evaluates 2.4x to 5.9x more moves per second, and the gain grows with the fleet.** The before
+  image's fairness phase falls from 2.5 times slower than its own reference phase at 10 technicians to 6.4 times
+  slower at 50, because every move recomputes the decimal variance over the whole fleet. With b the two phases run
+  within 10 percent of each other at every size. The harness's 5.20x sits inside this range.
+- **The reference phase is unchanged** (0.99x to 1.03x): it does not score fairness.
+- **Same or fairer plans, never dearer.** Neither image proposed a plan over its cost ceiling. Where the fairness
+  phase found nothing to change (10 technicians, two of three seeds at 20), both images proposed the same plan to the
+  cent and the DECIMAL128 digit. Where it did find something, b's proposals were at least as fair and at least as
+  cheap in every pair:
+
+| Fleet, seed | Proposed variance p50, before | after | Proposed cost p50, before | after | Fairer proposals, before | after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 20, 3 | 0.0742 | 0.0616 | 156,414 c | 156,409 c | 0 of 4 | 4 of 4 |
+| 50, 1 | 0.1037 | 0.1020 | 384,442 c | 384,405 c | 1 of 4 | 4 of 4 |
+| 50, 2 | 0.1014 | 0.0998 | 383,086 c | 383,069 c | 4 of 4 | 4 of 4 |
+| 50, 3 | 0.0900 | 0.0864 | 383,326 c | 383,326 c | 4 of 4 | 4 of 4 |
+
+  "Fairer" means a proposal whose DECIMAL128 variance is below its own reference plan's. The extra moves become fairer
+  plans at the fleet sizes where the decimal variance throttled the search the most.
+- **The calls take as long as before, by design.** A daily proposal searches for a fixed 15 s, so b buys more search
+  in the same time, not a shorter call. Queued proposals waited 3 ms (p50, 8 ms max) on both images. No run had a
+  contract breach or a host anomaly, and every proposal answered 201.
+
+**Verdict:** option b holds on the stack. PR #189 ships it.
+
 ## Repeating the measurement
 
 Run each line of the protocol above with `npx tsx load.ts` (README, "Load tool") against a stack whose routing
