@@ -20,6 +20,7 @@ import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HexFormat;
@@ -83,17 +84,26 @@ public class DailyProposals {
     private final DailyJobs jobs;
     private final DailyQueue queue;
     private final Clock clock;
+    private final StudyReceipts receipts;
 
     @Autowired
     public DailyProposals(PublicApiStore store, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
-                          DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue) {
-        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, Required.value(Clock.systemUTC()));
+                          DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue,
+                          StudyReceipts receipts) {
+        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, Required.value(Clock.systemUTC()), receipts);
     }
 
     public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
                           DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue, Clock clock) {
+        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, clock, StudyReceipts.OFF);
+    }
+
+    public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
+                          DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue, Clock clock,
+                          StudyReceipts receipts) {
         this.store = store; this.routing = routing; this.locator = locator; this.transport = transport;
         this.solvers = solvers; this.admission = admission; this.running = running; this.jobs = jobs; this.queue = queue; this.clock = clock;
+        this.receipts = receipts;
     }
 
     /** A strictly parsed proposal request: its canonical JSON (the claim digest and the queued copy), lease, and calculation. */
@@ -382,7 +392,7 @@ public class DailyProposals {
         Outcome outcome = DailyOperation.executePrepared(admission, allowance, () -> {
                     registered.attach(DailyOperation.current());
                     return new DailyOperation.Preparation<>(
-                            () -> calculate(prepared, policy, snapshot.policy().dailySearch(), allocation, proposalId, revision, tokens, absence),
+                            () -> calculate(prepared, policy, snapshot.policy().dailySearch(), allocation, request.serviceDate(), proposalId, revision, tokens, absence),
                             true, _ -> { });
                 }, receipt -> LOG.info("Public daily operation {}", receipt));
         DailyProposal proposal = response(request, proposalId, revision, outcome);
@@ -406,7 +416,7 @@ public class DailyProposals {
      * The daily preview decision applied to request-fed facts; with an absence, the repair of the same facts.
      */
     private Outcome calculate(DailyPreparation.Prepared prepared, SchedulingPolicy.Rules policy, DailySearch search, DailyCalculation.Allocation allocation,
-                              String proposalId, String revision, Map<String, String> tokens, PublicRequests.@Nullable Absence absence) {
+                              LocalDate serviceDate, String proposalId, String revision, Map<String, String> tokens, PublicRequests.@Nullable Absence absence) {
         DayPlan baseline = prepared.plan();
         if (absence != null && baseline.getRoutes().stream().noneMatch(route -> route.getId().equals(absence.technicianId())))
             throw new Final(422, ErrorCode.INCOMPLETE_FACTS, "Technician-day " + absence.technicianId() + " on " + absence.serviceDate()
@@ -423,7 +433,9 @@ public class DailyProposals {
         String configuration = configuration(policy, search, allocation);
         DayPlan searched = absence == null ? baseline : PlanCopies.withAbsence(baseline, absence.technicianId(),
                 new TechRoute.Unavailable(absence.window().start(), absence.window().end()));
-        var calculation = transport.dailyTokens(searched, policy, solvers.get(search), allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
+        DailySolver solver = solvers.get(search);
+        var calculation = transport.dailyTokens(searched, policy, solver, allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
+        receipts.record(proposalId, serviceDate, solver, policy, searched, calculation);
         SearchDeadline.checkpoint();
         if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, ReasonText.describe(calculation.reason()));
         Decision decision = DailyCalculation.valid(calculation.plan()) ? Decision.REJECTED_BY_POLICY : Decision.NO_IMPROVEMENT;
