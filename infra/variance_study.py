@@ -1,16 +1,24 @@
-"""Variance formula study (PR 187): option (b) against the production search, at each budget.
+"""Fairness measure study (PR 187): two variance formulas and four fairness policies against production, at each budget.
 
 Arms, all from one frozen tree (bench/variance-formula), all on the nanosecond timing that #186 promoted:
-  baseline  TABU_KOPT                   production: decimal score, DECIMAL128 variance
-  b         TABU_KOPT_BINARY_VARIANCE   decimal score, variance in binary64 carried as rounded units of 1e-9
-  T+S       TABU_KOPT_LONG_SCORE        long score with the same variance units (for comparison)
+  baseline      TABU_KOPT                       production: DECIMAL128 variance over the whole fleet on every move
+  b             TABU_KOPT_BINARY_VARIANCE       the same variance in binary64, carried as rounded units of 1e-9
+  c             TABU_KOPT_INCREMENTAL_VARIANCE  the same variance from three exact running sums the solver updates per move
+  min-max       TABU_KOPT_MIN_MAX_UTILIZATION   the highest technician utilization
+  spread        TABU_KOPT_UTILIZATION_SPREAD    the highest minus the lowest utilization
+  abs-dev       TABU_KOPT_ABSOLUTE_DEVIATION    the capacity-weighted mean absolute deviation of utilization
+  load-balance  TABU_KOPT_LOAD_BALANCE          Timefold's load balance over utilization, unweighted
+
+b and c change only how the production variance is computed, so they are accepted on it and held to the bars below.
+The four policies change what fairness means: each searches and is accepted on its own measure, and every final plan
+records all five measures, so they get a comparison table, not bars.
 
   python infra/variance_study.py summarize --run <run directory> --out <evidence json>
 
 The run directory is what infra/run-variance-study.ps1 writes: rows/rep<r>-<budget>ms-<technicians>-<workload>-<seed>.jsonl
 and profiles/*.jfr.
 
-The bars, set before the run (owner decision 2026-10-20), applied at every budget:
+The bars for b and c, set before the run (owner decision 2026-10-20), applied at every budget:
   speed     median fairness-phase moves per second at least 1.25x the baseline
   fairness  no case less fair than the baseline beyond that case's own spread between repetitions
   cost      median final cost (arm minus baseline, per case) not above zero; a case may be dearer if it is fairer
@@ -27,8 +35,14 @@ from pathlib import Path
 
 from representation_study import attribute, check, jfr_document, merge, rate, spread
 
-ARMS = {'TABU_KOPT': 'baseline', 'TABU_KOPT_BINARY_VARIANCE': 'b', 'TABU_KOPT_LONG_SCORE': 'T+S'}
-TREATMENTS = ('b', 'T+S')
+ARMS = {'TABU_KOPT': 'baseline', 'TABU_KOPT_BINARY_VARIANCE': 'b', 'TABU_KOPT_INCREMENTAL_VARIANCE': 'c',
+        'TABU_KOPT_MIN_MAX_UTILIZATION': 'min-max', 'TABU_KOPT_UTILIZATION_SPREAD': 'spread',
+        'TABU_KOPT_ABSOLUTE_DEVIATION': 'abs-dev', 'TABU_KOPT_LOAD_BALANCE': 'load-balance'}
+TREATMENTS = ('b', 'c')
+POLICIES = ('min-max', 'spread', 'abs-dev', 'load-balance')
+# The measure each policy is accepted on, as SolverBenchmark records it in acceptedOn.
+ACCEPTED_ON = {'min-max': 'maximumUtilization', 'spread': 'utilizationSpread', 'abs-dev': 'absoluteDeviation', 'load-balance': 'loadBalance'}
+MEASURES = ('variance', 'maximumUtilization', 'utilizationSpread', 'absoluteDeviation', 'loadBalance')
 PHASES = ('referencePhase', 'fairnessPhase')
 ACCEPTED = {'OVERTIME_REDUCTION', 'FAIRNESS_IMPROVEMENT', 'COST_REDUCTION'}
 ROW_FILE = re.compile(r'rep(\d+)-(\d+)ms-(\d+)-([A-Z_]+)-(\d+)\.jsonl')
@@ -52,6 +66,8 @@ def read_rows(path):
         check(line['technicians'] == technicians and line['workload'] == workload and line['seed'] == seed, path.name + ': row does not match its file')
         arm = ARMS.get(line['variant'])
         check(arm is not None, path.name + ': unexpected variant ' + str(line['variant']))
+        check(line.get('acceptedOn') == ACCEPTED_ON.get(arm), path.name + ': ' + arm + ' accepted on the wrong measure')
+        check(sorted(line.get('measures', {}).get('after', {})) == sorted(MEASURES), path.name + ': every measure expected for ' + arm)
         rows.append({'arm': arm, 'budget': budget, 'rep': rep, 'case': (technicians, workload, seed), 'row': line, 'revision': lines[0]['revision']})
     check(sorted(row['arm'] for row in rows) == sorted(ARMS.values()), path.name + ': every arm expected once')
     return rows
@@ -60,6 +76,12 @@ def read_rows(path):
 def variance(row):
     value = row['after']['fairness']['variance']
     check(isinstance(value, (Decimal, int)), 'variance must be a number')
+    return Decimal(value)
+
+
+def measure(row, name):
+    value = row['measures']['after'][name]
+    check(isinstance(value, (Decimal, int)), name + ' must be a number')
     return Decimal(value)
 
 
@@ -126,7 +148,38 @@ def paired(rows):
                                 'cost': statistics.median(cost_differences) <= 0,
                                 'ceiling': not arm_outside and all(by[(arm, case, rep)]['violations'] == 0 for case in cases for rep in reps)}
         summary[arm]['passes'] = all(summary[arm]['bars'].values())
-    return {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'outsideCeiling': outside, 'summary': summary, 'pairs': pairs}
+    return {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'outsideCeiling': outside, 'summary': summary,
+            'comparison': comparison(by, cases, reps), 'pairs': pairs}
+
+
+def comparison(by, cases, reps):
+    """Every arm on every measure: the median over cases of each case's mean and, against the baseline, the median ratio
+    and the cases where the arm is lower or higher; with the cost difference, the fairness-phase speed and the reasons."""
+    table = {}
+    for arm in ARMS.values():
+        entry = {'acceptedOn': ACCEPTED_ON.get(arm, 'variance'), 'measures': {}}
+        for name in MEASURES:
+            means = [sum(measure(by[(arm, case, rep)], name) for rep in reps) / len(reps) for case in cases]
+            base = [sum(measure(by[('baseline', case, rep)], name) for rep in reps) / len(reps) for case in cases]
+            ratios = [float(value / reference) for value, reference in zip(means, base) if reference > 0]
+            entry['measures'][name] = {'median': str(statistics.median(means)),
+                                       'medianRatioToBaseline': round(statistics.median(ratios), 3) if ratios else None,
+                                       'lowerThanBaseline': sum(1 for value, reference in zip(means, base) if value < reference),
+                                       'higherThanBaseline': sum(1 for value, reference in zip(means, base) if value > reference)}
+        differences = [statistics.mean(by[(arm, case, rep)]['after']['costCents'] for rep in reps)
+                       - statistics.mean(by[('baseline', case, rep)]['after']['costCents'] for rep in reps) for case in cases]
+        entry['cost'] = {'medianDifferenceCents': statistics.median(differences), 'cheaper': sum(1 for value in differences if value < 0),
+                         'dearer': sum(1 for value in differences if value > 0)}
+        entry['fairnessPhaseSpeedup'] = spread([rate(by[(arm, case, rep)], 'fairnessPhase') / rate(by[('baseline', case, rep)], 'fairnessPhase')
+                                                for case in cases for rep in reps])
+        reasons = {}
+        for case in cases:
+            for rep in reps:
+                reason = by[(arm, case, rep)]['acceptanceReason']
+                reasons[reason] = reasons.get(reason, 0) + 1
+        entry['acceptance'] = dict(sorted(reasons.items()))
+        table[arm] = entry
+    return table
 
 
 def profiles(directory, jfr):
@@ -149,10 +202,11 @@ def summarize(run, output, jfr):
     manifest = json.loads((run / 'manifest.json').read_text(encoding='utf-8-sig'))
     budgets = sorted({row['budget'] for row in rows})
     by_budget = {str(budget): paired([row for row in rows if row['budget'] == budget]) for budget in budgets}
-    decision = {'b': {'promoted': all(by_budget[str(budget)]['summary']['b']['passes'] for budget in budgets),
-                      'bars': 'at every budget: fairness-phase median at least 1.25x, no case less fair beyond its spread, median cost not above the baseline, every accepted result inside its ceiling with zero violations'},
-                'T+S': {'passesTheSameBars': all(by_budget[str(budget)]['summary']['T+S']['passes'] for budget in budgets)}}
-    document = {'study': 'Variance formula, option (b) (PR 187)', 'manifest': manifest,
+    bars = ('at every budget: fairness-phase median at least 1.25x, no case less fair beyond its spread, median cost not above'
+            ' the baseline, every accepted result inside its ceiling with zero violations')
+    decision = {arm: {'promoted': all(by_budget[str(budget)]['summary'][arm]['passes'] for budget in budgets), 'bars': bars} for arm in TREATMENTS}
+    decision['policies'] = 'compared on every measure, no bars: a change of fairness policy is an owner decision'
+    document = {'study': 'Fairness measures (PR 187)', 'manifest': manifest,
                 'revisions': sorted({item['revision'] for item in rows}), 'budgets': by_budget, 'decision': decision}
     if (run / 'profiles').is_dir():
         document['profiles'] = profiles(run / 'profiles', jfr)
@@ -171,7 +225,8 @@ def main(arguments):
     options = parser.parse_args(arguments)
     document = summarize(options.run, options.out, options.jfr)
     print(json.dumps({'decision': document['decision'],
-                      'budgets': {budget: value['summary'] for budget, value in document['budgets'].items()}}, indent=1, default=str))
+                      'budgets': {budget: {'summary': value['summary'], 'comparison': value['comparison']}
+                                  for budget, value in document['budgets'].items()}}, indent=1, default=str))
 
 
 if __name__ == '__main__':

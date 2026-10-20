@@ -15,18 +15,14 @@ public final class SolverExperiment {
     static SolverEngine.Telemetry telemetry(EngineProvenance provenance) {
         return solver -> {
             if (!SolverEngine.INSTRUMENTED_TIMEFOLD.equals(provenance.version()) || provenance.sha256() == null
-                    || !(solver instanceof DefaultSolver<?> measured))
+                    || !(solver instanceof DefaultSolver<DayPlan> measured))
                 throw new IllegalStateException("Unsupported solver diagnostics artifact");
-            return probe(measured);
+            long[] steps = {0};
+            measured.addPhaseLifecycleListener(new PhaseLifecycleListenerAdapter<DayPlan>() {
+                @Override public void stepEnded(@Nullable AbstractStepScope<DayPlan> scope) { steps[0]++; }
+            });
+            return () -> new SolverEngine.Measurements(steps[0], measured.getMoveEvaluationCount(),
+                    measured.getScoreCalculationCount(), measured.getTimeMillisSpent(), measured.getSolverScope().getBestSolutionTimeMillisSpent());
         };
-    }
-    /** Either score representation's solver: the counters do not depend on the solution class. */
-    private static <S> SolverEngine.Probe probe(DefaultSolver<S> measured) {
-        long[] steps = {0};
-        measured.addPhaseLifecycleListener(new PhaseLifecycleListenerAdapter<S>() {
-            @Override public void stepEnded(@Nullable AbstractStepScope<S> scope) { steps[0]++; }
-        });
-        return () -> new SolverEngine.Measurements(steps[0], measured.getMoveEvaluationCount(),
-                measured.getScoreCalculationCount(), measured.getTimeMillisSpent(), measured.getSolverScope().getBestSolutionTimeMillisSpent());
     }
 }

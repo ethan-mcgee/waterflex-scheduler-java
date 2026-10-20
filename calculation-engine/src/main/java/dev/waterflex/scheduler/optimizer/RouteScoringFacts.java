@@ -44,31 +44,6 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
             work.add(new SchedulingPolicy.Workload(route.technicianId(), route.metrics().paidMinutes(), route.capacity(), Required.value(BigDecimal.ZERO)));
         return SchedulingPolicy.fairness(work).variance();
     }
-    /** Units of variance per one on the long fairness level: the variance is carried to nine decimal places. */
-    static final long VARIANCE_UNITS = 1_000_000_000L;
-    /**
-     * {@link #fairness} in {@link #VARIANCE_UNITS}, rounded half up, for the long score (treatment S). The same
-     * workloads and the same formula as {@link SchedulingPolicy#fairness}, in binary64 instead of DECIMAL128: the two
-     * agree to well under one unit, and rounding is monotone, so the long level can tie two plans whose variances
-     * differ by less than one unit but never orders them the other way round beyond that.
-     */
-    long varianceUnits(List<@NonNull ScoredRoute> routes) {
-        long capacity = 0, paid = 0;
-        for (ScoredRoute route : routes) if (route.eligible() && route.capacity() > 0) {
-            PlanFacts.check(route.metrics().paidMinutes() >= 0, "Invalid workload");
-            capacity = Math.addExact(capacity, route.capacity()); paid = Math.addExact(paid, route.metrics().paidMinutes());
-        }
-        if (capacity == 0) return 0;
-        double mean = (double) paid / capacity, sum = 0;
-        for (ScoredRoute route : routes) if (route.eligible() && route.capacity() > 0) {
-            double difference = (double) route.metrics().paidMinutes() / route.capacity() - mean;
-            sum += difference * difference * route.capacity();
-        }
-        double units = sum / capacity * VARIANCE_UNITS;
-        // A utilization is at most a day's paid minutes over one minute of capacity, so this bound is never near.
-        if (!(units >= 0 && units < 0x1p62)) throw new ArithmeticException("Fairness variance outside the long score range");
-        return Math.round(units);
-    }
     long overtimeDeviation(List<@NonNull ScoredRoute> routes) {
         Target fixed = target;
         if (fixed == null) return 0;

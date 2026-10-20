@@ -1,7 +1,6 @@
 package dev.waterflex.scheduler.optimizer;
 
 import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
-import ai.timefold.solver.core.api.score.BendableScore;
 import dev.waterflex.scheduler.Required;
 import java.math.BigDecimal;
 
@@ -12,7 +11,4 @@ public final class DayScores {
     private DayScores() { }
     static BendableBigDecimalScore hard(int level) { return Required.value(BendableBigDecimalScore.ofHard(5, 2, level, Required.value(BigDecimal.ONE))); }
     static BendableBigDecimalScore soft(int level) { return Required.value(BendableBigDecimalScore.ofSoft(5, 2, level, Required.value(BigDecimal.ONE))); }
-    /** The same levels as long weights, for the score representation study only ({@link LongScoreDayPlan}). */
-    static BendableScore hardLong(int level) { return Required.value(BendableScore.ofHard(5, 2, level, 1)); }
-    static BendableScore softLong(int level) { return Required.value(BendableScore.ofSoft(5, 2, level, 1)); }
 }

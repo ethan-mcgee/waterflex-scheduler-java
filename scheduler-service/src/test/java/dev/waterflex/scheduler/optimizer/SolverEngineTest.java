@@ -171,7 +171,7 @@ class SolverEngineTest {
         for (boolean cancelled : new boolean[]{true, false}) {
             var result = SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), Required.value(Duration.ofSeconds(30)), null, false,
                     new SolverEngine.Cancellation() {
-                        @Override public void started(ai.timefold.solver.core.api.solver.Solver<?> solver) {
+                        @Override public void started(ai.timefold.solver.core.api.solver.Solver<DayPlan> solver) {
                             Thread.ofVirtual().start(() -> {
                                 try { Thread.sleep(50); } catch (InterruptedException failure) { Thread.currentThread().interrupt(); }
                                 solver.terminateEarly();
