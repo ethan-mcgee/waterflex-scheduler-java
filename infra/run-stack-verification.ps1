@@ -155,8 +155,10 @@ $useImage = { param($name)
     & $docker (@('compose') + $rehearsal + @('up', '-d', '--no-build', '--remove-orphans')) (Join-Path $runs "up-$name.log")
     if (-not (& $health 300)) { throw "The stack did not come up on $($image.tag) (see up-$name.log)" }
     # Every replica runs the pinned image with Timefold at INFO; receipts are a daily pool setting, so only daily replicas carry them.
+    # Assigned first: @(& $block) around a block that returns its array with the comma operator nests it one level.
     $daily = & $dailyContainers
-    foreach ($id in @($daily) + @(& $bookingContainers)) {
+    $booking = & $bookingContainers
+    foreach ($id in @($daily) + @($booking)) {
         $inspect = (& $dockerOutput @('inspect', $id)) | ConvertFrom-Json
         $settings = @($inspect[0].Config.Env | Where-Object { $_ -like 'SCHEDULER_STUDY_RECEIPTS=*' -or $_ -like 'TIMEFOLD_LOG_LEVEL=*' })
         if ($inspect[0].Image -ne $image.imageId -or $settings -notcontains 'TIMEFOLD_LOG_LEVEL=INFO') {
