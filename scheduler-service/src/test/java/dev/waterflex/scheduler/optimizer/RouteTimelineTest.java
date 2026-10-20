@@ -38,6 +38,61 @@ class RouteTimelineTest {
         }
     }
 
+    /** The long offset readings are Duration's own, on spans with nanoseconds and on negative spans, where floor and truncation differ. */
+    @Test void offsetReadingsAreTheDurationReadings() {
+        Instant origin = at("09:00:00.250000001");
+        Random random = new Random(3);
+        List<Instant> instants = new ArrayList<>(List.of(at("08:59:00.75"), at("08:59:00.250000001"), at("09:01:00"), at("09:00:59.999999999")));
+        for (int sample = 0; sample < 2000; sample++)
+            instants.add(Required.value(origin.plusNanos(random.nextLong(-3 * 86_400_000_000_000L, 3 * 86_400_000_000_000L))));
+        for (Instant listed : instants) {
+            Instant instant = Required.value(listed);
+            long offset = RouteTimeline.offset(origin, instant);
+            var duration = java.time.Duration.between(origin, instant);
+            assertEquals(duration.toMinutes(), RouteTimeline.minutes(offset), instant.toString());
+            assertEquals(duration.getSeconds(), RouteTimeline.seconds(offset), instant.toString());
+            assertEquals(instant, RouteTimeline.instant(origin, offset));
+        }
+        assertEquals(-1, RouteTimeline.minutes(RouteTimeline.offset(origin, at("08:59:00.75"))), "-59.5 s floors to -60 s, one minute back");
+    }
+
+    @Test void fractionalSecondInstantsScoreAsTheIndependentEvaluator() {
+        TechRoute route = new TechRoute("home", at("09:00:00.25"), at("17:00:00.5"), 480, 0, Required.value(Set.of("service")));
+        route.getUnavailable().add(new TechRoute.Unavailable(at("11:00:00.125"), at("12:00:00.875")));
+        PlanVisit first = new PlanVisit("first", "service", at("09:20:00.333"), at("10:00:00.5"), 45, "home", at("09:20:00.333"));
+        PlanVisit second = new PlanVisit("second", "service", at("12:30:00.001"), at("15:00:00.999"), 60, "home", at("12:30:00.001"));
+        route.getVisits().addAll(Required.value(List.of(first, second)));
+        Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
+        for (String from : List.of("home", "first", "second")) for (String to : List.of("first", "second", "home:return"))
+            matrix.put(from + ">" + to, new DayPlan.RoadLeg(600, 3000));
+        DayPlan day = new DayPlan(Required.value(List.of(route)), Required.value(List.of(first, second)), matrix, 30, 45, 0.67, 0, 0);
+        var independent = RouteEvaluator.evaluate(day);
+        var scored = DayScoreCalculator.evaluate(day);
+        assertTrue(independent.feasible());
+        assertEquals(0, scored.hardPenalty());
+        assertEquals(independent.arrivals(), scored.arrivals());
+        assertEquals(at("09:20:00.333"), scored.arrivals().get("first"));
+        assertEquals(independent.paidMinutes(), scored.paidMinutes());
+        assertEquals(independent.costCents(), scored.costCents());
+    }
+
+    @Test void anAbsenceEndingInsideASecondCountsTheWholeSecond() {
+        // One hour visit that fits no working interval, so the relaxed trajectory scores it: out 09:00, back 10:20.
+        TechRoute route = new TechRoute("home", at("09:00:00"), at("10:00:00"), 600, 0, Required.value(Set.of("service")));
+        route.getUnavailable().add(new TechRoute.Unavailable(at("09:30:00.4"), at("09:40:00")));
+        PlanVisit visit = new PlanVisit("visit", "service", at("09:00:00"), at("09:50:00"), 60, "home", at("09:00:00"));
+        route.getVisits().add(visit);
+        Map<String, DayPlan.RoadLeg> matrix = new HashMap<>(Map.of("home>visit", new DayPlan.RoadLeg(600, 3000), "visit>home:return", new DayPlan.RoadLeg(600, 3000)));
+        DayPlan day = new DayPlan(Required.value(List.of(route)), Required.value(List.of(visit)), matrix, 30, 45, 0.67, 0, 0);
+        var result = RouteTimeline.evaluate(day.getFacts(), Required.value(day.getRoutes().getFirst()));
+        // Permitted 30:00.4 before the absence and 20:00 after it, of 80:00 away: 29:59.6 unavailable, counted as 1800 s.
+        assertEquals(1800, result.violations().availabilitySeconds());
+        assertEquals(20, result.violations().capacityMinutes());
+        assertEquals(0, result.violations().latenessSeconds());
+        assertEquals(80, result.paidMinutes());
+        assertEquals(20, result.overtimeMinutes());
+    }
+
     private static DayPlan intervalChoicePlan() {
         TechRoute route = new TechRoute("home", at("09:00:00"), at("17:00:00"), 150, 0, Required.value(Set.of("service")));
         route.getUnavailable().add(new TechRoute.Unavailable(at("11:00:00"), at("12:00:00")));

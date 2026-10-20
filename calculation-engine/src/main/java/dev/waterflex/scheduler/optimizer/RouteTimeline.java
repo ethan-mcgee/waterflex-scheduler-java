@@ -2,15 +2,28 @@ package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.Monetary;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
 /**
  * Exact feasible timing, with an explicitly diagnostic relaxed trajectory for repair gradients. Evaluates one route
  * against a fact revision; the score path asks for no arrivals and gets a result whose arrival map is empty.
+ * Time runs on long nanoseconds after the route's shift start ({@link #offset}), so a leg allocates nothing; the
+ * minute and second readings are {@link java.time.Duration}'s own, and arrivals are instants again on the way out.
  */
 final class RouteTimeline {
+    static final long NANOS_PER_SECOND = 1_000_000_000L, NANOS_PER_MINUTE = 60 * NANOS_PER_SECOND;
+    /** This instant as nanoseconds after the origin; exact while the two are within 292 years of each other, else it throws. */
+    static long offset(Instant origin, Instant instant) {
+        return Math.addExact(Math.multiplyExact(Math.subtractExact(instant.getEpochSecond(), origin.getEpochSecond()), NANOS_PER_SECOND),
+                instant.getNano() - origin.getNano());
+    }
+    static Instant instant(Instant origin, long offset) { return Required.value(origin.plusNanos(offset)); }
+    static long nanos(long minutes) { return Math.multiplyExact(minutes, NANOS_PER_MINUTE); }
+    /** {@code Duration.getSeconds}: whole seconds, floored. */
+    static long seconds(long nanos) { return Math.floorDiv(nanos, NANOS_PER_SECOND); }
+    /** {@code Duration.toMinutes}: the floored whole seconds divided toward zero, as a span of these nanoseconds reads. */
+    static long minutes(long nanos) { return seconds(nanos) / 60; }
     record Violations(long qualifications, long unavailableRoads, long latenessSeconds,
                       long availabilitySeconds, long capacityMinutes) {
         long total() { return Math.addExact(Math.addExact(qualifications, unavailableRoads),
@@ -26,8 +39,9 @@ final class RouteTimeline {
     static Result evaluate(PlanFacts facts, TechRoute route) { return evaluate(facts, route, true); }
     static Result evaluate(PlanFacts facts, TechRoute route, boolean withArrivals) {
         RoadMatrix roads = facts.roads();
-        List<RouteTimingSearch.Block> blocks = available(route);
-        var canonical = RouteTimingSearch.solve(facts, route, blocks, withArrivals);
+        Instant origin = route.getShiftStart();
+        List<RouteTimingSearch.Block> blocks = available(route, origin);
+        var canonical = RouteTimingSearch.solve(facts, route, origin, blocks, withArrivals);
         long qualifications = 0;
         for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) qualifications++;
         if (canonical != null) {
@@ -48,8 +62,9 @@ final class RouteTimeline {
         if (route.getVisits().isEmpty()) return result(facts, new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
         PlanVisit first = Required.value(route.getVisits().getFirst());
         long initialTravel = Required.value(roads.leg(technician, roads.number(first.getId()))).bufferedMinutes();
-        Instant departure = later(route.getShiftStart(), Required.value(first.getWindowStart().minusSeconds(Math.multiplyExact(initialTravel, 60))));
-        Instant cursor = departure;
+        // The shift starts at offset 0.
+        long departure = Math.max(0, Math.subtractExact(offset(origin, first.getWindowStart()), nanos(initialTravel)));
+        long cursor = departure;
         previous = technician;
         long drive = 0, waiting = 0, meters = 0, lateness = 0;
         Map<String, Instant> arrivals = withArrivals ? new LinkedHashMap<>() : Required.value(Map.of());
@@ -57,28 +72,27 @@ final class RouteTimeline {
             int here = roads.number(visit.getId());
             RoadMatrix.Leg road = Required.value(roads.leg(previous, here));
             long travel = road.bufferedMinutes();
-            Instant earliest = Required.value(cursor.plusSeconds(Math.multiplyExact(travel, 60)));
-            Instant arrival = later(earliest, visit.getWindowStart());
-            if (!arrival.isBefore(visit.getWindowEnd())) lateness = Math.addExact(lateness,
-                    Math.addExact(Duration.between(visit.getWindowEnd(), arrival).getSeconds(), 1));
-            waiting = Math.addExact(waiting, Duration.between(earliest, arrival).toMinutes());
+            long earliest = Math.addExact(cursor, nanos(travel));
+            long arrival = Math.max(earliest, offset(origin, visit.getWindowStart())), windowEnd = offset(origin, visit.getWindowEnd());
+            if (arrival >= windowEnd) lateness = Math.addExact(lateness, Math.addExact(seconds(arrival - windowEnd), 1));
+            waiting = Math.addExact(waiting, minutes(arrival - earliest));
             drive = Math.addExact(drive, travel); meters = Math.addExact(meters, road.meters());
-            if (withArrivals) arrivals.put(visit.getId(), arrival);
-            cursor = Required.value(arrival.plusSeconds(visit.getDurationMinutes() * 60L)); previous = here;
+            if (withArrivals) arrivals.put(visit.getId(), instant(origin, arrival));
+            cursor = Math.addExact(arrival, nanos(visit.getDurationMinutes())); previous = here;
         }
         RoadMatrix.Leg home = Required.value(roads.home(previous, technician));
         long returnMinutes = home.bufferedMinutes();
-        Instant returned = Required.value(cursor.plusSeconds(Math.multiplyExact(returnMinutes, 60)));
+        long returned = Math.addExact(cursor, nanos(returnMinutes));
         drive = Math.addExact(drive, returnMinutes); meters = Math.addExact(meters, home.meters());
-        long paid = Duration.between(departure, returned).toMinutes();
-        long overtime = Math.max(0, Duration.between(later(departure, route.getShiftEnd()), returned).toMinutes());
-        Duration permitted = Duration.ZERO;
+        long paid = minutes(returned - departure);
+        long overtime = Math.max(0, minutes(returned - Math.max(departure, offset(origin, route.getShiftEnd()))));
+        long permitted = 0;
         for (RouteTimingSearch.Block block : blocks) {
-            Instant start = later(departure, block.start()), end = earlier(returned, block.end());
-            if (start.isBefore(end)) permitted = permitted.plus(Duration.between(start, end));
+            long start = Math.max(departure, block.start()), end = Math.min(returned, block.end());
+            if (start < end) permitted = Math.addExact(permitted, end - start);
         }
-        Duration unavailable = Duration.between(departure, returned).minus(permitted);
-        long unavailableSeconds = unavailable.isZero() ? 0 : Math.addExact(unavailable.getSeconds(), unavailable.getNano() == 0 ? 0 : 1);
+        long unavailable = returned - departure - permitted;
+        long unavailableSeconds = unavailable == 0 ? 0 : Math.addExact(seconds(unavailable), Math.floorMod(unavailable, NANOS_PER_SECOND) == 0 ? 0 : 1);
         long capacity = Math.addExact(Math.max(0, paid - route.getMaxDailyMinutes()), Math.max(0, overtime - route.getMaxOvertimeMinutes()));
         return result(facts, new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
     }
@@ -87,23 +101,23 @@ final class RouteTimeline {
         long cents = Monetary.cents(paid, overtime, meters, facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
         return new Result(violations, cents, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
     }
-    private static List<RouteTimingSearch.Block> available(TechRoute route) {
-        Instant end = Required.value(route.getShiftEnd().plusSeconds(route.getMaxOvertimeMinutes() * 60L));
+    /** The working intervals from the shift start (offset 0) to the overtime limit, absences removed, as offsets from {@code origin}. */
+    private static List<RouteTimingSearch.Block> available(TechRoute route, Instant origin) {
+        long end = Math.addExact(offset(origin, route.getShiftEnd()), nanos(route.getMaxOvertimeMinutes()));
         List<RouteTimingSearch.Block> blocks = new ArrayList<>();
-        Instant cursor = route.getShiftStart();
+        long cursor = 0;
         List<TechRoute.Unavailable> unavailable = route.getUnavailable();
         if (unavailable.size() > 1) {
             unavailable = new ArrayList<>(unavailable);
             unavailable.sort(Comparator.comparing((TechRoute.Unavailable absence) -> absence.start()));
         }
         for (TechRoute.Unavailable absence : unavailable) {
-            if (absence.start().isAfter(cursor)) blocks.add(new RouteTimingSearch.Block(cursor, earlier(absence.start(), end)));
-            if (absence.end().isAfter(cursor)) cursor = absence.end();
-            if (!cursor.isBefore(end)) break;
+            long start = offset(origin, absence.start()), finish = offset(origin, absence.end());
+            if (start > cursor) blocks.add(new RouteTimingSearch.Block(cursor, Math.min(start, end)));
+            if (finish > cursor) cursor = finish;
+            if (cursor >= end) break;
         }
-        if (cursor.isBefore(end)) blocks.add(new RouteTimingSearch.Block(cursor, end));
-        blocks.removeIf(block -> !block.start().isBefore(block.end())); return blocks;
+        if (cursor < end) blocks.add(new RouteTimingSearch.Block(cursor, end));
+        blocks.removeIf(block -> block.start() >= block.end()); return blocks;
     }
-    private static Instant later(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
-    private static Instant earlier(Instant a, Instant b) { return a.isBefore(b) ? a : b; }
 }
