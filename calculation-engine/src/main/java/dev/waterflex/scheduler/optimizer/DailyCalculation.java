@@ -6,8 +6,12 @@ import java.util.*;
 public final class DailyCalculation {
     public record Result(DayPlan plan, DayPlan reference, boolean accepted, String reason, int solveMs, DailySolver.Diagnostics diagnostics) { }
     private DailyCalculation() { }
-    /** Phase budgets. A fairness allocation of zero skips the fairness phase; reference and repair must search. */
-    public record Allocation(long referenceMs, long fairnessMs, long repairMs, boolean transferUnusedReference) {
+    /**
+     * Phase budgets. A fairness allocation of zero skips the fairness phase; reference and repair must search.
+     * {@code unimprovedMs}, when present, also ends the reference and fairness phases once the best score has not
+     * improved for that long; a repair always spends its budget, since it searches for a feasible day.
+     */
+    public record Allocation(long referenceMs, long fairnessMs, long repairMs, boolean transferUnusedReference, @org.jspecify.annotations.Nullable Long unimprovedMs) {
         /** Bounds of a client's chosen search times, in whole seconds. */
         public static final int MIN_COST_SECONDS = 5, MAX_SEARCH_SECONDS = 240;
         /** The allocation used before clients chose their own times: 10 s cost, 5 s fairness, 15 s repair. */
@@ -15,20 +19,34 @@ public final class DailyCalculation {
         public Allocation {
             if (referenceMs < 1 || fairnessMs < 0 || repairMs < 1) throw new IllegalArgumentException("Positive reference and repair allocations required");
             Math.addExact(referenceMs, fairnessMs);
+            if (unimprovedMs != null && (unimprovedMs < 1 || unimprovedMs > referenceMs))
+                throw new IllegalArgumentException("An unimproved limit must be positive and at most the reference phase");
+        }
+        /** Phase budgets without an unimproved limit: every phase spends its whole budget. */
+        public Allocation(long referenceMs, long fairnessMs, long repairMs, boolean transferUnusedReference) {
+            this(referenceMs, fairnessMs, repairMs, transferUnusedReference, null);
         }
         /** A client's cost and fairness search seconds. A repair has one phase, so it may spend both. */
         public static Allocation client(int costSeconds, int fairnessSeconds) {
+            return client(costSeconds, fairnessSeconds, null);
+        }
+        /** As {@link #client(int, int)}, with the client's optional unimproved limit in whole seconds, 1 to the cost search time. */
+        public static Allocation client(int costSeconds, int fairnessSeconds, @org.jspecify.annotations.Nullable Integer unimprovedSeconds) {
             if (costSeconds < MIN_COST_SECONDS || costSeconds > MAX_SEARCH_SECONDS)
                 throw new IllegalArgumentException("Cost search time must be between " + MIN_COST_SECONDS + " and " + MAX_SEARCH_SECONDS + " seconds");
             if (fairnessSeconds < 0 || fairnessSeconds > MAX_SEARCH_SECONDS)
                 throw new IllegalArgumentException("Fairness search time must be between 0 and " + MAX_SEARCH_SECONDS + " seconds");
             if (costSeconds + fairnessSeconds > MAX_SEARCH_SECONDS)
                 throw new IllegalArgumentException("Cost and fairness search time together must be at most " + MAX_SEARCH_SECONDS + " seconds");
+            if (unimprovedSeconds != null && (unimprovedSeconds < 1 || unimprovedSeconds > costSeconds))
+                throw new IllegalArgumentException("Unimproved search time must be between 1 second and the cost search time");
             long cost = costSeconds * 1000L, fairness = fairnessSeconds * 1000L;
-            return new Allocation(cost, fairness, cost + fairness, true);
+            return new Allocation(cost, fairness, cost + fairness, true, unimprovedSeconds == null ? null : unimprovedSeconds * 1000L);
         }
         /** The most search time any mode of this allocation may spend. */
         public long searchMs() { return Math.max(Math.addExact(referenceMs, fairnessMs), repairMs); }
+        /** The unimproved limit of a reference or fairness phase, or null when every phase spends its whole budget. */
+        public java.time.@org.jspecify.annotations.Nullable Duration unimproved() { Long ms = unimprovedMs; return ms == null ? null : Duration.ofMillis(ms); }
     }
     public static Result run(DayPlan baseline, SchedulingPolicy.Rules policy, DailySolver solver) {
         return run(baseline, policy, solver, Allocation.DEFAULT);
@@ -43,7 +61,7 @@ public final class DailyCalculation {
                     (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(Required.value(List.of(new DailySolver.Phase("REPAIR",search.statistics()))))
                             .withPolicy(DailyPolicyDiagnostics.assess(search.plan(),search.plan(),accepted,DailyPolicyDiagnostics.Fairness.NOT_APPLICABLE_REPAIR)));
         }
-        var referenceSearch = solver.solve(baseline,Required.value(Duration.ofMillis(allocation.referenceMs())));
+        var referenceSearch = solver.solve(baseline,Required.value(Duration.ofMillis(allocation.referenceMs())),allocation.unimproved());
         SearchDeadline.checkpoint();
         List<DailySolver.Phase> phases = new ArrayList<>(); phases.add(new DailySolver.Phase("REFERENCE",referenceSearch.statistics()));
         DayPlan solved = referenceSearch.plan();
@@ -67,7 +85,7 @@ public final class DailyCalculation {
             if (allocation.fairnessMs() > 0 && operation != null && operation.canSearch()) {
                 fairnessStatus = DailyPolicyDiagnostics.Fairness.SEARCHED;
                 var fairnessSearch = solver.solve(fairnessSeed,Required.value(Duration.ofMillis(allocation.transferUnusedReference()
-                        ? Math.addExact(allocation.referenceMs(),allocation.fairnessMs()) : allocation.fairnessMs())));
+                        ? Math.addExact(allocation.referenceMs(),allocation.fairnessMs()) : allocation.fairnessMs())),allocation.unimproved());
                 SearchDeadline.checkpoint(); phases.add(new DailySolver.Phase("FAIRNESS",fairnessSearch.statistics()));
                 DayPlan fair = fairnessSearch.plan();
                 fair.setMode(baseline.getMode());

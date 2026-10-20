@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ClientPolicyTest {
     private static final BigDecimal BUDGET = new BigDecimal("0.02");
 
-    private static PublicTypes.Policy policy(String budget) { return new PublicTypes.Policy(new BigDecimal(budget), DailySearch.TABU_KOPT, 10, 5, 4000, 3, null); }
-    private static PublicTypes.Policy searchTimes(int cost, int fairness) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU, cost, fairness, 5000, 2, null); }
-    private static PublicTypes.Policy booking(int deadlineMs, int threshold) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU_KOPT, 10, 5, deadlineMs, threshold, null); }
+    private static PublicTypes.Policy policy(String budget) { return new PublicTypes.Policy(new BigDecimal(budget), DailySearch.TABU_KOPT, 10, 5, 4000, 3, null, null); }
+    private static PublicTypes.Policy searchTimes(int cost, int fairness) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU, cost, fairness, 5000, 2, null, null); }
+    private static PublicTypes.Policy booking(int deadlineMs, int threshold) { return new PublicTypes.Policy(BUDGET, DailySearch.TABU_KOPT, 10, 5, deadlineMs, threshold, null, null); }
 
     @Test void theRulesAreTheClientsOwn() {
         var rules = policy("0.05").rules();
@@ -59,7 +59,7 @@ class ClientPolicyTest {
     }
 
     @Test void theOptionalRefinementBudgetIsAbsentOrBounded() {
-        java.util.function.IntFunction<PublicTypes.Policy> refining = ms -> new PublicTypes.Policy(BUDGET, DailySearch.TABU, 10, 5, 5000, 2, ms);
+        java.util.function.IntFunction<PublicTypes.Policy> refining = ms -> new PublicTypes.Policy(BUDGET, DailySearch.TABU, 10, 5, 5000, 2, ms, null);
         assertNull(booking(5000, 2).bookingRefinementMs(), "absent: the operator's default applies");
         assertEquals(0, refining.apply(0).bookingRefinementMs(), "0 skips the optional refinement");
         assertEquals(PublicTypes.Policy.MAX_BOOKING_REFINEMENT_MS, refining.apply(PublicTypes.Policy.MAX_BOOKING_REFINEMENT_MS).bookingRefinementMs());
@@ -68,10 +68,26 @@ class ClientPolicyTest {
         assertEquals(booking(5000, 2).rules(), refining.apply(100).rules(), "the budget is not part of the calculation rules");
     }
 
+    @Test void theOptionalUnimprovedLimitIsAbsentOrBetweenOneSecondAndTheCostSearch() {
+        java.util.function.IntFunction<PublicTypes.Policy> limited = seconds -> new PublicTypes.Policy(BUDGET, DailySearch.TABU_KOPT, 30, 10, 5000, 2, null, seconds);
+        assertNull(policy("0.02").unimprovedSearchSeconds(), "absent: every search spends its whole time");
+        assertNull(DailyProposals.allocation(policy("0.02")).unimprovedMs());
+        assertEquals(1, limited.apply(1).unimprovedSearchSeconds());
+        assertEquals(30, limited.apply(30).unimprovedSearchSeconds(), "up to the cost search time");
+        assertThrows(IllegalArgumentException.class, () -> limited.apply(0));
+        assertThrows(IllegalArgumentException.class, () -> limited.apply(-1));
+        assertThrows(IllegalArgumentException.class, () -> limited.apply(31), "longer than the cost search it would end");
+        var allocation = DailyProposals.allocation(dev.waterflex.scheduler.Required.value(limited.apply(8)));
+        assertEquals(new DailyCalculation.Allocation(30_000, 10_000, 40_000, true, 8_000L), allocation);
+        assertEquals(Duration.ofSeconds(8), allocation.unimproved());
+        assertThrows(IllegalArgumentException.class, () -> new DailyCalculation.Allocation(1000, 0, 1000, true, 1001L));
+        assertThrows(IllegalArgumentException.class, () -> new DailyCalculation.Allocation(1000, 0, 1000, true, 0L));
+    }
+
     @Test void theTimesBecomePhaseBudgetsAndTheEarlierFixedTimesAreTheDefault() {
         assertEquals(DailyCalculation.Allocation.DEFAULT, DailyProposals.allocation(policy("0.02")));
         assertEquals(new DailyCalculation.Allocation(10_000, 5_000, 15_000, true), DailyCalculation.Allocation.DEFAULT);
-        var costOnly = DailyProposals.allocation(new PublicTypes.Policy(new BigDecimal("0"), DailySearch.TABU, 60, 0, 5000, 2, null));
+        var costOnly = DailyProposals.allocation(new PublicTypes.Policy(new BigDecimal("0"), DailySearch.TABU, 60, 0, 5000, 2, null, null));
         assertEquals(new DailyCalculation.Allocation(60_000, 0, 60_000, true), costOnly);
         assertEquals(60_000, costOnly.searchMs());
     }
@@ -82,6 +98,9 @@ class ClientPolicyTest {
         assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU, DailyCalculation.Allocation.DEFAULT));
         assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 0)));
         assertEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 5)));
+        assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT_SIZE_3, DailyCalculation.Allocation.DEFAULT));
+        assertNotEquals(tabuKopt, DailyProposals.configuration(rules, DailySearch.TABU_KOPT, DailyCalculation.Allocation.client(10, 5, 4)),
+                "an unimproved limit changes results, so it is part of the identity");
         assertNotEquals(tabuKopt, DailyProposals.configuration(booking(4999, 3).rules(), DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT));
         assertNotEquals(tabuKopt, DailyProposals.configuration(booking(4000, 4).rules(), DailySearch.TABU_KOPT, DailyCalculation.Allocation.DEFAULT));
     }

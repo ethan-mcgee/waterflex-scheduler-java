@@ -32,13 +32,17 @@ public final class DailySolver {
         constructionDefinition = construction;
     }
     public SolverEngine.Result solve(DayPlan initial, Duration budget) {
+        return solve(initial, budget, null);
+    }
+    /** One phase; {@code unimproved}, when present, also ends it once the best score has not improved for that long. */
+    public SolverEngine.Result solve(DayPlan initial, Duration budget, java.time.@org.jspecify.annotations.Nullable Duration unimproved) {
         var selected = initial.getUnassignedVisitIds().isEmpty() ? definition : constructionDefinition;
         DailyOperation operation = DailyOperation.current();
-        if (operation == null) return SolverEngine.solve(selected, initial, budget);
+        if (operation == null) return SolverEngine.solve(selected, initial, budget, unimproved);
         Duration allocated = operation.budget(budget);
         try {
             return dev.waterflex.scheduler.SearchDeadline.withoutRequestClock(() -> SolverEngine.solve(selected, initial, allocated,
-                    null, false, new SolverEngine.Cancellation() {
+                    unimproved, null, false, new SolverEngine.Cancellation() {
                         @Override public void started(ai.timefold.solver.core.api.solver.Solver<DayPlan> solver) { operation.started(solver); }
                         @Override public void stopped() { operation.stopped(); }
                         @Override public boolean cancelled() { return operation.isCancelled(); }

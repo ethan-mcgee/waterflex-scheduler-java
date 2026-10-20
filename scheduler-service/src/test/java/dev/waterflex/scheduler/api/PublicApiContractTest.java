@@ -189,6 +189,10 @@ class PublicApiContractTest {
         rejected("string cost search time", request -> { child(snapshot(request), "policy").put("costSearchSeconds", "10"); });
         rejected("negative fairness search time", request -> { child(snapshot(request), "policy").put("fairnessSearchSeconds", -1); });
         rejected("search times over 240 together", request -> { child(snapshot(request), "policy").put("costSearchSeconds", 200).put("fairnessSearchSeconds", 41); });
+        rejected("zero unimproved search time", request -> { child(snapshot(request), "policy").put("unimprovedSearchSeconds", 0); });
+        rejected("negative unimproved search time", request -> { child(snapshot(request), "policy").put("unimprovedSearchSeconds", -1); });
+        rejected("unimproved search longer than the cost search", request -> { child(snapshot(request), "policy").put("costSearchSeconds", 10).put("unimprovedSearchSeconds", 11); });
+        rejected("string unimproved search time", request -> { child(snapshot(request), "policy").put("unimprovedSearchSeconds", "5"); });
         rejected("missing booking deadline", request -> { child(snapshot(request), "policy").remove("bookingDeadlineMs"); });
         rejected("null booking deadline", request -> { child(snapshot(request), "policy").putNull("bookingDeadlineMs"); });
         rejected("booking deadline under one second", request -> { child(snapshot(request), "policy").put("bookingDeadlineMs", 999); });

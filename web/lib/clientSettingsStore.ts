@@ -6,7 +6,7 @@ const columns = {
   regularHourly: true, overtimeHourly: true, mileagePerMile: true, travelBufferPct: true, travelBufferMinutes: true,
   fairnessBudget: true, offerLimit: true, windowHours: true, bookingHorizonWeekdays: true,
   horizonMode: true, horizonLeadWeekdays: true, horizonFullPercent: true,
-  dailySearch: true, costSearchSeconds: true, fairnessSearchSeconds: true, bookingDeadlineMs: true, regularWindowThreshold: true,
+  dailySearch: true, costSearchSeconds: true, fairnessSearchSeconds: true, unimprovedSearchSeconds: true, bookingDeadlineMs: true, regularWindowThreshold: true,
   version: true, updatedAt: true,
 } as const;
 

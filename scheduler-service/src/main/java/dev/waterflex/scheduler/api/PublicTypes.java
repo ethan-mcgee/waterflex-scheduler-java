@@ -84,9 +84,13 @@ public final class PublicTypes {
     /**
      * A client's policy. {@code bookingRefinementMs} is optional (spec 1.3.0): the client's budget for a booking search's
      * optional refinement, 0 to skip it; null means the operator's configured {@code booking.search.refinement-ms}.
+     * {@code unimprovedSearchSeconds} is optional (spec 1.6.0): a daily cost or fairness search also ends once its best
+     * score has not improved for that many seconds, 1 to {@code costSearchSeconds}; null means every search spends its
+     * whole time.
      */
     public record Policy(BigDecimal fairnessBudget, DailySearch dailySearch, Integer costSearchSeconds, Integer fairnessSearchSeconds,
-                         Integer bookingDeadlineMs, Integer regularWindowThreshold, @Nullable Integer bookingRefinementMs) {
+                         Integer bookingDeadlineMs, Integer regularWindowThreshold, @Nullable Integer bookingRefinementMs,
+                         @Nullable Integer unimprovedSearchSeconds) {
         /** Bounds of a client's booking deadline, in milliseconds; the upper one is the latency target. */
         public static final int MIN_BOOKING_DEADLINE_MS = 1000, MAX_BOOKING_DEADLINE_MS = 5000;
         /** A threshold above every window a 21-date horizon of whole-hour windows can hold, so any real choice fits. */
@@ -106,6 +110,7 @@ public final class PublicTypes {
             Input.integer(bookingDeadlineMs, "policy.bookingDeadlineMs", MIN_BOOKING_DEADLINE_MS, MAX_BOOKING_DEADLINE_MS);
             Input.integer(regularWindowThreshold, "policy.regularWindowThreshold", 0, MAX_REGULAR_WINDOW_THRESHOLD);
             if (bookingRefinementMs != null) Input.integer(bookingRefinementMs, "policy.bookingRefinementMs", 0, MAX_BOOKING_REFINEMENT_MS);
+            if (unimprovedSearchSeconds != null) Input.integer(unimprovedSearchSeconds, "policy.unimprovedSearchSeconds", 1, cost);
         }
 
         /** The calculation's policy rules, all from this client. */

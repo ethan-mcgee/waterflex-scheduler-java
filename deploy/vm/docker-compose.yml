@@ -34,6 +34,7 @@ x-scheduler-runtime: &scheduler-runtime
   SCHEDULER_CALCULATION_URL: ${SCHEDULER_CALCULATION_URL:-}
   SCHEDULER_CALCULATION_AUTH_TOKEN: ${SOLVER_AUTH_TOKEN:-}
   LOGGING_STRUCTURED_FORMAT_CONSOLE: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:-ecs}
+  TIMEFOLD_LOG_LEVEL: ${TIMEFOLD_LOG_LEVEL:-WARN}
 
 # A replica is ready when its /health answers 200 (database, schema and every metro's routing up). Its ports are not
 # published: the API is reached through scheduler-proxy, metrics through Prometheus on this network.
@@ -220,6 +221,7 @@ services:
       SOLVER_CAPACITY: ${SOLVER_CAPACITY:-4}
       SOLVER_QUEUE_LIMIT: ${SOLVER_QUEUE_LIMIT:-16}
       SOLVER_BACKGROUND_LIMIT: ${SOLVER_BACKGROUND_LIMIT:-0}
+      TIMEFOLD_LOG_LEVEL: ${TIMEFOLD_LOG_LEVEL:-WARN}
     expose: ["8002"]
     deploy:
       resources:

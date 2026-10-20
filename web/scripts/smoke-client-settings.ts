@@ -9,7 +9,7 @@ import { loadSolverSettings, storeSolverSettings } from "../lib/clientSettingsSt
 
 const clientId = `settings-it-${randomUUID()}`;
 const input = { regularHourly: "30", overtimeHourly: "45", mileagePerMile: "0.67", travelBufferPercent: "20",
-  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED" as const, horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
+  travelBufferMinutes: 5, fairnessBudgetPercent: "2", offerLimit: 4, windowHours: 4, bookingHorizonWeekdays: 10, horizonMode: "FIXED" as const, horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT" as const, costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2 };
 
 async function main() {
   await prisma.client.create({ data: { id: clientId, name: "Settings smoke" } });
@@ -40,12 +40,14 @@ async function main() {
       ["costSearchSeconds", 4], ["costSearchSeconds", 241], ["fairnessSearchSeconds", -1], ["fairnessSearchSeconds", 241],
       ["bookingDeadlineMs", 999], ["bookingDeadlineMs", 5001], ["regularWindowThreshold", -1], ["regularWindowThreshold", 1001],
       ["horizonMode", "ROLLING"], ["horizonMode", "dynamic"], ["horizonLeadWeekdays", 0], ["horizonLeadWeekdays", 6],
-      ["horizonFullPercent", 49], ["horizonFullPercent", 101]] as const) {
+      ["horizonFullPercent", 49], ["horizonFullPercent", 101], ["unimprovedSearchSeconds", 0], ["unimprovedSearchSeconds", 241]] as const) {
       await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = ${value} WHERE "clientId" = ${clientId}`,
         `The database rejects ${column} = ${value}`);
     }
     await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "costSearchSeconds" = 200, "fairnessSearchSeconds" = 41 WHERE "clientId" = ${clientId}`,
       "The database rejects search times over 240 seconds together");
+    await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "costSearchSeconds" = 10, "unimprovedSearchSeconds" = 11 WHERE "clientId" = ${clientId}`,
+      "The database rejects an unimproved limit longer than the cost search");
     await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "dailySearch" = NULL WHERE "clientId" = ${clientId}`,
       "The database rejects a missing search method");
     await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "bookingDeadlineMs" = NULL WHERE "clientId" = ${clientId}`,
@@ -53,7 +55,11 @@ async function main() {
     for (const column of ["horizonMode", "horizonLeadWeekdays", "horizonFullPercent"])
       await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET ${Prisma.raw(`"${column}"`)} = NULL WHERE "clientId" = ${clientId}`,
         `The database rejects a missing ${column}`);
-    const dynamic = await storeSolverSettings(clientId, 2, { ...input, horizonMode: "DYNAMIC", bookingHorizonWeekdays: 15, horizonLeadWeekdays: 3, horizonFullPercent: 90 });
+    const limited = await storeSolverSettings(clientId, 2, { ...input, dailySearch: "TABU_KOPT_SIZE_3", unimprovedSearchSeconds: 6 });
+    assert.ok("saved" in limited && limited.saved.dailySearch === "TABU_KOPT_SIZE_3" && limited.saved.unimprovedSearchSeconds === 6,
+      "TABU_KOPT_SIZE_3 and an unimproved limit save");
+    assert.equal(publicPolicy(limited.saved).unimprovedSearchSeconds, 6);
+    const dynamic = await storeSolverSettings(clientId, 3, { ...input, horizonMode: "DYNAMIC", bookingHorizonWeekdays: 15, horizonLeadWeekdays: 3, horizonFullPercent: 90 });
     assert.ok("saved" in dynamic && dynamic.saved.horizonMode === "DYNAMIC" && dynamic.saved.horizonLeadWeekdays === 3 && dynamic.saved.horizonFullPercent === 90,
       "A dynamic horizon saves its cap, lead and full share");
     await assert.rejects(prisma.$executeRaw`UPDATE client_solver_settings SET "regularWindowThreshold" = NULL WHERE "clientId" = ${clientId}`,

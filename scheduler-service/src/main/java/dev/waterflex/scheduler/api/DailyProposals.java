@@ -448,9 +448,9 @@ public class DailyProposals {
                 plan.getUnassignedVisitIds(), outcome.prepared().skipped(), evaluation.costCents(), 0);
     }
 
-    /** The phase budgets of the client's chosen search times. */
+    /** The phase budgets of the client's chosen search times, with its unimproved limit when it set one. */
     static DailyCalculation.Allocation allocation(PublicTypes.Policy client) {
-        return DailyCalculation.Allocation.client(client.costSearchSeconds(), client.fairnessSearchSeconds());
+        return DailyCalculation.Allocation.client(client.costSearchSeconds(), client.fairnessSearchSeconds(), client.unimprovedSearchSeconds());
     }
 
     /** The identity of everything that shapes the search besides the snapshot: policy rules, method and phase budgets. */
