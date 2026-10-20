@@ -785,7 +785,8 @@ commits and pinned with `SCHEDULER_IMAGE` (`infra/run-stack-verification.ps1`,
 - **before** `cdd19a6`: main's decimal variance objective, with the study receipt added.
 - **after** `68828b5`: option b (score model v3).
 
-Both ran the same daily proposals: 10 s cost and 5 s fairness search, 3 visits per technician, cold roads.
+Both ran the same daily proposals: 10 s cost and 5 s fairness search, 3 visits per technician, the kit's policy (`TABU`,
+`fairnessBudget` 0, so each proposal's cost ceiling is its reference plan's cost).
 - **Step 1:** one planner, synchronous, 4 proposals for each fleet and points seed.
 - **Step 2:** two planners queuing on 20 technicians, 12 proposals, the daily pool's shape (background limit 2 on
   2 CPUs).
@@ -803,9 +804,10 @@ are this stack's, not the harness's.
 | 20, queued, 2 planners | 1.03x | **3.42x** | one run each | 12 of 12 improved, both | 18.1 s, both; queue wait p50 3 ms |
 
 - **The fairness phase evaluates 2.4x to 5.9x more moves per second, and the gain grows with the fleet.** The before
-  image's fairness phase falls from 2.5 times slower than its own reference phase at 10 technicians to 6.4 times
+  image's fairness phase falls from 2.6 times slower than its own reference phase at 10 technicians to 6.4 times
   slower at 50, because every move recomputes the decimal variance over the whole fleet. With b the two phases run
-  within 10 percent of each other at every size. The harness's 5.20x sits inside this range.
+  within 10 percent of each other at every size. On the harness b ran 2.79x at 10 technicians and 7.10x at 50
+  (5.20x over all its fleets); the stack follows the same growth, a little lower at each size.
 - **The reference phase is unchanged** (0.99x to 1.03x): it does not score fairness.
 - **Same or fairer plans, never dearer.** Neither image proposed a plan over its cost ceiling. Where the fairness
   phase found nothing to change (10 technicians, two of three seeds at 20), both images proposed the same plan to the
@@ -824,6 +826,15 @@ are this stack's, not the harness's.
 - **The calls take as long as before, by design.** A daily proposal searches for a fixed 15 s, so b buys more search
   in the same time, not a shorter call. Queued proposals waited 3 ms (p50, 8 ms max) on both images. No run had a
   contract breach or a host anomaly, and every proposal answered 201.
+- **Roads were cold only for the first image of each pair.** The leg cache is the database's `road_route_cache`,
+  which survived the switch of images, so the second image routed from cache (step 1's after runs and step 2's before
+  run fetched no pairs). Moves per second and plans are unaffected, since the search runs its fixed time after
+  routing; the slowest calls are not comparable (before's 50-technician maximum of 31 s is routing). The next
+  verification clears the cache before every run.
+- **Policy.** The kit's `TABU` search with no allowance is not the example client policy (`TABU_KOPT`, 0.02). b changes
+  only the fairness constraint, which every search variant scores the same way, so the speed result carries over; the
+  quality result holds under zero allowance, a stricter test. A short rerun with the client policy is the next step to
+  confirm it.
 
 **Verdict:** option b holds on the stack. PR #189 ships it.
 
