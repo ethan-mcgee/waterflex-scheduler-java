@@ -27,7 +27,7 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `SCHEDULER_SEARCH_CAPACITY` | No | Concurrent searches per replica. 0 means 2, or 1 on a one-processor machine. |
 | `SCHEDULER_DB_POOL_SIZE` | No | Database connections per replica, default 10. It must exceed the search capacity plus the confirm slots, with headroom for refinements and route fetches (a search holds a connection while its routes and refinement take more); the replica refuses to start otherwise. Capacity plus 6 is a safe size. |
 | `SCHEDULER_BOOKING_PUBLISH_RESERVE_MS` | No | The part of a client's `bookingDeadlineMs` a booking search keeps back from exploration to validate, prepare and publish its offers, 800 to 1000, default 1000. The request log's `commitMs` says how much of it each search used. |
-| `SCHEDULER_BOOKING_REFINEMENT_MS` | No | The operator's cap on an optional booking refinement, 0 to 3000, default 250; a client's `policy.bookingRefinementMs` replaces it. |
+| `SCHEDULER_BOOKING_REFINEMENT_MS` | No | The operator's cap on an optional booking refinement, 0 to 3000, default 2000 (250 before 2026-10-20); a client's `policy.bookingRefinementMs` replaces it. |
 | `SCHEDULER_SEARCH_CONFIRM_SLOTS` | No | Slots beyond the search capacity that only confirms may take, 0 to the capacity, default 1: a confirm (a few milliseconds of work) then never waits for a running search to finish. Confirms also start before any waiting search. |
 | `SCHEDULER_SEARCH_BACKGROUND_LIMIT` | No | Daily and repair calculations this replica runs at once, 1 (default) to the search capacity. Raise it only on daily replicas. |
 | `SCHEDULER_DAILY_QUEUE_WORKERS` | No | Workers taking queued daily and repair proposals on this replica, default 1; set it to the background limit. 0 leaves the queue to other replicas, as does `SCHEDULER_ROLE=booking`. |
@@ -186,6 +186,33 @@ To restore, stop `scheduler-service`, restore the dump into an empty `scheduler`
 3. Replica roles: a booking pool and a daily pool of the same jar behind one address (see "Replica roles"), each scaled on its own.
 4. `REMOTE` calculation with a solver pool, so solving scales apart from the API.
 5. More routing capacity for a busy metro: run more replicas of its routing service on the same map version and list them in `ROUTING_METRO_URLS` separated by `|`. The scheduler spreads routing calls over them and shares one route cache for the metro. A replica that cannot be reached, answers 5xx or reports another routing identity is left out for 5 seconds at a time while the others answer, so a map switch can be rolled one replica at a time. `routing:<metro>` stays up while any replica answers, and its detail says how many are in rotation.
+
+## Availability
+
+The VM layout (`deploy/vm/docker-compose.yml`) fails over only where it runs more than one of a thing. The rest is
+single, and the scheduler answers the host in a way that lets it retry safely while that part is restored.
+
+| Part | How many | When it stops | What the host sees | Recovery |
+| --- | --- | --- | --- | --- |
+| `scheduler-proxy` (nginx) | One | Every call fails at the connection. | Connection refused or reset. | Restart it; nothing is lost, since calls never reached a replica. |
+| A scheduler replica | One or more per pool | The proxy stops sending it calls within 10 seconds. A synchronous call it was serving is lost; a queued day it was running is taken by another replica's worker once its lease passes (at most three attempts). | The call in progress fails or times out; later calls go to the other replicas. | None needed with two or more replicas per pool. With one, start it again. |
+| Postgres (`scheduler-db`) | One | Nothing can be claimed, published or committed. Work in a transaction is rolled back, never half written. | 503 with `database` down in `/health`. Until the follow-up in HANDOFF is fixed, the token check before a call may answer a bare 500 instead; treat it as retryable. | Restore the database. Claims resume when their leases expire. |
+| Routing service | One per metro, or several listed with `\|` | Calculating calls for that metro cannot route. Other metros are unaffected. With several replicas, the others carry the metro. | 503 with `routing:<metro>` down. | Start it; loading a graph takes minutes. The in-memory route cache refills from the database cache, which is keyed by routing identity and survives. |
+| Nominatim (`GEOCODING_MODE=NOMINATIM` only) | One | Address-only locations cannot be located. Calls that send coordinates are unaffected. | 503 for a call with an address-only location, and the address lookup component down in `/health`. | Start it. |
+| Solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE` only) | One service, any number of replicas | Calculations on the replicas that use it cannot run. | 503 with `calculation` down. | Start it, or switch that pool back to `EMBEDDED`. |
+
+**The host's retry contract.** After a connection failure, a timeout, a 429 or a 503, send the same call again with the
+same `requestId` after `Retry-After` (or a short backoff without one). A finished request replays its stored answer, a
+claim still running elsewhere answers 429 `BUSY` (wait and repeat it), and a claim whose replica died is taken over when its lease
+expires, so a retry never books or commits twice. Only a 409 `STALE` needs a new snapshot and a new `requestId`.
+
+**CPU sizing.** The compose CPU limits are ceilings, not reservations, so the pools can be given more than the VM has.
+The defaults already add up past an 8 vCPU VM: booking 2, daily 2, routing 2, Nominatim 2, Postgres 1 and the proxy 0.5
+(9.5), plus 4 for a remote solver pool. The booking layout docs/api-load.md recommends, one replica with as many slots
+as vCPU, makes it larger again at 4 vCPU. Nothing fails when the caps exceed the cores, but under simultaneous booking,
+daily and routing load the pools share the cores, and each pool's measured latency no longer holds. Before onboarding
+a large fleet, either keep the caps of the pools that run together within the vCPU (leaving one for Postgres and the
+proxy), or measure the combined load on the VM rehearsal stack.
 
 ## Replica roles
 

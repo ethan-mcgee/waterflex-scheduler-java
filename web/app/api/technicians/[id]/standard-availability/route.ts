@@ -5,6 +5,7 @@ import { activeClient } from "@/lib/activeClient";
 import { readBody, updateStandardWeekRequest } from "@/lib/contracts";
 import { addCalendarDays, calendarDateInTz, todayInTz } from "@/lib/date";
 import { nextTemplateEffectiveDate, resolveWeeklyDay, validateVersions } from "@/lib/technicianAvailability";
+import { loadSolverSettings } from "@/lib/clientSettingsStore";
 
 const CHICAGO = "America/Chicago";
 const dayStamp = (date: string) => new Date(`${date}T00:00:00Z`);
@@ -29,8 +30,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const parsed = await readBody(request, updateStandardWeekRequest);
   if (!parsed.success) return NextResponse.json({ error: "Invalid seven-day availability" }, { status: 400 });
   const clientId = (await activeClient(request)).id;
+  // The change starts after the furthest weekday customers can book, which is the client's own horizon cap.
+  const settings = await loadSolverSettings(clientId);
+  if (settings === null)
+    return NextResponse.json({ error: "This client has no solver settings, so its booking horizon is unknown; save them first" }, { status: 409 });
   const now = new Date();
-  const effectiveDate = nextTemplateEffectiveDate(now);
+  const effectiveDate = nextTemplateEffectiveDate(settings.bookingHorizonWeekdays, now);
   const today = todayInTz(CHICAGO, now);
   try {
     await prisma.$transaction(async tx => {
