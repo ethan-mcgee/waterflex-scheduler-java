@@ -19,9 +19,17 @@ test("weekly versions select by calendar date and preserve weekend hours", () =>
 });
 
 test("tenth weekday horizon counts intervening weekends and daylight saving dates", () => {
-  assert.equal(nextTemplateEffectiveDate(new Date("2026-10-23T17:00:00Z")), "2026-11-07");
-  assert.equal(nextTemplateEffectiveDate(new Date("2026-10-30T17:00:00Z")), "2026-11-14");
-  assert.equal(nextTemplateEffectiveDate(new Date("2026-03-06T18:00:00Z")), "2026-03-21");
+  assert.equal(nextTemplateEffectiveDate(10, new Date("2026-10-23T17:00:00Z")), "2026-11-07");
+  assert.equal(nextTemplateEffectiveDate(10, new Date("2026-10-30T17:00:00Z")), "2026-11-14");
+  assert.equal(nextTemplateEffectiveDate(10, new Date("2026-03-06T18:00:00Z")), "2026-03-21");
+});
+
+test("the effective date follows the client's horizon cap, and an invalid cap is refused", () => {
+  // From Friday 2026-10-23 in Chicago: 15 weekdays end on Friday 2026-11-13, so the change starts the day after.
+  assert.equal(nextTemplateEffectiveDate(15, new Date("2026-10-23T17:00:00Z")), "2026-11-14");
+  // One weekday: Monday 2026-10-26 is the last bookable weekday.
+  assert.equal(nextTemplateEffectiveDate(1, new Date("2026-10-23T17:00:00Z")), "2026-10-27");
+  for (const cap of [0, 16, 2.5, Number.NaN]) assert.throws(() => nextTemplateEffectiveDate(cap, new Date("2026-10-23T17:00:00Z")), /horizon cap/);
 });
 
 test("malformed weeks and technician profiles fail validation", () => {

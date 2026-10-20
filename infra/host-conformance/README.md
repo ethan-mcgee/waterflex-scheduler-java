@@ -114,7 +114,7 @@ npx tsx load.ts --url http://127.0.0.1:8000 --token-file ./conformance.token --m
 - `--window-threshold` sets the policy's `regularWindowThreshold` (default 2). A search whose first pass finds no more
   distinct regular windows than the threshold must run the refinement, which is then never shed and never capped;
   1000 makes every refinement required. `--refinement-ms` sets the policy's `bookingRefinementMs`, the cap on an
-  optional refinement (0 to 3000); without it the scheduler's configured cap applies (250 unless changed). The report
+  optional refinement (0 to 3000); without it the scheduler's configured cap applies (2000 unless changed). The report
   counts SHORTENED refinements by what stopped them (`CAP` or `DEADLINE`) and the first pass's distinct regular window
   counts (`regularWindowsFound`), the number the threshold is compared with.
 - `--scheduler-log <container,...>` (both tools) reads the named scheduler containers' request log for the run with
