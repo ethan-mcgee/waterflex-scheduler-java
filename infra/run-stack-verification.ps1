@@ -42,6 +42,9 @@ param(
     [ValidateRange(5, 120)][int]$CostSeconds = 10,
     [ValidateRange(1, 120)][int]$FairnessSeconds = 5,
     [ValidateRange(1, 4)][int]$Appointments = 3,
+    # The client's example policy: TABU_KOPT with a 2 percent fairness allowance (the kit's own default is TABU with none).
+    [ValidateSet('TABU', 'TABU_KOPT', 'TABU_KOPT_SIZE_3')][string]$DailySearch = 'TABU_KOPT',
+    [ValidatePattern('^(0(\.\d+)?|1(\.0+)?)$')][string]$FairnessBudget = '0.02',
     # The development routing service's cap for the run (the VM's partition).
     [ValidateRange(1, 16)][int]$RoutingCpus = 2,
     [string]$RunsDirectory = '.scratch/stack-verification',
@@ -203,7 +206,8 @@ $routingCapped = $false
 $token = Join-Path $repository $TokenFile
 $quoted = { param($arguments) , @($arguments | ForEach-Object { if ($_ -match '[\s"]') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }) }
 $common = @('--url', $Url, '--metro', $Metro, '--time-zone', $TimeZone, '--area', $Area, '--scenario', 'daily',
-    '--cost-seconds', "$CostSeconds", '--fairness-seconds', "$FairnessSeconds", '--appointments', "$Appointments", '--duration-s', '3600')
+    '--cost-seconds', "$CostSeconds", '--fairness-seconds', "$FairnessSeconds", '--daily-search', $DailySearch, '--fairness-budget', $FairnessBudget,
+    '--appointments', "$Appointments", '--duration-s', '3600')
 $index = 0
 $skipped = 0
 $tokenChecked = $false
@@ -291,7 +295,7 @@ if ($problems.Count -gt 0) { throw "Runs the evidence cannot use (remove their d
     study = 'Stack verification: the same daily proposals on images built from two commits, on the VM rehearsal through the public API'
     stack = 'deploy/vm rehearsal (proxy, booking and daily pools, VM compute caps; the development routing service capped to the VM partition), shipped routing and admission defaults, embedded calculation'
     images = $images
-    protocol = "Step 1: 1 planner, synchronous, fleets $($fleetList -join ', ') technicians x $Appointments visits, points seeds $($seedList -join ', '), $Proposals proposals each. Step 2: $AsyncPlanners planners queuing (respond-async), $AsyncFleet technicians, seed $AsyncSeed, $AsyncProposals proposals. Search $CostSeconds s cost + $FairnessSeconds s fairness. Roads cold at each run's start, never warmed. Order: step 1 before then after, step 2 after then before. Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds.$(if ($profiles) { ' Every phase of every proposal flight-recorded on the JDK profile configuration (SCHEDULER_STUDY_PROFILES); the profiles block attributes each calculation thread''s samples.' } else { '' })"
+    protocol = "Step 1: 1 planner, synchronous, fleets $($fleetList -join ', ') technicians x $Appointments visits, points seeds $($seedList -join ', '), $Proposals proposals each. Step 2: $AsyncPlanners planners queuing (respond-async), $AsyncFleet technicians, seed $AsyncSeed, $AsyncProposals proposals. Search $CostSeconds s cost + $FairnessSeconds s fairness, $DailySearch, fairness budget $FairnessBudget. Roads cold at each run's start, never warmed. Order: step 1 before then after, step 2 after then before. Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds.$(if ($profiles) { ' Every phase of every proposal flight-recorded on the JDK profile configuration (SCHEDULER_STUDY_PROFILES); the profiles block attributes each calculation thread''s samples.' } else { '' })"
     runnerRevision = (git -C $repository rev-parse HEAD).Trim()
     runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
     containersVerified = $verified
