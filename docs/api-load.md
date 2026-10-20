@@ -712,6 +712,15 @@ vCPU. Half schedules were not rerun after the horizon fix, so their quality figu
 tenant, and a measured run before onboarding a fleet over 30 technicians; the share of refinement `UNAVAILABLE`; and
 the refinement outcome mix per tenant against this study's.
 
+**Adopted 2026-10-20:** the scheduler's default optional refinement cap (`SCHEDULER_BOOKING_REFINEMENT_MS`) is 2000 ms,
+the owner's choice between the two figures above: within $0.79 mean of uncapped on long horizons, with less deadline
+pressure than 3000. Both compose files pass the setting to the booking pool. A client's `bookingRefinementMs` still
+replaces it.
+
+**Sizing caveat:** one booking replica with as many slots as vCPU is measured on the booking pool alone. On the
+8 vCPU VM, that layout at 4 vCPU plus the daily pool, routing, Nominatim and Postgres caps add up to more than the
+VM's cores, so combined load shares them (runbook, "Availability").
+
 ## Service shell probes (S)
 
 Two short probes from `infra/run-shell-probes.ps1`, run on 2026-10-19 on the local compose stack with Omaha routing

@@ -64,7 +64,7 @@ Each pool scales on its own, by replica count and by each replica's share (`.env
 - **Booking** (`SCHEDULER_BOOKING_REPLICAS`, `_CPUS`, `_MEMORY`, `_SEARCH_CAPACITY`): add replicas when booking p95 nears the client's deadline or `scheduler_admission_rejections_total` rises on booking replicas. Keep the search capacity at about the replica's cores.
 - **Daily** (`SCHEDULER_DAILY_REPLICAS`, `_CPUS`, `_MEMORY`, `_SEARCH_CAPACITY`, `SCHEDULER_DAILY_BACKGROUND_LIMIT`): add replicas, or raise the background limit up to the search capacity with the cores to match, when queued days wait long (from `queuedAt` to `startedAt` in `GET /api/v1/requests/{id}`) or `scheduler_daily_queue_expired_total` rises.
 
-The proxy finds new replicas within 10 seconds without a restart. A replica stopped while it runs a queued day leaves it to another replica once its lease passes; a synchronous call it was running fails at the caller, who repeats it with the same `requestId`.
+What is single on this VM, what happens when each part stops, and the host's retry contract are in the runbook's "Availability" section ([docs/operations-runbook.md](../../docs/operations-runbook.md)), with the CPU sizing caveat. The proxy finds new replicas within 10 seconds without a restart. A replica stopped while it runs a queued day leaves it to another replica once its lease passes; a synchronous call it was running fails at the caller, who repeats it with the same `requestId`.
 
 ## Another metro
 

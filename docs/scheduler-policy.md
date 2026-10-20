@@ -36,7 +36,7 @@ Repair proposals must also have zero overtime at preview and apply. Overtime is 
 
 ## Search and reservation lifecycle
 
-Search loads immutable full-horizon facts, route baselines, effective intervals, configuration, schedule/reservation versions and routing identity. Candidate and solver move scoring perform no database or network operations. Sparse routing is fetched between search phases. The regular search starts with insertion, then uses same-date relocation, pair swaps and reversal when scarcity needs further investigation. Defaults are six promising routes including least-utilized eligible capacity, depth two, beam eight and 500 arrangements per window. Work proceeds in horizon rounds. Optional fairness refinement after abundant insertion choices has a separate 250 ms cooperative limit within the original deadline.
+Search loads immutable full-horizon facts, route baselines, effective intervals, configuration, schedule/reservation versions and routing identity. Candidate and solver move scoring perform no database or network operations. Sparse routing is fetched between search phases. The regular search starts with insertion, then uses same-date relocation, pair swaps and reversal when scarcity needs further investigation. Defaults are six promising routes including least-utilized eligible capacity, depth two, beam eight and 500 arrangements per window. Work proceeds in horizon rounds. Optional fairness refinement after abundant insertion choices has a separate cooperative limit (2000 ms by default) within the original deadline.
 
 A persisted metro/date arrangement supports confirmed appointments and every active conservative hold placeholder together. Offers can depend on pending reorder/reassignment without immediately moving confirmed appointments. Dependencies protect technicians, services and dated endpoints needed by that common arrangement. Ordinary batch optimization remains blocked by relevant holds.
 
@@ -79,7 +79,7 @@ Spring properties can be supplied as command-line arguments or their standard en
 | Property | Default / purpose |
 | --- | --- |
 | `booking.search.variant` | `BOUNDED`; the booking search variant (bounded rearrangement after insertion) |
-| `booking.search.refinement-ms` | 250 (`SCHEDULER_BOOKING_REFINEMENT_MS`); optional abundant-capacity refinement, range 0..3000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued |
+| `booking.search.refinement-ms` | 2000 (`SCHEDULER_BOOKING_REFINEMENT_MS`, 250 before 2026-10-20); optional abundant-capacity refinement, range 0..3000; a client's `policy.bookingRefinementMs` replaces it, and it is skipped while booking requests are queued |
 | `booking.search.publish-reserve-ms` | 1000 (`SCHEDULER_BOOKING_PUBLISH_RESERVE_MS`); the part of a client's `bookingDeadlineMs` kept back from exploration to validate, prepare and publish the offers, range 800..1000; the request log's `commitMs` says how much of it a search used |
 | `scheduler.search.capacity` | 0 selects CPU-aware one/two default |
 | `scheduler.search.queue-limit` | 16; bounded queue |

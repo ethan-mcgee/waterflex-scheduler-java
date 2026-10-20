@@ -17,13 +17,19 @@ export function initialAvailability(shiftStartMin: number, shiftEndMin: number) 
 
 export function dayOfWeek(date: string): number { return new Date(`${date}T00:00:00Z`).getUTCDay(); }
 
-export function nextTemplateEffectiveDate(now = new Date()): string {
+/**
+ * The first date a weekly availability change takes effect: the day after the furthest weekday a customer can already
+ * book, so no offered date changes underneath a booking. `capWeekdays` is the client's booking horizon cap
+ * (`bookingHorizonWeekdays`, the fixed length or the dynamic horizon's limit), 1 to 15 weekdays from tomorrow.
+ */
+export function nextTemplateEffectiveDate(capWeekdays: number, now = new Date()): string {
+  if (!Number.isInteger(capWeekdays) || capWeekdays < 1 || capWeekdays > 15) throw new Error("Invalid booking horizon cap");
   let date = addCalendarDays(todayInTz("America/Chicago", now), 1);
   let weekdays = 0;
-  while (weekdays < 10) {
+  while (weekdays < capWeekdays) {
     const weekday = dayOfWeek(date);
     if (weekday >= 1 && weekday <= 5) weekdays++;
-    if (weekdays < 10) date = addCalendarDays(date, 1);
+    if (weekdays < capWeekdays) date = addCalendarDays(date, 1);
   }
   return addCalendarDays(date, 1);
 }

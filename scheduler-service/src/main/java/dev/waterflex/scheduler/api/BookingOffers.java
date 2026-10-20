@@ -106,7 +106,7 @@ public class BookingOffers {
     @Autowired
     public BookingOffers(PublicApiStore store, BookingStore bookings, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
                          SearchAdmission admission, RunningRequests running,
-                         @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:250}") int refinementMillis,
+                         @Value("${booking.search.variant:BOUNDED}") String variant, @Value("${booking.search.refinement-ms:2000}") int refinementMillis,
                          @Value("${booking.search.publish-reserve-ms:1000}") int publishReserveMillis) {
         this(store, bookings, routing, locator, transport, admission, running, variant, refinementMillis, publishReserveMillis, Required.value(Clock.systemUTC()));
     }

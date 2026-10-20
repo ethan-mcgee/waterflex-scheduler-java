@@ -237,6 +237,20 @@ class BookingOffersRefinementTest {
         }
     }
 
+    /** The operator's default cap is 2000 ms (2026-10-20) in both places it is written, so the two cannot drift apart. */
+    @Test void theDefaultOptionalRefinementCapIsTwoSecondsInThePropertiesAndTheBean() throws Exception {
+        var properties = new java.util.Properties();
+        try (var stream = Required.value(BookingOffers.class.getResourceAsStream("/application.properties"))) { properties.load(stream); }
+        assertEquals("${SCHEDULER_BOOKING_REFINEMENT_MS:2000}", properties.getProperty("booking.search.refinement-ms"));
+        var injected = java.util.Arrays.stream(BookingOffers.class.getConstructors())
+                .filter(constructor -> constructor.isAnnotationPresent(org.springframework.beans.factory.annotation.Autowired.class))
+                .flatMap(constructor -> java.util.Arrays.stream(constructor.getParameters()))
+                .map(parameter -> parameter.getAnnotation(org.springframework.beans.factory.annotation.Value.class))
+                .filter(java.util.Objects::nonNull).map(value -> Required.value(value).value())
+                .filter(value -> value.startsWith("${booking.search.refinement-ms:")).toList();
+        assertEquals(java.util.List.of("${booking.search.refinement-ms:2000}"), injected, "the bean's fallback matches the shipped default");
+    }
+
     @Test void theInsertionVariantSkipsTheRefinementAndIsCompleteWhenItsPassIs() {
         var fixture = refining(REQUIRED, "INSERTION", output -> output);
         var searched = fixture.offers.calculate(fixture.roads, fixture.input.snapshot(), fixture.input.request(), BUDGET_MS);
