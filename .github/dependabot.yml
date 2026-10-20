@@ -26,6 +26,11 @@ updates:
     groups:
       maven-dependencies:
         patterns: ['*']
+    ignore:
+      # Timefold moves by hand, never inside the weekly group: SolverEngine.INSTRUMENTED_TIMEFOLD pins the instrumentation
+      # to one release, SolverEngineTest fails on any other, and a remote solver pool must run the same artifact as the
+      # scheduler (runbook, "Start, stop and upgrade": a new solver pool beside the old one first).
+      - dependency-name: 'ai.timefold.solver:*'
   - package-ecosystem: docker
     directories: [/web, /scheduler-service, /routing-service, /infra/map-import]
     schedule:
