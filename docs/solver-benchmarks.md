@@ -129,6 +129,34 @@ Next candidates, from the profile after T:
 - **Identity lookups.** `MapN.probe` (one identity-to-number probe per visit per scored route) is the largest leaf after T, at 21.5 percent of cost-phase samples. Holding each entity's road number on the entity would remove it, with `ScoringExactnessTest` as the gate.
 - **Not named by this profile.** The whole-route re-walk (CR11) and nearby selection did not show as leading costs, so neither is next.
 
+## Variance formula, option (b) (PR 187)
+
+The representation study put the fairness phase's decimal cost in the variance formula, not the score type. Option (b) keeps the production `BendableBigDecimalScore` and every other level as they are. It computes the variance in binary64 and carries it as its rounded units of 1e-9 (`BinaryVarianceConstraintProvider`, variant `TABU_KOPT_BINARY_VARIANCE`, experiment-only). That is the numeric contract's representation, so the tie tolerance is the same one unit.
+
+Equivalence, before any timing (`ScoreRepresentationTest`):
+- Every level but the variance equals the decimal score.
+- The variance level equals the long score's units exactly.
+- Every pair of plans is ranked as the long score ranks them.
+- A step-limited search takes the same moves as the long score in the fairness phase, and the same moves as production in the cost phase.
+- `FULL_ASSERT` passes.
+
+The run is `infra/run-variance-study.ps1`, which the owner starts. It freezes one tree (commit `fd3e191`, which carries the nanosecond timing of #186) with three arms in every JVM, their order rotating from case to case:
+- baseline: `TABU_KOPT`, the production search
+- b: `TABU_KOPT_BINARY_VARIANCE`
+- T+S: `TABU_KOPT_LONG_SCORE`, for comparison
+
+It uses the representation study's 24 cases and two repetitions at two budgets. 15 s is the production default, with 10 s of cost search and 5 s of fairness. 60 s (40 s and 20 s) shows whether the gain holds when the fairness search has room. A JFR pass at 15 s follows. `infra/variance_study.py` pairs and judges each budget.
+
+The bars were set by the owner before the run (2026-10-20). Option (b) is promoted only if every one holds at both budgets:
+- **Speed:** median fairness-phase moves per second at least 1.25x the baseline.
+- **Fairness:** no case less fair than the baseline beyond that case's own spread between repetitions.
+- **Cost:** the median per-case cost difference is not above zero. A case may be dearer if the median is not, because the fairness phase may spend its allowance on fairness.
+- **Ceiling:** every accepted result inside its cost ceiling, with zero violations.
+
+T+S is reported against the same bars for comparison.
+
+Results: pending the owner's run. Evidence will be `docs/evidence/solver-variance-<date>.json`.
+
 ## Measured configuration choice
 
 [Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41. The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations. Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
