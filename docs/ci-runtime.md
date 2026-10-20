@@ -29,6 +29,15 @@ revision ran time-off once on PRs and three times on main, which explains much
 of that difference. The approved implementation runs all three repetitions on
 both event types, sequentially in their dedicated job.
 
+## Secrets
+
+The PostgreSQL service containers of the integration and browser jobs pull from Docker Hub with `DOCKERHUB_USERNAME`
+and `DOCKERHUB_TOKEN`, so pulls are not rate limited. GitHub gives a workflow run that Dependabot started only the
+Dependabot secrets, not the repository's Actions secrets. The owner therefore keeps a copy of both under Settings,
+Secrets and variables, Dependabot. Without them, every Dependabot pull request fails while its service containers
+start ("Initialize containers"), before any build or test runs, while the same workflow passes on other branches.
+When the Docker Hub token is rotated, update both copies.
+
 ## Parallel jobs
 
 - `java-javac`: complete reactor, including the opt-in benchmark module, under javac.
