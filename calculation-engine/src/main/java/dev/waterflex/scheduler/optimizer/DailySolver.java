@@ -43,7 +43,7 @@ public final class DailySolver {
         try {
             return dev.waterflex.scheduler.SearchDeadline.withoutRequestClock(() -> SolverEngine.solve(selected, initial, allocated,
                     unimproved, null, false, new SolverEngine.Cancellation() {
-                        @Override public void started(ai.timefold.solver.core.api.solver.Solver<DayPlan> solver) { operation.started(solver); }
+                        @Override public void started(ai.timefold.solver.core.api.solver.Solver<?> solver) { operation.started(solver); }
                         @Override public void stopped() { operation.stopped(); }
                         @Override public boolean cancelled() { return operation.isCancelled(); }
                     }));

@@ -39,7 +39,7 @@ public final class DailyOperation {
     private long phaseStarted;
     private long phaseBudget;
     private long phaseCleanupOvershoot;
-    private @Nullable Solver<DayPlan> activeSolver;
+    private @Nullable Solver<?> activeSolver;
     private @Nullable Long cancelledAt;
     private @Nullable Long queueMs;
     private boolean cancelled;
@@ -224,7 +224,7 @@ public final class DailyOperation {
         phaseStarted = System.nanoTime(); phaseBudget = nanos;
         return Required.value(Duration.ofMillis(nanos / 1_000_000));
     }
-    synchronized void started(Solver<DayPlan> solver) {
+    synchronized void started(Solver<?> solver) {
         deadline.requireTime(); activeSolver = solver;
     }
     synchronized void stopped() { activeSolver = null; }
@@ -243,13 +243,13 @@ public final class DailyOperation {
     synchronized boolean isCancelled() { return cancelled; }
     public synchronized void cancel() {
         if (!cancelled) { cancelled = true; cancelledAt = deadline.elapsedMillis(); deadline.cancel(); }
-        Solver<DayPlan> solver = activeSolver;
+        Solver<?> solver = activeSolver;
         if (solver != null) solver.terminateEarly();
     }
     private synchronized void tick() {
         if (deadline.remainingNanos() == 0) cancel();
         // Repeat termination to cover cancellation immediately before public solve() initializes its state.
-        Solver<DayPlan> solver = activeSolver;
+        Solver<?> solver = activeSolver;
         if (solver != null && (cancelled || (phaseBudget != 0 && System.nanoTime() - phaseStarted >= phaseBudget)))
             solver.terminateEarly();
     }
