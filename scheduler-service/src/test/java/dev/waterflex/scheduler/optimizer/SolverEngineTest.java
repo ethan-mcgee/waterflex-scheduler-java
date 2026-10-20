@@ -148,6 +148,24 @@ class SolverEngineTest {
         assertThrows(IllegalArgumentException.class, () -> SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), budget, Required.value(Duration.ZERO)));
         assertThrows(IllegalArgumentException.class, () -> SolverEngine.solve(definition, DayConstraintProviderTest.fixture(), budget, Required.value(Duration.ofMillis(-1))));
     }
+    /** Every module builds against the one Timefold release the instrumentation is verified for; a bump moves them together. */
+    @Test void everyPomDeclaresTheInstrumentedTimefoldVersion() throws Exception {
+        java.nio.file.Path root = Required.value(java.nio.file.Path.of("").toAbsolutePath().getParent());
+        var pattern = java.util.regex.Pattern.compile("<timefold[.]version>([^<]+)</timefold[.]version>");
+        List<java.nio.file.Path> poms;
+        try (var files = java.nio.file.Files.walk(root, 2)) {
+            poms = files.filter(path -> path.getFileName().toString().equals("pom.xml"))
+                    .filter(path -> !path.toString().contains(java.io.File.separator + ".")).toList();
+        }
+        var declared = new java.util.TreeMap<String, String>();
+        for (var pom : poms) {
+            var matcher = pattern.matcher(java.nio.file.Files.readString(Required.value(pom)));
+            if (matcher.find()) declared.put(root.relativize(Required.value(pom)).toString(), Required.value(matcher.group(1)));
+        }
+        assertTrue(declared.containsKey("pom.xml"), "the root pom declares timefold.version: " + declared);
+        for (var entry : declared.entrySet())
+            assertEquals(SolverEngine.INSTRUMENTED_TIMEFOLD, entry.getValue(), entry.getKey() + " declares another Timefold release");
+    }
     @Test void earlyTerminationDistinguishesOperationCancellationFromPhaseBudgetStop() {
         var definition = SolverEngine.configuration(SolverEngine.Variant.TABU, 17);
         for (boolean cancelled : new boolean[]{true, false}) {
