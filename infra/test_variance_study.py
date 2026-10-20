@@ -78,6 +78,14 @@ class VarianceStudyTest(unittest.TestCase):
         self.assertEqual((spread['cost']['medianDifferenceCents'], spread['cost']['dearer']), (1, 2))
         self.assertEqual(spread['acceptance'], {'FAIRNESS_IMPROVEMENT': 4})
 
+    def test_every_run_of_every_arm_is_kept(self):
+        runs = self.summarize()['budgets']['15000']['runs']
+        self.assertEqual(len(runs), len(vs.ARMS) * len(CASES) * 2)
+        self.assertEqual([run['arm'] for run in runs[::4]], list(vs.ARMS.values()))
+        first = runs[0]
+        self.assertEqual((first['arm'], first['technicians'], first['rep'], first['costCents']), ('baseline', 20, 1, 1000))
+        self.assertEqual((first['fairnessMovesPerSecond'], first['measures']['maximumUtilization']), (40.0, '0.9'))
+
     def test_a_policy_row_accepted_on_another_measure_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:
             run = write_run(Path(temporary))

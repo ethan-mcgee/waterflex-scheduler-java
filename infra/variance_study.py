@@ -149,7 +149,16 @@ def paired(rows):
                                 'ceiling': not arm_outside and all(by[(arm, case, rep)]['violations'] == 0 for case in cases for rep in reps)}
         summary[arm]['passes'] = all(summary[arm]['bars'].values())
     return {'cases': len(cases), 'repetitions': len(reps), 'violations': violations, 'outsideCeiling': outside, 'summary': summary,
-            'comparison': comparison(by, cases, reps), 'pairs': pairs}
+            'comparison': comparison(by, cases, reps), 'pairs': pairs, 'runs': runs(by)}
+
+
+def runs(by):
+    """Every arm's every run, for figures and per-case reading: cost, ceiling, reason, phase speeds and all five final measures."""
+    return [{'arm': arm, 'technicians': case[0], 'workload': case[1], 'seed': case[2], 'rep': rep,
+             'costCents': row['after']['costCents'], 'costCeilingCents': row['costCeilingCents'], 'acceptanceReason': row['acceptanceReason'],
+             'referenceMovesPerSecond': round(rate(row, 'referencePhase'), 1), 'fairnessMovesPerSecond': round(rate(row, 'fairnessPhase'), 1),
+             'measures': {name: str(measure(row, name)) for name in MEASURES}}
+            for (arm, case, rep), row in sorted(by.items(), key=lambda item: (list(ARMS.values()).index(item[0][0]), item[0][1], item[0][2]))]
 
 
 def comparison(by, cases, reps):
