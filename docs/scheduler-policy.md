@@ -50,7 +50,7 @@ The daily search score has five hard and two soft levels (`DayScores`), compared
 
 The production score is `BendableBigDecimalScore`, and the variance is DECIMAL128 (34 significant digits) as `SchedulingPolicy.fairness` computes it. Acceptance (`SchedulingPolicy.compare`) always reads that decimal variance, whatever score the search ran on.
 
-The score representation study measures a long score beside it, the experiment-only variant `TABU_KOPT_LONG_SCORE` (never a client choice). It keeps this contract:
+The score representation study measured a long score beside it, the experiment-only variant `TABU_KOPT_LONG_SCORE` (never a client choice). Its code is in commits `ec0efc4` and `fa62792`, from which the study builds, and on the `bench/variance-formula` branch for the follow-up; it is not in the production build, because Timefold's Spring Boot starter refuses a second `@PlanningSolution` class. It keeps this contract:
 - Every integer level is carried exactly.
 - The variance is carried in units of 1e-9: `round(variance * 10^9)`, half up. It is computed in binary64 with the same workloads and the same formula, `RouteScoringFacts.varianceUnits`. A variance outside the range the long level can carry (2^62 units) throws, so it never wraps.
 - The tie tolerance is one unit. The long level can tie two plans whose variances differ by less than 1e-9. Rounding is monotone, so the long level never orders two plans the other way round. The tolerance can change which plan the search returns, never whether a plan is accepted.
