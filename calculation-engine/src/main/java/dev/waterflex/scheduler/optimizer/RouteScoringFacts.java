@@ -4,7 +4,6 @@ import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.Monetary;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.math.BigDecimal;
 import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
@@ -27,8 +26,8 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
     /** Scores one route against the revision: minutes, meters and violations, without arrivals. */
     ScoredRoute evaluate(TechRoute route) {
         var metrics = RouteTimeline.evaluate(facts, route, false);
-        return new ScoredRoute(route.getId(), SchedulingPolicy.regularCapacity(route),
-                !Collections.disjoint(facts.demandServices(), route.getQualifiedServiceIds()), metrics);
+        var scoring = route.scoring(facts);
+        return new ScoredRoute(route.getId(), scoring.capacity(), scoring.eligible(), metrics);
     }
     long cost(List<@NonNull ScoredRoute> routes) {
         long paid = 0, overtime = 0, meters = 0;
