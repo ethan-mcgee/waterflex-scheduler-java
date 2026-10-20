@@ -34,6 +34,42 @@ Ordinary preview and locked apply use the same comparison, `SchedulingPolicy.com
 
 Repair proposals must also have zero overtime at preview and apply. Overtime is never assigned, so there is no dispatcher approval for repair overtime: the time-off approve request carries no body fields and rejects any overtime flag. A repair that would need overtime stays unapplied and needs manual resolution. Limits remain hard. The `time_off_request.additionalOvertimeApproved` column is kept only for historical rows; new approvals leave it false.
 
+### Numeric contract
+
+The daily search score has five hard and two soft levels (`DayScores`), compared in order, so no lower level can make up for a higher one. Every level is an integer count except one:
+
+| Level | Quantity | Unit |
+| --- | --- | --- |
+| hard 0, categorical | missing qualifications, unreachable directed roads | count |
+| hard 1, quantitative | window lateness, absence and return violation, capacity excess | seconds (capacity excess is whole minutes times 60) |
+| hard 2, unassigned | unassigned visits | count |
+| hard 3, overtime target | deviation from the reference overtime (fairness phase) | minutes |
+| hard 4, cost ceiling | cost above the ceiling (fairness phase) | cents |
+| soft 0, phase objective | overtime (reference phase), or the workload variance (fairness phase) | minutes, or the variance itself |
+| soft 1, cost | modeled operating cost | cents, at most `Monetary.MAX_CENTS` (2^53) |
+
+The production score is `BendableBigDecimalScore`, and the variance is DECIMAL128 (34 significant digits) as `SchedulingPolicy.fairness` computes it. Acceptance (`SchedulingPolicy.compare`) always reads that decimal variance, whatever score the search ran on.
+
+The score representation study measured a long score beside it, the experiment-only variant `TABU_KOPT_LONG_SCORE` (never a client choice). Its code is in commits `ec0efc4` and `fa62792`, from which the study builds, and on the `bench/variance-formula` branch for the follow-up; it is not in the production build, because Timefold's Spring Boot starter refuses a second `@PlanningSolution` class. It keeps this contract:
+- Every integer level is carried exactly.
+- The variance is carried in units of 1e-9: `round(variance * 10^9)`, half up. It is computed in binary64 with the same workloads and the same formula, `RouteScoringFacts.varianceUnits`. A variance outside the range the long level can carry (2^62 units) throws, so it never wraps.
+- The tie tolerance is one unit. The long level can tie two plans whose variances differ by less than 1e-9. Rounding is monotone, so the long level never orders two plans the other way round. The tolerance can change which plan the search returns, never whether a plan is accepted.
+- The margin is wide for whole-minute changes. Moving one paid minute between two technicians of equal capacity `c` in a fleet of `n` changes the variance by at least `2 / (n * c^2)`. That is 1.7e-7 (170 units) at 50 technicians of 480 minutes, and 1.9e-8 at a full 24-hour capacity. Unequal capacities can bring two variances closer, and that is what the tolerance covers.
+- `ScoreRepresentationTest` checks the contract on the exactness fixtures and the small case:
+  - Integer levels are exact.
+  - The variance is within half a unit.
+  - Every pair of plans of one scoring target is ranked the same way.
+  - The cost ceiling boundary is the same level.
+  - A step-limited search takes the same moves in both phases.
+  - 50 technicians with a day's paid minutes and 240 overtime minutes stay far inside the long range.
+
+The route timing (`RouteTimeline`, `RouteTimingSearch`) runs on long nanoseconds after the route's shift start, not on `Instant` and `Duration`:
+- It is exact for any instant the API admits, fractional seconds included.
+- The readings are `Duration`'s own: lateness is whole seconds floored plus one second, and an availability violation rounds part of a second up to a whole one. Paid, waiting and overtime minutes are the floored seconds divided by 60 toward zero.
+- Arrivals are instants again on the way out.
+- A route whose times lie more than 292 years from its shift start throws `ArithmeticException` rather than evaluating.
+- `ScoringExactnessTest` (same score, moves, arrangement and independent evaluation as before) is the gate for this.
+
 ## Search and reservation lifecycle
 
 Search loads immutable full-horizon facts, route baselines, effective intervals, configuration, schedule/reservation versions and routing identity. Candidate and solver move scoring perform no database or network operations. Sparse routing is fetched between search phases. The regular search starts with insertion, then uses same-date relocation, pair swaps and reversal when scarcity needs further investigation. Defaults are six promising routes including least-utilized eligible capacity, depth two, beam eight and 500 arrangements per window. Work proceeds in horizon rounds. Optional fairness refinement after abundant insertion choices has a separate cooperative limit (2000 ms by default) within the original deadline.

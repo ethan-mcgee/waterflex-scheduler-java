@@ -75,6 +75,60 @@ cannot be built, because multithreaded solving is a Timefold Enterprise feature 
 https://docs.timefold.ai/timefold-solver/latest/commercial-editions/commercial-editions, retrieved 2026-10-14) and
 `CampaignSolverConfiguration` refuses any value but `NONE` for the Community artifact this project builds with.
 
+## Score and time representation (CR08, 2026-10)
+
+The CR07 profile left two representation costs in the scoring path. `Duration.between` and `Instant.until` held 16 percent, and BigDecimal about 20 percent. CR08 deferred the score representation until the numeric contract was written down and the BigDecimal share was split between the score impacts and the variance formula. This study measures both as separate treatments, and then together. The contract is in [scheduler-policy.md](scheduler-policy.md), "Numeric contract".
+
+| Arm | Code | What changes |
+| --- | --- | --- |
+| baseline | commit `ec0efc4`, `TABU_KOPT` | nothing: production scoring, timing on `Instant` |
+| S | commit `ec0efc4`, `TABU_KOPT_LONG_SCORE` | long score levels, and the variance in rounded units of 1e-9 computed in binary64 |
+| T | commit `fa62792`, `TABU_KOPT` | route timing on long nanoseconds after the shift start |
+| T+S | commit `fa62792`, `TABU_KOPT_LONG_SCORE` | both |
+
+Equivalence came before any timing.
+- T passes `ScoringExactnessTest` unchanged: same score, moves, arrangement and independent evaluation on its three fixtures. New `RouteTimelineTest` cases pin the `Duration` readings on fractional and negative spans.
+- S passes `ScoreRepresentationTest`. Its integer levels are exact and the variance is within half a unit. It ranks every pair of plans of one target the same way, and the cost ceiling boundary is the same level. Step-limited searches take the same moves in both phases, and the levels stay inside the long range at 50 technicians.
+- Both pass the `FULL_ASSERT` assertion campaign, which covers every variant in four cohorts.
+
+`TABU_KOPT_LONG_SCORE` is experiment-only. A solve on it returns a `DayPlan` rescored with the decimal levels, so acceptance and every reader still see the decimal score. Its code lives in commit `ec0efc4` (and on `bench/variance-formula` for the follow-up), not on main: Timefold's Spring Boot starter refuses to start the scheduler with a second `@PlanningSolution` class on the classpath, and `PlanningSolutionScanTest` now holds that rule.
+
+The run is `infra/run-representation-study.ps1`, which the owner starts on an idle workstation.
+- Each commit is frozen into its own tree and built once.
+- It uses the engine study's 24 cases: `TABU_KOPT`; 20 and 50 technicians; `CLUSTERED`, `DISPERSED`, `ABSENCE`, `TIGHT_WINDOW`; seeds 17, 23, 41; fixture seed 7001; 10 s.
+- Every case is its own JVM per tree (`-Xmx1536m -XX:ActiveProcessorCount=2 -XX:+UseSerialGC`). The tree order and the variant order alternate from case to case.
+- There are two repetitions, followed by one solve-scoped JFR pass per tree.
+- `infra/representation_study.py` pairs every treatment with the baseline of the same case and repetition. It attributes the JFR samples by stack: decimal work in the variance, in money, and in the score impacts; `java.time`; the score engine; the rest. It then applies the bars set before the run:
+  - T is promoted if its median moves per second is at least the baseline's in both phases. It changes no semantics, so no promotion review applies.
+  - S is promoted only at a median 1.25x on the fairness phase with no case dearer than the baseline beyond that case's own spread between repetitions. Otherwise BigDecimal is not the bottleneck and CR08 closes.
+
+The run took place on 2026-10-20, with the containers stopped. The evidence is [solver-representation-2026-10-20.json](evidence/solver-representation-2026-10-20.json): 24 cases, two repetitions, zero violations in every arm. The same arm's moves per second agreed between repetitions within 3.1 percent (median) and 28.7 percent at the widest.
+
+| Arm | Cost phase, moves per second against the baseline (median, 20 / 50 technicians) | Fairness phase (median, 20 / 50) | Final variance against the baseline | Final cost against the baseline |
+| --- | --- | --- | --- | --- |
+| T | 1.15x (1.13x / 1.16x) | 1.05x (1.05x / 1.05x) | median ratio 1.00 (8 fairer, 5 same, 11 less fair) | 16 cheaper, 5 ties, 3 dearer |
+| S | 1.04x (1.04x / 1.05x) | 4.01x (3.01x / 5.62x) | median ratio 0.67 (19 fairer, 3 same, 2 less fair) | 11 cheaper, 4 ties, 9 dearer |
+| T+S | 1.19x (1.16x / 1.24x) | 4.36x (3.31x / 6.59x) | median ratio 0.64 (18 fairer, 2 same, 4 less fair) | 17 cheaper, 2 ties, 5 dearer |
+
+Where the time went in the baseline profile, by stack:
+
+| Phase | `java.time` | BigDecimal in the variance | BigDecimal score impacts | BigDecimal money | Identity lookups (`MapN.probe`, leaf) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| cost (reference) | 18.9 percent | none | 6.2 percent | 4.0 percent | 20.8 percent |
+| fairness | 5.6 percent | 54.5 percent (and 11.8 percent more in its own frames) | 2.6 percent | 1.6 percent | 6.6 percent |
+
+This answers CR08's question. The decimal cost of the fairness phase is the variance formula (`SchedulingPolicy.fairness` dividing and rounding at DECIMAL128 for every technician on every move), not the score representation. The BigDecimal score impacts are 2.6 to 6.2 percent, and the long score's own gain in the cost phase, where no variance is computed, is 1.04x.
+
+Decisions, held to the bars set before the run:
+- **T is promoted.** It is not slower in either phase (1.15x and 1.05x), and `java.time` falls from 18.9 to 0.1 percent of cost-phase samples. It stays in this branch as the production timing path. Its one dearer case beyond noise, 50 `TIGHT_WINDOW` seed 23, is 175 cents dearer at the same variance and inside the ceiling. T's bar does not include cost, since exactness already shows it scores the same.
+- **S is not promoted.** Its fairness phase clears 1.25x by a wide margin, but three cases are dearer than the baseline beyond its spread, so the bar as written is not met: 20 `DISPERSED` 23 (+1 cent, baseline spread 0), 50 `ABSENCE` 17 (+290 cents) and 50 `TIGHT_WINDOW` 23 (+253 cents). All three stay under the cost ceiling. The two large ones are fairer: variance falls from 0.0294 to 0.0132 and from 0.0016 to 0.0010. That is the fairness phase spending its allowance as the policy permits. The cost condition is the right test for a cost-phase treatment and a strict one for a fairness-phase treatment. Changing it after the run is for the owner to decide, not this write-up.
+- **CR08 closes.** The score representation is not the bottleneck. The study script builds S from commit `ec0efc4`, so the comparison can be rerun.
+
+Next candidates, from the profile after T:
+- **The variance formula itself.** Computing it in binary64 or as exact integers, while keeping the decimal score, would keep most of S's fairness-phase gain without changing the score type. It changes which plan the fairness search finds (the numeric contract's tie tolerance), so it needs the promotion review that a policy change gets.
+- **Identity lookups.** `MapN.probe` (one identity-to-number probe per visit per scored route) is the largest leaf after T, at 21.5 percent of cost-phase samples. Holding each entity's road number on the entity would remove it, with `ScoringExactnessTest` as the gate.
+- **Not named by this profile.** The whole-route re-walk (CR11) and nearby selection did not show as leading costs, so neither is next.
+
 ## Measured configuration choice
 
 [Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41. The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations. Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
