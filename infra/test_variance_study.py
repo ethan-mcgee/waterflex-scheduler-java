@@ -10,8 +10,10 @@ def result(variant, case, fairness_moves, cost, variance, ceiling=10_000, reason
     technicians, workload, seed = case
     line = {'type': 'result', 'variant': variant, 'technicians': technicians, 'workload': workload, 'seed': seed, 'violations': 0,
             'referencePhase': {'moveEvaluations': 100, 'solveMs': 1000}, 'fairnessPhase': {'moveEvaluations': fairness_moves, 'solveMs': 1000},
-            'after': {'costCents': cost, 'fairness': {'variance': variance}}, 'costCeilingCents': ceiling, 'acceptanceReason': reason,
-            'measures': {'after': {'variance': variance, 'maximumUtilization': maximum, 'utilizationSpread': 0.4,
+            'reference': {'costCents': 990}, 'after': {'costCents': cost, 'fairness': {'variance': variance}}, 'costCeilingCents': ceiling,
+            'acceptanceReason': reason,
+            'measures': {'reference': {'variance': 0.03, 'maximumUtilization': 0.95, 'utilizationSpread': 0.5, 'absoluteDeviation': 0.2, 'loadBalance': 0.6},
+                         'after': {'variance': variance, 'maximumUtilization': maximum, 'utilizationSpread': 0.4,
                                    'absoluteDeviation': 0.1, 'loadBalance': 0.5}}}
     accepted = vs.ACCEPTED_ON.get(vs.ARMS[variant])
     if accepted is not None:
@@ -85,6 +87,7 @@ class VarianceStudyTest(unittest.TestCase):
         first = runs[0]
         self.assertEqual((first['arm'], first['technicians'], first['rep'], first['costCents']), ('baseline', 20, 1, 1000))
         self.assertEqual((first['fairnessMovesPerSecond'], first['measures']['maximumUtilization']), (40.0, '0.9'))
+        self.assertEqual((first['referenceCostCents'], first['referenceMeasures']['maximumUtilization']), (990, '0.95'))
 
     def test_a_policy_row_accepted_on_another_measure_is_refused(self):
         with tempfile.TemporaryDirectory() as temporary:

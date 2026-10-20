@@ -175,7 +175,44 @@ It also records each arm's cost difference, fairness-phase speed and acceptance 
 
 Options not tested, by owner decision: wider numeric types (the numeric contract already fits a long), and dropping the variance's final divide (a small gain).
 
-Results: pending the owner's run. Evidence will be `docs/evidence/solver-variance-<date>.json`.
+### Results (2026-10-20)
+
+Evidence: `docs/evidence/solver-variance-2026-10-20.json`. The run took 7 h 31 min on revision `773f9f6` and covered 672 solves with no violation and nothing outside a ceiling. The full report, with figures, is `docs/fairness-measures-2026-10-20/Fairness_Measures_2026-10-20_Report.docx`.
+
+| Option, budget | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) | Passes |
+| --- | --- | --- | --- | --- | --- |
+| b, 15 s | 4.59x (2.83 to 8.01) | 0.998x | 23 / 1 / 0 / 0 | +0 cents (10 / 5 / 9) | Yes |
+| c, 15 s | 4.38x (2.73 to 7.92) | 0.960x | 22 / 1 / 1 / 0 | +3 cents (6 / 5 / 13) | No: cost |
+| b, 60 s | 4.16x (2.63 to 6.71) | 0.994x | 21 / 3 / 0 / 0 | -18.5 cents (16 / 3 / 5) | Yes |
+| c, 60 s | 4.10x (2.59 to 6.66) | 0.957x | 20 / 3 / 1 / 1 | -4 cents (13 / 3 / 8) | No: fairness |
+
+- **b is promoted.** It passes every bar at both budgets and was never less fair than the baseline. Its median final variance is 0.68 of the baseline's at 15 s and 0.62 at 60 s.
+- **The decimal variance was the whole difference between the phases.** Production's fairness-phase profile was 56 percent decimal variance and 12 percent the surrounding collection. With b, the fairness phase evaluates a median 251k moves per second, against 54k for production and 240k for production's cost phase.
+- **The gain grows with the fleet:** 3.17x at 20 technicians and 6.31x at 50 (15 s). Production recomputes the whole fleet on every move.
+- **b at 15 s is fairer than the baseline at 60 s** in 16 of 24 cases.
+- **c is not promoted.** It is no faster than b in the fairness phase. Its running sums are kept on every cost-phase move, so its cost phase runs at 0.96x. At 15 s it misses the cost bar by 3 cents. At 60 s it misses the fairness bar on one case: 20 `DISPERSED` 41, where the baseline's spread is zero and c's second repetition ended at 33.2 thousandths against 24.3.
+
+The policies, as the median ratio to the baseline on each measure at 60 s (15 s in the report). Lower is fairer:
+
+| Arm | Variance | Highest utilization | Spread | Absolute deviation | Load balance | Median cost difference |
+| --- | --- | --- | --- | --- | --- | --- |
+| b | 0.62 | 0.91 | 0.90 | 0.68 | 0.79 | -18.5 cents |
+| min-max | 3.05 | 1.20 | 1.29 | 2.16 | 1.73 | -5,181.5 cents |
+| spread | 3.19 | 1.20 | 1.29 | 2.18 | 1.77 | -4,445 cents |
+| abs-dev | 0.69 | 1.00 | 1.00 | 0.67 | 0.85 | -18.5 cents |
+| load-balance | 0.63 | 1.00 | 0.98 | 0.72 | 0.79 | +0 cents |
+
+- **Min-max and spread are less fair on every measure, their own included.** A maximum is flat for almost every move, so the search falls through to cost. These two arms spend about none of the 2 percent allowance (median 0 to 3 percent, against 99 to 100 percent for the others). Spread is accepted as a cost reduction in all 48 runs. Their savings are the allowance not spent, not a better plan.
+- **Abs-dev** wins only on its own measure. At 15 s it leaves the busiest technician busier than the baseline in 16 cases.
+- **Load-balance** is within 0.01 of b or behind it on every measure, at both budgets.
+- **The variance stays the policy.**
+
+Next, in order:
+1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting.
+2. Remove c and the four policy providers from main, keeping them on this branch.
+3. Re-measure the 10 s and 5 s phase split, since b's fairness phase now needs less time.
+4. Carry each visit's `RoadMatrix` number on the visit. `MapN.probe`, the identity-to-number lookup, is now 17.5 percent of the fairness phase's leaf frames.
+5. Repeat the VM daily load with b.
 
 ## Measured configuration choice
 
