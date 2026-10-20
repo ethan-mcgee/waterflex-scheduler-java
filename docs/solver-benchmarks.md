@@ -91,7 +91,7 @@ Equivalence came before any timing.
 - S passes `ScoreRepresentationTest`. Its integer levels are exact and the variance is within half a unit. It ranks every pair of plans of one target the same way, and the cost ceiling boundary is the same level. Step-limited searches take the same moves in both phases, and the levels stay inside the long range at 50 technicians.
 - Both pass the `FULL_ASSERT` assertion campaign, which covers every variant in four cohorts.
 
-`TABU_KOPT_LONG_SCORE` is experiment-only. A solve on it returns a `DayPlan` rescored with the decimal levels, so acceptance and every reader still see the decimal score. Its code lives in commit `ec0efc4` (and on `bench/variance-formula` for the follow-up), not on main: Timefold's Spring Boot starter refuses to start the scheduler with a second `@PlanningSolution` class on the classpath, and `PlanningSolutionScanTest` now holds that rule.
+`TABU_KOPT_LONG_SCORE` is experiment-only. A solve on it returns a `DayPlan` rescored with the decimal levels, so acceptance and every reader still see the decimal score. Its code lives in commit `ec0efc4`, not on main: Timefold's Spring Boot starter refuses to start the scheduler with a second `@PlanningSolution` class on the classpath, and `PlanningSolutionScanTest` now holds that rule.
 
 The run is `infra/run-representation-study.ps1`, which the owner starts on an idle workstation.
 - Each commit is frozen into its own tree and built once.
@@ -128,6 +128,172 @@ Next candidates, from the profile after T:
 - **The variance formula itself.** Computing it in binary64 or as exact integers, while keeping the decimal score, would keep most of S's fairness-phase gain without changing the score type. It changes which plan the fairness search finds (the numeric contract's tie tolerance), so it needs the promotion review that a policy change gets.
 - **Identity lookups.** `MapN.probe` (one identity-to-number probe per visit per scored route) is the largest leaf after T, at 21.5 percent of cost-phase samples. Holding each entity's road number on the entity would remove it, with `ScoringExactnessTest` as the gate.
 - **Not named by this profile.** The whole-route re-walk (CR11) and nearby selection did not show as leading costs, so neither is next.
+
+## Fairness measures (PR 187)
+
+The representation study traced the fairness phase's decimal cost to the variance formula, not to the score type. This study tests two cheaper ways to compute the production variance and four other fairness policies. Each one is a `DayConstraintProvider` that replaces only the fairness constraint (`FairnessMeasures`). The score stays `BendableBigDecimalScore`, and every other level is the production one. All are experiment-only variants of `TABU_KOPT` and are never a client choice.
+
+Two formulas for the production variance, held to the bars below:
+- **b** (`TABU_KOPT_BINARY_VARIANCE`): the variance over the whole fleet in binary64, carried as rounded units of 1e-9. That is the numeric contract's representation, so the tie tolerance is one unit.
+- **c** (`TABU_KOPT_INCREMENTAL_VARIANCE`): the same variance from three running sums the solver keeps, updating only the routes a move changes. The sums are capacity, paid minutes, and paid minutes squared over capacity at a scale of 1e8, all exact longs. The variance is `(sum p^2/c)/C - (P/C)^2`, and only that last difference is binary64.
+
+Four fairness policies, each searched and accepted on its own measure:
+- **min-max** (`TABU_KOPT_MIN_MAX_UTILIZATION`): the highest technician utilization.
+- **spread** (`TABU_KOPT_UTILIZATION_SPREAD`): the highest minus the lowest utilization.
+- **abs-dev** (`TABU_KOPT_ABSOLUTE_DEVIATION`): the capacity-weighted mean absolute deviation of utilization.
+- **load-balance** (`TABU_KOPT_LOAD_BALANCE`): Timefold's `loadBalance` collector over each technician's utilization in millionths. It is unweighted by capacity and is carried as the collector's own unfairness.
+
+Every measure counts the technicians the production variance counts: those qualified for the day's demand, with regular capacity.
+
+Equivalence, before any timing (`FairnessMeasureTest`, `SolverBenchmarkTest`):
+- Every measure keeps every other score level equal to production's.
+- b and c carry the decimal variance to within one unit, and rank every pair of plans as production does. Ties are allowed under two units.
+- The policies carry their definitions to within two units, against an independent DECIMAL128 reading.
+- A hand-checked two-technician fleet gives the exact unit readings.
+- With step-limited searches, b and c take production's fairness-phase moves, and every measure takes production's cost-phase moves.
+- `FULL_ASSERT` passes for all six, on every cohort of the assertion campaign.
+- In the harness, a policy arm is accepted on its own measure (`acceptedOn` in the row), and every final plan records all five measures.
+
+The run is `infra/run-variance-study.ps1`, which the owner starts. It freezes one tree from this branch, carrying the nanosecond timing of #186, and runs all seven arms in every JVM, their order rotating from case to case. It uses the representation study's 24 cases and two repetitions at two budgets:
+- 15 s is the production default: 10 s of cost search and 5 s of fairness.
+- 60 s (40 s and 20 s) shows whether a gain holds when the fairness search has room.
+
+A JFR pass at 15 s follows, about 7 hours 30 minutes in all. `infra/variance_study.py` pairs and judges each budget.
+
+The bars for b and c were set by the owner before the run (2026-10-20). Each is promoted only if every bar holds at both budgets:
+- **Speed:** median fairness-phase moves per second at least 1.25x the baseline.
+- **Fairness:** no case less fair than the baseline beyond that case's own spread between repetitions.
+- **Cost:** the median per-case cost difference is not above zero. A case may be dearer if the median is not, because the fairness phase may spend its allowance on fairness.
+- **Ceiling:** every accepted result inside its cost ceiling, with zero violations.
+
+The policies change what fairness means, so they have no bars. The evidence compares every arm on all five measures, with three figures for each:
+- the median over cases;
+- the median ratio to the baseline;
+- the count of cases lower and higher than the baseline.
+
+It also records each arm's cost difference, fairness-phase speed and acceptance reasons. Changing the policy is the owner's decision, made on that table.
+
+Options not tested, by owner decision: wider numeric types (the numeric contract already fits a long), and dropping the variance's final divide (a small gain).
+
+### Results (2026-10-20)
+
+Evidence: `docs/evidence/solver-variance-2026-10-20.json`. The run took 7 h 31 min on revision `773f9f6` and covered 672 solves with no violation and nothing outside a ceiling. The full report, with figures, is `docs/fairness-measures-2026-10-20/Fairness_Measures_2026-10-20_Report.docx`.
+
+| Option, budget | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) | Passes |
+| --- | --- | --- | --- | --- | --- |
+| b, 15 s | 4.59x (2.83 to 8.01) | 0.998x | 23 / 1 / 0 / 0 | +0 cents (10 / 5 / 9) | Yes |
+| c, 15 s | 4.38x (2.73 to 7.92) | 0.960x | 22 / 1 / 1 / 0 | +3 cents (6 / 5 / 13) | No: cost |
+| b, 60 s | 4.16x (2.63 to 6.71) | 0.994x | 21 / 3 / 0 / 0 | -18.5 cents (16 / 3 / 5) | Yes |
+| c, 60 s | 4.10x (2.59 to 6.66) | 0.957x | 20 / 3 / 1 / 1 | -4 cents (13 / 3 / 8) | No: fairness |
+
+- **b is promoted.** It passes every bar at both budgets and was never less fair than the baseline. Its median final variance is 0.68 of the baseline's at 15 s and 0.62 at 60 s.
+- **The decimal variance was the whole difference between the phases.** Production's fairness-phase profile was 56 percent decimal variance and 12 percent the surrounding collection. With b, the fairness phase evaluates a median 251k moves per second, against 54k for production and 240k for production's cost phase.
+- **The gain grows with the fleet:** 3.17x at 20 technicians and 6.31x at 50 (15 s). Production recomputes the whole fleet on every move.
+- **b at 15 s is fairer than the baseline at 60 s** in 16 of 24 cases.
+- **c is not promoted.** It is no faster than b in the fairness phase. Its running sums are kept on every cost-phase move, so its cost phase runs at 0.96x. At 15 s it misses the cost bar by 3 cents. At 60 s it misses the fairness bar on one case: 20 `DISPERSED` 41, where the baseline's spread is zero and c's second repetition ended at 33.2 thousandths against 24.3.
+
+The policies, as the median ratio to the baseline on each measure at 60 s (15 s in the report). Lower is fairer:
+
+| Arm | Variance | Highest utilization | Spread | Absolute deviation | Load balance | Median cost difference |
+| --- | --- | --- | --- | --- | --- | --- |
+| b | 0.62 | 0.91 | 0.90 | 0.68 | 0.79 | -18.5 cents |
+| min-max | 3.05 | 1.20 | 1.29 | 2.16 | 1.73 | -5,181.5 cents |
+| spread | 3.19 | 1.20 | 1.29 | 2.18 | 1.77 | -4,445 cents |
+| abs-dev | 0.69 | 1.00 | 1.00 | 0.67 | 0.85 | -18.5 cents |
+| load-balance | 0.63 | 1.00 | 0.98 | 0.72 | 0.79 | +0 cents |
+
+- **Min-max and spread are less fair on every measure, their own included.** A maximum is flat for almost every move, so the search falls through to cost. These two arms spend about none of the 2 percent allowance (median 0 to 3 percent, against 99 to 100 percent for the others). Spread is accepted as a cost reduction in all 48 runs. Their savings are the allowance not spent, not a better plan.
+- **Abs-dev** wins only on its own measure. At 15 s it leaves the busiest technician busier than the baseline in 16 cases.
+- **Load-balance** is within 0.01 of b or behind it on every measure, at both budgets.
+- **The variance stays the policy.**
+
+Next, in order:
+1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting.
+2. Remove c and the four policy providers from main, keeping them on this branch.
+3. Re-measure the 10 s and 5 s phase split, since b's fairness phase now needs less time.
+4. Carry each visit's `RoadMatrix` number on the visit. `MapN.probe`, the identity-to-number lookup, is now 17.5 percent of the fairness phase's leaf frames. This is under way; see "Road matrix numbering" below.
+5. Repeat the VM daily load with b.
+
+## Road matrix numbering (PR 187)
+
+The fairness measure study's profiles kept only leaf frames, so naming the `MapN.probe` caller rested on the CR07 write-up. The study's recordings, read again with full stacks (seed 17, 15 s, eight recordings per arm and phase), confirm it and name the rest of the collection work:
+
+| Leaf frames | b, fairness phase | Production, cost phase | Caller |
+| --- | ---: | ---: | --- |
+| `ImmutableCollections$MapN.probe` | 17.5 percent | 20.4 percent | `RoadMatrix.number`, all of it: from `RouteTimingSearch.segments` (11.8 and 12.7 percent) and `RouteTimeline.evaluate` (5.7 and 7.6 percent) |
+| `HashMap.putVal`, `LinkedHashMap.afterNodeInsertion`, `HashMap.resize` under `RouteTimingSearch.segments` | 10.0 percent | 11.5 percent | `segments`, building its options map on every call |
+| `HashMap.getNode`, `IdentityHashMap.get`, `HashMap$TreeNode.getTreeNode` | 5.1 percent | 4.9 percent | Timefold's own frames, not the scheduler's |
+| `Set12.contains`, `Collections.disjoint`, `Arrays.copyOf` | 2.3 percent | 2.8 percent | the route's qualifications, eligibility and capacity, the same for every move |
+
+Every leg evaluated looked its visit up by identity. The map's keys were cut from the `from>to` road keys, so they are never the visit's own string, and each lookup compared the whole identity.
+
+The fix, commit `ed97d8b`, changes no rule:
+- **Numbers kept on the entities.** Each `PlanVisit` and `TechRoute` keeps its matrix number together with the fact revision that gave it. A lookup is one reference comparison. A revision that reuses the entities (`PlanCopies.withAbsence`, booking's per-route plans) resolves them again. `RouteTimelineTest.roadNumbersFollowTheRevisionTheyAreScoredAgainst` covers this, and it fails when the revision check is removed.
+- **Arrays for the timing search.** The segment options and the interval frontier are arrays indexed by the number of visits covered, walked in the ascending order the maps iterated in.
+- **Route constants kept.** A frozen route keeps its regular capacity and eligibility per revision.
+- **Gate:** `ScoringExactnessTest` passes unchanged: the same score, move count, arrangement and independent evaluation on its three fixtures, the absence fixture among them.
+
+What it reaches: the daily proposal solve in both phases, embedded or in the solver pool, and the final validation through `DayScoreCalculator`. Booking searches rank candidates with `RouteEvaluator`, which reads legs by their `from>to` keys and stays independent of the scoring path, so booking does not change.
+
+The study, `infra/run-matrix-study.ps1`, which the owner starts. It runs two frozen trees, `o` (`d571d83`, before the fix) and `n` (`ed97d8b`). The tree order alternates and the variant order rotates from case to case:
+
+| Arm | Tree, variant | Judged by |
+| --- | --- | --- |
+| old | o, `TABU_KOPT` | the reference for the fix |
+| old-b | o, `TABU_KOPT_BINARY_VARIANCE` | the reference for b's own gain from the fix |
+| baseline | n, `TABU_KOPT` | the fix: at least as fast as old in both phases, as T was |
+| b, c | n, the two variance options | the fairness measure study's four bars, against this baseline |
+| load-balance | n, `TABU_KOPT_LOAD_BALANCE` | every measure against this baseline, no bars |
+
+It uses fleets of 10, 30 and 50 technicians, the four workloads, seeds 17, 23 and 41, fixture seed 7001, two repetitions and the 15 s production budget. Every speed is also reported by fleet. A JFR pass per tree follows, about 2 hours 30 minutes in all. `infra/matrix_study.py` pairs and judges the run. The evidence will be `docs/evidence/solver-matrix-<date>.json`.
+
+### Results
+
+Evidence: `docs/evidence/solver-matrix-2026-10-20.json`. The run started at 15:55 UTC on 2026-10-20 and covered 432 solves with no violation and nothing outside a ceiling. The full report, with figures, is `docs/road-matrix-numbering-2026-10-20/Road_Matrix_Numbering_2026-10-20_Report.docx`; `stacks.json` there attributes the run's recordings to their callers.
+
+The fix, each variant on tree n against the same variant on tree o, median of 72 paired solves:
+
+| Comparison, phase | All fleets (min to max) | 10 technicians | 30 technicians | 50 technicians |
+| --- | --- | --- | --- | --- |
+| Production, cost phase | 1.38x (1.12 to 2.23) | 1.61x | 1.37x | 1.31x |
+| Production, fairness phase | 1.10x (0.85 to 1.47) | 1.17x | 1.06x | 1.05x |
+| b, cost phase | 1.41x (1.03 to 2.28) | 1.58x | 1.34x | 1.32x |
+| b, fairness phase | 1.30x (1.05 to 1.61) | 1.45x | 1.27x | 1.23x |
+
+- **The fix is promoted.** It is not slower in either phase. Both former sites are gone from tree n's recordings: the identity probe (20.1 percent of production's cost phase before) and the options map (12.3 percent).
+- **The gain is largest on small fleets.** The work removed is per leg, while the fleet-wide part of a move grows with the fleet. That reading comes from the profile; it was not measured separately.
+- **Production's fairness phase gains only 1.10x,** because 57 percent of its samples are still the DECIMAL128 variance.
+- **The extra moves made days cheaper.** Production's median final cost fell 136.25 cents a day (reference plans 63.25 cents), cheaper beyond the old arm's spread in 17 of 36 cases and dearer in none. b's fell 238 cents (19 cheaper, 2 dearer beyond noise).
+- **Final fairness moved a little the other way:** a median variance ratio of 1.028 for production (16 less fair and 4 fairer beyond noise) and 1.011 for b (12 and 6). The reference plans were as fair as before (1.004), so this is the fairness phase working under a ceiling measured from a cheaper plan. Whether to spend some of the saving on fairness is the allowance's size, a client setting.
+
+b and c on the faster engine, against the fixed production:
+
+| Option | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) | Passes |
+| --- | --- | --- | --- | --- | --- |
+| b | 5.20x (2.07 to 9.24) | 0.988x | 29 / 7 / 0 / 0 | +0 cents (13 / 10 / 13) | Yes |
+| c | 5.23x (1.92 to 9.70) | 0.944x | 28 / 7 / 1 / 1 | +0 cents (11 / 10 / 15) | No: fairness |
+
+- **b is promoted again.** Its fairness-phase gain grows with the fleet: 2.79x at 10 technicians, 5.20x at 30, 7.10x at 50. Its median variance is 0.74 of production's (0.99, 0.73 and 0.59 by fleet). At 10 technicians it mostly ties production.
+- **c is not promoted.** It fails the fairness bar on 30 `DISPERSED` 17: production's repetitions ended at 15.10 and 14.39 thousandths, c's second at 20.35.
+
+Load balance, as the median ratio to the fixed production on each measure (lower is fairer):
+
+| Arm | Variance | Highest utilization | Spread | Absolute deviation | Load balance | Median cost difference | Fairness-phase speed | Cost-phase speed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| b | 0.74 | 0.94 | 0.93 | 0.78 | 0.86 | +0 cents | 5.20x | 0.99x |
+| load-balance | 0.58 | 0.93 | 0.90 | 0.68 | 0.76 | +0 cents | 4.72x | 0.90x |
+
+- **On these fleets load balance is fairer than b on all five measures.** Its variance was lower than b's in 19 cases and higher in 6 (13 lower and 3 higher beyond b's spread). By fleet its variance is 0.87, 0.59 and 0.57 of production's, against b's 0.99, 0.73 and 0.59.
+- **The lead is on 10 and 30 technicians,** sizes the fairness measure study did not run. At 50, the size both studies share, the two are close, as they were then.
+- **It costs a little more.** Its median cost is 10 cents above b's (10 dearer and 4 cheaper beyond b's spread), and its cost phase runs at 0.90x because Timefold keeps its collector on every move.
+- **No policy change on this evidence.** A head-to-head of load balance against b on its own fleets and budgets comes first.
+
+After the fix, b's fairness phase is scheduler code 30 percent (the timing search's own loop 14.6), Timefold's engine 28, BigDecimal score impacts 16, collections 16 and BigDecimal money 6.
+
+Next, in order:
+1. Ship b's formula in `DayConstraintProvider.fairness`, keeping `SchedulingPolicy.measure` (DECIMAL128) for acceptance and reporting, and remove c and the three rejected policies. Verify on the VM rehearsal stack.
+2. The scoring path without BigDecimal (a long score, long money, fleet sums without `toList()`) and the timing search, measured as treatments at a 1.05x gate, then verified on the stack.
+3. Load balance against b, head to head, at 5, 10, 20 and 50 technicians and 15 s and 60 s.
 
 ## Measured configuration choice
 

@@ -21,6 +21,10 @@ public class PlanVisit {
     private @Nullable Instant originalPlannedStart;
     @InverseRelationShadowVariable(sourceVariableName = "visits")
     private @Nullable TechRoute technician;
+    /** This visit's road matrix number under one revision, so scoring reads a field instead of probing the identity map. */
+    private record Numbered(PlanFacts facts, int number) { }
+    // Written once as a whole record, so a reader on another thread sees either nothing or a complete one.
+    private @Nullable Numbered numbered;
 
     public PlanVisit() { }
     public PlanVisit(String id, String serviceId, Instant windowStart, Instant windowEnd, int durationMinutes,
@@ -39,6 +43,14 @@ public class PlanVisit {
     public int getDurationMinutes() { return Required.value(durationMinutes, "PlanVisit.durationMinutes before initialization"); }
     public @Nullable String getOriginalTechnicianId() { return originalTechnicianId; }
     public @Nullable Instant getOriginalPlannedStart() { return originalPlannedStart; }
+    /** This visit's number in the revision's road matrix, or -1 when no road names it; the identity never changes once set. */
+    int roadNumber(PlanFacts facts) {
+        Numbered known = numbered;
+        if (known != null && known.facts() == facts) return known.number();
+        int number = facts.roads().number(getId());
+        numbered = new Numbered(facts, number);
+        return number;
+    }
     public @Nullable TechRoute getTechnician() { return technician; }
     public void setTechnician(@Nullable TechRoute technician) { this.technician = technician; }
 }

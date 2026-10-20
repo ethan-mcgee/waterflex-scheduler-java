@@ -38,6 +38,36 @@ class RouteTimelineTest {
         }
     }
 
+    /** A route and its visits keep their road numbers for the revision that gave them: scored under another, they resolve again. */
+    @Test void roadNumbersFollowTheRevisionTheyAreScoredAgainst() {
+        DayPlan day = intervalChoicePlan();
+        TechRoute route = Required.value(day.getRoutes().getFirst());
+        var before = RouteTimeline.evaluate(day.getFacts(), route, false);
+        // The same entities under a revision that numbers one more identity and has faster legs, still feasible.
+        Map<String, DayPlan.RoadLeg> roads = new HashMap<>();
+        for (String from : List.of("elsewhere", "home", "first", "second")) for (String to : List.of("elsewhere", "first", "second", "home:return"))
+            if (!from.equals(to)) roads.put(from + ">" + to, new DayPlan.RoadLeg(300, 1500));
+        DayPlan faster = withRoads(day, roads);
+        PlanFacts facts = faster.getFacts();
+        assertEquals(facts.roads().number("home"), route.roadNumber(facts));
+        for (PlanVisit visit : route.getVisits()) assertEquals(facts.roads().number(visit.getId()), visit.roadNumber(facts), visit.getId());
+        var after = RouteTimeline.evaluate(facts, route, false);
+        var independent = RouteEvaluator.evaluate(faster);
+        assertTrue(independent.feasible());
+        assertEquals(0, after.hardPenalty());
+        assertNotEquals(before.driveMinutes(), after.driveMinutes());
+        assertEquals(independent.driveMinutes(), after.driveMinutes());
+        assertEquals(independent.paidMinutes(), after.paidMinutes());
+        assertEquals(independent.costCents(), after.costCents());
+        // And back: the first revision's numbers are resolved again, not kept from the second.
+        assertEquals(before, RouteTimeline.evaluate(day.getFacts(), route, false));
+        // A revision that names no road numbers nothing, whatever the matrix's own order: a kept number would read a leg.
+        DayPlan roadless = withRoads(day, Required.value(Map.of()));
+        assertEquals(-1, route.roadNumber(roadless.getFacts()));
+        for (PlanVisit visit : route.getVisits()) assertEquals(-1, visit.roadNumber(roadless.getFacts()), visit.getId());
+        assertEquals(3, RouteTimeline.evaluate(roadless.getFacts(), route, false).violations().unavailableRoads());
+    }
+
     /** The long offset readings are Duration's own, on spans with nanoseconds and on negative spans, where floor and truncation differ. */
     @Test void offsetReadingsAreTheDurationReadings() {
         Instant origin = at("09:00:00.250000001");

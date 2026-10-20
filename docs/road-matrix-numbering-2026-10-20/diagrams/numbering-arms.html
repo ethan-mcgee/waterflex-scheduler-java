@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Two trees, six arms</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); padding: 0; }
+    .frame { width: 960px; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="numbering-arms-title numbering-arms-desc">
+        <title id="numbering-arms-title">The six arms and what each is compared with</title>
+        <desc id="numbering-arms-desc">Production and option b built from before the fix are each paired with the same variant on the fixed tree, and options b, c and load balance on the fixed tree are compared with the fixed production.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bf4520"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- Containers -->
+        <rect x="40" y="48" width="296" height="272" rx="8" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="56" y="68" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" letter-spacing="0.18em">TREE O  ·  D571D83  ·  BEFORE</text>
+        <rect x="528" y="48" width="392" height="272" rx="8" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="544" y="68" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" letter-spacing="0.18em">TREE N  ·  ED97D8B  ·  THE FIX</text>
+
+        <!-- Arrows first -->
+        <line x1="304" y1="112" x2="556" y2="112" stroke="#bf4520" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="408" y="88" width="44" height="14" fill="#f5f5f5"/>
+        <text x="430" y="98" fill="#bf4520" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">FIX</text>
+        <line x1="304" y1="260" x2="568" y2="260" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="392" y="236" width="76" height="14" fill="#f5f5f5"/>
+        <text x="430" y="246" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">FIX ON B</text>
+        <line x1="616" y1="140" x2="616" y2="232" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="720" y1="140" x2="720" y2="232" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="824" y1="140" x2="824" y2="232" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="624" y="176" width="40" height="14" fill="#f5f5f5"/>
+        <text x="628" y="186" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" letter-spacing="0.08em">BARS</text>
+        <rect x="728" y="176" width="40" height="14" fill="#f5f5f5"/>
+        <text x="732" y="186" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" letter-spacing="0.08em">BARS</text>
+        <rect x="832" y="176" width="64" height="14" fill="#f5f5f5"/>
+        <text x="836" y="186" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" letter-spacing="0.08em">NO BARS</text>
+
+        <!-- Tree o -->
+        <rect x="72" y="84" width="232" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="88" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', sans-serif">old</text>
+        <text x="88" y="124" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">TABU_KOPT</text>
+        <rect x="72" y="232" width="232" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="88" y="256" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', sans-serif">old-b</text>
+        <text x="88" y="272" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">TABU_KOPT_BINARY_VARIANCE</text>
+
+        <!-- Tree n: baseline (focal) -->
+        <rect x="560" y="84" width="328" height="56" rx="6" fill="rgba(191,69,32,0.08)" stroke="#bf4520" stroke-width="1"/>
+        <text x="576" y="108" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', sans-serif">baseline</text>
+        <text x="576" y="124" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">TABU_KOPT, production with the fix</text>
+
+        <!-- Tree n: three arms -->
+        <rect x="572" y="236" width="88" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="616" y="258" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">b</text>
+        <text x="616" y="274" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace" text-anchor="middle">binary64</text>
+        <rect x="676" y="236" width="88" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="720" y="258" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">c</text>
+        <text x="720" y="274" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace" text-anchor="middle">running sums</text>
+        <rect x="780" y="236" width="88" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="824" y="258" fill="#2d3142" font-size="13" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">load-bal.</text>
+        <text x="824" y="274" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace" text-anchor="middle">Timefold</text>
+
+        <!-- Callout -->
+        <text x="40" y="356" fill="#2d3142" font-size="15" font-style="italic" font-family="'Instrument Serif', serif">Every arrow pairs the same case and repetition, so drift in the machine falls on both ends.</text>
+
+        <!-- Legend -->
+        <line x1="40" y1="380" x2="920" y2="380" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="396" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="40" y="408" width="24" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <text x="72" y="418" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">One arm, a solver variant</text>
+        <line x1="232" y1="414" x2="260" y2="414" stroke="#bf4520" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <text x="268" y="418" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">The fix itself</text>
+        <line x1="384" y1="414" x2="412" y2="414" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="420" y="418" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Judged against a bar</text>
+        <line x1="560" y1="414" x2="588" y2="414" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="596" y="418" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Compared on every measure</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

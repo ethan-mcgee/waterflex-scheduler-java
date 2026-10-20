@@ -20,7 +20,23 @@ public final class SolverEngine {
                           /** TABU tuning: entity tabu size 3 or 15 (experiment-only), or TABU with the KOPT move set (a client choice, see DailySearch). */
                           TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT,
                           /** TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined (a client choice, see DailySearch). */
-                          TABU_KOPT_SIZE_3 }
+                          TABU_KOPT_SIZE_3,
+                          /**
+                           * TABU_KOPT with another fairness-phase objective from {@link FairnessMeasures}, experiment-only (the
+                           * fairness measure study): the production variance in binary64 (b), the same from running sums (c),
+                           * the highest utilization, the utilization spread, the absolute deviation, and Timefold's load balance.
+                           * Never a client choice.
+                           */
+                          TABU_KOPT_BINARY_VARIANCE, TABU_KOPT_INCREMENTAL_VARIANCE, TABU_KOPT_MIN_MAX_UTILIZATION,
+                          TABU_KOPT_UTILIZATION_SPREAD, TABU_KOPT_ABSOLUTE_DEVIATION, TABU_KOPT_LOAD_BALANCE }
+    /** The constraint provider of each fairness measure variant; every other variant runs {@link DayConstraintProvider}. */
+    private static final java.util.Map<Variant, Class<? extends DayConstraintProvider>> MEASURES = Required.value(java.util.Map.of(
+            Variant.TABU_KOPT_BINARY_VARIANCE, FairnessMeasures.BinaryVariance.class,
+            Variant.TABU_KOPT_INCREMENTAL_VARIANCE, FairnessMeasures.IncrementalVariance.class,
+            Variant.TABU_KOPT_MIN_MAX_UTILIZATION, FairnessMeasures.MinMaxUtilization.class,
+            Variant.TABU_KOPT_UTILIZATION_SPREAD, FairnessMeasures.UtilizationSpread.class,
+            Variant.TABU_KOPT_ABSOLUTE_DEVIATION, FairnessMeasures.AbsoluteDeviation.class,
+            Variant.TABU_KOPT_LOAD_BALANCE, FairnessMeasures.LoadBalance.class));
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
     public record Definition(Variant variant, long seed, EnvironmentMode environmentMode, boolean construction,
@@ -90,9 +106,11 @@ public final class SolverEngine {
             } catch (java.io.IOException failure) { throw new IllegalStateException("Solver configuration unavailable", failure); }
             if (variant == Variant.CURRENT_UNCAPPED) xml = xml.replace("<stepCountLimit>1000</stepCountLimit>", "");
         } else {
+            boolean measure = MEASURES.containsKey(variant);
             boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT
-                    || variant == Variant.TABU_KOPT_SIZE_3;
-            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3;
+                    || variant == Variant.TABU_KOPT_SIZE_3 || measure;
+            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3
+                    || measure;
             boolean advanced = variant == Variant.SUBLIST || kOpt;
             String moves = "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>";
             if (variant != Variant.LATE_ACCEPTANCE_CHANGE)
@@ -113,6 +131,14 @@ public final class SolverEngine {
         }
         xml = xml.replace("<environmentMode>NO_ASSERT</environmentMode>", "<environmentMode>" + key.mode().name() + "</environmentMode>");
         if (construction) xml = xml.replace("<localSearch>", "<constructionHeuristic/><localSearch>");
+        Class<? extends DayConstraintProvider> provider = MEASURES.get(variant);
+        if (provider != null) {
+            // Nested classes load by their binary name.
+            String replaced = xml.replace("<constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass>",
+                    "<constraintProviderClass>" + provider.getName() + "</constraintProviderClass>");
+            if (replaced.equals(xml)) throw new IllegalStateException("Fairness measure configuration changed shape");
+            xml = replaced;
+        }
         SolverConfig config = Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(seed));
         try {
             String fingerprint = Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((xml + "|seed=" + seed + "|score=" + DailyDataset.SCORE_MODEL).getBytes(StandardCharsets.UTF_8))));

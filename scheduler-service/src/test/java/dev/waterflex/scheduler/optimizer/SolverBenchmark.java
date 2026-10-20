@@ -135,22 +135,26 @@ public final class SolverBenchmark {
         DayPlan reference = costMetrics.overtimeMinutes() < before.overtimeMinutes()
                 || costMetrics.overtimeMinutes() == before.overtimeMinutes() && costMetrics.costCents() < before.costCents() ? cost.plan() : fixture;
         var referenceMetrics = SchedulingPolicy.measure(reference);
+        long ceiling = rules.costCeiling(referenceMetrics.costCents());
+        // The fairness measure study: a policy arm is accepted on the measure it searched, carried where the variance is.
+        @Nullable String acceptedOn = FairnessReadings.accepted(definition.variant());
+        var judgedReference = judged(reference, acceptedOn, reference, ceiling);
         DayPlan chosen = reference;
         SolverEngine.@Nullable Statistics fairStatistics = null;
         long remaining = budgetMs - (System.nanoTime() - started) / 1_000_000;
         if (phases == Phases.COST_AND_FAIRNESS && remaining > 0) {
             DayPlan fairnessSeed = PlanCopies.copy(reference);
-            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(reference, rules.costCeiling(referenceMetrics.costCents())));
+            fairnessSeed.setScoringFacts(fairnessSeed.getScoringFacts().withTarget(reference, ceiling));
             var fair = recorded("fairness", () -> SolverExperiment.solve(definition, fairnessSeed, Required.value(Duration.ofMillis(remaining))));
             validate(fair.plan()); fairStatistics = fair.statistics();
-            var metrics = SchedulingPolicy.measure(fair.plan());
-            if (metrics.overtimeMinutes() == referenceMetrics.overtimeMinutes() && metrics.costCents() <= rules.costCeiling(referenceMetrics.costCents())
-                    && (metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) < 0
-                    || metrics.fairness().variance().compareTo(referenceMetrics.fairness().variance()) == 0
-                    && (metrics.costCents() < referenceMetrics.costCents() || metrics.costCents() == referenceMetrics.costCents()
+            var metrics = judged(fair.plan(), acceptedOn, reference, ceiling);
+            if (metrics.overtimeMinutes() == judgedReference.overtimeMinutes() && metrics.costCents() <= ceiling
+                    && (metrics.fairness().variance().compareTo(judgedReference.fairness().variance()) < 0
+                    || metrics.fairness().variance().compareTo(judgedReference.fairness().variance()) == 0
+                    && (metrics.costCents() < judgedReference.costCents() || metrics.costCents() == judgedReference.costCents()
                     && SchedulingPolicy.compareArrangements(fair.plan(), reference) < 0))) chosen = fair.plan();
         }
-        var decision = SchedulingPolicy.compare(before, SchedulingPolicy.measure(chosen), referenceMetrics, rules);
+        var decision = SchedulingPolicy.compare(judged(fixture, acceptedOn, reference, ceiling), judged(chosen, acceptedOn, reference, ceiling), judgedReference, rules);
         if (!decision.accepted()) chosen = fixture;
         var afterValidation = validate(chosen);
         var after = SchedulingPolicy.measure(chosen);
@@ -174,8 +178,21 @@ public final class SolverBenchmark {
         row.put("elapsedMs", (System.nanoTime() - started) / 1_000_000); row.put("cpuNanos", cpuNanos() - cpuBefore);
         row.put("peakHeapBytes", ManagementFactory.getMemoryPoolMXBeans().stream().filter(pool -> pool.getType() == java.lang.management.MemoryType.HEAP)
                 .mapToLong(pool -> Required.value(pool.getPeakUsage()).getUsed()).sum());
+        if (acceptedOn != null) row.put("acceptedOn", acceptedOn);
+        Map<String, Object> measures = new LinkedHashMap<>();
+        measures.put("before", FairnessReadings.readings(fixture, reference, ceiling));
+        measures.put("reference", FairnessReadings.readings(reference, reference, ceiling));
+        measures.put("after", FairnessReadings.readings(chosen, reference, ceiling));
+        row.put("measures", measures);
         row.put("violations", 0);
         return row;
+    }
+    /** The metrics {@code plan} is accepted on: production's, or with a policy arm's own measure carried where the variance is. */
+    private static SchedulingPolicy.Metrics judged(DayPlan plan, @Nullable String acceptedOn, DayPlan reference, long ceiling) {
+        var measured = SchedulingPolicy.measure(plan);
+        if (acceptedOn == null) return measured;
+        return new SchedulingPolicy.Metrics(measured.overtimeMinutes(), measured.costCents(), new SchedulingPolicy.Fairness(
+                FairnessReadings.reading(acceptedOn, plan, reference, ceiling), measured.fairness().maximumUtilization(), measured.fairness().workloads()));
     }
     static void validateBudget(long budgetMs) {
         if (budgetMs < 100 || budgetMs > 900000) throw new IllegalArgumentException("Benchmark budget must be 100..900000 ms");
