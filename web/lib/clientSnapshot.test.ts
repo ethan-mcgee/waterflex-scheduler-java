@@ -6,7 +6,7 @@ import { assembleSnapshot, effectiveEndpointPolicy, SnapshotError, type Appointm
 const DATE = "2026-10-12"; // a Monday
 const settings = { regularHourly: new Prisma.Decimal("30"), overtimeHourly: new Prisma.Decimal("45"), mileagePerMile: new Prisma.Decimal("0.67"),
   travelBufferPct: new Prisma.Decimal("0.2"), travelBufferMinutes: 5, fairnessBudget: new Prisma.Decimal("0.02"), offerLimit: 4, windowHours: 4,
-  bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2, version: 0, updatedAt: new Date("2026-10-01T00:00:00Z") };
+  bookingHorizonWeekdays: 10, horizonMode: "FIXED", horizonLeadWeekdays: 2, horizonFullPercent: 85, dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, unimprovedSearchSeconds: null, bookingDeadlineMs: 5000, regularWindowThreshold: 2, version: 0, updatedAt: new Date("2026-10-01T00:00:00Z") };
 const week = Array.from({ length: 7 }, (_, dayOfWeek) => ({ dayOfWeek, available: dayOfWeek >= 1 && dayOfWeek <= 5,
   shiftStartMin: dayOfWeek >= 1 && dayOfWeek <= 5 ? 480 : null, shiftEndMin: dayOfWeek >= 1 && dayOfWeek <= 5 ? 1020 : null }));
 const depot = { id: "depot-a", metroId: "metro", lat: 41.25, lng: -95.93,

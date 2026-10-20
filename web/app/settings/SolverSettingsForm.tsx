@@ -15,16 +15,17 @@ type Draft = {
   regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPercent: string;
   travelBufferMinutes: string; fairnessBudgetPercent: string; offerLimit: string; windowHours: string; bookingHorizonWeekdays: string;
   horizonMode: string; horizonLeadWeekdays: string; horizonFullPercent: string;
-  dailySearch: string; costSearchSeconds: string; fairnessSearchSeconds: string; bookingDeadlineMs: string; regularWindowThreshold: string;
+  dailySearch: string; costSearchSeconds: string; fairnessSearchSeconds: string; unimprovedSearchSeconds: string; bookingDeadlineMs: string; regularWindowThreshold: string;
 };
 
-const SEARCH_LABELS: Record<DailySearch, string> = { TABU_KOPT: "Tabu + K opt (recommended)", TABU: "Tabu (previous default)" };
+const SEARCH_LABELS: Record<DailySearch, string> = { TABU_KOPT: "Tabu + K opt (recommended)", TABU: "Tabu (previous default)",
+  TABU_KOPT_SIZE_3: "Tabu + K opt, short tabu" };
 const HORIZON_LABELS: Record<HorizonMode, string> = { FIXED: "Fixed number of weekdays", DYNAMIC: "Follows the schedule" };
 
 const EMPTY: Draft = { regularHourly: "", overtimeHourly: "", mileagePerMile: "", travelBufferPercent: "",
   travelBufferMinutes: "", fairnessBudgetPercent: "", offerLimit: "", windowHours: "", bookingHorizonWeekdays: "",
   horizonMode: "", horizonLeadWeekdays: "", horizonFullPercent: "",
-  dailySearch: "", costSearchSeconds: "", fairnessSearchSeconds: "", bookingDeadlineMs: "", regularWindowThreshold: "" };
+  dailySearch: "", costSearchSeconds: "", fairnessSearchSeconds: "", unimprovedSearchSeconds: "", bookingDeadlineMs: "", regularWindowThreshold: "" };
 
 function draftOf(view: SolverSettingsView | null): Draft {
   if (view === null) return EMPTY;
@@ -34,6 +35,7 @@ function draftOf(view: SolverSettingsView | null): Draft {
     bookingHorizonWeekdays: String(view.bookingHorizonWeekdays), horizonMode: view.horizonMode,
     horizonLeadWeekdays: String(view.horizonLeadWeekdays), horizonFullPercent: String(view.horizonFullPercent), dailySearch: view.dailySearch,
     costSearchSeconds: String(view.costSearchSeconds), fairnessSearchSeconds: String(view.fairnessSearchSeconds),
+    unimprovedSearchSeconds: view.unimprovedSearchSeconds === null ? "" : String(view.unimprovedSearchSeconds),
     bookingDeadlineMs: String(view.bookingDeadlineMs), regularWindowThreshold: String(view.regularWindowThreshold) };
 }
 
@@ -71,6 +73,8 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           bookingHorizonWeekdays: whole(draft.bookingHorizonWeekdays), horizonMode: draft.horizonMode,
           horizonLeadWeekdays: whole(draft.horizonLeadWeekdays), horizonFullPercent: whole(draft.horizonFullPercent), dailySearch: draft.dailySearch,
           costSearchSeconds: whole(draft.costSearchSeconds), fairnessSearchSeconds: whole(draft.fairnessSearchSeconds),
+          // An empty box is the explicit choice "off": every search spends its whole time.
+          unimprovedSearchSeconds: draft.unimprovedSearchSeconds.trim() === "" ? null : whole(draft.unimprovedSearchSeconds),
           bookingDeadlineMs: whole(draft.bookingDeadlineMs), regularWindowThreshold: whole(draft.regularWindowThreshold),
         } }) });
       const saved = await readResponse(response, savedView);
@@ -165,6 +169,9 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           </Row>
           <Row label="Fairness search time" hint="Seconds then spent spreading work more evenly within the fairness budget. 0 skips it.">
             <input inputMode="numeric" {...field("fairnessSearchSeconds")} required /> <span>seconds</span>
+          </Row>
+          <Row label="Stop when unimproved" hint="Optional. Each search ends early once its best plan has not improved for this many seconds, 1 to the cost search time. Leave empty to always use the whole time.">
+            <input inputMode="numeric" {...field("unimprovedSearchSeconds")} /> <span>seconds</span>
           </Row>
         </section>
         <div className={styles.actions}>

@@ -109,10 +109,13 @@ model ClientSolverSettings {
   horizonLeadWeekdays    Int
   // 50 to 100 (CHECK constraint): the route span share at which a weekday counts as booked out.
   horizonFullPercent     Int
-  // TABU or TABU_KOPT (CHECK constraint); read through clientSettings.ts, which validates it.
+  // TABU, TABU_KOPT or TABU_KOPT_SIZE_3 (CHECK constraint); read through clientSettings.ts, which validates it.
   dailySearch            String
   costSearchSeconds      Int
   fairnessSearchSeconds  Int
+  // 1 to costSearchSeconds (CHECK constraint): a daily search also ends once its best plan has not improved for
+  // this long. Null is the client's choice that every search spends its whole time.
+  unimprovedSearchSeconds Int?
   // 1000 to 5000 (CHECK constraint): a booking search or confirm's deadline at the scheduler.
   bookingDeadlineMs      Int
   // 0 to 1000 (CHECK constraint): regular windows above which the booking refinement is kept short.

@@ -5,7 +5,9 @@ import org.jspecify.annotations.Nullable;
 /** The daily search methods a client may choose. Every other SolverEngine variant is for benchmarks only. */
 public enum DailySearch {
     TABU(SolverEngine.Variant.TABU),
-    TABU_KOPT(SolverEngine.Variant.TABU_KOPT);
+    TABU_KOPT(SolverEngine.Variant.TABU_KOPT),
+    /** TABU_KOPT with entity tabu size 3 (spec 1.6.0). */
+    TABU_KOPT_SIZE_3(SolverEngine.Variant.TABU_KOPT_SIZE_3);
 
     private final SolverEngine.Variant variant;
     DailySearch(SolverEngine.Variant variant) { this.variant = variant; }

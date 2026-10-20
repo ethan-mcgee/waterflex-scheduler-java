@@ -15,7 +15,7 @@ const percent = z.string().trim().regex(/^(0|[1-9][0-9]{0,2})(\.[0-9]{1,2})?$/, 
   .refine(value => new Prisma.Decimal(value).lte(100), "A percentage is at most 100");
 
 /** The daily search methods a client may choose; the scheduler accepts exactly these. */
-export const DAILY_SEARCHES = ["TABU_KOPT", "TABU"] as const;
+export const DAILY_SEARCHES = ["TABU_KOPT", "TABU", "TABU_KOPT_SIZE_3"] as const;
 export const dailySearch = z.enum(DAILY_SEARCHES);
 export type DailySearch = z.infer<typeof dailySearch>;
 export const horizonMode = z.enum(HORIZON_MODES);
@@ -43,10 +43,14 @@ export const solverSettingsInput = z.object({
   dailySearch,
   costSearchSeconds: z.int().min(5).max(MAX_SEARCH_SECONDS),
   fairnessSearchSeconds: z.int().min(0).max(MAX_SEARCH_SECONDS),
+  // Null is the client's choice that every search spends its whole time; the key is required so it is never assumed.
+  unimprovedSearchSeconds: z.int().min(1).max(MAX_SEARCH_SECONDS).nullable(),
   bookingDeadlineMs: z.int().min(MIN_BOOKING_DEADLINE_MS).max(MAX_BOOKING_DEADLINE_MS),
   regularWindowThreshold: z.int().min(0).max(MAX_REGULAR_WINDOW_THRESHOLD),
 }).strict().refine(settings => settings.costSearchSeconds + settings.fairnessSearchSeconds <= MAX_SEARCH_SECONDS,
-  { message: `Cost and fairness search time together must be at most ${MAX_SEARCH_SECONDS} seconds`, path: ["fairnessSearchSeconds"] });
+  { message: `Cost and fairness search time together must be at most ${MAX_SEARCH_SECONDS} seconds`, path: ["fairnessSearchSeconds"] })
+  .refine(settings => settings.unimprovedSearchSeconds === null || settings.unimprovedSearchSeconds <= settings.costSearchSeconds,
+    { message: "Stop when unimproved must be at most the cost search time", path: ["unimprovedSearchSeconds"] });
 export type SolverSettingsInput = z.infer<typeof solverSettingsInput>;
 
 /** A save carries the version it was edited from; null means the client has no settings yet. */
@@ -61,6 +65,8 @@ export interface StoredSolverSettings {
   horizonMode: string; horizonLeadWeekdays: number; horizonFullPercent: number;
   /** Stored as text under a CHECK constraint; validated with `dailySearch` before use. */
   dailySearch: string; costSearchSeconds: number; fairnessSearchSeconds: number;
+  /** Null: every daily search spends its whole time. */
+  unimprovedSearchSeconds: number | null;
   bookingDeadlineMs: number; regularWindowThreshold: number; version: number; updatedAt: Date;
 }
 
@@ -90,6 +96,7 @@ export function toStored(input: SolverSettingsInput) {
     dailySearch: input.dailySearch,
     costSearchSeconds: input.costSearchSeconds,
     fairnessSearchSeconds: input.fairnessSearchSeconds,
+    unimprovedSearchSeconds: input.unimprovedSearchSeconds,
     bookingDeadlineMs: input.bookingDeadlineMs,
     regularWindowThreshold: input.regularWindowThreshold,
   };
@@ -123,6 +130,7 @@ export function toView(stored: StoredSolverSettings): SolverSettingsView {
     dailySearch: storedSearch(stored),
     costSearchSeconds: stored.costSearchSeconds,
     fairnessSearchSeconds: stored.fairnessSearchSeconds,
+    unimprovedSearchSeconds: stored.unimprovedSearchSeconds,
     bookingDeadlineMs: stored.bookingDeadlineMs,
     regularWindowThreshold: stored.regularWindowThreshold,
     version: stored.version,
@@ -148,6 +156,8 @@ export function publicPolicy(stored: StoredSolverSettings) {
     dailySearch: storedSearch(stored),
     costSearchSeconds: stored.costSearchSeconds,
     fairnessSearchSeconds: stored.fairnessSearchSeconds,
+    // Optional in the API: sent only when the client set a limit, so its absence means the whole time.
+    ...(stored.unimprovedSearchSeconds === null ? {} : { unimprovedSearchSeconds: stored.unimprovedSearchSeconds }),
     bookingDeadlineMs: stored.bookingDeadlineMs,
     regularWindowThreshold: stored.regularWindowThreshold,
   };

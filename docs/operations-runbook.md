@@ -40,6 +40,7 @@ Until then, keep every port on the private network, as Compose does by binding t
 | `SCHEDULER_DAILY_QUEUE_POLL_MS`, `SCHEDULER_DAILY_QUEUE_MAX_WAIT_MINUTES`, `SCHEDULER_DAILY_QUEUE_TENANT_LIMIT` | No | How often an idle worker looks for work queued on another replica (500 ms); how long a queued request may wait before it completes with 429 without running (15 minutes); how many requests one client may have queued or running (50). |
 | `MANAGEMENT_PORT` | No | Port of `/actuator/health` and `/actuator/prometheus`, default 9000. Keep it private. |
 | `LOGGING_STRUCTURED_FORMAT_CONSOLE` | No | `ecs` for JSON log lines. |
+| `TIMEFOLD_LOG_LEVEL` | No | Log level of the Timefold solver's own lines, default `WARN`, on the scheduler and the solver pool. Its per-solve INFO lines repeat the daily receipt line, which carries the tenant and `requestId`; set `INFO` or `DEBUG` to diagnose one solve. |
 
 ## Install
 

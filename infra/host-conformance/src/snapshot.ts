@@ -21,8 +21,8 @@ export interface Appointment {
 export interface Snapshot {
   metroId: string; timeZone: string;
   rates: { regularHourly: string; overtimeHourly: string; mileagePerMile: string; travelBufferPct: string; travelBufferMinutes: number };
-  policy: { fairnessBudget: string; dailySearch: "TABU" | "TABU_KOPT"; costSearchSeconds: number; fairnessSearchSeconds: number;
-    bookingDeadlineMs: number; regularWindowThreshold: number; bookingRefinementMs?: number };
+  policy: { fairnessBudget: string; dailySearch: "TABU" | "TABU_KOPT" | "TABU_KOPT_SIZE_3"; costSearchSeconds: number; fairnessSearchSeconds: number;
+    bookingDeadlineMs: number; regularWindowThreshold: number; bookingRefinementMs?: number; unimprovedSearchSeconds?: number };
   technicians: { id: string; qualifications: string[] }[];
   technicianDays: TechnicianDay[];
   appointments: Appointment[];

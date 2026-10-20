@@ -4,10 +4,11 @@ import java.util.*;
 /** Versioned calculation envelopes. A proposal never conveys persistence or apply authority. */
 public final class CalculationProtocol {
     /**
+     * Version 4 carries the allocation's optional unimprovedMs and solver statistics format 3.
      * Version 3 drops {@code BookingSnapshot.calendarReference} and the unused utilization threshold from the policy rules.
      * Version 2 carried the caller's phase allocation with each daily request.
      */
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
     private CalculationProtocol() { }
     public record Request(int schemaVersion, String requestId, String operation, long remainingMillis, String contentHash, String payload) {
         public Request {

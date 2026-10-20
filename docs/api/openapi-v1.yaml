@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.5.1
+  version: 1.6.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -35,6 +35,9 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.6.0 (2026-10-20): Policy gains the optional unimprovedSearchSeconds: a daily cost or fairness search also
+      ends once its best score has not improved for that many seconds. dailySearch gains TABU_KOPT_SIZE_3. Both
+      change only daily and repair proposals; a policy without them is answered as before.
     - 1.5.1 (2026-10-19): every operation that takes a request body answers 413 (a Problem with INVALID_REQUEST)
       when the body is larger than 8 MiB (8388608 bytes), before it is read in full, claimed or calculated. No schema
       changes.
@@ -736,10 +739,12 @@ components:
             "0.02" allows up to 2 percent. At most "1".
         dailySearch:
           type: string
-          enum: [TABU, TABU_KOPT]
+          enum: [TABU, TABU_KOPT, TABU_KOPT_SIZE_3]
           description: >-
             The daily search method. TABU_KOPT is Tabu search that also tries moving runs of visits and
-            reconnecting route segments (K opt); TABU tries only single-visit moves and swaps.
+            reconnecting route segments (K opt); TABU tries only single-visit moves and swaps. TABU_KOPT_SIZE_3
+            (since 1.6.0) is TABU_KOPT with a shorter tabu tenure: a route a move changed is held back for 3 steps
+            instead of 7, so the search may return to it sooner.
         costSearchSeconds:
           type: integer
           minimum: 5
@@ -752,6 +757,14 @@ components:
           description: >-
             Seconds then spent spreading work more evenly within the fairness budget. 0 skips that search; the
             lowest-cost plan is still checked against the policy.
+        unimprovedSearchSeconds:
+          type: integer
+          minimum: 1
+          maximum: 240
+          description: >-
+            Optional (since 1.6.0). A daily cost or fairness search also ends once its best plan has not improved for
+            this many seconds, so a day that settles early answers early. At most costSearchSeconds. A repair always
+            spends its whole time. When absent, every search spends its whole time.
         bookingDeadlineMs:
           type: integer
           minimum: 1000

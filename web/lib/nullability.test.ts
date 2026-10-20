@@ -112,6 +112,19 @@ test("v2 solver diagnostics preserve nulls and reject missing reasons or false o
     { ...statistics, provenance: { ...statistics.provenance, sha256: null } }, { ...statistics, format: 3 }]) assert.equal(parse(invalid), false);
 });
 
+test("v3 solver diagnostics carry the unimproved limit and infer an unimproved stop without telemetry", () => {
+  const statistics = { format: 3, variant: "TABU_KOPT", seed: 17, configurationFingerprint: "a".repeat(64), termination: "UNIMPROVED_LIMIT",
+    budgetMs: 30000, stepLimit: null, steps: null, moveEvaluations: null, scoreCalculations: null, solveMs: 4200, timeToBestMs: null,
+    diagnosticsUnavailableReason: "NOT_ENABLED", timeToBestUnavailableReason: "NOT_ENABLED", terminationBasis: "INFERRED", environmentMode: "NO_ASSERT", instrumentation: "NONE",
+    provenance: { artifact: "timefold-solver-core", version: "2.7.1", sha256: "b".repeat(64), unavailableReason: null }, unimprovedMs: 3000 };
+  const parse = (value: unknown) => solverAnalysis.safeParse({ engine: "Timefold-2.7.1", configurationXml: "<solver/>", phases: [{ name: "REFERENCE", statistics: value }] }).success;
+  assert.equal(parse(statistics), true);
+  assert.equal(parse({ ...statistics, termination: "SOLVE_RETURNED", terminationBasis: "OBSERVED", unimprovedMs: null }), true, "no limit, whole budget");
+  for (const invalid of [{ ...statistics, unimprovedMs: null }, { ...statistics, terminationBasis: "OBSERVED" },
+    { ...statistics, unimprovedMs: undefined }, { ...statistics, unimprovedMs: 0 }, { ...statistics, termination: "TIME_LIMIT" }])
+    assert.equal(parse(invalid), false);
+});
+
 test("depot pin accepts nearby adjustment and rejects distant or missing geocoder candidates", () => {
   const candidate = { lat: 41.256, lng: -95.934, precision: "ROOFTOP" as const };
   assert.deepEqual(nearbyCandidate({ lat: 41.257, lng: -95.934 }, [candidate]), candidate);
