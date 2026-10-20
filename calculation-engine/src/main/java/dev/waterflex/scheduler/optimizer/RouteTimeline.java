@@ -51,9 +51,9 @@ final class RouteTimeline {
         // This trajectory is a direction of improvement, never an independent feasible-placement proof.
         // A categorical road failure has no known travel duration. Do not invent one for timing.
         long unavailableRoads = 0;
-        int technician = roads.number(route.getId()), previous = technician;
+        int technician = route.roadNumber(facts), previous = technician;
         for (PlanVisit visit : route.getVisits()) {
-            int here = roads.number(visit.getId());
+            int here = visit.roadNumber(facts);
             if (roads.leg(previous, here) == null) unavailableRoads++;
             previous = here;
         }
@@ -61,7 +61,7 @@ final class RouteTimeline {
         if (unavailableRoads > 0) return result(facts, new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
         if (route.getVisits().isEmpty()) return result(facts, new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
         PlanVisit first = Required.value(route.getVisits().getFirst());
-        long initialTravel = Required.value(roads.leg(technician, roads.number(first.getId()))).bufferedMinutes();
+        long initialTravel = Required.value(roads.leg(technician, first.roadNumber(facts))).bufferedMinutes();
         // The shift starts at offset 0.
         long departure = Math.max(0, Math.subtractExact(offset(origin, first.getWindowStart()), nanos(initialTravel)));
         long cursor = departure;
@@ -69,7 +69,7 @@ final class RouteTimeline {
         long drive = 0, waiting = 0, meters = 0, lateness = 0;
         Map<String, Instant> arrivals = withArrivals ? new LinkedHashMap<>() : Required.value(Map.of());
         for (PlanVisit visit : route.getVisits()) {
-            int here = roads.number(visit.getId());
+            int here = visit.roadNumber(facts);
             RoadMatrix.Leg road = Required.value(roads.leg(previous, here));
             long travel = road.bufferedMinutes();
             long earliest = Math.addExact(cursor, nanos(travel));

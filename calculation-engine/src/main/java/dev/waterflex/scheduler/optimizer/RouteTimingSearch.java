@@ -27,21 +27,23 @@ final class RouteTimingSearch {
         if (count == 0) return empty;
         if (blocks.isEmpty()) return null;
         if (blocks.size() == 1) {
-            Timing timing = segments(facts, route, origin, Required.value(blocks.getFirst()), 0, false, withArrivals).get(count);
+            Timing timing = segments(facts, route, origin, Required.value(blocks.getFirst()), 0, false, withArrivals)[count];
             return timing != null && within(route, timing) ? timing : null;
         }
-        Map<Integer, List<Timing>> frontier = new TreeMap<>();
-        frontier.put(0, new ArrayList<>(List.of(empty)));
+        // The non-dominated timings by the number of visits they cover, walked in ascending order as a sorted map would be.
+        List<List<Timing>> frontier = states(count);
+        Required.value(frontier.getFirst()).add(empty);
         for (int interval = 0; interval < blocks.size(); interval++) {
-            Map<Integer, List<Timing>> next = new TreeMap<>();
-            for (var entry : frontier.entrySet()) {
-                int first = entry.getKey();
-                for (Timing prefix : entry.getValue()) retain(next, first, Required.value(prefix), facts);
-                Map<Integer, Timing> options = segments(facts, route, origin, Required.value(blocks.get(interval)), first, true, withArrivals);
-                for (var option : options.entrySet()) {
-                    int end = option.getKey();
-                    Timing part = Required.value(option.getValue());
-                    for (Timing prefix : entry.getValue()) {
+            List<List<Timing>> next = states(count);
+            for (int first = 0; first <= count; first++) {
+                List<Timing> prefixes = Required.value(frontier.get(first));
+                if (prefixes.isEmpty()) continue;
+                for (Timing prefix : prefixes) retain(next, first, Required.value(prefix), facts);
+                @Nullable Timing[] options = segments(facts, route, origin, Required.value(blocks.get(interval)), first, true, withArrivals);
+                for (int end = first + 1; end <= count; end++) {
+                    Timing part = options[end];
+                    if (part == null) continue;
+                    for (Timing prefix : prefixes) {
                         Timing combined = append(Required.value(prefix), part);
                         if (within(route, combined)) retain(next, end, combined, facts);
                     }
@@ -49,24 +51,33 @@ final class RouteTimingSearch {
             }
             frontier = next;
         }
-        List<Timing> complete = frontier.get(count);
-        return complete == null ? null : complete.stream().min((first, second) -> compare(Required.value(first), Required.value(second), facts)).orElse(null);
+        List<Timing> complete = Required.value(frontier.get(count));
+        return complete.stream().min((first, second) -> compare(Required.value(first), Required.value(second), facts)).orElse(null);
     }
 
-    /** Reuse forward timing/resource prefixes for every possible return point in this interval. */
-    private static Map<Integer, Timing> segments(PlanFacts facts, TechRoute route, Instant origin, Block block, int first, boolean everyEnd, boolean withArrivals) {
+    private static List<List<Timing>> states(int count) {
+        List<List<Timing>> states = new ArrayList<>(count + 1);
+        for (int visits = 0; visits <= count; visits++) states.add(new ArrayList<>());
+        return states;
+    }
+
+    /**
+     * Reuse forward timing/resource prefixes for every possible return point in this interval: cell {@code end} holds
+     * the timing that returns after the visit before {@code end}, or null where none fits.
+     */
+    private static @Nullable Timing[] segments(PlanFacts facts, TechRoute route, Instant origin, Block block, int first, boolean everyEnd, boolean withArrivals) {
         RoadMatrix roads = facts.roads();
-        Map<Integer, Timing> options = new LinkedHashMap<>();
+        @Nullable Timing[] options = new @Nullable Timing[route.getVisits().size() + 1];
         // Arrival bookkeeping exists only for a caller that reads arrivals; the timing itself never depends on it.
         Map<String, Long> arrivals = withArrivals ? new LinkedHashMap<>() : Required.value(Map.of());
         Map<String, Long> cumulativeWaiting = withArrivals ? new HashMap<>() : Required.value(Map.of());
         long shiftEnd = RouteTimeline.offset(origin, route.getShiftEnd());
         long departure = block.start(), cursor = departure;
-        int technician = roads.number(route.getId()), previous = technician;
+        int technician = route.roadNumber(facts), previous = technician;
         long drive = 0, waiting = 0, meters = 0, slack = Long.MAX_VALUE;
         for (int index = first; index < route.getVisits().size(); index++) {
             PlanVisit visit = Required.value(route.getVisits().get(index));
-            int here = roads.number(visit.getId());
+            int here = visit.roadNumber(facts);
             RoadMatrix.Leg leg = roads.leg(previous, here);
             if (leg == null) break;
             long travel = leg.bufferedMinutes();
@@ -100,8 +111,8 @@ final class RouteTimingSearch {
                     shifted.put(Required.value(earliest.getKey()), RouteTimeline.instant(origin, Math.addExact(Required.value(earliest.getValue()), RouteTimeline.nanos(postponed))));
                 }
             } else shifted = Required.value(Map.of());
-            options.put(index + 1, new Timing(RouteTimeline.minutes(returned - actualDeparture), Math.max(0, RouteTimeline.minutes(returned - Math.max(actualDeparture, shiftEnd))),
-                    drive + home.bufferedMinutes(), waiting - delay, meters + home.meters(), shifted, new long[]{actualDeparture}));
+            options[index + 1] = new Timing(RouteTimeline.minutes(returned - actualDeparture), Math.max(0, RouteTimeline.minutes(returned - Math.max(actualDeparture, shiftEnd))),
+                    drive + home.bufferedMinutes(), waiting - delay, meters + home.meters(), shifted, new long[]{actualDeparture});
         }
         return options;
     }
@@ -114,8 +125,8 @@ final class RouteTimingSearch {
                 first.waiting() + second.waiting(), first.meters() + second.meters(), arrivals, departures);
     }
     private static boolean within(TechRoute route, Timing timing) { return timing.paid() <= route.getMaxDailyMinutes() && timing.overtime() <= route.getMaxOvertimeMinutes(); }
-    private static void retain(Map<Integer, List<Timing>> states, int visits, Timing proposed, PlanFacts facts) {
-        List<Timing> existing = states.computeIfAbsent(visits, _ -> new ArrayList<>());
+    private static void retain(List<List<Timing>> states, int visits, Timing proposed, PlanFacts facts) {
+        List<Timing> existing = Required.value(states.get(visits));
         for (Timing timing : existing) if (dominates(Required.value(timing), proposed, facts)) return;
         existing.removeIf(timing -> dominates(proposed, Required.value(timing), facts)); existing.add(proposed);
     }
