@@ -85,25 +85,26 @@ public class DailyProposals {
     private final DailyQueue queue;
     private final Clock clock;
     private final StudyReceipts receipts;
+    private final StudyProfiles profiles;
 
     @Autowired
     public DailyProposals(PublicApiStore store, MetroRouting routing, AddressLocation locator, CalculationTransport transport,
                           DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue,
-                          StudyReceipts receipts) {
-        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, Required.value(Clock.systemUTC()), receipts);
+                          StudyReceipts receipts, StudyProfiles profiles) {
+        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, Required.value(Clock.systemUTC()), receipts, profiles);
     }
 
     public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
                           DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue, Clock clock) {
-        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, clock, StudyReceipts.OFF);
+        this(store, routing, locator, transport, solvers, admission, running, jobs, queue, clock, StudyReceipts.OFF, StudyProfiles.OFF);
     }
 
     public DailyProposals(PublicApiStore store, MetroRouting routing, DailyPreparation.AddressLocator locator, CalculationTransport transport,
                           DailySolvers solvers, SearchAdmission admission, RunningRequests running, DailyJobs jobs, DailyQueue queue, Clock clock,
-                          StudyReceipts receipts) {
+                          StudyReceipts receipts, StudyProfiles profiles) {
         this.store = store; this.routing = routing; this.locator = locator; this.transport = transport;
         this.solvers = solvers; this.admission = admission; this.running = running; this.jobs = jobs; this.queue = queue; this.clock = clock;
-        this.receipts = receipts;
+        this.receipts = receipts; this.profiles = profiles;
     }
 
     /** A strictly parsed proposal request: its canonical JSON (the claim digest and the queued copy), lease, and calculation. */
@@ -434,8 +435,13 @@ public class DailyProposals {
         DayPlan searched = absence == null ? baseline : PlanCopies.withAbsence(baseline, absence.technicianId(),
                 new TechRoute.Unavailable(absence.window().start(), absence.window().end()));
         DailySolver solver = solvers.get(search);
-        var calculation = transport.dailyTokens(searched, policy, solver, allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept);
-        receipts.record(proposalId, serviceDate, solver, policy, searched, calculation);
+        // With profiles on, each phase of the embedded calculation runs inside its own flight recording on this thread.
+        StudyProfiles.Recorded profile = profiles.recorder(proposalId);
+        var calculation = profile == null
+                ? transport.dailyTokens(searched, policy, solver, allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept)
+                : DailyCalculation.recording(profile, () ->
+                        transport.dailyTokens(searched, policy, solver, allocation, prepared.points(), proposalId, revision, prepared.routingIdentity(), configuration, kept));
+        receipts.record(proposalId, serviceDate, solver, policy, searched, calculation, profile);
         SearchDeadline.checkpoint();
         if (calculation.accepted()) return new Outcome(prepared, calculation.plan(), Decision.IMPROVED, ReasonText.describe(calculation.reason()));
         Decision decision = DailyCalculation.valid(calculation.plan()) ? Decision.REJECTED_BY_POLICY : Decision.NO_IMPROVEMENT;

@@ -8,9 +8,14 @@
 # Each image is built in its own git worktree under its own tag and run with SCHEDULER_PULL_POLICY=never, so the stack
 # cannot rebuild the working tree under the run. The daily pool runs with SCHEDULER_STUDY_RECEIPTS=true and
 # TIMEFOLD_LOG_LEVEL=INFO, so every run also reads each calculation's study receipt and Timefold's move evaluation speed
-# per phase from the replica's log (--scheduler-log). The images run in the order before, after for step 1 and after,
-# before for step 2, so neither always runs first. Resumable: a run whose report exists is skipped. About 45 minutes
-# with the defaults (-DryRun prints the runs); the owner starts it.
+# per phase from the replica's log (--scheduler-log). Unless -NoProfiles, the daily pool also runs with
+# SCHEDULER_STUDY_PROFILES=/profiles, a directory mounted from the runs directory, so every phase of every proposal is
+# flight-recorded on the JDK's profile configuration (the harness's recording); infra/stack_profiles.py then attributes
+# each calculation thread's samples into the evidence's profiles block. The images run in the order before, after for
+# step 1 and after, before for step 2, so neither always runs first. Resumable: a run whose report exists is skipped.
+# Both commits must contain StudyProfiles (feat/stack-profiles) for the replica to record; an older image ignores the
+# setting, and the evidence is then refused for receipts without recordings: compare such commits with -NoProfiles.
+# About 45 minutes with the defaults (-DryRun prints the runs); the owner starts it. Needs jfr (JAVA_HOME) and python.
 #   powershell -ExecutionPolicy Bypass -File infra/run-stack-verification.ps1 -Before <commit> -After <commit> [-DryRun]
 param(
     # The commits whose images are compared; any revision git resolves.
@@ -42,6 +47,8 @@ param(
     [string]$RunsDirectory = '.scratch/stack-verification',
     # Names the evidence file, api-load-<date>-<Study>.json.
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'binary-variance',
+    # Run without flight recordings (no profiles block in the evidence), for example to measure the recording's own cost.
+    [switch]$NoProfiles,
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
@@ -56,6 +63,14 @@ $runs = Join-Path $repository $RunsDirectory
 New-Item -ItemType Directory -Force $runs | Out-Null
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
 $evidence = Join-Path $repository "docs/evidence/api-load-$stamp-$Study.json"
+$profiles = -not $NoProfiles
+$profilesDirectory = Join-Path $runs 'profiles'
+$jfr = if ($env:JAVA_HOME) { Join-Path $env:JAVA_HOME 'bin/jfr.exe' } else { 'jfr' }
+if ($profiles -and -not $DryRun) {
+    if (-not (Get-Command $jfr -ErrorAction SilentlyContinue)) { throw "jfr is required to attribute the recordings (set JAVA_HOME), or pass -NoProfiles" }
+    if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw 'python is required to attribute the recordings, or pass -NoProfiles' }
+    New-Item -ItemType Directory -Force $profilesDirectory | Out-Null
+}
 
 $parseList = { param($text, $name, $min, $max)
     $items = @($text -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' } | ForEach-Object { [int]$_ })
@@ -121,7 +136,14 @@ foreach ($image in $images.Values) {
 }
 foreach ($name in @($images.Keys)) { $images[$name]['imageId'] = (& $dockerOutput @('images', '--no-trunc', '-q', $images[$name].tag)).Trim() }
 
-$rehearsal = @('-f', $vmCompose, '-f', $rehearsalOverride, '--env-file', $envFile)
+# With profiles, the daily replica's /profiles is the runs directory's profiles folder, through one more override file.
+$profilesOverride = Join-Path $runs 'profiles-mount.yml'
+if ($profiles) {
+    # Long syntax: a Windows drive letter's colon would be read as the short syntax's separator.
+    @('services:', '  scheduler-daily:', '    volumes:', '      - type: bind', "        source: '$($profilesDirectory.Replace('\', '/'))'", '        target: /profiles') |
+        Set-Content -LiteralPath $profilesOverride -Encoding ascii
+}
+$rehearsal = @('-f', $vmCompose, '-f', $rehearsalOverride) + $(if ($profiles) { @('-f', $profilesOverride) } else { @() }) + @('--env-file', $envFile)
 $dailyContainers = { , @((& $dockerOutput (@('compose') + $rehearsal + @('ps', '--format', '{{.Name}}', 'scheduler-daily'))) -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() }) }
 $bookingContainers = { , @((& $dockerOutput (@('compose') + $rehearsal + @('ps', '--format', '{{.Name}}', 'scheduler-booking'))) -split "`r?`n" | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() }) }
 $proxyStatus = { param($path)
@@ -151,6 +173,7 @@ $useImage = { param($name)
     $image = $images[$name]
     $env:SCHEDULER_IMAGE = $image.tag; $env:SCHEDULER_PULL_POLICY = 'never'
     $env:SCHEDULER_STUDY_RECEIPTS = 'true'; $env:TIMEFOLD_LOG_LEVEL = 'INFO'
+    $env:SCHEDULER_STUDY_PROFILES = if ($profiles) { '/profiles' } else { '' }
     Write-Output "Stack on $name ($($image.tag))"
     & $docker (@('compose') + $rehearsal + @('up', '-d', '--no-build', '--remove-orphans')) (Join-Path $runs "up-$name.log")
     if (-not (& $health 300)) { throw "The stack did not come up on $($image.tag) (see up-$name.log)" }
@@ -160,10 +183,11 @@ $useImage = { param($name)
     $booking = & $bookingContainers
     foreach ($id in @($daily) + @($booking)) {
         $inspect = (& $dockerOutput @('inspect', $id)) | ConvertFrom-Json
-        $settings = @($inspect[0].Config.Env | Where-Object { $_ -like 'SCHEDULER_STUDY_RECEIPTS=*' -or $_ -like 'TIMEFOLD_LOG_LEVEL=*' })
+        $settings = @($inspect[0].Config.Env | Where-Object { $_ -like 'SCHEDULER_STUDY_RECEIPTS=*' -or $_ -like 'SCHEDULER_STUDY_PROFILES=*' -or $_ -like 'TIMEFOLD_LOG_LEVEL=*' })
         if ($inspect[0].Image -ne $image.imageId -or $settings -notcontains 'TIMEFOLD_LOG_LEVEL=INFO') {
             throw "Container $id does not run $($image.tag) with Timefold at INFO" }
         if ($daily -contains $id -and $settings -notcontains 'SCHEDULER_STUDY_RECEIPTS=true') { throw "Daily replica $id runs without study receipts" }
+        if ($daily -contains $id -and $profiles -and $settings -notcontains 'SCHEDULER_STUDY_PROFILES=/profiles') { throw "Daily replica $id runs without study profiles" }
         $script:verified += [ordered]@{ image = $name; container = $id; imageId = $inspect[0].Image; nanoCpus = $inspect[0].HostConfig.NanoCpus; memory = $inspect[0].HostConfig.Memory; environment = $settings }
     }
     $script:running = $name
@@ -183,7 +207,8 @@ $common = @('--url', $Url, '--metro', $Metro, '--time-zone', $TimeZone, '--area'
 $index = 0
 $skipped = 0
 $tokenChecked = $false
-$previous = @{ SCHEDULER_IMAGE = $env:SCHEDULER_IMAGE; SCHEDULER_PULL_POLICY = $env:SCHEDULER_PULL_POLICY; SCHEDULER_STUDY_RECEIPTS = $env:SCHEDULER_STUDY_RECEIPTS; TIMEFOLD_LOG_LEVEL = $env:TIMEFOLD_LOG_LEVEL }
+$previous = @{ SCHEDULER_IMAGE = $env:SCHEDULER_IMAGE; SCHEDULER_PULL_POLICY = $env:SCHEDULER_PULL_POLICY; SCHEDULER_STUDY_RECEIPTS = $env:SCHEDULER_STUDY_RECEIPTS
+    SCHEDULER_STUDY_PROFILES = $env:SCHEDULER_STUDY_PROFILES; TIMEFOLD_LOG_LEVEL = $env:TIMEFOLD_LOG_LEVEL }
 Push-Location $kit
 try {
     & $docker @('compose', '-f', $devCompose, '-f', $routingOverride, 'up', '-d', '--no-deps', '--no-build', 'routing-service') (Join-Path $runs 'routing-cap.log')
@@ -257,6 +282,7 @@ foreach ($cell in $cells) {
     if ($null -eq $report.study) { $problems += "$(& $slugOf $cell): no study receipts" }
     elseif ($report.study.summary.receipts -lt $cell.proposals) { $problems += "$(& $slugOf $cell): $($report.study.summary.receipts) receipts for $($cell.proposals) proposals" }
     elseif ($report.study.summary.unpairedSpeeds -gt 0) { $problems += "$(& $slugOf $cell): $($report.study.summary.unpairedSpeeds) receipts without per-phase speeds" }
+    elseif ($profiles -and $report.study.summary.profiled -lt $cell.proposals) { $problems += "$(& $slugOf $cell): $($report.study.summary.profiled) receipts with every phase recorded for $($cell.proposals) proposals" }
     $entries += [ordered]@{ step = $cell.step; image = $cell.image; commit = $images[$cell.image].commit; fleet = $cell.fleet; seed = $cell.seed
         planners = $cell.planners; mode = $cell.mode; proposals = $cell.proposals; report = $report }
 }
@@ -265,10 +291,15 @@ if ($problems.Count -gt 0) { throw "Runs the evidence cannot use (remove their d
     study = 'Stack verification: the same daily proposals on images built from two commits, on the VM rehearsal through the public API'
     stack = 'deploy/vm rehearsal (proxy, booking and daily pools, VM compute caps; the development routing service capped to the VM partition), shipped routing and admission defaults, embedded calculation'
     images = $images
-    protocol = "Step 1: 1 planner, synchronous, fleets $($fleetList -join ', ') technicians x $Appointments visits, points seeds $($seedList -join ', '), $Proposals proposals each. Step 2: $AsyncPlanners planners queuing (respond-async), $AsyncFleet technicians, seed $AsyncSeed, $AsyncProposals proposals. Search $CostSeconds s cost + $FairnessSeconds s fairness. Roads cold at each run's start, never warmed. Order: step 1 before then after, step 2 after then before. Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds."
+    protocol = "Step 1: 1 planner, synchronous, fleets $($fleetList -join ', ') technicians x $Appointments visits, points seeds $($seedList -join ', '), $Proposals proposals each. Step 2: $AsyncPlanners planners queuing (respond-async), $AsyncFleet technicians, seed $AsyncSeed, $AsyncProposals proposals. Search $CostSeconds s cost + $FairnessSeconds s fairness. Roads cold at each run's start, never warmed. Order: step 1 before then after, step 2 after then before. Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds.$(if ($profiles) { ' Every phase of every proposal flight-recorded on the JDK profile configuration (SCHEDULER_STUDY_PROFILES); the profiles block attributes each calculation thread''s samples.' } else { '' })"
     runnerRevision = (git -C $repository rev-parse HEAD).Trim()
     runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
     containersVerified = $verified
     runs = $entries
 } | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $evidence -Encoding utf8
-Write-Output "Evidence: $evidence (reports and logs in $runs)"
+if ($profiles) {
+    # The recordings attributed into the evidence; a receipt without one for a phase it ran refuses the block.
+    & python -X utf8 (Join-Path $repository 'infra/stack_profiles.py') --evidence $evidence --profiles $profilesDirectory --jfr $jfr
+    if ($LASTEXITCODE -ne 0) { throw "Could not attribute the recordings in $profilesDirectory (the evidence has no profiles block yet; run infra/stack_profiles.py again)" }
+}
+Write-Output "Evidence: $evidence (reports, logs$(if ($profiles) { ' and recordings' } else { '' }) in $runs)"

@@ -88,6 +88,19 @@ test("a study receipt takes its own request's solver speeds in order, across int
   assert.ok(studyLines(summary).some(line => line.startsWith("| REFERENCE | 2 |")));
 });
 
+test("a receipt names its flight recordings only when every phase has one", () => {
+  const recorded = { ...RECEIPT_BODY, profile: { thread: "daily-queue-0", recordings: { REFERENCE: "dp_1-REFERENCE.jfr", FAIRNESS: "dp_1-FAIRNESS.jfr" } } };
+  const partial = { ...RECEIPT_BODY, proposalId: "dp_2", profile: { thread: "daily-queue-1", recordings: { REFERENCE: "dp_2-REFERENCE.jfr" } } };
+  const gap = { ...RECEIPT_BODY, proposalId: "dp_3", profile: { unavailable: "PHASES_NOT_RECORDED" } };
+  const log = [ecsLine("r1", `Study receipt ${JSON.stringify(recorded)}`), ecsLine("r2", `Study receipt ${JSON.stringify(partial)}`),
+    ecsLine("r3", `Study receipt ${JSON.stringify(gap)}`), ecsLine("r4", `Study receipt ${JSON.stringify(RECEIPT_BODY)}`)].join("\n");
+  const summary = studySummary(parseStudyReceipts(log), "loadtest");
+  assert.equal(summary.receipts, 4);
+  assert.equal(summary.profiled, 1, "a recording per phase, or the receipt is not profiled");
+  assert.ok(studyLines(summary).some(line => line.includes("1 with every phase flight-recorded")));
+  assert.throws(() => parseStudyReceipts(ecsLine("r5", `Study receipt ${JSON.stringify({ ...RECEIPT_BODY, profile: { thread: "" , recordings: {} } })}`)), /out of contract/);
+});
+
 test("a receipt without speeds is counted unpaired and an unmeasured plan is named, never zero", () => {
   const body = { ...RECEIPT_BODY, proposed: { unavailable: "INVALID_PLAN" } };
   const summary = studySummary(parseStudyReceipts(ecsLine("r1", `Study receipt ${JSON.stringify(body)}`)), "loadtest");

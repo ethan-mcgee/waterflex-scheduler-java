@@ -24,7 +24,8 @@ import org.springframework.stereotype.Component;
  * and seed, each phase's budget, time and termination, the decision, the reference plan's cost and ceiling, and the
  * DECIMAL128 variance and highest utilization of the reference and the chosen plan. Moves per second come from
  * Timefold's own phase-end lines at INFO ({@code TIMEFOLD_LOG_LEVEL=INFO}), the measure Timefold's documentation
- * points to; the service attaches no solver instrumentation. Measuring costs a validation of each plan after the
+ * points to; the service attaches no solver instrumentation. With {@link StudyProfiles} on, the receipt also names
+ * each phase's flight recording and the thread it ran on. Measuring costs a validation of each plan after the
  * search, so production leaves it off. Nothing here changes a proposal.
  */
 @Component
@@ -44,13 +45,19 @@ public final class StudyReceipts {
 
     /** Logs the receipt of one calculation when receipts are on. */
     void record(String proposalId, LocalDate serviceDate, DailySolver solver, SchedulingPolicy.Rules policy, DayPlan baseline,
-                DailyCalculation.Result calculation) {
+                DailyCalculation.Result calculation, StudyProfiles.@Nullable Recorded profile) {
         if (!enabled) return;
-        LOG.info("Study receipt {}", CalculationJson.write(receipt(proposalId, serviceDate, solver, policy, baseline, calculation)));
+        LOG.info("Study receipt {}", CalculationJson.write(receipt(proposalId, serviceDate, solver, policy, baseline, calculation, profile)));
     }
 
     static Map<String, Object> receipt(String proposalId, LocalDate serviceDate, DailySolver solver, SchedulingPolicy.Rules policy,
                                        DayPlan baseline, DailyCalculation.Result calculation) {
+        return receipt(proposalId, serviceDate, solver, policy, baseline, calculation, null);
+    }
+
+    /** The receipt, with the calculation's flight recordings when a study profiled it. */
+    static Map<String, Object> receipt(String proposalId, LocalDate serviceDate, DailySolver solver, SchedulingPolicy.Rules policy,
+                                       DayPlan baseline, DailyCalculation.Result calculation, StudyProfiles.@Nullable Recorded profile) {
         Map<String, Object> receipt = new LinkedHashMap<>();
         receipt.put("proposalId", proposalId);
         receipt.put("serviceDate", serviceDate.toString());
@@ -84,6 +91,7 @@ public final class StudyReceipts {
         DayPlan proposed = calculation.plan();
         @Nullable String proposedGap = unmeasurable(proposed);
         receipt.put("proposed", proposedGap != null ? Map.of("unavailable", proposedGap) : metrics(SchedulingPolicy.measure(proposed)));
+        if (profile != null) receipt.put("profile", profile.receipt(calculation.diagnostics().phases()));
         return receipt;
     }
 
