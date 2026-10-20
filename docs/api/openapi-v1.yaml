@@ -781,7 +781,7 @@ components:
             Optional. Milliseconds a booking search may spend on an optional refinement (one after a first pass that
             found more distinct regular windows than regularWindowThreshold); 0 skips it. A required refinement is not
             limited by it, only by bookingDeadlineMs. When absent, the scheduler operator's configured budget applies
-            (booking.search.refinement-ms, 250 unless changed). At most 3000 since 1.5.0 (1000 before); the deadline
+            (booking.search.refinement-ms, 2000 unless changed; 250 before 2026-10-20). At most 3000 since 1.5.0 (1000 before); the deadline
             still ends a refinement that would run past it, with refinementStop DEADLINE.
         regularWindowThreshold:
           type: integer

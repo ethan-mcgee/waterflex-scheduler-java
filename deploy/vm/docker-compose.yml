@@ -103,6 +103,8 @@ services:
       SCHEDULER_DB_POOL_SIZE: ${SCHEDULER_BOOKING_DB_POOL_SIZE:-10}
       # The part of a client's bookingDeadlineMs kept back to validate and publish the offers (800 to 1000).
       SCHEDULER_BOOKING_PUBLISH_RESERVE_MS: ${SCHEDULER_BOOKING_PUBLISH_RESERVE_MS:-1000}
+      # The cap on an optional booking refinement when a client sets no bookingRefinementMs (0 to 3000).
+      SCHEDULER_BOOKING_REFINEMENT_MS: ${SCHEDULER_BOOKING_REFINEMENT_MS:-2000}
       # JVM flags of this pool (measured in docs/api-load.md, "Confirm priority and JVM settings"); the heap is three
       # quarters of the container's memory limit.
       JAVA_TOOL_OPTIONS: ${SCHEDULER_BOOKING_JAVA_OPTIONS:--XX:MaxRAMPercentage=75}

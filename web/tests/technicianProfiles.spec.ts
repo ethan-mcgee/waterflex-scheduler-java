@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { z } from "zod";
 import { createPrismaClient } from "../lib/portalDatabase";
 import { initialAvailability, nextTemplateEffectiveDate } from "../lib/technicianAvailability";
 import { addCalendarDays, formatUsDate, localMidnightUtc } from "../lib/date";
@@ -6,6 +7,12 @@ import { DEFAULT_CLIENT_ID } from "../lib/clients";
 
 const prisma = createPrismaClient();
 test.afterAll(async () => { await prisma.$disconnect(); });
+
+/** The date a weekly change takes effect for the default client: after its own booking horizon cap. */
+async function templateDate(): Promise<string> {
+  const settings = await prisma.clientSolverSettings.findUniqueOrThrow({ where: { clientId: DEFAULT_CLIENT_ID } });
+  return nextTemplateEffectiveDate(settings.bookingHorizonWeekdays);
+}
 
 test("legacy contacts stay nullable and profile and pending week persist after refresh", async ({ page }) => {
   const metro = await prisma.metro.create({ data: { name: "Profile UI metro", timezone: "America/Chicago" } });
@@ -82,8 +89,9 @@ test("legacy contacts stay nullable and profile and pending week persist after r
     await page.getByRole("button", { name: "Save weekly availability" }).click();
     await expect(page.getByText("Weekly availability scheduled.")).toBeVisible();
     const versions = await prisma.technicianAvailabilityVersion.findMany({ where: { technicianId: technician.id }, include: { days: true } });
+    const effective = await templateDate();
     expect(versions).toHaveLength(2);
-    const pending = versions.find(version => version.effectiveDate.toISOString().slice(0, 10) === nextTemplateEffectiveDate());
+    const pending = versions.find(version => version.effectiveDate.toISOString().slice(0, 10) === effective);
     expect(pending?.days.find(day => day.dayOfWeek === 0)?.available).toBe(true);
     expect(pending?.days.find(day => day.dayOfWeek === 6)?.shiftStartMin).toBe(600);
   } finally {
@@ -157,7 +165,7 @@ test("weekly edits reject malformed payloads and conflicts with an appointment",
   const customer = await prisma.customer.create({ data: { clientId: DEFAULT_CLIENT_ID, firstName: "Profile", lastName: "Fixture", email: "profile@example.invalid", phone: "4025550123" } });
   const address = await prisma.address.create({ data: { customerId: customer.id, line1: "1 Main St", city: "Omaha", state: "NE", postalCode: "68102", lat: 41.2, lng: -95.9 } });
   const job = await prisma.job.create({ data: { customerId: customer.id, addressId: address.id, serviceId: service.id, durationMin: 60, status: "SCHEDULED" } });
-  let date = nextTemplateEffectiveDate();
+  let date = await templateDate();
   while (new Date(`${date}T00:00:00Z`).getUTCDay() !== 1) date = addCalendarDays(date, 1);
   const start = new Date(localMidnightUtc(date, "America/Chicago").getTime() + 9 * 60 * 60 * 1000);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
@@ -188,5 +196,17 @@ test("weekly edits reject malformed payloads and conflicts with an appointment",
     await prisma.depot.delete({ where: { id: depot.id } });
     await prisma.dealership.delete({ where: { id: dealership.id } });
     await prisma.metro.delete({ where: { id: metro.id } });
+  }
+});
+
+test("a weekly edit for a client without solver settings is refused, since its booking horizon is unknown", async ({ request }) => {
+  const client = await prisma.client.create({ data: { id: `no-settings-${Date.now()}`, name: "No settings fixture" } });
+  try {
+    const response = await request.put("/api/technicians/no-such-technician/standard-availability",
+      { headers: { Cookie: `wf_client=${client.id}` }, data: { days: initialAvailability(480, 1020).create.days.create } });
+    expect(response.status()).toBe(409);
+    expect(z.object({ error: z.string() }).parse(await response.json()).error).toMatch(/no solver settings/);
+  } finally {
+    await prisma.client.delete({ where: { id: client.id } });
   }
 });
