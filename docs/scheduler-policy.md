@@ -47,23 +47,23 @@ The daily search score has five hard and two soft levels (`DayScores`), compared
 | hard 2, unassigned | unassigned visits | count |
 | hard 3, overtime target | deviation from the reference overtime (fairness phase) | minutes |
 | hard 4, cost ceiling | cost above the ceiling (fairness phase) | cents |
-| soft 0, phase objective | overtime (reference phase), or the workload variance (fairness phase) | minutes, or the variance itself |
+| soft 0, phase objective | overtime (reference phase), or the workload variance (fairness phase) | minutes, or the variance in units of 1e-9 |
 | soft 1, cost | modeled operating cost | cents, at most `Monetary.MAX_CENTS` (2^53) |
 
-The production score is `BendableBigDecimalScore`, and the variance is DECIMAL128 (34 significant digits) as `SchedulingPolicy.fairness` computes it. Acceptance (`SchedulingPolicy.compare`) always reads that decimal variance, whatever score the search ran on.
+The production score is `BendableBigDecimalScore` (score model `bendable-decimal-repair-v3`). Acceptance (`SchedulingPolicy.compare`) always reads the DECIMAL128 variance (34 significant digits) that `SchedulingPolicy.fairness` computes, whatever the search carried.
 
-The score representation study measured a long score beside it, the experiment-only variant `TABU_KOPT_LONG_SCORE` (never a client choice). Its code is in commits `ec0efc4` and `fa62792`, from which the study builds; it is not in the production build, because Timefold's Spring Boot starter refuses a second `@PlanningSolution` class. It keeps this contract:
-- Every integer level is carried exactly.
-- The variance is carried in units of 1e-9: `round(variance * 10^9)`, half up. It is computed in binary64 with the same workloads and the same formula (`RouteScoringFacts.varianceUnits` in those commits). A variance outside the range the long level can carry (2^62 units) throws, so it never wraps.
-- The tie tolerance is one unit. The long level can tie two plans whose variances differ by less than 1e-9. Rounding is monotone, so the long level never orders two plans the other way round. The tolerance can change which plan the search returns, never whether a plan is accepted.
+The search carries the variance as option b of the fairness measure study (PR 187) defined it (`RouteScoringFacts.fairnessUnits`). This is the scaled-integer form Timefold's documentation recommends over floating point in a score (12.1.10), keeping more decimal places than its load balancing chapter asks of `unfairness` to avoid score traps (15.2.1):
+- The variance is computed in binary64 from the same workloads and the same formula as `SchedulingPolicy.fairness`, with the capacity and paid-minute sums as exact longs. It is then rounded once, half up, to units of 1e-9 and carried as that exact decimal (scale 9). A move never accumulates binary error: each evaluation computes from the sums.
+- A variance outside the range a long can carry (2^62 units) throws, so it never wraps.
+- The tie tolerance: the objective can tie two plans whose variances differ by less than a unit, and with binary64's error (far below a unit) can order two plans the other way round only when their variances differ by less than two units and they are equal on every other level. The tolerance can change which plan the search returns, never whether a plan is accepted.
 - The margin is wide for whole-minute changes. Moving one paid minute between two technicians of equal capacity `c` in a fleet of `n` changes the variance by at least `2 / (n * c^2)`. That is 1.7e-7 (170 units) at 50 technicians of 480 minutes, and 1.9e-8 at a full 24-hour capacity. Unequal capacities can bring two variances closer, and that is what the tolerance covers.
-- `ScoreRepresentationTest` checks the contract on the exactness fixtures and the small case:
-  - Integer levels are exact.
-  - The variance is within half a unit.
-  - Every pair of plans of one scoring target is ranked the same way.
-  - The cost ceiling boundary is the same level.
-  - A step-limited search takes the same moves in both phases.
-  - 50 technicians with a day's paid minutes and 240 overtime minutes stay far inside the long range.
+- `FairnessUnitsTest` checks the contract on fixtures of 20 and 50 technicians and the small case, over fairness-phase plans and random moves of each:
+  - The objective is within a unit of the decimal variance.
+  - Every pair of plans of one scoring target is ranked as the decimal variance ranks it, but for the tolerance.
+  - A hand-checked fleet gives the exact units; a difference below half a unit reads as a tie.
+  - 50 technicians at extreme utilizations stay inside the long range.
+
+The score representation study (CR08) also measured a long score, the experiment-only variant `TABU_KOPT_LONG_SCORE` in commits `ec0efc4` and `fa62792`; it is not in the production build. With the variance carried as units, every level is now an integer, so a long score is exact on every level.
 
 The route timing (`RouteTimeline`, `RouteTimingSearch`) runs on long nanoseconds after the route's shift start, not on `Instant` and `Duration`:
 - It is exact for any instant the API admits, fractional seconds included.

@@ -11,4 +11,6 @@ public final class DayScores {
     private DayScores() { }
     static BendableBigDecimalScore hard(int level) { return Required.value(BendableBigDecimalScore.ofHard(5, 2, level, Required.value(BigDecimal.ONE))); }
     static BendableBigDecimalScore soft(int level) { return Required.value(BendableBigDecimalScore.ofSoft(5, 2, level, Required.value(BigDecimal.ONE))); }
+    /** A count of 1e-9 units as the decimal it stands for, exactly (scale 9). */
+    static BigDecimal units(long units) { return Required.value(BigDecimal.valueOf(units, 9)); }
 }
