@@ -13,7 +13,7 @@
 #   powershell -ExecutionPolicy Bypass -File infra/run-variance-study.ps1
 # A six-minute harness check that writes no evidence: add -Smoke.
 param(
-    [ValidatePattern('^[0-9a-f]{40}$')][string]$Revision = 'fd3e1911abdc79685e9a01f79f6b2b8fc1949506',
+    [ValidatePattern('^[0-9a-f]{40}$')][string]$Revision = '773f9f61d1d1e762aedc91e644d8610ed3d36fc6',
     [string]$BuildRoot = 'C:\wffm',
     [string]$JavaHome = 'C:\Program Files\Java\jdk-25',
     # Comma-separated, as -File passes every value as text. 15000 is the production default (10 s cost, 5 s fairness).
