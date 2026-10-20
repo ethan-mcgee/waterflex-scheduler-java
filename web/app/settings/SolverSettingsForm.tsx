@@ -170,7 +170,7 @@ export default function SolverSettingsForm({ clientName, initial, overnight }: {
           <Row label="Fairness search time" hint="Seconds then spent spreading work more evenly within the fairness budget. 0 skips it.">
             <input inputMode="numeric" {...field("fairnessSearchSeconds")} required /> <span>seconds</span>
           </Row>
-          <Row label="Stop when unimproved" hint="Optional. Each search ends early once its best plan has not improved for this many seconds, 1 to the cost search time. Leave empty to always use the whole time.">
+          <Row label="Stop when unimproved" hint="Optional. Each search ends early once its best plan has not improved for this many seconds, from 1 up to the seconds spent looking for the lowest-cost plan. Leave empty to always use the whole time.">
             <input inputMode="numeric" {...field("unimprovedSearchSeconds")} /> <span>seconds</span>
           </Row>
         </section>
