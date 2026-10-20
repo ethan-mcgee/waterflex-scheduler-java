@@ -12,12 +12,14 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Every fairness measure of a plan, for the solver benchmarks: the production variance, the highest utilization, the
- * utilization spread and the capacity-weighted absolute deviation in DECIMAL128 from the workloads
- * {@link SchedulingPolicy#measure} counts, and Timefold's load balance exactly as its provider carries it, scored
- * against the fairness phase's target. A policy arm is accepted on the measure it searches.
+ * Every fairness measure of a plan, for studies: the production variance, the highest utilization, the utilization
+ * spread and the capacity-weighted absolute deviation in DECIMAL128 from the workloads {@link SchedulingPolicy#measure}
+ * counts, and Timefold's load balance exactly as its provider carries it, scored against the fairness phase's target.
+ * The workstation harness (SolverBenchmark) and the service's study receipts read plans through this one definition,
+ * so the two instruments report the same measures. A policy arm is accepted on the measure it searches. Nothing here
+ * scores a search; production calls it only with study receipts on.
  */
-final class FairnessReadings {
+public final class FairnessReadings {
     private static final MathContext DECIMAL128 = Required.value(MathContext.DECIMAL128);
     /** The measure each policy arm searches and is accepted on; the variance arms are accepted on the production variance. */
     static final Map<SolverEngine.Variant, String> POLICY = Required.value(Map.of(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, "loadBalance"));
@@ -32,7 +34,7 @@ final class FairnessReadings {
     }
 
     /** Every measure of {@code plan}, in a fixed order. */
-    static Map<String, BigDecimal> readings(DayPlan plan, DayPlan reference, long ceiling) {
+    public static Map<String, BigDecimal> readings(DayPlan plan, DayPlan reference, long ceiling) {
         SchedulingPolicy.Fairness fairness = SchedulingPolicy.measure(plan).fairness();
         List<SchedulingPolicy.Workload> work = fairness.workloads();
         Map<String, BigDecimal> readings = new LinkedHashMap<>();
@@ -55,6 +57,7 @@ final class FairnessReadings {
         return readings;
     }
 
+    /** The solver factory comes from SolverEngine's definition cache; a SolverFactory is thread-safe (Timefold docs 6.8, "Create the application"). */
     private static BigDecimal loadBalance(DayPlan plan, DayPlan reference, long ceiling) {
         DayPlan copy = PlanCopies.copy(plan);
         copy.setScoringFacts(copy.getScoringFacts().withTarget(reference, ceiling));
