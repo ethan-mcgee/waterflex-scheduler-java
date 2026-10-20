@@ -13,18 +13,18 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * List moves update affected route tuples; unchanged routes retain their metrics. Open for one reason only: the
- * fairness measure study ({@link FairnessMeasures}) replaces the fairness phase's objective, {@link #fairness}.
+ * List moves update affected route tuples; unchanged routes retain their metrics. Open for one reason only: the load
+ * balance head-to-head ({@link FairnessMeasures}) replaces the fairness phase's objective, {@link #fairness}.
  */
 public class DayConstraintProvider implements ConstraintProvider {
     /**
-     * The fairness phase's objective at the soft phase-objective level: the DECIMAL128 capacity-weighted workload
-     * variance of {@link SchedulingPolicy#fairness}, over the whole fleet.
+     * The fairness phase's objective at the soft phase-objective level: the capacity-weighted workload variance over
+     * the whole fleet, in units of 1e-9 ({@link RouteScoringFacts#fairnessUnits}).
      */
     protected Constraint fairness(UniConstraintStream<RouteScoringFacts.@NonNull ScoredRoute> routes,
             BiConstraintStream<List<RouteScoringFacts.@NonNull ScoredRoute>, RouteScoringFacts> fleet) {
         return fleet.filter((_, facts) -> facts.target() != null)
-                .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (results, facts) -> facts.fairness(Required.value(results)))
+                .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (results, facts) -> DayScores.units(facts.fairnessUnits(Required.value(results))))
                 .asConstraint("Capacity weighted workload variance");
     }
     @Override public Constraint[] defineConstraints(@Nullable ConstraintFactory nullableFactory) {

@@ -22,20 +22,12 @@ public final class SolverEngine {
                           /** TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined (a client choice, see DailySearch). */
                           TABU_KOPT_SIZE_3,
                           /**
-                           * TABU_KOPT with another fairness-phase objective from {@link FairnessMeasures}, experiment-only (the
-                           * fairness measure study): the production variance in binary64 (b), the same from running sums (c),
-                           * the highest utilization, the utilization spread, the absolute deviation, and Timefold's load balance.
-                           * Never a client choice.
+                           * TABU_KOPT with Timefold's load balance as the fairness-phase objective ({@link FairnessMeasures}),
+                           * experiment-only, for the head-to-head against the production variance. Never a client choice.
                            */
-                          TABU_KOPT_BINARY_VARIANCE, TABU_KOPT_INCREMENTAL_VARIANCE, TABU_KOPT_MIN_MAX_UTILIZATION,
-                          TABU_KOPT_UTILIZATION_SPREAD, TABU_KOPT_ABSOLUTE_DEVIATION, TABU_KOPT_LOAD_BALANCE }
+                          TABU_KOPT_LOAD_BALANCE }
     /** The constraint provider of each fairness measure variant; every other variant runs {@link DayConstraintProvider}. */
     private static final java.util.Map<Variant, Class<? extends DayConstraintProvider>> MEASURES = Required.value(java.util.Map.of(
-            Variant.TABU_KOPT_BINARY_VARIANCE, FairnessMeasures.BinaryVariance.class,
-            Variant.TABU_KOPT_INCREMENTAL_VARIANCE, FairnessMeasures.IncrementalVariance.class,
-            Variant.TABU_KOPT_MIN_MAX_UTILIZATION, FairnessMeasures.MinMaxUtilization.class,
-            Variant.TABU_KOPT_UTILIZATION_SPREAD, FairnessMeasures.UtilizationSpread.class,
-            Variant.TABU_KOPT_ABSOLUTE_DEVIATION, FairnessMeasures.AbsoluteDeviation.class,
             Variant.TABU_KOPT_LOAD_BALANCE, FairnessMeasures.LoadBalance.class));
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();

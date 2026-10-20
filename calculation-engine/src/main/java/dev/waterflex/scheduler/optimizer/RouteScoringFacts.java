@@ -1,10 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
-import dev.waterflex.scheduler.Required;
 import dev.waterflex.scheduler.Monetary;
 import java.util.List;
-import java.util.ArrayList;
-import java.math.BigDecimal;
 import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
@@ -37,11 +34,35 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
         }
         return Monetary.cents(paid, overtime, meters, facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
     }
-    BigDecimal fairness(List<@NonNull ScoredRoute> routes) {
-        List<SchedulingPolicy.Workload> work = new ArrayList<>();
-        for (ScoredRoute route : routes) if (route.eligible() && route.capacity() > 0)
-            work.add(new SchedulingPolicy.Workload(route.technicianId(), route.metrics().paidMinutes(), route.capacity(), Required.value(BigDecimal.ZERO)));
-        return SchedulingPolicy.fairness(work).variance();
+    /** Units of the fairness objective per one of variance: the numeric contract's 1e-9 resolution (docs/scheduler-policy.md). */
+    static final long FAIRNESS_UNITS = 1_000_000_000L;
+    /** A technician the variance counts: qualified for the day's demand, with regular capacity. */
+    static boolean counted(ScoredRoute route) { return route.eligible() && route.capacity() > 0; }
+    static long paid(ScoredRoute route) {
+        long paid = route.metrics().paidMinutes();
+        PlanFacts.check(paid >= 0, "Invalid workload");
+        return paid;
+    }
+    /**
+     * The fairness phase's objective: the capacity-weighted workload variance of {@link SchedulingPolicy#fairness},
+     * computed in binary64 over the counted technicians and carried as {@code round(variance * 1e9)} (option b of the
+     * fairness measure study). The sums are exact longs; the one rounding happens here, so moves never accumulate
+     * binary error, as Timefold's guidance on scaled scores asks (docs/timefold-documentation, 12.1.10 and 15.2.1).
+     * Acceptance still reads the DECIMAL128 variance ({@link SchedulingPolicy#measure}).
+     */
+    long fairnessUnits(List<@NonNull ScoredRoute> routes) {
+        long capacity = 0, paid = 0;
+        for (ScoredRoute route : routes) if (counted(route)) { capacity = Math.addExact(capacity, route.capacity()); paid = Math.addExact(paid, paid(route)); }
+        if (capacity == 0) return 0;
+        double mean = (double) paid / capacity, sum = 0;
+        for (ScoredRoute route : routes) if (counted(route)) {
+            double difference = (double) paid(route) / route.capacity() - mean;
+            sum += difference * difference * route.capacity();
+        }
+        double units = sum / capacity * FAIRNESS_UNITS;
+        // A variance is at least zero and far below 2^62 units for any fleet the API admits; outside that, refuse rather than wrap.
+        if (!(units > -0.5 && units < 0x1p62)) throw new ArithmeticException("Fairness variance outside the long range");
+        return Math.max(0, Math.round(units));
     }
     long overtimeDeviation(List<@NonNull ScoredRoute> routes) {
         Target fixed = target;

@@ -14,7 +14,12 @@ import java.util.*;
 /** Strict, replayable daily input. No database, routing callbacks or application authority. */
 public final class DailyDataset {
     public static final String COST_MODEL = Monetary.COST_MODEL;
-    public static final String SCORE_MODEL = "bendable-decimal-repair-v2";
+    /**
+     * The score's meaning. v3 carries the fairness phase's variance in units of 1e-9 computed in binary64
+     * ({@link RouteScoringFacts#fairnessUnits}); v2 carried it in DECIMAL128. A scheduler and a solver pool refuse each
+     * other's datasets across versions, so the two upgrade together.
+     */
+    public static final String SCORE_MODEL = "bendable-decimal-repair-v3";
     public enum Encoding { DENSE, SPARSE }
     private static final ObjectMapper JSON = mapper();
     private static ObjectMapper mapper() {
