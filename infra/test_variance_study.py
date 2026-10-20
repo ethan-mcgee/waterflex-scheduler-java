@@ -6,11 +6,20 @@ from pathlib import Path
 import variance_study as vs
 
 
-def result(variant, case, fairness_moves, cost, variance, ceiling=10_000, reason='FAIRNESS_IMPROVEMENT'):
+def result(variant, case, fairness_moves, cost, variance, ceiling=10_000, reason='FAIRNESS_IMPROVEMENT', maximum=0.9):
     technicians, workload, seed = case
-    return {'type': 'result', 'variant': variant, 'technicians': technicians, 'workload': workload, 'seed': seed, 'violations': 0,
+    line = {'type': 'result', 'variant': variant, 'technicians': technicians, 'workload': workload, 'seed': seed, 'violations': 0,
             'referencePhase': {'moveEvaluations': 100, 'solveMs': 1000}, 'fairnessPhase': {'moveEvaluations': fairness_moves, 'solveMs': 1000},
-            'after': {'costCents': cost, 'fairness': {'variance': variance}}, 'costCeilingCents': ceiling, 'acceptanceReason': reason}
+            'after': {'costCents': cost, 'fairness': {'variance': variance}}, 'costCeilingCents': ceiling, 'acceptanceReason': reason,
+            'measures': {'after': {'variance': variance, 'maximumUtilization': maximum, 'utilizationSpread': 0.4,
+                                   'absoluteDeviation': 0.1, 'loadBalance': 0.5}}}
+    accepted = vs.ACCEPTED_ON.get(vs.ARMS[variant])
+    if accepted is not None:
+        line['acceptedOn'] = accepted
+    return line
+
+
+POLICY_VARIANTS = ('TABU_KOPT_MIN_MAX_UTILIZATION', 'TABU_KOPT_UTILIZATION_SPREAD', 'TABU_KOPT_ABSOLUTE_DEVIATION', 'TABU_KOPT_LOAD_BALANCE')
 
 
 CASES = [(20, 'CLUSTERED', 17), (50, 'DISPERSED', 23)]
@@ -31,7 +40,9 @@ def write_run(root, budgets=(15000,), b=None):
                          result('TABU_KOPT', case, 40, 1000, base_variance),
                          result('TABU_KOPT_BINARY_VARIANCE', case, options['fairness_moves'], options['cost'], options['variance'],
                                 ceiling=options.get('ceiling', 10_000)),
-                         result('TABU_KOPT_LONG_SCORE', case, 48, 999, 0.0150)]
+                         result('TABU_KOPT_INCREMENTAL_VARIANCE', case, 60, 1000, 0.0150)]
+                # Each policy is fairer than production on the highest utilization and dearer by one cent.
+                lines += [result(variant, case, 40, 1001, 0.0250, maximum=0.8) for variant in POLICY_VARIANTS]
                 name = f'rep{rep}-{budget}ms-{case[0]}-{case[1]}-{case[2]}.jsonl'
                 (root / 'rows' / name).write_text('\n'.join(json.dumps(line) for line in lines) + '\n', encoding='utf-8')
     return root
@@ -51,8 +62,31 @@ class VarianceStudyTest(unittest.TestCase):
         self.assertEqual(b['fairness']['fairer'], 2)
         self.assertEqual(b['bars'], {'speed': True, 'fairness': True, 'cost': True, 'ceiling': True})
         self.assertTrue(document['decision']['b']['promoted'])
-        # T+S is reported against the same bars; at 1.2x it misses the speed bar.
-        self.assertFalse(document['budgets']['15000']['summary']['T+S']['bars']['speed'])
+        self.assertTrue(document['decision']['c']['promoted'])
+        self.assertEqual(document['budgets']['15000']['summary']['c']['fairnessPhaseSpeedup']['median'], 1.5)
+        self.assertNotIn('min-max', document['budgets']['15000']['summary'])
+
+    def test_the_policies_are_compared_on_every_measure(self):
+        comparison = self.summarize()['budgets']['15000']['comparison']
+        self.assertEqual(sorted(comparison), sorted(vs.ARMS.values()))
+        spread = comparison['spread']
+        self.assertEqual(spread['acceptedOn'], 'utilizationSpread')
+        self.assertEqual(comparison['baseline']['acceptedOn'], 'variance')
+        self.assertEqual(sorted(spread['measures']), sorted(vs.MEASURES))
+        self.assertEqual(spread['measures']['maximumUtilization']['medianRatioToBaseline'], 0.889)
+        self.assertEqual((spread['measures']['maximumUtilization']['lowerThanBaseline'], spread['measures']['variance']['higherThanBaseline']), (2, 2))
+        self.assertEqual((spread['cost']['medianDifferenceCents'], spread['cost']['dearer']), (1, 2))
+        self.assertEqual(spread['acceptance'], {'FAIRNESS_IMPROVEMENT': 4})
+
+    def test_a_policy_row_accepted_on_another_measure_is_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            run = write_run(Path(temporary))
+            path = next((run / 'rows').glob('rep1-*-20-*.jsonl'))
+            lines = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
+            lines[4]['acceptedOn'] = 'variance'
+            path.write_text('\n'.join(json.dumps(line) for line in lines) + '\n', encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'wrong measure'):
+                vs.summarize(run, run / 'out.json', 'jfr')
 
     def test_a_dearer_case_is_allowed_when_the_median_is_not_dearer(self):
         document = self.summarize(b=lambda case, rep: {'cost': 1050} if case[0] == 50 else {'cost': 900})

@@ -129,31 +129,51 @@ Next candidates, from the profile after T:
 - **Identity lookups.** `MapN.probe` (one identity-to-number probe per visit per scored route) is the largest leaf after T, at 21.5 percent of cost-phase samples. Holding each entity's road number on the entity would remove it, with `ScoringExactnessTest` as the gate.
 - **Not named by this profile.** The whole-route re-walk (CR11) and nearby selection did not show as leading costs, so neither is next.
 
-## Variance formula, option (b) (PR 187)
+## Fairness measures (PR 187)
 
-The representation study put the fairness phase's decimal cost in the variance formula, not the score type. Option (b) keeps the production `BendableBigDecimalScore` and every other level as they are. It computes the variance in binary64 and carries it as its rounded units of 1e-9 (`BinaryVarianceConstraintProvider`, variant `TABU_KOPT_BINARY_VARIANCE`, experiment-only). That is the numeric contract's representation, so the tie tolerance is the same one unit.
+The representation study traced the fairness phase's decimal cost to the variance formula, not to the score type. This study tests two cheaper ways to compute the production variance and four other fairness policies. Each one is a `DayConstraintProvider` that replaces only the fairness constraint (`FairnessMeasures`). The score stays `BendableBigDecimalScore`, and every other level is the production one. All are experiment-only variants of `TABU_KOPT` and are never a client choice.
 
-Equivalence, before any timing (`ScoreRepresentationTest`):
-- Every level but the variance equals the decimal score.
-- The variance level equals the long score's units exactly.
-- Every pair of plans is ranked as the long score ranks them.
-- A step-limited search takes the same moves as the long score in the fairness phase, and the same moves as production in the cost phase.
-- `FULL_ASSERT` passes.
+Two formulas for the production variance, held to the bars below:
+- **b** (`TABU_KOPT_BINARY_VARIANCE`): the variance over the whole fleet in binary64, carried as rounded units of 1e-9. That is the numeric contract's representation, so the tie tolerance is one unit.
+- **c** (`TABU_KOPT_INCREMENTAL_VARIANCE`): the same variance from three running sums the solver keeps, updating only the routes a move changes. The sums are capacity, paid minutes, and paid minutes squared over capacity at a scale of 1e8, all exact longs. The variance is `(sum p^2/c)/C - (P/C)^2`, and only that last difference is binary64.
 
-The run is `infra/run-variance-study.ps1`, which the owner starts. It freezes one tree (commit `fd3e191`, which carries the nanosecond timing of #186) with three arms in every JVM, their order rotating from case to case:
-- baseline: `TABU_KOPT`, the production search
-- b: `TABU_KOPT_BINARY_VARIANCE`
-- T+S: `TABU_KOPT_LONG_SCORE`, for comparison
+Four fairness policies, each searched and accepted on its own measure:
+- **min-max** (`TABU_KOPT_MIN_MAX_UTILIZATION`): the highest technician utilization.
+- **spread** (`TABU_KOPT_UTILIZATION_SPREAD`): the highest minus the lowest utilization.
+- **abs-dev** (`TABU_KOPT_ABSOLUTE_DEVIATION`): the capacity-weighted mean absolute deviation of utilization.
+- **load-balance** (`TABU_KOPT_LOAD_BALANCE`): Timefold's `loadBalance` collector over each technician's utilization in millionths. It is unweighted by capacity and is carried as the collector's own unfairness.
 
-It uses the representation study's 24 cases and two repetitions at two budgets. 15 s is the production default, with 10 s of cost search and 5 s of fairness. 60 s (40 s and 20 s) shows whether the gain holds when the fairness search has room. A JFR pass at 15 s follows. `infra/variance_study.py` pairs and judges each budget.
+Every measure counts the technicians the production variance counts: those qualified for the day's demand, with regular capacity.
 
-The bars were set by the owner before the run (2026-10-20). Option (b) is promoted only if every one holds at both budgets:
+Equivalence, before any timing (`FairnessMeasureTest`, `SolverBenchmarkTest`):
+- Every measure keeps every other score level equal to production's.
+- b and c carry the decimal variance to within one unit, and rank every pair of plans as production does. Ties are allowed under two units.
+- The policies carry their definitions to within two units, against an independent DECIMAL128 reading.
+- A hand-checked two-technician fleet gives the exact unit readings.
+- With step-limited searches, b and c take production's fairness-phase moves, and every measure takes production's cost-phase moves.
+- `FULL_ASSERT` passes for all six, on every cohort of the assertion campaign.
+- In the harness, a policy arm is accepted on its own measure (`acceptedOn` in the row), and every final plan records all five measures.
+
+The run is `infra/run-variance-study.ps1`, which the owner starts. It freezes one tree from this branch, carrying the nanosecond timing of #186, and runs all seven arms in every JVM, their order rotating from case to case. It uses the representation study's 24 cases and two repetitions at two budgets:
+- 15 s is the production default: 10 s of cost search and 5 s of fairness.
+- 60 s (40 s and 20 s) shows whether a gain holds when the fairness search has room.
+
+A JFR pass at 15 s follows, about 7 hours 30 minutes in all. `infra/variance_study.py` pairs and judges each budget.
+
+The bars for b and c were set by the owner before the run (2026-10-20). Each is promoted only if every bar holds at both budgets:
 - **Speed:** median fairness-phase moves per second at least 1.25x the baseline.
 - **Fairness:** no case less fair than the baseline beyond that case's own spread between repetitions.
 - **Cost:** the median per-case cost difference is not above zero. A case may be dearer if the median is not, because the fairness phase may spend its allowance on fairness.
 - **Ceiling:** every accepted result inside its cost ceiling, with zero violations.
 
-T+S is reported against the same bars for comparison.
+The policies change what fairness means, so they have no bars. The evidence compares every arm on all five measures, with three figures for each:
+- the median over cases;
+- the median ratio to the baseline;
+- the count of cases lower and higher than the baseline.
+
+It also records each arm's cost difference, fairness-phase speed and acceptance reasons. Changing the policy is the owner's decision, made on that table.
+
+Options not tested, by owner decision: wider numeric types (the numeric contract already fits a long), and dropping the variance's final divide (a small gain).
 
 Results: pending the owner's run. Evidence will be `docs/evidence/solver-variance-<date>.json`.
 

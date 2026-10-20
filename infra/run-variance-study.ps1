@@ -1,15 +1,20 @@
-# Variance formula study (PR 187): option (b) against the production search, at each budget, on an idle workstation.
-#   baseline  TABU_KOPT                   production: decimal score, DECIMAL128 variance (nanosecond timing, as #186)
-#   b         TABU_KOPT_BINARY_VARIANCE   decimal score, variance in binary64 as rounded units of 1e-9
-#   T+S       TABU_KOPT_LONG_SCORE        long score with the same units, for comparison
-# One tree, frozen from its commit into -BuildRoot and built once. Every case runs as its own JVM with all three
+# Fairness measure study (PR 187): two variance formulas and four fairness policies against production, at each
+# budget, on an idle workstation (infra/variance_study.py describes the arms and the bars).
+#   baseline      TABU_KOPT                       production: DECIMAL128 variance (nanosecond timing, as #186)
+#   b             TABU_KOPT_BINARY_VARIANCE       the same variance in binary64 as rounded units of 1e-9
+#   c             TABU_KOPT_INCREMENTAL_VARIANCE  the same variance from exact running sums
+#   min-max       TABU_KOPT_MIN_MAX_UTILIZATION   the highest technician utilization
+#   spread        TABU_KOPT_UTILIZATION_SPREAD    the highest minus the lowest utilization
+#   abs-dev       TABU_KOPT_ABSOLUTE_DEVIATION    the capacity-weighted mean absolute deviation of utilization
+#   load-balance  TABU_KOPT_LOAD_BALANCE          Timefold's load balance over utilization
+# One tree, frozen from its commit into -BuildRoot and built once. Every case runs as its own JVM with all seven
 # variants in it, their order rotating from case to case. A JFR pass at the first budget follows, then the evidence.
-# Long (about 3 hours 20 minutes with the defaults); the owner starts it:
+# Long (about 7 hours 30 minutes with the defaults); the owner starts it:
 #   powershell -ExecutionPolicy Bypass -File infra/run-variance-study.ps1
-# A three-minute harness check that writes no evidence: add -Smoke.
+# A six-minute harness check that writes no evidence: add -Smoke.
 param(
     [ValidatePattern('^[0-9a-f]{40}$')][string]$Revision = 'fd3e1911abdc79685e9a01f79f6b2b8fc1949506',
-    [string]$BuildRoot = 'C:\wfvs',
+    [string]$BuildRoot = 'C:\wffm',
     [string]$JavaHome = 'C:\Program Files\Java\jdk-25',
     # Comma-separated, as -File passes every value as text. 15000 is the production default (10 s cost, 5 s fairness).
     [string]$Budgets = '15000,60000',
@@ -91,20 +96,22 @@ foreach ($tree in $trees.Keys) {
 }
 
 $jvm = @('-Xmx1536m', '-XX:ActiveProcessorCount=2', '-XX:+UseSerialGC')
-$variants = @('TABU_KOPT', 'TABU_KOPT_BINARY_VARIANCE', 'TABU_KOPT_LONG_SCORE')
+$variants = @('TABU_KOPT', 'TABU_KOPT_BINARY_VARIANCE', 'TABU_KOPT_INCREMENTAL_VARIANCE', 'TABU_KOPT_MIN_MAX_UTILIZATION',
+    'TABU_KOPT_UTILIZATION_SPREAD', 'TABU_KOPT_ABSOLUTE_DEVIATION', 'TABU_KOPT_LOAD_BALANCE')
+$arms = $variants.Count
 $sizeList = @($Sizes -split ',' | ForEach-Object { $_.Trim() })
 $workloadList = @($Workloads -split ',' | ForEach-Object { $_.Trim() })
 $seedList = @($Seeds -split ',' | ForEach-Object { $_.Trim() })
 $cases = @(foreach ($size in $sizeList) { foreach ($workload in $workloadList) { foreach ($seed in $seedList) { , @($size, $workload, $seed) } } })
 $seconds = 0
-foreach ($budget in $budgetList) { $seconds += $cases.Count * $Repetitions * (3 * $budget / 1000 + 8) }
-$seconds += $sizeList.Count * $workloadList.Count * @($ProfileSeeds -split ',').Count * (3 * $budgetList[0] / 1000 + 3)
-@{ study = 'variance formula option (b)'; startedAt = [DateTime]::UtcNow.ToString('o'); smoke = [bool]$Smoke; revision = $Revision
+foreach ($budget in $budgetList) { $seconds += $cases.Count * $Repetitions * ($arms * $budget / 1000 + 8) }
+$seconds += $sizeList.Count * $workloadList.Count * @($ProfileSeeds -split ',').Count * ($arms * $budgetList[0] / 1000 + 3)
+@{ study = 'fairness measures'; startedAt = [DateTime]::UtcNow.ToString('o'); smoke = [bool]$Smoke; revision = $Revision
    variants = $variants; jvm = $jvm; java = $version; processors = [Environment]::ProcessorCount; budgetsMs = $budgetList
    sizes = $sizeList; workloads = $workloadList; seeds = $seedList; fixtureSeed = $FixtureSeed; repetitions = $Repetitions
    profileSeeds = @($ProfileSeeds -split ','); order = 'per case: variant order rotates' } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $runs 'manifest.json') -Encoding utf8
-Write-Output "$($cases.Count) cases x $Repetitions repetitions x 3 arms at $($budgetList -join ' and ') ms, about $([math]::Ceiling($seconds / 60)) minutes. Output: $runs"
+Write-Output "$($cases.Count) cases x $Repetitions repetitions x $arms arms at $($budgetList -join ' and ') ms, about $([math]::Ceiling($seconds / 60)) minutes. Output: $runs"
 
 function Invoke-Benchmark($output, $log, $budget, $properties) {
     $arguments = $jvm + @("@$($classpaths['v'])") + $properties + @("-Dbenchmark.output=$output", "-Dbenchmark.durationMs=$budget",
@@ -121,7 +128,7 @@ foreach ($budget in $budgetList) {
         foreach ($case in $cases) {
             $index++
             $size, $workload, $seed = $case
-            $order = @($variants[($index % 3)], $variants[(($index + 1) % 3)], $variants[(($index + 2) % 3)])
+            $order = @(for ($offset = 0; $offset -lt $arms; $offset++) { $variants[(($index + $offset) % $arms)] })
             $name = "rep$repetition-$($budget)ms-$size-$workload-$seed"
             Write-Output "[$index/$total] $name"
             $code = Invoke-Benchmark (Join-Path $runs "rows/$name.jsonl") (Join-Path $runs "logs/$name.log") $budget `
