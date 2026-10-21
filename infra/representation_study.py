@@ -13,12 +13,14 @@ The run directory is what infra/run-representation-study.ps1 writes: rows/rep<r>
 (SolverBenchmark output) and profiles/<tree>/*.jfr (one recording per measured solve).
 """
 import argparse
+import atexit
 import json
 import re
 import shutil
 import statistics
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ARMS = {('s', 'TABU_KOPT'): 'baseline', ('s', 'TABU_KOPT_LONG_SCORE'): 'S',
@@ -226,8 +228,32 @@ def decide(summary):
             'S': {'promoted': s_promoted, 'bar': 'median fairness-phase moves per second at least 1.25x the baseline and no case dearer than the baseline beyond its own run-to-run spread'}}
 
 
-def jfr_document(path, jfr):
-    result = subprocess.run([jfr, 'print', '--json', '--stack-depth', '64', '--events', 'jdk.ExecutionSample,jdk.ObjectAllocationSample', str(path)],
+READER = Path(__file__).with_name('JfrEvents.java')
+STACK_DEPTH = 64
+_readers = {}
+
+
+def jfr_reader(jfr):
+    """The java launcher and the compiled JfrEvents beside {@code jfr} (the JDK's own tool, so the reader runs on the JDK
+    that wrote the recording's format), compiled once per process into a temporary directory removed at exit."""
+    found = shutil.which(jfr)
+    check(found is not None, f'jfr not found: {jfr}')
+    home = Path(found).resolve().parent
+    if home not in _readers:
+        java, javac = shutil.which('java', path=str(home)), shutil.which('javac', path=str(home))
+        check(java is not None and javac is not None, f'java and javac required beside {found}')
+        classes = Path(tempfile.mkdtemp(prefix='jfr-events-'))
+        atexit.register(shutil.rmtree, classes, True)
+        subprocess.run([javac, '-Xlint:all', '-Werror', '-d', str(classes), str(READER)], capture_output=True, check=True, text=True)
+        _readers[home] = (java, classes)
+    return _readers[home]
+
+
+def jfr_document(path, jfr, events='jdk.ExecutionSample,jdk.ObjectAllocationSample'):
+    """A recording's events in jfr print --json's document shape, read by JfrEvents with RecordingFile: jfr print spells
+    every frame out in full (some 1.6 GB of JSON for a 2 MB recording); JfrEvents keeps only the fields read here."""
+    java, classes = jfr_reader(jfr)
+    result = subprocess.run([java, '-cp', str(classes), 'JfrEvents', str(STACK_DEPTH), events, str(path)],
                             capture_output=True, check=True, text=True, encoding='utf-8')
     return json.loads(result.stdout)
 
