@@ -277,7 +277,8 @@ try {
         if ($process.ExitCode -ne 0 -and $process.ExitCode -ne 1) { throw "Run failed: $slug (see $directory)" }
         # The replica's own lines for this run, kept before the next image switch recreates its container.
         $ErrorActionPreference = 'Continue'
-        foreach ($id in $daily) { & docker logs --timestamps --since $since $id *> (Join-Path $directory "scheduler-daily-$id.log") }
+        # Set-Content, not *>: Windows PowerShell's redirection writes UTF-16.
+        foreach ($id in $daily) { & docker logs --timestamps --since $since $id 2>&1 | ForEach-Object { "$_" } | Set-Content -LiteralPath (Join-Path $directory "scheduler-daily-$id.log") -Encoding utf8 }
         $ErrorActionPreference = 'Stop'
         if ($null -eq (& $reportOf $cell)) { throw "Run wrote no report: $slug (see $directory/run.err.log)" }
     }
