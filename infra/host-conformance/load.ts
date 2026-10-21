@@ -15,7 +15,7 @@ import { HostStore, type MetroShape } from "./src/load/host.ts";
 import { scrape, serverView, type Sample, type ServerView } from "./src/load/metrics.ts";
 import { loadMarkdown, type LoadReport } from "./src/load/report.ts";
 import { bookingLoop, dailyLoop, newTallies, sampleContainers, sampleMetrics, seeded, type ContainerUsage, type Run } from "./src/load/scenarios.ts";
-import { readRequestLog, serverBreakdown, tenantOf, type ServerBreakdown } from "./src/load/serverlog.ts";
+import { readRequestLog, serverBreakdown, studySummary, tenantOf, type ServerBreakdown } from "./src/load/serverlog.ts";
 import { summarize } from "./src/load/stats.ts";
 import { AreaPoints, FIXTURE_POINTS, parseArea, type Point } from "./src/points.ts";
 import { KIT_POLICY, KIT_RATES } from "./src/snapshot.ts";
@@ -24,13 +24,19 @@ import { addDays, requireTimeZone, todayIn } from "./src/time.ts";
 const USAGE = `Usage: npx tsx load.ts --url <base URL> --token-file <file> --metro <metroId> --time-zone <IANA zone>
     (--area <south,west,north,east> | --points fixture) --scenario booking|daily|mixed --duration-s <seconds>
     [--concurrency 5] [--daily-concurrency 1] [--technicians 10] [--appointments 2] [--horizon-days 5]
-    [--daily-technicians 20] [--daily-mode sync|async] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
-    [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--seed 1] [--date-spread] [--metrics-url <prometheus URL>]
+    [--daily-technicians 20] [--daily-mode sync|async] [--daily-proposals <count>] [--jobs cold|warm] [--confirm-rate 0.3] [--offer-limit 4] [--window-hours 2]
+    [--deadline-ms 5000] [--cost-seconds 5] [--fairness-seconds 0] [--daily-search TABU|TABU_KOPT|TABU_KOPT_SIZE_3] [--fairness-budget 0]
+    [--seed 1] [--date-spread] [--metrics-url <prometheus URL>]
     [--horizon fixed|dynamic] [--horizon-weekdays <1-15>] [--lead-weekdays 2] [--full-percent 85]
     [--booked-weekdays 0] [--booked-appointments 4] [--window-threshold 2] [--refinement-ms <0-3000>] [--docker <container,...>] [--scheduler-log <container,...>]
     [--label <text>] [--out <directory>]
   --scheduler-log reads the named scheduler containers' request log for the run (docker logs) and reports the server's
-  own attribution of this tenant's calls: slot wait, routing, engine, database, commit, pairs and CPU per call.
+  own attribution of this tenant's calls: slot wait, routing, engine, database, commit, pairs and CPU per call, and the
+  daily replica's study receipts when SCHEDULER_STUDY_RECEIPTS is on (with TIMEFOLD_LOG_LEVEL=INFO, moves per second).
+  --daily-proposals stops the daily planners once that many proposals were requested in all, within --duration-s, so
+  a before-and-after pair compares the same number of solves.
+  --daily-search and --fairness-budget are the policy's dailySearch and fairnessBudget (a share from 0 to 1, as the API
+  takes it: "0.02" lets the fairness phase spend up to 2 percent). Without them the kit's own policy applies (TABU, 0).
   --window-threshold is the policy's regularWindowThreshold: a search whose first pass finds no more distinct regular
   windows than it must run the refinement (never shed, never capped). --refinement-ms is the policy's
   bookingRefinementMs, the cap on an optional refinement; without it the scheduler's configured cap applies.
@@ -47,8 +53,8 @@ function oneOf<T extends string>(value: string, allowed: readonly T[], option: s
 }
 
 const STRING_OPTIONS = ["url", "token-file", "metro", "time-zone", "area", "points", "scenario", "duration-s", "concurrency", "daily-concurrency",
-  "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
-  "cost-seconds", "fairness-seconds", "seed", "metrics-url", "docker", "scheduler-log", "label", "out",
+  "technicians", "appointments", "horizon-days", "daily-technicians", "daily-mode", "daily-proposals", "jobs", "confirm-rate", "offer-limit", "window-hours", "deadline-ms",
+  "cost-seconds", "fairness-seconds", "daily-search", "fairness-budget", "seed", "metrics-url", "docker", "scheduler-log", "label", "out",
   "horizon", "horizon-weekdays", "lead-weekdays", "full-percent", "booked-weekdays", "booked-appointments", "window-threshold", "refinement-ms"] as const;
 const FLAG_OPTIONS = ["date-spread", "help"] as const;
 
@@ -90,6 +96,10 @@ function settings() {
   const costSeconds = integer("cost-seconds", KIT_POLICY.costSearchSeconds, 5, 240);
   const fairnessSeconds = integer("fairness-seconds", KIT_POLICY.fairnessSearchSeconds, 0, 240);
   if (costSeconds + fairnessSeconds > 240) throw new UsageError("--cost-seconds and --fairness-seconds together are at most 240");
+  const dailySearch = oneOf(text("daily-search") ?? KIT_POLICY.dailySearch, ["TABU", "TABU_KOPT", "TABU_KOPT_SIZE_3"] as const, "--daily-search");
+  const fairnessBudget = text("fairness-budget") ?? KIT_POLICY.fairnessBudget;
+  // The API's own bounds (Policy.fairnessBudget): a plain decimal share, at least 0 and at most 1.
+  if (!/^(0(\.\d+)?|1(\.0+)?)$/.test(fairnessBudget)) throw new UsageError("--fairness-budget is a decimal share from 0 to 1, such as 0.02");
   const horizonMode = oneOf(text("horizon") ?? "fixed", ["fixed", "dynamic"] as const, "--horizon");
   if (text("horizon-days") !== undefined && text("horizon-weekdays") !== undefined) throw new UsageError("Give --horizon-days or --horizon-weekdays, not both");
   if (horizonMode === "dynamic" && text("horizon-days") !== undefined) throw new UsageError("--horizon dynamic takes --horizon-weekdays as its cap");
@@ -108,8 +118,10 @@ function settings() {
     concurrency: integer("concurrency", 5, 1, 64), dailyConcurrency: integer("daily-concurrency", 1, 1, 16),
     technicians: integer("technicians", 10, 1, 200), appointments: integer("appointments", 2, 0, 4), horizonDays: integer("horizon-days", 5, 1, 21),
     dailyTechnicians: integer("daily-technicians", 20, 1, 200), dailyMode, jobs, confirmRate,
+    dailyProposals: text("daily-proposals") === undefined ? null : integer("daily-proposals", 0, 1, 10_000),
     offerLimit: integer("offer-limit", 4, 1, 4), windowHours: integer("window-hours", 2, 1, 8),
-    deadlineMs: integer("deadline-ms", KIT_POLICY.bookingDeadlineMs, 1000, 5000), costSeconds, fairnessSeconds, seed: integer("seed", 1, 0, 1000),
+    deadlineMs: integer("deadline-ms", KIT_POLICY.bookingDeadlineMs, 1000, 5000), costSeconds, fairnessSeconds, dailySearch, fairnessBudget,
+    seed: integer("seed", 1, 0, 1000),
     metricsUrl: text("metrics-url") ?? null, docker: text("docker")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
     schedulerLog: text("scheduler-log")?.split(",").map(name => name.trim()).filter(name => name !== "") ?? [],
     label: text("label") ?? null, out: resolve(text("out") ?? "load-report"),
@@ -162,7 +174,8 @@ async function main(): Promise<number> {
   const bookedDates = new Set(runWeekdays.slice(0, options.bookedWeekdays));
   const dailyDate = addDays(today, 2);
   const point = pointSource(options.area, options.seed);
-  const policy = { ...KIT_POLICY, regularWindowThreshold: options.windowThreshold, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds,
+  const policy = { ...KIT_POLICY, dailySearch: options.dailySearch, fairnessBudget: options.fairnessBudget,
+    regularWindowThreshold: options.windowThreshold, bookingDeadlineMs: options.deadlineMs, costSearchSeconds: options.costSeconds, fairnessSearchSeconds: options.fairnessSeconds,
     ...(options.refinementMs === null ? {} : { bookingRefinementMs: options.refinementMs }) };
   const shape = (name: string, technicians: number, dates: readonly string[], booked: ReadonlySet<string>): MetroShape => ({ metroId: options.metroId,
     timeZone: options.timeZone, serviceId, prefix: `${prefix}-${name}`, technicians, appointmentsPerDay: options.appointments,
@@ -195,7 +208,7 @@ async function main(): Promise<number> {
     }
   if (options.scenario !== "booking")
     for (let planner = 0; planner < (options.scenario === "daily" ? options.concurrency : options.dailyConcurrency); planner++)
-      loops.push(dailyLoop(run, { store: dailyStore, date: dailyDate, mode: options.dailyMode }, (options.costSeconds + options.fairnessSeconds + 5) * 1000 + 30_000));
+      loops.push(dailyLoop(run, { store: dailyStore, date: dailyDate, mode: options.dailyMode, proposals: options.dailyProposals }, (options.costSeconds + options.fairnessSeconds + 5) * 1000 + 30_000));
   await Promise.all(loops);
   const finishedAt = new Date();
   let server: ServerView | null = null;
@@ -217,12 +230,14 @@ async function main(): Promise<number> {
       horizon: { mode: options.horizonMode, weekdays: options.horizonWeekdays,
         leadWeekdays: options.horizonMode === "dynamic" ? options.leadWeekdays : null, fullPercent: options.horizonMode === "dynamic" ? options.fullPercent : null,
         bookedWeekdays: options.bookedWeekdays, bookedAppointments: options.bookedWeekdays === 0 ? null : options.bookedAppointments },
-      dailyMode: options.scenario === "booking" ? null : options.dailyMode,
+      dailyMode: options.scenario === "booking" ? null : options.dailyMode, dailyProposals: options.dailyProposals,
       jobs: options.jobs, confirmRate: options.confirmRate, offerLimit: options.offerLimit, windowHours: options.windowHours, policy, seed: options.seed,
       dateSpread: spread > 0 },
     machine: { cpus: cpus().length, cpuModel: cpus()[0]?.model ?? "unknown", memoryBytes: totalmem(), node: process.version },
     operations: summarize(run.records), booking: options.scenario === "daily" ? null : run.booking,
     daily: options.scenario === "booking" ? null : run.daily, server, metricFailures, containers: usage, serverBreakdown: attributed, serverLog: log === null ? null : log.containers,
+    study: log === null || tenant === null || log.receipts.every(receipt => receipt.tenant !== tenant) ? null
+      : { summary: studySummary(log.receipts, tenant), receipts: log.receipts.filter(receipt => receipt.tenant === tenant) },
     contractBreaches: run.contractBreaches, hostAnomalies: [...bookingStore.anomalies, ...dailyStore.anomalies],
   };
   mkdirSync(options.out, { recursive: true });

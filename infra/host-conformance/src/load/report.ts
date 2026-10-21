@@ -1,7 +1,7 @@
 // The load run's evidence: JSON for comparison across runs, markdown for docs/api-load.md and reviews.
 import type { Snapshot } from "../snapshot.ts";
 import type { ServerView } from "./metrics.ts";
-import { breakdownLines, containerShareLines, type ContainerShare, type ServerBreakdown } from "./serverlog.ts";
+import { breakdownLines, containerShareLines, studyLines, type ContainerShare, type ServerBreakdown, type StudyReceipt, type StudySummary } from "./serverlog.ts";
 import type { BookingTally, ContainerUsage, DailyTally } from "./scenarios.ts";
 import { percentile, type OperationSummary } from "./stats.ts";
 
@@ -18,6 +18,8 @@ export interface LoadReport {
   readonly settings: {
     readonly durationS: number; readonly concurrency: number; readonly dailyConcurrency: number | null; readonly technicians: number;
     readonly appointmentsPerDay: number; readonly horizonDates: number; readonly dailyTechnicians: number; readonly dailyMode: "sync" | "async" | null; readonly jobs: "cold" | "warm";
+    /** The proposal count the daily planners stopped at (--daily-proposals); null when they ran for the duration. */
+    readonly dailyProposals: number | null;
     /** Each desk searched its own run of dates instead of the same ones. */
     readonly dateSpread: boolean;
     /**
@@ -39,6 +41,8 @@ export interface LoadReport {
   readonly serverBreakdown: ServerBreakdown | null;
   /** Each scheduler container's share of this tenant's request lines (which replicas served the run); null when not read. */
   readonly serverLog: readonly ContainerShare[] | null;
+  /** This tenant's study receipts from the daily replica and their summary; null when none were logged or the log was not read. */
+  readonly study: { readonly summary: StudySummary; readonly receipts: readonly StudyReceipt[] } | null;
   readonly contractBreaches: readonly string[];
   readonly hostAnomalies: readonly string[];
 }
@@ -120,6 +124,7 @@ export function loadMarkdown(report: LoadReport): string {
       ...report.containers.map(c => `| ${c.name} | ${c.cpuPercent.mean.toFixed(0)} percent | ${c.cpuPercent.max.toFixed(0)} percent | ${gib(c.memoryMaxBytes)} |`));
   if (report.serverBreakdown !== null) lines.push("", ...breakdownLines(report.serverBreakdown));
   if (report.serverLog !== null) lines.push("", ...containerShareLines(report.serverLog));
+  if (report.study !== null) lines.push("", ...studyLines(report.study.summary));
   if (report.contractBreaches.length > 0 || report.hostAnomalies.length > 0)
     lines.push("", "## Defects found", "", ...report.contractBreaches.map(item => `- Contract: ${item}`), ...report.hostAnomalies.map(item => `- Receipt: ${item}`));
   return `${lines.join("\n")}\n`;

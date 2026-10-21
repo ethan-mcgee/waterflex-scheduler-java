@@ -2,10 +2,28 @@ package dev.waterflex.scheduler.optimizer;
 import dev.waterflex.scheduler.*;
 import java.time.Duration;
 import java.util.*;
+import org.jspecify.annotations.NonNull;
 /** One database-free reference, target, fairness and independently validated policy operation. */
 public final class DailyCalculation {
     public record Result(DayPlan plan, DayPlan reference, boolean accepted, String reason, int solveMs, DailySolver.Diagnostics diagnostics) { }
+    /**
+     * Runs one phase's solve, named REPAIR, REFERENCE or FAIRNESS, on the calculation's thread. A study binds its own
+     * with {@link #recording} around the calculation it observes; everything else runs {@link #NONE}, which only solves.
+     */
+    @FunctionalInterface
+    public interface Recorder { SolverEngine.Result record(String phase, java.util.function.Supplier<SolverEngine.Result> solve); }
+    public static final Recorder NONE = (_, solve) -> Required.value(solve.get());
+    private static final ScopedValue<@NonNull Recorder> RECORDER = Required.value(ScopedValue.newInstance());
     private DailyCalculation() { }
+    /** Runs {@code work} on this thread with {@code recorder} receiving each phase of the calculations it makes. */
+    public static <T> T recording(Recorder recorder, java.util.function.Supplier<T> work) {
+        return Required.value(ScopedValue.where(RECORDER, recorder).call(work::get));
+    }
+    /** The recorder bound on this thread, or {@link #NONE} outside a study. */
+    public static Recorder recorder() { return Required.value(RECORDER.orElse(NONE)); }
+    private static SolverEngine.Result recorded(String phase, java.util.function.Supplier<SolverEngine.Result> solve) {
+        return recorder().record(phase, solve);
+    }
     /**
      * Phase budgets. A fairness allocation of zero skips the fairness phase; reference and repair must search.
      * {@code unimprovedMs}, when present, also ends the reference and fairness phases once the best score has not
@@ -54,14 +72,14 @@ public final class DailyCalculation {
     public static Result run(DayPlan baseline, SchedulingPolicy.Rules policy, DailySolver solver, Allocation allocation) {
         long started = System.nanoTime();
         if (baseline.getMode() == DayPlan.Mode.REPAIR) {
-            var search = solver.solve(baseline,Required.value(Duration.ofMillis(allocation.repairMs())));
+            var search = recorded("REPAIR",() -> solver.solve(baseline,Required.value(Duration.ofMillis(allocation.repairMs()))));
             SearchDeadline.checkpoint(); var validation = RouteEvaluator.evaluate(search.plan());
             boolean accepted = valid(search.plan()) && validation.overtimeMinutes() == 0;
             return new Result(search.plan(),search.plan(),accepted,accepted ? "Repair feasible" : "Repair infeasible",
                     (int)((System.nanoTime()-started)/1_000_000),solver.diagnostics(Required.value(List.of(new DailySolver.Phase("REPAIR",search.statistics()))))
                             .withPolicy(DailyPolicyDiagnostics.assess(search.plan(),search.plan(),accepted,DailyPolicyDiagnostics.Fairness.NOT_APPLICABLE_REPAIR)));
         }
-        var referenceSearch = solver.solve(baseline,Required.value(Duration.ofMillis(allocation.referenceMs())),allocation.unimproved());
+        var referenceSearch = recorded("REFERENCE",() -> solver.solve(baseline,Required.value(Duration.ofMillis(allocation.referenceMs())),allocation.unimproved()));
         SearchDeadline.checkpoint();
         List<DailySolver.Phase> phases = new ArrayList<>(); phases.add(new DailySolver.Phase("REFERENCE",referenceSearch.statistics()));
         DayPlan solved = referenceSearch.plan();
@@ -84,8 +102,8 @@ public final class DailyCalculation {
             DailyOperation operation = DailyOperation.current();
             if (allocation.fairnessMs() > 0 && operation != null && operation.canSearch()) {
                 fairnessStatus = DailyPolicyDiagnostics.Fairness.SEARCHED;
-                var fairnessSearch = solver.solve(fairnessSeed,Required.value(Duration.ofMillis(allocation.transferUnusedReference()
-                        ? Math.addExact(allocation.referenceMs(),allocation.fairnessMs()) : allocation.fairnessMs())),allocation.unimproved());
+                var fairnessSearch = recorded("FAIRNESS",() -> solver.solve(fairnessSeed,Required.value(Duration.ofMillis(allocation.transferUnusedReference()
+                        ? Math.addExact(allocation.referenceMs(),allocation.fairnessMs()) : allocation.fairnessMs())),allocation.unimproved()));
                 SearchDeadline.checkpoint(); phases.add(new DailySolver.Phase("FAIRNESS",fairnessSearch.statistics()));
                 DayPlan fair = fairnessSearch.plan();
                 fair.setMode(baseline.getMode());

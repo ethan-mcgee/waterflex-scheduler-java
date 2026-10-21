@@ -7,6 +7,7 @@
 // read beside the server's attribution of it.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { z } from "zod";
 import * as Api from "../api.ts";
 import type { SchedulerApi } from "../client.ts";
 import { percentile } from "./stats.ts";
@@ -161,21 +162,192 @@ export async function containerLogs(containers: readonly string[], since: Date):
   return logs;
 }
 
+// A study's readings (SCHEDULER_STUDY_RECEIPTS=true on the daily pool): each daily calculation logs "Study receipt
+// {json}" (StudyReceipts in the scheduler), and with TIMEFOLD_LOG_LEVEL=INFO each phase's solver logs "Solving ended:
+// time spent (N), ... move evaluation speed (N/sec)". Both run on the calculation's thread, which carries the call's
+// tenant and requestId, so a receipt takes the solver lines of its request logged before it.
+
+const Unavailable = z.strictObject({ unavailable: z.enum(["INVALID_PLAN", "UNASSIGNED_VISITS"]) });
+const Decimal = z.string().regex(/^\d+(\.\d+)?$/);
+// The spread, absolute deviation and load balance come with every measured plan once the reference is measured (the
+// harness's FairnessReadings); a receipt from an image before them carries the variance and highest utilization only.
+const Measured = z.strictObject({ costCents: z.number().int().nonnegative(), overtimeMinutes: z.number().int().nonnegative(),
+  variance: Decimal, maximumUtilization: Decimal, utilizationSpread: Decimal.optional(), absoluteDeviation: Decimal.optional(), loadBalance: Decimal.optional() });
+// With SCHEDULER_STUDY_PROFILES on, each phase's flight recording (file name in the replica's profiles directory) and the
+// thread the phases ran on, or why the recordings cannot stand for the phases.
+const Profile = z.union([z.strictObject({ thread: z.string().min(1), recordings: z.record(z.string().min(1), z.string().min(1)) }),
+  z.strictObject({ unavailable: z.string().min(1) })]);
+export const StudyReceiptBody = z.strictObject({
+  proposalId: z.string().min(1), serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), variant: z.string().min(1), seed: z.number().int(),
+  technicians: z.number().int().nonnegative(), visits: z.number().int().nonnegative(),
+  phases: z.array(z.strictObject({ name: z.string().min(1), budgetMs: z.number().int().nonnegative(), solveMs: z.number().int().nonnegative(), termination: z.string().min(1) })),
+  fairness: z.string().min(1), accepted: z.boolean(), reason: z.string().min(1),
+  reference: z.union([Measured, Unavailable]), costCeilingCents: z.number().int().nonnegative().optional(), proposed: z.union([Measured, Unavailable]),
+  profile: Profile.optional(),
+});
+export type StudyReceiptBody = z.infer<typeof StudyReceiptBody>;
+
+/** One solver's end line: Timefold's own time and move evaluation speed for one phase. */
+export interface SolverSpeed { readonly timeSpentMs: number; readonly movesPerSecond: number }
+
+/** A receipt with its request context and the solver lines of its request, in the order they ran. */
+export interface StudyReceipt { readonly tenant: string; readonly requestId: string; readonly body: StudyReceiptBody; readonly solves: readonly SolverSpeed[] }
+
+const SOLVING_ENDED = /^Solving ended: time spent \((?<time>\d+)\),.* move evaluation speed \((?<speed>\d+)\/sec\)/;
+const RECEIPT = "Study receipt ";
+
+/** The tenant, request ID and message of a plain or ECS line, or null for a line without them. */
+function contextOf(line: string): { tenant: string; requestId: string; message: string } | null {
+  if (line.startsWith("{")) {
+    let parsed: unknown;
+    try { parsed = JSON.parse(line); } catch { return null; }
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const record = parsed as Record<string, unknown>;
+    const message = text(record.message), tenant = text(record.tenant), requestId = text(record.requestId);
+    return message === null || tenant === null || requestId === null ? null : { tenant, requestId, message };
+  }
+  const context = PLAIN.exec(line);
+  const at = line.indexOf(" : ");
+  const tenant = context?.groups?.tenant, requestId = context?.groups?.request;
+  return tenant === undefined || requestId === undefined || at < 0 ? null : { tenant, requestId, message: line.slice(at + 3) };
+}
+
+/**
+ * Every study receipt in `log`, each with the solver lines its request logged since its previous receipt. A receipt
+ * line that does not read in full, or a receipt without its request context, is an error: a study's readings are
+ * never partly invented. Solver lines with no receipt after them (receipts off) are left out.
+ */
+export function parseStudyReceipts(log: string): StudyReceipt[] {
+  const receipts: StudyReceipt[] = [];
+  const pending = new Map<string, SolverSpeed[]>();
+  for (const raw of log.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line === "" || (!line.includes(RECEIPT) && !line.includes("Solving ended: "))) continue;
+    const context = contextOf(line);
+    if (context === null) {
+      if (line.includes(`${RECEIPT}{`)) throw new Error(`Study receipt without its tenant and request context: ${line}`);
+      continue;
+    }
+    const key = `${context.tenant}\n${context.requestId}`;
+    const ended = SOLVING_ENDED.exec(context.message);
+    if (ended !== null) {
+      const time = ended.groups?.time, speed = ended.groups?.speed;
+      if (time === undefined || speed === undefined) throw new Error(`Unreadable solver end line: ${line}`);
+      const list = pending.get(key) ?? [];
+      list.push({ timeSpentMs: Number(time), movesPerSecond: Number(speed) });
+      pending.set(key, list);
+      continue;
+    }
+    if (!context.message.startsWith(RECEIPT)) continue;
+    let json: unknown;
+    try { json = JSON.parse(context.message.slice(RECEIPT.length)); } catch { throw new Error(`Unreadable study receipt: ${line}`); }
+    const body = StudyReceiptBody.safeParse(json);
+    if (!body.success) throw new Error(`Study receipt out of contract (${body.error.message}): ${line}`);
+    receipts.push({ tenant: context.tenant, requestId: context.requestId, body: body.data, solves: pending.get(key) ?? [] });
+    pending.delete(key);
+  }
+  return receipts;
+}
+
+export interface StudyPhase { readonly phase: string; readonly runs: number; readonly solveMs: Stat; readonly movesPerSecond: Stat | null; readonly terminations: Record<string, number> }
+
+export interface StudySummary {
+  readonly receipts: number;
+  readonly decisions: Record<string, number>;
+  readonly phases: readonly StudyPhase[];
+  /** Receipts whose solver lines did not number its phases (Timefold at WARN, or an extra solve), so no phase took their speeds. */
+  readonly unpairedSpeeds: number;
+  /** Receipts whose every phase has a flight recording (SCHEDULER_STUDY_PROFILES on). */
+  readonly profiled: number;
+  /** Medians over the receipts whose plan was measured; null when none was. */
+  readonly referenceCostCents: number | null; readonly proposedCostCents: number | null;
+  readonly referenceVariance: string | null; readonly proposedVariance: string | null;
+  readonly referenceMaximumUtilization: string | null; readonly proposedMaximumUtilization: string | null;
+  readonly unmeasured: Record<string, number>;
+}
+
+/** The lower middle of decimal strings, compared exactly as scaled integers (the DECIMAL128 readings), never rounded. */
+export function medianDecimal(values: readonly string[]): string | null {
+  if (values.length === 0) return null;
+  const scale = Math.max(...values.map(value => value.split(".")[1]?.length ?? 0));
+  const scaled = (value: string) => { const [whole = "0", part = ""] = value.split("."); return BigInt(`${whole}${part.padEnd(scale, "0")}`); };
+  const sorted = [...values].sort((a, b) => { const x = scaled(a), y = scaled(b); return x < y ? -1 : x > y ? 1 : 0; });
+  return sorted[Math.floor((sorted.length - 1) / 2)] ?? null;
+}
+
+/** One tenant's receipts summarized: decisions, each phase's time and speed, and the plans' readings. */
+export function studySummary(all: readonly StudyReceipt[], tenant: string): StudySummary {
+  const receipts = all.filter(receipt => receipt.tenant === tenant);
+  const decisions: Record<string, number> = {}, unmeasured: Record<string, number> = {};
+  const byPhase = new Map<string, { solve: number[]; speed: number[]; terminations: Record<string, number> }>();
+  let unpairedSpeeds = 0, profiled = 0;
+  const cost = { reference: [] as number[], proposed: [] as number[] };
+  const variance = { reference: [] as string[], proposed: [] as string[] }, maximum = { reference: [] as string[], proposed: [] as string[] };
+  for (const { body, solves } of receipts) {
+    const decision = body.accepted ? "ACCEPTED" : body.reason;
+    decisions[decision] = (decisions[decision] ?? 0) + 1;
+    const paired = solves.length === body.phases.length;
+    if (!paired) unpairedSpeeds++;
+    const profile = body.profile;
+    if (profile !== undefined && "recordings" in profile && body.phases.every(phase => phase.name in profile.recordings)) profiled++;
+    body.phases.forEach((phase, index) => {
+      const entry = byPhase.get(phase.name) ?? { solve: [], speed: [], terminations: {} };
+      entry.solve.push(phase.solveMs);
+      const speed = paired ? solves[index] : undefined;
+      if (speed !== undefined) entry.speed.push(speed.movesPerSecond);
+      entry.terminations[phase.termination] = (entry.terminations[phase.termination] ?? 0) + 1;
+      byPhase.set(phase.name, entry);
+    });
+    for (const side of ["reference", "proposed"] as const) {
+      const plan = body[side];
+      if ("unavailable" in plan) { const name = `${side} ${plan.unavailable}`; unmeasured[name] = (unmeasured[name] ?? 0) + 1; continue; }
+      cost[side].push(plan.costCents); variance[side].push(plan.variance); maximum[side].push(plan.maximumUtilization);
+    }
+  }
+  const phases = [...byPhase.entries()].map(([phase, entry]) => {
+    const solveMs = stat(entry.solve);
+    if (solveMs === null) throw new Error(`No runs of phase ${phase}`);
+    return { phase, runs: entry.solve.length, solveMs, movesPerSecond: stat(entry.speed), terminations: entry.terminations };
+  });
+  const middle = (values: number[]) => stat(values)?.p50 ?? null;
+  return { receipts: receipts.length, decisions, phases, unpairedSpeeds, profiled,
+    referenceCostCents: middle(cost.reference), proposedCostCents: middle(cost.proposed),
+    referenceVariance: medianDecimal(variance.reference), proposedVariance: medianDecimal(variance.proposed),
+    referenceMaximumUtilization: medianDecimal(maximum.reference), proposedMaximumUtilization: medianDecimal(maximum.proposed), unmeasured };
+}
+
+const tally = (record: Record<string, number>) => Object.entries(record).map(([key, value]) => `${key} ${value}`).join(", ") || "none";
+
+export function studyLines(summary: StudySummary): string[] {
+  const or = (value: number | string | null) => value === null ? "-" : String(value);
+  const pair = (value: Stat | null) => value === null ? "-" : `${value.p50} / ${value.p95}`;
+  return ["## Study receipts (daily replica)", "",
+    `- Receipts ${summary.receipts}; decisions: ${tally(summary.decisions)}${summary.unpairedSpeeds === 0 ? "" : `; ${summary.unpairedSpeeds} without per-phase speeds`}${summary.profiled === 0 ? "" : `; ${summary.profiled} with every phase flight-recorded`}`,
+    `- Cost p50: reference ${or(summary.referenceCostCents)} c, proposed ${or(summary.proposedCostCents)} c`,
+    `- Variance p50: reference ${or(summary.referenceVariance)}, proposed ${or(summary.proposedVariance)}`,
+    `- Highest utilization p50: reference ${or(summary.referenceMaximumUtilization)}, proposed ${or(summary.proposedMaximumUtilization)}`,
+    ...(Object.keys(summary.unmeasured).length === 0 ? [] : [`- Not measured: ${tally(summary.unmeasured)}`]), "",
+    "| Phase | Runs | Solve ms p50 / p95 | Moves per second p50 / p95 | Terminations |", "| --- | ---: | --- | --- | --- |",
+    ...summary.phases.map(p => `| ${p.phase} | ${p.runs} | ${pair(p.solveMs)} | ${pair(p.movesPerSecond)} | ${tally(p.terminations)} |`)];
+}
+
 /** How many of a container's request lines were the tenant's: behind a proxy, which replicas served the run. */
 export interface ContainerShare { readonly container: string; readonly apiLines: number }
 
-export interface RequestLog { readonly lines: readonly ApiLine[]; readonly containers: readonly ContainerShare[] }
+export interface RequestLog { readonly lines: readonly ApiLine[]; readonly containers: readonly ContainerShare[]; readonly receipts: readonly StudyReceipt[] }
 
 /** Every container's request lines pooled, with each container's share of the tenant's. */
 export function requestLog(logs: readonly ContainerLog[], tenant: string): RequestLog {
   const lines: ApiLine[] = [];
   const containers: ContainerShare[] = [];
+  const receipts: StudyReceipt[] = [];
   for (const { container, log } of logs) {
     const own = parseApiLines(log);
     lines.push(...own);
     containers.push({ container, apiLines: own.filter(line => line.tenant === tenant).length });
+    receipts.push(...parseStudyReceipts(log));
   }
-  return { lines, containers };
+  return { lines, containers, receipts };
 }
 
 /** The named containers' request log since `since`, read with `docker logs`. */

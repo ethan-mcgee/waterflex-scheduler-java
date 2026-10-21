@@ -33,6 +33,8 @@ export interface DailySettings {
   readonly date: string;
   /** sync calculates within the call; async queues with Prefer: respond-async and polls the request's status. */
   readonly mode: "sync" | "async";
+  /** Every planner stops once the run has requested this many proposals in all; null runs for the duration only. */
+  readonly proposals: number | null;
 }
 
 export interface BookingTally {
@@ -245,7 +247,7 @@ export async function bookingLoop(run: Run, settings: BookingSettings, desk: num
 }
 
 export async function dailyLoop(run: Run, settings: DailySettings, timeoutMs: number): Promise<void> {
-  while (Date.now() < run.endsAt) {
+  while (Date.now() < run.endsAt && (settings.proposals === null || run.daily.proposals < settings.proposals)) {
     run.daily.proposals++;
     const body = { requestId: randomUUID(), serviceDate: settings.date, snapshot: settings.store.snapshot([settings.date]) };
     const proposal = settings.mode === "sync" ? await synchronous(run, body, timeoutMs) : await queued(run, body);
