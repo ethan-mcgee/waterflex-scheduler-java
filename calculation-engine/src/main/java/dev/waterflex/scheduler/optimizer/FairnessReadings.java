@@ -1,6 +1,6 @@
 package dev.waterflex.scheduler.optimizer;
 
-import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
+import ai.timefold.solver.core.api.score.BendableScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import dev.waterflex.scheduler.Required;
 import java.math.BigDecimal;
@@ -61,8 +61,9 @@ public final class FairnessReadings {
     private static BigDecimal loadBalance(DayPlan plan, DayPlan reference, long ceiling) {
         DayPlan copy = PlanCopies.copy(plan);
         copy.setScoringFacts(copy.getScoringFacts().withTarget(reference, ceiling));
-        SolutionManager.<DayPlan, BendableBigDecimalScore>create(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, 0).factory()).update(copy);
-        BendableBigDecimalScore score = Required.value(copy.getScore(), "scored plan");
-        return Required.value(score.softScore(DayScores.PHASE_OBJECTIVE).negate());
+        SolutionManager.<DayPlan, BendableScore>create(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, 0).factory()).update(copy);
+        BendableScore score = Required.value(copy.getScore(), "scored plan");
+        // The objective counts the unfairness in units of 1e-6, its six places exactly (DayScores.unfairnessUnits).
+        return Required.value(BigDecimal.valueOf(Math.negateExact(score.softScore(DayScores.PHASE_OBJECTIVE)), DayScores.UNFAIRNESS_SCALE));
     }
 }

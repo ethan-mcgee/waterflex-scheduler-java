@@ -1,7 +1,6 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
-import dev.waterflex.scheduler.Monetary;
 import java.time.Instant;
 import java.util.*;
 
@@ -30,7 +29,8 @@ final class RouteTimeline {
                 Math.addExact(Math.addExact(latenessSeconds, availabilitySeconds), capacityMinutes)); }
     }
     /** {@code arrivals} is empty when the evaluation was asked for the score alone. */
-    record Result(Violations violations, long costCents, Map<String, Instant> arrivals,
+    /** A route's resources; only the fleet's summed resources are priced, rounded once (RouteScoringFacts.cost). */
+    record Result(Violations violations, Map<String, Instant> arrivals,
                   long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) {
         long hardPenalty() { return violations.total(); }
     }
@@ -45,7 +45,7 @@ final class RouteTimeline {
         long qualifications = 0;
         for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) qualifications++;
         if (canonical != null) {
-            return result(facts, new Violations(qualifications, 0, 0, 0, 0), canonical.arrivals(),
+            return result(new Violations(qualifications, 0, 0, 0, 0), canonical.arrivals(),
                     canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
         }
         // This trajectory is a direction of improvement, never an independent feasible-placement proof.
@@ -58,8 +58,8 @@ final class RouteTimeline {
             previous = here;
         }
         if (!route.getVisits().isEmpty() && roads.home(previous, technician) == null) unavailableRoads++;
-        if (unavailableRoads > 0) return result(facts, new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
-        if (route.getVisits().isEmpty()) return result(facts, new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        if (unavailableRoads > 0) return result(new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        if (route.getVisits().isEmpty()) return result(new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
         PlanVisit first = Required.value(route.getVisits().getFirst());
         long initialTravel = Required.value(roads.leg(technician, first.roadNumber(facts))).bufferedMinutes();
         // The shift starts at offset 0.
@@ -94,12 +94,11 @@ final class RouteTimeline {
         long unavailable = returned - departure - permitted;
         long unavailableSeconds = unavailable == 0 ? 0 : Math.addExact(seconds(unavailable), Math.floorMod(unavailable, NANOS_PER_SECOND) == 0 ? 0 : 1);
         long capacity = Math.addExact(Math.max(0, paid - route.getMaxDailyMinutes()), Math.max(0, overtime - route.getMaxOvertimeMinutes()));
-        return result(facts, new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
+        return result(new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
     }
-    private static Result result(PlanFacts facts, Violations violations, Map<String, Instant> arrivals,
+    private static Result result(Violations violations, Map<String, Instant> arrivals,
             long paid, long overtime, long drive, long waiting, long meters) {
-        long cents = Monetary.cents(paid, overtime, meters, facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
-        return new Result(violations, cents, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
+        return new Result(violations, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
     }
     /** The working intervals from the shift start (offset 0) to the overtime limit, absences removed, as offsets from {@code origin}. */
     private static List<RouteTimingSearch.Block> available(TechRoute route, Instant origin) {

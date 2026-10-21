@@ -54,6 +54,9 @@ class DailyDatasetTest {
         assertThrows(IllegalArgumentException.class, () -> DailyDataset.parse(fixture()));
         reject(root -> ((ObjectNode) root.path("rates")).put("regularHourly", 20.02));
         reject(root -> ((ObjectNode) root.path("rates")).put("regularHourly", "0.0000000000000000000000000000001"));
+        reject(root -> ((ObjectNode) root.path("rates")).put("regularHourly", "20.00001"));
+        reject(root -> ((ObjectNode) root.path("rates")).put("overtimeHourly", "501"));
+        reject(root -> ((ObjectNode) root.path("rates")).put("mileagePerMile", "25.0001"));
         reject(root -> ((ObjectNode) root.path("versions")).put("cost", "legacy-double-v1"));
         reject(root -> ((ObjectNode) root.path("rates")).put("regularHourly", "Infinity"));
     }

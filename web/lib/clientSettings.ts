@@ -9,7 +9,15 @@ import { HORIZON_MODES, MAX_FULL_PERCENT, MAX_LEAD_WEEKDAYS, MIN_FULL_PERCENT, M
  */
 
 /** Dollars with at most four decimal places, as the database stores them. */
-const dollars = z.string().trim().regex(/^(0|[1-9][0-9]{0,9})(\.[0-9]{1,4})?$/, "Enter dollars, for example 30 or 0.67");
+const DOLLARS = /^(0|[1-9][0-9]{0,9})(\.[0-9]{1,4})?$/;
+const dollars = z.string().trim().regex(DOLLARS, "Enter dollars, for example 30 or 0.67");
+/** The scheduler's cost rate caps (spec 1.7.0): it prices these exactly in integer arithmetic. */
+export const MAX_HOURLY_RATE = 500;
+export const MAX_MILEAGE_RATE = 25;
+/** At most `cap` dollars; a value that is not dollars at all fails the regex above and is never read as a number. */
+const capped = (cap: number, message: string) => dollars.refine(value => !DOLLARS.test(value) || new Prisma.Decimal(value).lte(cap), message);
+const hourly = capped(MAX_HOURLY_RATE, `An hourly rate is at most $${MAX_HOURLY_RATE}`);
+const perMile = capped(MAX_MILEAGE_RATE, `A mileage rate is at most $${MAX_MILEAGE_RATE}`);
 /** A percentage from 0 to 100 with at most two decimal places, so the fraction fits four places. */
 const percent = z.string().trim().regex(/^(0|[1-9][0-9]{0,2})(\.[0-9]{1,2})?$/, "Enter a percentage, for example 20 or 2.5")
   .refine(value => new Prisma.Decimal(value).lte(100), "A percentage is at most 100");
@@ -28,9 +36,9 @@ export const MAX_BOOKING_DEADLINE_MS = 5000;
 export const MAX_REGULAR_WINDOW_THRESHOLD = 1000;
 
 export const solverSettingsInput = z.object({
-  regularHourly: dollars,
-  overtimeHourly: dollars,
-  mileagePerMile: dollars,
+  regularHourly: hourly,
+  overtimeHourly: hourly,
+  mileagePerMile: perMile,
   travelBufferPercent: percent,
   travelBufferMinutes: z.int().min(0).max(120),
   fairnessBudgetPercent: percent,

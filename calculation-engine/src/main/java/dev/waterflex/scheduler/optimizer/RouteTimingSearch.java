@@ -132,12 +132,12 @@ final class RouteTimingSearch {
     }
     private static boolean dominates(Timing first, Timing second, PlanFacts facts) {
         return first.paid() <= second.paid() && first.overtime() <= second.overtime() && first.waiting() <= second.waiting()
-                && cost(first, facts).compareTo(cost(second, facts)) <= 0 && first.departures().length == second.departures().length
+                && cost(first, second, facts) <= 0 && first.departures().length == second.departures().length
                 && departures(first.departures(), second.departures()) <= 0;
     }
     private static int compare(Timing first, Timing second, PlanFacts facts) {
         int order = Long.compare(first.overtime(), second.overtime());
-        if (order == 0) order = cost(first, facts).compareTo(cost(second, facts));
+        if (order == 0) order = cost(first, second, facts);
         if (order == 0) order = Long.compare(first.waiting(), second.waiting());
         if (order == 0) order = Long.compare(first.paid(), second.paid());
         return order == 0 ? departures(first.departures(), second.departures()) : order;
@@ -149,7 +149,8 @@ final class RouteTimingSearch {
         }
         return Integer.compare(first.length, second.length);
     }
-    private static java.math.BigDecimal cost(Timing value, PlanFacts facts) {
-        return Monetary.numerator(value.paid(), value.overtime(), value.meters(), facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
+    /** The order of two timings' exact costs, on the revision's integer rates where they fit ({@link Monetary#compare}). */
+    private static int cost(Timing first, Timing second, PlanFacts facts) {
+        return Monetary.compare(first.paid(), first.overtime(), first.meters(), second.paid(), second.overtime(), second.meters(), facts.rates());
     }
 }

@@ -13,7 +13,7 @@ class ConstraintRulesTest {
     private static final ConstraintVerifier<DayConstraintProvider, @org.jspecify.annotations.NonNull DayPlan> VERIFIER = ConstraintVerifier.build(
             new DayConstraintProvider(), DayPlan.class, TechRoute.class, PlanVisit.class);
     private static Instant at(int hour) { return Required.value(Instant.parse("2030-01-01T%02d:00:00Z".formatted(hour))); }
-    private static void penalty(String name, DayPlan plan, BigDecimal expected) {
+    private static void penalty(String name, DayPlan plan, long expected) {
         VERIFIER.verifyThat((provider, factory) -> Arrays.stream(provider.defineConstraints(factory))
                 .filter(c -> c.getConstraintRef().id().equals(name)).findFirst().orElseThrow())
                 .givenSolution(plan).settingAllShadowVariables().penalizesBy(expected);
@@ -27,28 +27,28 @@ class ConstraintRulesTest {
                 Required.value(Map.<String, DayPlan.RoadLeg>of("t>v", new DayPlan.RoadLeg(0,0), "v>t:return", new DayPlan.RoadLeg(returnSeconds,0))), 30,45,0,0,0);
     }
     @Test void qualificationsAndExclusiveWindowBoundaryHaveIndependentPenalties() {
-        penalty("Required qualifications", single(false,9,30,60,0,false), Required.value(BigDecimal.ONE));
-        penalty("Required qualifications", single(true,9,30,60,0,false), Required.value(BigDecimal.ZERO));
-        penalty("Exclusive customer window lateness seconds", single(true,8,30,60,0,false), Required.value(BigDecimal.ONE));
-        penalty("Exclusive customer window lateness seconds", single(true,9,30,60,0,false), Required.value(BigDecimal.ZERO));
+        penalty("Required qualifications", single(false,9,30,60,0,false), 1);
+        penalty("Required qualifications", single(true,9,30,60,0,false), 0);
+        penalty("Exclusive customer window lateness seconds", single(true,8,30,60,0,false), 1);
+        penalty("Exclusive customer window lateness seconds", single(true,9,30,60,0,false), 0);
     }
     @Test void absenceReturnTravelAndCapacityUseSeconds() {
-        penalty("Shift absences and return travel violation seconds", single(true,9,30,60,0,true), Required.value(BigDecimal.valueOf(1800)));
-        penalty("Shift absences and return travel violation seconds", single(true,9,60,120,60,false), Required.value(BigDecimal.valueOf(60)));
-        penalty("Daily and overtime capacity excess seconds", single(true,9,30,20,0,false), Required.value(BigDecimal.valueOf(600)));
-        penalty("Shift absences and return travel violation seconds", single(true,9,30,60,0,false), Required.value(BigDecimal.ZERO));
+        penalty("Shift absences and return travel violation seconds", single(true,9,30,60,0,true), 1800);
+        penalty("Shift absences and return travel violation seconds", single(true,9,60,120,60,false), 60);
+        penalty("Daily and overtime capacity excess seconds", single(true,9,30,20,0,false), 600);
+        penalty("Shift absences and return travel violation seconds", single(true,9,30,60,0,false), 0);
     }
     @Test void explicitlyUnreachableReturnIsCategorical() {
         var source = single(true,9,30,60,0,false);
         var blocked = new DayPlan(source.getRoutes(),source.getVisits(),
                 Required.value(Map.<String,DayPlan.RoadLeg>of("t>v",new DayPlan.RoadLeg(0,0))),
                 Required.value(Set.of("v>t:return")),30,45,0,0,0);
-        penalty("Reachable directed roads",blocked,Required.value(BigDecimal.ONE));
-        penalty("Reachable directed roads",single(true,9,30,60,0,false),Required.value(BigDecimal.ZERO));
+        penalty("Reachable directed roads",blocked,1);
+        penalty("Reachable directed roads",single(true,9,30,60,0,false),0);
     }
     @Test void unassignedDemandIsCountedAndTargetLevelsDominateObjectives() {
-        penalty("Unassigned demand", DailyConstructionTest.fixture(2,3,1,0,DayPlan.Mode.PARTIAL), Required.value(BigDecimal.valueOf(2)));
-        penalty("Unassigned demand", DailyConstructionTest.fixture(2,3,3,0,DayPlan.Mode.ASSIGNED), Required.value(BigDecimal.ZERO));
+        penalty("Unassigned demand", DailyConstructionTest.fixture(2,3,1,0,DayPlan.Mode.PARTIAL), 2);
+        penalty("Unassigned demand", DailyConstructionTest.fixture(2,3,3,0,DayPlan.Mode.ASSIGNED), 0);
         for (int level=0; level<4; level++) assertTrue(DayScores.hard(level).negate().compareTo(DayScores.hard(level+1).multiply(-1000000)) < 0);
         assertTrue(DayScores.hard(4).negate().compareTo(DayScores.soft(0).multiply(-1000000)) < 0);
     }
@@ -60,14 +60,14 @@ class ConstraintRulesTest {
                 "v>a:return",new DayPlan.RoadLeg(0,0),"v>b:return",new DayPlan.RoadLeg(0,0)));
         var reference = new DayPlan(Required.value(List.<TechRoute>of(a,b)),Required.value(List.<PlanVisit>of(visit)),roads,30,45,0,0,0);
         reference.setScoringFacts(reference.getScoringFacts().withTarget(reference,4500));
-        // Capacity weights 1/4 and 3/4, utilizations 0 and 1/2, mean 3/8, variance 3/64.
-        penalty("Capacity weighted workload variance", reference, new BigDecimal("0.046875"));
-        penalty("Recorded overtime target deviation", reference, Required.value(BigDecimal.ZERO));
-        penalty("Fairness cost ceiling excess", reference, Required.value(BigDecimal.ZERO));
+        // Capacity weights 1/4 and 3/4, utilizations 0 and 1/2, mean 3/8, variance 3/64, counted in units of 1e-9.
+        penalty("Capacity weighted workload variance", reference, new BigDecimal("0.046875").movePointRight(9).longValueExact());
+        penalty("Recorded overtime target deviation", reference, 0);
+        penalty("Fairness cost ceiling excess", reference, 0);
         var changed=PlanCopies.copy(reference); var moved=changed.getRoutes().get(1).getVisits().removeFirst();
         changed.getRoutes().getFirst().getVisits().add(moved); moved.setTechnician(changed.getRoutes().getFirst());
-        penalty("Recorded overtime target deviation",changed,Required.value(BigDecimal.valueOf(30)));
-        penalty("Fairness cost ceiling excess",changed,Required.value(BigDecimal.valueOf(750)));
-        penalty("Modeled operating cost rounded at fleet level",changed,Required.value(BigDecimal.valueOf(5250)));
+        penalty("Recorded overtime target deviation",changed,30);
+        penalty("Fairness cost ceiling excess",changed,750);
+        penalty("Modeled operating cost rounded at fleet level",changed,5250);
     }
 }

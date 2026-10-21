@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { monetaryDecimal, operatingRates, costModelVersion } from "./contracts";
+import { monetaryDecimal, operatingRates, costModelVersion, hourlyRate, mileageRate } from "./contracts";
 import { formatCents } from "./money";
 
 test("monetary strings retain exact digits and reject binary-number or noncanonical inputs", () => {
@@ -8,6 +8,12 @@ test("monetary strings retain exact digits and reject binary-number or noncanoni
     assert.equal(monetaryDecimal.parse(value), value);
   for (const value of [null, undefined, 20.02, NaN, Infinity, "-1", "+1", "01", "1e2", "20.0200", "0.0", "1.", " 1", "0.0000000000000000000000000000001", "123456789012345678901234567890123456"])
     assert.equal(monetaryDecimal.safeParse(value).success, false, String(value));
+});
+test("cost rates hold to the 1.7.0 contract: four places, 500 an hour, 25 a mile", () => {
+  for (const value of ["0", "20", "30.03", "45.5", "0.0001", "499.9999", "500"]) assert.equal(hourlyRate.parse(value), value);
+  for (const value of ["500.0001", "501", "1000", "20.00001", "20.0200", "-1", "1e2", 20]) assert.equal(hourlyRate.safeParse(value).success, false, String(value));
+  for (const value of ["0", "0.67", "0.655", "2", "24.9999", "25"]) assert.equal(mileageRate.parse(value), value);
+  for (const value of ["25.0001", "26", "100", "0.65555", "0.670"]) assert.equal(mileageRate.safeParse(value).success, false, String(value));
 });
 test("cent formatting retains cents at safe integer bounds and negative deltas", () => {
   assert.equal(formatCents(8509), "85.09");

@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.Required;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -48,6 +49,14 @@ final class Input {
     static BigDecimal nonNegative(@Nullable BigDecimal value, String field) {
         BigDecimal number = present(value, field);
         if (number.signum() < 0) throw new IllegalArgumentException(field + " must not be negative");
+        return number;
+    }
+
+    /** A cost rate inside the monetary contract: at most {@link Monetary#RATE_SCALE} decimal places and at most {@code cap}. */
+    static BigDecimal costRate(@Nullable BigDecimal value, String field, BigDecimal cap) {
+        BigDecimal number = nonNegative(value, field);
+        if (number.stripTrailingZeros().scale() > Monetary.RATE_SCALE || number.compareTo(cap) > 0)
+            throw new IllegalArgumentException(field + " must have at most " + Monetary.RATE_SCALE + " decimal places and be at most " + cap.toPlainString());
         return number;
     }
 

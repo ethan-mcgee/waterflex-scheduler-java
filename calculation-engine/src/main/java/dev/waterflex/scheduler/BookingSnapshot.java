@@ -36,8 +36,8 @@ public record BookingSnapshot(String metroId, Instant capturedAt, String configu
             this(Monetary.legacy(regular), Monetary.legacy(overtime), Monetary.legacy(mileage), Monetary.legacy(pct), minutes);
         }
         public Rates {
-            regularHourly = Monetary.rate(regularHourly); overtimeHourly = Monetary.rate(overtimeHourly);
-            mileagePerMile = Monetary.rate(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
+            regularHourly = Monetary.hourly(regularHourly); overtimeHourly = Monetary.hourly(overtimeHourly);
+            mileagePerMile = Monetary.mileage(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
             if (travelBufferMinutes < 0 || travelBufferMinutes > Integer.MAX_VALUE)
                 throw new IllegalArgumentException("Invalid operating cost or travel settings");
         }
