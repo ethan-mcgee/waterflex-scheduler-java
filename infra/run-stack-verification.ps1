@@ -12,7 +12,7 @@
 # SCHEDULER_STUDY_PROFILES=/profiles, a directory mounted from the runs directory, so every phase of every proposal is
 # flight-recorded on the JDK's profile configuration (the harness's recording); infra/stack_profiles.py then attributes
 # each calculation thread's samples into the evidence's profiles block. The images run in the order before, after for
-# step 1 and after, before for step 2, so neither always runs first. Resumable: a run whose report exists is skipped.
+# step 1 and after, before for step 2, so neither always runs first. Resumable: a run whose report exists for the same commit is skipped.
 # Both commits must contain StudyProfiles (feat/stack-profiles) for the replica to record; an older image ignores the
 # setting, and the evidence is then refused for receipts without recordings: compare such commits with -NoProfiles.
 # About 45 minutes with the defaults (-DryRun prints the runs); the owner starts it. Needs jfr (JAVA_HOME) and python.
@@ -98,7 +98,8 @@ foreach ($image in @('before', 'after')) { foreach ($fleet in $fleetList) { fore
     $cells += [ordered]@{ step = 1; image = $image; fleet = $fleet; seed = $seed; planners = 1; mode = 'sync'; proposals = $Proposals } } } }
 foreach ($image in @('after', 'before')) {
     $cells += [ordered]@{ step = 2; image = $image; fleet = $AsyncFleet; seed = $AsyncSeed; planners = $AsyncPlanners; mode = 'async'; proposals = $AsyncProposals } }
-$slugOf = { param($cell) "step$($cell.step)-$($cell.image)-$($cell.fleet)t-seed$($cell.seed)-$($cell.mode)$($cell.planners)" }
+# The image's commit names the run, so a resumed run never takes a report another pair of commits wrote.
+$slugOf = { param($cell) "step$($cell.step)-$($cell.image)-$($images[$cell.image].commit.Substring(0, 12))-$($cell.fleet)t-seed$($cell.seed)-$($cell.mode)$($cell.planners)" }
 $reportOf = { param($cell)
     $directory = Join-Path $runs (& $slugOf $cell)
     if (-not (Test-Path -LiteralPath $directory)) { return $null }
@@ -250,7 +251,7 @@ try {
         $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $token, '--concurrency', "$($cell.planners)", '--daily-mode', $cell.mode,
             '--daily-proposals', "$($cell.proposals)", '--daily-technicians', "$($cell.fleet)", '--seed', "$($cell.seed)",
             '--scheduler-log', ($daily -join ','), '--docker', ((@($daily) + @($routingName)) -join ','), '--metrics-url', $MetricsUrl,
-            '--label', "$slug $($images[$cell.image].commit.Substring(0, 12))", '--out', $directory)
+            '--label', $slug, '--out', $directory)
         Write-Output "[$index/$($cells.Count)] $slug"
         $process = Start-Process -FilePath 'npx.cmd' -ArgumentList (& $quoted $arguments) -NoNewWindow -PassThru `
             -RedirectStandardOutput (Join-Path $directory 'run.log') -RedirectStandardError (Join-Path $directory 'run.err.log')
