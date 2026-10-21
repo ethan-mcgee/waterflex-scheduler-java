@@ -16,6 +16,13 @@ test("percentages become exact API fractions and money stays canonical", () => {
   assert.deepEqual(publicPolicy(stored()), { fairnessBudget: "0.025", dailySearch: "TABU_KOPT", costSearchSeconds: 10, fairnessSearchSeconds: 5, bookingDeadlineMs: 5000, regularWindowThreshold: 2 });
 });
 
+test("cost rates at their caps are accepted (spec 1.7.0)", () => {
+  const atCaps = solverSettingsInput.parse({ ...input, regularHourly: "500", overtimeHourly: "500.0000", mileagePerMile: "25" });
+  assert.equal(atCaps.overtimeHourly, "500.0000");
+  assert.deepEqual(publicRates({ ...toStored(atCaps), version: 0, updatedAt: new Date("2026-10-20T12:00:00Z") }),
+    { regularHourly: "500", overtimeHourly: "500", mileagePerMile: "25", travelBufferPct: "0.2", travelBufferMinutes: input.travelBufferMinutes });
+});
+
 test("the view round-trips what was entered", () => {
   const view = toView(stored());
   assert.equal(view.travelBufferPercent, "20");
@@ -68,6 +75,7 @@ test("out-of-range or malformed settings are rejected, never clamped or defaulte
     { windowHours: "4" }, { windowHours: undefined }, { windowHours: null }, { bookingHorizonWeekdays: 0 }, { bookingHorizonWeekdays: 16 },
     { travelBufferMinutes: 121 }, { travelBufferMinutes: -1 }, { travelBufferPercent: "100.01" }, { fairnessBudgetPercent: "2.555" },
     { regularHourly: "-1" }, { regularHourly: "30.12345" }, { regularHourly: "1e3" }, { regularHourly: "" }, { mileagePerMile: "abc" },
+    { regularHourly: "500.0001" }, { overtimeHourly: "750" }, { mileagePerMile: "25.0001" }, { mileagePerMile: "30" },
     { regularHourly: undefined }, { extra: true },
     { dailySearch: "KOPT" }, { dailySearch: "tabu_kopt" }, { dailySearch: "" }, { dailySearch: undefined }, { dailySearch: null },
     { costSearchSeconds: 4 }, { costSearchSeconds: 241 }, { costSearchSeconds: 2.5 }, { costSearchSeconds: "10" }, { costSearchSeconds: null },

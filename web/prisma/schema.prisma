@@ -93,6 +93,7 @@ model Client {
 model ClientSolverSettings {
   clientId               String   @id
   client                 Client   @relation(fields: [clientId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  // The scheduler's cost rate contract: at most 500 an hour and 25 a mile (CHECK constraints, spec 1.7.0).
   regularHourly          Decimal  @db.Decimal(14, 4)
   overtimeHourly         Decimal  @db.Decimal(14, 4)
   mileagePerMile         Decimal  @db.Decimal(14, 4)

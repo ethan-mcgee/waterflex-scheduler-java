@@ -58,7 +58,7 @@ class RouteTimelineTest {
         assertNotEquals(before.driveMinutes(), after.driveMinutes());
         assertEquals(independent.driveMinutes(), after.driveMinutes());
         assertEquals(independent.paidMinutes(), after.paidMinutes());
-        assertEquals(independent.costCents(), after.costCents());
+        assertEquals(independent.costCents(), dev.waterflex.scheduler.Monetary.cents(after.paidMinutes(), after.overtimeMinutes(), after.meters(), facts.rates()));
         // And back: the first revision's numbers are resolved again, not kept from the second.
         assertEquals(before, RouteTimeline.evaluate(day.getFacts(), route, false));
         // A revision that names no road numbers nothing, whatever the matrix's own order: a kept number would read a leg.

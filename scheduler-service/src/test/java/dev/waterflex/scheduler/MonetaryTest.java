@@ -29,6 +29,60 @@ class MonetaryTest {
                     Monetary.cents(paid, overtime, meters, Required.value(regular), Required.value(premium), Required.value(mileage)), "sample " + index);
         }
     }
+    /** Inside the rate contract the integer form is the decimal form to the cent and in order, up to the guaranteed range. */
+    @Test void contractRatesPriceAndOrderExactlyAsTheDecimalRates() {
+        Random random = new Random(20261020);
+        for (int index = 0; index < 20000; index++) {
+            // Any rate the contract accepts: up to four places, up to 500 an hour and 25 a mile.
+            BigDecimal regular = BigDecimal.valueOf(random.nextLong(5_000_001), random.nextInt(0, 5));
+            BigDecimal premium = BigDecimal.valueOf(random.nextLong(5_000_001), 4);
+            BigDecimal mileage = BigDecimal.valueOf(random.nextLong(250_001), random.nextInt(0, 5));
+            if (regular.compareTo(Monetary.MAX_HOURLY) > 0) regular = regular.movePointLeft(4 - regular.scale()).setScale(4);
+            if (mileage.compareTo(Monetary.MAX_MILEAGE) > 0) mileage = mileage.movePointLeft(4 - mileage.scale()).setScale(4);
+            var rates = Monetary.rates(Required.value(regular), Required.value(premium), Required.value(mileage));
+            // Resources up to the guaranteed range: 11 million paid minutes and 5.9 million km in one day.
+            long paid = random.nextLong(random.nextBoolean() ? 150_000 : 11_000_000), overtime = random.nextLong(paid + 1);
+            long meters = random.nextLong(random.nextBoolean() ? 20_000_000 : 5_900_000_000L);
+            long otherPaid = random.nextLong(11_000_000), otherOvertime = random.nextLong(otherPaid + 1), otherMeters = random.nextLong(5_900_000_000L);
+            BigDecimal numerator = Monetary.numerator(paid, overtime, meters, rates.regular(), rates.overtime(), rates.mileage());
+            BigDecimal other = Monetary.numerator(otherPaid, otherOvertime, otherMeters, rates.regular(), rates.overtime(), rates.mileage());
+            assertEquals(Integer.signum(numerator.compareTo(other)),
+                    Integer.signum(Monetary.compare(paid, overtime, meters, otherPaid, otherOvertime, otherMeters, rates)), "order " + index);
+            assertEquals(Monetary.cents(paid, overtime, meters, rates.regular(), rates.overtime(), rates.mileage()), Monetary.cents(paid, overtime, meters, rates), "cents " + index);
+        }
+        // The guaranteed corner itself: every rate at its cap, the whole range at once.
+        var dearest = Monetary.rates(Monetary.MAX_HOURLY, Monetary.MAX_HOURLY, Monetary.MAX_MILEAGE);
+        assertEquals(Monetary.cents(11_000_000, 5_000_000, 5_900_000_000L, Monetary.MAX_HOURLY, Monetary.MAX_HOURLY, Monetary.MAX_MILEAGE),
+                Monetary.cents(11_000_000, 5_000_000, 5_900_000_000L, dearest));
+        // Half-cent boundaries: 0.3 per minute is half a cent a minute.
+        var half = Monetary.rates(d("0.3"), d("0"), d("0"));
+        assertEquals(1, Monetary.cents(1, 0, 0, half)); assertEquals(1, Monetary.cents(2, 0, 0, half)); assertEquals(2, Monetary.cents(3, 0, 0, half));
+        assertEquals(8509, Monetary.cents(255, 0, 0, Monetary.rates(d("20.02"), d("0"), d("0"))));
+    }
+    @Test void ratesOutsideTheContractAreRefused() {
+        assertEquals("500", Monetary.canonical(Monetary.hourly(d("500.0000"))));
+        assertEquals("25", Monetary.canonical(Monetary.mileage(d("25"))));
+        assertEquals("0.6555", Monetary.canonical(Monetary.mileage(d("0.65550"))));
+        assertEquals(new Monetary.Rates(d("20.02"), d("30.03"), d("0.67"), 200200, 300300, 6700), Monetary.rates(d("20.0200"), d("30.03"), d("0.670")));
+        for (String hourly : new String[]{"500.0001", "501", "20.00001", "-1"})
+            assertThrows(IllegalArgumentException.class, () -> Monetary.hourly(d(Required.value(hourly))), hourly);
+        for (String perMile : new String[]{"25.0001", "26", "0.65555"})
+            assertThrows(IllegalArgumentException.class, () -> Monetary.mileage(d(Required.value(perMile))), perMile);
+        assertThrows(IllegalArgumentException.class, () -> Monetary.rates(d("20"), d("501"), d("0.67")));
+        assertThrows(IllegalArgumentException.class, () -> new Monetary.Rates(d("1"), d("1"), d("1"), 20000, 10000, 10000));
+        var rates = Monetary.rates(d("20"), d("30"), d("0.67"));
+        assertThrows(IllegalArgumentException.class, () -> Monetary.cents(1, 2, 0, rates));
+        assertThrows(IllegalArgumentException.class, () -> Monetary.cents(-1, 0, 0, rates));
+        assertThrows(IllegalArgumentException.class, () -> Monetary.compare(1, 0, -1, 1, 0, 0, rates));
+    }
+    /** A day past the long range is refused, never approximated or priced another way. */
+    @Test void aDayPastTheCostModelsRangeIsRefused() {
+        var dearest = Monetary.rates(Monetary.MAX_HOURLY, Monetary.MAX_HOURLY, Monetary.MAX_MILEAGE);
+        var refused = assertThrows(ArithmeticException.class, () -> Monetary.cents(30_000_000, 0, 0, dearest));
+        assertEquals("Fleet cost exceeds the cost model's range", refused.getMessage());
+        assertThrows(ArithmeticException.class, () -> Monetary.cents(0, 0, 4_000_000_000_000L, dearest));
+        assertThrows(ArithmeticException.class, () -> Monetary.compare(30_000_000, 0, 0, 1, 0, 0, dearest));
+    }
     @Test void onlyFleetTotalRoundsAndBookingDeltaUsesTwoRoundedTotals() {
         long first = Monetary.cents(1, 0, 0, d("0.3"), d("0"), d("0"));
         long fleet = Monetary.cents(2, 0, 0, d("0.3"), d("0"), d("0"));
@@ -53,6 +107,10 @@ class MonetaryTest {
     @Test void decimalWireValuesAndLegacyRenderingAreCanonical() throws Exception {
         assertEquals("20.02", Monetary.canonical(Monetary.legacy(20.02)));
         var rates = new BookingSnapshot.Rates(d("20.0200"), d("30.0300"), d("0.6700"), d("0.200"), 5);
+        assertThrows(IllegalArgumentException.class, () -> new BookingSnapshot.Rates(d("20.00001"), d("30"), d("0.67"), d("0.2"), 5));
+        assertThrows(IllegalArgumentException.class, () -> new BookingSnapshot.Rates(d("20"), d("30"), d("25.5"), d("0.2"), 5));
+        // The travel buffer is no cost rate: its places are not narrowed.
+        assertEquals("0.123456", Monetary.canonical(new BookingSnapshot.Rates(d("20"), d("30"), d("0.67"), d("0.123456"), 5).travelBufferPct()));
         var json = new ObjectMapper().valueToTree(rates);
         assertEquals("20.02", Required.value(json).path("regularHourly").textValue());
         assertEquals("30.03", json.path("overtimeHourly").textValue());

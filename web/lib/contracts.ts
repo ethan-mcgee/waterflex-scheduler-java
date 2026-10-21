@@ -9,8 +9,11 @@ export const finite = z.number().finite();
 export const costModelVersion = z.enum(["legacy-double-v1", "exact-fleet-half-up-v2", "exact-fleet-half-up-v3"]);
 // NUMERIC(65,30); canonical plain strings keep monetary values out of JS number arithmetic.
 export const monetaryDecimal = z.string().regex(/^(?:0|[1-9][0-9]{0,34})(?:\.[0-9]{0,29}[1-9])?$/);
-export const operatingRates = z.object({ regularHourly: monetaryDecimal, overtimeHourly: monetaryDecimal,
-  mileagePerMile: monetaryDecimal, travelBufferPct: monetaryDecimal, travelBufferMinutes: z.int().nonnegative() });
+/** The cost rates' contract (spec 1.7.0): at most four decimal places, at most 500 an hour and 25 a mile. */
+export const hourlyRate = z.string().regex(/^(?:(?:0|[1-9][0-9]?|[1-4][0-9]{2})(?:\.[0-9]{0,3}[1-9])?|500)$/);
+export const mileageRate = z.string().regex(/^(?:(?:0|[1-9]|1[0-9]|2[0-4])(?:\.[0-9]{0,3}[1-9])?|25)$/);
+export const operatingRates = z.object({ regularHourly: hourlyRate, overtimeHourly: hourlyRate,
+  mileagePerMile: mileageRate, travelBufferPct: monetaryDecimal, travelBufferMinutes: z.int().nonnegative() });
 export const minute = z.int().min(0).max(1440);
 export const point = z.object({ lat: finite.min(-90).max(90), lng: finite.min(-180).max(180) });
 export const dealershipPolicy = z.object({ departure: z.enum(["HOME", "DEPOT"]), returnTo: z.enum(["HOME", "DEPOT"]) }).strict();

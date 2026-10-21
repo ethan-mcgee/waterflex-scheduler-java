@@ -7,6 +7,24 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PlanFactsTest {
+    /** The rates' integer form is derived: the serialized revision, and so every facts hash, keeps the ten facts alone. */
+    @Test void theSerializedRevisionCarriesNoDerivedRates() throws Exception {
+        PlanFacts facts = DayConstraintProviderTest.fixture().getFacts();
+        var json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(dev.waterflex.scheduler.CalculationJson.write(facts));
+        Set<String> fields = new TreeSet<>();
+        json.fieldNames().forEachRemaining(fields::add);
+        assertEquals(new TreeSet<>(List.of("technicians", "demand", "matrix", "unreachable", "regularHourly", "overtimeHourly", "mileagePerMile",
+                "travelBufferPct", "travelBufferMinutes", "demandServices")), fields);
+        assertEquals(dev.waterflex.scheduler.Monetary.rates(facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile()), facts.rates());
+    }
+    /** A revision is held to the cost rate contract wherever it is built: four places, 500 an hour, 25 a mile. */
+    @Test void aRevisionOutsideTheRateContractIsRefused() {
+        DayPlan source = DayConstraintProviderTest.fixture();
+        assertThrows(IllegalArgumentException.class, () -> new DayPlan(source.getRoutes(), source.getVisits(), source.getMatrix(), 600, 45, 0.67, 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> new DayPlan(source.getRoutes(), source.getVisits(), source.getMatrix(), 30, 45, 30, 0, 0));
+        assertThrows(IllegalArgumentException.class, () -> new DayPlan(source.getRoutes(), source.getVisits(), source.getMatrix(), 30.00001, 45, 0.67, 0, 0));
+    }
+
     @Test void copiedAssignmentsAndShadowsAreIsolatedWhileFactsAreShared() {
         DayPlan source = DayConstraintProviderTest.fixture(), copy = PlanCopies.copy(source);
         var before = RouteEvaluator.evaluate(source); assertSame(source.getFacts(), copy.getFacts());
