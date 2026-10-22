@@ -15,7 +15,16 @@ import org.jspecify.annotations.Nullable;
 public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         Map<String, DayPlan.RoadLeg> matrix, Set<String> unreachable,
         BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
-        BigDecimal travelBufferPct, long travelBufferMinutes, Set<String> demandServices) {
+        BigDecimal travelBufferPct, long travelBufferMinutes, Set<String> demandServices,
+        // Derived from the three rates, so it is no part of the revision's serialized form or its hash.
+        @com.fasterxml.jackson.annotation.JsonIgnore Monetary.Rates rates) {
+    /** A revision with its cost rates in both forms ({@link Monetary.Rates}), derived from the three decimal rates. */
+    public PlanFacts(List<Technician> technicians, List<Visit> demand, Map<String, DayPlan.RoadLeg> matrix, Set<String> unreachable,
+            BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile, BigDecimal travelBufferPct, long travelBufferMinutes,
+            Set<String> demandServices) {
+        this(technicians, demand, matrix, unreachable, regularHourly, overtimeHourly, mileagePerMile, travelBufferPct, travelBufferMinutes, demandServices,
+                Monetary.rates(regularHourly, overtimeHourly, mileagePerMile));
+    }
     public record Technician(String id, Instant start, Instant end, int maxDaily, int maxOvertime,
             Set<String> qualifications, List<TechRoute.Unavailable> absences, List<String> pinnedVisits) {
         public Technician(String id, Instant start, Instant end, int maxDaily, int maxOvertime,
@@ -46,8 +55,9 @@ public record PlanFacts(List<Technician> technicians, List<Visit> demand,
         technicians = Required.value(List.copyOf(technicians)); demand = Required.value(List.copyOf(demand));
         unreachable = Required.value(Set.copyOf(unreachable));
         demandServices = Required.value(Set.copyOf(demandServices));
-        regularHourly = Monetary.rate(regularHourly); overtimeHourly = Monetary.rate(overtimeHourly);
-        mileagePerMile = Monetary.rate(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
+        regularHourly = Monetary.hourly(regularHourly); overtimeHourly = Monetary.hourly(overtimeHourly);
+        mileagePerMile = Monetary.mileage(mileagePerMile); travelBufferPct = Monetary.rate(travelBufferPct);
+        check(rates.equals(Monetary.rates(regularHourly, overtimeHourly, mileagePerMile)), "rates must be the revision's own");
         check(travelBufferMinutes >= 0 && travelBufferMinutes <= Integer.MAX_VALUE, "travelBufferMinutes out of range");
         matrix = RoadMatrix.of(matrix, travelBufferPct, travelBufferMinutes);
         Set<String> locations = new HashSet<>(); Set<String> ids = new HashSet<>();

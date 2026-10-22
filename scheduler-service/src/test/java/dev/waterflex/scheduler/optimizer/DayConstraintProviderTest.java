@@ -1,7 +1,7 @@
 package dev.waterflex.scheduler.optimizer;
 
 import ai.timefold.solver.core.api.solver.SolverFactory;
-import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
+import ai.timefold.solver.core.api.score.BendableScore;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import ai.timefold.solver.core.config.solver.EnvironmentMode;
 import ai.timefold.solver.core.config.solver.termination.TerminationConfig;
@@ -41,8 +41,7 @@ class DayConstraintProviderTest {
         assertEquals(independent.arrivals(), full.arrivals());
         assertEquals(independent.costCents(), full.costCents());
         assertEquals(originalMetrics, RouteEvaluator.evaluate(original), "Solver must not mutate the original");
-        assertEquals(BendableBigDecimalScore.of(new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO},
-                new BigDecimal[]{BigDecimal.valueOf(-independent.overtimeMinutes()), BigDecimal.valueOf(-independent.costCents())}), solved.getScore());
+        assertEquals(BendableScore.of(new long[]{0, 0, 0, 0, 0}, new long[]{-independent.overtimeMinutes(), -independent.costCents()}), solved.getScore());
     }
     @Test void fairnessPhaseRespectsReferenceTargetAndCeiling() {
         DayPlan reference = solve(fixture());

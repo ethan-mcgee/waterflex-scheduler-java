@@ -9,7 +9,6 @@ import ai.timefold.solver.core.api.score.stream.bi.BiConstraintStream;
 import ai.timefold.solver.core.api.score.stream.uni.UniConstraintStream;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -24,7 +23,7 @@ public class DayConstraintProvider implements ConstraintProvider {
     protected Constraint fairness(UniConstraintStream<RouteScoringFacts.@NonNull ScoredRoute> routes,
             BiConstraintStream<List<RouteScoringFacts.@NonNull ScoredRoute>, RouteScoringFacts> fleet) {
         return fleet.filter((_, facts) -> facts.target() != null)
-                .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (results, facts) -> DayScores.units(facts.fairnessUnits(Required.value(results))))
+                .penalize(DayScores.soft(DayScores.PHASE_OBJECTIVE), (results, facts) -> facts.fairnessUnits(Required.value(results)))
                 .asConstraint("Capacity weighted workload variance");
     }
     @Override public Constraint[] defineConstraints(@Nullable ConstraintFactory nullableFactory) {
@@ -33,28 +32,28 @@ public class DayConstraintProvider implements ConstraintProvider {
                 .map((route, facts) -> facts.evaluate(Required.value(route)));
         var fleet = routes.groupBy(ConstraintCollectors.toList()).join(RouteScoringFacts.class);
         return new Constraint[]{
-                routes.penalizeBigDecimal(DayScores.hard(DayScores.CATEGORICAL), result -> BigDecimal.valueOf(result.metrics().violations().qualifications()))
+                routes.penalize(DayScores.hard(DayScores.CATEGORICAL), result -> result.metrics().violations().qualifications())
                         .asConstraint("Required qualifications"),
-                routes.penalizeBigDecimal(DayScores.hard(DayScores.CATEGORICAL), result -> BigDecimal.valueOf(result.metrics().violations().unavailableRoads()))
+                routes.penalize(DayScores.hard(DayScores.CATEGORICAL), result -> result.metrics().violations().unavailableRoads())
                         .asConstraint("Reachable directed roads"),
-                routes.penalizeBigDecimal(DayScores.hard(DayScores.QUANTITATIVE), result -> BigDecimal.valueOf(result.metrics().violations().latenessSeconds()))
+                routes.penalize(DayScores.hard(DayScores.QUANTITATIVE), result -> result.metrics().violations().latenessSeconds())
                         .asConstraint("Exclusive customer window lateness seconds"),
-                routes.penalizeBigDecimal(DayScores.hard(DayScores.QUANTITATIVE), result -> BigDecimal.valueOf(result.metrics().violations().availabilitySeconds()))
+                routes.penalize(DayScores.hard(DayScores.QUANTITATIVE), result -> result.metrics().violations().availabilitySeconds())
                         .asConstraint("Shift absences and return travel violation seconds"),
-                routes.penalizeBigDecimal(DayScores.hard(DayScores.QUANTITATIVE), result -> BigDecimal.valueOf(result.metrics().violations().capacityMinutes()).multiply(BigDecimal.valueOf(60)))
+                routes.penalize(DayScores.hard(DayScores.QUANTITATIVE), result -> Math.multiplyExact(result.metrics().violations().capacityMinutes(), 60))
                         .asConstraint("Daily and overtime capacity excess seconds"),
                 factory.forEachIncludingUnassigned(PlanVisit.class).filter(visit -> visit.getTechnician() == null)
                         .penalize(DayScores.hard(DayScores.UNASSIGNED)).asConstraint("Unassigned demand"),
                 routes.join(RouteScoringFacts.class).filter((_, facts) -> facts.target() == null)
-                        .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (result, _) -> BigDecimal.valueOf(result.metrics().overtimeMinutes()))
+                        .penalize(DayScores.soft(DayScores.PHASE_OBJECTIVE), (result, _) -> result.metrics().overtimeMinutes())
                         .asConstraint("Minimize overtime before operating cost"),
-                fleet.penalizeBigDecimal(DayScores.soft(DayScores.COST), (results, facts) -> BigDecimal.valueOf(facts.cost(Required.value(results))))
+                fleet.penalize(DayScores.soft(DayScores.COST), (results, facts) -> facts.cost(Required.value(results)))
                         .asConstraint("Modeled operating cost rounded at fleet level"),
                 fleet.filter((_, facts) -> facts.target() != null)
-                        .penalizeBigDecimal(DayScores.hard(DayScores.OVERTIME_TARGET), (results, facts) -> BigDecimal.valueOf(facts.overtimeDeviation(Required.value(results))))
+                        .penalize(DayScores.hard(DayScores.OVERTIME_TARGET), (results, facts) -> facts.overtimeDeviation(Required.value(results)))
                         .asConstraint("Recorded overtime target deviation"),
                 fleet.filter((_, facts) -> facts.target() != null)
-                        .penalizeBigDecimal(DayScores.hard(DayScores.COST_CEILING), (results, facts) -> BigDecimal.valueOf(facts.costExcess(Required.value(results))))
+                        .penalize(DayScores.hard(DayScores.COST_CEILING), (results, facts) -> facts.costExcess(Required.value(results)))
                         .asConstraint("Fairness cost ceiling excess"),
                 fairness(routes, fleet)
         };

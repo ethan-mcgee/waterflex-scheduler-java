@@ -169,6 +169,14 @@ class PublicApiContractTest {
         rejected("tenant in request", request -> { request.put("tenantId", "acme-water"); });
         rejected("unknown field", request -> { request.put("surprise", 1); });
         rejected("numeric money", request -> { child(snapshot(request), "rates").put("regularHourly", 20); });
+        // The cost rate contract: at most four decimal places, 500 an hour and 25 a mile.
+        rejected("five-place hourly rate", request -> { child(snapshot(request), "rates").put("regularHourly", "20.00001"); });
+        rejected("hourly rate above its cap", request -> { child(snapshot(request), "rates").put("overtimeHourly", "500.0001"); });
+        rejected("mileage rate above its cap", request -> { child(snapshot(request), "rates").put("mileagePerMile", "26"); });
+        rejected("five-place mileage rate", request -> { child(snapshot(request), "rates").put("mileagePerMile", "0.65555"); });
+        ObjectNode atCaps = object(CalculationJson.tree(example("DailyProposalRequest")));
+        child(snapshot(atCaps), "rates").put("regularHourly", "500").put("overtimeHourly", "499.9999").put("mileagePerMile", "25");
+        PublicRequests.read(CalculationJson.write(atCaps), PublicRequests.DailyProposalRequest.class);
         rejected("noncanonical decimal", request -> { child(snapshot(request), "rates").put("travelBufferPct", "0.20"); });
         rejected("missing policy", request -> { snapshot(request).remove("policy"); });
         rejected("missing fairness budget", request -> { child(snapshot(request), "policy").remove("fairnessBudget"); });

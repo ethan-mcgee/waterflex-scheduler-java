@@ -1,5 +1,6 @@
 package dev.waterflex.scheduler.api;
 
+import dev.waterflex.scheduler.Monetary;
 import dev.waterflex.scheduler.optimizer.DailyCalculation;
 import dev.waterflex.scheduler.optimizer.DailySearch;
 import dev.waterflex.scheduler.optimizer.SchedulingPolicy;
@@ -65,9 +66,9 @@ public final class PublicTypes {
     public record Rates(BigDecimal regularHourly, BigDecimal overtimeHourly, BigDecimal mileagePerMile,
                         BigDecimal travelBufferPct, Integer travelBufferMinutes) {
         public Rates {
-            Input.nonNegative(regularHourly, "regularHourly");
-            Input.nonNegative(overtimeHourly, "overtimeHourly");
-            Input.nonNegative(mileagePerMile, "mileagePerMile");
+            Input.costRate(regularHourly, "regularHourly", Monetary.MAX_HOURLY);
+            Input.costRate(overtimeHourly, "overtimeHourly", Monetary.MAX_HOURLY);
+            Input.costRate(mileagePerMile, "mileagePerMile", Monetary.MAX_MILEAGE);
             Input.nonNegative(travelBufferPct, "travelBufferPct");
             Input.integer(travelBufferMinutes, "travelBufferMinutes", 0, 120);
         }

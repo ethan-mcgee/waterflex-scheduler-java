@@ -6,14 +6,14 @@ import dev.waterflex.scheduler.Monetary;
 import java.math.BigDecimal;
 import ai.timefold.solver.core.api.domain.solution.*;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
-import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
+import ai.timefold.solver.core.api.score.BendableScore;
 import java.util.*;
 
 @PlanningSolution
 public class DayPlan {
     @PlanningEntityCollectionProperty private @Nullable List<TechRoute> routes;
     @PlanningEntityCollectionProperty @ValueRangeProvider(id = "visits") private @Nullable List<PlanVisit> visits;
-    @PlanningScore(bendableHardLevelsSize = 5, bendableSoftLevelsSize = 2) private @Nullable BendableBigDecimalScore score;
+    @PlanningScore(bendableHardLevelsSize = 5, bendableSoftLevelsSize = 2) private @Nullable BendableScore score;
     @ProblemFactProperty private @Nullable RouteScoringFacts scoringFacts;
     public enum Mode { ASSIGNED, COLD, PARTIAL, REPAIR }
     private Mode mode = Mode.ASSIGNED;
@@ -54,8 +54,8 @@ public class DayPlan {
     public BigDecimal getMileagePerMile() { return getFacts().mileagePerMile(); }
     public BigDecimal getTravelBufferPct() { return getFacts().travelBufferPct(); }
     public long getTravelBufferMinutes() { return getFacts().travelBufferMinutes(); }
-    public @Nullable BendableBigDecimalScore getScore() { return score; }
-    public void setScore(@Nullable BendableBigDecimalScore score) { this.score = score; }
+    public @Nullable BendableScore getScore() { return score; }
+    public void setScore(@Nullable BendableScore score) { this.score = score; }
     public Mode getMode() { return mode; }
     public void setMode(Mode mode) { this.mode = mode; }
     public List<String> getUnassignedVisitIds() {

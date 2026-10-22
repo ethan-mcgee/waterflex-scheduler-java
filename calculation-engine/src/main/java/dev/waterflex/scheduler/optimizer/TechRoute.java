@@ -22,11 +22,20 @@ public class TechRoute {
      * sets again. A solver clone shares it with its source, as both score against the same revision.
      */
     record Scoring(PlanFacts facts, long capacity, boolean eligible) { }
+    /**
+     * This route's shift as the timing search reads it: the shift start as nanoseconds after the epoch (null past a
+     * long's reach, when the search reads the instants), and the shift end and working intervals as offsets from the
+     * shift start. Computed once, when the route is frozen with its revision (its absences may change until then); a
+     * planning clone is given the field by the cloner (Timefold docs 10.9.6.1) and never recomputes. An unfrozen route
+     * derives it on every call.
+     */
+    record Clock(@Nullable Long origin, long shiftEnd, List<RouteTimingSearch.Block> blocks) { }
     /** This route's road matrix number under one revision, so timing reads a field instead of probing the identity map. */
     private record Numbered(PlanFacts facts, int number) { }
     // Each is written once as a whole record, so a reader on another thread sees either nothing or a complete one.
     private @Nullable Scoring scoring;
     private @Nullable Numbered numbered;
+    private @Nullable Clock clock;
     @PlanningId
     private @Nullable String id;
     private @Nullable Instant shiftStart;
@@ -72,6 +81,15 @@ public class TechRoute {
         if (frozen) scoring = derived;
         return derived;
     }
+    /** This route's clock: the one computed at freeze, or derived anew while the route is unfrozen. */
+    Clock clock() {
+        Clock known = clock;
+        return known != null ? known : derive();
+    }
+    private Clock derive() {
+        Instant origin = getShiftStart();
+        return new Clock(RouteTimeline.epochNanos(origin), RouteTimeline.offset(origin, getShiftEnd()), RouteTimeline.available(this, origin));
+    }
     /** This route's number in the revision's road matrix, or -1 when no road names it; the identity never changes once set. */
     int roadNumber(PlanFacts facts) {
         Numbered known = numbered;
@@ -83,6 +101,7 @@ public class TechRoute {
     void freeze() {
         qualifiedServiceIds = Required.value(Set.copyOf(getQualifiedServiceIds()));
         unavailable = Required.value(List.copyOf(unavailable)); frozen = true;
+        clock = derive();
     }
     public List<PlanVisit> getVisits() { return visits; }
     public void setVisits(List<PlanVisit> visits) { this.visits = visits; }

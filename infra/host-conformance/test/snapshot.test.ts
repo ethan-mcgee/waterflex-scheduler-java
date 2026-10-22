@@ -66,6 +66,8 @@ test("each strict-parsing mutation breaks exactly one rule and leaves the valid 
   assert.ok(String(duplicate).startsWith('{"serviceDate":"2026-10-15","requestId":'), "The top-level key is sent first, then again");
   assert.equal(String(duplicate).length, JSON.stringify(body).length + '"serviceDate":"2026-10-15",'.length);
   assert.deepEqual(JSON.parse(String(duplicate)), body, "The duplicated body is otherwise the valid one");
+  assert.equal((byName.get("hourly rate above its cap") as typeof body).snapshot.rates.overtimeHourly, "500.0001");
+  assert.equal((byName.get("five-place mileage rate") as typeof body).snapshot.rates.mileagePerMile, "0.65555");
   const numeric = byName.get("numeric money") as typeof body;
   assert.equal(numeric.snapshot.rates.regularHourly as unknown, 30);
   assert.equal("plannedStart" in (byName.get("missing plannedStart") as typeof body).snapshot.appointments[0]!, false);

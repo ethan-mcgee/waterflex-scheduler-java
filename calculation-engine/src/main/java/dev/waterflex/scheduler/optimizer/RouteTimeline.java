@@ -1,9 +1,9 @@
 package dev.waterflex.scheduler.optimizer;
 
 import dev.waterflex.scheduler.Required;
-import dev.waterflex.scheduler.Monetary;
 import java.time.Instant;
 import java.util.*;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Exact feasible timing, with an explicitly diagnostic relaxed trajectory for repair gradients. Evaluates one route
@@ -18,6 +18,11 @@ final class RouteTimeline {
         return Math.addExact(Math.multiplyExact(Math.subtractExact(instant.getEpochSecond(), origin.getEpochSecond()), NANOS_PER_SECOND),
                 instant.getNano() - origin.getNano());
     }
+    /** This instant as nanoseconds after the epoch, or null beyond the 292 years either side of 1970 that a long reaches. */
+    static @Nullable Long epochNanos(Instant instant) {
+        try { return Math.addExact(Math.multiplyExact(instant.getEpochSecond(), NANOS_PER_SECOND), instant.getNano()); }
+        catch (ArithmeticException beyond) { return null; }
+    }
     static Instant instant(Instant origin, long offset) { return Required.value(origin.plusNanos(offset)); }
     static long nanos(long minutes) { return Math.multiplyExact(minutes, NANOS_PER_MINUTE); }
     /** {@code Duration.getSeconds}: whole seconds, floored. */
@@ -30,7 +35,8 @@ final class RouteTimeline {
                 Math.addExact(Math.addExact(latenessSeconds, availabilitySeconds), capacityMinutes)); }
     }
     /** {@code arrivals} is empty when the evaluation was asked for the score alone. */
-    record Result(Violations violations, long costCents, Map<String, Instant> arrivals,
+    /** A route's resources; only the fleet's summed resources are priced, rounded once (RouteScoringFacts.cost). */
+    record Result(Violations violations, Map<String, Instant> arrivals,
                   long paidMinutes, long overtimeMinutes, long driveMinutes, long waitingMinutes, long meters) {
         long hardPenalty() { return violations.total(); }
     }
@@ -40,12 +46,13 @@ final class RouteTimeline {
     static Result evaluate(PlanFacts facts, TechRoute route, boolean withArrivals) {
         RoadMatrix roads = facts.roads();
         Instant origin = route.getShiftStart();
-        List<RouteTimingSearch.Block> blocks = available(route, origin);
-        var canonical = RouteTimingSearch.solve(facts, route, origin, blocks, withArrivals);
+        TechRoute.Clock clock = route.clock();
+        List<RouteTimingSearch.Block> blocks = clock.blocks();
+        var canonical = RouteTimingSearch.solve(facts, route, origin, clock, withArrivals);
         long qualifications = 0;
         for (PlanVisit visit : route.getVisits()) if (!route.getQualifiedServiceIds().contains(visit.getServiceId())) qualifications++;
         if (canonical != null) {
-            return result(facts, new Violations(qualifications, 0, 0, 0, 0), canonical.arrivals(),
+            return result(new Violations(qualifications, 0, 0, 0, 0), canonical.arrivals(),
                     canonical.paid(), canonical.overtime(), canonical.drive(), canonical.waiting(), canonical.meters());
         }
         // This trajectory is a direction of improvement, never an independent feasible-placement proof.
@@ -58,8 +65,8 @@ final class RouteTimeline {
             previous = here;
         }
         if (!route.getVisits().isEmpty() && roads.home(previous, technician) == null) unavailableRoads++;
-        if (unavailableRoads > 0) return result(facts, new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
-        if (route.getVisits().isEmpty()) return result(facts, new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        if (unavailableRoads > 0) return result(new Violations(qualifications, unavailableRoads, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
+        if (route.getVisits().isEmpty()) return result(new Violations(qualifications, 0, 0, 0, 0), Required.value(Map.of()), 0, 0, 0, 0, 0);
         PlanVisit first = Required.value(route.getVisits().getFirst());
         long initialTravel = Required.value(roads.leg(technician, first.roadNumber(facts))).bufferedMinutes();
         // The shift starts at offset 0.
@@ -94,15 +101,14 @@ final class RouteTimeline {
         long unavailable = returned - departure - permitted;
         long unavailableSeconds = unavailable == 0 ? 0 : Math.addExact(seconds(unavailable), Math.floorMod(unavailable, NANOS_PER_SECOND) == 0 ? 0 : 1);
         long capacity = Math.addExact(Math.max(0, paid - route.getMaxDailyMinutes()), Math.max(0, overtime - route.getMaxOvertimeMinutes()));
-        return result(facts, new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
+        return result(new Violations(qualifications, 0, lateness, unavailableSeconds, capacity), arrivals, paid, overtime, drive, waiting, meters);
     }
-    private static Result result(PlanFacts facts, Violations violations, Map<String, Instant> arrivals,
+    private static Result result(Violations violations, Map<String, Instant> arrivals,
             long paid, long overtime, long drive, long waiting, long meters) {
-        long cents = Monetary.cents(paid, overtime, meters, facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
-        return new Result(violations, cents, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
+        return new Result(violations, arrivals.isEmpty() ? Required.value(Map.of()) : Required.value(Map.copyOf(arrivals)), paid, overtime, drive, waiting, meters);
     }
     /** The working intervals from the shift start (offset 0) to the overtime limit, absences removed, as offsets from {@code origin}. */
-    private static List<RouteTimingSearch.Block> available(TechRoute route, Instant origin) {
+    static List<RouteTimingSearch.Block> available(TechRoute route, Instant origin) {
         long end = Math.addExact(offset(origin, route.getShiftEnd()), nanos(route.getMaxOvertimeMinutes()));
         List<RouteTimingSearch.Block> blocks = new ArrayList<>();
         long cursor = 0;
@@ -118,6 +124,6 @@ final class RouteTimeline {
             if (cursor >= end) break;
         }
         if (cursor < end) blocks.add(new RouteTimingSearch.Block(cursor, end));
-        blocks.removeIf(block -> block.start() >= block.end()); return blocks;
+        blocks.removeIf(block -> block.start() >= block.end()); return Required.value(List.copyOf(blocks));
     }
 }
