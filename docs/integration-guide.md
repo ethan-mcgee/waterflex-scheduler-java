@@ -2,7 +2,7 @@
 
 For the WaterFlex Software engineers who connect the product to the scheduler. It covers what each side owns, how to
 build a snapshot, every call sequence with its payloads, what each error means and whether to retry, and how to prove
-the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.6.0);
+the integration before go-live. The contract itself is [docs/api/openapi-v1.yaml](api/openapi-v1.yaml) (version 1.7.0);
 where this guide and the spec differ, the spec is right and this guide is a defect. The design and its decisions are in
 [docs/stateless-api-design.md](stateless-api-design.md); the scheduler's operators use
 [docs/operations-runbook.md](operations-runbook.md).
@@ -109,6 +109,8 @@ or filled in. In particular:
 - `absences` is required on every technician-day; send `[]` when there are none.
 - `plannedStart` is required on every appointment: its currently planned arrival.
 - Money and rates are canonical decimal strings (`"20"`, `"0.2"`, `"0.67"`), never numbers.
+- The cost rates have at most four decimal places; `regularHourly` and `overtimeHourly` are at most 500 and
+  `mileagePerMile` at most 25 (spec 1.7.0). A rate outside that is refused with 400.
 - Instants are RFC 3339 with an offset (`Z` or `-05:00`). Service dates are calendar dates in the metro's zone.
 - IDs are your own opaque strings, 1 to 128 characters with no leading or trailing space.
 
@@ -459,10 +461,11 @@ The runbook's TLS section is the operator's checklist for the same work.
 
 ## Contract versioning
 
-The API is version 1 (`/api/v1`, spec version 1.6.0). Within v1, changes are additive only and raise the minor version:
+The API is version 1 (`/api/v1`, spec version 1.7.0). Within v1, changes are additive only and raise the minor version:
 a new endpoint, a new optional request field, a new response field, a new `error` code or enum value. Each is listed in
 the spec's version history and the change table in `docs/stateless-api-design.md` before it is deployed. A reader that
 rejects unknown response fields (as the portal and the conformance kit do, to catch drift) must take each new minor
 version before the scheduler is upgraded; a lenient reader needs no change. A breaking change (a removed or renamed
 field, a new required request field, a changed meaning) is published as `/api/v2` beside v1, never in place, and v1 keeps
-being served until every host has moved.
+being served until every host has moved. The one exception is narrowing a value's range to bounds no host sends, confirmed with WaterFlex Software before
+it is deployed: spec 1.7.0 narrowed the cost rates so.

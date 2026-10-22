@@ -32,7 +32,7 @@ public final class FairnessMeasures {
             return routes.filter(RouteScoringFacts::counted)
                     .groupBy(ConstraintCollectors.loadBalance((RouteScoringFacts.ScoredRoute route) -> route.technicianId(), route -> utilization(route, LOAD_UNITS)))
                     .join(RouteScoringFacts.class).filter((_, facts) -> facts.target() != null)
-                    .penalizeBigDecimal(DayScores.soft(DayScores.PHASE_OBJECTIVE), (balance, _) -> Required.value(Required.value(balance).unfairness()))
+                    .penalize(DayScores.soft(DayScores.PHASE_OBJECTIVE), (balance, _) -> DayScores.unfairnessUnits(Required.value(Required.value(balance).unfairness())))
                     .asConstraint("Utilization load balance");
         }
     }

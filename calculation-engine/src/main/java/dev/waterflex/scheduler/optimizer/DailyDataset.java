@@ -17,7 +17,10 @@ public final class DailyDataset {
     /**
      * The score's meaning. v3 carries the fairness phase's variance in units of 1e-9 computed in binary64
      * ({@link RouteScoringFacts#fairnessUnits}); v2 carried it in DECIMAL128. A scheduler and a solver pool refuse each
-     * other's datasets across versions, so the two upgrade together.
+     * other's datasets across versions, so the two upgrade together. The long BendableScore (Timefold docs 12.2.4) keeps
+     * v3: every level carries the same integer it carried as a decimal, so every pair of plans compares the same way and
+     * no score value crosses the wire (only this string does, in datasets, the calculation protocol and outcomes). A
+     * bump would mark every stored preview stale for no change in meaning.
      */
     public static final String SCORE_MODEL = "bendable-decimal-repair-v3";
     public enum Encoding { DENSE, SPARSE }
@@ -126,7 +129,8 @@ public final class DailyDataset {
             SolverEngine.Variant.valueOf(string(search, "variant")); integer(search, "seed", Long.MIN_VALUE, Long.MAX_VALUE);
             integer(search, "remainingMillis", 1, DailyOperation.Allowance.MAXIMUM.toMillis());
             ObjectNode rates = object(required(root, "rates"), "rates", "regularHourly", "overtimeHourly", "mileagePerMile", "travelBufferPct", "travelBufferMinutes");
-            BigDecimal regular = money(rates, "regularHourly"), overtime = money(rates, "overtimeHourly"), mileage = money(rates, "mileagePerMile");
+            BigDecimal regular = Monetary.hourly(money(rates, "regularHourly")), overtime = Monetary.hourly(money(rates, "overtimeHourly")),
+                    mileage = Monetary.mileage(money(rates, "mileagePerMile"));
             BigDecimal pct = money(rates, "travelBufferPct");
             long minutes = integer(rates, "travelBufferMinutes", 0, Integer.MAX_VALUE);
             ArrayNode locations = array(root, "locations"), services = array(root, "services"), technicians = array(root, "technicians"), visits = array(root, "visits");

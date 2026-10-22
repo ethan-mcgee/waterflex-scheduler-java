@@ -58,8 +58,8 @@ class AssertionCampaignTest {
                         assertEquals(result.plan().getScore(),copy.getScore());
                         var independent = RouteEvaluator.evaluateAssigned(result.plan());
                         var score = Required.value(result.plan().getScore());
-                        boolean servedFeasible = score.hardScore(DayScores.CATEGORICAL).signum() == 0
-                                && score.hardScore(DayScores.QUANTITATIVE).signum() == 0;
+                        boolean servedFeasible = score.hardScore(DayScores.CATEGORICAL) == 0
+                                && score.hardScore(DayScores.QUANTITATIVE) == 0;
                         assertEquals(independent.feasible(), servedFeasible, "Scored served-work feasibility must match independent validation");
                         if (servedFeasible) assertTrue(result.outcome().scoringMatchesValidation());
                         else assertFalse(result.outcome().policyEligible(), "Unfinished repair cannot authorize application");

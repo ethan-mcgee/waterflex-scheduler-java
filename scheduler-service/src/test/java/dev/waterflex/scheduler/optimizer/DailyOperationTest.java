@@ -159,7 +159,7 @@ class DailyOperationTest {
         var deadline = new SearchDeadline(seconds(1)); deadline.cancel();
         assertEquals(expected,deadline.within(() -> DayScoreCalculator.evaluate(plan)));
         deadline.within(() -> {
-            ai.timefold.solver.core.api.solver.SolutionManager.<DayPlan,ai.timefold.solver.core.api.score.BendableBigDecimalScore>create(
+            ai.timefold.solver.core.api.solver.SolutionManager.<DayPlan,ai.timefold.solver.core.api.score.BendableScore>create(
                     SolverEngine.configuration(SolverEngine.Variant.TABU,17).factory()).update(plan);
             return true;
         });

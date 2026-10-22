@@ -12,9 +12,12 @@
 # SCHEDULER_STUDY_PROFILES=/profiles, a directory mounted from the runs directory, so every phase of every proposal is
 # flight-recorded on the JDK's profile configuration (the harness's recording); infra/stack_profiles.py then attributes
 # each calculation thread's samples into the evidence's profiles block. The images run in the order before, after for
-# step 1 and after, before for step 2, so neither always runs first. Resumable: a run whose report exists is skipped.
+# step 1 and after, before for step 2, so neither always runs first. Resumable: a run whose report exists for the same commit is skipped.
 # Both commits must contain StudyProfiles (feat/stack-profiles) for the replica to record; an older image ignores the
 # setting, and the evidence is then refused for receipts without recordings: compare such commits with -NoProfiles.
+# -Interleave runs step 1 as pairs, before and after for each fleet and seed, the pair's order alternating, so a change in
+# the machine during the run falls on both images; -SyncOnly leaves out step 2. Each run keeps the daily replica's log
+# from its start (scheduler-daily.log), whose Daily operation lines time the stack's own steps.
 # About 45 minutes with the defaults (-DryRun prints the runs); the owner starts it. Needs jfr (JAVA_HOME) and python.
 #   powershell -ExecutionPolicy Bypass -File infra/run-stack-verification.ps1 -Before <commit> -After <commit> [-DryRun]
 param(
@@ -52,6 +55,8 @@ param(
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'binary-variance',
     # Run without flight recordings (no profiles block in the evidence), for example to measure the recording's own cost.
     [switch]$NoProfiles,
+    [switch]$Interleave,
+    [switch]$SyncOnly,
     [switch]$DryRun
 )
 $ErrorActionPreference = 'Stop'
@@ -94,11 +99,21 @@ if ($images.before.commit -eq $images.after.commit) { throw '-Before and -After 
 
 # The runs, in order: step 1 before then after, step 2 after then before.
 $cells = @()
-foreach ($image in @('before', 'after')) { foreach ($fleet in $fleetList) { foreach ($seed in $seedList) {
-    $cells += [ordered]@{ step = 1; image = $image; fleet = $fleet; seed = $seed; planners = 1; mode = 'sync'; proposals = $Proposals } } } }
-foreach ($image in @('after', 'before')) {
-    $cells += [ordered]@{ step = 2; image = $image; fleet = $AsyncFleet; seed = $AsyncSeed; planners = $AsyncPlanners; mode = 'async'; proposals = $AsyncProposals } }
-$slugOf = { param($cell) "step$($cell.step)-$($cell.image)-$($cell.fleet)t-seed$($cell.seed)-$($cell.mode)$($cell.planners)" }
+if ($Interleave) {
+    $pair = 0
+    foreach ($fleet in $fleetList) { foreach ($seed in $seedList) {
+        foreach ($image in $(if ($pair % 2 -eq 0) { @('before', 'after') } else { @('after', 'before') })) {
+            $cells += [ordered]@{ step = 1; image = $image; fleet = $fleet; seed = $seed; planners = 1; mode = 'sync'; proposals = $Proposals } }
+        $pair++ } }
+} else {
+    foreach ($image in @('before', 'after')) { foreach ($fleet in $fleetList) { foreach ($seed in $seedList) {
+        $cells += [ordered]@{ step = 1; image = $image; fleet = $fleet; seed = $seed; planners = 1; mode = 'sync'; proposals = $Proposals } } } }
+}
+if (-not $SyncOnly) {
+    foreach ($image in @('after', 'before')) {
+        $cells += [ordered]@{ step = 2; image = $image; fleet = $AsyncFleet; seed = $AsyncSeed; planners = $AsyncPlanners; mode = 'async'; proposals = $AsyncProposals } } }
+# The image's commit names the run, so a resumed run never takes a report another pair of commits wrote.
+$slugOf = { param($cell) "step$($cell.step)-$($cell.image)-$($images[$cell.image].commit.Substring(0, 12))-$($cell.fleet)t-seed$($cell.seed)-$($cell.mode)$($cell.planners)" }
 $reportOf = { param($cell)
     $directory = Join-Path $runs (& $slugOf $cell)
     if (-not (Test-Path -LiteralPath $directory)) { return $null }
@@ -250,8 +265,9 @@ try {
         $arguments = @('tsx', 'load.ts') + $common + @('--token-file', $token, '--concurrency', "$($cell.planners)", '--daily-mode', $cell.mode,
             '--daily-proposals', "$($cell.proposals)", '--daily-technicians', "$($cell.fleet)", '--seed', "$($cell.seed)",
             '--scheduler-log', ($daily -join ','), '--docker', ((@($daily) + @($routingName)) -join ','), '--metrics-url', $MetricsUrl,
-            '--label', "$slug $($images[$cell.image].commit.Substring(0, 12))", '--out', $directory)
+            '--label', $slug, '--out', $directory)
         Write-Output "[$index/$($cells.Count)] $slug"
+        $since = [DateTime]::UtcNow.AddSeconds(-1).ToString('yyyy-MM-ddTHH:mm:ssZ')
         $process = Start-Process -FilePath 'npx.cmd' -ArgumentList (& $quoted $arguments) -NoNewWindow -PassThru `
             -RedirectStandardOutput (Join-Path $directory 'run.log') -RedirectStandardError (Join-Path $directory 'run.err.log')
         # Windows PowerShell reports a started process's exit code only if its handle was read while it ran.
@@ -259,6 +275,11 @@ try {
         $process.WaitForExit()
         # Exit 1 is a run with breaches, which the report records; a crash also exits 1, so the report is required.
         if ($process.ExitCode -ne 0 -and $process.ExitCode -ne 1) { throw "Run failed: $slug (see $directory)" }
+        # The replica's own lines for this run, kept before the next image switch recreates its container.
+        $ErrorActionPreference = 'Continue'
+        # Set-Content, not *>: Windows PowerShell's redirection writes UTF-16.
+        foreach ($id in $daily) { & docker logs --timestamps --since $since $id 2>&1 | ForEach-Object { "$_" } | Set-Content -LiteralPath (Join-Path $directory "scheduler-daily-$id.log") -Encoding utf8 }
+        $ErrorActionPreference = 'Stop'
         if ($null -eq (& $reportOf $cell)) { throw "Run wrote no report: $slug (see $directory/run.err.log)" }
     }
 } finally {
@@ -295,7 +316,7 @@ if ($problems.Count -gt 0) { throw "Runs the evidence cannot use (remove their d
     study = 'Stack verification: the same daily proposals on images built from two commits, on the VM rehearsal through the public API'
     stack = 'deploy/vm rehearsal (proxy, booking and daily pools, VM compute caps; the development routing service capped to the VM partition), shipped routing and admission defaults, embedded calculation'
     images = $images
-    protocol = "Step 1: 1 planner, synchronous, fleets $($fleetList -join ', ') technicians x $Appointments visits, points seeds $($seedList -join ', '), $Proposals proposals each. Step 2: $AsyncPlanners planners queuing (respond-async), $AsyncFleet technicians, seed $AsyncSeed, $AsyncProposals proposals. Search $CostSeconds s cost + $FairnessSeconds s fairness, $DailySearch, fairness budget $FairnessBudget. Roads cold at each run's start, never warmed. Order: step 1 before then after, step 2 after then before. Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds.$(if ($profiles) { ' Every phase of every proposal flight-recorded on the JDK profile configuration (SCHEDULER_STUDY_PROFILES); the profiles block attributes each calculation thread''s samples.' } else { '' })"
+    protocol = "Step 1: 1 planner, synchronous, fleets $($fleetList -join ', ') technicians x $Appointments visits, points seeds $($seedList -join ', '), $Proposals proposals each.$(if ($SyncOnly) { '' } else { " Step 2: $AsyncPlanners planners queuing (respond-async), $AsyncFleet technicians, seed $AsyncSeed, $AsyncProposals proposals." }) Search $CostSeconds s cost + $FairnessSeconds s fairness, $DailySearch, fairness budget $FairnessBudget. Roads cold at each run's start, never warmed. Order: $(if ($Interleave) { 'step 1 in before and after pairs per fleet and seed, the pair order alternating' } else { 'step 1 before then after' })$(if ($SyncOnly) { '; no step 2' } else { ', step 2 after then before' }). Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds.$(if ($profiles) { ' Every phase of every proposal flight-recorded on the JDK profile configuration (SCHEDULER_STUDY_PROFILES); the profiles block attributes each calculation thread''s samples.' } else { '' })"
     runnerRevision = (git -C $repository rev-parse HEAD).Trim()
     runnerSha256 = (Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
     containersVerified = $verified

@@ -1,0 +1,3637 @@
+{
+ "study": "Stack verification: the same daily proposals on images built from two commits, on the VM rehearsal through the public API",
+ "stack": "deploy/vm rehearsal (proxy, booking and daily pools, VM compute caps; the development routing service capped to the VM partition), shipped routing and admission defaults, embedded calculation",
+ "images": {
+  "before": {
+   "name": "before",
+   "revision": "dcbdca6",
+   "commit": "dcbdca6fc78cdaf062493cd51a41e3b6950b9262",
+   "tag": "waterflex-scheduler-engine:study-before-dcbdca6fc78c",
+   "imageId": "sha256:c3b333bb2db032c137ba324d4d37d78a1482ea742f5f364ec1b03b2da1e6564f"
+  },
+  "after": {
+   "name": "after",
+   "revision": "4e2a5fc",
+   "commit": "4e2a5fc70c35583686ae065049d7e8745b6b4013",
+   "tag": "waterflex-scheduler-engine:study-after-4e2a5fc70c35",
+   "imageId": "sha256:a565597612f74426137bbe5697e0f6d44c4749ceac6e655db382c68ca93f7b99"
+  }
+ },
+ "protocol": "Step 1: 1 planner, synchronous, fleets 50 technicians x 3 visits, points seeds 1, 2, 3, 4 proposals each. Search 10 s cost + 5 s fairness, TABU_KOPT, fairness budget 0.02. Roads cold at each run's start, never warmed. Order: step 1 in before and after pairs per fleet and seed, the pair order alternating; no step 2. Daily pool with SCHEDULER_STUDY_RECEIPTS=true and TIMEFOLD_LOG_LEVEL=INFO; the kit reads each receipt and pairs it with its request's Timefold phase speeds. Every phase of every proposal flight-recorded on the JDK profile configuration (SCHEDULER_STUDY_PROFILES); the profiles block attributes each calculation thread's samples.",
+ "runnerRevision": "d81291350055c5a94e460451dba9dfa230bfcc92",
+ "runnerSha256": "6dbf46941ab7a56d11ac5ca070a2094f4bbfb97fb8f39d41b4e35a26e5327ece",
+ "containersVerified": [
+  {
+   "image": "before",
+   "container": "scheduler-vm-scheduler-daily-1",
+   "imageId": "sha256:c3b333bb2db032c137ba324d4d37d78a1482ea742f5f364ec1b03b2da1e6564f",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "TIMEFOLD_LOG_LEVEL=INFO",
+    "SCHEDULER_STUDY_RECEIPTS=true",
+    "SCHEDULER_STUDY_PROFILES=/profiles"
+   ]
+  },
+  {
+   "image": "before",
+   "container": "scheduler-vm-scheduler-booking-1",
+   "imageId": "sha256:c3b333bb2db032c137ba324d4d37d78a1482ea742f5f364ec1b03b2da1e6564f",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  },
+  {
+   "image": "after",
+   "container": "scheduler-vm-scheduler-daily-1",
+   "imageId": "sha256:a565597612f74426137bbe5697e0f6d44c4749ceac6e655db382c68ca93f7b99",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "SCHEDULER_STUDY_PROFILES=/profiles",
+    "SCHEDULER_STUDY_RECEIPTS=true",
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  },
+  {
+   "image": "after",
+   "container": "scheduler-vm-scheduler-booking-1",
+   "imageId": "sha256:a565597612f74426137bbe5697e0f6d44c4749ceac6e655db382c68ca93f7b99",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  },
+  {
+   "image": "before",
+   "container": "scheduler-vm-scheduler-daily-1",
+   "imageId": "sha256:c3b333bb2db032c137ba324d4d37d78a1482ea742f5f364ec1b03b2da1e6564f",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "SCHEDULER_STUDY_PROFILES=/profiles",
+    "SCHEDULER_STUDY_RECEIPTS=true",
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  },
+  {
+   "image": "before",
+   "container": "scheduler-vm-scheduler-booking-1",
+   "imageId": "sha256:c3b333bb2db032c137ba324d4d37d78a1482ea742f5f364ec1b03b2da1e6564f",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  },
+  {
+   "image": "after",
+   "container": "scheduler-vm-scheduler-daily-1",
+   "imageId": "sha256:a565597612f74426137bbe5697e0f6d44c4749ceac6e655db382c68ca93f7b99",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "SCHEDULER_STUDY_RECEIPTS=true",
+    "SCHEDULER_STUDY_PROFILES=/profiles",
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  },
+  {
+   "image": "after",
+   "container": "scheduler-vm-scheduler-booking-1",
+   "imageId": "sha256:a565597612f74426137bbe5697e0f6d44c4749ceac6e655db382c68ca93f7b99",
+   "nanoCpus": 2000000000,
+   "memory": 2147483648,
+   "environment": [
+    "TIMEFOLD_LOG_LEVEL=INFO"
+   ]
+  }
+ ],
+ "runs": [
+  {
+   "step": 1,
+   "image": "before",
+   "commit": "dcbdca6fc78cdaf062493cd51a41e3b6950b9262",
+   "fleet": 50,
+   "seed": 1,
+   "planners": 1,
+   "mode": "sync",
+   "proposals": 4,
+   "report": {
+    "label": "step1-before-dcbdca6fc78c-50t-seed1-sync1",
+    "scenario": "daily",
+    "scheduler": "http://127.0.0.1:18080",
+    "metroId": "metro-omaha",
+    "timeZone": "America/Chicago",
+    "points": "area 41.22,-96.05,41.28,-95.95",
+    "run": "load-cd6dc289",
+    "startedAt": "2026-10-21T21:11:03.165Z",
+    "finishedAt": "2026-10-21T21:12:10.717Z",
+    "settings": {
+     "durationS": 3600,
+     "concurrency": 1,
+     "dailyConcurrency": null,
+     "technicians": 10,
+     "appointmentsPerDay": 3,
+     "horizonDates": 5,
+     "dailyTechnicians": 50,
+     "horizon": {
+      "mode": "fixed",
+      "weekdays": null,
+      "leadWeekdays": null,
+      "fullPercent": null,
+      "bookedWeekdays": 0,
+      "bookedAppointments": null
+     },
+     "dailyMode": "sync",
+     "dailyProposals": 4,
+     "jobs": "cold",
+     "confirmRate": 0.3,
+     "offerLimit": 4,
+     "windowHours": 2,
+     "policy": {
+      "fairnessBudget": "0.02",
+      "dailySearch": "TABU_KOPT",
+      "costSearchSeconds": 10,
+      "fairnessSearchSeconds": 5,
+      "bookingDeadlineMs": 5000,
+      "regularWindowThreshold": 2
+     },
+     "seed": 1,
+     "dateSpread": false
+    },
+    "machine": {
+     "cpus": 24,
+     "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+     "memoryBytes": 67870916608,
+     "node": "v22.20.0"
+    },
+    "operations": [
+     {
+      "operation": "daily proposal",
+      "calls": 4,
+      "statuses": {
+       "201": 4
+      },
+      "errors": {},
+      "reasons": {},
+      "retriedBusy": 0,
+      "ms": {
+       "p50": 15928,
+       "p95": 18350,
+       "p99": 18350,
+       "max": 18350,
+       "mean": 16885
+      }
+     }
+    ],
+    "booking": null,
+    "daily": {
+     "proposals": 4,
+     "decisions": {
+      "IMPROVED": 4
+     },
+     "queueWaitsMs": []
+    },
+    "server": {
+     "operations": [
+      {
+       "uri": "/api/v1/daily/proposals",
+       "method": "POST",
+       "status": "201",
+       "calls": 4,
+       "meanMs": 16883
+      }
+     ],
+     "admissionRejections": 0,
+     "routingPairs": 0,
+     "routingLegRequests": 0,
+     "routingIdentityRequests": 10,
+     "processCpu": {
+      "mean": 0.5655217086834733,
+      "max": 0.995
+     },
+     "heapUsedMaxBytes": 338856624
+    },
+    "metricFailures": 0,
+    "containers": [
+     {
+      "name": "scheduler-vm-scheduler-daily-1",
+      "cpuPercent": {
+       "mean": 110.78636363636366,
+       "max": 142.22
+      },
+      "memoryMaxBytes": 696464179.2
+     },
+     {
+      "name": "waterflex-scheduler-java-routing-service-1",
+      "cpuPercent": {
+       "mean": 0.6463636363636364,
+       "max": 2.77
+      },
+      "memoryMaxBytes": 579547955.2
+     }
+    ],
+    "serverBreakdown": {
+     "POST /api/v1/daily/proposals 201": {
+      "calls": 4,
+      "elapsedMs": {
+       "p50": 15923,
+       "p95": 18345,
+       "mean": 16880
+      },
+      "attributed": 4,
+      "queueMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "routingMs": {
+       "p50": 110,
+       "p95": 1850,
+       "mean": 550
+      },
+      "calculationMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "dbMs": {
+       "p50": 0,
+       "p95": 1186,
+       "mean": 297
+      },
+      "dbCalls": {
+       "p50": 0,
+       "p95": 314,
+       "mean": 79
+      },
+      "routingPairs": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "cacheHits": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "fetched": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "commitMs": null,
+      "cpuMs": {
+       "p50": 162,
+       "p95": 565,
+       "mean": 263
+      }
+     }
+    },
+    "serverLog": [
+     {
+      "container": "scheduler-vm-scheduler-daily-1",
+      "apiLines": 4
+     }
+    ],
+    "study": {
+     "summary": {
+      "receipts": 4,
+      "decisions": {
+       "ACCEPTED": 4
+      },
+      "phases": [
+       {
+        "phase": "REFERENCE",
+        "runs": 4,
+        "solveMs": {
+         "p50": 9973,
+         "p95": 9980,
+         "mean": 9961
+        },
+        "movesPerSecond": {
+         "p50": 295040,
+         "p95": 299309,
+         "mean": 285255
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       },
+       {
+        "phase": "FAIRNESS",
+        "runs": 4,
+        "solveMs": {
+         "p50": 4968,
+         "p95": 4971,
+         "mean": 4960
+        },
+        "movesPerSecond": {
+         "p50": 280503,
+         "p95": 292467,
+         "mean": 283010
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       }
+      ],
+      "unpairedSpeeds": 0,
+      "profiled": 4,
+      "referenceCostCents": 380302,
+      "proposedCostCents": 387877,
+      "referenceVariance": "0.1181239519890260631001371742112483",
+      "proposedVariance": "0.02821909602194787379972565157750343",
+      "referenceMaximumUtilization": "0.9462962962962962962962962962962963",
+      "proposedMaximumUtilization": "0.4703703703703703703703703703703704",
+      "unmeasured": {}
+     },
+     "receipts": [
+      {
+       "tenant": "loadtest",
+       "requestId": "ba7e6641-2551-4cde-9a3d-6a180f69e4a8",
+       "body": {
+        "proposalId": "prop-852638ce-e5c3-4581-94af-d260a11b0b0a",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9916,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4981,
+          "solveMs": 4931,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380317,
+         "overtimeMinutes": 0,
+         "variance": "0.1189049053497942386831275720164609",
+         "maximumUtilization": "0.9462962962962962962962962962962963",
+         "utilizationSpread": "0.9462962962962962962962962962962963",
+         "absoluteDeviation": "0.3134400000000000000000000000000000",
+         "loadBalance": "2438290"
+        },
+        "costCeilingCents": 387923,
+        "proposed": {
+         "costCents": 387923,
+         "overtimeMinutes": 0,
+         "variance": "0.04182102057613168724279835390946502",
+         "maximumUtilization": "0.5592592592592592592592592592592593",
+         "utilizationSpread": "0.5592592592592592592592592592592593",
+         "absoluteDeviation": "0.1815911111111111111111111111111111",
+         "loadBalance": "1446050"
+        },
+        "profile": {
+         "thread": "daily-c6ff9c13-d521-44c4-9343-521b49d4546d",
+         "recordings": {
+          "FAIRNESS": "prop-852638ce-e5c3-4581-94af-d260a11b0b0a-FAIRNESS.jfr",
+          "REFERENCE": "prop-852638ce-e5c3-4581-94af-d260a11b0b0a-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9836,
+         "movesPerSecond": 248073
+        },
+        {
+         "timeSpentMs": 4922,
+         "movesPerSecond": 275995
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "43281274-41ef-4a78-aa27-edb9fefb1ead",
+       "body": {
+        "proposalId": "prop-cfa38e04-bca2-42d3-ae3f-0c2b7f6ee3b9",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9973,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4992,
+          "solveMs": 4970,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380302,
+         "overtimeMinutes": 0,
+         "variance": "0.1181239519890260631001371742112483",
+         "maximumUtilization": "0.9462962962962962962962962962962963",
+         "utilizationSpread": "0.9462962962962962962962962962962963",
+         "absoluteDeviation": "0.3133970370370370370370370370370370",
+         "loadBalance": "2430270"
+        },
+        "costCeilingCents": 387908,
+        "proposed": {
+         "costCents": 387852,
+         "overtimeMinutes": 0,
+         "variance": "0.02819797530864197530864197530864198",
+         "maximumUtilization": "0.4703703703703703703703703703703704",
+         "utilizationSpread": "0.4703703703703703703703703703703704",
+         "absoluteDeviation": "0.1382488888888888888888888888888889",
+         "loadBalance": "1187390"
+        },
+        "profile": {
+         "thread": "daily-399f0bf2-4f74-459e-b8b4-555df8421b6e",
+         "recordings": {
+          "FAIRNESS": "prop-cfa38e04-bca2-42d3-ae3f-0c2b7f6ee3b9-FAIRNESS.jfr",
+          "REFERENCE": "prop-cfa38e04-bca2-42d3-ae3f-0c2b7f6ee3b9-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9954,
+         "movesPerSecond": 298597
+        },
+        {
+         "timeSpentMs": 4967,
+         "movesPerSecond": 292467
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "d5b0131b-39f9-4d82-b0cf-c174ddadfb21",
+       "body": {
+        "proposalId": "prop-a979649d-ce95-4444-a035-6dc7490f06d7",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9974,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4997,
+          "solveMs": 4971,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380302,
+         "overtimeMinutes": 0,
+         "variance": "0.1181239519890260631001371742112483",
+         "maximumUtilization": "0.9462962962962962962962962962962963",
+         "utilizationSpread": "0.9462962962962962962962962962962963",
+         "absoluteDeviation": "0.3133970370370370370370370370370370",
+         "loadBalance": "2430270"
+        },
+        "costCeilingCents": 387908,
+        "proposed": {
+         "costCents": 387901,
+         "overtimeMinutes": 0,
+         "variance": "0.02821909602194787379972565157750343",
+         "maximumUtilization": "0.4703703703703703703703703703703704",
+         "utilizationSpread": "0.4703703703703703703703703703703704",
+         "absoluteDeviation": "0.1382755555555555555555555555555556",
+         "loadBalance": "1187840"
+        },
+        "profile": {
+         "thread": "daily-f3ed6425-a61a-404d-91c7-81321bd59ad5",
+         "recordings": {
+          "FAIRNESS": "prop-a979649d-ce95-4444-a035-6dc7490f06d7-FAIRNESS.jfr",
+          "REFERENCE": "prop-a979649d-ce95-4444-a035-6dc7490f06d7-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9970,
+         "movesPerSecond": 299309
+        },
+        {
+         "timeSpentMs": 4965,
+         "movesPerSecond": 283073
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "a7c06fe3-b07b-47a4-939b-bf549911d203",
+       "body": {
+        "proposalId": "prop-cf7471b4-1137-4b59-a468-dc2fd23d7561",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9980,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4992,
+          "solveMs": 4968,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380302,
+         "overtimeMinutes": 0,
+         "variance": "0.1181239519890260631001371742112483",
+         "maximumUtilization": "0.9462962962962962962962962962962963",
+         "utilizationSpread": "0.9462962962962962962962962962962963",
+         "absoluteDeviation": "0.3133970370370370370370370370370370",
+         "loadBalance": "2430270"
+        },
+        "costCeilingCents": 387908,
+        "proposed": {
+         "costCents": 387877,
+         "overtimeMinutes": 0,
+         "variance": "0.02822568038408779149519890260631002",
+         "maximumUtilization": "0.4703703703703703703703703703703704",
+         "utilizationSpread": "0.4703703703703703703703703703703704",
+         "absoluteDeviation": "0.1383837037037037037037037037037037",
+         "loadBalance": "1187970"
+        },
+        "profile": {
+         "thread": "daily-dc8515b1-c377-4d16-b83b-7dee826131e0",
+         "recordings": {
+          "FAIRNESS": "prop-cf7471b4-1137-4b59-a468-dc2fd23d7561-FAIRNESS.jfr",
+          "REFERENCE": "prop-cf7471b4-1137-4b59-a468-dc2fd23d7561-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9975,
+         "movesPerSecond": 295040
+        },
+        {
+         "timeSpentMs": 4966,
+         "movesPerSecond": 280503
+        }
+       ]
+      }
+     ]
+    },
+    "contractBreaches": [],
+    "hostAnomalies": []
+   }
+  },
+  {
+   "step": 1,
+   "image": "after",
+   "commit": "4e2a5fc70c35583686ae065049d7e8745b6b4013",
+   "fleet": 50,
+   "seed": 1,
+   "planners": 1,
+   "mode": "sync",
+   "proposals": 4,
+   "report": {
+    "label": "step1-after-4e2a5fc70c35-50t-seed1-sync1",
+    "scenario": "daily",
+    "scheduler": "http://127.0.0.1:18080",
+    "metroId": "metro-omaha",
+    "timeZone": "America/Chicago",
+    "points": "area 41.22,-96.05,41.28,-95.95",
+    "run": "load-7bbaa32c",
+    "startedAt": "2026-10-21T21:12:28.898Z",
+    "finishedAt": "2026-10-21T21:13:39.233Z",
+    "settings": {
+     "durationS": 3600,
+     "concurrency": 1,
+     "dailyConcurrency": null,
+     "technicians": 10,
+     "appointmentsPerDay": 3,
+     "horizonDates": 5,
+     "dailyTechnicians": 50,
+     "horizon": {
+      "mode": "fixed",
+      "weekdays": null,
+      "leadWeekdays": null,
+      "fullPercent": null,
+      "bookedWeekdays": 0,
+      "bookedAppointments": null
+     },
+     "dailyMode": "sync",
+     "dailyProposals": 4,
+     "jobs": "cold",
+     "confirmRate": 0.3,
+     "offerLimit": 4,
+     "windowHours": 2,
+     "policy": {
+      "fairnessBudget": "0.02",
+      "dailySearch": "TABU_KOPT",
+      "costSearchSeconds": 10,
+      "fairnessSearchSeconds": 5,
+      "bookingDeadlineMs": 5000,
+      "regularWindowThreshold": 2
+     },
+     "seed": 1,
+     "dateSpread": false
+    },
+    "machine": {
+     "cpus": 24,
+     "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+     "memoryBytes": 67870916608,
+     "node": "v22.20.0"
+    },
+    "operations": [
+     {
+      "operation": "daily proposal",
+      "calls": 4,
+      "statuses": {
+       "201": 4
+      },
+      "errors": {},
+      "reasons": {},
+      "retriedBusy": 0,
+      "ms": {
+       "p50": 17142,
+       "p95": 18991,
+       "p99": 18991,
+       "max": 18991,
+       "mean": 17581
+      }
+     }
+    ],
+    "booking": null,
+    "daily": {
+     "proposals": 4,
+     "decisions": {
+      "IMPROVED": 4
+     },
+     "queueWaitsMs": []
+    },
+    "server": {
+     "operations": [
+      {
+       "uri": "/api/v1/daily/proposals",
+       "method": "POST",
+       "status": "201",
+       "calls": 4,
+       "meanMs": 17578
+      }
+     ],
+     "admissionRejections": 0,
+     "routingPairs": 0,
+     "routingLegRequests": 0,
+     "routingIdentityRequests": 10,
+     "processCpu": {
+      "mean": 0.5749625850340135,
+      "max": 0.9875
+     },
+     "heapUsedMaxBytes": 247795672
+    },
+    "metricFailures": 0,
+    "containers": [
+     {
+      "name": "scheduler-vm-scheduler-daily-1",
+      "cpuPercent": {
+       "mean": 107.93636363636364,
+       "max": 148.75
+      },
+      "memoryMaxBytes": 535822336
+     },
+     {
+      "name": "waterflex-scheduler-java-routing-service-1",
+      "cpuPercent": {
+       "mean": 0.5036363636363637,
+       "max": 3.29
+      },
+      "memoryMaxBytes": 580596531.2
+     }
+    ],
+    "serverBreakdown": {
+     "POST /api/v1/daily/proposals 201": {
+      "calls": 4,
+      "elapsedMs": {
+       "p50": 17137,
+       "p95": 18985,
+       "mean": 17575
+      },
+      "attributed": 4,
+      "queueMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "routingMs": {
+       "p50": 102,
+       "p95": 1590,
+       "mean": 486
+      },
+      "calculationMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "dbMs": {
+       "p50": 0,
+       "p95": 987,
+       "mean": 247
+      },
+      "dbCalls": {
+       "p50": 0,
+       "p95": 314,
+       "mean": 79
+      },
+      "routingPairs": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "cacheHits": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "fetched": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "commitMs": null,
+      "cpuMs": {
+       "p50": 158,
+       "p95": 542,
+       "mean": 256
+      }
+     }
+    },
+    "serverLog": [
+     {
+      "container": "scheduler-vm-scheduler-daily-1",
+      "apiLines": 4
+     }
+    ],
+    "study": {
+     "summary": {
+      "receipts": 4,
+      "decisions": {
+       "ACCEPTED": 4
+      },
+      "phases": [
+       {
+        "phase": "REFERENCE",
+        "runs": 4,
+        "solveMs": {
+         "p50": 9958,
+         "p95": 9972,
+         "mean": 9937
+        },
+        "movesPerSecond": {
+         "p50": 351090,
+         "p95": 368356,
+         "mean": 353872
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       },
+       {
+        "phase": "FAIRNESS",
+        "runs": 4,
+        "solveMs": {
+         "p50": 4963,
+         "p95": 4972,
+         "mean": 4965
+        },
+        "movesPerSecond": {
+         "p50": 352536,
+         "p95": 354351,
+         "mean": 349852
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       }
+      ],
+      "unpairedSpeeds": 0,
+      "profiled": 4,
+      "referenceCostCents": 380186,
+      "proposedCostCents": 387781,
+      "referenceVariance": "0.1180199506172839506172839506172840",
+      "proposedVariance": "0.02607684636488340192043895747599451",
+      "referenceMaximumUtilization": "0.9259259259259259259259259259259259",
+      "proposedMaximumUtilization": "0.4685185185185185185185185185185185",
+      "unmeasured": {}
+     },
+     "receipts": [
+      {
+       "tenant": "loadtest",
+       "requestId": "f3020b5b-371b-4ccf-9824-219402b618db",
+       "body": {
+        "proposalId": "prop-cbcda6a9-2e99-40d7-b926-0e01b5542aa0",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9858,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4987,
+          "solveMs": 4952,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380246,
+         "overtimeMinutes": 0,
+         "variance": "0.1176612400548696844993141289437586",
+         "maximumUtilization": "0.9259259259259259259259259259259259",
+         "utilizationSpread": "0.9259259259259259259259259259259259",
+         "absoluteDeviation": "0.3133540740740740740740740740740741",
+         "loadBalance": "2425500.000000"
+        },
+        "costCeilingCents": 387850,
+        "proposed": {
+         "costCents": 387845,
+         "overtimeMinutes": 0,
+         "variance": "0.02474776954732510288065843621399177",
+         "maximumUtilization": "0.4666666666666666666666666666666667",
+         "utilizationSpread": "0.4666666666666666666666666666666667",
+         "absoluteDeviation": "0.1237629629629629629629629629629630",
+         "loadBalance": "1112380.000000"
+        },
+        "profile": {
+         "thread": "daily-3dc7b366-29de-4282-bd3e-271606c99e10",
+         "recordings": {
+          "FAIRNESS": "prop-cbcda6a9-2e99-40d7-b926-0e01b5542aa0-FAIRNESS.jfr",
+          "REFERENCE": "prop-cbcda6a9-2e99-40d7-b926-0e01b5542aa0-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9771,
+         "movesPerSecond": 338706
+        },
+        {
+         "timeSpentMs": 4944,
+         "movesPerSecond": 354351
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "7ce7705f-58f5-4b6f-9109-9fd7191a8936",
+       "body": {
+        "proposalId": "prop-966550b8-5871-483b-a85b-00cccb3ed844",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9958,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4995,
+          "solveMs": 4971,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380186,
+         "overtimeMinutes": 0,
+         "variance": "0.1180199506172839506172839506172840",
+         "maximumUtilization": "0.9259259259259259259259259259259259",
+         "utilizationSpread": "0.9259259259259259259259259259259259",
+         "absoluteDeviation": "0.3133540740740740740740740740740741",
+         "loadBalance": "2429200.000000"
+        },
+        "costCeilingCents": 387789,
+        "proposed": {
+         "costCents": 387778,
+         "overtimeMinutes": 0,
+         "variance": "0.02609715226337448559670781893004115",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1275437037037037037037037037037037",
+         "loadBalance": "1142300.000000"
+        },
+        "profile": {
+         "thread": "daily-976afd21-6d9e-46f1-822d-71ab87b3ad82",
+         "recordings": {
+          "FAIRNESS": "prop-966550b8-5871-483b-a85b-00cccb3ed844-FAIRNESS.jfr",
+          "REFERENCE": "prop-966550b8-5871-483b-a85b-00cccb3ed844-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9950,
+         "movesPerSecond": 357337
+        },
+        {
+         "timeSpentMs": 4966,
+         "movesPerSecond": 338212
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "8492b1e8-78eb-4014-90db-ff2594c313ff",
+       "body": {
+        "proposalId": "prop-dd8d4b8a-2298-4eda-a7fa-c8ff654f9b98",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9972,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4992,
+          "solveMs": 4972,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380186,
+         "overtimeMinutes": 0,
+         "variance": "0.1180199506172839506172839506172840",
+         "maximumUtilization": "0.9259259259259259259259259259259259",
+         "utilizationSpread": "0.9259259259259259259259259259259259",
+         "absoluteDeviation": "0.3133540740740740740740740740740741",
+         "loadBalance": "2429200.000000"
+        },
+        "costCeilingCents": 387789,
+        "proposed": {
+         "costCents": 387783,
+         "overtimeMinutes": 0,
+         "variance": "0.02607684636488340192043895747599451",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1272666666666666666666666666666667",
+         "loadBalance": "1141860.000000"
+        },
+        "profile": {
+         "thread": "daily-b72f1bce-9bee-40e1-897e-2640b20091ec",
+         "recordings": {
+          "FAIRNESS": "prop-dd8d4b8a-2298-4eda-a7fa-c8ff654f9b98-FAIRNESS.jfr",
+          "REFERENCE": "prop-dd8d4b8a-2298-4eda-a7fa-c8ff654f9b98-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9968,
+         "movesPerSecond": 351090
+        },
+        {
+         "timeSpentMs": 4968,
+         "movesPerSecond": 352536
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "0083c758-2b1c-4e13-af17-d53af3c7268a",
+       "body": {
+        "proposalId": "prop-e0a81423-c0af-4aad-9ab2-d90c238a5e98",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9961,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4989,
+          "solveMs": 4963,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 380186,
+         "overtimeMinutes": 0,
+         "variance": "0.1180199506172839506172839506172840",
+         "maximumUtilization": "0.9259259259259259259259259259259259",
+         "utilizationSpread": "0.9259259259259259259259259259259259",
+         "absoluteDeviation": "0.3133540740740740740740740740740741",
+         "loadBalance": "2429200.000000"
+        },
+        "costCeilingCents": 387789,
+        "proposed": {
+         "costCents": 387781,
+         "overtimeMinutes": 0,
+         "variance": "0.02607684636488340192043895747599451",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1272666666666666666666666666666667",
+         "loadBalance": "1141860.000000"
+        },
+        "profile": {
+         "thread": "daily-b587d255-58cf-49db-9674-ea32848f2a6e",
+         "recordings": {
+          "FAIRNESS": "prop-e0a81423-c0af-4aad-9ab2-d90c238a5e98-FAIRNESS.jfr",
+          "REFERENCE": "prop-e0a81423-c0af-4aad-9ab2-d90c238a5e98-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9956,
+         "movesPerSecond": 368356
+        },
+        {
+         "timeSpentMs": 4959,
+         "movesPerSecond": 354307
+        }
+       ]
+      }
+     ]
+    },
+    "contractBreaches": [],
+    "hostAnomalies": []
+   }
+  },
+  {
+   "step": 1,
+   "image": "after",
+   "commit": "4e2a5fc70c35583686ae065049d7e8745b6b4013",
+   "fleet": 50,
+   "seed": 2,
+   "planners": 1,
+   "mode": "sync",
+   "proposals": 4,
+   "report": {
+    "label": "step1-after-4e2a5fc70c35-50t-seed2-sync1",
+    "scenario": "daily",
+    "scheduler": "http://127.0.0.1:18080",
+    "metroId": "metro-omaha",
+    "timeZone": "America/Chicago",
+    "points": "area 41.22,-96.05,41.28,-95.95",
+    "run": "load-3b88e2da",
+    "startedAt": "2026-10-21T21:13:44.871Z",
+    "finishedAt": "2026-10-21T21:14:54.252Z",
+    "settings": {
+     "durationS": 3600,
+     "concurrency": 1,
+     "dailyConcurrency": null,
+     "technicians": 10,
+     "appointmentsPerDay": 3,
+     "horizonDates": 5,
+     "dailyTechnicians": 50,
+     "horizon": {
+      "mode": "fixed",
+      "weekdays": null,
+      "leadWeekdays": null,
+      "fullPercent": null,
+      "bookedWeekdays": 0,
+      "bookedAppointments": null
+     },
+     "dailyMode": "sync",
+     "dailyProposals": 4,
+     "jobs": "cold",
+     "confirmRate": 0.3,
+     "offerLimit": 4,
+     "windowHours": 2,
+     "policy": {
+      "fairnessBudget": "0.02",
+      "dailySearch": "TABU_KOPT",
+      "costSearchSeconds": 10,
+      "fairnessSearchSeconds": 5,
+      "bookingDeadlineMs": 5000,
+      "regularWindowThreshold": 2
+     },
+     "seed": 2,
+     "dateSpread": false
+    },
+    "machine": {
+     "cpus": 24,
+     "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+     "memoryBytes": 67870916608,
+     "node": "v22.20.0"
+    },
+    "operations": [
+     {
+      "operation": "daily proposal",
+      "calls": 4,
+      "statuses": {
+       "201": 4
+      },
+      "errors": {},
+      "reasons": {},
+      "retriedBusy": 0,
+      "ms": {
+       "p50": 16491,
+       "p95": 18588,
+       "p99": 18588,
+       "max": 18588,
+       "mean": 17343
+      }
+     }
+    ],
+    "booking": null,
+    "daily": {
+     "proposals": 4,
+     "decisions": {
+      "IMPROVED": 4
+     },
+     "queueWaitsMs": []
+    },
+    "server": {
+     "operations": [
+      {
+       "uri": "/api/v1/daily/proposals",
+       "method": "POST",
+       "status": "201",
+       "calls": 4,
+       "meanMs": 17339
+      }
+     ],
+     "admissionRejections": 0,
+     "routingPairs": 0,
+     "routingLegRequests": 0,
+     "routingIdentityRequests": 8,
+     "processCpu": {
+      "mean": 0.5049115646258503,
+      "max": 0.6075
+     },
+     "heapUsedMaxBytes": 257718736
+    },
+    "metricFailures": 0,
+    "containers": [
+     {
+      "name": "scheduler-vm-scheduler-daily-1",
+      "cpuPercent": {
+       "mean": 105.07,
+       "max": 118.98
+      },
+      "memoryMaxBytes": 566021324.8
+     },
+     {
+      "name": "waterflex-scheduler-java-routing-service-1",
+      "cpuPercent": {
+       "mean": 0.6527272727272728,
+       "max": 2.98
+      },
+      "memoryMaxBytes": 581749964.8
+     }
+    ],
+    "serverBreakdown": {
+     "POST /api/v1/daily/proposals 201": {
+      "calls": 4,
+      "elapsedMs": {
+       "p50": 16487,
+       "p95": 18582,
+       "mean": 17338
+      },
+      "attributed": 4,
+      "queueMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "routingMs": {
+       "p50": 92,
+       "p95": 1430,
+       "mean": 424
+      },
+      "calculationMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "dbMs": {
+       "p50": 0,
+       "p95": 1022,
+       "mean": 256
+      },
+      "dbCalls": {
+       "p50": 0,
+       "p95": 314,
+       "mean": 79
+      },
+      "routingPairs": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "cacheHits": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "fetched": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "commitMs": null,
+      "cpuMs": {
+       "p50": 134,
+       "p95": 306,
+       "mean": 171
+      }
+     }
+    },
+    "serverLog": [
+     {
+      "container": "scheduler-vm-scheduler-daily-1",
+      "apiLines": 4
+     }
+    ],
+    "study": {
+     "summary": {
+      "receipts": 4,
+      "decisions": {
+       "ACCEPTED": 4
+      },
+      "phases": [
+       {
+        "phase": "REFERENCE",
+        "runs": 4,
+        "solveMs": {
+         "p50": 9971,
+         "p95": 9984,
+         "mean": 9975
+        },
+        "movesPerSecond": {
+         "p50": 369579,
+         "p95": 372670,
+         "mean": 369875
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       },
+       {
+        "phase": "FAIRNESS",
+        "runs": 4,
+        "solveMs": {
+         "p50": 4974,
+         "p95": 4979,
+         "mean": 4976
+        },
+        "movesPerSecond": {
+         "p50": 353814,
+         "p95": 360739,
+         "mean": 354761
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       }
+      ],
+      "unpairedSpeeds": 0,
+      "profiled": 4,
+      "referenceCostCents": 378695,
+      "proposedCostCents": 386231,
+      "referenceVariance": "0.1201126694101508916323731138545954",
+      "proposedVariance": "0.03046460356652949245541838134430727",
+      "referenceMaximumUtilization": "0.9314814814814814814814814814814815",
+      "proposedMaximumUtilization": "0.4685185185185185185185185185185185",
+      "unmeasured": {}
+     },
+     "receipts": [
+      {
+       "tenant": "loadtest",
+       "requestId": "33307e28-a173-434b-99c3-87d455dfe415",
+       "body": {
+        "proposalId": "prop-5070fb3b-3f9d-4966-bd27-df3b5f6255ac",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9984,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4993,
+          "solveMs": 4974,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378695,
+         "overtimeMinutes": 0,
+         "variance": "0.1201126694101508916323731138545954",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3088414814814814814814814814814815",
+         "loadBalance": "2450640.000000"
+        },
+        "costCeilingCents": 386268,
+        "proposed": {
+         "costCents": 386231,
+         "overtimeMinutes": 0,
+         "variance": "0.03046460356652949245541838134430727",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1455437037037037037037037037037037",
+         "loadBalance": "1234190.000000"
+        },
+        "profile": {
+         "thread": "daily-457aec9d-9275-4921-a157-db77587d3ee0",
+         "recordings": {
+          "FAIRNESS": "prop-5070fb3b-3f9d-4966-bd27-df3b5f6255ac-FAIRNESS.jfr",
+          "REFERENCE": "prop-5070fb3b-3f9d-4966-bd27-df3b5f6255ac-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9978,
+         "movesPerSecond": 369579
+        },
+        {
+         "timeSpentMs": 4970,
+         "movesPerSecond": 356456
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "47fa9acb-cce4-4d1c-b648-eb642cbba635",
+       "body": {
+        "proposalId": "prop-a1f60ffd-292f-4e27-9f3d-cb883c59d529",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9978,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4995,
+          "solveMs": 4979,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378690,
+         "overtimeMinutes": 0,
+         "variance": "0.1201126694101508916323731138545954",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3088414814814814814814814814814815",
+         "loadBalance": "2450640.000000"
+        },
+        "costCeilingCents": 386263,
+        "proposed": {
+         "costCents": 386220,
+         "overtimeMinutes": 0,
+         "variance": "0.02932393552812071330589849108367627",
+         "maximumUtilization": "0.4629629629629629629629629629629630",
+         "utilizationSpread": "0.4629629629629629629629629629629630",
+         "absoluteDeviation": "0.1488666666666666666666666666666667",
+         "loadBalance": "1210870.000000"
+        },
+        "profile": {
+         "thread": "daily-b5420577-ab6b-4303-82c3-587a31ec674a",
+         "recordings": {
+          "FAIRNESS": "prop-a1f60ffd-292f-4e27-9f3d-cb883c59d529-FAIRNESS.jfr",
+          "REFERENCE": "prop-a1f60ffd-292f-4e27-9f3d-cb883c59d529-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9974,
+         "movesPerSecond": 372670
+        },
+        {
+         "timeSpentMs": 4975,
+         "movesPerSecond": 353814
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "cfbe74fd-4ab4-482b-873d-e10ece37331a",
+       "body": {
+        "proposalId": "prop-d1d7d255-edfe-4d9f-bbc4-cd125d7c3db9",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9971,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4996,
+          "solveMs": 4971,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378695,
+         "overtimeMinutes": 0,
+         "variance": "0.1201126694101508916323731138545954",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3088414814814814814814814814814815",
+         "loadBalance": "2450640.000000"
+        },
+        "costCeilingCents": 386268,
+        "proposed": {
+         "costCents": 386231,
+         "overtimeMinutes": 0,
+         "variance": "0.03046460356652949245541838134430727",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1455437037037037037037037037037037",
+         "loadBalance": "1234190.000000"
+        },
+        "profile": {
+         "thread": "daily-c54067b2-5c9c-484d-a351-aa24272e0ec4",
+         "recordings": {
+          "FAIRNESS": "prop-d1d7d255-edfe-4d9f-bbc4-cd125d7c3db9-FAIRNESS.jfr",
+          "REFERENCE": "prop-d1d7d255-edfe-4d9f-bbc4-cd125d7c3db9-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9966,
+         "movesPerSecond": 369852
+        },
+        {
+         "timeSpentMs": 4967,
+         "movesPerSecond": 348035
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "37fdd152-8064-4323-b6fe-0fee6ffe2b2d",
+       "body": {
+        "proposalId": "prop-b578181a-0f3f-44c8-8041-7b5d752fb7e7",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9966,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4995,
+          "solveMs": 4979,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378695,
+         "overtimeMinutes": 0,
+         "variance": "0.1201126694101508916323731138545954",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3088414814814814814814814814814815",
+         "loadBalance": "2450640.000000"
+        },
+        "costCeilingCents": 386268,
+        "proposed": {
+         "costCents": 386231,
+         "overtimeMinutes": 0,
+         "variance": "0.03046460356652949245541838134430727",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1455437037037037037037037037037037",
+         "loadBalance": "1234190.000000"
+        },
+        "profile": {
+         "thread": "daily-e4d3690b-e62f-4d79-848c-51ae3d0b6544",
+         "recordings": {
+          "FAIRNESS": "prop-b578181a-0f3f-44c8-8041-7b5d752fb7e7-FAIRNESS.jfr",
+          "REFERENCE": "prop-b578181a-0f3f-44c8-8041-7b5d752fb7e7-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9962,
+         "movesPerSecond": 367397
+        },
+        {
+         "timeSpentMs": 4975,
+         "movesPerSecond": 360739
+        }
+       ]
+      }
+     ]
+    },
+    "contractBreaches": [],
+    "hostAnomalies": []
+   }
+  },
+  {
+   "step": 1,
+   "image": "before",
+   "commit": "dcbdca6fc78cdaf062493cd51a41e3b6950b9262",
+   "fleet": 50,
+   "seed": 2,
+   "planners": 1,
+   "mode": "sync",
+   "proposals": 4,
+   "report": {
+    "label": "step1-before-dcbdca6fc78c-50t-seed2-sync1",
+    "scenario": "daily",
+    "scheduler": "http://127.0.0.1:18080",
+    "metroId": "metro-omaha",
+    "timeZone": "America/Chicago",
+    "points": "area 41.22,-96.05,41.28,-95.95",
+    "run": "load-905c9fd3",
+    "startedAt": "2026-10-21T21:15:13.216Z",
+    "finishedAt": "2026-10-21T21:16:23.623Z",
+    "settings": {
+     "durationS": 3600,
+     "concurrency": 1,
+     "dailyConcurrency": null,
+     "technicians": 10,
+     "appointmentsPerDay": 3,
+     "horizonDates": 5,
+     "dailyTechnicians": 50,
+     "horizon": {
+      "mode": "fixed",
+      "weekdays": null,
+      "leadWeekdays": null,
+      "fullPercent": null,
+      "bookedWeekdays": 0,
+      "bookedAppointments": null
+     },
+     "dailyMode": "sync",
+     "dailyProposals": 4,
+     "jobs": "cold",
+     "confirmRate": 0.3,
+     "offerLimit": 4,
+     "windowHours": 2,
+     "policy": {
+      "fairnessBudget": "0.02",
+      "dailySearch": "TABU_KOPT",
+      "costSearchSeconds": 10,
+      "fairnessSearchSeconds": 5,
+      "bookingDeadlineMs": 5000,
+      "regularWindowThreshold": 2
+     },
+     "seed": 2,
+     "dateSpread": false
+    },
+    "machine": {
+     "cpus": 24,
+     "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+     "memoryBytes": 67870916608,
+     "node": "v22.20.0"
+    },
+    "operations": [
+     {
+      "operation": "daily proposal",
+      "calls": 4,
+      "statuses": {
+       "201": 4
+      },
+      "errors": {},
+      "reasons": {},
+      "retriedBusy": 0,
+      "ms": {
+       "p50": 17895,
+       "p95": 18285,
+       "p99": 18285,
+       "max": 18285,
+       "mean": 17599
+      }
+     }
+    ],
+    "booking": null,
+    "daily": {
+     "proposals": 4,
+     "decisions": {
+      "IMPROVED": 4
+     },
+     "queueWaitsMs": []
+    },
+    "server": {
+     "operations": [
+      {
+       "uri": "/api/v1/daily/proposals",
+       "method": "POST",
+       "status": "201",
+       "calls": 4,
+       "meanMs": 17596
+      }
+     ],
+     "admissionRejections": 0,
+     "routingPairs": 0,
+     "routingLegRequests": 0,
+     "routingIdentityRequests": 10,
+     "processCpu": {
+      "mean": 0.5667823129251699,
+      "max": 1
+     },
+     "heapUsedMaxBytes": 269223056
+    },
+    "metricFailures": 0,
+    "containers": [
+     {
+      "name": "scheduler-vm-scheduler-daily-1",
+      "cpuPercent": {
+       "mean": 109.04545454545455,
+       "max": 131.71
+      },
+      "memoryMaxBytes": 571369062.4
+     },
+     {
+      "name": "waterflex-scheduler-java-routing-service-1",
+      "cpuPercent": {
+       "mean": 0.5118181818181818,
+       "max": 3.86
+      },
+      "memoryMaxBytes": 582483968
+     }
+    ],
+    "serverBreakdown": {
+     "POST /api/v1/daily/proposals 201": {
+      "calls": 4,
+      "elapsedMs": {
+       "p50": 17890,
+       "p95": 18278,
+       "mean": 17594
+      },
+      "attributed": 4,
+      "queueMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "routingMs": {
+       "p50": 137,
+       "p95": 1662,
+       "mean": 509
+      },
+      "calculationMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "dbMs": {
+       "p50": 0,
+       "p95": 1006,
+       "mean": 252
+      },
+      "dbCalls": {
+       "p50": 0,
+       "p95": 314,
+       "mean": 79
+      },
+      "routingPairs": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "cacheHits": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "fetched": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "commitMs": null,
+      "cpuMs": {
+       "p50": 183,
+       "p95": 575,
+       "mean": 277
+      }
+     }
+    },
+    "serverLog": [
+     {
+      "container": "scheduler-vm-scheduler-daily-1",
+      "apiLines": 4
+     }
+    ],
+    "study": {
+     "summary": {
+      "receipts": 4,
+      "decisions": {
+       "ACCEPTED": 4
+      },
+      "phases": [
+       {
+        "phase": "REFERENCE",
+        "runs": 4,
+        "solveMs": {
+         "p50": 9972,
+         "p95": 9981,
+         "mean": 9958
+        },
+        "movesPerSecond": {
+         "p50": 301460,
+         "p95": 306504,
+         "mean": 292246
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       },
+       {
+        "phase": "FAIRNESS",
+        "runs": 4,
+        "solveMs": {
+         "p50": 4957,
+         "p95": 4973,
+         "mean": 4962
+        },
+        "movesPerSecond": {
+         "p50": 285688,
+         "p95": 293511,
+         "mean": 287525
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       }
+      ],
+      "unpairedSpeeds": 0,
+      "profiled": 4,
+      "referenceCostCents": 378760,
+      "proposedCostCents": 386118,
+      "referenceVariance": "0.1195084554183813443072702331961591",
+      "proposedVariance": "0.03137050205761316872427983539094650",
+      "referenceMaximumUtilization": "0.9314814814814814814814814814814815",
+      "proposedMaximumUtilization": "0.4629629629629629629629629629629630",
+      "unmeasured": {}
+     },
+     "receipts": [
+      {
+       "tenant": "loadtest",
+       "requestId": "dc508d73-78c4-46c1-a244-d8ccd3259366",
+       "body": {
+        "proposalId": "prop-fe94446d-45c0-49dd-aaf8-ea7193dfdec4",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9901,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4989,
+          "solveMs": 4955,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378801,
+         "overtimeMinutes": 0,
+         "variance": "0.1201797860082304526748971193415638",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3089274074074074074074074074074074",
+         "loadBalance": "2451320"
+        },
+        "costCeilingCents": 386377,
+        "proposed": {
+         "costCents": 386088,
+         "overtimeMinutes": 0,
+         "variance": "0.03323545816186556927297668038408779",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1565718518518518518518518518518518",
+         "loadBalance": "1289100"
+        },
+        "profile": {
+         "thread": "daily-a2acde30-848f-4ad6-abb7-62aee25cacbe",
+         "recordings": {
+          "FAIRNESS": "prop-fe94446d-45c0-49dd-aaf8-ea7193dfdec4-FAIRNESS.jfr",
+          "REFERENCE": "prop-fe94446d-45c0-49dd-aaf8-ea7193dfdec4-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9828,
+         "movesPerSecond": 256586
+        },
+        {
+         "timeSpentMs": 4947,
+         "movesPerSecond": 279627
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "091a1510-0a81-41f6-9040-820361cbb9c1",
+       "body": {
+        "proposalId": "prop-da892ec1-4bbd-4184-9786-2d6e6b3009e8",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9972,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4988,
+          "solveMs": 4957,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378760,
+         "overtimeMinutes": 0,
+         "variance": "0.1195084554183813443072702331961591",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3089274074074074074074074074074074",
+         "loadBalance": "2444470"
+        },
+        "costCeilingCents": 386335,
+        "proposed": {
+         "costCents": 386159,
+         "overtimeMinutes": 0,
+         "variance": "0.03137050205761316872427983539094650",
+         "maximumUtilization": "0.4629629629629629629629629629629630",
+         "utilizationSpread": "0.4629629629629629629629629629629630",
+         "absoluteDeviation": "0.1565511111111111111111111111111111",
+         "loadBalance": "1252410"
+        },
+        "profile": {
+         "thread": "daily-cc789fee-6d1c-4dab-b022-17eb9cb8bfc8",
+         "recordings": {
+          "FAIRNESS": "prop-da892ec1-4bbd-4184-9786-2d6e6b3009e8-FAIRNESS.jfr",
+          "REFERENCE": "prop-da892ec1-4bbd-4184-9786-2d6e6b3009e8-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9966,
+         "movesPerSecond": 304433
+        },
+        {
+         "timeSpentMs": 4951,
+         "movesPerSecond": 293511
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "e4769db2-36c5-4b27-95e5-43341aaa6946",
+       "body": {
+        "proposalId": "prop-6256ee21-8266-4106-8c33-2876c2f34463",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9981,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4988,
+          "solveMs": 4962,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378760,
+         "overtimeMinutes": 0,
+         "variance": "0.1195084554183813443072702331961591",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3089274074074074074074074074074074",
+         "loadBalance": "2444470"
+        },
+        "costCeilingCents": 386335,
+        "proposed": {
+         "costCents": 386159,
+         "overtimeMinutes": 0,
+         "variance": "0.03137050205761316872427983539094650",
+         "maximumUtilization": "0.4629629629629629629629629629629630",
+         "utilizationSpread": "0.4629629629629629629629629629629630",
+         "absoluteDeviation": "0.1565511111111111111111111111111111",
+         "loadBalance": "1252410"
+        },
+        "profile": {
+         "thread": "daily-77ace21c-4b7a-41aa-87ef-432e32ceeeea",
+         "recordings": {
+          "FAIRNESS": "prop-6256ee21-8266-4106-8c33-2876c2f34463-FAIRNESS.jfr",
+          "REFERENCE": "prop-6256ee21-8266-4106-8c33-2876c2f34463-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9976,
+         "movesPerSecond": 306504
+        },
+        {
+         "timeSpentMs": 4959,
+         "movesPerSecond": 291273
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "9143f9d3-8462-4b25-bfde-455ec475d4dd",
+       "body": {
+        "proposalId": "prop-84fa1d2e-efc5-4ae4-a55a-4178d9fccd4d",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9979,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4997,
+          "solveMs": 4973,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 378760,
+         "overtimeMinutes": 0,
+         "variance": "0.1195084554183813443072702331961591",
+         "maximumUtilization": "0.9314814814814814814814814814814815",
+         "utilizationSpread": "0.9314814814814814814814814814814815",
+         "absoluteDeviation": "0.3089274074074074074074074074074074",
+         "loadBalance": "2444470"
+        },
+        "costCeilingCents": 386335,
+        "proposed": {
+         "costCents": 386118,
+         "overtimeMinutes": 0,
+         "variance": "0.03137667489711934156378600823045268",
+         "maximumUtilization": "0.4629629629629629629629629629629630",
+         "utilizationSpread": "0.4629629629629629629629629629629630",
+         "absoluteDeviation": "0.1565511111111111111111111111111111",
+         "loadBalance": "1252530"
+        },
+        "profile": {
+         "thread": "daily-e389c1e0-11a4-432d-bbde-0f8b585d73f4",
+         "recordings": {
+          "FAIRNESS": "prop-84fa1d2e-efc5-4ae4-a55a-4178d9fccd4d-FAIRNESS.jfr",
+          "REFERENCE": "prop-84fa1d2e-efc5-4ae4-a55a-4178d9fccd4d-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9977,
+         "movesPerSecond": 301460
+        },
+        {
+         "timeSpentMs": 4969,
+         "movesPerSecond": 285688
+        }
+       ]
+      }
+     ]
+    },
+    "contractBreaches": [],
+    "hostAnomalies": []
+   }
+  },
+  {
+   "step": 1,
+   "image": "before",
+   "commit": "dcbdca6fc78cdaf062493cd51a41e3b6950b9262",
+   "fleet": 50,
+   "seed": 3,
+   "planners": 1,
+   "mode": "sync",
+   "proposals": 4,
+   "report": {
+    "label": "step1-before-dcbdca6fc78c-50t-seed3-sync1",
+    "scenario": "daily",
+    "scheduler": "http://127.0.0.1:18080",
+    "metroId": "metro-omaha",
+    "timeZone": "America/Chicago",
+    "points": "area 41.22,-96.05,41.28,-95.95",
+    "run": "load-c89a7ce2",
+    "startedAt": "2026-10-21T21:16:29.861Z",
+    "finishedAt": "2026-10-21T21:17:37.878Z",
+    "settings": {
+     "durationS": 3600,
+     "concurrency": 1,
+     "dailyConcurrency": null,
+     "technicians": 10,
+     "appointmentsPerDay": 3,
+     "horizonDates": 5,
+     "dailyTechnicians": 50,
+     "horizon": {
+      "mode": "fixed",
+      "weekdays": null,
+      "leadWeekdays": null,
+      "fullPercent": null,
+      "bookedWeekdays": 0,
+      "bookedAppointments": null
+     },
+     "dailyMode": "sync",
+     "dailyProposals": 4,
+     "jobs": "cold",
+     "confirmRate": 0.3,
+     "offerLimit": 4,
+     "windowHours": 2,
+     "policy": {
+      "fairnessBudget": "0.02",
+      "dailySearch": "TABU_KOPT",
+      "costSearchSeconds": 10,
+      "fairnessSearchSeconds": 5,
+      "bookingDeadlineMs": 5000,
+      "regularWindowThreshold": 2
+     },
+     "seed": 3,
+     "dateSpread": false
+    },
+    "machine": {
+     "cpus": 24,
+     "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+     "memoryBytes": 67870916608,
+     "node": "v22.20.0"
+    },
+    "operations": [
+     {
+      "operation": "daily proposal",
+      "calls": 4,
+      "statuses": {
+       "201": 4
+      },
+      "errors": {},
+      "reasons": {},
+      "retriedBusy": 0,
+      "ms": {
+       "p50": 16517,
+       "p95": 17627,
+       "p99": 17627,
+       "max": 17627,
+       "mean": 17001
+      }
+     }
+    ],
+    "booking": null,
+    "daily": {
+     "proposals": 4,
+     "decisions": {
+      "IMPROVED": 4
+     },
+     "queueWaitsMs": []
+    },
+    "server": {
+     "operations": [
+      {
+       "uri": "/api/v1/daily/proposals",
+       "method": "POST",
+       "status": "201",
+       "calls": 4,
+       "meanMs": 16997
+      }
+     ],
+     "admissionRejections": 0,
+     "routingPairs": 0,
+     "routingLegRequests": 0,
+     "routingIdentityRequests": 8,
+     "processCpu": {
+      "mean": 0.5054236694677872,
+      "max": 0.5975
+     },
+     "heapUsedMaxBytes": 265255584
+    },
+    "metricFailures": 0,
+    "containers": [
+     {
+      "name": "scheduler-vm-scheduler-daily-1",
+      "cpuPercent": {
+       "mean": 91.50818181818182,
+       "max": 133.6
+      },
+      "memoryMaxBytes": 575039078.4
+     },
+     {
+      "name": "waterflex-scheduler-java-routing-service-1",
+      "cpuPercent": {
+       "mean": 0.68,
+       "max": 3.11
+      },
+      "memoryMaxBytes": 583742259.2
+     }
+    ],
+    "serverBreakdown": {
+     "POST /api/v1/daily/proposals 201": {
+      "calls": 4,
+      "elapsedMs": {
+       "p50": 16512,
+       "p95": 17623,
+       "mean": 16996
+      },
+      "attributed": 4,
+      "queueMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "routingMs": {
+       "p50": 93,
+       "p95": 1423,
+       "mean": 430
+      },
+      "calculationMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "dbMs": {
+       "p50": 0,
+       "p95": 1020,
+       "mean": 255
+      },
+      "dbCalls": {
+       "p50": 0,
+       "p95": 314,
+       "mean": 79
+      },
+      "routingPairs": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "cacheHits": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "fetched": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "commitMs": null,
+      "cpuMs": {
+       "p50": 143,
+       "p95": 308,
+       "mean": 184
+      }
+     }
+    },
+    "serverLog": [
+     {
+      "container": "scheduler-vm-scheduler-daily-1",
+      "apiLines": 4
+     }
+    ],
+    "study": {
+     "summary": {
+      "receipts": 4,
+      "decisions": {
+       "ACCEPTED": 4
+      },
+      "phases": [
+       {
+        "phase": "REFERENCE",
+        "runs": 4,
+        "solveMs": {
+         "p50": 9975,
+         "p95": 9990,
+         "mean": 9978
+        },
+        "movesPerSecond": {
+         "p50": 306593,
+         "p95": 315822,
+         "mean": 308546
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       },
+       {
+        "phase": "FAIRNESS",
+        "runs": 4,
+        "solveMs": {
+         "p50": 4971,
+         "p95": 4976,
+         "mean": 4973
+        },
+        "movesPerSecond": {
+         "p50": 299117,
+         "p95": 303859,
+         "mean": 300512
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       }
+      ],
+      "unpairedSpeeds": 0,
+      "profiled": 4,
+      "referenceCostCents": 379715,
+      "proposedCostCents": 387213,
+      "referenceVariance": "0.1115169218106995884773662551440329",
+      "proposedVariance": "0.02656949382716049382716049382716049",
+      "referenceMaximumUtilization": "0.9240740740740740740740740740740741",
+      "proposedMaximumUtilization": "0.4666666666666666666666666666666667",
+      "unmeasured": {}
+     },
+     "receipts": [
+      {
+       "tenant": "loadtest",
+       "requestId": "137a220b-9f7d-4071-911e-5e8597c93042",
+       "body": {
+        "proposalId": "prop-536eaa77-53bf-44f7-b7ab-6c8e7bcbb1c3",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9990,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4988,
+          "solveMs": 4971,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379496,
+         "overtimeMinutes": 0,
+         "variance": "0.1097826131687242798353909465020576",
+         "maximumUtilization": "0.9240740740740740740740740740740741",
+         "utilizationSpread": "0.9240740740740740740740740740740741",
+         "absoluteDeviation": "0.2982074074074074074074074074074074",
+         "loadBalance": "2342890"
+        },
+        "costCeilingCents": 387085,
+        "proposed": {
+         "costCents": 387068,
+         "overtimeMinutes": 0,
+         "variance": "0.02459712482853223593964334705075446",
+         "maximumUtilization": "0.4648148148148148148148148148148148",
+         "utilizationSpread": "0.4648148148148148148148148148148148",
+         "absoluteDeviation": "0.1233807407407407407407407407407408",
+         "loadBalance": "1108990"
+        },
+        "profile": {
+         "thread": "daily-c213fc0b-650e-4a6e-8371-ee82cf82a4bd",
+         "recordings": {
+          "FAIRNESS": "prop-536eaa77-53bf-44f7-b7ab-6c8e7bcbb1c3-FAIRNESS.jfr",
+          "REFERENCE": "prop-536eaa77-53bf-44f7-b7ab-6c8e7bcbb1c3-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9986,
+         "movesPerSecond": 315822
+        },
+        {
+         "timeSpentMs": 4967,
+         "movesPerSecond": 303600
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "f1249664-e8bc-407d-8594-c2443068c39e",
+       "body": {
+        "proposalId": "prop-abc1a2c2-6c4e-4073-a29e-11a341dbebe4",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9977,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4996,
+          "solveMs": 4974,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379742,
+         "overtimeMinutes": 0,
+         "variance": "0.1120617777777777777777777777777778",
+         "maximumUtilization": "0.9240740740740740740740740740740741",
+         "utilizationSpread": "0.9240740740740740740740740740740741",
+         "absoluteDeviation": "0.2983318518518518518518518518518519",
+         "loadBalance": "2367080"
+        },
+        "costCeilingCents": 387336,
+        "proposed": {
+         "costCents": 387213,
+         "overtimeMinutes": 0,
+         "variance": "0.02899856790123456790123456790123457",
+         "maximumUtilization": "0.4666666666666666666666666666666667",
+         "utilizationSpread": "0.4666666666666666666666666666666667",
+         "absoluteDeviation": "0.1456385185185185185185185185185185",
+         "loadBalance": "1204130"
+        },
+        "profile": {
+         "thread": "daily-2d39f912-d522-4446-ba6d-3284100797ec",
+         "recordings": {
+          "FAIRNESS": "prop-abc1a2c2-6c4e-4073-a29e-11a341dbebe4-FAIRNESS.jfr",
+          "REFERENCE": "prop-abc1a2c2-6c4e-4073-a29e-11a341dbebe4-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9971,
+         "movesPerSecond": 301297
+        },
+        {
+         "timeSpentMs": 4969,
+         "movesPerSecond": 299117
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "4258169b-9378-4c4d-9034-0a81e66e94af",
+       "body": {
+        "proposalId": "prop-3849707b-4b71-461d-92b7-8d7f1c55a76f",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9971,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4997,
+          "solveMs": 4976,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379715,
+         "overtimeMinutes": 0,
+         "variance": "0.1115169218106995884773662551440329",
+         "maximumUtilization": "0.9240740740740740740740740740740741",
+         "utilizationSpread": "0.9240740740740740740740740740740741",
+         "absoluteDeviation": "0.2983318518518518518518518518518519",
+         "loadBalance": "2361320"
+        },
+        "costCeilingCents": 387309,
+        "proposed": {
+         "costCents": 387248,
+         "overtimeMinutes": 0,
+         "variance": "0.02656949382716049382716049382716049",
+         "maximumUtilization": "0.4666666666666666666666666666666667",
+         "utilizationSpread": "0.4666666666666666666666666666666667",
+         "absoluteDeviation": "0.1345244444444444444444444444444444",
+         "loadBalance": "1152590"
+        },
+        "profile": {
+         "thread": "daily-52f25dfe-4fb7-4b4c-a2f4-ce07beddec7b",
+         "recordings": {
+          "FAIRNESS": "prop-3849707b-4b71-461d-92b7-8d7f1c55a76f-FAIRNESS.jfr",
+          "REFERENCE": "prop-3849707b-4b71-461d-92b7-8d7f1c55a76f-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9968,
+         "movesPerSecond": 310470
+        },
+        {
+         "timeSpentMs": 4972,
+         "movesPerSecond": 295472
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "7300fc6f-b626-4813-bf9e-37b6d2b9938f",
+       "body": {
+        "proposalId": "prop-f5114e69-08bb-4346-b744-9e6a3158b8d0",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9975,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4994,
+          "solveMs": 4970,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379725,
+         "overtimeMinutes": 0,
+         "variance": "0.1115169218106995884773662551440329",
+         "maximumUtilization": "0.9240740740740740740740740740740741",
+         "utilizationSpread": "0.9240740740740740740740740740740741",
+         "absoluteDeviation": "0.2983318518518518518518518518518519",
+         "loadBalance": "2361320"
+        },
+        "costCeilingCents": 387319,
+        "proposed": {
+         "costCents": 387282,
+         "overtimeMinutes": 0,
+         "variance": "0.02741048559670781893004115226337449",
+         "maximumUtilization": "0.4666666666666666666666666666666667",
+         "utilizationSpread": "0.4666666666666666666666666666666667",
+         "absoluteDeviation": "0.1419377777777777777777777777777778",
+         "loadBalance": "1170690"
+        },
+        "profile": {
+         "thread": "daily-9508b892-fa71-4603-a40c-aef50ea0f946",
+         "recordings": {
+          "FAIRNESS": "prop-f5114e69-08bb-4346-b744-9e6a3158b8d0-FAIRNESS.jfr",
+          "REFERENCE": "prop-f5114e69-08bb-4346-b744-9e6a3158b8d0-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9971,
+         "movesPerSecond": 306593
+        },
+        {
+         "timeSpentMs": 4966,
+         "movesPerSecond": 303859
+        }
+       ]
+      }
+     ]
+    },
+    "contractBreaches": [],
+    "hostAnomalies": []
+   }
+  },
+  {
+   "step": 1,
+   "image": "after",
+   "commit": "4e2a5fc70c35583686ae065049d7e8745b6b4013",
+   "fleet": 50,
+   "seed": 3,
+   "planners": 1,
+   "mode": "sync",
+   "proposals": 4,
+   "report": {
+    "label": "step1-after-4e2a5fc70c35-50t-seed3-sync1",
+    "scenario": "daily",
+    "scheduler": "http://127.0.0.1:18080",
+    "metroId": "metro-omaha",
+    "timeZone": "America/Chicago",
+    "points": "area 41.22,-96.05,41.28,-95.95",
+    "run": "load-18e60216",
+    "startedAt": "2026-10-21T21:17:57.897Z",
+    "finishedAt": "2026-10-21T21:19:05.633Z",
+    "settings": {
+     "durationS": 3600,
+     "concurrency": 1,
+     "dailyConcurrency": null,
+     "technicians": 10,
+     "appointmentsPerDay": 3,
+     "horizonDates": 5,
+     "dailyTechnicians": 50,
+     "horizon": {
+      "mode": "fixed",
+      "weekdays": null,
+      "leadWeekdays": null,
+      "fullPercent": null,
+      "bookedWeekdays": 0,
+      "bookedAppointments": null
+     },
+     "dailyMode": "sync",
+     "dailyProposals": 4,
+     "jobs": "cold",
+     "confirmRate": 0.3,
+     "offerLimit": 4,
+     "windowHours": 2,
+     "policy": {
+      "fairnessBudget": "0.02",
+      "dailySearch": "TABU_KOPT",
+      "costSearchSeconds": 10,
+      "fairnessSearchSeconds": 5,
+      "bookingDeadlineMs": 5000,
+      "regularWindowThreshold": 2
+     },
+     "seed": 3,
+     "dateSpread": false
+    },
+    "machine": {
+     "cpus": 24,
+     "cpuModel": "AMD Ryzen 9 7900X 12-Core Processor            ",
+     "memoryBytes": 67870916608,
+     "node": "v22.20.0"
+    },
+    "operations": [
+     {
+      "operation": "daily proposal",
+      "calls": 4,
+      "statuses": {
+       "201": 4
+      },
+      "errors": {},
+      "reasons": {},
+      "retriedBusy": 0,
+      "ms": {
+       "p50": 16426,
+       "p95": 18501,
+       "p99": 18501,
+       "max": 18501,
+       "mean": 16931
+      }
+     }
+    ],
+    "booking": null,
+    "daily": {
+     "proposals": 4,
+     "decisions": {
+      "IMPROVED": 4
+     },
+     "queueWaitsMs": []
+    },
+    "server": {
+     "operations": [
+      {
+       "uri": "/api/v1/daily/proposals",
+       "method": "POST",
+       "status": "201",
+       "calls": 4,
+       "meanMs": 16928
+      }
+     ],
+     "admissionRejections": 0,
+     "routingPairs": 0,
+     "routingLegRequests": 0,
+     "routingIdentityRequests": 10,
+     "processCpu": {
+      "mean": 0.5735959383753501,
+      "max": 1
+     },
+     "heapUsedMaxBytes": 338351840
+    },
+    "metricFailures": 0,
+    "containers": [
+     {
+      "name": "scheduler-vm-scheduler-daily-1",
+      "cpuPercent": {
+       "mean": 107.69363636363637,
+       "max": 156.32
+      },
+      "memoryMaxBytes": 686922137.6
+     },
+     {
+      "name": "waterflex-scheduler-java-routing-service-1",
+      "cpuPercent": {
+       "mean": 0.6936363636363637,
+       "max": 2.88
+      },
+      "memoryMaxBytes": 584056832
+     }
+    ],
+    "serverBreakdown": {
+     "POST /api/v1/daily/proposals 201": {
+      "calls": 4,
+      "elapsedMs": {
+       "p50": 16421,
+       "p95": 18495,
+       "mean": 16926
+      },
+      "attributed": 4,
+      "queueMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "routingMs": {
+       "p50": 120,
+       "p95": 1649,
+       "mean": 511
+      },
+      "calculationMs": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "dbMs": {
+       "p50": 0,
+       "p95": 1029,
+       "mean": 257
+      },
+      "dbCalls": {
+       "p50": 0,
+       "p95": 314,
+       "mean": 79
+      },
+      "routingPairs": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "cacheHits": {
+       "p50": 40000,
+       "p95": 40000,
+       "mean": 40000
+      },
+      "fetched": {
+       "p50": 0,
+       "p95": 0,
+       "mean": 0
+      },
+      "commitMs": null,
+      "cpuMs": {
+       "p50": 169,
+       "p95": 594,
+       "mean": 285
+      }
+     }
+    },
+    "serverLog": [
+     {
+      "container": "scheduler-vm-scheduler-daily-1",
+      "apiLines": 4
+     }
+    ],
+    "study": {
+     "summary": {
+      "receipts": 4,
+      "decisions": {
+       "ACCEPTED": 4
+      },
+      "phases": [
+       {
+        "phase": "REFERENCE",
+        "runs": 4,
+        "solveMs": {
+         "p50": 9940,
+         "p95": 9973,
+         "mean": 9951
+        },
+        "movesPerSecond": {
+         "p50": 357838,
+         "p95": 369960,
+         "mean": 359492
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       },
+       {
+        "phase": "FAIRNESS",
+        "runs": 4,
+        "solveMs": {
+         "p50": 4966,
+         "p95": 4972,
+         "mean": 4965
+        },
+        "movesPerSecond": {
+         "p50": 356602,
+         "p95": 362530,
+         "mean": 356447
+        },
+        "terminations": {
+         "TERMINATED_EARLY": 4
+        }
+       }
+      ],
+      "unpairedSpeeds": 0,
+      "profiled": 4,
+      "referenceCostCents": 379023,
+      "proposedCostCents": 386442,
+      "referenceVariance": "0.1106386131687242798353909465020576",
+      "proposedVariance": "0.02845920987654320987654320987654321",
+      "referenceMaximumUtilization": "0.9240740740740740740740740740740741",
+      "proposedMaximumUtilization": "0.4666666666666666666666666666666667",
+      "unmeasured": {}
+     },
+     "receipts": [
+      {
+       "tenant": "loadtest",
+       "requestId": "34b7ddff-c5ec-4b46-a44e-d669cee4f0ec",
+       "body": {
+        "proposalId": "prop-fd245204-5cc3-4b5f-a567-26be9a473c1e",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9920,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4987,
+          "solveMs": 4951,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379125,
+         "overtimeMinutes": 0,
+         "variance": "0.1106386131687242798353909465020576",
+         "maximumUtilization": "0.9240740740740740740740740740740741",
+         "utilizationSpread": "0.9240740740740740740740740740740741",
+         "absoluteDeviation": "0.2980429629629629629629629629629630",
+         "loadBalance": "2352010.000000"
+        },
+        "costCeilingCents": 386707,
+        "proposed": {
+         "costCents": 386684,
+         "overtimeMinutes": 0,
+         "variance": "0.02769739506172839506172839506172840",
+         "maximumUtilization": "0.4666666666666666666666666666666667",
+         "utilizationSpread": "0.4666666666666666666666666666666667",
+         "absoluteDeviation": "0.1416266666666666666666666666666667",
+         "loadBalance": "1176810.000000"
+        },
+        "profile": {
+         "thread": "daily-df7daf66-8eda-452f-aa3a-eea236d45730",
+         "recordings": {
+          "FAIRNESS": "prop-fd245204-5cc3-4b5f-a567-26be9a473c1e-FAIRNESS.jfr",
+          "REFERENCE": "prop-fd245204-5cc3-4b5f-a567-26be9a473c1e-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9855,
+         "movesPerSecond": 340909
+        },
+        {
+         "timeSpentMs": 4943,
+         "movesPerSecond": 347345
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "c95375fc-2281-4a4b-b4da-910e1c1745b8",
+       "body": {
+        "proposalId": "prop-fbad1dc4-a7a4-434c-8c13-8d0749b2073b",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9972,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4989,
+          "solveMs": 4966,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379034,
+         "overtimeMinutes": 0,
+         "variance": "0.1105778449931412894375857338820302",
+         "maximumUtilization": "0.9240740740740740740740740740740741",
+         "utilizationSpread": "0.9240740740740740740740740740740741",
+         "absoluteDeviation": "0.2979600000000000000000000000000000",
+         "loadBalance": "2351360.000000"
+        },
+        "costCeilingCents": 386614,
+        "proposed": {
+         "costCents": 386602,
+         "overtimeMinutes": 0,
+         "variance": "0.02947668038408779149519890260631001",
+         "maximumUtilization": "0.4666666666666666666666666666666667",
+         "utilizationSpread": "0.4666666666666666666666666666666667",
+         "absoluteDeviation": "0.1456296296296296296296296296296296",
+         "loadBalance": "1214020.000000"
+        },
+        "profile": {
+         "thread": "daily-fc9c9865-5111-46cd-99b1-0d5a62255352",
+         "recordings": {
+          "FAIRNESS": "prop-fbad1dc4-a7a4-434c-8c13-8d0749b2073b-FAIRNESS.jfr",
+          "REFERENCE": "prop-fbad1dc4-a7a4-434c-8c13-8d0749b2073b-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9952,
+         "movesPerSecond": 357838
+        },
+        {
+         "timeSpentMs": 4963,
+         "movesPerSecond": 356602
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "792872a8-0ede-462b-9d01-d0d46990608d",
+       "body": {
+        "proposalId": "prop-0fa7a5b1-a106-411d-a3ca-8164363d331e",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9973,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4991,
+          "solveMs": 4969,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379023,
+         "overtimeMinutes": 0,
+         "variance": "0.1112626186556927297668038408779150",
+         "maximumUtilization": "0.9259259259259259259259259259259259",
+         "utilizationSpread": "0.9259259259259259259259259259259259",
+         "absoluteDeviation": "0.2979600000000000000000000000000000",
+         "loadBalance": "2358630.000000"
+        },
+        "costCeilingCents": 386603,
+        "proposed": {
+         "costCents": 386442,
+         "overtimeMinutes": 0,
+         "variance": "0.02845920987654320987654320987654321",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1455318518518518518518518518518518",
+         "loadBalance": "1192880.000000"
+        },
+        "profile": {
+         "thread": "daily-dea7877f-39c7-4138-ac48-b26f5733842d",
+         "recordings": {
+          "FAIRNESS": "prop-0fa7a5b1-a106-411d-a3ca-8164363d331e-FAIRNESS.jfr",
+          "REFERENCE": "prop-0fa7a5b1-a106-411d-a3ca-8164363d331e-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9968,
+         "movesPerSecond": 369261
+        },
+        {
+         "timeSpentMs": 4965,
+         "movesPerSecond": 359311
+        }
+       ]
+      },
+      {
+       "tenant": "loadtest",
+       "requestId": "52504761-3124-41f3-b4c1-c131525e1ddd",
+       "body": {
+        "proposalId": "prop-7cddb7f8-0333-4c24-8f0f-c706e5c7eeb9",
+        "serviceDate": "2026-10-23",
+        "variant": "TABU_KOPT",
+        "seed": 17,
+        "technicians": 50,
+        "visits": 150,
+        "phases": [
+         {
+          "name": "REFERENCE",
+          "budgetMs": 10000,
+          "solveMs": 9940,
+          "termination": "TERMINATED_EARLY"
+         },
+         {
+          "name": "FAIRNESS",
+          "budgetMs": 4988,
+          "solveMs": 4972,
+          "termination": "TERMINATED_EARLY"
+         }
+        ],
+        "fairness": "SEARCHED",
+        "accepted": true,
+        "reason": "COST_REDUCTION",
+        "reference": {
+         "costCents": 379023,
+         "overtimeMinutes": 0,
+         "variance": "0.1112626186556927297668038408779150",
+         "maximumUtilization": "0.9259259259259259259259259259259259",
+         "utilizationSpread": "0.9259259259259259259259259259259259",
+         "absoluteDeviation": "0.2979600000000000000000000000000000",
+         "loadBalance": "2358630.000000"
+        },
+        "costCeilingCents": 386603,
+        "proposed": {
+         "costCents": 386442,
+         "overtimeMinutes": 0,
+         "variance": "0.02845920987654320987654320987654321",
+         "maximumUtilization": "0.4685185185185185185185185185185185",
+         "utilizationSpread": "0.4685185185185185185185185185185185",
+         "absoluteDeviation": "0.1455318518518518518518518518518518",
+         "loadBalance": "1192880.000000"
+        },
+        "profile": {
+         "thread": "daily-28c3ea54-cdf8-4272-bd6c-c93dfba4a8be",
+         "recordings": {
+          "FAIRNESS": "prop-7cddb7f8-0333-4c24-8f0f-c706e5c7eeb9-FAIRNESS.jfr",
+          "REFERENCE": "prop-7cddb7f8-0333-4c24-8f0f-c706e5c7eeb9-REFERENCE.jfr"
+         }
+        }
+       },
+       "solves": [
+        {
+         "timeSpentMs": 9935,
+         "movesPerSecond": 369960
+        },
+        {
+         "timeSpentMs": 4969,
+         "movesPerSecond": 362530
+        }
+       ]
+      }
+     ]
+    },
+    "contractBreaches": [],
+    "hostAnomalies": []
+   }
+  }
+ ],
+ "profiles": {
+  "after fairness": {
+   "samples": {
+    "scheduler code": 1933,
+    "collections": 1169,
+    "variance (non-decimal)": 320,
+    "engine": 1402,
+    "other": 82,
+    "score engine": 721
+   },
+   "allocationBytes": {
+    "other": 147363377768,
+    "collections": 34886564456,
+    "score engine": 11611406872,
+    "scheduler code": 28682062456,
+    "engine": 5594926360
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 34.4,
+    "engine": 24.9,
+    "collections": 20.8,
+    "score engine": 12.8,
+    "variance (non-decimal)": 5.7,
+    "other": 1.5
+   },
+   "allocationBytesPercent": {
+    "other": 64.6,
+    "collections": 15.3,
+    "scheduler code": 12.6,
+    "score engine": 5.1,
+    "engine": 2.5
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 18.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 8.0,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.fairnessUnits": 5.4,
+    "java.util.HashMap.getNode": 5.0,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 2.9,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 2.8,
+    "java.util.ImmutableCollections$Set12.contains": 2.8,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 2.7,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.4,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 2.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.bi.BavetScoringBiConstraintStream$$Lambda.0x00000000539b8a68.apply": 2.0,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterListVariableChanged": 2.0,
+    "java.util.ArrayDeque.addLast": 1.5,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x00000000539d24d8.accept": 1.5,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.overtimeDeviation": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.3,
+    "ai.timefold.solver.core.impl.solver.termination.OrCompositeTermination.isPhaseTerminated": 1.3,
+    "ai.timefold.solver.core.impl.domain.variable.VariableSupport.beforeListVariableChanged": 1.3,
+    "java.util.ArrayList.grow": 1.2,
+    "ai.timefold.solver.core.impl.solver.termination.OrCompositeTermination.isSolverTerminated": 1.1
+   },
+   "otherThreadSamples": 1144
+  },
+  "after reference": {
+   "samples": {
+    "other": 196,
+    "collections": 2523,
+    "engine": 3004,
+    "score engine": 1654,
+    "scheduler code": 3710
+   },
+   "allocationBytes": {
+    "other": 37157658584,
+    "collections": 23691797256,
+    "score engine": 27507342000,
+    "scheduler code": 46442259288,
+    "engine": 10804798944
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 33.5,
+    "engine": 27.1,
+    "collections": 22.8,
+    "score engine": 14.9,
+    "other": 1.8
+   },
+   "allocationBytesPercent": {
+    "scheduler code": 31.9,
+    "other": 25.5,
+    "score engine": 18.9,
+    "collections": 16.3,
+    "engine": 7.4
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 20.2,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 5.1,
+    "java.util.HashMap.getNode": 4.8,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 4.7,
+    "java.util.ImmutableCollections$Set12.contains": 4.1,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 3.1,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 3.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.7,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterListVariableChanged": 2.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 2.2,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x00000000539d24d8.accept": 2.1,
+    "ai.timefold.solver.core.impl.score.stream.bavet.bi.BavetScoringBiConstraintStream$$Lambda.0x00000000539b8a68.apply": 2.1,
+    "java.util.HashMap$TreeNode.getTreeNode": 1.7,
+    "java.util.ArrayDeque.addLast": 1.6,
+    "ai.timefold.solver.core.impl.domain.variable.ListVariableStateCarrier.processElementPosition": 1.5,
+    "ai.timefold.solver.core.impl.solver.termination.OrCompositeTermination.isSolverTerminated": 1.3,
+    "ai.timefold.solver.core.impl.heuristic.selector.move.generic.list.ListChangeMoveSelector.lambda$filterPinnedListPlanningVariableValuesWithIndex$0": 1.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.2,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 1.2,
+    "ai.timefold.solver.core.impl.domain.variable.VariableSupport.beforeListVariableChanged": 1.1
+   },
+   "otherThreadSamples": 2303
+  },
+  "after step1 50t fairness": {
+   "samples": {
+    "scheduler code": 1933,
+    "collections": 1169,
+    "variance (non-decimal)": 320,
+    "engine": 1402,
+    "other": 82,
+    "score engine": 721
+   },
+   "allocationBytes": {
+    "other": 147363377768,
+    "collections": 34886564456,
+    "score engine": 11611406872,
+    "scheduler code": 28682062456,
+    "engine": 5594926360
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 34.4,
+    "engine": 24.9,
+    "collections": 20.8,
+    "score engine": 12.8,
+    "variance (non-decimal)": 5.7,
+    "other": 1.5
+   },
+   "allocationBytesPercent": {
+    "other": 64.6,
+    "collections": 15.3,
+    "scheduler code": 12.6,
+    "score engine": 5.1,
+    "engine": 2.5
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 18.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 8.0,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.fairnessUnits": 5.4,
+    "java.util.HashMap.getNode": 5.0,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 2.9,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 2.8,
+    "java.util.ImmutableCollections$Set12.contains": 2.8,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 2.7,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.4,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 2.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.bi.BavetScoringBiConstraintStream$$Lambda.0x00000000539b8a68.apply": 2.0,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterListVariableChanged": 2.0,
+    "java.util.ArrayDeque.addLast": 1.5,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x00000000539d24d8.accept": 1.5,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.overtimeDeviation": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.3,
+    "ai.timefold.solver.core.impl.solver.termination.OrCompositeTermination.isPhaseTerminated": 1.3,
+    "ai.timefold.solver.core.impl.domain.variable.VariableSupport.beforeListVariableChanged": 1.3,
+    "java.util.ArrayList.grow": 1.2,
+    "ai.timefold.solver.core.impl.solver.termination.OrCompositeTermination.isSolverTerminated": 1.1
+   },
+   "otherThreadSamples": 1144
+  },
+  "after step1 50t reference": {
+   "samples": {
+    "other": 196,
+    "collections": 2523,
+    "engine": 3004,
+    "score engine": 1654,
+    "scheduler code": 3710
+   },
+   "allocationBytes": {
+    "other": 37157658584,
+    "collections": 23691797256,
+    "score engine": 27507342000,
+    "scheduler code": 46442259288,
+    "engine": 10804798944
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 33.5,
+    "engine": 27.1,
+    "collections": 22.8,
+    "score engine": 14.9,
+    "other": 1.8
+   },
+   "allocationBytesPercent": {
+    "scheduler code": 31.9,
+    "other": 25.5,
+    "score engine": 18.9,
+    "collections": 16.3,
+    "engine": 7.4
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 20.2,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 5.1,
+    "java.util.HashMap.getNode": 4.8,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 4.7,
+    "java.util.ImmutableCollections$Set12.contains": 4.1,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniLongImpactHandler.impactNaked": 3.1,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 3.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.7,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterListVariableChanged": 2.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 2.2,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x00000000539d24d8.accept": 2.1,
+    "ai.timefold.solver.core.impl.score.stream.bavet.bi.BavetScoringBiConstraintStream$$Lambda.0x00000000539b8a68.apply": 2.1,
+    "java.util.HashMap$TreeNode.getTreeNode": 1.7,
+    "java.util.ArrayDeque.addLast": 1.6,
+    "ai.timefold.solver.core.impl.domain.variable.ListVariableStateCarrier.processElementPosition": 1.5,
+    "ai.timefold.solver.core.impl.solver.termination.OrCompositeTermination.isSolverTerminated": 1.3,
+    "ai.timefold.solver.core.impl.heuristic.selector.move.generic.list.ListChangeMoveSelector.lambda$filterPinnedListPlanningVariableValuesWithIndex$0": 1.2,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.2,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 1.2,
+    "ai.timefold.solver.core.impl.domain.variable.VariableSupport.beforeListVariableChanged": 1.1
+   },
+   "otherThreadSamples": 2303
+  },
+  "before fairness": {
+   "samples": {
+    "other": 282,
+    "collections": 834,
+    "scheduler code": 1468,
+    "decimal: money": 349,
+    "variance (non-decimal)": 260,
+    "engine": 1217,
+    "decimal: score impacts": 586,
+    "score engine": 560
+   },
+   "allocationBytes": {
+    "other": 132317171192,
+    "collections": 70091929944,
+    "engine": 4696438424,
+    "scheduler code": 21044344800,
+    "decimal: score impacts": 19636160792,
+    "decimal: money": 21373909600,
+    "score engine": 1441800624
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 26.4,
+    "engine": 21.9,
+    "collections": 15.0,
+    "decimal: score impacts": 10.5,
+    "score engine": 10.1,
+    "decimal: money": 6.3,
+    "other": 5.1,
+    "variance (non-decimal)": 4.7
+   },
+   "allocationBytesPercent": {
+    "other": 48.9,
+    "collections": 25.9,
+    "decimal: money": 7.9,
+    "scheduler code": 7.8,
+    "decimal: score impacts": 7.3,
+    "engine": 1.7,
+    "score engine": 0.5
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 11.0,
+    "java.math.BigDecimal.multiply": 5.8,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 5.1,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 5.0,
+    "dev.waterflex.scheduler.optimizer.PlanVisit.roadNumber": 4.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.fairnessUnits": 4.5,
+    "java.math.BigDecimal.add": 4.0,
+    "java.util.HashMap.get": 2.6,
+    "org.springframework.boot.loader.net.protocol.jar.JarFileUrlKey.equals": 2.4,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniBigDecimalImpactHandler.impactNaked": 2.2,
+    "java.util.ImmutableCollections$Set12.contains": 2.2,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 2.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.0,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 1.9,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.9,
+    "java.math.BigDecimal.valueOf": 1.9,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.5,
+    "java.util.ArrayDeque.addLast": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000004d9d7168.accept": 1.4,
+    "java.lang.StringLatin1.regionMatchesCI": 1.2
+   },
+   "otherThreadSamples": 843
+  },
+  "before reference": {
+   "samples": {
+    "scheduler code": 3011,
+    "other": 547,
+    "collections": 1999,
+    "engine": 2490,
+    "decimal: score impacts": 1068,
+    "score engine": 1305,
+    "decimal: money": 618,
+    "time": 1
+   },
+   "allocationBytes": {
+    "other": 25068682160,
+    "collections": 20020549256,
+    "decimal: score impacts": 43863958064,
+    "decimal: money": 31314664992,
+    "engine": 10304764728,
+    "scheduler code": 39546421928,
+    "score engine": 2519882064
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 27.3,
+    "engine": 22.6,
+    "collections": 18.1,
+    "score engine": 11.8,
+    "decimal: score impacts": 9.7,
+    "decimal: money": 5.6,
+    "other": 5.0,
+    "time": 0.0
+   },
+   "allocationBytesPercent": {
+    "decimal: score impacts": 25.4,
+    "scheduler code": 22.9,
+    "decimal: money": 18.1,
+    "other": 14.5,
+    "collections": 11.6,
+    "engine": 6.0,
+    "score engine": 1.5
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 13.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 6.1,
+    "java.math.BigDecimal.multiply": 5.2,
+    "dev.waterflex.scheduler.optimizer.PlanVisit.roadNumber": 4.4,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 3.8,
+    "java.util.ImmutableCollections$Set12.contains": 3.4,
+    "java.math.BigDecimal.add": 3.1,
+    "java.util.HashMap.get": 2.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 2.9,
+    "org.springframework.boot.loader.net.protocol.jar.JarFileUrlKey.equals": 2.7,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 2.3,
+    "java.math.BigDecimal.valueOf": 2.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.1,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000004d9d7168.accept": 1.8,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniBigDecimalImpactHandler.impactNaked": 1.7,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.4,
+    "java.util.IdentityHashMap.get": 1.3,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.3,
+    "java.util.ArrayDeque.addLast": 1.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.impact": 1.2
+   },
+   "otherThreadSamples": 1813
+  },
+  "before step1 50t fairness": {
+   "samples": {
+    "other": 282,
+    "collections": 834,
+    "scheduler code": 1468,
+    "decimal: money": 349,
+    "variance (non-decimal)": 260,
+    "engine": 1217,
+    "decimal: score impacts": 586,
+    "score engine": 560
+   },
+   "allocationBytes": {
+    "other": 132317171192,
+    "collections": 70091929944,
+    "engine": 4696438424,
+    "scheduler code": 21044344800,
+    "decimal: score impacts": 19636160792,
+    "decimal: money": 21373909600,
+    "score engine": 1441800624
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 26.4,
+    "engine": 21.9,
+    "collections": 15.0,
+    "decimal: score impacts": 10.5,
+    "score engine": 10.1,
+    "decimal: money": 6.3,
+    "other": 5.1,
+    "variance (non-decimal)": 4.7
+   },
+   "allocationBytesPercent": {
+    "other": 48.9,
+    "collections": 25.9,
+    "decimal: money": 7.9,
+    "scheduler code": 7.8,
+    "decimal: score impacts": 7.3,
+    "engine": 1.7,
+    "score engine": 0.5
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 11.0,
+    "java.math.BigDecimal.multiply": 5.8,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 5.1,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 5.0,
+    "dev.waterflex.scheduler.optimizer.PlanVisit.roadNumber": 4.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.fairnessUnits": 4.5,
+    "java.math.BigDecimal.add": 4.0,
+    "java.util.HashMap.get": 2.6,
+    "org.springframework.boot.loader.net.protocol.jar.JarFileUrlKey.equals": 2.4,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniBigDecimalImpactHandler.impactNaked": 2.2,
+    "java.util.ImmutableCollections$Set12.contains": 2.2,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 2.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.0,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 1.9,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.9,
+    "java.math.BigDecimal.valueOf": 1.9,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.5,
+    "java.util.ArrayDeque.addLast": 1.4,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000004d9d7168.accept": 1.4,
+    "java.lang.StringLatin1.regionMatchesCI": 1.2
+   },
+   "otherThreadSamples": 843
+  },
+  "before step1 50t reference": {
+   "samples": {
+    "scheduler code": 3011,
+    "other": 547,
+    "collections": 1999,
+    "engine": 2490,
+    "decimal: score impacts": 1068,
+    "score engine": 1305,
+    "decimal: money": 618,
+    "time": 1
+   },
+   "allocationBytes": {
+    "other": 25068682160,
+    "collections": 20020549256,
+    "decimal: score impacts": 43863958064,
+    "decimal: money": 31314664992,
+    "engine": 10304764728,
+    "scheduler code": 39546421928,
+    "score engine": 2519882064
+   },
+   "withoutStack": 0,
+   "recordings": 12,
+   "samplesPercent": {
+    "scheduler code": 27.3,
+    "engine": 22.6,
+    "collections": 18.1,
+    "score engine": 11.8,
+    "decimal: score impacts": 9.7,
+    "decimal: money": 5.6,
+    "other": 5.0,
+    "time": 0.0
+   },
+   "allocationBytesPercent": {
+    "decimal: score impacts": 25.4,
+    "scheduler code": 22.9,
+    "decimal: money": 18.1,
+    "other": 14.5,
+    "collections": 11.6,
+    "engine": 6.0,
+    "score engine": 1.5
+   },
+   "leafFramesPercent": {
+    "dev.waterflex.scheduler.optimizer.RouteTimingSearch.segments": 13.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.update": 6.1,
+    "java.math.BigDecimal.multiply": 5.2,
+    "dev.waterflex.scheduler.optimizer.PlanVisit.roadNumber": 4.4,
+    "dev.waterflex.scheduler.optimizer.RouteTimeline.evaluate": 3.8,
+    "java.util.ImmutableCollections$Set12.contains": 3.4,
+    "java.math.BigDecimal.add": 3.1,
+    "java.util.HashMap.get": 2.9,
+    "dev.waterflex.scheduler.optimizer.RouteScoringFacts.cost": 2.9,
+    "org.springframework.boot.loader.net.protocol.jar.JarFileUrlKey.equals": 2.7,
+    "ai.timefold.solver.core.impl.score.director.stream.BavetConstraintStreamScoreDirector.afterVariableChanged": 2.3,
+    "java.math.BigDecimal.valueOf": 2.1,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.AggregatedTupleLifecycle.update": 2.1,
+    "ai.timefold.solver.core.impl.bavet.common.StaticPropagationQueue$$Lambda.0x000000004d9d7168.accept": 1.8,
+    "ai.timefold.solver.core.impl.score.stream.bavet.uni.UniBigDecimalImpactHandler.impactNaked": 1.7,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleLifecycle.lambda$conditionally$1": 1.4,
+    "java.util.IdentityHashMap.get": 1.3,
+    "ai.timefold.solver.core.impl.bavet.common.tuple.TupleList.next": 1.3,
+    "java.util.ArrayDeque.addLast": 1.3,
+    "ai.timefold.solver.core.impl.score.stream.bavet.common.Scorer.impact": 1.2
+   },
+   "otherThreadSamples": 1813
+  }
+ }
+}

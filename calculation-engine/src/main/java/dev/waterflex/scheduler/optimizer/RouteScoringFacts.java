@@ -32,7 +32,7 @@ public record RouteScoringFacts(PlanFacts facts, @Nullable Target target) {
             RouteTimeline.Result route = item.metrics();
             paid = Math.addExact(paid, route.paidMinutes()); overtime = Math.addExact(overtime, route.overtimeMinutes()); meters = Math.addExact(meters, route.meters());
         }
-        return Monetary.cents(paid, overtime, meters, facts.regularHourly(), facts.overtimeHourly(), facts.mileagePerMile());
+        return Monetary.cents(paid, overtime, meters, facts.rates());
     }
     /** Units of the fairness objective per one of variance: the numeric contract's 1e-9 resolution (docs/scheduler-policy.md). */
     static final long FAIRNESS_UNITS = 1_000_000_000L;

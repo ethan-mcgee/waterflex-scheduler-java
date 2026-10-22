@@ -4,7 +4,6 @@ import dev.waterflex.scheduler.Required;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import java.time.Instant;
 import java.time.Duration;
-import java.math.BigDecimal;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,7 +39,7 @@ class DailyConstructionTest {
         assertEquals(List.of("v0", "v1"), impossible.outcome().unassignedVisitIds());
         assertTrue(impossible.outcome().assignedWorkFeasible()); assertFalse(impossible.outcome().policyEligible());
         assertFalse(RouteEvaluator.evaluate(impossible.plan()).feasible());
-        assertEquals(-2, Required.value(impossible.plan().getScore()).hardScore(DayScores.UNASSIGNED).intValueExact());
+        assertEquals(-2, Required.value(impossible.plan().getScore()).hardScore(DayScores.UNASSIGNED));
     }
     @Test void coldAndPartialConstructionPreserveFactsDemandAndPinnedPrefix() {
         for (int assigned : new int[]{0, 1}) {
@@ -91,8 +90,8 @@ class DailyConstructionTest {
             var result = solve(plan); coverage(result, 1);
             assertEquals(List.of("v0"), result.outcome().unassignedVisitIds());
             assertTrue(result.outcome().assignedWorkFeasible()); assertFalse(result.outcome().policyEligible());
-            assertEquals(0, Required.value(result.plan().getScore()).hardScore(DayScores.CATEGORICAL).signum());
-            assertEquals(-1, Required.value(result.plan().getScore()).hardScore(DayScores.UNASSIGNED).intValueExact());
+            assertEquals(0, Required.value(result.plan().getScore()).hardScore(DayScores.CATEGORICAL));
+            assertEquals(-1, Required.value(result.plan().getScore()).hardScore(DayScores.UNASSIGNED));
         }
     }
     @Test void quantitativeCapacityAndAvailabilityViolationsHaveAnImprovementDirection() {
@@ -136,7 +135,7 @@ class DailyConstructionTest {
         for (int higher = 0; higher < 4; higher++)
             assertTrue(DayScores.hard(higher).negate().compareTo(DayScores.hard(higher + 1).multiply(-1_000_000)) < 0);
         reference.setScoringFacts(target); SolutionManager.create(SolverEngine.configuration(SolverEngine.Variant.TABU, 17).factory()).update(reference);
-        assertEquals(0, Required.value(reference.getScore()).hardScore(DayScores.OVERTIME_TARGET).compareTo(BigDecimal.ZERO));
+        assertEquals(0, Required.value(reference.getScore()).hardScore(DayScores.OVERTIME_TARGET));
     }
     @Test void nullableOriginalPairsAreValidatedBeforeUse() {
         assertThrows(IllegalArgumentException.class, () -> new DayPlan(Required.value(List.of()),
