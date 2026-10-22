@@ -38,6 +38,55 @@ class RouteTimelineTest {
         }
     }
 
+    /**
+     * Past 2262 a long cannot count the epoch's nanoseconds, so the visit and route have no precomputed times and the
+     * search reads the instants: the day scores exactly as the same day in 2026 does, as only offsets enter the timing.
+     */
+    @Test void aDayPastALongsEpochNanosecondsScoresAsTheSameDayWithin() {
+        DayPlan within = intervalChoicePlan(), beyond = intervalChoicePlan("2300-09-21");
+        TechRoute far = Required.value(beyond.getRoutes().getFirst());
+        assertNull(RouteTimeline.epochNanos(far.getShiftStart()));
+        assertNull(far.clock().origin());
+        for (PlanVisit visit : far.getVisits()) assertNull(visit.times(), visit.getId());
+        TechRoute near = Required.value(within.getRoutes().getFirst());
+        assertNotNull(near.clock().origin());
+        for (PlanVisit visit : near.getVisits()) assertNotNull(visit.times(), visit.getId());
+        for (boolean withArrivals : List.of(false, true)) {
+            var expected = RouteTimeline.evaluate(within.getFacts(), near, withArrivals);
+            var actual = RouteTimeline.evaluate(beyond.getFacts(), far, withArrivals);
+            assertEquals(expected.violations(), actual.violations());
+            assertEquals(List.of(expected.paidMinutes(), expected.overtimeMinutes(), expected.driveMinutes(), expected.waitingMinutes(), expected.meters()),
+                    List.of(actual.paidMinutes(), actual.overtimeMinutes(), actual.driveMinutes(), actual.waitingMinutes(), actual.meters()));
+            assertEquals(expected.arrivals().size(), actual.arrivals().size());
+            for (var arrival : expected.arrivals().entrySet()) {
+                Instant shifted = Required.value(actual.arrivals().get(arrival.getKey()));
+                assertEquals(RouteTimeline.offset(near.getShiftStart(), Required.value(arrival.getValue())), RouteTimeline.offset(far.getShiftStart(), shifted));
+            }
+        }
+    }
+
+    /** A visit's nanosecond times are made by its constructor; a route's clock is derived per call until it is frozen, then made once. */
+    @Test void timingLongsAreMadeOnceFromFactsThatNoLongerChange() {
+        Instant start = at("09:00:00.25"), end = at("15:00:00");
+        PlanVisit visit = new PlanVisit("visit", "service", start, end, 45, null, null);
+        PlanVisit.Times times = Required.value(visit.times());
+        assertEquals(List.of(start.getEpochSecond() * 1_000_000_000L + start.getNano(), end.getEpochSecond() * 1_000_000_000L, 45 * 60 * 1_000_000_000L),
+                List.of(times.windowStart(), times.windowEnd(), times.duration()));
+        assertSame(times, visit.times());
+
+        TechRoute route = new TechRoute("home", at("09:00:00"), at("17:00:00"), 480, 0, Required.value(Set.of("service")));
+        assertEquals(1, route.clock().blocks().size());
+        assertNotSame(route.clock(), route.clock());
+        // An absence added before the freeze reaches the clock, as no clock is kept until then.
+        route.getUnavailable().add(new TechRoute.Unavailable(at("11:00:00"), at("12:00:00")));
+        assertEquals(2, route.clock().blocks().size());
+        route.freeze();
+        TechRoute.Clock clock = route.clock();
+        assertSame(clock, route.clock());
+        assertEquals(List.of(new RouteTimingSearch.Block(0, RouteTimeline.nanos(120)), new RouteTimingSearch.Block(RouteTimeline.nanos(180), RouteTimeline.nanos(480))), clock.blocks());
+        assertEquals(List.of(Required.value(RouteTimeline.epochNanos(at("09:00:00"))), RouteTimeline.nanos(480)), List.of(Required.value(clock.origin()), clock.shiftEnd()));
+    }
+
     /** A route and its visits keep their road numbers for the revision that gave them: scored under another, they resolve again. */
     @Test void roadNumbersFollowTheRevisionTheyAreScoredAgainst() {
         DayPlan day = intervalChoicePlan();
@@ -66,6 +115,12 @@ class RouteTimelineTest {
         assertEquals(-1, route.roadNumber(roadless.getFacts()));
         for (PlanVisit visit : route.getVisits()) assertEquals(-1, visit.roadNumber(roadless.getFacts()), visit.getId());
         assertEquals(3, RouteTimeline.evaluate(roadless.getFacts(), route, false).violations().unavailableRoads());
+        // A kept -1 reads back as -1 (the number's sign survives the packed cache), and a matrix with roads resolves again.
+        for (PlanVisit visit : route.getVisits()) {
+            assertEquals(-1, visit.roadNumber(roadless.getFacts()), visit.getId());
+            assertEquals(day.getFacts().roads().number(visit.getId()), visit.roadNumber(day.getFacts()), visit.getId());
+        }
+        assertNotEquals(day.getFacts().roads().serial(), roadless.getFacts().roads().serial());
     }
 
     /** The long offset readings are Duration's own, on spans with nanoseconds and on negative spans, where floor and truncation differ. */
@@ -123,11 +178,12 @@ class RouteTimelineTest {
         assertEquals(20, result.overtimeMinutes());
     }
 
-    private static DayPlan intervalChoicePlan() {
-        TechRoute route = new TechRoute("home", at("09:00:00"), at("17:00:00"), 150, 0, Required.value(Set.of("service")));
-        route.getUnavailable().add(new TechRoute.Unavailable(at("11:00:00"), at("12:00:00")));
-        PlanVisit first = new PlanVisit("first", "service", at("09:00:00"), at("15:00:00"), 60, "home", at("09:00:00"));
-        PlanVisit second = new PlanVisit("second", "service", at("13:00:00"), at("15:00:00"), 60, "home", at("13:00:00"));
+    private static DayPlan intervalChoicePlan() { return intervalChoicePlan("2026-09-21"); }
+    private static DayPlan intervalChoicePlan(String date) {
+        TechRoute route = new TechRoute("home", on(date, "09:00:00"), on(date, "17:00:00"), 150, 0, Required.value(Set.of("service")));
+        route.getUnavailable().add(new TechRoute.Unavailable(on(date, "11:00:00"), on(date, "12:00:00")));
+        PlanVisit first = new PlanVisit("first", "service", on(date, "09:00:00"), on(date, "15:00:00"), 60, "home", on(date, "09:00:00"));
+        PlanVisit second = new PlanVisit("second", "service", on(date, "13:00:00"), on(date, "15:00:00"), 60, "home", on(date, "13:00:00"));
         route.getVisits().addAll(Required.value(List.of(first, second)));
         Map<String, DayPlan.RoadLeg> matrix = new HashMap<>();
         for (String from : List.of("home", "first", "second")) for (String to : List.of("first", "second", "home:return"))
@@ -139,6 +195,7 @@ class RouteTimelineTest {
         return new DayPlan(day.getRoutes(), day.getVisits(), roads, day.getRegularHourly(), day.getOvertimeHourly(), day.getMileagePerMile(), day.getTravelBufferPct(), day.getTravelBufferMinutes());
     }
     private static Instant at(String value) { return Required.value(Instant.parse("2026-09-21T" + value + "Z")); }
+    private static Instant on(String date, String time) { return Required.value(Instant.parse(date + "T" + time + "Z")); }
 
     private static DayPlan plan(int maxDaily, Instant absenceStart, Instant absenceEnd) {
         TechRoute route = new TechRoute("home", at("13:00:00"), at("22:00:00"), maxDaily, 60, Required.value(Set.of("service")));

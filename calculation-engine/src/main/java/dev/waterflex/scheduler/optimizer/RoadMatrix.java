@@ -7,6 +7,7 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -22,6 +23,9 @@ final class RoadMatrix extends AbstractMap<String, DayPlan.RoadLeg> {
     record Leg(long seconds, long meters, long bufferedMinutes) { }
     /** Identity numbers and the two leg tables: onward to a visit, homeward to a technician's return endpoint. */
     private record Index(Map<String, Integer> numbers, @Nullable Leg[][] onward, @Nullable Leg[][] homeward) { }
+    private static final AtomicInteger SERIALS = new AtomicInteger();
+    /** Unique among this JVM's matrices and never 0, so an entity can key a cached number by it inside one long. */
+    private final int serial;
     private final Map<String, DayPlan.RoadLeg> legs;
     private final BigDecimal travelBufferPct;
     private final long travelBufferMinutes;
@@ -29,7 +33,12 @@ final class RoadMatrix extends AbstractMap<String, DayPlan.RoadLeg> {
 
     private RoadMatrix(Map<String, DayPlan.RoadLeg> legs, BigDecimal travelBufferPct, long travelBufferMinutes) {
         this.legs = legs; this.travelBufferPct = travelBufferPct; this.travelBufferMinutes = travelBufferMinutes;
+        serial = SERIALS.incrementAndGet();
+        // Past 2^31 matrices the counter would wrap and two matrices could share a serial; refuse rather than reuse one.
+        PlanFacts.check(serial > 0, "road matrix serials exhausted");
     }
+
+    int serial() { return serial; }
 
     /** Wraps these roads under this travel buffer; a matrix already wrapped under the same buffer is returned as it is. */
     static RoadMatrix of(Map<String, DayPlan.RoadLeg> roads, BigDecimal travelBufferPct, long travelBufferMinutes) {

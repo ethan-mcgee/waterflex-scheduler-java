@@ -310,3 +310,28 @@ Next, in order:
 These are aggregate modeled reference costs and unweighted means of per-dataset capacity-weighted utilization variances after acceptance. Each individual case still uses the required overtime target and its own 2 percent ceiling. All three retained variants ended with zero overtime in these cases, so this matrix cannot establish a comparative overtime advantage. Tabu also had lower aggregate accepted cost than both alternatives in every seed. Advanced moves did not demonstrate a reason to adopt their added complexity in the initial comparison.
 
 The daily default is now `TABU`, seed 17: single-visit relocation and swaps, entity tabu size 7, accepted-count 1000, selected-count 10000, and the existing combined 15-second budget. It has no production step cap. Every capped comparison stopped both phases at 1000 steps; aggregate elapsed time across 21 cases was 62.7, 78.3 and 80.9 seconds, versus about 315 seconds for the uncapped alternatives. Retain `CURRENT_CAPPED` as an explicit reproducible diagnostic configuration and `CURRENT_UNCAPPED` as a rollback comparison. Set `scheduler.optimizer.seed` deliberately; every preview persists the actual XML, fingerprint and phase termination statistics. Since the Tabu variant study (docs/daily-tabu-variants-5d15129b) the daily method is no longer a service setting: each client chooses `TABU_KOPT` or `TABU`, with its own cost and fairness search seconds, in `Snapshot.policy` (see docs/stateless-api-design.md). Ordinary dispatcher preview/manual apply remains unchanged.
+
+## Shipped representation: L, M, W and A (PR #191, 2026-10-22)
+
+PR #191 makes four representation changes the default. Each scores every plan exactly as before: the five pinned solves of `ScoringExactnessTest` are unchanged.
+
+| Change | What it does | Timefold docs |
+| --- | --- | --- |
+| L | the long `BendableScore`, read as the decimal levels it stands for | 12.2.4, 12.1.10, 15.2.1 |
+| M | long money, with the narrowed rate contract (spec 1.7.0) | 12.1.10, 16.13 |
+| W | each visit keeps its time window in epoch nanoseconds and its duration in nanoseconds, made by its constructor; a route builds its clock and working intervals once, when frozen; a single-interval route builds no array of return points | 16.9, 10.9.6 |
+| A | each visit keeps its road matrix number in one field, with no hop through a separate record | 16.9 |
+
+**Measured in study 3** (2026-10-21; 13 frozen trees, 60 cases, 3 repetitions, 2,340 solves with no violation; the evidence and report are on the local branch `bench/study-3`). Each value is the median of 180 paired moves-per-second ratios, cost phase / fairness phase:
+
+| Row | Median | Status |
+| --- | --- | --- |
+| L+M over main | 1.288x / 1.264x | gated at 1.05x, passes |
+| L+M+W over L+M | 1.047x / 1.040x | read only, under 1.05x |
+| W+A over L+M+W | 1.005x / 1.001x | read only, no measurable change |
+| W+A over L+M | 1.051x / 1.043x | derived after the run |
+| W+A over main | 1.342x / 1.312x | derived after the run |
+
+In cost, L+M+W ended cheaper than L+M in 10 of 60 cases and dearer in none. W's cost-phase gain is largest at 30 and 50 technicians (1.051x and 1.061x). The flight recordings place W's saving in the timing search's arithmetic: route evaluation falls from 68.2 to 57.0 samples per million moves, with no other kind of work changing by more than a few samples. CR11's cascade arms (C and AC) were about 0.63x over L+M and are not shipped.
+
+**Owner decision, 2026-10-22.** W and A ship with L and M as the default. This overrides the bar written before the run: W measured under 1.05x, and A measured no change on either base. W is taken for its consistent gain, larger on bigger fleets; A is taken as neutral. The paired ratios are the harness's; the change is verified on the VM rehearsal stack through the public API before it is called shipped (docs/api-load.md).

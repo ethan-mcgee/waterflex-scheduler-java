@@ -19,27 +19,30 @@ final class RouteTimingSearch {
     record Timing(long paid, long overtime, long drive, long waiting, long meters,
             Map<String, Instant> arrivals, long[] departures) { }
     private static final long[] NONE = {};
+    private static final Timing EMPTY = new Timing(0, 0, 0, 0, 0, Required.value(Map.of()), NONE);
     private RouteTimingSearch() { }
 
-    static @Nullable Timing solve(PlanFacts facts, TechRoute route, Instant origin, List<Block> blocks, boolean withArrivals) {
-        Timing empty = new Timing(0, 0, 0, 0, 0, Required.value(Map.of()), NONE);
+    static @Nullable Timing solve(PlanFacts facts, TechRoute route, Instant origin, TechRoute.Clock clock, boolean withArrivals) {
+        List<Block> blocks = clock.blocks();
         int count = route.getVisits().size();
-        if (count == 0) return empty;
+        if (count == 0) return EMPTY;
         if (blocks.isEmpty()) return null;
         if (blocks.size() == 1) {
-            Timing timing = segments(facts, route, origin, Required.value(blocks.getFirst()), 0, false, withArrivals)[count];
+            // One interval: only the complete route is read, so no array of every return point is made.
+            Timing timing = segments(facts, route, origin, clock, Required.value(blocks.getFirst()), 0, null, withArrivals);
             return timing != null && within(route, timing) ? timing : null;
         }
         // The non-dominated timings by the number of visits they cover, walked in ascending order as a sorted map would be.
         List<List<Timing>> frontier = states(count);
-        Required.value(frontier.getFirst()).add(empty);
+        Required.value(frontier.getFirst()).add(EMPTY);
         for (int interval = 0; interval < blocks.size(); interval++) {
             List<List<Timing>> next = states(count);
             for (int first = 0; first <= count; first++) {
                 List<Timing> prefixes = Required.value(frontier.get(first));
                 if (prefixes.isEmpty()) continue;
                 for (Timing prefix : prefixes) retain(next, first, Required.value(prefix), facts);
-                @Nullable Timing[] options = segments(facts, route, origin, Required.value(blocks.get(interval)), first, true, withArrivals);
+                @Nullable Timing[] options = new @Nullable Timing[count + 1];
+                segments(facts, route, origin, clock, Required.value(blocks.get(interval)), first, options, withArrivals);
                 for (int end = first + 1; end <= count; end++) {
                     Timing part = options[end];
                     if (part == null) continue;
@@ -62,16 +65,21 @@ final class RouteTimingSearch {
     }
 
     /**
-     * Reuse forward timing/resource prefixes for every possible return point in this interval: cell {@code end} holds
-     * the timing that returns after the visit before {@code end}, or null where none fits.
+     * Reuse forward timing/resource prefixes for every possible return point in this interval: with {@code options},
+     * cell {@code end} receives the timing that returns after the visit before {@code end}, or stays null where none
+     * fits. Without it only the complete route's timing is made, and returned (null where none fits).
      */
-    private static @Nullable Timing[] segments(PlanFacts facts, TechRoute route, Instant origin, Block block, int first, boolean everyEnd, boolean withArrivals) {
+    private static @Nullable Timing segments(PlanFacts facts, TechRoute route, Instant origin, TechRoute.Clock clock, Block block, int first,
+            @Nullable Timing @Nullable [] options, boolean withArrivals) {
         RoadMatrix roads = facts.roads();
-        @Nullable Timing[] options = new @Nullable Timing[route.getVisits().size() + 1];
+        boolean everyEnd = options != null;
+        @Nullable Timing complete = null;
         // Arrival bookkeeping exists only for a caller that reads arrivals; the timing itself never depends on it.
         Map<String, Long> arrivals = withArrivals ? new LinkedHashMap<>() : Required.value(Map.of());
         Map<String, Long> cumulativeWaiting = withArrivals ? new HashMap<>() : Required.value(Map.of());
-        long shiftEnd = RouteTimeline.offset(origin, route.getShiftEnd());
+        long shiftEnd = clock.shiftEnd();
+        // Window offsets are the visit's epoch nanoseconds less the shift start's: the same exact difference offset takes.
+        @Nullable Long epoch = clock.origin();
         long departure = block.start(), cursor = departure;
         int technician = route.roadNumber(facts), previous = technician;
         long drive = 0, waiting = 0, meters = 0, slack = Long.MAX_VALUE;
@@ -81,7 +89,14 @@ final class RouteTimingSearch {
             RoadMatrix.Leg leg = roads.leg(previous, here);
             if (leg == null) break;
             long travel = leg.bufferedMinutes();
-            long windowStart = RouteTimeline.offset(origin, visit.getWindowStart()), windowEnd = RouteTimeline.offset(origin, visit.getWindowEnd());
+            PlanVisit.Times times = epoch == null ? null : visit.times();
+            long windowStart, windowEnd, duration;
+            if (times != null && epoch != null) {
+                windowStart = Math.subtractExact(times.windowStart(), epoch); windowEnd = Math.subtractExact(times.windowEnd(), epoch); duration = times.duration();
+            } else {
+                windowStart = RouteTimeline.offset(origin, visit.getWindowStart()); windowEnd = RouteTimeline.offset(origin, visit.getWindowEnd());
+                duration = RouteTimeline.nanos(visit.getDurationMinutes());
+            }
             if (index == first) {
                 departure = Math.max(block.start(), Math.subtractExact(windowStart, RouteTimeline.nanos(travel)));
                 cursor = departure;
@@ -89,7 +104,7 @@ final class RouteTimingSearch {
             long reached = Math.addExact(cursor, RouteTimeline.nanos(travel));
             long arrival = Math.max(reached, windowStart);
             if (arrival >= windowEnd) break;
-            cursor = Math.addExact(arrival, RouteTimeline.nanos(visit.getDurationMinutes()));
+            cursor = Math.addExact(arrival, duration);
             if (cursor > block.end()) break;
             waiting += RouteTimeline.minutes(arrival - reached);
             // The latest start inside the window is its end less one nanosecond.
@@ -111,10 +126,12 @@ final class RouteTimingSearch {
                     shifted.put(Required.value(earliest.getKey()), RouteTimeline.instant(origin, Math.addExact(Required.value(earliest.getValue()), RouteTimeline.nanos(postponed))));
                 }
             } else shifted = Required.value(Map.of());
-            options[index + 1] = new Timing(RouteTimeline.minutes(returned - actualDeparture), Math.max(0, RouteTimeline.minutes(returned - Math.max(actualDeparture, shiftEnd))),
+            Timing timing = new Timing(RouteTimeline.minutes(returned - actualDeparture), Math.max(0, RouteTimeline.minutes(returned - Math.max(actualDeparture, shiftEnd))),
                     drive + home.bufferedMinutes(), waiting - delay, meters + home.meters(), shifted, new long[]{actualDeparture});
+            if (options != null) options[index + 1] = timing;
+            else complete = timing;
         }
-        return options;
+        return complete;
     }
 
     private static Timing append(Timing first, Timing second) {
