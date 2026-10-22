@@ -1,24 +1,76 @@
+# Build output
+**/target/
+**/__pycache__/
+*.pyc
+
+# Portal (web/)
 web/node_modules/
-infra/host-conformance/node_modules/
-infra/host-conformance/conformance-report/
 web/.next/
-web/.env
 web/.data/
 web/test-results/
-web/tsconfig.tsbuildinfo
-**/target/
-infra/map-data/
-infra/fixtures/
-optimizer-start.log
-.env
-.env.before-*
 web/playwright-report/
-.scratch/
-**/__pycache__/
-**/artifacts/
-experiments/runs/
-portal-api-tokens.env
-# The scheduler VM rehearsal's local secrets (deploy/vm/rehearsal.override.yml).
-deploy/vm/rehearsal.env
+web/blob-report/
+web/coverage/
+web/tsconfig.tsbuildinfo
 web/next-env.d.ts
 web/public/maplibre/
+
+# Host conformance kit
+infra/host-conformance/node_modules/
+infra/host-conformance/conformance-report/
+
+# Local map and fixture data (maps live in the map-data Docker volume)
+infra/map-data/
+infra/fixtures/
+
+# Secrets. ".env" is unanchored on purpose: it also covers web/.env and deploy/vm/.env.
+.env
+.env.*
+!.env.example
+/portal-api-tokens*.env
+# The scheduler VM rehearsal's local secrets (deploy/vm/rehearsal.override.yml).
+deploy/vm/rehearsal.env
+*.token
+*.pem
+*.key
+
+# Scratch, run output and diagnostics (AGENTS.md, workspace hygiene)
+.scratch/
+/artifacts/
+/experiments/runs/
+# Root only: docs/timefold-audit/evidence/ tracks its logs.
+/*.log
+*.jfr
+*.hprof
+hs_err_pid*.log
+replay_pid*.log
+
+# Agent and tool state
+/HANDOFF.md
+/.claude/settings.local.json
+/.claude/worktrees/
+/.github/modernize/
+
+# IDEs. Keep only the shared settings: the nullability profile reads the jdt prefs.
+.idea/
+*.iml
+.project
+.classpath
+.factorypath
+**/.settings/*
+!/.settings/org.eclipse.jdt.core.prefs
+.vscode/*
+!/.vscode/settings.json
+
+# Python tooling
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# OS, OneDrive and Office lock files
+Thumbs.db
+desktop.ini
+.DS_Store
+~$*

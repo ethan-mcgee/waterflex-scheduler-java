@@ -1,6 +1,31 @@
-.git
-.vscode
+# Allowlist. The repository-root context is used only by the Maven images:
+# scheduler-service, routing-service and solver-service Dockerfiles, built from
+# docker-compose.yml (context "."), deploy/vm/docker-compose.yml (context "../..")
+# and .github/workflows/maintenance.yml. The portal builds from web/ (web/.dockerignore)
+# and map-import from infra/map-import. Anything not re-included below, such as .env,
+# deploy/vm/.env, docs/ and .scratch/, never reaches the Docker daemon.
+*
+
+# Maven wrapper and reactor
+!mvnw
+!.mvn
+!pom.xml
+
+# Modules the Dockerfiles copy (whole directories or their pom.xml)
+!calculation-engine
+!scheduler-service
+!routing-service
+!solver-service
+
+# Local output inside the allowed modules (the last matching rule wins)
 **/target
-web/node_modules
-web/.next
-web/tsconfig.tsbuildinfo
+**/.scratch
+**/__pycache__
+**/.settings
+**/.classpath
+**/.project
+**/.factorypath
+**/*.log
+**/*.jfr
+**/*.hprof
+**/*.jsonl

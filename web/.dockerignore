@@ -1,6 +1,18 @@
 node_modules
 .next
-.env
 .data
+.scratch
 test-results
+playwright-report
+blob-report
+coverage
 tsconfig.tsbuildinfo
+# Regenerated inside the image by next build and the prebuild script.
+next-env.d.ts
+public/maplibre
+.env
+.env.*
+!.env.example
+**/*.log
+Dockerfile
+.dockerignore
