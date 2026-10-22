@@ -1,8 +1,6 @@
 # Scheduling policy, reservations and operations
 
-> The scheduling policy on this page is what the public `/api/v1` calculations apply. The "Interfaces and diagnostics" section is historical: it describes the scheduler's internal booking and optimization endpoints, removed in October 2026 (P7c in [the stateless API design](stateless-api-design.md)); [the integration guide](integration-guide.md) describes the interface that exists. The rollout flags `BOOKING_RESERVATIONS_ENABLED`, `BOOKING_SEARCH_BOUNDED`, `ROUTING_PREWARM_ENABLED` and `SCHEDULER_OPTIMIZER_CRON` no longer exist.
-
-This describes the implemented consolidated policy. Release acceptance and measured limitations are tracked separately in [the original-plan checklist](scheduler-plan-checklist.md), [booking benchmarks](booking-benchmarks.md) and [solver experiments](solver-benchmarks.md). The dispatcher still previews and manually applies optimization proposals. No same-day replanning, paid service migration or automatic dispatch apply is introduced.
+This is the scheduling policy the public `/api/v1` calculations apply. [The integration guide](integration-guide.md) describes the interface, and measured behavior is in [the API load results](api-load.md) and [solver experiments](solver-benchmarks.md). The dispatcher still previews and manually applies optimization proposals. No same-day replanning, paid service migration or automatic dispatch apply is introduced.
 
 Booking always uses common reservation arrangements and the bounded rearrangement search (`booking.search.variant=BOUNDED`, the default); the rollout flags that once gated them were removed. No booking path authorizes new overtime (see below). Daily optimization policy operates independently of booking.
 
@@ -96,16 +94,6 @@ The five-second search budget starts with a validated job/address. Exploratory w
 
 A host cancels a running search, confirm or proposal with `DELETE /api/v1/requests/{requestId}` on the replica running it; the call then answers 409 `CANCELLED` and stores nothing. Publication checks the deadline and cancellation under locks, so a cancelled or expired search never publishes a usable reservation.
 
-## Interfaces and diagnostics (historical)
-
-Existing booking and optimization endpoints are retained. Booking responses include `search.outcome`, prescribed-search completion, elapsed time, retryability and offers. Outcomes distinguish `AVAILABLE`, `SEARCH_INCOMPLETE`, `NO_CANDIDATE_FOUND`, `ROUTING_UNAVAILABLE`, `SCHEDULE_CONFLICT` and `SERVICE_BUSY`. A defined-search miss is not global proof of no capacity. Initial booking, refresh, selection conflicts and the testing page handle these outcomes. Customer inputs remain in place on failure, with retry and an accessible indeterminate progress bar labeled "Finding available appointments".
-
-Internal diagnostics include distinct windows, confirmed utilization, overtime authorization, limits, coverage, pruning, candidates/moves, insertion/rearrangement origin, stop reason, versions, snapshot age, routing/cache measurements, queue time and database/CPU measurements. Locking-statement duration bounds lock wait but does not isolate it. Foreground CPU excludes shared routing workers; provider HTTP counters and process/heap statistics are available only in the guarded benchmark profile. Historical unavailable metrics remain unavailable rather than becoming fabricated zeroes.
-
-Optimization responses retain monetary meanings and add workload/utilization, variance, maximum utilization, overtime, signed cost change, reference cost, cost ceiling, acceptance reason and segment timings. Solver provenance records the configuration XML/fingerprint, fixed seed, phase budgets, steps/moves, time to best and termination. Current configuration uses a ten-second overtime/cost reference phase and the remaining portion of fifteen seconds for fairness. Unused reference time transfers to fairness. No previous solution is reused across changed provenance.
-
-Routing retains the full-matrix endpoint and adds explicit directed sparse pairs with expected identity and per-pair routability. Only missing coordinate/identity pairs are requested; persistent cache operations are batched and concurrent missing-leg work is coalesced. One caller's deadline does not cancel another caller's result. Unreachable roads, provider unavailability and malformed responses remain distinct. There is no straight-line fallback.
-
 ## Configuration
 
 Every policy rule is the client's own and arrives in `Snapshot.policy` with each calculation; the scheduler holds no
@@ -138,5 +126,3 @@ Spring properties can be supplied as command-line arguments or their standard en
 | `spring.datasource.hikari.validation-timeout` | 250 ms |
 
 Start with the default admission capacity (`SCHEDULER_SEARCH_CAPACITY`; the VM compose sets 2) and measure before raising it; [the operations runbook](operations-runbook.md) lists the scaling levers. Budget database connections across scheduler replicas; search admission alone does not bound every replica's idle pool. A configuration or road graph change invalidates stale search and proposal provenance and requires a fresh search or proposal. CH uses a separate graph directory and routing identity; disabling it returns to the original graph artifact, and either switch leaves the route cache cold.
-
-See [benchmark provenance and limitations](booking-benchmarks.md) before interpreting improvements. Experimental ablation artifacts require local isolated `waterflex_test` schemas and must never be deployed. No production data, travel buffers or paid-service dependencies are changed by the verification workflow.

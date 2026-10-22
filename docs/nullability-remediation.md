@@ -2,7 +2,7 @@
 
 ## Scope and warning inventory
 
-This change covers both Java services, portal APIs and components, shared TypeScript libraries, persisted scheduling JSON, JDBC mappings, and scripts. It does not deploy services, audit live customer data, backfill coordinates, or repair live schedules.
+This work covered the Java modules, portal APIs and components, shared TypeScript libraries, persisted scheduling JSON, JDBC mappings, and scripts. It does not deploy services, audit live customer data, backfill coordinates, or repair live schedules.
 
 The supplied pre-implementation audit reported 60 scheduler and one routing ECJ warnings. These were missing contracts and possible dereferences, not 61 confirmed runtime bugs. The warning families and their dispositions are:
 
@@ -15,7 +15,7 @@ The supplied pre-implementation audit reported 60 scheduler and one routing ECJ 
 | Positional query arrays, unchecked report casts, nullable lookups | Named records, SQL-null readers, persisted JSON decoders, checked arrivals and versions | Unit and transactional integration regressions |
 | Legacy method references and generic inference | Explicit types and contracts, checked library results | Actual pinned ECJ checker, with warnings fatal |
 
-The final clean ECJ run has zero unsuppressed source nullability, raw-type, or unchecked-conversion diagnostics. `.vscode/settings.json` and both Maven child modules use `.settings/org.eclipse.jdt.core.prefs` and the same JSpecify annotation names. The Maven nullability profile uses ECJ 3.46.100, matching the compiler embedded in VS Code Java 1.56.0. VS Code Java 1.57.0 embeds a newer JDT whose flow analysis can report dead code that ECJ 3.46.100 does not, for example a statement after a null test of a non-null record component in a compact constructor (seen in the routing service's `MatrixController`, 2026-10-19). The prefs now state `problem.deadCode=warning` explicitly so both compilers treat dead code the same way; when the editor reports a diagnostic the gate does not, fix the code to satisfy both rather than relying on either compiler's version. Null tests on values JSON can still make null go through a helper with a `@Nullable` parameter that returns the accepted value. The remaining editor diagnostics involved method references passed through unannotated Java functional interfaces; explicitly typed lambdas preserve the same comparator, predicate, and mapping behavior while giving ECJ the application null contracts at those boundaries.
+The final clean ECJ run has zero unsuppressed source nullability, raw-type, or unchecked-conversion diagnostics. `.vscode/settings.json` and every Maven module use `.settings/org.eclipse.jdt.core.prefs` and the same JSpecify annotation names. The Maven nullability profile uses ECJ 3.46.100, matching the compiler embedded in VS Code Java 1.56.0. VS Code Java 1.57.0 embeds a newer JDT whose flow analysis can report dead code that ECJ 3.46.100 does not, for example a statement after a null test of a non-null record component in a compact constructor (seen in the routing service's `MatrixController`, 2026-10-19). The prefs now state `problem.deadCode=warning` explicitly so both compilers treat dead code the same way; when the editor reports a diagnostic the gate does not, fix the code to satisfy both rather than relying on either compiler's version. Null tests on values JSON can still make null go through a helper with a `@Nullable` parameter that returns the accepted value. The remaining editor diagnostics involved method references passed through unannotated Java functional interfaces; explicitly typed lambdas preserve the same comparator, predicate, and mapping behavior while giving ECJ the application null contracts at those boundaries.
 
 ## Confirmed failures and behavior changes
 
@@ -51,7 +51,7 @@ Mockito matcher methods return null sentinels that Mockito consumes while config
 
 ## Required gates
 
-Both child modules inherit Spring Boot, so each explicitly configures the `nullability` profile: Maven Compiler 3.15.0, Plexus Eclipse compiler 2.16.2, ECJ 3.46.100, Java 25, and JSpecify 1.0.0. The profile compiles main and test sources with null contracts, raw types, and unchecked conversions enforced. The normal `clean verify` command validates the javac build and tests. The `-Pnullability clean verify` command is the strict ECJ gate that must report zero source nullability, raw-type, and unchecked-conversion diagnostics.
+Every Maven module (calculation-engine, scheduler-service, routing-service, solver-service and the opt-in campaign-benchmark) inherits Spring Boot, so each explicitly configures the `nullability` profile: Maven Compiler 3.16.0, Plexus Eclipse compiler 2.17.1, ECJ 3.46.100, Java 25, and JSpecify 1.0.1. The profile compiles main and test sources with null contracts, raw types, and unchecked conversions enforced. The normal `clean verify` command validates the javac build and tests. The `-Pnullability clean verify` command is the strict ECJ gate that must report zero source nullability, raw-type, and unchecked-conversion diagnostics.
 
 TypeScript retains `strict` and `noUncheckedIndexedAccess`. ESLint explicitly pins parser/plugin 8.70.0 and enforces typed unsafe assignment/call/member-access/return/argument/type-assertion rules and non-null assertions. Application code, libraries, scripts, seeds, browser tests, and test configuration are covered. Generated output and dependencies are excluded.
 
@@ -64,6 +64,7 @@ npm ci
 npm run prisma:generate
 npm run lint
 npm run typecheck
+npm run test:unit
 npm run test:geocode
 npm run test:fake-data
 npm run test:optimization
@@ -90,8 +91,8 @@ Integration verification uses two PostgreSQL 16 databases, as CI does: the porta
 ```powershell
 npm run test:schema-contract
 npm run test:api-booking:integration
-npm run test:optimizer:integration
-npm run test:time-off:integration
+npm run test:api-dispatch:integration
+npm run test:api-repair:integration
 npm run test:booking-tests:integration
 ```
 
@@ -104,8 +105,5 @@ npx playwright install chromium
 npm run test:ui
 ```
 
-CI executes the same gates. Its browser step provisions the isolated schema and Chromium with Linux dependencies. The integration job separately checks reservations, valid zero values, malformed saved data, rollback, optimization apply, absence repair, and interrupted sequential-booking reconciliation.
+CI executes the same gates (see [CI runtime and coverage](ci-runtime.md)). Its browser job provisions the isolated schema and Chromium with Linux dependencies, and its integration jobs run the public API smokes against a fixture routing service.
 
-## Verification record
-
-All 28 Java tests pass. Local Java 25 verification passes with both standard javac and the strict ECJ profile. Portal lint, typecheck, all 35 unit tests, the production build, two Chromium browser tests, schema validation, and all four integration suites pass. The tests include no-downstream-call assertions for malformed input, invalid location with retained holds, null-cache refresh, invalid-preview/report rollback, malformed-journal preservation, and interrupted-run recovery. Fixture routing verifies contracts and scheduling protections; it does not establish performance or road quality against a live Omaha graph.
