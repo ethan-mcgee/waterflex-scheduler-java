@@ -27,3 +27,19 @@ Use Edit dealership to rename an organization. Use Edit details on a depot to ch
 Add a technician on `/technicians` with a depot; their first assignment starts at `1900-01-01`. The dated move control is inside Edit profile and has its own save action. It calls `POST /api/technicians/{id}/depot-assignments` with `{ "depotId": "...", "effectiveDate": "YYYY-MM-DD" }`. Its destination choices use the assignment effective on the proposed move date. The main profile still shows the current assignment and scheduled moves. A depot policy edit calls `PUT /api/depots/{id}/policy`.
 
 Moves stay within one dealership. A same-metro move checks active holds and replans booked routes without changing customer windows. A cross-metro move starts after the last date in the current ten-weekday booking horizon and rejects any booked appointment or active hold on or after the move date. A prior service date keeps its original depot, route policy, and metro. A new optimization preview uses the effective assignment and policy; applying an older preview fails when its configuration fingerprint has changed. Saved before and after geometry keeps its endpoint snapshots.
+
+## Route endpoints
+
+Each depot policy selects `HOME` or `DEPOT` for departure and for return independently, so all four combinations are available, and every technician assigned to the depot uses it. The departure and return legs are separate directed road trips. Every working segment divided by approved time off uses the selected endpoints, and the route's paid time, travel, mileage, daily and overtime limits, booking feasibility, optimization score and dispatch road geometry include those legs. Travel from home to a depot before a depot departure is outside the modeled route. A depot endpoint needs the depot's confirmed pin.
+
+## Technician profiles and weekly availability
+
+`Technician` stores nullable email, phone and bio, legacy home address components, and a required hex color used by the Dispatch Board, Dispatch Map, roster avatars and Weekly Schedule.
+
+Weekly hours are versioned. `technician_availability_version` stores the date a seven-day template takes effect, with seven `technician_availability_day` rows (Sunday through Saturday). Available days need a valid start and end minute; off days store null hours. Missing versions, missing days and invalid available hours are errors, never treated as off days. A date-specific `technician_shift_override` takes precedence over the weekly day.
+
+- `POST /api/technicians` validates profile fields, metro, qualifications, a complete seven-day template and a confirmed geocoder pin, and creates the technician, qualifications and first template in one write.
+- `PATCH /api/technicians/[id]` saves name, nullable contacts, bio and color.
+- `PUT /api/technicians/[id]/standard-availability` validates all seven days, replaces any future version, and schedules the new one for the day after the client's booking horizon (`bookingHorizonWeekdays` weekdays, see `nextTemplateEffectiveDate` in `web/lib/technicianAvailability.ts`), calculated in America/Chicago. It rejects an edit that would invalidate an active appointment or hold.
+
+The portal resolves the effective version and any override for each service date (`resolveWeeklyDay`, called from `web/lib/clientSnapshot.ts`) and sends the resolved hours to the scheduler in the client snapshot. The roster's weekly grid is read only; Edit profile shows the current and pending versions and saves a new one.
