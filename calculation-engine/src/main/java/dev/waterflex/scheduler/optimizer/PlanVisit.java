@@ -21,10 +21,24 @@ public class PlanVisit {
     private @Nullable Instant originalPlannedStart;
     @InverseRelationShadowVariable(sourceVariableName = "visits")
     private @Nullable TechRoute technician;
-    /** This visit's road matrix number under one revision, so scoring reads a field instead of probing the identity map. */
-    private record Numbered(PlanFacts facts, int number) { }
-    // Written once as a whole record, so a reader on another thread sees either nothing or a complete one.
-    private @Nullable Numbered numbered;
+    /**
+     * This visit's road matrix number with the serial of the matrix that gave it, the serial in the high half and the
+     * number in the low half, so scoring reads one field of the visit itself instead of probing the identity map or
+     * following a reference to a separate record; 0 is no number yet (no matrix has serial 0). Volatile keeps the long
+     * whole (JLS 17.7), so a reader on another thread sees either an earlier pair or this one, never half of each.
+     */
+    private volatile long numbered;
+
+    /**
+     * This visit's window as nanoseconds after the epoch and its duration in nanoseconds, so a timing leg subtracts two
+     * longs instead of reading two instants. Computed once, by the constructor that sets the window and duration, which
+     * never change after it. A planning clone is made with the no-arg constructor and then given every field, this one
+     * among them (Timefold docs 10.9.6.1; records are never deep cloned), so it never recomputes. Null when a window end
+     * lies past a long nanosecond count of the epoch (after 2262): the search then reads the instants. The field is not
+     * final because the cloner writes it after construction.
+     */
+    record Times(long windowStart, long windowEnd, long duration) { }
+    private @Nullable Times times;
 
     public PlanVisit() { }
     public PlanVisit(String id, String serviceId, Instant windowStart, Instant windowEnd, int durationMinutes,
@@ -32,6 +46,8 @@ public class PlanVisit {
         this.id = id; this.serviceId = serviceId; this.windowStart = windowStart; this.windowEnd = windowEnd;
         this.durationMinutes = durationMinutes; this.originalTechnicianId = originalTechnicianId;
         this.originalPlannedStart = originalPlannedStart;
+        Long start = RouteTimeline.epochNanos(windowStart), end = RouteTimeline.epochNanos(windowEnd);
+        this.times = start == null || end == null ? null : new Times(start, end, RouteTimeline.nanos(durationMinutes));
     }
     public String getId() { return Required.value(id, "PlanVisit.id before initialization"); }
     PlanFacts.Visit facts() {
@@ -45,12 +61,15 @@ public class PlanVisit {
     public @Nullable Instant getOriginalPlannedStart() { return originalPlannedStart; }
     /** This visit's number in the revision's road matrix, or -1 when no road names it; the identity never changes once set. */
     int roadNumber(PlanFacts facts) {
-        Numbered known = numbered;
-        if (known != null && known.facts() == facts) return known.number();
-        int number = facts.roads().number(getId());
-        numbered = new Numbered(facts, number);
+        RoadMatrix roads = facts.roads();
+        long known = numbered;
+        if ((int) (known >>> 32) == roads.serial()) return (int) known;
+        int number = roads.number(getId());
+        numbered = (long) roads.serial() << 32 | (number & 0xFFFFFFFFL);
         return number;
     }
+    /** These times, or null (see {@link Times}). */
+    @Nullable Times times() { return times; }
     public @Nullable TechRoute getTechnician() { return technician; }
     public void setTechnician(@Nullable TechRoute technician) { this.technician = technician; }
 }
