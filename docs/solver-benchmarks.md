@@ -379,3 +379,30 @@ Also reported, not gated:
 - convergence, the share of each phase's budget spent before its best plan, which shows whether 30 s still leaves the search improving.
 
 The rule informs the owner's decision; the policy change itself is the owner's call. A switch would also be verified on the VM rehearsal stack.
+
+### Results (2026-10-23)
+
+The run took 05:36 to 08:59 UTC: 480 solves and 96 flight recordings, with no violations and no accepted result over its ceiling. Evidence: `docs/evidence/solver-load-balance-2026-10-23.json`. Report: `docs/load-balance-2026-10-23/` (Word, 11 figures, with a loader and verifier that recompute every reading).
+
+| Reading | 15 s | 30 s |
+| --- | --- | --- |
+| Variance, load balance over b (95% interval) | 1.00 (1.00 to 1.00) | 1.00 (1.00 to 1.00) |
+| Days fairer / less fair on the variance | 29 / 35 | 21 / 36 |
+| Days less fair by more than 5% (allowed: 12) | 28 | 26 |
+| Highest utilization, load balance over b | 1.00 | 1.00 |
+| Median cost difference (mean) | +0 c (+23.5 c) | +0 c (+54.2 c) |
+| Moves per second, cost / fairness phase | 0.89x / 0.86x | 0.90x / 0.87x |
+| Same final plan | 55 of 120 days | 61 of 120 days |
+| Meets the rule | No | No |
+
+- **Verdict: load balance does not meet the rule at either budget.** It fails the variance part: its median ratio sits at 1.00 because about half the days end on the same plan, and on the rest it is less fair more often than fairer. The policy stays b.
+- **Mixed Shift is where the two measures part.** Load balance's plans are less fair by the variance (1.04 at 15 s, 1.12 at 30 s) and slightly fairer by its own measure. The likely reason is the weighting: the variance counts a 9-hour technician's gap 2.25 times a 4-hour technician's.
+- **The slower cost phase costs money on large fleets.** The collector runs on every move of both phases (production filters on the target before computing the variance). On about one day in six this leaves a dearer reference plan, and at 50 technicians load balance's final plans average 80 and 207 cents a day more.
+- **The road matrix study, read per case, was 0.93, not 0.58 against 0.74.** Those two were medians against the old decimal production, not against each other.
+- **Next:**
+  - make no policy change;
+  - record the result in `scheduler-policy.md`;
+  - remove `TABU_KOPT_LOAD_BALANCE` and `FairnessMeasures.LoadBalance` from main by file edits;
+  - keep the Mixed Shift fixture.
+
+  If load balance is revisited, filter on the target before the collector, and test a capacity-weighted form.

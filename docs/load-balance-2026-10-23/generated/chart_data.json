@@ -1,0 +1,3896 @@
+{
+ "ratios": {
+  "15000": [
+   {
+    "case": "5 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 0.9945081232742857
+   },
+   {
+    "case": "5 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.1227031827081546
+   },
+   {
+    "case": "5 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.9099452522080107
+   },
+   {
+    "case": "5 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 5.967944924863408
+   },
+   {
+    "case": "5 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 0.5008079350280948
+   },
+   {
+    "case": "10 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 2.518895226230104
+   },
+   {
+    "case": "10 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 0.12534349937467257
+   },
+   {
+    "case": "10 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.0750704096281183
+   },
+   {
+    "case": "10 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 1.8092730490078726
+   },
+   {
+    "case": "10 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 2.3917819671213754
+   },
+   {
+    "case": "10 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.9775030089549726
+   },
+   {
+    "case": "10 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0156134529616236
+   },
+   {
+    "case": "10 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0161244885312661
+   },
+   {
+    "case": "10 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0401073337199835
+   },
+   {
+    "case": "10 Near Capacity 7005",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 0.0
+   },
+   {
+    "case": "10 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 1.0007392623829265
+   },
+   {
+    "case": "20 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 0.9944509862929197
+   },
+   {
+    "case": "20 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 1.6420622805136906
+   },
+   {
+    "case": "20 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.2814605346632568
+   },
+   {
+    "case": "20 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 1.5973777010965757
+   },
+   {
+    "case": "20 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 1.6866144504092229
+   },
+   {
+    "case": "20 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 1.0373272813131784
+   },
+   {
+    "case": "20 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 1.053881284159732
+   },
+   {
+    "case": "20 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.3260081136513344
+   },
+   {
+    "case": "20 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0318581802843494
+   },
+   {
+    "case": "20 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.5641462711978943
+   },
+   {
+    "case": "20 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.979629313606921
+   },
+   {
+    "case": "20 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.6775234949720498
+   },
+   {
+    "case": "20 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 0.9783190331211367
+   },
+   {
+    "case": "20 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 994.3333333333334
+   },
+   {
+    "case": "20 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 902.875
+   },
+   {
+    "case": "20 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 0.4840034828425353
+   },
+   {
+    "case": "20 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.9410221619176844
+   },
+   {
+    "case": "50 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 0.8661816685547241
+   },
+   {
+    "case": "50 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 1.2235507583418948
+   },
+   {
+    "case": "50 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 0.7934089337134428
+   },
+   {
+    "case": "50 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.2195478766843044
+   },
+   {
+    "case": "50 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 1.0186379404726726
+   },
+   {
+    "case": "50 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.3233530605518393
+   },
+   {
+    "case": "50 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 0.993428193647735
+   },
+   {
+    "case": "50 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 0.3451217120405456
+   },
+   {
+    "case": "50 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 0.6118755588397607
+   },
+   {
+    "case": "50 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 0.04777683329167887
+   },
+   {
+    "case": "50 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 0.9639081394424743
+   },
+   {
+    "case": "50 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 0.9994612646629415
+   },
+   {
+    "case": "50 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 2.071733559329585
+   },
+   {
+    "case": "50 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 0.810379721884743
+   },
+   {
+    "case": "50 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 0.9587713564943731
+   },
+   {
+    "case": "50 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.1695750397972953
+   },
+   {
+    "case": "50 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.381449997808425
+   },
+   {
+    "case": "50 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.3586306413006999
+   },
+   {
+    "case": "50 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.9063113974487566
+   },
+   {
+    "case": "50 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0938668858270313
+   },
+   {
+    "case": "50 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.2228260869565217
+   },
+   {
+    "case": "50 Near Capacity 7002",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 0.17253521126760563
+   },
+   {
+    "case": "50 Near Capacity 7003",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 0.7525
+   },
+   {
+    "case": "50 Near Capacity 7004",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 0.7663043478260869
+   },
+   {
+    "case": "50 Near Capacity 7005",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 0.4986449864498645
+   },
+   {
+    "case": "50 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 0.9910608279431758
+   },
+   {
+    "case": "50 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 0.5144124791148926
+   },
+   {
+    "case": "50 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.313403861003861
+   },
+   {
+    "case": "50 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 0.9813762524473109
+   },
+   {
+    "case": "50 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.552209124708188
+   }
+  ],
+  "30000": [
+   {
+    "case": "5 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 0.9945081232742857
+   },
+   {
+    "case": "5 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.1227031827081546
+   },
+   {
+    "case": "5 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.9099452522080107
+   },
+   {
+    "case": "5 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 5.967944924863408
+   },
+   {
+    "case": "5 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "5 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 0.8405054785532943
+   },
+   {
+    "case": "10 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 0.7794960827235748
+   },
+   {
+    "case": "10 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.0183425432048734
+   },
+   {
+    "case": "10 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 2.2340656049007426
+   },
+   {
+    "case": "10 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 0.5229353072424765
+   },
+   {
+    "case": "10 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 2.2861477169626574
+   },
+   {
+    "case": "10 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.018115003496865636
+   },
+   {
+    "case": "10 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0189166112318904
+   },
+   {
+    "case": "10 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.1339264274552783
+   },
+   {
+    "case": "10 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0161244885312661
+   },
+   {
+    "case": "10 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.012827447655279
+   },
+   {
+    "case": "10 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "10 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 1.6642188292005786
+   },
+   {
+    "case": "20 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 1.454807252272232
+   },
+   {
+    "case": "20 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 1.1457017203750584
+   },
+   {
+    "case": "20 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 0.9308305533768559
+   },
+   {
+    "case": "20 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 0.9476062836406629
+   },
+   {
+    "case": "20 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 0.9201785077205215
+   },
+   {
+    "case": "20 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 0.6761912900355376
+   },
+   {
+    "case": "20 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 2.831471858127193
+   },
+   {
+    "case": "20 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 1.4417986015510917
+   },
+   {
+    "case": "20 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.4414345162811293
+   },
+   {
+    "case": "20 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.716234010252121
+   },
+   {
+    "case": "20 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 0.5651875414092681
+   },
+   {
+    "case": "20 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.544279358922363
+   },
+   {
+    "case": "20 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.2536777000777002
+   },
+   {
+    "case": "20 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0043093644884424
+   },
+   {
+    "case": "20 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "20 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0002256266780984
+   },
+   {
+    "case": "50 Absence 7001",
+    "workload": "ABSENCE",
+    "ratio": 0.8560990917779359
+   },
+   {
+    "case": "50 Absence 7002",
+    "workload": "ABSENCE",
+    "ratio": 1.0100385470101716
+   },
+   {
+    "case": "50 Absence 7003",
+    "workload": "ABSENCE",
+    "ratio": 0.9118734601672487
+   },
+   {
+    "case": "50 Absence 7004",
+    "workload": "ABSENCE",
+    "ratio": 1.065023553555477
+   },
+   {
+    "case": "50 Absence 7005",
+    "workload": "ABSENCE",
+    "ratio": 1.0052863994323964
+   },
+   {
+    "case": "50 Clustered 7001",
+    "workload": "CLUSTERED",
+    "ratio": 1.6284522687342213
+   },
+   {
+    "case": "50 Clustered 7002",
+    "workload": "CLUSTERED",
+    "ratio": 1.3183316701359749
+   },
+   {
+    "case": "50 Clustered 7003",
+    "workload": "CLUSTERED",
+    "ratio": 0.6262578265454186
+   },
+   {
+    "case": "50 Clustered 7004",
+    "workload": "CLUSTERED",
+    "ratio": 0.7938720901547981
+   },
+   {
+    "case": "50 Clustered 7005",
+    "workload": "CLUSTERED",
+    "ratio": 0.047807363183794395
+   },
+   {
+    "case": "50 Dispersed 7001",
+    "workload": "DISPERSED",
+    "ratio": 0.787886502602118
+   },
+   {
+    "case": "50 Dispersed 7002",
+    "workload": "DISPERSED",
+    "ratio": 0.884321336638312
+   },
+   {
+    "case": "50 Dispersed 7003",
+    "workload": "DISPERSED",
+    "ratio": 0.39480923436780946
+   },
+   {
+    "case": "50 Dispersed 7004",
+    "workload": "DISPERSED",
+    "ratio": 1.0117772011439685
+   },
+   {
+    "case": "50 Dispersed 7005",
+    "workload": "DISPERSED",
+    "ratio": 0.8594882286670983
+   },
+   {
+    "case": "50 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.0400555110233236
+   },
+   {
+    "case": "50 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.1167187808353978
+   },
+   {
+    "case": "50 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.136038048007557
+   },
+   {
+    "case": "50 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.192634180833595
+   },
+   {
+    "case": "50 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "ratio": 1.2434415950444737
+   },
+   {
+    "case": "50 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.0
+   },
+   {
+    "case": "50 Near Capacity 7002",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.0
+   },
+   {
+    "case": "50 Near Capacity 7003",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 0.3288590604026846
+   },
+   {
+    "case": "50 Near Capacity 7004",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.434782608695652
+   },
+   {
+    "case": "50 Near Capacity 7005",
+    "workload": "NEAR_CAPACITY",
+    "ratio": 1.121212121212121
+   },
+   {
+    "case": "50 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.4790585543251746
+   },
+   {
+    "case": "50 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 2.0181267605633804
+   },
+   {
+    "case": "50 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "50 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.0
+   },
+   {
+    "case": "50 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "ratio": 1.487923050011048
+   }
+  ]
+ },
+ "lean": {
+  "15000": {
+   "variance": {
+    "fairer by more than 5%": 19,
+    "fairer within 5%": 10,
+    "same": 56,
+    "less fair within 5%": 7,
+    "less fair by more than 5%": 28
+   },
+   "maximumUtilization": {
+    "fairer by more than 5%": 7,
+    "fairer within 5%": 15,
+    "same": 70,
+    "less fair within 5%": 13,
+    "less fair by more than 5%": 15
+   },
+   "utilizationSpread": {
+    "fairer by more than 5%": 9,
+    "fairer within 5%": 15,
+    "same": 70,
+    "less fair within 5%": 10,
+    "less fair by more than 5%": 16
+   },
+   "absoluteDeviation": {
+    "fairer by more than 5%": 20,
+    "fairer within 5%": 7,
+    "same": 59,
+    "less fair within 5%": 4,
+    "less fair by more than 5%": 30
+   },
+   "loadBalance": {
+    "fairer by more than 5%": 21,
+    "fairer within 5%": 14,
+    "same": 56,
+    "less fair within 5%": 8,
+    "less fair by more than 5%": 21
+   }
+  },
+  "30000": {
+   "variance": {
+    "fairer by more than 5%": 20,
+    "fairer within 5%": 1,
+    "same": 63,
+    "less fair within 5%": 10,
+    "less fair by more than 5%": 26
+   },
+   "maximumUtilization": {
+    "fairer by more than 5%": 10,
+    "fairer within 5%": 14,
+    "same": 72,
+    "less fair within 5%": 13,
+    "less fair by more than 5%": 11
+   },
+   "utilizationSpread": {
+    "fairer by more than 5%": 12,
+    "fairer within 5%": 13,
+    "same": 72,
+    "less fair within 5%": 11,
+    "less fair by more than 5%": 12
+   },
+   "absoluteDeviation": {
+    "fairer by more than 5%": 19,
+    "fairer within 5%": 1,
+    "same": 65,
+    "less fair within 5%": 10,
+    "less fair by more than 5%": 25
+   },
+   "loadBalance": {
+    "fairer by more than 5%": 21,
+    "fairer within 5%": 7,
+    "same": 63,
+    "less fair within 5%": 12,
+    "less fair by more than 5%": 17
+   }
+  }
+ },
+ "grid": {
+  "15000": {
+   "ABSENCE": {
+    "5": 1.0,
+    "10": 1.0750704096281183,
+    "20": 1.2814605346632568,
+    "50": 1.0186379404726726
+   },
+   "CLUSTERED": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.0,
+    "50": 0.6118755588397607
+   },
+   "DISPERSED": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.0373272813131784,
+    "50": 0.9639081394424743
+   },
+   "MIXED_SHIFT": {
+    "5": 1.0,
+    "10": 1.0161244885312661,
+    "20": 1.0318581802843494,
+    "50": 1.1695750397972953
+   },
+   "NEAR_CAPACITY": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.0,
+    "50": 0.7525
+   },
+   "TIGHT_WINDOW": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.9410221619176844,
+    "50": 0.9910608279431758
+   }
+  },
+  "30000": {
+   "ABSENCE": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.1457017203750584,
+    "50": 1.0052863994323964
+   },
+   "CLUSTERED": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.0,
+    "50": 0.7938720901547981
+   },
+   "DISPERSED": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.0,
+    "50": 0.8594882286670983
+   },
+   "MIXED_SHIFT": {
+    "5": 1.0,
+    "10": 1.0161244885312661,
+    "20": 1.4414345162811293,
+    "50": 1.136038048007557
+   },
+   "NEAR_CAPACITY": {
+    "5": NaN,
+    "10": NaN,
+    "20": NaN,
+    "50": 1.0
+   },
+   "TIGHT_WINDOW": {
+    "5": 1.0,
+    "10": 1.0,
+    "20": 1.0,
+    "50": 1.4790585543251746
+   }
+  }
+ },
+ "cost": {
+  "15000": {
+   "5": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -3.0,
+    -508.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "10": [
+    0.0,
+    132.0,
+    -4.0,
+    -33.0,
+    -200.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -30.0,
+    111.0,
+    33.0,
+    -21.0,
+    -104.0,
+    0.0,
+    0.0,
+    0.0,
+    710.0,
+    0.0,
+    0.0,
+    0.0,
+    -50.0,
+    0.0,
+    0.0
+   ],
+   "20": [
+    0.0,
+    0.0,
+    -26.0,
+    42.0,
+    -49.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    6.0,
+    -50.0,
+    207.0,
+    0.0,
+    0.0,
+    -29.0,
+    -324.0,
+    169.0,
+    -44.0,
+    -281.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    50.0,
+    0.0,
+    104.0,
+    405.0,
+    96.0,
+    95.0
+   ],
+   "50": [
+    92.0,
+    15.0,
+    235.0,
+    -87.0,
+    21.0,
+    -1.0,
+    5.0,
+    -109.0,
+    145.0,
+    -790.0,
+    27.0,
+    46.0,
+    375.0,
+    90.0,
+    79.0,
+    -67.0,
+    -62.0,
+    -385.0,
+    118.0,
+    255.0,
+    -55.0,
+    2874.0,
+    -150.0,
+    -260.0,
+    -564.0,
+    150.0,
+    195.0,
+    160.0,
+    55.0,
+    5.0
+   ]
+  },
+  "30000": {
+   "5": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -3.0,
+    -508.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "10": [
+    8.0,
+    -164.0,
+    0.0,
+    -23.0,
+    -51.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    337.0,
+    0.0,
+    5.0,
+    0.0,
+    0.0,
+    45.0,
+    153.0,
+    50.0,
+    -21.0,
+    -112.0,
+    0.0,
+    0.0,
+    0.0,
+    605.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "20": [
+    -14.0,
+    26.0,
+    4.0,
+    122.0,
+    -30.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    104.0,
+    -4.0,
+    240.0,
+    0.0,
+    -256.0,
+    -20.0,
+    -278.0,
+    164.0,
+    18.0,
+    -2.0,
+    0.0,
+    0.0,
+    -105.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "50": [
+    -50.0,
+    167.0,
+    -24.0,
+    594.0,
+    68.0,
+    4.0,
+    30.0,
+    50.0,
+    10.0,
+    -795.0,
+    -78.0,
+    64.0,
+    778.0,
+    486.0,
+    106.0,
+    320.0,
+    256.0,
+    430.0,
+    289.0,
+    292.0,
+    0.0,
+    0.0,
+    3234.0,
+    -5.0,
+    -409.0,
+    -5.0,
+    255.0,
+    0.0,
+    0.0,
+    145.0
+   ]
+  }
+ },
+ "speed": {
+  "15000": {
+   "referencePhase": {
+    "5": [
+     0.9874,
+     0.8589,
+     1.0182,
+     0.8778,
+     0.9869,
+     0.9255,
+     0.8805,
+     0.9246,
+     0.8817,
+     0.9489,
+     0.8659,
+     0.9326,
+     0.8523,
+     0.8199,
+     0.8573,
+     0.867,
+     0.9123,
+     0.8338,
+     0.8829,
+     0.847,
+     0.8926,
+     0.8798,
+     0.9558,
+     0.8619,
+     0.9717,
+     0.8973,
+     0.9511,
+     0.875,
+     0.8735,
+     0.8345
+    ],
+    "10": [
+     0.983,
+     0.8064,
+     0.9737,
+     0.8847,
+     1.0078,
+     0.932,
+     0.9043,
+     0.9468,
+     0.8846,
+     0.9457,
+     0.8671,
+     0.9286,
+     0.8344,
+     0.9281,
+     0.8518,
+     0.8745,
+     0.9097,
+     0.868,
+     0.9142,
+     0.8775,
+     0.9006,
+     0.866,
+     0.9122,
+     0.8767,
+     0.9372,
+     0.8837,
+     0.929,
+     0.878,
+     0.8999,
+     0.8929
+    ],
+    "20": [
+     0.9444,
+     0.8609,
+     0.9684,
+     0.8865,
+     0.9313,
+     0.9879,
+     0.8764,
+     0.9555,
+     0.8568,
+     0.9267,
+     0.855,
+     0.9197,
+     0.8467,
+     0.9404,
+     0.9052,
+     0.8467,
+     0.9268,
+     0.8492,
+     0.8946,
+     0.8257,
+     0.8973,
+     0.8654,
+     0.9243,
+     0.8345,
+     0.9782,
+     0.8524,
+     0.9081,
+     0.8286,
+     0.9153,
+     0.8696
+    ],
+    "50": [
+     0.9711,
+     0.7921,
+     0.9728,
+     0.8576,
+     0.9786,
+     0.9822,
+     0.8473,
+     0.9807,
+     0.8334,
+     0.9629,
+     0.8801,
+     0.9682,
+     0.8467,
+     0.9549,
+     0.8207,
+     0.828,
+     0.9972,
+     0.8329,
+     0.9824,
+     0.8976,
+     0.9876,
+     0.7882,
+     1.022,
+     0.8038,
+     1.1151,
+     0.8299,
+     0.9286,
+     0.8217,
+     0.9532,
+     0.8279
+    ]
+   },
+   "fairnessPhase": {
+    "5": [
+     0.8215,
+     0.8657,
+     0.8981,
+     0.8522,
+     0.8751,
+     0.832,
+     0.8364,
+     0.8318,
+     0.8352,
+     0.8317,
+     0.8533,
+     0.855,
+     0.8519,
+     0.6997,
+     0.8639,
+     0.8573,
+     0.8652,
+     0.8464,
+     0.8473,
+     0.9035,
+     0.8415,
+     0.8272,
+     0.8874,
+     0.8585,
+     0.8377,
+     0.722,
+     0.8615,
+     0.865,
+     0.8087,
+     0.7935
+    ],
+    "10": [
+     0.894,
+     0.8643,
+     0.8911,
+     0.8637,
+     0.928,
+     0.8673,
+     0.8462,
+     0.9754,
+     0.8579,
+     0.8575,
+     0.8638,
+     0.8589,
+     0.8501,
+     0.8663,
+     0.8502,
+     0.8837,
+     0.8305,
+     0.8592,
+     0.8861,
+     0.8313,
+     0.8778,
+     0.8457,
+     0.8815,
+     0.8663,
+     0.8854,
+     0.8248,
+     0.8732,
+     0.8403,
+     0.8678,
+     0.8405
+    ],
+    "20": [
+     0.889,
+     0.8106,
+     0.9596,
+     0.8648,
+     0.9184,
+     0.8744,
+     0.8313,
+     0.8759,
+     0.8603,
+     0.8735,
+     0.8677,
+     0.8519,
+     0.8417,
+     0.8835,
+     0.8518,
+     0.8374,
+     0.8614,
+     0.8316,
+     0.8668,
+     0.8099,
+     0.845,
+     0.8518,
+     0.8584,
+     0.893,
+     0.8572,
+     0.847,
+     0.8644,
+     0.8573,
+     0.8731,
+     0.84
+    ],
+    "50": [
+     0.8931,
+     0.8759,
+     0.8819,
+     0.8882,
+     0.8905,
+     0.8828,
+     0.9151,
+     0.8645,
+     0.9183,
+     0.9027,
+     0.9175,
+     0.8804,
+     0.9126,
+     0.8829,
+     0.912,
+     0.8704,
+     0.8808,
+     0.8963,
+     0.8759,
+     0.8344,
+     0.9179,
+     0.8769,
+     0.8539,
+     0.8989,
+     0.9036,
+     0.8735,
+     0.9278,
+     0.8832,
+     0.8859,
+     0.915
+    ]
+   }
+  },
+  "30000": {
+   "referencePhase": {
+    "5": [
+     0.9278,
+     0.9376,
+     0.9476,
+     0.8888,
+     0.9476,
+     0.9222,
+     0.8608,
+     0.9286,
+     0.8913,
+     0.9173,
+     0.8786,
+     0.9152,
+     0.8754,
+     0.9173,
+     0.8589,
+     0.8658,
+     0.9359,
+     0.8504,
+     0.8923,
+     0.8505,
+     0.9289,
+     0.897,
+     0.9015,
+     0.894,
+     0.9214,
+     0.8512,
+     0.9064,
+     0.863,
+     0.8873,
+     0.8621
+    ],
+    "10": [
+     0.8819,
+     0.8703,
+     0.9333,
+     0.9018,
+     0.9159,
+     0.8933,
+     0.8277,
+     0.916,
+     0.895,
+     0.9075,
+     0.884,
+     0.907,
+     0.8751,
+     0.9043,
+     0.9031,
+     0.87,
+     0.9062,
+     0.8841,
+     0.9221,
+     0.8685,
+     0.9024,
+     0.8902,
+     0.932,
+     0.8688,
+     0.9503,
+     0.9015,
+     0.9007,
+     0.8864,
+     0.8991,
+     0.8802
+    ],
+    "20": [
+     0.9111,
+     0.8821,
+     0.9269,
+     0.9034,
+     0.9283,
+     0.9127,
+     0.8628,
+     0.8965,
+     0.8598,
+     0.9204,
+     0.8716,
+     0.9121,
+     0.8595,
+     0.9011,
+     0.9074,
+     0.8821,
+     0.9017,
+     0.8871,
+     0.9,
+     0.8752,
+     0.9061,
+     0.8796,
+     0.9052,
+     0.8887,
+     0.8951,
+     0.8595,
+     0.9145,
+     0.8894,
+     0.8519,
+     0.8753
+    ],
+    "50": [
+     0.9736,
+     0.8524,
+     0.9376,
+     0.8918,
+     0.9674,
+     0.9433,
+     0.8485,
+     0.9409,
+     0.8523,
+     0.928,
+     0.8374,
+     0.913,
+     0.8525,
+     0.9353,
+     0.8711,
+     0.8558,
+     0.9371,
+     0.8657,
+     0.9248,
+     0.8752,
+     0.961,
+     0.8392,
+     0.9486,
+     0.8435,
+     0.9537,
+     0.8583,
+     0.9077,
+     0.8292,
+     0.9188,
+     0.8607
+    ]
+   },
+   "fairnessPhase": {
+    "5": [
+     0.9011,
+     0.8523,
+     0.8781,
+     0.8834,
+     0.9041,
+     0.884,
+     0.8605,
+     0.8415,
+     0.8769,
+     0.8726,
+     0.857,
+     0.8968,
+     0.8176,
+     0.8545,
+     0.8314,
+     0.8531,
+     0.8348,
+     0.8751,
+     0.8405,
+     0.8684,
+     0.8604,
+     0.8689,
+     0.8348,
+     0.8625,
+     0.8325,
+     0.8174,
+     0.8003,
+     0.8617,
+     0.826,
+     0.8381
+    ],
+    "10": [
+     0.873,
+     0.8134,
+     0.8978,
+     0.8897,
+     0.879,
+     0.8674,
+     0.8284,
+     0.8211,
+     0.9097,
+     0.881,
+     0.8582,
+     0.8551,
+     0.8595,
+     0.8525,
+     0.8552,
+     0.8537,
+     0.8831,
+     0.868,
+     0.9147,
+     0.871,
+     0.8773,
+     0.8649,
+     0.8771,
+     0.8346,
+     0.897,
+     0.8591,
+     0.8627,
+     0.8453,
+     0.8717,
+     0.8572
+    ],
+    "20": [
+     0.8878,
+     0.9138,
+     0.8869,
+     0.8597,
+     0.9103,
+     0.8669,
+     0.8653,
+     0.8838,
+     0.8458,
+     0.8727,
+     0.875,
+     0.8642,
+     0.8694,
+     0.8658,
+     0.8836,
+     0.8525,
+     0.8678,
+     0.8408,
+     0.8535,
+     0.8238,
+     0.8667,
+     0.869,
+     0.8755,
+     0.8933,
+     0.9178,
+     0.8534,
+     0.8622,
+     0.8546,
+     0.8624,
+     0.8701
+    ],
+    "50": [
+     0.8758,
+     0.9141,
+     0.8688,
+     0.9064,
+     0.9049,
+     0.8883,
+     0.8948,
+     0.9041,
+     0.8886,
+     0.9018,
+     0.9392,
+     0.8784,
+     0.8828,
+     0.8277,
+     0.9215,
+     0.9007,
+     0.8424,
+     0.9065,
+     0.8725,
+     0.9005,
+     0.9069,
+     0.9106,
+     0.8967,
+     0.8471,
+     0.8738,
+     0.872,
+     0.8996,
+     0.8943,
+     0.9337,
+     0.8808
+    ]
+   }
+  }
+ },
+ "convergence": {
+  "15000": {
+   "b": {
+    "referencePhase": {
+     "medianShareOfBudget": 0.612,
+     "overNinetyPercent": 24,
+     "unavailable": 0
+    },
+    "fairnessPhase": {
+     "medianShareOfBudget": 0.35,
+     "overNinetyPercent": 25,
+     "unavailable": 0
+    }
+   },
+   "load-balance": {
+    "referencePhase": {
+     "medianShareOfBudget": 0.673,
+     "overNinetyPercent": 32,
+     "unavailable": 0
+    },
+    "fairnessPhase": {
+     "medianShareOfBudget": 0.358,
+     "overNinetyPercent": 21,
+     "unavailable": 0
+    }
+   }
+  },
+  "30000": {
+   "b": {
+    "referencePhase": {
+     "medianShareOfBudget": 0.626,
+     "overNinetyPercent": 21,
+     "unavailable": 0
+    },
+    "fairnessPhase": {
+     "medianShareOfBudget": 0.226,
+     "overNinetyPercent": 17,
+     "unavailable": 0
+    }
+   },
+   "load-balance": {
+    "referencePhase": {
+     "medianShareOfBudget": 0.66,
+     "overNinetyPercent": 26,
+     "unavailable": 0
+    },
+    "fairnessPhase": {
+     "medianShareOfBudget": 0.283,
+     "overNinetyPercent": 21,
+     "unavailable": 0
+    }
+   }
+  }
+ },
+ "profile": [
+  {
+   "arm": "b",
+   "phase": "cost",
+   "shares": {
+    "engine": 35.1,
+    "scheduler code": 31.0,
+    "collections": 21.9,
+    "score engine": 11.5,
+    "other": 0.4,
+    "time": 0.0
+   }
+  },
+  {
+   "arm": "load-balance",
+   "phase": "cost",
+   "shares": {
+    "engine": 32.8,
+    "scheduler code": 28.0,
+    "collections": 26.5,
+    "score engine": 12.1,
+    "other": 0.6
+   }
+  },
+  {
+   "arm": "b",
+   "phase": "fairness",
+   "shares": {
+    "engine": 35.6,
+    "scheduler code": 29.4,
+    "collections": 21.5,
+    "score engine": 10.5,
+    "variance (non-decimal)": 2.6,
+    "other": 0.4
+   }
+  },
+  {
+   "arm": "load-balance",
+   "phase": "fairness",
+   "shares": {
+    "engine": 32.9,
+    "scheduler code": 26.3,
+    "collections": 24.8,
+    "score engine": 11.4,
+    "decimal: score impacts": 3.0,
+    "other": 1.6
+   }
+  }
+ ],
+ "cross": {
+  "15000": [
+   {
+    "case": "5 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 0.9945081232742857,
+    "loadBalance": 0.9978581168512736
+   },
+   {
+    "case": "5 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.1227031827081546,
+    "loadBalance": 1.0234540585242426
+   },
+   {
+    "case": "5 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.9099452522080107,
+    "loadBalance": 0.9274039342701685
+   },
+   {
+    "case": "5 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 5.967944924863408,
+    "loadBalance": 2.37922756779023
+   },
+   {
+    "case": "5 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 0.5008079350280948,
+    "loadBalance": 0.7329674308692089
+   },
+   {
+    "case": "10 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 2.518895226230104,
+    "loadBalance": 1.5524017593443495
+   },
+   {
+    "case": "10 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 0.12534349937467257,
+    "loadBalance": 0.3497124103862507
+   },
+   {
+    "case": "10 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.0750704096281183,
+    "loadBalance": 1.0367914010462822
+   },
+   {
+    "case": "10 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 1.8092730490078726,
+    "loadBalance": 1.3319453320384245
+   },
+   {
+    "case": "10 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 2.3917819671213754,
+    "loadBalance": 1.1234697371223374
+   },
+   {
+    "case": "10 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.9775030089549726,
+    "loadBalance": 0.8245172733356426
+   },
+   {
+    "case": "10 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0156134529616236,
+    "loadBalance": 0.9897443207797867
+   },
+   {
+    "case": "10 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0161244885312661,
+    "loadBalance": 1.0031009873887966
+   },
+   {
+    "case": "10 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0401073337199835,
+    "loadBalance": 0.9899634023540136
+   },
+   {
+    "case": "10 Near Capacity 7005",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 0.0,
+    "loadBalance": 0.0
+   },
+   {
+    "case": "10 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 1.0007392623829265,
+    "loadBalance": 1.0003711917896725
+   },
+   {
+    "case": "20 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 0.9944509862929197,
+    "loadBalance": 0.9972609452536916
+   },
+   {
+    "case": "20 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 1.6420622805136906,
+    "loadBalance": 1.2830858061251822
+   },
+   {
+    "case": "20 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.2814605346632568,
+    "loadBalance": 1.1230305950373405
+   },
+   {
+    "case": "20 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 1.5973777010965757,
+    "loadBalance": 1.2640589651901044
+   },
+   {
+    "case": "20 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 1.6866144504092229,
+    "loadBalance": 1.2986970959367263
+   },
+   {
+    "case": "20 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 1.0373272813131784,
+    "loadBalance": 1.0184916214870179
+   },
+   {
+    "case": "20 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 1.053881284159732,
+    "loadBalance": 1.0265875355018488
+   },
+   {
+    "case": "20 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.3260081136513344,
+    "loadBalance": 1.0043779028427056
+   },
+   {
+    "case": "20 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0318581802843494,
+    "loadBalance": 0.9785990132564115
+   },
+   {
+    "case": "20 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.5641462711978943,
+    "loadBalance": 0.7315034317553973
+   },
+   {
+    "case": "20 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.979629313606921,
+    "loadBalance": 1.1351582819028212
+   },
+   {
+    "case": "20 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.6775234949720498,
+    "loadBalance": 0.790600603758645
+   },
+   {
+    "case": "20 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 0.9783190331211367,
+    "loadBalance": 0.9890978468247479
+   },
+   {
+    "case": "20 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "variance": 994.3333333333334,
+    "loadBalance": 31.547521761365733
+   },
+   {
+    "case": "20 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 902.875,
+    "loadBalance": 30.061597794512913
+   },
+   {
+    "case": "20 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 0.4840034828425353,
+    "loadBalance": 0.6956993050880336
+   },
+   {
+    "case": "20 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.9410221619176844,
+    "loadBalance": 1.3932031345162208
+   },
+   {
+    "case": "50 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 0.8661816685547241,
+    "loadBalance": 0.9301470588235294
+   },
+   {
+    "case": "50 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 1.2235507583418948,
+    "loadBalance": 1.0886707165042566
+   },
+   {
+    "case": "50 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 0.7934089337134428,
+    "loadBalance": 0.8839798369880386
+   },
+   {
+    "case": "50 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.2195478766843044,
+    "loadBalance": 1.0954822469380394
+   },
+   {
+    "case": "50 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 1.0186379404726726,
+    "loadBalance": 0.9949581925633589
+   },
+   {
+    "case": "50 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.3233530605518393,
+    "loadBalance": 1.1503735938911241
+   },
+   {
+    "case": "50 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 0.993428193647735,
+    "loadBalance": 0.9967061455688335
+   },
+   {
+    "case": "50 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 0.3451217120405456,
+    "loadBalance": 0.5874724008831718
+   },
+   {
+    "case": "50 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 0.6118755588397607,
+    "loadBalance": 0.7822254023316442
+   },
+   {
+    "case": "50 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 0.04777683329167887,
+    "loadBalance": 0.2185804091748485
+   },
+   {
+    "case": "50 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 0.9639081394424743,
+    "loadBalance": 0.9817889750356517
+   },
+   {
+    "case": "50 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 0.9994612646629415,
+    "loadBalance": 0.999730356582354
+   },
+   {
+    "case": "50 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 2.071733559329585,
+    "loadBalance": 1.4393492371238303
+   },
+   {
+    "case": "50 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 0.810379721884743,
+    "loadBalance": 0.9002073026269947
+   },
+   {
+    "case": "50 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 0.9587713564943731,
+    "loadBalance": 0.9791680456922394
+   },
+   {
+    "case": "50 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.1695750397972953,
+    "loadBalance": 0.9929691830443534
+   },
+   {
+    "case": "50 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.381449997808425,
+    "loadBalance": 1.002841880904139
+   },
+   {
+    "case": "50 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.3586306413006999,
+    "loadBalance": 1.0581379316683979
+   },
+   {
+    "case": "50 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.9063113974487566,
+    "loadBalance": 0.8524196192810175
+   },
+   {
+    "case": "50 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0938668858270313,
+    "loadBalance": 0.9255369427086069
+   },
+   {
+    "case": "50 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.2228260869565217,
+    "loadBalance": 1.1058146968455262
+   },
+   {
+    "case": "50 Near Capacity 7002",
+    "workload": "NEAR_CAPACITY",
+    "variance": 0.17253521126760563,
+    "loadBalance": 0.415555656293207
+   },
+   {
+    "case": "50 Near Capacity 7003",
+    "workload": "NEAR_CAPACITY",
+    "variance": 0.7525,
+    "loadBalance": 0.8674681305415802
+   },
+   {
+    "case": "50 Near Capacity 7004",
+    "workload": "NEAR_CAPACITY",
+    "variance": 0.7663043478260869,
+    "loadBalance": 0.8753896976199931
+   },
+   {
+    "case": "50 Near Capacity 7005",
+    "workload": "NEAR_CAPACITY",
+    "variance": 0.4986449864498645,
+    "loadBalance": 0.7061466134760941
+   },
+   {
+    "case": "50 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 0.9910608279431758,
+    "loadBalance": 0.9955218586503503
+   },
+   {
+    "case": "50 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "variance": 0.5144124791148926,
+    "loadBalance": 0.7172252855048221
+   },
+   {
+    "case": "50 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.313403861003861,
+    "loadBalance": 1.1460351053683027
+   },
+   {
+    "case": "50 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 0.9813762524473109,
+    "loadBalance": 0.9906448612300593
+   },
+   {
+    "case": "50 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.552209124708188,
+    "loadBalance": 1.2458813643572324
+   }
+  ],
+  "30000": [
+   {
+    "case": "5 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 0.9945081232742857,
+    "loadBalance": 0.9978581168512736
+   },
+   {
+    "case": "5 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.1227031827081546,
+    "loadBalance": 1.0234540585242426
+   },
+   {
+    "case": "5 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.9099452522080107,
+    "loadBalance": 0.9274039342701685
+   },
+   {
+    "case": "5 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 5.967944924863408,
+    "loadBalance": 2.37922756779023
+   },
+   {
+    "case": "5 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "5 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 0.8405054785532943,
+    "loadBalance": 0.9101516094876859
+   },
+   {
+    "case": "10 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 0.7794960827235748,
+    "loadBalance": 0.8759607799281247
+   },
+   {
+    "case": "10 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.0183425432048734,
+    "loadBalance": 1.0081067817767742
+   },
+   {
+    "case": "10 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 2.2340656049007426,
+    "loadBalance": 1.4863004278175513
+   },
+   {
+    "case": "10 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 0.5229353072424765,
+    "loadBalance": 0.7231425552050985
+   },
+   {
+    "case": "10 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 2.2861477169626574,
+    "loadBalance": 1.512003132253252
+   },
+   {
+    "case": "10 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.018115003496865636,
+    "loadBalance": 0.10467656806186326
+   },
+   {
+    "case": "10 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0189166112318904,
+    "loadBalance": 0.8524339962613038
+   },
+   {
+    "case": "10 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.1339264274552783,
+    "loadBalance": 1.0309216919850648
+   },
+   {
+    "case": "10 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0161244885312661,
+    "loadBalance": 1.0031009873887966
+   },
+   {
+    "case": "10 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.012827447655279,
+    "loadBalance": 0.9916030519527177
+   },
+   {
+    "case": "10 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "10 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 1.6642188292005786,
+    "loadBalance": 1.281196212549693
+   },
+   {
+    "case": "20 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 1.454807252272232,
+    "loadBalance": 1.2067237272003193
+   },
+   {
+    "case": "20 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 1.1457017203750584,
+    "loadBalance": 1.049877250732154
+   },
+   {
+    "case": "20 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 0.9308305533768559,
+    "loadBalance": 0.9434308334139256
+   },
+   {
+    "case": "20 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 0.9476062836406629,
+    "loadBalance": 0.9731065731921321
+   },
+   {
+    "case": "20 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 0.9201785077205215,
+    "loadBalance": 0.9592586587873964
+   },
+   {
+    "case": "20 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 0.6761912900355376,
+    "loadBalance": 0.8223092016845688
+   },
+   {
+    "case": "20 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 2.831471858127193,
+    "loadBalance": 1.6826993787858262
+   },
+   {
+    "case": "20 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 1.4417986015510917,
+    "loadBalance": 1.200749849344936
+   },
+   {
+    "case": "20 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.4414345162811293,
+    "loadBalance": 1.0521144816679424
+   },
+   {
+    "case": "20 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.716234010252121,
+    "loadBalance": 1.1640413402107417
+   },
+   {
+    "case": "20 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 0.5651875414092681,
+    "loadBalance": 0.7278856082075617
+   },
+   {
+    "case": "20 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.544279358922363,
+    "loadBalance": 1.1530276597094462
+   },
+   {
+    "case": "20 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.2536777000777002,
+    "loadBalance": 0.9790478512419943
+   },
+   {
+    "case": "20 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0043093644884424,
+    "loadBalance": 1.0021556766150863
+   },
+   {
+    "case": "20 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "20 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0002256266780984,
+    "loadBalance": 1.0001147111287
+   },
+   {
+    "case": "50 Absence 7001",
+    "workload": "ABSENCE",
+    "variance": 0.8560990917779359,
+    "loadBalance": 0.9218554189415383
+   },
+   {
+    "case": "50 Absence 7002",
+    "workload": "ABSENCE",
+    "variance": 1.0100385470101716,
+    "loadBalance": 1.0012001731397315
+   },
+   {
+    "case": "50 Absence 7003",
+    "workload": "ABSENCE",
+    "variance": 0.9118734601672487,
+    "loadBalance": 0.9420060099045405
+   },
+   {
+    "case": "50 Absence 7004",
+    "workload": "ABSENCE",
+    "variance": 1.065023553555477,
+    "loadBalance": 1.0246798332982379
+   },
+   {
+    "case": "50 Absence 7005",
+    "workload": "ABSENCE",
+    "variance": 1.0052863994323964,
+    "loadBalance": 1.002941795671182
+   },
+   {
+    "case": "50 Clustered 7001",
+    "workload": "CLUSTERED",
+    "variance": 1.6284522687342213,
+    "loadBalance": 1.2761032533761882
+   },
+   {
+    "case": "50 Clustered 7002",
+    "workload": "CLUSTERED",
+    "variance": 1.3183316701359749,
+    "loadBalance": 1.1481909173702327
+   },
+   {
+    "case": "50 Clustered 7003",
+    "workload": "CLUSTERED",
+    "variance": 0.6262578265454186,
+    "loadBalance": 0.7913650501695746
+   },
+   {
+    "case": "50 Clustered 7004",
+    "workload": "CLUSTERED",
+    "variance": 0.7938720901547981,
+    "loadBalance": 0.8909947916943751
+   },
+   {
+    "case": "50 Clustered 7005",
+    "workload": "CLUSTERED",
+    "variance": 0.047807363183794395,
+    "loadBalance": 0.21865035434057098
+   },
+   {
+    "case": "50 Dispersed 7001",
+    "workload": "DISPERSED",
+    "variance": 0.787886502602118,
+    "loadBalance": 0.8876292633479846
+   },
+   {
+    "case": "50 Dispersed 7002",
+    "workload": "DISPERSED",
+    "variance": 0.884321336638312,
+    "loadBalance": 0.9403775948313514
+   },
+   {
+    "case": "50 Dispersed 7003",
+    "workload": "DISPERSED",
+    "variance": 0.39480923436780946,
+    "loadBalance": 0.6283395767085932
+   },
+   {
+    "case": "50 Dispersed 7004",
+    "workload": "DISPERSED",
+    "variance": 1.0117772011439685,
+    "loadBalance": 1.0058658917231729
+   },
+   {
+    "case": "50 Dispersed 7005",
+    "workload": "DISPERSED",
+    "variance": 0.8594882286670983,
+    "loadBalance": 0.9270875763747454
+   },
+   {
+    "case": "50 Mixed Shift 7001",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.0400555110233236,
+    "loadBalance": 0.9131180687457876
+   },
+   {
+    "case": "50 Mixed Shift 7002",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.1167187808353978,
+    "loadBalance": 0.9522732216663041
+   },
+   {
+    "case": "50 Mixed Shift 7003",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.136038048007557,
+    "loadBalance": 0.9217058036257453
+   },
+   {
+    "case": "50 Mixed Shift 7004",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.192634180833595,
+    "loadBalance": 1.0285996601654845
+   },
+   {
+    "case": "50 Mixed Shift 7005",
+    "workload": "MIXED_SHIFT",
+    "variance": 1.2434415950444737,
+    "loadBalance": 0.9860723299709037
+   },
+   {
+    "case": "50 Near Capacity 7001",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "50 Near Capacity 7002",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "50 Near Capacity 7003",
+    "workload": "NEAR_CAPACITY",
+    "variance": 0.3288590604026846,
+    "loadBalance": 0.5732591679545497
+   },
+   {
+    "case": "50 Near Capacity 7004",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.434782608695652,
+    "loadBalance": 1.1978241706868535
+   },
+   {
+    "case": "50 Near Capacity 7005",
+    "workload": "NEAR_CAPACITY",
+    "variance": 1.121212121212121,
+    "loadBalance": 1.0590745473482757
+   },
+   {
+    "case": "50 Tight Window 7001",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.4790585543251746,
+    "loadBalance": 1.216163577487968
+   },
+   {
+    "case": "50 Tight Window 7002",
+    "workload": "TIGHT_WINDOW",
+    "variance": 2.0181267605633804,
+    "loadBalance": 1.4206076049905683
+   },
+   {
+    "case": "50 Tight Window 7003",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "50 Tight Window 7004",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.0,
+    "loadBalance": 1.0
+   },
+   {
+    "case": "50 Tight Window 7005",
+    "workload": "TIGHT_WINDOW",
+    "variance": 1.487923050011048,
+    "loadBalance": 1.219802691414238
+   }
+  ]
+ },
+ "allowance": {
+  "15000": {
+   "b": [
+    0.9398907103825137,
+    0.8592896174863388,
+    0.5519125683060109,
+    0.9274193548387096,
+    0.9649122807017544,
+    0.9806201550387597,
+    0.5051813471502591,
+    0.9831606217616581,
+    0.2522639068564036,
+    0.9831606217616581,
+    0.7773766546329723,
+    0.9484777517564403,
+    0.9122596153846154,
+    0.9493521790341578,
+    0.9926918392204629,
+    0.9602076124567474,
+    0.4458041958041958,
+    0.940068493150685,
+    0.9358752166377816,
+    0.993103448275862,
+    0.019135093761959432,
+    0.30927835051546393,
+    0.3099616858237548,
+    0.5003805175038052,
+    0.2713356295445848,
+    0.9812067260138477,
+    0.9684418145956607,
+    0.9980119284294234,
+    0.9528487229862476,
+    0.9732142857142857,
+    0.9865361077111383,
+    0.9981561155500922,
+    0.9987893462469734,
+    1.0,
+    0.9604205318491033,
+    0.8303464755077659,
+    0.9964518036664696,
+    0.9742976688583384,
+    0.9778708133971292,
+    0.6998213222156046,
+    0.9759910664433278,
+    0.9787928221859706,
+    0.9838350055741361,
+    0.826283135927806,
+    0.9681143485431556,
+    0.9878234398782344,
+    0.9146153846153846,
+    0.9202733485193622,
+    0.955177743431221,
+    0.9582366589327146,
+    0.39697723359479625,
+    0.19267638036809817,
+    0.4273914713791779,
+    0.20314296665389037,
+    0.2714888718342287,
+    0.7800179211469535,
+    0.8970718722271517,
+    0.9035714285714286,
+    0.9803131991051454,
+    0.8011643528884909,
+    0.9962476547842402,
+    0.9881435257410296,
+    0.9934477379095163,
+    0.9869158878504672,
+    0.9968905472636815,
+    0.9969641772920461,
+    0.9887742718446602,
+    0.9933373712901272,
+    0.9890743550834598,
+    0.9996965098634294,
+    0.9963256076879593,
+    0.934874541866366,
+    0.9332585530005608,
+    0.9997179921037789,
+    0.9954609929078014,
+    0.9996194824961948,
+    0.9961832061068703,
+    0.9281620175773787,
+    0.9718095238095238,
+    0.9772468714448237,
+    0.20458265139116202,
+    0.14616497829232997,
+    0.21919260044320263,
+    0.16557250434446805,
+    0.32187891038598515,
+    0.9986425339366516,
+    0.9889540126239855,
+    0.9954873646209387,
+    0.9954934655250113,
+    0.9894286999550157,
+    0.9880488111712165,
+    0.9921924190907946,
+    0.9791431084307074,
+    0.997112366603892,
+    0.9938757655293088,
+    0.9991443588803325,
+    0.998289136013687,
+    1.0,
+    0.9753086419753086,
+    0.9990228410895322,
+    0.9946353156032416,
+    0.9944318181818181,
+    0.9994323342415985,
+    0.9992046358368367,
+    0.9953361392333068,
+    0.99802671523983,
+    0.995739500912964,
+    0.9998479549946784,
+    0.9943811693242217,
+    0.9834270944199484,
+    0.256034349373356,
+    0.2445570207664643,
+    0.22393135966607405,
+    0.2900042568012074,
+    0.23098918083462133,
+    0.9963774678500271,
+    0.9963708945744874,
+    0.9983671988388969,
+    0.9988211824446862,
+    0.9971948239978282
+   ],
+   "load-balance": [
+    0.9398907103825137,
+    0.8592896174863388,
+    0.5519125683060109,
+    0.9274193548387096,
+    0.9649122807017544,
+    0.9806201550387597,
+    0.5051813471502591,
+    0.9831606217616581,
+    0.2522639068564036,
+    0.9831606217616581,
+    0.7773766546329723,
+    0.9484777517564403,
+    0.9122596153846154,
+    0.9493521790341578,
+    0.9926918392204629,
+    0.9602076124567474,
+    0.4458041958041958,
+    0.940068493150685,
+    0.9306759098786829,
+    0.11724137931034483,
+    0.019135093761959432,
+    0.30927835051546393,
+    0.3099616858237548,
+    0.5003805175038052,
+    0.2713356295445848,
+    0.9812067260138477,
+    0.9684418145956607,
+    0.9980119284294234,
+    0.9528487229862476,
+    0.9732142857142857,
+    0.9865361077111383,
+    0.994478527607362,
+    0.9963680387409201,
+    0.9777777777777777,
+    0.9962779156327544,
+    0.8303464755077659,
+    0.9964518036664696,
+    0.9742976688583384,
+    0.9778708133971292,
+    0.6998213222156046,
+    0.9759910664433278,
+    0.9787928221859706,
+    0.9838350055741361,
+    0.826283135927806,
+    0.9681143485431556,
+    0.9649923896499238,
+    1.0,
+    0.9453302961275627,
+    0.9389489953632149,
+    0.8778035576179428,
+    0.39697723359479625,
+    0.19267638036809817,
+    0.4273914713791779,
+    0.3295650507760107,
+    0.2714888718342287,
+    0.7800179211469535,
+    0.8970718722271517,
+    0.8464970995091478,
+    0.9803131991051454,
+    0.8011643528884909,
+    0.9962476547842402,
+    0.9881435257410296,
+    0.9853354134165366,
+    1.0,
+    0.9816542288557214,
+    0.9969641772920461,
+    0.9887742718446602,
+    0.9933373712901272,
+    0.9890743550834598,
+    0.9996965098634294,
+    0.9980214810627474,
+    0.9207781223569214,
+    0.9913067863151991,
+    0.9997179921037789,
+    0.9954609929078014,
+    0.9885844748858448,
+    0.8725190839694656,
+    0.9927397783721819,
+    0.955047619047619,
+    0.8706863860447478,
+    0.20458265139116202,
+    0.14616497829232997,
+    0.21919260044320263,
+    0.16557250434446805,
+    0.3266916931369718,
+    0.9986425339366516,
+    0.9894096439837765,
+    0.9997747240369452,
+    0.9941441441441441,
+    0.9993253879019564,
+    0.9996225940369858,
+    0.9940813499559249,
+    0.9947242808692376,
+    0.9861895794099184,
+    0.9965004374453194,
+    0.9990221244346656,
+    0.9989001588659416,
+    0.9866959599658245,
+    0.993032636596993,
+    0.9025283986808355,
+    0.9977171555758475,
+    0.9996590909090909,
+    0.9945553539019963,
+    0.9978416448937862,
+    0.9968152866242038,
+    0.9878567091681846,
+    0.9863055386488131,
+    0.941310627945872,
+    0.9960528313344467,
+    0.9904269867801246,
+    0.2539068544019805,
+    0.3099717961596415,
+    0.21813403416557162,
+    0.23814863506302683,
+    0.22083945273247274,
+    0.9961068356722499,
+    0.9997278911564625,
+    0.9987303890450712,
+    0.9991839695348627,
+    0.997647271740114
+   ]
+  },
+  "30000": {
+   "b": [
+    0.9398907103825137,
+    0.8592896174863388,
+    0.5519125683060109,
+    0.9274193548387096,
+    0.9689608636977058,
+    0.9806201550387597,
+    0.5051813471502591,
+    0.9831606217616581,
+    0.2522639068564036,
+    0.9831606217616581,
+    0.7773766546329723,
+    0.9484777517564403,
+    0.9122596153846154,
+    0.9629629629629629,
+    0.9926918392204629,
+    0.9602076124567474,
+    0.4458041958041958,
+    0.940068493150685,
+    0.9358752166377816,
+    0.993103448275862,
+    0.09567546880979717,
+    0.30927835051546393,
+    0.3099616858237548,
+    0.5003805175038052,
+    0.6418711656441718,
+    0.9812067260138477,
+    0.9684418145956607,
+    0.9980119284294234,
+    0.9528487229862476,
+    0.9732142857142857,
+    0.9883435582822085,
+    0.9858024691358025,
+    0.9835164835164835,
+    1.0,
+    0.9819987585350713,
+    0.8303464755077659,
+    0.9964518036664696,
+    0.9742976688583384,
+    0.9778708133971292,
+    0.6998213222156046,
+    0.9540100953449243,
+    0.9820261437908496,
+    0.9363738738738738,
+    0.826283135927806,
+    0.8853362734288864,
+    0.9923547400611621,
+    0.9938319198149576,
+    0.9452887537993921,
+    0.955177743431221,
+    0.9713400464756003,
+    0.39697723359479625,
+    0.19267638036809817,
+    0.4273914713791779,
+    0.15544041450777202,
+    0.44685758216413607,
+    0.7800179211469535,
+    0.8970718722271517,
+    0.968623935454953,
+    0.9834377797672337,
+    0.8011643528884909,
+    0.9690431519699813,
+    0.9909488139825219,
+    0.9927831816755569,
+    0.9619107087105838,
+    0.9950186799501868,
+    0.9969641772920461,
+    0.9887742718446602,
+    0.9969687784177024,
+    0.9972669298511995,
+    0.9996965098634294,
+    0.9985807550383197,
+    0.9983007646559049,
+    0.9934973141080011,
+    0.9963276836158192,
+    0.9994318181818181,
+    0.9915902140672783,
+    0.97709049255441,
+    0.9300726022162782,
+    0.9717341482047365,
+    0.9813404417364814,
+    0.22405319456490316,
+    0.16994978756276555,
+    0.2974121282348397,
+    0.16557250434446805,
+    0.2527249927655059,
+    0.9981888159384198,
+    0.9900699616339427,
+    0.9936794582392776,
+    0.9769699706480018,
+    0.9959413754227734,
+    0.9959662170679441,
+    0.9983608624385324,
+    0.9938240483992942,
+    0.9964708847995967,
+    0.9899547965846308,
+    0.9979220144236646,
+    0.9947445612319726,
+    0.9866797018208481,
+    0.9955990220048899,
+    0.9996335654085746,
+    0.9971457928987327,
+    0.9921061663425237,
+    0.9956709956709957,
+    0.994848311390956,
+    0.9961218204631003,
+    0.9872262773722628,
+    0.9867378048780487,
+    0.9986288848263254,
+    0.9548632218844985,
+    0.9855227064919232,
+    0.26791518340814113,
+    0.2482883997988628,
+    0.2564509265348756,
+    0.2900042568012074,
+    0.2996632996632997,
+    0.9964651500045318,
+    0.9966400290592081,
+    0.9903715142156417,
+    0.9970049010709747,
+    0.9987311944897589
+   ],
+   "load-balance": [
+    0.9398907103825137,
+    0.8592896174863388,
+    0.5519125683060109,
+    0.9274193548387096,
+    0.9689608636977058,
+    0.9806201550387597,
+    0.5051813471502591,
+    0.9831606217616581,
+    0.2522639068564036,
+    0.9831606217616581,
+    0.7773766546329723,
+    0.9484777517564403,
+    0.9122596153846154,
+    0.9629629629629629,
+    0.9926918392204629,
+    0.9602076124567474,
+    0.4458041958041958,
+    0.940068493150685,
+    0.9306759098786829,
+    0.11724137931034483,
+    0.09567546880979717,
+    0.30927835051546393,
+    0.3099616858237548,
+    0.5003805175038052,
+    0.6418711656441718,
+    0.9812067260138477,
+    0.9684418145956607,
+    0.9980119284294234,
+    0.9528487229862476,
+    0.9732142857142857,
+    0.9932515337423313,
+    0.8845679012345679,
+    0.9835164835164835,
+    0.9858024691358025,
+    0.9503414028553694,
+    0.8303464755077659,
+    0.9964518036664696,
+    0.9742976688583384,
+    0.9778708133971292,
+    0.6998213222156046,
+    0.9737283398546674,
+    0.9820261437908496,
+    0.9037703995498031,
+    0.826283135927806,
+    0.8853362734288864,
+    0.9877769289533995,
+    1.0,
+    0.9832826747720365,
+    0.9389489953632149,
+    0.8845855925639039,
+    0.39697723359479625,
+    0.19267638036809817,
+    0.4273914713791779,
+    0.20314296665389037,
+    0.44685758216413607,
+    0.7800179211469535,
+    0.8970718722271517,
+    0.968623935454953,
+    0.9834377797672337,
+    0.8011643528884909,
+    0.964665415884928,
+    0.9990636704119851,
+    0.9940382805145905,
+    1.0,
+    0.9856787048567871,
+    0.9969641772920461,
+    0.9887742718446602,
+    0.9969687784177024,
+    0.9972669298511995,
+    0.9996965098634294,
+    0.9991489361702127,
+    0.9971679410931747,
+    0.9988706945228685,
+    0.9963276836158192,
+    0.9173295454545455,
+    0.9839449541284404,
+    0.8709431080565101,
+    0.9927397783721819,
+    0.9786096256684492,
+    0.9611724400456795,
+    0.22405319456490316,
+    0.16994978756276555,
+    0.24310245031834846,
+    0.16557250434446805,
+    0.2527249927655059,
+    0.9981888159384198,
+    0.9900699616339427,
+    0.9936794582392776,
+    0.9769699706480018,
+    0.9959413754227734,
+    0.9896634312366066,
+    1.0,
+    0.9907990925132342,
+    0.9935816763151271,
+    0.9984932194876946,
+    0.9984109522063317,
+    0.9984111464189684,
+    0.9927899303433948,
+    0.9968215158924205,
+    0.9025283986808355,
+    0.9882406667427789,
+    0.9994279830682988,
+    0.9951097463891732,
+    0.9962264150943396,
+    0.996578857338351,
+    0.9919477362503798,
+    0.9931454683929931,
+    0.9992391965916008,
+    0.9987841945288753,
+    0.9961925068534877,
+    0.26791518340814113,
+    0.2482883997988628,
+    0.38156214940616656,
+    0.2898107658372354,
+    0.2838345137195712,
+    0.996011964107677,
+    0.9959154034673686,
+    0.9903715142156417,
+    0.9970049010709747,
+    0.9968291357129915
+   ]
+  }
+ },
+ "acceptance": {
+  "15000": {
+   "b": {
+    "COST_REDUCTION": 23,
+    "FAIRNESS_IMPROVEMENT": 97
+   },
+   "load-balance": {
+    "COST_REDUCTION": 28,
+    "FAIRNESS_IMPROVEMENT": 92
+   }
+  },
+  "30000": {
+   "b": {
+    "COST_REDUCTION": 21,
+    "FAIRNESS_IMPROVEMENT": 99
+   },
+   "load-balance": {
+    "COST_REDUCTION": 26,
+    "FAIRNESS_IMPROVEMENT": 94
+   }
+  }
+ }
+}
