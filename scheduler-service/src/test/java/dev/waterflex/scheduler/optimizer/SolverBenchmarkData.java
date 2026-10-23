@@ -11,7 +11,10 @@ import java.util.*;
  * shuffled, and every point gets a new location number, so the same travel formulas give new legs in the same ranges.
  */
 final class SolverBenchmarkData {
-    enum Workload { SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY }
+    /** MIXED_SHIFT gives technicians 4, 6 and 9 hour days by rank, so capacity-weighted and unweighted fairness differ. */
+    enum Workload { SPARSE, CLUSTERED, DISPERSED, MIXED_SKILL, TIGHT_WINDOW, ABSENCE, NEAR_CAPACITY, MIXED_SHIFT }
+    /** The MIXED_SHIFT shift length in minutes for a technician's rank. */
+    static int shiftMinutes(int rank) { return switch (rank % 3) { case 0 -> 240; case 1 -> 360; default -> 540; }; }
     private SolverBenchmarkData() { }
     static DayPlan create(int count, Workload workload) { return create(count, workload, 0); }
     static DayPlan create(int count, Workload workload, long fixtureSeed) {
@@ -29,13 +32,15 @@ final class SolverBenchmarkData {
             String id = "tech-" + technician;
             int rank = Required.value(ranks.get(technician));
             Set<String> skills = workload == Workload.MIXED_SKILL && rank % 3 != 0 ? Required.value(Set.of("common")) : Required.value(Set.of("common", "scarce"));
-            TechRoute route = new TechRoute(id, at(480), at(1020), 540, 60, skills);
+            int shift = workload == Workload.MIXED_SHIFT ? shiftMinutes(rank) : 540;
+            TechRoute route = new TechRoute(id, at(480), at(480 + shift), shift, shift / 9, skills);
             if (workload == Workload.ABSENCE && rank % 2 == 0) route.getUnavailable().add(new TechRoute.Unavailable(at(720), at(780)));
             int home = locationNumber(technician, fixtureSeed, random, usedLocations);
             routes.add(route); location.put(id, home); location.put(id + ":return", home);
             cluster.put(id, rank % 4); cluster.put(id + ":return", rank % 4);
             int assigned = workload == Workload.SPARSE ? (rank < count / 2 ? 3 : 1)
-                    : workload == Workload.NEAR_CAPACITY ? 8 : (rank < count / 2 ? 6 : 2);
+                    : workload == Workload.NEAR_CAPACITY ? 8
+                    : workload == Workload.MIXED_SHIFT ? (rank < count / 2 ? shift / 80 : shift / 240 + 1) : (rank < count / 2 ? 6 : 2);
             int duration = workload == Workload.NEAR_CAPACITY ? 55 : workload == Workload.TIGHT_WINDOW ? 45 : 30;
             for (int index = 0; index < assigned; index++) {
                 String visitId = "visit-" + technician + "-" + index;
