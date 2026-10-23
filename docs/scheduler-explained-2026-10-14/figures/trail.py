@@ -170,7 +170,7 @@ def reconcile(_=None) -> Figure:
 
 
 REFUSAL_GROUPS = (
-    ("Fix the request", "send it again with a new requestId; never unchanged", ("400 INVALID_REQUEST", "422 INCOMPLETE_FACTS")),
+    ("Fix the request", "send it again with a new requestId; never unchanged", ("400 INVALID_REQUEST", "413 INVALID_REQUEST", "422 INCOMPLETE_FACTS")),
     ("Check the token", "do not retry", ("401",)),
     ("Rebuild from current records", "commit: a new proposal; booking: same call, new requestId", ("409 STALE",)),
     ("Search again", "a new requestId", ("409 HOLD_UNAVAILABLE",)),

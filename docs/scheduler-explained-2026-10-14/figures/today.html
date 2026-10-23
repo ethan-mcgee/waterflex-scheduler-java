@@ -25,7 +25,7 @@
     <div class="diagram-container">
       <svg viewBox="0 0 980 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="today-title today-desc">
         <title id="today-title">The scheduler today, with the choice each thread settled</title>
-        <desc id="today-desc">Architecture of the scheduler as it stands, each part annotated with the decision the evidence settled and the number behind it: the proxy and two pools, the daily search per client, bounded two-pass booking with the confirm slot, the embedded engine with RoadMatrix, the CH routing graph and the thin store with rule 0.</desc>
+        <desc id="today-desc">Architecture of the scheduler as it stands, each part annotated with the decision the evidence settled and the number behind it: the proxy and two pools, the daily search per client, bounded two-pass booking with its 2000 ms refinement, the dynamic horizon and the confirm slot, the embedded engine with its whole-number scoring path, the CH routing graph and the thin store with rule 0.</desc>
         <defs>
           <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
 <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
@@ -54,18 +54,18 @@
         <rect x="56" y="248" width="398" height="56" rx="6" fill="#FFFFFF"/>
         <rect x="56" y="248" width="398" height="56" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
         <text x="72" y="272" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Bounded two-pass search</text>
-        <text x="72" y="292" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SHED UNDER LOAD: 127 TO 263 SEARCHES/MIN</text>
+        <text x="72" y="292" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">2000 MS CAP, SHED UNDER LOAD, DYNAMIC HORIZON</text>
         <rect x="56" y="314" width="398" height="56" rx="6" fill="#FFFFFF"/>
         <rect x="56" y="314" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
         <text x="72" y="338" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Confirm slot and priority</text>
         <text x="72" y="358" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CONFIRM P50 116 TO 20 MS</text>
         <rect x="56" y="380" width="398" height="56" rx="6" fill="#FFFFFF"/>
         <rect x="56" y="380" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
-        <text x="72" y="404" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Embedded engine, RoadMatrix</text>
-        <text x="72" y="424" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.79X MOVES PER SECOND</text>
+        <text x="72" y="404" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Embedded engine, whole numbers</text>
+        <text x="72" y="424" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.17X TO 1.29X ON THE STACK (#191)</text>
         <rect x="526" y="248" width="398" height="56" rx="6" fill="#FFFFFF"/>
         <rect x="526" y="248" width="398" height="56" rx="6" fill="rgba(40,122,76,0.08)" stroke="#287A4C" stroke-width="1.4"/>
-        <text x="542" y="272" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Tabu + K opt, per client</text>
+        <text x="542" y="272" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Tabu + K opt or size 3</text>
         <text x="542" y="292" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">$7.55 PER CASE OVER TABU</text>
         <rect x="526" y="314" width="398" height="56" rx="6" fill="#FFFFFF"/>
         <rect x="526" y="314" width="398" height="56" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>

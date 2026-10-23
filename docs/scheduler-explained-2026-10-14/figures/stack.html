@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The harness ratios held through the public API on the rehearsal stack</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler explained</p>
+    <h1>The harness ratios held through the public API on the rehearsal stack</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 504" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="stack-title stack-desc">
+        <title id="stack-title">The harness ratios held through the public API on the rehearsal stack</title>
+        <desc id="stack-desc">Dot pairs per fleet size: the paired moves-per-second ratio on the workstation harness (amber) and the same change measured through the public API on the rehearsal stack (green), for formula b&#x27;s fairness phase (#189) and the shipped long score, long money, W and A on the cost phase (#191).</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <line x1="412.331" y1="56" x2="412.331" y2="384" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="412.331" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1x</text>
+        <line x1="574.888" y1="56" x2="574.888" y2="384" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="574.888" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2x</text>
+        <line x1="737.444" y1="56" x2="737.444" y2="384" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="737.444" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4x</text>
+        <line x1="900" y1="56" x2="900" y2="384" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="900" y="404" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">8x</text>
+        <text x="630" y="428" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MOVES PER SECOND RATIO ON THE TARGETED PHASE (LOG)</text>
+        <text x="344" y="95" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Formula b, 10 techs</text>
+        <line x1="620.428" y1="90" x2="652.705" y2="90" stroke="rgba(31,42,51,0.45)" stroke-width="1"/>
+        <circle cx="652.705" cy="90" r="6" fill="#b8915a" stroke="#1F2A33" stroke-width="1"/>
+        <text x="662.705" y="94" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">2.79x</text>
+        <circle cx="620.428" cy="90" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="610.428" y="94" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">2.43x</text>
+        <text x="344" y="147" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Formula b, 20 techs</text>
+        <circle cx="693.644" cy="142" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="703.644" y="146" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">3.32x</text>
+        <text x="344" y="199" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Formula b, 50 techs</text>
+        <line x1="830.085" y1="194" x2="872.077" y2="194" stroke="rgba(31,42,51,0.45)" stroke-width="1"/>
+        <circle cx="872.077" cy="194" r="6" fill="#b8915a" stroke="#1F2A33" stroke-width="1"/>
+        <text x="882.077" y="198" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">7.10x</text>
+        <circle cx="830.085" cy="194" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="820.085" y="198" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">5.94x</text>
+        <text x="344" y="251" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">L+M+W+A, 10 techs</text>
+        <circle cx="472.11" cy="246" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="482.11" y="250" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.29x</text>
+        <text x="344" y="303" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">L+M+W+A, 20 techs</text>
+        <circle cx="462.884" cy="298" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="472.884" y="302" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.24x</text>
+        <text x="344" y="355" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">L+M+W+A, 50 techs</text>
+        <circle cx="448.792" cy="350" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="458.792" y="354" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.17x</text>
+        <line x1="40" y1="448" x2="940" y2="448" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="474" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <circle cx="119" cy="470" r="6" fill="#b8915a" stroke="#1F2A33" stroke-width="1"/>
+        <text x="136" y="474" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WORKSTATION HARNESS</text>
+        <circle cx="305" cy="470" r="6" fill="#287A4C" stroke="#1F2A33" stroke-width="1"/>
+        <text x="322" y="474" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REHEARSAL STACK, PUBLIC API</text>
+        <text x="940" y="474" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">harness ran 10, 30, 50 techs; L+M+W+A only overall</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

@@ -30,6 +30,11 @@ def read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def read_bom(path):
+    """Evidence written by PowerShell may start with a byte order mark."""
+    return json.loads(Path(path).read_text(encoding="utf-8-sig"))
+
+
 def dollars(value):
     return f"-${-value:,.2f}" if value < 0 else f"${value:,.2f}"
 
@@ -198,6 +203,41 @@ def main():
         values = sorted(a["elapsed_ms"] for r in evidence["cases"] if r["solver"] == entry["solver"] and r["concurrency"] == entry["concurrency"] for a in r["attempts"] if a["elapsed_ms"] is not None)
         assert values[max(0, -(-len(values) * 95 // 100) - 1)] == entry["p95"], entry  # the explainer's quantile: ceil(n * 0.95) - 1
     checked.append("booking_study chart")
+
+    # The work since the first edition, from the raw evidence files.
+    horizon = read_bom(EVIDENCE / "api-load-2026-10-16-dynamic-horizon.json")
+    for key, entry in charts["horizon"].items():
+        mode, desks = key.split("/")
+        runs = [r for r in horizon["runs"] if r["label"].startswith(f"high {'fixed10' if mode == 'fixed' else 'dynamic'} c{desks} ")]
+        assert len(runs) == 3 and entry["searches"] == sum(r["booking"]["searches"] for r in runs) and entry["noOffers"] == sum(r["booking"]["noOffers"] for r in runs), key
+        assert close(entry["offersPerSearch"], sum(r["booking"]["offers"] for r in runs) / entry["searches"]), key
+    checked.append("horizon chart")
+    rep = read_bom(EVIDENCE / "solver-representation-2026-10-20.json")["paired"]["summary"]
+    variance = read_bom(EVIDENCE / "solver-variance-2026-10-20.json")["budgets"]["15000"]["summary"]
+    matrix = read_bom(EVIDENCE / "solver-matrix-2026-10-20.json")["paired"]
+    chain = {e["name"]: e["ratio"] for e in charts["engine_chain"]}
+    assert chain["RoadMatrix (#163)"] == prof["paired"]["summary"]["costPhaseSpeedup"]["median"]
+    assert chain["Long timing T (#186)"] == rep["T"]["referencePhaseSpeedup"]["median"] and chain["Long score S (#186)"] == rep["S"]["fairnessPhaseSpeedup"]["median"]
+    assert chain["Formula b (#187)"] == variance["b"]["fairnessPhaseSpeedup"]["median"] and chain["Formula c (#187)"] == variance["c"]["fairnessPhaseSpeedup"]["median"]
+    assert chain["Numbering (#187)"] == matrix["fix"]["baseline"]["referencePhaseSpeedup"]["median"]
+    checked.append("engine_chain chart")
+    to_float = lambda xs: [float(x) for x in xs]
+    expected = [{"technicians": x["technicians"], "workload": x["workload"], "seed": x["seed"], "variance_ratio": mean(to_float(x["armVariance"])) / mean(to_float(x["baselineVariance"])),
+                 "cost_difference": x["meanCostDifferenceCents"] / 100} for x in matrix["pairs"] if x["arm"] == "b" and mean(to_float(x["baselineVariance"])) > 0]
+    got = charts["fairness_b"]["pairs"]
+    assert len(got) == len(expected) and all(a["technicians"] == b["technicians"] and a["seed"] == b["seed"] and abs(a["variance_ratio"] - b["variance_ratio"]) < 1e-9
+                                             and abs(a["cost_difference"] - b["cost_difference"]) < 1e-9 for a, b in zip(got, expected)), (len(got), len(expected))
+    assert charts["fairness_b"]["summary"]["fairnessPhaseSpeedup"] == matrix["summary"]["b"]["fairnessPhaseSpeedup"]
+    checked.append("fairness_b chart")
+    stack = {}
+    for label, name in (("Formula b", "api-load-2026-10-20-binary-variance.json"), ("L+M+W+A", "api-load-2026-10-22-long-score-money-w-a.json")):
+        phase = "FAIRNESS" if label == "Formula b" else "REFERENCE"
+        rate = {(r["image"], r["fleet"], r["seed"]): {p["phase"]: p["movesPerSecond"]["p50"] for p in r["report"]["study"]["summary"]["phases"]} for r in read_bom(EVIDENCE / name)["runs"] if r["step"] == 1}
+        for fleet in (10, 20, 50):
+            seeds = sorted({s for (_, f, s) in rate if f == fleet})
+            stack[f"{label}, {fleet} techs"] = median(rate[("after", fleet, s)][phase] / rate[("before", fleet, s)][phase] for s in seeds)
+    assert all(close(e["stack"], stack[e["name"]]) for e in charts["stack"]) and len(charts["stack"]) == len(stack)
+    checked.append("stack chart")
 
     print("verified", len(checked), "items:", ", ".join(checked))
 
