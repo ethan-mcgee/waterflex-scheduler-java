@@ -324,7 +324,7 @@ def deadline(_=None) -> Figure:
     f.arrow(b + 100, 172, 744, 172, "accent"); f.label((b + 100 + 744) / 2, 162, "YES", ACCENT, KEY)
     f.node(a - 120, 280, 240, 80, "Required refinement", ["MAY USE THE REST", "OF THE DEADLINE"], SERVICE)
     f.arrow(a, 228, a, 280, "muted"); f.label(a + 22, 258, "NO", SOFT, KEY)
-    f.node(b - 120, 280, 240, 80, "Optional refinement", ["CAPPED AT 250 MS UNLESS", "THE CLIENT SETS ONE"], SERVICE)
+    f.node(b - 120, 280, 240, 80, "Optional refinement", ["CAPPED AT 2000 MS (#184)", "UNLESS THE CLIENT SETS ONE"], SERVICE)
     f.arrow(b, 228, b, 280, "muted"); f.label(b + 22, 258, "NO", SOFT, KEY)
     f.diamond(a, 452, 200, 100, ["RESULT VALID?"])
     f.diamond(b, 452, 200, 100, ["RESULT VALID?"])
@@ -611,17 +611,17 @@ def paired_fleets(rec: list) -> Figure:
 
 # ---- Part IV: the system today --------------------------------------------------------------------
 def today(rec: dict) -> Figure:
-    f = Figure("today", "The scheduler today, with the choice each thread settled", "Architecture of the scheduler as it stands, each part annotated with the decision the evidence settled and the number behind it: the proxy and two pools, the daily search per client, bounded two-pass booking with the confirm slot, the embedded engine with RoadMatrix, the CH routing graph and the thin store with rule 0.", 980, 700)
+    f = Figure("today", "The scheduler today, with the choice each thread settled", "Architecture of the scheduler as it stands, each part annotated with the decision the evidence settled and the number behind it: the proxy and two pools, the daily search per client, bounded two-pass booking with its 2000 ms refinement, the dynamic horizon and the confirm slot, the embedded engine with its whole-number scoring path, the CH routing graph and the thin store with rule 0.", 980, 700)
     f.node(310, 32, 360, 56, "WaterFlex Software", ["SNAPSHOT IN, RESULTS OUT"], HOST)
     f.node(350, 128, 280, 52, "scheduler-proxy", ["ONE ADDRESS, /API/V1"], SERVICE)
     f.arrow(490, 88, 490, 128, "link")
     f.zone(40, 220, 430, 236, "BOOKING POOL")
     f.zone(510, 220, 430, 236, "DAILY POOL")
     f.route([(450, 180), (450, 200), (255, 200), (255, 220)], "muted"); f.route([(530, 180), (530, 200), (725, 200), (725, 220)], "muted")
-    left = [("Bounded two-pass search", f"SHED UNDER LOAD: {rec['shed_before']:.0f} TO {rec['shed_after']:.0f} SEARCHES/MIN", True),
+    left = [("Bounded two-pass search", "2000 MS CAP, SHED UNDER LOAD, DYNAMIC HORIZON", True),
             ("Confirm slot and priority", f"CONFIRM P50 {rec['confirm_before']:,} TO {rec['confirm_after']:,} MS", False),
-            ("Embedded engine, RoadMatrix", f"{rec['speedup']:.2f}X MOVES PER SECOND", False)]
-    right = [("Tabu + K opt, per client", f"{money(rec['daily_saving'])} PER CASE OVER TABU", True),
+            ("Embedded engine, whole numbers", f"{rec['stack_lo']:.2f}X TO {rec['stack_hi']:.2f}X ON THE STACK (#191)", False)]
+    right = [("Tabu + K opt or size 3", f"{money(rec['daily_saving'])} PER CASE OVER TABU", True),
              ("Fair durable queue", "EARLY 429, TURNS BY CLIENT", False),
              ("Its own replicas", "NO DAILY SOLVE COMPETES FOR BOOKING CORES", False)]
     for x0, items in ((56, left), (526, right)):
@@ -639,17 +639,20 @@ def today(rec: dict) -> Figure:
 
 # ---- Part V: what comes next --------------------------------------------------------------------
 def roadmap_perf(_=None) -> Figure:
-    f = Figure("roadmap_perf", "Performance: what to measure next, in order", "Dependency graph of the performance next steps: measure on the real VM first; then size the booking cores and replace primitive time in the timing search; multithreaded solving follows the primitive-time work through the same gate.", 980, 540)
-    f.node(40, 220, 200, 88, "Measure on the VM", ["J0 AND J2 ACROSS", "THE REAL NETWORK"], rgba(ACCENT, 0.08), ACCENT, 1.4)
-    f.node(300, 140, 240, 72, "Booking cores", ["2, 3, 4 CORES; 2ND REPLICA"], SERVICE)
-    f.node(300, 316, 240, 72, "Primitive time", ["INTEGER SECONDS"], SERVICE)
-    f.node(600, 316, 240, 72, "Multithreaded solving", ["PLANNED; GATED"], SERVICE)
-    f.route([(240, 250), (270, 250), (270, 176), (300, 176)], "accent")
-    f.route([(240, 278), (270, 278), (270, 352), (300, 352)], "accent")
-    f.arrow(540, 352, 600, 352, "muted")
-    f.para(600, 416, ["GATE: THE PAIRED STUDY, THE EXACTNESS", "TEST AND THE REPLICA'S CORE BUDGET"], KEY, MUTED, MONO, lead=16)
-    f.callout(600, 120, ["Every number in Part III is from a", "rehearsal stack whose CPU limits are", "a shape; the latency target is defined", "at the WaterFlex caller, not yet", "measured."])
-    f.legend(504, [("swatch", rgba(ACCENT, 0.08), "FIRST"), ("swatch", SERVICE, "NEXT, ONCE THE VM NUMBERS EXIST")], note="one change per measurement")
+    f = Figure("roadmap_perf", "Performance: what to measure next", "Three rows of performance next steps: measure on the real VM and then size the booking pool there; a head-to-head of load balance against formula b before any fairness policy change; multithreaded solving through its gate. Below, the steps of the first edition's list that are now done.", 980, 600)
+    rows = [("Measure on the VM", ["J0 AND J2 ACROSS", "THE REAL NETWORK"], "Booking pool on the VM", ["START FROM #179'S", "1 X N LAYOUT"], True),
+            ("Load balance against b", ["HEAD TO HEAD, 5 TO", "50 TECHS, 15 AND 60 S"], "Fairness policy", ["THE OWNER DECIDES", "ON THAT EVIDENCE"], False),
+            ("Multithreaded solving", ["PLANNED WORK"], "Its gate", ["PAIRED STUDY, EXACTNESS", "TEST, CORE BUDGET"], False)]
+    for i, (a, asub, b, bsub, focal) in enumerate(rows):
+        y = 40 + i * 112
+        f.node(40, y, 300, 88, a, asub, rgba(ACCENT, 0.08) if focal else SERVICE, ACCENT if focal else SOFT, 1.4 if focal else 1)
+        f.node(420, y, 300, 88, b, bsub, SERVICE)
+        f.arrow(340, y + 44, 420, y + 44, "accent" if focal else "muted")
+    f.callout(744, 64, ["The latency target is", "defined at the WaterFlex", "caller across the", "network, which no", "measurement has", "reached yet."])
+    f.card(40, 380, 900, 128, "DONE SINCE THE FIRST EDITION'S LIST", [("tech", "Booking cores: sized by the booking configuration study (#179), one replica with a slot per vCPU at 3 and 4."),
+                                                                        ("tech", "Primitive time: long nanosecond timing (#186), then the long score and long money with W and A (#191)."),
+                                                                        ("tech", "Fairness arithmetic: formula b (#187, #189), verified on the stack like every promoted change.")])
+    f.legend(564, [("swatch", rgba(ACCENT, 0.08), "FIRST"), ("swatch", SERVICE, "A STEP")], note="one change per measurement")
     return f
 
 
@@ -677,8 +680,8 @@ def cores(_=None) -> Figure:
 
 
 def roadmap_quality(_=None) -> Figure:
-    f = Figure("roadmap_quality", "Solver quality, booking quality and the host's side: what comes next", "Three lanes of next steps: the daily search (offer Tabu + K opt size 3 as a third choice, replay real days, measure with the fairness search on, then decide a default), booking (a quality study against /api/v1 on recorded days), and integration (the host's side-by-side migration and cutover with the conformance kit and the integration guide, then TLS before production traffic); with the design document's two open questions.", 980, 700)
-    lanes = [("DAILY SEARCH", ["Third choice", "TABU_KOPT_SIZE_3", "BESIDE THE OTHER TWO"], ["Replay real days", "RECORDED SNAPSHOTS,", "MEASURED ROADS"], ["Fairness on", "BALANCE WITH THE", "SECOND PHASE ON"], ["Decide a default", "PER CLIENT, ON", "THAT EVIDENCE"]),
+    f = Figure("roadmap_quality", "Solver quality, booking quality and the host's side: what comes next", "Three lanes of next steps: the daily search (Tabu + K opt size 3 is already a client choice; replay real days, measure with the fairness search on, then decide a default), booking (a quality study against /api/v1 on recorded days), and integration (the host's side-by-side migration and cutover with the conformance kit and the integration guide, then TLS before production traffic); with the design document's two open questions.", 980, 700)
+    lanes = [("DAILY SEARCH", ["Size 3 offered", "A CLIENT CHOICE", "SINCE SPEC 1.6.0"], ["Replay real days", "RECORDED SNAPSHOTS,", "MEASURED ROADS"], ["Fairness on", "BALANCE WITH THE", "SECOND PHASE ON"], ["Decide a default", "PER CLIENT, ON", "THAT EVIDENCE"]),
              ("BOOKING", ["Quality study", "AGAINST /API/V1 ON", "RECORDED DAYS"], ["Served-customer", "DENOMINATOR, AS IN", "SEPTEMBER"], None, None),
              ("INTEGRATION", ["Host snapshots", "AND RECEIPTS; KIT", "#149, GUIDE #150"], ["Side by side", "THEN CUTOVER (S7),", "THE HOST'S SIDE"], ["TLS", "HOST TO SCHEDULER,", "ROUTING, NOMINATIM"], ["Production", "TRAFFIC", ""])]
     y0, lh, x0, w, gap = 40, 140, 152, 180, 16
@@ -692,13 +695,15 @@ def roadmap_quality(_=None) -> Figure:
                 continue
             x = x0 + k * (w + gap)
             name, *sub = step
-            focal = (i, k) == (0, 0)
+            focal = (i, k) == (0, 1)
+            done = (i, k) == (0, 0)
             last = (i == 2 and k == 3)
-            f.node(x, y + 16, w, lh - 48, name, [s for s in sub if s], rgba(ACCENT, 0.08) if focal else (PAPER2 if last else SERVICE), ACCENT if focal else SOFT, 1.4 if focal else 1, dash="4,3" if last else None)
+            f.node(x, y + 16, w, lh - 48, name, [s for s in sub if s], rgba(ACCENT, 0.08) if focal else (PAPER2 if last or done else SERVICE), ACCENT if focal else SOFT, 1.4 if focal else 1,
+                   dash="4,3" if last else None)
             if prev is not None:
                 f.arrow(prev, y + 16 + (lh - 48) / 2, x, y + 16 + (lh - 48) / 2, "muted")
             prev = x + w
     f.card(40, 452, 900, 150, "OPEN QUESTIONS IN THE DESIGN DOCUMENT", [("tech", "1. Does WaterFlex Software's Google Maps Platform agreement allow passing Google-geocoded"), ("tech", "   coordinates to the scheduler and caching them for up to 30 days?"),
                                                                           ("tech", "2. Does any client require a dedicated database? Every row already carries tenant_id, so"), ("tech", "   that client's rows could move to a database of its own without an API change.")])
-    f.legend(664, [("swatch", rgba(ACCENT, 0.08), "THE NEXT STEP THE EVIDENCE POINTS TO"), ("swatch", SERVICE, "A STEP"), ("swatch-dashed", PAPER2, "THE DESTINATION")], note="every item is from the repository's own plans")
+    f.legend(664, [("swatch", rgba(ACCENT, 0.08), "THE NEXT STEP THE EVIDENCE POINTS TO"), ("swatch", SERVICE, "A STEP"), ("swatch", PAPER2, "DONE"), ("swatch-dashed", PAPER2, "THE DESTINATION")], note="from the repository's own plans")
     return f

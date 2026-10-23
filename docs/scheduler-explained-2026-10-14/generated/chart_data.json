@@ -802,7 +802,7 @@
       "getRequest",
       "cancelRequest"
     ],
-    "problems": 11,
+    "problems": 12,
     "tables": 7,
     "stored": 5
   },
@@ -1232,6 +1232,709 @@
       "losses": 0
     }
   ],
+  "horizon": {
+    "fixed/1": {
+      "searches": 933,
+      "noOffers": 0,
+      "offersPerSearch": 4.0
+    },
+    "fixed/5": {
+      "searches": 3677,
+      "noOffers": 1892,
+      "offersPerSearch": 1.856948599401686
+    },
+    "dynamic/1": {
+      "searches": 878,
+      "noOffers": 0,
+      "offersPerSearch": 4.0
+    },
+    "dynamic/5": {
+      "searches": 3159,
+      "noOffers": 195,
+      "offersPerSearch": 3.6568534346312123
+    }
+  },
+  "refinement_frontier": {
+    "5": [
+      {
+        "variant": "2:0",
+        "cap_ms": 0,
+        "gap": 0.9157500000000001,
+        "p50_ms": 65.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:250",
+        "cap_ms": 250,
+        "gap": 0.9690000000000001,
+        "p50_ms": 338.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:1000",
+        "cap_ms": 1000,
+        "gap": 0.6972499999999999,
+        "p50_ms": 1098.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:2000",
+        "cap_ms": 2000,
+        "gap": 0.00125,
+        "p50_ms": 2102.0,
+        "priced": 40
+      },
+      {
+        "variant": "2:3000",
+        "cap_ms": 3000,
+        "gap": 0.05575,
+        "p50_ms": 2714.5,
+        "priced": 40
+      },
+      {
+        "variant": "1000",
+        "cap_ms": null,
+        "gap": 0.0,
+        "p50_ms": 2702.5,
+        "priced": 40
+      }
+    ],
+    "10": [
+      {
+        "variant": "2:0",
+        "cap_ms": 0,
+        "gap": 2.7777499999999997,
+        "p50_ms": 120.0,
+        "priced": 40
+      },
+      {
+        "variant": "2:250",
+        "cap_ms": 250,
+        "gap": 3.6972500000000004,
+        "p50_ms": 411.0,
+        "priced": 40
+      },
+      {
+        "variant": "2:1000",
+        "cap_ms": 1000,
+        "gap": 2.924,
+        "p50_ms": 1173.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:2000",
+        "cap_ms": 2000,
+        "gap": 1.2105,
+        "p50_ms": 2181.0,
+        "priced": 40
+      },
+      {
+        "variant": "2:3000",
+        "cap_ms": 3000,
+        "gap": -0.046,
+        "p50_ms": 3185.5,
+        "priced": 40
+      },
+      {
+        "variant": "1000",
+        "cap_ms": null,
+        "gap": 0.0,
+        "p50_ms": 3893.5,
+        "priced": 40
+      }
+    ],
+    "15": [
+      {
+        "variant": "2:0",
+        "cap_ms": 0,
+        "gap": 1.0177500000000002,
+        "p50_ms": 189.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:250",
+        "cap_ms": 250,
+        "gap": 0.85075,
+        "p50_ms": 487.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:1000",
+        "cap_ms": 1000,
+        "gap": 0.664,
+        "p50_ms": 1254.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:2000",
+        "cap_ms": 2000,
+        "gap": 0.2535,
+        "p50_ms": 2261.0,
+        "priced": 40
+      },
+      {
+        "variant": "2:3000",
+        "cap_ms": 3000,
+        "gap": 0.08574999999999999,
+        "p50_ms": 3270.5,
+        "priced": 40
+      },
+      {
+        "variant": "1000",
+        "cap_ms": null,
+        "gap": 0.0,
+        "p50_ms": 4159.0,
+        "priced": 40
+      }
+    ],
+    "20": [
+      {
+        "variant": "2:0",
+        "cap_ms": 0,
+        "gap": 1.96725,
+        "p50_ms": 270.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:250",
+        "cap_ms": 250,
+        "gap": 2.5325,
+        "p50_ms": 579.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:1000",
+        "cap_ms": 1000,
+        "gap": 2.157,
+        "p50_ms": 1349.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:2000",
+        "cap_ms": 2000,
+        "gap": 0.88225,
+        "p50_ms": 2356.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:3000",
+        "cap_ms": 3000,
+        "gap": 0.78975,
+        "p50_ms": 3365.5,
+        "priced": 40
+      },
+      {
+        "variant": "1000",
+        "cap_ms": null,
+        "gap": 0.0,
+        "p50_ms": 4209.0,
+        "priced": 40
+      }
+    ],
+    "30": [
+      {
+        "variant": "2:0",
+        "cap_ms": 0,
+        "gap": 1.5605000000000002,
+        "p50_ms": 471.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:250",
+        "cap_ms": 250,
+        "gap": 1.5607499999999999,
+        "p50_ms": 832.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:1000",
+        "cap_ms": 1000,
+        "gap": 1.60925,
+        "p50_ms": 1563.0,
+        "priced": 40
+      },
+      {
+        "variant": "2:2000",
+        "cap_ms": 2000,
+        "gap": 1.328,
+        "p50_ms": 2572.5,
+        "priced": 40
+      },
+      {
+        "variant": "2:3000",
+        "cap_ms": 3000,
+        "gap": 0.35700000000000004,
+        "p50_ms": 3585.5,
+        "priced": 40
+      },
+      {
+        "variant": "1000",
+        "cap_ms": null,
+        "gap": 0.0,
+        "p50_ms": 4281.5,
+        "priced": 40
+      }
+    ]
+  },
+  "capacity": {
+    "1x2": {
+      "vcpu": 2,
+      "perMinute": 492.504552252948,
+      "p95": 1951.825,
+      "shed": 99.57557771054041,
+      "cells": 4
+    },
+    "2x1": {
+      "vcpu": 2,
+      "perMinute": 902.9322337273709,
+      "p95": 2016.425,
+      "shed": 97.3557925713489,
+      "cells": 4
+    },
+    "1x3": {
+      "vcpu": 3,
+      "perMinute": 1023.6688405426511,
+      "p95": 1163.9,
+      "shed": 99.83747753706385,
+      "cells": 4
+    },
+    "3x1": {
+      "vcpu": 3,
+      "perMinute": 963.6077090642316,
+      "p95": 1386.875,
+      "shed": 91.52881851955865,
+      "cells": 4
+    },
+    "1x4": {
+      "vcpu": 4,
+      "perMinute": 1241.7058335341685,
+      "p95": 746.625,
+      "shed": 99.8363217753739,
+      "cells": 4
+    },
+    "2x2": {
+      "vcpu": 4,
+      "perMinute": 1003.5115029103584,
+      "p95": 1255.175,
+      "shed": 93.81447311993941,
+      "cells": 4
+    },
+    "4x1": {
+      "vcpu": 4,
+      "perMinute": 839.6683958546162,
+      "p95": 1764.85,
+      "shed": 80.32916970238006,
+      "cells": 4
+    }
+  },
+  "engine_chain": [
+    {
+      "name": "RoadMatrix (#163)",
+      "phase": "COST PHASE",
+      "ratio": 1.791,
+      "shipped": true,
+      "note": "study L, 24 pairs"
+    },
+    {
+      "name": "Long timing T (#186)",
+      "phase": "COST PHASE",
+      "ratio": 1.149,
+      "shipped": true,
+      "note": "not slower in either phase"
+    },
+    {
+      "name": "Long score S (#186)",
+      "phase": "FAIRNESS PHASE",
+      "ratio": 4.009,
+      "shipped": false,
+      "note": "3 cases dearer beyond noise"
+    },
+    {
+      "name": "Formula b (#187)",
+      "phase": "FAIRNESS PHASE",
+      "ratio": 4.59,
+      "shipped": true,
+      "note": "never less fair; #189"
+    },
+    {
+      "name": "Formula c (#187)",
+      "phase": "FAIRNESS PHASE",
+      "ratio": 4.381,
+      "shipped": false,
+      "note": "failed cost and fairness bars"
+    },
+    {
+      "name": "Numbering (#187)",
+      "phase": "COST PHASE",
+      "ratio": 1.384,
+      "shipped": true,
+      "note": "not slower in either phase"
+    },
+    {
+      "name": "L+M (#191)",
+      "phase": "COST PHASE",
+      "ratio": 1.288,
+      "shipped": true,
+      "note": "quoted, study 3"
+    },
+    {
+      "name": "W+A on L+M (#191)",
+      "phase": "COST PHASE",
+      "ratio": 1.051,
+      "shipped": true,
+      "note": "quoted; owner's call, W 1.047x"
+    },
+    {
+      "name": "CR11 cascade",
+      "phase": "COST PHASE",
+      "ratio": 0.63,
+      "shipped": false,
+      "note": "quoted, slower"
+    }
+  ],
+  "fairness_b": {
+    "pairs": [
+      {
+        "technicians": 10,
+        "workload": "ABSENCE",
+        "seed": 17,
+        "variance_ratio": 0.7359137431846338,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "ABSENCE",
+        "seed": 23,
+        "variance_ratio": 0.8820998277523234,
+        "cost_difference": -0.27
+      },
+      {
+        "technicians": 10,
+        "workload": "ABSENCE",
+        "seed": 41,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "CLUSTERED",
+        "seed": 17,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "CLUSTERED",
+        "seed": 23,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "CLUSTERED",
+        "seed": 41,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "DISPERSED",
+        "seed": 17,
+        "variance_ratio": 0.9830383423019491,
+        "cost_difference": 2.01
+      },
+      {
+        "technicians": 10,
+        "workload": "DISPERSED",
+        "seed": 23,
+        "variance_ratio": 0.5483628696148882,
+        "cost_difference": 1.155
+      },
+      {
+        "technicians": 10,
+        "workload": "DISPERSED",
+        "seed": 41,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "TIGHT_WINDOW",
+        "seed": 17,
+        "variance_ratio": 0.42857142857142855,
+        "cost_difference": -1.0
+      },
+      {
+        "technicians": 10,
+        "workload": "TIGHT_WINDOW",
+        "seed": 23,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 10,
+        "workload": "TIGHT_WINDOW",
+        "seed": 41,
+        "variance_ratio": 0.0,
+        "cost_difference": -0.55
+      },
+      {
+        "technicians": 30,
+        "workload": "ABSENCE",
+        "seed": 17,
+        "variance_ratio": 0.2635199736111808,
+        "cost_difference": 0.78
+      },
+      {
+        "technicians": 30,
+        "workload": "ABSENCE",
+        "seed": 23,
+        "variance_ratio": 0.7090110592381457,
+        "cost_difference": 0.17
+      },
+      {
+        "technicians": 30,
+        "workload": "ABSENCE",
+        "seed": 41,
+        "variance_ratio": 0.6074708035092304,
+        "cost_difference": -0.27
+      },
+      {
+        "technicians": 30,
+        "workload": "CLUSTERED",
+        "seed": 17,
+        "variance_ratio": 0.9746055785649035,
+        "cost_difference": -0.515
+      },
+      {
+        "technicians": 30,
+        "workload": "CLUSTERED",
+        "seed": 23,
+        "variance_ratio": 0.06908177896022655,
+        "cost_difference": -4.1
+      },
+      {
+        "technicians": 30,
+        "workload": "CLUSTERED",
+        "seed": 41,
+        "variance_ratio": 1.0,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 30,
+        "workload": "DISPERSED",
+        "seed": 17,
+        "variance_ratio": 0.6061315652837109,
+        "cost_difference": 0.43
+      },
+      {
+        "technicians": 30,
+        "workload": "DISPERSED",
+        "seed": 23,
+        "variance_ratio": 0.7525306557738161,
+        "cost_difference": 4.07
+      },
+      {
+        "technicians": 30,
+        "workload": "DISPERSED",
+        "seed": 41,
+        "variance_ratio": 0.6126270730048615,
+        "cost_difference": -0.87
+      },
+      {
+        "technicians": 30,
+        "workload": "TIGHT_WINDOW",
+        "seed": 17,
+        "variance_ratio": 0.7418072375721482,
+        "cost_difference": 0.975
+      },
+      {
+        "technicians": 30,
+        "workload": "TIGHT_WINDOW",
+        "seed": 23,
+        "variance_ratio": 0.9801383619727739,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 30,
+        "workload": "TIGHT_WINDOW",
+        "seed": 41,
+        "variance_ratio": 0.9287409211457286,
+        "cost_difference": 0.0
+      },
+      {
+        "technicians": 50,
+        "workload": "ABSENCE",
+        "seed": 17,
+        "variance_ratio": 0.6420320777778608,
+        "cost_difference": 2.99
+      },
+      {
+        "technicians": 50,
+        "workload": "ABSENCE",
+        "seed": 23,
+        "variance_ratio": 0.5881513949049202,
+        "cost_difference": -2.52
+      },
+      {
+        "technicians": 50,
+        "workload": "ABSENCE",
+        "seed": 41,
+        "variance_ratio": 0.5924028862073791,
+        "cost_difference": -0.3
+      },
+      {
+        "technicians": 50,
+        "workload": "CLUSTERED",
+        "seed": 17,
+        "variance_ratio": 0.8711420063315376,
+        "cost_difference": 0.08
+      },
+      {
+        "technicians": 50,
+        "workload": "CLUSTERED",
+        "seed": 23,
+        "variance_ratio": 0.5813404705392313,
+        "cost_difference": 0.025
+      },
+      {
+        "technicians": 50,
+        "workload": "CLUSTERED",
+        "seed": 41,
+        "variance_ratio": 0.29282145354259675,
+        "cost_difference": -0.1
+      },
+      {
+        "technicians": 50,
+        "workload": "DISPERSED",
+        "seed": 17,
+        "variance_ratio": 0.9006787048900082,
+        "cost_difference": -5.515
+      },
+      {
+        "technicians": 50,
+        "workload": "DISPERSED",
+        "seed": 23,
+        "variance_ratio": 0.7726102108241244,
+        "cost_difference": 0.315
+      },
+      {
+        "technicians": 50,
+        "workload": "DISPERSED",
+        "seed": 41,
+        "variance_ratio": 0.4999195819502208,
+        "cost_difference": -2.005
+      },
+      {
+        "technicians": 50,
+        "workload": "TIGHT_WINDOW",
+        "seed": 17,
+        "variance_ratio": 0.7472783576071387,
+        "cost_difference": -2.6
+      },
+      {
+        "technicians": 50,
+        "workload": "TIGHT_WINDOW",
+        "seed": 23,
+        "variance_ratio": 0.4787171731324503,
+        "cost_difference": 0.275
+      },
+      {
+        "technicians": 50,
+        "workload": "TIGHT_WINDOW",
+        "seed": 41,
+        "variance_ratio": 0.5573639625781054,
+        "cost_difference": 0.15
+      }
+    ],
+    "summary": {
+      "referencePhaseSpeedup": {
+        "median": 0.988,
+        "min": 0.825,
+        "max": 1.184,
+        "pairs": 72
+      },
+      "fairnessPhaseSpeedup": {
+        "median": 5.202,
+        "min": 2.072,
+        "max": 9.24,
+        "pairs": 72
+      },
+      "fairness": {
+        "fairer": 29,
+        "same": 7,
+        "lessFair": 0,
+        "lessFairBeyondNoise": 0,
+        "medianVarianceRatio": 0.739
+      },
+      "cost": {
+        "medianDifferenceCents": 0.0,
+        "meanDifferenceCents": -20.0,
+        "cheaper": 13,
+        "ties": 10,
+        "dearer": 13
+      },
+      "bars": {
+        "speed": true,
+        "fairness": true,
+        "cost": true,
+        "ceiling": true
+      },
+      "passes": true,
+      "fairnessPhaseSpeedupByFleet": {
+        "10": {
+          "median": 2.787,
+          "min": 2.072,
+          "max": 3.188,
+          "pairs": 24
+        },
+        "30": {
+          "median": 5.202,
+          "min": 4.081,
+          "max": 6.032,
+          "pairs": 24
+        },
+        "50": {
+          "median": 7.102,
+          "min": 5.355,
+          "max": 9.24,
+          "pairs": 24
+        }
+      }
+    }
+  },
+  "stack": [
+    {
+      "name": "Formula b, 10 techs",
+      "harness": 2.787,
+      "stack": 2.4286415539790327
+    },
+    {
+      "name": "Formula b, 20 techs",
+      "harness": null,
+      "stack": 3.31856231081285
+    },
+    {
+      "name": "Formula b, 50 techs",
+      "harness": 7.102,
+      "stack": 5.937685121895648
+    },
+    {
+      "name": "L+M+W+A, 10 techs",
+      "harness": null,
+      "stack": 1.2903308995374176
+    },
+    {
+      "name": "L+M+W+A, 20 techs",
+      "harness": null,
+      "stack": 1.2405558537239882
+    },
+    {
+      "name": "L+M+W+A, 50 techs",
+      "harness": null,
+      "stack": 1.1682061898502503
+    }
+  ],
   "today": {
     "shed_before": 127.0,
     "shed_after": 263.0,
@@ -1241,6 +1944,8 @@
     "daily_saving": 7.551734375,
     "searches_before": 289,
     "searches_after": 1020,
-    "lost_before": 14
+    "lost_before": 14,
+    "stack_lo": 1.1682061898502503,
+    "stack_hi": 1.2903308995374176
   }
 }

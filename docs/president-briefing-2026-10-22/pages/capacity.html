@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What another core buys at the booking desk</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>What another core buys at the booking desk</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 580" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="capacity-title capacity-desc">
+        <title id="capacity-title">What another core buys at the booking desk</title>
+        <desc id="capacity-desc">Bars of booking searches answered per minute by ten clients for seven ways of laying out the booking pool on 2, 3 and 4 virtual CPUs; one replica with as many slots as CPUs, the chosen layout, is green.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="54" y="28" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Searches per minute, 10 clients, by booking pool layout</text>
+        <line x1="110" y1="420" x2="940" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="102" y="424" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0</text>
+        <line x1="110" y1="359.333" x2="940" y2="359.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="363.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">250</text>
+        <line x1="110" y1="298.667" x2="940" y2="298.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="302.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">500</text>
+        <line x1="110" y1="238" x2="940" y2="238" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="242" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">750</text>
+        <line x1="110" y1="177.333" x2="940" y2="177.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="181.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1,000</text>
+        <line x1="110" y1="116.667" x2="940" y2="116.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="120.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1,250</text>
+        <line x1="110" y1="56" x2="940" y2="56" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="102" y="60" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1,500</text>
+        <line x1="110" y1="56" x2="110" y2="420" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="54" y="238" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 54 238)">SEARCHES / MIN</text>
+        <rect x="128.444" y="300.486" width="55.3333" height="119.514" fill="#FFFFFF"/>
+        <rect x="128.444" y="300.486" width="55.3333" height="119.514" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="156.111" y="292.486" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">493</text>
+        <text x="156.111" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1 x 2</text>
+        <rect x="220.667" y="200.888" width="55.3333" height="219.112" fill="#FFFFFF"/>
+        <rect x="220.667" y="200.888" width="55.3333" height="219.112" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="248.333" y="192.888" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">903</text>
+        <text x="248.333" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2 x 1</text>
+        <text x="202.222" y="464" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2 VCPU</text>
+        <rect x="405.111" y="171.59" width="55.3333" height="248.41" fill="#FFFFFF"/>
+        <rect x="405.111" y="171.59" width="55.3333" height="248.41" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="432.778" y="163.59" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1,024</text>
+        <text x="432.778" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1 x 3</text>
+        <rect x="497.333" y="186.165" width="55.3333" height="233.835" fill="#FFFFFF"/>
+        <rect x="497.333" y="186.165" width="55.3333" height="233.835" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="525" y="178.165" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">964</text>
+        <text x="525" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3 x 1</text>
+        <text x="478.889" y="464" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">3 VCPU</text>
+        <rect x="681.778" y="118.679" width="55.3333" height="301.321" fill="#FFFFFF"/>
+        <rect x="681.778" y="118.679" width="55.3333" height="301.321" fill="rgba(40,122,76,0.12)" stroke="#287A4C" stroke-width="1"/>
+        <text x="709.444" y="110.679" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1,242</text>
+        <text x="709.444" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1 x 4</text>
+        <rect x="774" y="176.481" width="55.3333" height="243.519" fill="#FFFFFF"/>
+        <rect x="774" y="176.481" width="55.3333" height="243.519" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="801.667" y="168.481" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1,004</text>
+        <text x="801.667" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2 x 2</text>
+        <rect x="866.222" y="216.24" width="55.3333" height="203.76" fill="#FFFFFF"/>
+        <rect x="866.222" y="216.24" width="55.3333" height="203.76" fill="rgba(94,122,155,0.3)" stroke="#5e7a9b" stroke-width="1"/>
+        <text x="893.889" y="208.24" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">840</text>
+        <text x="893.889" y="440" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4 x 1</text>
+        <text x="801.667" y="464" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4 VCPU</text>
+        <text x="525" y="488" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">REPLICAS X SLOTS</text>
+        <line x1="40" y1="516" x2="940" y2="516" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="542" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="532" width="18" height="12" rx="2" fill="rgba(40,122,76,0.12)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="542" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CHOSEN: ONE REPLICA, ONE SLOT PER VCPU</text>
+        <rect x="424" y="532" width="18" height="12" rx="2" fill="rgba(94,122,155,0.3)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="450" y="542" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">OTHER LAYOUTS</text>
+        <text x="940" y="542" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">rehearsal stack; mean of 4 cells per bar</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

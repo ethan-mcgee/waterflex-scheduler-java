@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A fairer measure at the same cost</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>A fairer measure at the same cost</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="fairness_trade-title fairness_trade-desc">
+        <title id="fairness_trade-title">A fairer measure at the same cost</title>
+        <desc id="fairness_trade-desc">Scatter of 36 synthetic days: the shipped fairness measure&#x27;s change in modeled cost against production on the x axis, and its spread of work relative to production on the y axis, colored by fleet size; most days are fairer at the same cost.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="64" y="28" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Formula b against the previous measure, per day</text>
+        <line x1="120" y1="470" x2="700" y2="470" stroke="rgba(31,42,51,0.25)" stroke-width="0.8"/>
+        <text x="112" y="474" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.00</text>
+        <line x1="120" y1="387.2" x2="700" y2="387.2" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="391.2" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.25</text>
+        <line x1="120" y1="304.4" x2="700" y2="304.4" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="308.4" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.50</text>
+        <line x1="120" y1="221.6" x2="700" y2="221.6" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="225.6" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">0.75</text>
+        <line x1="120" y1="138.8" x2="700" y2="138.8" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="112" y="142.8" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1.00</text>
+        <line x1="120" y1="56" x2="700" y2="56" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="60" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">1.25</text>
+        <text x="60" y="263" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 60 263)">SPREAD OF WORK VS BEFORE</text>
+        <line x1="120" y1="56" x2="120" y2="470" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="120" y="490" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">-$10</text>
+        <line x1="265" y1="56" x2="265" y2="470" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="265" y="490" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">-$5</text>
+        <line x1="410" y1="56" x2="410" y2="470" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="410" y="490" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$0</text>
+        <line x1="555" y1="56" x2="555" y2="470" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="555" y="490" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$5</text>
+        <line x1="700" y1="56" x2="700" y2="470" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="700" y="490" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$10</text>
+        <text x="410" y="514" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CHANGE IN MODELED COST PER DAY</text>
+        <rect x="121" y="138.8" width="578" height="330.2" fill="rgba(40,122,76,0.04)"/>
+        <rect x="164.62" y="446" width="130.76" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="230" y="458" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">FAIRER THAN BEFORE</text>
+        <circle cx="410" cy="226.265" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="402.17" cy="177.849" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="468.29" cy="144.418" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="443.495" cy="288.382" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="381" cy="328.057" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="394.05" cy="470" r="5" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="432.62" cy="382.722" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="414.93" cy="235.176" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="402.17" cy="268.806" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="395.065" cy="147.211" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="291.1" cy="447.12" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="138.8" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="422.47" cy="269.249" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="528.03" cy="220.762" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="384.77" cy="267.098" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="438.275" cy="224.313" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="145.378" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410" cy="162.401" r="5" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="496.71" cy="257.359" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="336.92" cy="275.204" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="401.3" cy="273.796" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="412.32" cy="181.478" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="410.725" cy="277.46" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="407.1" cy="373.018" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="250.065" cy="171.695" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="419.135" cy="214.111" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="351.855" cy="304.427" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="334.6" cy="222.501" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="417.975" cy="311.449" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <circle cx="414.35" cy="285.401" r="5" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="0.6"/>
+        <text x="730" y="80" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">THE FAIRNESS PHASE, FORMULA B</text>
+        <rect x="724" y="92" width="220" height="168" rx="6" fill="#FFFFFF"/>
+        <rect x="724" y="92" width="220" height="168" rx="6" fill="rgba(40,122,76,0.06)" stroke="#287A4C" stroke-width="1.2"/>
+        <text x="740" y="114" fill="#287A4C" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">SHIPPED</text>
+        <text x="740" y="154" fill="#287A4C" font-size="28" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">5.2x</text>
+        <text x="740" y="182" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">work evaluated per second</text>
+        <text x="740" y="200" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">29 days fairer, 7 same,</text>
+        <text x="740" y="218" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">0 less fair</text>
+        <text x="740" y="236" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">median cost change $0.00</text>
+        <line x1="40" y1="544" x2="940" y2="544" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="570" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <circle cx="119" cy="566" r="6" fill="rgba(124,143,111,0.75)" stroke="#1F2A33" stroke-width="1"/>
+        <text x="136" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">10 TECHS</text>
+        <circle cx="229" cy="566" r="6" fill="rgba(94,122,155,0.75)" stroke="#1F2A33" stroke-width="1"/>
+        <text x="246" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">30 TECHS</text>
+        <circle cx="337" cy="566" r="6" fill="rgba(184,145,90,0.75)" stroke="#1F2A33" stroke-width="1"/>
+        <text x="354" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">50 TECHS</text>
+        <text x="940" y="570" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">road matrix study, 15 s, 2 runs per day</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

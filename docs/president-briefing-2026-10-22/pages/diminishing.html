@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What more search time buys</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>What more search time buys</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="diminishing-title diminishing-desc">
+        <title id="diminishing-title">What more search time buys</title>
+        <desc id="diminishing-desc">Line chart of the extra modeled saving per day over the 60-second result as Tabu + K opt is given 90, 120 and 240 seconds, one line per fleet size, with each fleet&#x27;s 60-second saving over the day as sent in the labels.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="64" y="28" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-weight="700">Extra saving over the 60 s result, Tabu + K opt</text>
+        <line x1="120" y1="450" x2="740" y2="450" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="112" y="454" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$0</text>
+        <line x1="120" y1="384.333" x2="740" y2="384.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="388.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$2.50</text>
+        <line x1="120" y1="318.667" x2="740" y2="318.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="322.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$5</text>
+        <line x1="120" y1="253" x2="740" y2="253" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="257" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$7.50</text>
+        <line x1="120" y1="187.333" x2="740" y2="187.333" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="191.333" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$10</text>
+        <line x1="120" y1="121.667" x2="740" y2="121.667" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="125.667" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$12.50</text>
+        <line x1="120" y1="56" x2="740" y2="56" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="112" y="60" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$15</text>
+        <line x1="120" y1="56" x2="120" y2="450" stroke="rgba(31,42,51,0.25)" stroke-width="1"/>
+        <text x="64" y="253" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.10em" transform="rotate(-90 64 253)">EXTRA $ PER DAY</text>
+        <line x1="160" y1="56" x2="160" y2="450" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="160" y="470" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">60 S</text>
+        <line x1="250" y1="56" x2="250" y2="450" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="250" y="470" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">90 S</text>
+        <line x1="340" y1="56" x2="340" y2="450" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="340" y="470" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">120 S</text>
+        <line x1="700" y1="56" x2="700" y2="450" stroke="rgba(31,42,51,0.06)" stroke-width="0.8"/>
+        <text x="700" y="470" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">240 S</text>
+        <text x="430" y="494" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SECONDS OF SEARCH PER METRO DAY</text>
+        <polyline points="160,450 250,447.702 340,447.268 700,443.039" fill="none" stroke="#7c8f6f" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="160" cy="450" r="4" fill="#7c8f6f"/>
+        <circle cx="250" cy="447.702" r="4" fill="#7c8f6f"/>
+        <circle cx="340" cy="447.268" r="4" fill="#7c8f6f"/>
+        <circle cx="700" cy="443.039" r="4" fill="#7c8f6f"/>
+        <polyline points="160,450 250,427.693 340,411.618 700,392.325" fill="none" stroke="#5e7a9b" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="160" cy="450" r="4" fill="#5e7a9b"/>
+        <circle cx="250" cy="427.693" r="4" fill="#5e7a9b"/>
+        <circle cx="340" cy="411.618" r="4" fill="#5e7a9b"/>
+        <circle cx="700" cy="392.325" r="4" fill="#5e7a9b"/>
+        <polyline points="160,450 250,403.909 340,377.222 700,276.174" fill="none" stroke="#b8915a" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="160" cy="450" r="4" fill="#b8915a"/>
+        <circle cx="250" cy="403.909" r="4" fill="#b8915a"/>
+        <circle cx="340" cy="377.222" r="4" fill="#b8915a"/>
+        <circle cx="700" cy="276.174" r="4" fill="#b8915a"/>
+        <polyline points="160,450 250,324.557 340,273.534 700,170.464" fill="none" stroke="#287A4C" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="160" cy="450" r="4" fill="#287A4C"/>
+        <circle cx="250" cy="324.557" r="4" fill="#287A4C"/>
+        <circle cx="340" cy="273.534" r="4" fill="#287A4C"/>
+        <circle cx="700" cy="170.464" r="4" fill="#287A4C"/>
+        <text x="754" y="174.464" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">50 techs +$10.64</text>
+        <text x="754" y="280.174" fill="#b8915a" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">20 techs +$6.62</text>
+        <text x="754" y="396.325" fill="#5e7a9b" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">10 techs +$2.20</text>
+        <text x="754" y="447.039" fill="#7c8f6f" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">5 techs +$0.27</text>
+        <text x="760" y="72" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">SAVING OVER THE DAY AS SENT AT 60 S</text>
+        <text x="760" y="96" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">5 techs  $21.85</text>
+        <text x="760" y="116" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">10 techs  $53.41</text>
+        <text x="760" y="136" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">20 techs  $143.31</text>
+        <text x="760" y="156" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">50 techs  $399.46</text>
+        <line x1="40" y1="524" x2="940" y2="524" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="550" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <line x1="110" y1="546" x2="146" y2="546" stroke="#287A4C" stroke-width="1.6"/>
+        <text x="156" y="550" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">50 TECHNICIANS</text>
+        <line x1="280" y1="546" x2="316" y2="546" stroke="#5e7a9b" stroke-width="1.6"/>
+        <text x="326" y="550" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">OTHER FLEET SIZES</text>
+        <text x="940" y="550" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">first daily study, 40 days per point</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

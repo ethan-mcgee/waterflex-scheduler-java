@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A booking&#x27;s life, and why nothing is double booked</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>A booking&#x27;s life, and why nothing is double booked</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="booking_life-title booking_life-desc">
+        <title id="booking_life-title">A booking&#x27;s life, and why nothing is double booked</title>
+        <desc id="booking_life-desc">Schematic with no data: a search returns windows held for ten minutes; when the customer chooses, the confirm checks that every technician-day it relies on is unchanged; if another desk changed it, the answer is search again, never a double booking.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="80" width="150" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="80" width="150" height="84" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="115" y="118" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search</text>
+        <text x="115" y="138" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY&#x27;S FACTS SENT</text>
+        <rect x="226" y="80" width="170" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="226" y="80" width="170" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="311" y="118" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Windows held</text>
+        <text x="311" y="138" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">10 MINUTES</text>
+        <rect x="432" y="80" width="150" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="432" y="80" width="150" height="84" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="507" y="118" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Customer picks</text>
+        <text x="507" y="138" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ONE WINDOW</text>
+        <polygon points="694,66 782,122 694,178 606,122" fill="#FFFFFF"/>
+        <polygon points="694,66 782,122 694,178 606,122" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="694" y="118" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DAY UNCHANGED</text>
+        <text x="694" y="134" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SINCE SEARCH?</text>
+        <rect x="820" y="80" width="120" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="820" y="80" width="120" height="84" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="880" y="118" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booked</text>
+        <text x="880" y="138" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HOST WRITES IT</text>
+        <line x1="190" y1="122" x2="226" y2="122" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="396" y1="122" x2="432" y2="122" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="582" y1="122" x2="606" y2="122" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="782" y1="122" x2="820" y2="122" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="785.77" y="102" width="28.46" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="800" y="114" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+        <path d="M694,178 L694,212 Q694,220 686,220 L123,220 Q115,220 115,212 L115,164" fill="none" stroke="#444444" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <rect x="273.83" y="200" width="260.34" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="404" y="212" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">NO: SEARCH AGAIN FROM CURRENT RECORDS</text>
+        <text x="40" y="276" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Each technician-day carries the timestamp WaterFlex Software already keeps. A confirm succeeds only if every</text>
+        <text x="40" y="294" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">timestamp it relied on is still the same, so two desks can never sell the same slot. The cost of a clash</text>
+        <text x="40" y="312" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">is one more search, measured in fractions of a second, not a lost or double booked customer.</text>
+        <line x1="40" y1="364" x2="940" y2="364" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="390" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="380" width="18" height="12" rx="2" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="390" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CUSTOMER OR DESK</text>
+        <rect x="276" y="380" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="302" y="390" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SCHEDULER</text>
+        <rect x="392" y="380" width="18" height="12" rx="2" fill="rgba(40,122,76,0.1)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="418" y="390" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">BOOKED</text>
+        <line x1="488" y1="386" x2="524" y2="386" stroke="#444444" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+        <text x="534" y="390" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">RETRY PATH</text>
+        <text x="940" y="390" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">schematic, no data</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

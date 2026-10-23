@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Where the scheduler sits</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>Where the scheduler sits</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="architecture-title architecture-desc">
+        <title id="architecture-title">Where the scheduler sits</title>
+        <desc id="architecture-desc">Schematic with no data: WaterFlex Software keeps every record and calls the scheduler&#x27;s one address; the scheduler VM runs a booking pool, a daily pool, the road map service and a small database that holds only what keeps promises safe.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="200" width="220" height="120" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="200" width="220" height="120" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="150" y="248" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">WaterFlex Software</text>
+        <text x="150" y="268" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DESKS, PLANNERS,</text>
+        <text x="150" y="284" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EVERY RECORD</text>
+        <rect x="320" y="40" width="620" height="420" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="332" y="44" width="264.794" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="340" y="55" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">SCHEDULER VM  8 VCPU  32 GB  ITS OWN MACHINE</text>
+        <rect x="352" y="220" width="140" height="80" rx="6" fill="#FFFFFF"/>
+        <rect x="352" y="220" width="140" height="80" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="422" y="256" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">One address</text>
+        <text x="422" y="276" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">/API/V1</text>
+        <rect x="560" y="92" width="180" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="560" y="92" width="180" height="84" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="650" y="130" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booking pool</text>
+        <text x="650" y="150" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ANSWERS IN SECONDS</text>
+        <rect x="560" y="344" width="180" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="560" y="344" width="180" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="650" y="382" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Daily pool</text>
+        <text x="650" y="402" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PLANS OVERNIGHT</text>
+        <rect x="784" y="92" width="132" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="784" y="92" width="132" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="850" y="130" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Road map</text>
+        <text x="850" y="150" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">DRIVE TIMES</text>
+        <rect x="784" y="344" width="132" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="784" y="344" width="132" height="84" rx="6" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="850" y="382" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Database</text>
+        <text x="850" y="402" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HOLDS ONLY</text>
+        <line x1="260" y1="260" x2="352" y2="260" stroke="#0B3A66" stroke-width="1.4" marker-end="url(#arrow-link)"/>
+        <rect x="274.72" y="240" width="62.56" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="306" y="252" fill="#0B3A66" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">SNAPSHOT</text>
+        <path d="M492,248 L516,248 Q524,248 524,240 L524,142 Q524,134 532,134 L560,134" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <path d="M492,272 L516,272 Q524,272 524,280 L524,378 Q524,386 532,386 L560,386" fill="none" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="740" y1="134" x2="784" y2="134" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="740" y1="386" x2="784" y2="386" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="583.96" y="256" width="308.08" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="738" y="268" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">BOTH POOLS USE THE ROAD MAP AND THE DATABASE</text>
+        <text x="40" y="360" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">WaterFlex Software sends the facts a</text>
+        <text x="40" y="378" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">call needs and keeps every business</text>
+        <text x="40" y="396" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">record; the scheduler keeps no copy.</text>
+        <line x1="40" y1="484" x2="940" y2="484" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="510" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="500" width="18" height="12" rx="2" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WATERFLEX SOFTWARE</text>
+        <rect x="288" y="500" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="314" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SCHEDULER SERVICE</text>
+        <rect x="460" y="500" width="18" height="12" rx="2" fill="#C9C9C9" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="486" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STORE</text>
+        <line x1="548" y1="506" x2="584" y2="506" stroke="#0B3A66" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="594" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">API CALL</text>
+        <text x="940" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">schematic, no data</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

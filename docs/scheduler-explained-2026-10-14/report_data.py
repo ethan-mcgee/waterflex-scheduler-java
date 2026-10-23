@@ -10,8 +10,9 @@ import importlib.util
 import json
 import re
 import sys
+from decimal import Decimal
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
 
 import yaml
 
@@ -24,16 +25,16 @@ GUIDE = DOCS / "integration-guide.md"
 RUNBOOK = DOCS / "operations-runbook.md"
 MACHINE = "AMD Ryzen 9 7900X 12-Core Processor"
 
-# Tables from the design document, the guide and the runbook, with the row counts they had when this report was written.
+# Tables from the design document, the guide and the runbook, with the row counts they had when this report was last brought up to date.
 # A changed count is a changed document; the report is rebuilt deliberately, not silently.
 DOCUMENT_TABLES = {
     "endpoints": (DESIGN, "### Endpoints", "### Contract changes", 10),
-    "changes": (DESIGN, "### Contract changes", "### Latency target", 29),
+    "changes": (DESIGN, "### Contract changes", "### Latency target", 33),
     "stored": (DESIGN, "### What is stored", "### Tenant isolation", 5),
     "tables": (DESIGN, "## Thin store", "Every key starts with", 7),
     "tiers": (DESIGN, "## Route cache", "How a lookup works", 4),
-    "settings": (RUNBOOK, "## Settings", "## Install", 18),
-    "problems": (GUIDE, "## 7. Errors, idempotency and retries", "**Timeouts to set at the caller", 11),
+    "settings": (RUNBOOK, "## Settings", "## Install", 27),
+    "problems": (GUIDE, "## 7. Errors, idempotency and retries", "**Timeouts to set at the caller", 12),
     "ownership": (GUIDE, "## 1. Topology and ownership", "Every calculating call carries a **snapshot**", 5),
 }
 
@@ -59,7 +60,8 @@ def markdown_table(text, start, end):
     segment = text[text.index(start):text.index(end, text.index(start))]
     rows = [line for line in segment.splitlines() if line.startswith("| ")]
     assert rows and rows[1].startswith("| ---"), start
-    cells = [[c.strip() for c in row.strip()[1:-1].split("|")] for row in (rows[0], *rows[2:])]
+    # A cell may hold an escaped pipe (\|), which is text, not a column break.
+    cells = [[c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", row.strip()[1:-1])] for row in (rows[0], *rows[2:])]
     width = len(cells[0])
     assert all(len(r) == width for r in cells), (start, [len(r) for r in cells])
     return cells[0], cells[1:]
@@ -175,6 +177,128 @@ def load_routing_september():
     return {"sparse": sparse["apiSamplesMs"], "sparse_pairs": len(sparse["directedPairs"]), "omaha": summaries}
 
 
+# ---- The work after the first edition: booking configuration and horizon, the engine's representation, fairness and numbering
+# studies, and their verification on the rehearsal stack. -------------------------------------------------------------------------
+
+# Results quoted from docs/solver-benchmarks.md, "Shipped representation" (study 3). The run's evidence is on the local branch bench/study-3;
+# main carries only the write-up. Cost phase / fairness phase, median of 180 paired moves-per-second ratios.
+QUOTED = {"study3": {"source": "docs/solver-benchmarks.md, Shipped representation (study 3, evidence on branch bench/study-3)",
+                     "lm_over_main": (1.288, 1.264), "lmw_over_lm": (1.047, 1.040), "wa_over_lm": (1.051, 1.043), "wa_over_main": (1.342, 1.312),
+                     "cr11_c_over_lm": 0.63, "solves": 2340}}
+
+
+def check(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def read_bom(path):
+    return json.loads(Path(path).read_text(encoding="utf-8-sig"))
+
+
+def load_horizon():
+    """Dynamic against fixed booking horizon (#177): searches that offered nothing and offers per search, summed over the three seeds."""
+    doc = read_bom(EVIDENCE / "api-load-2026-10-16-dynamic-horizon.json")
+    check(not doc["runsWithDefects"] and len(doc["runs"]) == 24, "horizon study: 24 runs with no defect")
+    out = {}
+    for profile in ("low", "high"):
+        for mode, word in (("fixed", "fixed10"), ("dynamic", "dynamic")):
+            for desks in (1, 5):
+                runs = [r for r in doc["runs"] if r["label"].startswith(f"{profile} {word} c{desks} ")]
+                check(len(runs) == 3, (profile, mode, desks))
+                for r in runs:
+                    check(not r["contractBreaches"] and r["booking"]["failedSearches"] == 0, r["label"])
+                searches, empty, offers = (sum(r["booking"][k] for r in runs) for k in ("searches", "noOffers", "offers"))
+                out[(profile, mode, desks)] = {"searches": searches, "noOffers": empty, "offersPerSearch": offers / searches}
+    return out
+
+
+def load_booking_configuration():
+    """The booking configuration study (#179): the full-schedule refinement frontier (rerun) and the booking pool layouts (first run)."""
+    bc = module(DOCS / "booking-configuration-study-2026-10-19/report_data.py", "booking_configuration_2026_10_19")
+    data = bc.load()
+    quality = data["rerun"]["quality"]
+    variants = ("2:0", "2:250", "2:1000", "2:2000", "2:3000")
+    frontier = {}
+    for fleet in bc.FLEETS:
+        cell = quality[f"{fleet}/full"]
+        frontier[fleet] = [{"variant": v, "cap_ms": int(v.split(":")[1]), "gap": cell[v]["meanCents"] / 100, "p50_ms": cell[v]["p50ms"], "priced": cell[v]["priced"]} for v in variants]
+        check(all(e["priced"] == 40 for e in frontier[fleet]), f"{fleet}: every case priced on both sides")
+        frontier[fleet].append({"variant": "1000", "cap_ms": None, "gap": 0.0, "p50_ms": cell["1000"]["p50ms"], "priced": 40})
+    # Throughput by booking pool layout: searches per minute at 10 clients, the 2:250 variant, averaged over the four fleet-and-schedule cells.
+    capacity = data["first"]["capacity"]
+    layouts = {}
+    for layout in bc.LAYOUTS:
+        cells = [capacity[f"{fleet}/{sched}/2:250/{layout}/10"] for fleet in (5, 10) for sched in ("half", "full")]
+        replicas, slots = (int(x) for x in layout.split("x"))
+        layouts[layout] = {"vcpu": replicas * slots, "perMinute": mean(c["perMinuteAll"] for c in cells), "p95": mean(c["p95"] for c in cells),
+                           "shed": mean(c["shed"] for c in cells), "cells": len(cells)}
+    return {"frontier": frontier, "layouts": layouts, "cells": data["first"]["cells"] + data["rerun"]["cells"], "noise": 0.80}
+
+
+def load_fairness():
+    """The fairness measure study (#187): formulas b and c and the four other measures against the decimal variance, at 15 and 60 s."""
+    fm = module(DOCS / "fairness-measures-2026-10-20/report_data.py", "fairness_measures_2026_10_20")
+    data = fm.load()
+    summary = {b: data["budgets"][b]["summary"] for b in ("15000", "60000")}
+    return {"summary": summary, "decision": data["decision"], "solves": sum(len(data["budgets"][b]["runs"]) for b in ("15000", "60000"))}
+
+
+def load_numbering():
+    """The road matrix numbering study (#187): the fix, and formula b on the faster engine, case by case."""
+    rm = module(DOCS / "road-matrix-numbering-2026-10-20/report_data.py", "road_matrix_numbering_2026_10_20")
+    paired = rm.load()["paired"]
+    pairs = []
+    for p in paired["pairs"]:
+        if p["arm"] != "b":
+            continue
+        base, arm = mean(Decimal(v) for v in p["baselineVariance"]), mean(Decimal(v) for v in p["armVariance"])
+        check(base > 0, "a fixed production variance of zero has no ratio")
+        pairs.append({"technicians": p["technicians"], "workload": p["workload"], "seed": p["seed"], "variance_ratio": float(arm / base),
+                      "cost_difference": float(p["meanCostDifferenceCents"]) / 100})
+    check(len(pairs) == 36, "36 cases of b")
+    return {"fix": paired["fix"], "summary": paired["summary"], "decision": paired["decision"], "pairs": pairs, "solves": len(paired["runs"])}
+
+
+def load_representation():
+    """The score and time representation study (#186): T, the long nanosecond timing, and S, the long score."""
+    doc = read_bom(EVIDENCE / "solver-representation-2026-10-20.json")
+    check(not doc["manifest"]["smoke"] and doc["paired"]["violations"] == 0 and doc["paired"]["cases"] == 24, "representation study: full run, no violation")
+    return {"summary": doc["paired"]["summary"], "solves": doc["paired"]["cases"] * doc["paired"]["repetitions"] * 4}
+
+
+def stack_ratios(path, commits):
+    """After over before, each phase's moves per second at the kit's p50, per fleet: the median of the seeds' ratios (as the stack reports define it)."""
+    doc = read_bom(path)
+    check({k: v["commit"] for k, v in doc["images"].items()} == commits, f"{path.name}: unexpected commits")
+    runs = {}
+    for r in doc["runs"]:
+        check(not r["report"]["contractBreaches"] and not r["report"]["hostAnomalies"], r["report"]["label"])
+        if r["step"] == 1:
+            runs[(r["image"], r["fleet"], r["seed"])] = {p["phase"]: p["movesPerSecond"]["p50"] for p in r["report"]["study"]["summary"]["phases"]}
+    out = {}
+    for fleet in (10, 20, 50):
+        seeds = sorted({s for (img, fl, s) in runs if fl == fleet})
+        check(len(seeds) == 3, (path.name, fleet))
+        out[fleet] = {phase: median(runs[("after", fleet, s)][phase] / runs[("before", fleet, s)][phase] for s in seeds) for phase in ("REFERENCE", "FAIRNESS")}
+    return out
+
+
+def load_stack():
+    """Formula b (#189) and the long score and money with W and A (#191), each through the public API on the rehearsal stack."""
+    sv = module(DOCS / "stack-verification-2026-10-20/report_data.py", "stack_verification_2026_10_20")
+    sv.load()  # validates the option b evidence
+    b = stack_ratios(EVIDENCE / "api-load-2026-10-20-binary-variance.json", {"before": sv.COMMITS["before"], "after": sv.COMMITS["after"]})
+    shipped = stack_ratios(EVIDENCE / "api-load-2026-10-22-long-score-money-w-a.json",
+                           {"before": "4ce1a56f6600930417c47a62d56d3c1c7251d73e", "after": "b26d0baf86c179e63e92fc89ff9e326cf17b2422"})
+    return {"b": b, "shipped": shipped, "runs": 40}
+
+
+def load_later():
+    return {"horizon": load_horizon(), "config": load_booking_configuration(), "fairness": load_fairness(), "numbering": load_numbering(),
+            "representation": load_representation(), "stack": load_stack(), "quoted": QUOTED}
+
+
 def per_fleet(rows, solver, fleets):
     return [mean(r["saving"] for r in rows if r["solver"] == solver and r["fleet"] == f) for f in fleets]
 
@@ -185,7 +309,7 @@ def wtl(rows):
 
 def load():
     return {"docs": load_documents(), "perf": load_performance(), "daily": load_daily_studies(), "booking24": load_booking_september(),
-            "field29": load_field_september(), "routing24": load_routing_september()}
+            "field29": load_field_september(), "routing24": load_routing_september(), "later": load_later()}
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ from pathlib import Path
 from statistics import mean, median
 
 from figures import diagrams, thread, trail
+from figures import later as later_figures
 from figures.render import render_all
 from report_data import per_fleet, wtl
 
@@ -247,10 +248,41 @@ def trail_figures(data, recorded, figures):
                                           "losses": sum(x["afterCostCents"]["after"] > x["afterCostCents"]["before"] for x in fp)})
     figures["paired_fleets"] = thread.paired_fleets(recorded["paired_fleets"])
 
+    # The work after the first edition: booking configuration and horizon, and the engine's representation chain with its stack checks.
+    later = data["later"]
+    h = later["horizon"]
+    recorded["horizon"] = {f"{mode}/{desks}": h[("high", mode, desks)] for mode in ("fixed", "dynamic") for desks in (1, 5)}
+    figures["horizon"] = later_figures.horizon(recorded["horizon"])
+    recorded["refinement_frontier"] = {str(k): v for k, v in later["config"]["frontier"].items()}
+    figures["refinement_frontier"] = later_figures.refinement_frontier(recorded["refinement_frontier"])
+    recorded["capacity"] = later["config"]["layouts"]
+    figures["capacity"] = later_figures.capacity(recorded["capacity"])
+    rep, fm, nm, s3 = later["representation"]["summary"], later["fairness"]["summary"]["15000"], later["numbering"], later["quoted"]["study3"]
+    recorded["engine_chain"] = [
+        {"name": "RoadMatrix (#163)", "phase": "COST PHASE", "ratio": speedup, "shipped": True, "note": "study L, 24 pairs"},
+        {"name": "Long timing T (#186)", "phase": "COST PHASE", "ratio": rep["T"]["referencePhaseSpeedup"]["median"], "shipped": True, "note": "not slower in either phase"},
+        {"name": "Long score S (#186)", "phase": "FAIRNESS PHASE", "ratio": rep["S"]["fairnessPhaseSpeedup"]["median"], "shipped": False, "note": f"{rep['S']['cases']['dearerBeyondNoise']} cases dearer beyond noise"},
+        {"name": "Formula b (#187)", "phase": "FAIRNESS PHASE", "ratio": fm["b"]["fairnessPhaseSpeedup"]["median"], "shipped": True, "note": "never less fair; #189"},
+        {"name": "Formula c (#187)", "phase": "FAIRNESS PHASE", "ratio": fm["c"]["fairnessPhaseSpeedup"]["median"], "shipped": False, "note": "failed cost and fairness bars"},
+        {"name": "Numbering (#187)", "phase": "COST PHASE", "ratio": nm["fix"]["baseline"]["referencePhaseSpeedup"]["median"], "shipped": True, "note": "not slower in either phase"},
+        {"name": "L+M (#191)", "phase": "COST PHASE", "ratio": s3["lm_over_main"][0], "shipped": True, "note": "quoted, study 3"},
+        {"name": "W+A on L+M (#191)", "phase": "COST PHASE", "ratio": s3["wa_over_lm"][0], "shipped": True, "note": "quoted; owner's call, W 1.047x"},
+        {"name": "CR11 cascade", "phase": "COST PHASE", "ratio": s3["cr11_c_over_lm"], "shipped": False, "note": "quoted, slower"},
+    ]
+    figures["engine_chain"] = later_figures.engine_chain(recorded["engine_chain"])
+    recorded["fairness_b"] = {"pairs": nm["pairs"], "summary": nm["summary"]["b"]}
+    figures["fairness_b"] = later_figures.fairness_b(recorded["fairness_b"])
+    harness_b = nm["summary"]["b"]["fairnessPhaseSpeedupByFleet"]
+    st = later["stack"]
+    recorded["stack"] = [{"name": f"Formula b, {fl} techs", "harness": harness_b[str(fl)]["median"] if str(fl) in harness_b else None, "stack": st["b"][fl]["FAIRNESS"]} for fl in (10, 20, 50)] + \
+                        [{"name": f"L+M+W+A, {fl} techs", "harness": None, "stack": st["shipped"][fl]["REFERENCE"]} for fl in (10, 20, 50)]
+    figures["stack"] = later_figures.stack(recorded["stack"])
+
     # Part IV and Part V.
     recorded["today"] = {"shed_before": per_minute(ab_before), "shed_after": per_minute(ab_after), "confirm_before": jc_b["ops"]["confirm"]["ms"]["p50"], "confirm_after": final["ops"]["confirm"]["ms"]["p50"],
                          "speedup": speedup, "daily_saving": saving(F, "TABU_KOPT"), "searches_before": vm_b["booking"]["searches"], "searches_after": jc_b["booking"]["searches"],
-                         "lost_before": b5["booking"]["holdUnavailable"]}
+                         "lost_before": b5["booking"]["holdUnavailable"],
+                         "stack_lo": min(v["REFERENCE"] for v in st["shipped"].values()), "stack_hi": max(v["REFERENCE"] for v in st["shipped"].values())}
     figures["today"] = thread.today(recorded["today"])
     figures["roadmap_perf"] = thread.roadmap_perf()
     figures["cores"] = thread.cores()
