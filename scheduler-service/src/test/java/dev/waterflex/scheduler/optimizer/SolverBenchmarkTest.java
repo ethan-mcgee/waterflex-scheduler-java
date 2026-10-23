@@ -65,6 +65,30 @@ class SolverBenchmarkTest {
         assertThrows(IllegalArgumentException.class, () -> SolverBenchmarkData.create(5, SolverBenchmarkData.Workload.CLUSTERED, -1));
     }
 
+    /** MIXED_SHIFT gives 4, 6 and 9 hour days, and every fixture the load balance study draws is feasible and its own. */
+    @Test void mixedShiftsAndTheLoadBalanceStudyFixturesAreFeasible() throws Exception {
+        for (int fleet : new int[] {5, 10, 20, 50}) for (var workload : List.of(SolverBenchmarkData.Workload.CLUSTERED, SolverBenchmarkData.Workload.DISPERSED,
+                SolverBenchmarkData.Workload.ABSENCE, SolverBenchmarkData.Workload.TIGHT_WINDOW, SolverBenchmarkData.Workload.NEAR_CAPACITY,
+                SolverBenchmarkData.Workload.MIXED_SHIFT)) {
+            var shape = Required.value(workload);
+            var fingerprints = new HashSet<String>();
+            for (long seed = 7001; seed <= 7005; seed++) {
+                var drawn = SolverBenchmarkData.create(fleet, shape, seed);
+                assertTrue(RouteEvaluator.evaluate(drawn).feasible(), fleet + "/" + shape + "/" + seed);
+                assertTrue(fingerprints.add(SolverBenchmark.fingerprint(drawn)), fleet + "/" + shape + "/" + seed);
+                if (shape != SolverBenchmarkData.Workload.MIXED_SHIFT) continue;
+                var capacities = new HashSet<Integer>();
+                for (TechRoute route : drawn.getRoutes()) {
+                    capacities.add(route.getMaxDailyMinutes());
+                    assertEquals(route.getMaxDailyMinutes() * 60L, route.getShiftEnd().getEpochSecond() - route.getShiftStart().getEpochSecond());
+                }
+                assertEquals(java.util.Set.of(240, 360, 540), capacities, fleet + "/" + seed);
+            }
+        }
+        // The other workloads keep their nine-hour days, so earlier fixtures are unchanged (archived fingerprints above).
+        for (TechRoute route : SolverBenchmarkData.create(20, SolverBenchmarkData.Workload.ABSENCE, 7001).getRoutes()) assertEquals(540, route.getMaxDailyMinutes());
+    }
+
     /** A cost-only case spends the whole budget on the cost search and records no fairness phase. */
     @Test void costOnlyRunsOneSearchOverTheWholeBudget() {
         var definition = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17);

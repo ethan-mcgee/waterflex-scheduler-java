@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How each measure counts a technician</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #bf4520;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); padding: 0; }
+    .frame { width: 960px; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="weighting-title weighting-desc">
+        <title id="weighting-title">How each fairness measure counts a technician</title>
+        <desc id="weighting-desc">Production's variance weights each technician's distance from the fleet's utilization by their regular minutes, so a 9-hour day counts more than twice a 4-hour day, while Timefold's load balance counts every technician once whatever their hours.</desc>
+
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+        <!-- Panel: production variance -->
+        <rect x="40" y="40" width="420" height="252" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+        <rect x="60" y="56" width="148" height="16" rx="2" fill="rgba(45,49,66,0.06)"/>
+        <text x="134" y="68" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">B · PRODUCTION</text>
+        <text x="60" y="100" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', sans-serif">Variance: weighted by hours</text>
+        <text x="60" y="118" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">each gap counts by regular minutes</text>
+
+        <rect x="60" y="136" width="160" height="32" rx="4" fill="rgba(45,49,66,0.05)" stroke="rgba(45,49,66,0.35)" stroke-width="1"/>
+        <text x="72" y="156" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">4-hour day · weight 240</text>
+        <rect x="60" y="180" width="240" height="32" rx="4" fill="rgba(45,49,66,0.05)" stroke="rgba(45,49,66,0.35)" stroke-width="1"/>
+        <text x="72" y="200" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">6-hour day · weight 360</text>
+        <rect x="60" y="224" width="360" height="32" rx="4" fill="rgba(45,49,66,0.05)" stroke="rgba(45,49,66,0.35)" stroke-width="1"/>
+        <text x="72" y="244" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">9-hour day · weight 540</text>
+        <text x="60" y="280" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">fleet mean = paid minutes / capacity minutes</text>
+
+        <!-- Panel: load balance (focal) -->
+        <rect x="500" y="40" width="420" height="252" rx="6" fill="rgba(191,69,32,0.06)" stroke="#bf4520" stroke-width="1"/>
+        <rect x="520" y="56" width="148" height="16" rx="2" fill="rgba(191,69,32,0.14)"/>
+        <text x="594" y="68" fill="#bf4520" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.12em">LOAD BALANCE</text>
+        <text x="520" y="100" fill="#2d3142" font-size="15" font-weight="600" font-family="'Geist', sans-serif">Load balance: one each</text>
+        <text x="520" y="118" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">Timefold collector, unweighted</text>
+
+        <rect x="520" y="136" width="240" height="32" rx="4" fill="#ffffff" stroke="rgba(191,69,32,0.55)" stroke-width="1"/>
+        <text x="532" y="156" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">4-hour day · weight 1</text>
+        <rect x="520" y="180" width="240" height="32" rx="4" fill="#ffffff" stroke="rgba(191,69,32,0.55)" stroke-width="1"/>
+        <text x="532" y="200" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">6-hour day · weight 1</text>
+        <rect x="520" y="224" width="240" height="32" rx="4" fill="#ffffff" stroke="rgba(191,69,32,0.55)" stroke-width="1"/>
+        <text x="532" y="244" fill="#2d3142" font-size="11" font-family="'Geist', sans-serif">9-hour day · weight 1</text>
+        <text x="520" y="280" fill="#4f5d75" font-size="10" font-family="'Geist Mono', monospace">utilization in millionths, per technician</text>
+
+        <!-- Callout -->
+        <text x="40" y="328" fill="#2d3142" font-size="15" font-style="italic" font-family="'Instrument Serif', serif">With equal days the two agree on who counts. With mixed days a short-shift technician moves load balance more than the variance.</text>
+
+        <!-- Legend -->
+        <line x1="40" y1="348" x2="920" y2="348" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+        <text x="40" y="364" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+        <rect x="40" y="372" width="32" height="12" rx="3" fill="rgba(45,49,66,0.05)" stroke="rgba(45,49,66,0.35)" stroke-width="1"/>
+        <text x="80" y="382" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">Bar length: how much one technician's gap counts</text>
+        <rect x="340" y="372" width="24" height="12" rx="3" fill="rgba(191,69,32,0.06)" stroke="#bf4520" stroke-width="1"/>
+        <text x="372" y="382" fill="#4f5d75" font-size="9" font-family="'Geist', sans-serif">The policy under test</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
