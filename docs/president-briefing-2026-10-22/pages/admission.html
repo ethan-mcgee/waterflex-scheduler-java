@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How the booking pool admits work</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>How the booking pool admits work</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="admission-title admission-desc">
+        <title id="admission-title">How the booking pool admits work</title>
+        <desc id="admission-desc">Schematic with no data: requests wait in a line of at most sixteen; confirms are taken before any waiting search and have a slot of their own; each booking replica runs two searches at once; a request that finds the line full is refused at once as busy; the daily pool runs separately and takes no booking work.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <rect x="40" y="40" width="900" height="330" rx="8" fill="rgba(31,42,51,0.02)" stroke="rgba(31,42,51,0.35)" stroke-width="1" stroke-dasharray="6,4"/>
+        <rect x="52" y="44" width="146.051" height="14" rx="2" fill="#FFFFFF"/>
+        <text x="60" y="55" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">BOOKING REPLICA  2 VCPU</text>
+        <text x="64" y="84" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">WAITING LINE, AT MOST 16</text>
+        <rect x="64" y="96" width="220" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="64" y="96" width="220" height="56" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="174" y="120" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Confirm</text>
+        <text x="174" y="140" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CUSTOMER ALREADY CHOSE</text>
+        <rect x="64" y="168" width="220" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="64" y="168" width="220" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="174" y="192" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search</text>
+        <text x="174" y="212" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NEW CALLER</text>
+        <rect x="64" y="240" width="220" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="64" y="240" width="220" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="174" y="264" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search</text>
+        <text x="174" y="284" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">NEW CALLER</text>
+        <text x="560" y="84" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">RUNNING</text>
+        <rect x="560" y="96" width="340" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="560" y="96" width="340" height="56" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="730" y="120" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Confirm-only slot</text>
+        <text x="730" y="140" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">A FEW MILLISECONDS</text>
+        <rect x="560" y="168" width="340" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="560" y="168" width="340" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="730" y="192" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search slot 1</text>
+        <text x="730" y="212" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">UP TO 5 S</text>
+        <rect x="560" y="240" width="340" height="56" rx="6" fill="#FFFFFF"/>
+        <rect x="560" y="240" width="340" height="56" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="730" y="264" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Search slot 2</text>
+        <text x="730" y="284" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">UP TO 5 S</text>
+        <line x1="284" y1="124" x2="560" y2="124" stroke="#287A4C" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+        <rect x="380.49" y="104" width="83.02" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="422" y="116" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TAKEN FIRST</text>
+        <line x1="284" y1="196" x2="560" y2="196" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="284" y1="268" x2="560" y2="268" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="64" y="338" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Search slots match the replica&#x27;s cores: two on two cores, one on a single core.</text>
+        <rect x="40" y="400" width="420" height="68" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="400" width="420" height="68" rx="6" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="250" y="430" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Line full</text>
+        <text x="250" y="450" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">REFUSED AT ONCE AS BUSY, DESK RETRIES</text>
+        <rect x="520" y="400" width="420" height="68" rx="6" fill="#FFFFFF"/>
+        <rect x="520" y="400" width="420" height="68" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="730" y="430" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Daily pool, its own replicas</text>
+        <text x="730" y="450" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2 PLANS AT ONCE, NO BOOKING WORK</text>
+        <line x1="40" y1="496" x2="940" y2="496" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="522" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="512" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="522" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SEARCH WORK</text>
+        <rect x="240" y="512" width="18" height="12" rx="2" fill="rgba(40,122,76,0.1)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="266" y="522" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">CONFIRMS, FIRST IN LINE</text>
+        <rect x="452" y="512" width="18" height="12" rx="2" fill="#F4F6F8" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="478" y="522" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">REFUSAL</text>
+        <text x="940" y="522" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">schematic, no data; shipped defaults</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

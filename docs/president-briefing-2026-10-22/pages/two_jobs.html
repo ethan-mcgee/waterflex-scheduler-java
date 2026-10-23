@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The scheduler&#x27;s two jobs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>The scheduler&#x27;s two jobs</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="two_jobs-title two_jobs-desc">
+        <title id="two_jobs-title">The scheduler&#x27;s two jobs</title>
+        <desc id="two_jobs-desc">Schematic with no data: the booking job, where a customer on the phone gets arrival windows in seconds and the chosen one is confirmed, and the daily plan, where a booked metro day is rearranged overnight to cost less without breaking any promise.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="40" y="28" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">JOB 1  BOOKING  SECONDS, MANY CUSTOMERS AT ONCE</text>
+        <rect x="40" y="48" width="150" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="48" width="150" height="84" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="115" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Customer calls</text>
+        <text x="115" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">WANTS A VISIT</text>
+        <rect x="226" y="48" width="170" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="226" y="48" width="170" height="84" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="311" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Desk searches</text>
+        <text x="311" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">WATERFLEX SOFTWARE</text>
+        <line x1="190" y1="90" x2="226" y2="90" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="432" y="48" width="180" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="432" y="48" width="180" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="522" y="78" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Scheduler</text>
+        <text x="522" y="98" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">FINDS WINDOWS</text>
+        <text x="522" y="114" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">IN UNDER A SECOND</text>
+        <line x1="396" y1="90" x2="432" y2="90" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="648" y="48" width="136" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="648" y="48" width="136" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="716" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">4 windows</text>
+        <text x="716" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">HELD 10 MINUTES</text>
+        <line x1="612" y1="90" x2="648" y2="90" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="820" y="48" width="120" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="820" y="48" width="120" height="84" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="880" y="86" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Confirmed</text>
+        <text x="880" y="106" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ON THE BOOK</text>
+        <line x1="784" y1="90" x2="820" y2="90" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="40" y="168" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Every existing promise holds and no overtime is added. If another desk changed the same day in</text>
+        <text x="40" y="186" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">the meantime, the confirm is refused and the desk searches again: nothing is double booked.</text>
+        <line x1="40" y1="222" x2="940" y2="222" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="254" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">JOB 2  DAILY PLAN  MINUTES, ONE METRO DAY AT A TIME</text>
+        <rect x="40" y="274" width="170" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="40" y="274" width="170" height="84" rx="6" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="125" y="312" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Booked day</text>
+        <text x="125" y="332" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EVERY PROMISE FIXED</text>
+        <rect x="246" y="274" width="190" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="246" y="274" width="190" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="341" y="312" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Cost search</text>
+        <text x="341" y="332" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CHEAPER ROUTES</text>
+        <line x1="210" y1="316" x2="246" y2="316" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="472" y="274" width="190" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="472" y="274" width="190" height="84" rx="6" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="1"/>
+        <text x="567" y="312" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Fairness search</text>
+        <text x="567" y="332" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">EVENS OUT THE WORK</text>
+        <line x1="436" y1="316" x2="472" y2="316" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="698" y="274" width="242" height="84" rx="6" fill="#FFFFFF"/>
+        <rect x="698" y="274" width="242" height="84" rx="6" fill="rgba(40,122,76,0.1)" stroke="#287A4C" stroke-width="1.4"/>
+        <text x="819" y="304" fill="#1F2A33" font-size="16" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="middle" font-weight="700">Proposal</text>
+        <text x="819" y="324" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">CHEAPER, SAME PROMISES,</text>
+        <text x="819" y="340" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">PLANNER COMMITS IT</text>
+        <line x1="662" y1="316" x2="698" y2="316" stroke="#444444" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <text x="40" y="394" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Visits may move between technicians and change order, but every customer&#x27;s window holds.</text>
+        <text x="40" y="412" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">The fairness search may give back a small, client-set allowance of the saving to spread work evenly,</text>
+        <text x="40" y="430" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">and the result is accepted only if it beats the day as it was sent.</text>
+        <line x1="40" y1="484" x2="940" y2="484" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="510" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="500" width="18" height="12" rx="2" fill="#DCE6EF" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">WATERFLEX SOFTWARE OR ITS USERS</text>
+        <rect x="376" y="500" width="18" height="12" rx="2" fill="#7DAFCB" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="402" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE SCHEDULER</text>
+        <rect x="520" y="500" width="18" height="12" rx="2" fill="rgba(40,122,76,0.1)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="546" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">THE RESULT</text>
+        <text x="940" y="510" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">schematic, no data</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
