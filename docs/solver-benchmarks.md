@@ -340,30 +340,42 @@ In cost, L+M+W ended cheaper than L+M in 10 of 60 cases and dearer in none. W's 
 
 Should the daily fairness policy move from b, the capacity-weighted variance that ships, to Timefold's load balance (`ConstraintCollectors.loadBalance`, docs 13.4.5.9 and chapter 15)? The road matrix study found load balance fairer on all five measures at 10 to 50 technicians and 15 s. This run covers the fleets and the longer budget that study did not.
 
+**Two gaps in earlier fixtures, closed for this run.**
+- **Equal capacities.** Every fixture technician had the same 540-minute day. The two policies differ in how they count technicians:
+  - the variance counts each technician in proportion to their capacity;
+  - load balance counts every technician equally.
+
+  With equal capacities that difference vanishes. A new `MIXED_SHIFT` workload gives technicians 4, 6 and 9 hour days by rank, with loads scaled to the shift. It is a test-only change; every other fixture is unchanged.
+- **One problem per fleet and workload.** The earlier studies varied the solver seed on one fixture, so they asked whether a result was luck of the search, not whether it holds on a different day. This run varies the fixture seed instead: 5 drawn days per fleet and workload.
+
 **Design.**
-- One tree: main `52339c8` (L, M, W and A).
+- One tree: `15da8a0`, which is main `52339c8` (L, M, W and A) plus the fixture.
 - Two arms:
   - b: `TABU_KOPT`, accepted on the variance;
   - load-balance: `TABU_KOPT_LOAD_BALANCE`, accepted on its own measure.
 - Fleets 5, 10, 20 and 50.
-- Workloads Clustered, Dispersed, Absence, Tight Window and Near Capacity.
-- Seeds 17, 23 and 41 on fixture seed 7001.
+- Workloads Clustered, Dispersed, Absence, Tight Window, Near Capacity and Mixed Shift.
+- Fixture seeds 7001 to 7005, all feasible and distinct (`SolverBenchmarkTest`), with solver seed 17. That makes 120 cases, each a different problem.
 - Budgets 15 s (10 s cost, 5 s fairness) and 30 s (20 s and 10 s).
-- 3 repetitions, which comes to 720 measured solves.
+- One repetition, which comes to 480 measured solves.
 - How it runs:
   - every case is its own JVM, with the arm order alternating;
-  - both budgets run in every repetition;
-  - a JFR pass at 15 s on seed 17 follows.
+  - both budgets run in the repetition;
+  - a JFR pass at 15 s on fixture seed 7001 follows.
 - Every plan is read on all five measures.
-- About 5 hours 10 minutes, on the workstation harness.
+- About 3 hours 35 minutes, on the workstation harness.
 - Runner and summarizer: `infra/run-load-balance-study.ps1` (the owner starts it) and `infra/load_balance_study.py`.
 
+**Why one repetition.** The rule below is read across cases, not within one. A repetition reruns the same problem with the same seed, so it measures only timing jitter. Spending that time on more distinct problems narrows the interval the decision rests on. The runner still takes `-Repetitions`; with more than one, each case's mean is used, and b's spread between runs is reported.
+
 **The rule for switching, written before the run.** Load balance replaces b only if all of these hold at both budgets:
-- **Variance:** its median per-case variance ratio to b is below 1. It is less fair than b beyond b's own spread between repetitions in at most 10 percent of cases.
+- **Variance:** the 95 percent bootstrap interval of its median per-case variance ratio to b lies below 1. The interval resamples cases 10,000 times with a fixed seed. In addition, it is less fair than b by more than 5 percent in at most 10 percent of cases.
 - **Highest utilization:** its median per-case ratio to b is at most 1.
 - **Cost:** its median per-case cost difference is at most 0.1 percent of b's cost.
 - **Ceiling:** every accepted result of both arms is inside its cost ceiling, with zero violations.
 
-The speed of both phases is reported, not gated, because the collector runs on every move.
+Also reported, not gated:
+- speed in both phases, since the collector runs on every move;
+- convergence, the share of each phase's budget spent before its best plan, which shows whether 30 s still leaves the search improving.
 
-The rule informs the owner's decision; the policy change itself is the owner's call. A switch would also be verified on the VM rehearsal stack. Load balance here is unweighted by capacity, unlike the variance. A capacity-weighted form is not part of this run.
+The rule informs the owner's decision; the policy change itself is the owner's call. A switch would also be verified on the VM rehearsal stack.
