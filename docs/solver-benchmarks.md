@@ -335,3 +335,35 @@ PR #191 makes four representation changes the default. Each scores every plan ex
 In cost, L+M+W ended cheaper than L+M in 10 of 60 cases and dearer in none. W's cost-phase gain is largest at 30 and 50 technicians (1.051x and 1.061x). The flight recordings place W's saving in the timing search's arithmetic: route evaluation falls from 68.2 to 57.0 samples per million moves, with no other kind of work changing by more than a few samples. CR11's cascade arms (C and AC) were about 0.63x over L+M and are not shipped.
 
 **Owner decision, 2026-10-22.** W and A ship with L and M as the default. This overrides the bar written before the run: W measured under 1.05x, and A measured no change on either base. W is taken for its consistent gain, larger on bigger fleets; A is taken as neutral. The paired ratios are the harness's; the change is verified on the VM rehearsal stack through the public API before it is called shipped (docs/api-load.md).
+
+## Load balance head to head (PR J, planned 2026-10-23)
+
+Should the daily fairness policy move from b, the capacity-weighted variance that ships, to Timefold's load balance (`ConstraintCollectors.loadBalance`, docs 13.4.5.9 and chapter 15)? The road matrix study found load balance fairer on all five measures at 10 to 50 technicians and 15 s. This run covers the fleets and the longer budget that study did not.
+
+**Design.**
+- One tree: main `52339c8` (L, M, W and A).
+- Two arms:
+  - b: `TABU_KOPT`, accepted on the variance;
+  - load-balance: `TABU_KOPT_LOAD_BALANCE`, accepted on its own measure.
+- Fleets 5, 10, 20 and 50.
+- Workloads Clustered, Dispersed, Absence, Tight Window and Near Capacity.
+- Seeds 17, 23 and 41 on fixture seed 7001.
+- Budgets 15 s (10 s cost, 5 s fairness) and 30 s (20 s and 10 s).
+- 3 repetitions, which comes to 720 measured solves.
+- How it runs:
+  - every case is its own JVM, with the arm order alternating;
+  - both budgets run in every repetition;
+  - a JFR pass at 15 s on seed 17 follows.
+- Every plan is read on all five measures.
+- About 5 hours 10 minutes, on the workstation harness.
+- Runner and summarizer: `infra/run-load-balance-study.ps1` (the owner starts it) and `infra/load_balance_study.py`.
+
+**The rule for switching, written before the run.** Load balance replaces b only if all of these hold at both budgets:
+- **Variance:** its median per-case variance ratio to b is below 1. It is less fair than b beyond b's own spread between repetitions in at most 10 percent of cases.
+- **Highest utilization:** its median per-case ratio to b is at most 1.
+- **Cost:** its median per-case cost difference is at most 0.1 percent of b's cost.
+- **Ceiling:** every accepted result of both arms is inside its cost ceiling, with zero violations.
+
+The speed of both phases is reported, not gated, because the collector runs on every move.
+
+The rule informs the owner's decision; the policy change itself is the owner's call. A switch would also be verified on the VM rehearsal stack. Load balance here is unweighted by capacity, unlike the variance. A capacity-weighted form is not part of this run.
