@@ -28,6 +28,9 @@ workload24
 booking_study
 deadline
 api_fixes
+refinement_frontier
+capacity
+horizon
 paradox
 ch_mechanism
 attribution
@@ -43,6 +46,9 @@ profile
 roadmatrix
 engine
 paired_fleets
+engine_chain
+fairness_b
+stack
 today
 roadmap_perf
 cores

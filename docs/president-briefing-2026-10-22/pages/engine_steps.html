@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Engine speed: every change, shipped or not</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>Engine speed: every change, shipped or not</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="engine_steps-title engine_steps-desc">
+        <title id="engine_steps-title">Engine speed: every change, shipped or not</title>
+        <desc id="engine_steps-desc">Horizontal bars on a log scale of each engine change&#x27;s median paired speed ratio on the phase it targets, against the code before it in its own study; the line at 1.05 is the promotion bar; changes that did not ship are grey.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <line x1="360" y1="56" x2="360" y2="540" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="360" y="560" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">0.5x</text>
+        <line x1="465" y1="56" x2="465" y2="540" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="465" y="560" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">1x</text>
+        <line x1="570" y1="56" x2="570" y2="540" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="570" y="560" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">2x</text>
+        <line x1="675" y1="56" x2="675" y2="540" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="675" y="560" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">4x</text>
+        <line x1="780" y1="56" x2="780" y2="540" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="780" y="560" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">8x</text>
+        <line x1="472.391" y1="56" x2="472.391" y2="540" stroke="#287A4C" stroke-width="1" stroke-dasharray="4,3"/>
+        <rect x="491.701" y="38" width="69.38" height="16" rx="2" fill="#FFFFFF"/>
+        <text x="526.391" y="50" fill="#287A4C" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">BAR 1.05X</text>
+        <text x="570" y="584" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">SPEED RATIO, CHANGE OVER CODE BEFORE IT (LOG)</text>
+        <text x="344" y="90" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Road lookup tables</text>
+        <text x="344" y="106" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">COST PHASE</text>
+        <rect x="465" y="80" width="88.2804" height="22" fill="rgba(40,122,76,0.18)" stroke="#287A4C" stroke-width="1"/>
+        <text x="563.28" y="96" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.79x  24 paired days</text>
+        <text x="344" y="142" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Time as whole numbers</text>
+        <text x="344" y="158" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">COST PHASE</text>
+        <rect x="465" y="132" width="21.0398" height="22" fill="rgba(40,122,76,0.18)" stroke="#287A4C" stroke-width="1"/>
+        <text x="496.04" y="148" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.15x  not slower in either phase</text>
+        <text x="344" y="194" fill="#444444" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Whole-number score</text>
+        <text x="344" y="210" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">FAIRNESS PHASE</text>
+        <rect x="465" y="184" width="210.34" height="22" fill="rgba(154,165,174,0.25)" stroke="#9AA5AE" stroke-width="1"/>
+        <text x="685.34" y="200" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">4.01x  3 days dearer beyond noise</text>
+        <text x="344" y="246" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Fairness formula b</text>
+        <text x="344" y="262" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">FAIRNESS PHASE</text>
+        <rect x="465" y="236" width="230.842" height="22" fill="rgba(40,122,76,0.18)" stroke="#287A4C" stroke-width="1"/>
+        <text x="705.842" y="252" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">4.59x  never less fair</text>
+        <text x="344" y="298" fill="#444444" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Fairness formula c</text>
+        <text x="344" y="314" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">FAIRNESS PHASE</text>
+        <rect x="465" y="288" width="223.782" height="22" fill="rgba(154,165,174,0.25)" stroke="#9AA5AE" stroke-width="1"/>
+        <text x="698.782" y="304" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">4.38x  failed cost and fairness bars</text>
+        <text x="344" y="350" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Road matrix numbering</text>
+        <text x="344" y="366" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">COST PHASE</text>
+        <rect x="465" y="340" width="49.2286" height="22" fill="rgba(40,122,76,0.18)" stroke="#287A4C" stroke-width="1"/>
+        <text x="524.229" y="356" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.38x  not slower in either phase</text>
+        <text x="344" y="402" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Long score and money</text>
+        <text x="344" y="418" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">COST PHASE</text>
+        <rect x="465" y="392" width="38.3389" height="22" fill="rgba(40,122,76,0.18)" stroke="#287A4C" stroke-width="1"/>
+        <text x="513.339" y="408" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.29x  quoted, study 3</text>
+        <text x="344" y="454" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">W and A on top</text>
+        <text x="344" y="470" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">COST PHASE</text>
+        <rect x="465" y="444" width="7.53508" height="22" fill="rgba(40,122,76,0.18)" stroke="#287A4C" stroke-width="1"/>
+        <text x="482.535" y="460" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">1.05x  quoted; owner&#x27;s call, W alone 1.047x</text>
+        <text x="344" y="506" fill="#444444" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Route-walk cascade</text>
+        <text x="344" y="522" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">COST PHASE</text>
+        <rect x="395.009" y="496" width="69.9905" height="22" fill="rgba(154,165,174,0.25)" stroke="#9AA5AE" stroke-width="1"/>
+        <text x="482.391" y="512" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">0.63x  quoted, slower</text>
+        <line x1="40" y1="604" x2="940" y2="604" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="630" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="620" width="18" height="12" rx="2" fill="rgba(40,122,76,0.18)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SHIPPED</text>
+        <rect x="212" y="620" width="18" height="12" rx="2" fill="rgba(154,165,174,0.25)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="238" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">MEASURED, NOT SHIPPED</text>
+        <line x1="412" y1="626" x2="448" y2="626" stroke="#287A4C" stroke-width="1.2" stroke-dasharray="5,4"/>
+        <text x="458" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">PROMOTION BAR</text>
+        <text x="940" y="630" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">each bar is read against its own control</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

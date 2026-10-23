@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Which daily search saves money, by fleet size</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>Which daily search saves money, by fleet size</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="daily_heatmap-title daily_heatmap-desc">
+        <title id="daily_heatmap-title">Which daily search saves money, by fleet size</title>
+        <desc id="daily_heatmap-desc">Heatmap of the mean modeled saving per day against Tabu, the old default, for six alternatives at 5, 10, 20 and 50 technicians and overall, from 4,480 matched synthetic days; blue saves, brown loses, and Tabu + K opt is outlined.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <text x="360" y="58" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">5 TECHS</text>
+        <text x="480" y="58" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">10 TECHS</text>
+        <text x="600" y="58" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">20 TECHS</text>
+        <text x="720" y="58" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">50 TECHS</text>
+        <text x="852" y="58" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">ALL</text>
+        <text x="284" y="101" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Tabu, short memory</text>
+        <rect x="302" y="74" width="116" height="44" rx="2" fill="rgba(156,107,80,0.07554789487810137)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="360" y="101" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$0.97</text>
+        <rect x="422" y="74" width="116" height="44" rx="2" fill="rgba(94,122,155,0.2577127671276273)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="480" y="101" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$7.87</text>
+        <rect x="542" y="74" width="116" height="44" rx="2" fill="rgba(94,122,155,0.3458467346301242)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="600" y="101" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$11.21</text>
+        <rect x="662" y="74" width="116" height="44" rx="2" fill="rgba(94,122,155,0.18826123398994188)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="720" y="101" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$5.24</text>
+        <rect x="794" y="74" width="116" height="44" rx="2" fill="rgba(94,122,155,0.20406821021739802)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="852" y="101" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$5.84</text>
+        <text x="284" y="149" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Tabu, long memory</text>
+        <rect x="302" y="122" width="116" height="44" rx="2" fill="rgba(156,107,80,0.054801367482257494)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="360" y="149" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$0.18</text>
+        <rect x="422" y="122" width="116" height="44" rx="2" fill="rgba(94,122,155,0.2648900690340947)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="480" y="149" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$8.14</text>
+        <rect x="542" y="122" width="116" height="44" rx="2" fill="rgba(156,107,80,0.3235492500406989)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="600" y="149" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$10.36</text>
+        <rect x="662" y="122" width="116" height="44" rx="2" fill="rgba(156,107,80,0.7052728144703206)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="720" y="149" fill="#FFFFFF" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$24.82</text>
+        <rect x="794" y="122" width="116" height="44" rx="2" fill="rgba(156,107,80,0.22968334073979557)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="852" y="149" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$6.81</text>
+        <text x="284" y="197" fill="#287A4C" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Tabu + K opt</text>
+        <rect x="302" y="170" width="116" height="44" rx="2" fill="rgba(94,122,155,0.09418248056353645)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="360" y="197" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$1.67</text>
+        <rect x="422" y="170" width="116" height="44" rx="2" fill="rgba(94,122,155,0.29524593121229853)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="480" y="197" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$9.29</text>
+        <rect x="542" y="170" width="116" height="44" rx="2" fill="rgba(94,122,155,0.2650303151633015)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="600" y="197" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$8.15</text>
+        <rect x="662" y="170" width="116" height="44" rx="2" fill="rgba(94,122,155,0.34298241368538224)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="720" y="197" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$11.10</text>
+        <rect x="794" y="170" width="116" height="44" rx="2" fill="rgba(94,122,155,0.24936028515612968)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="852" y="197" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$7.55</text>
+        <rect x="300" y="168" width="612" height="48" rx="4" fill="none" stroke="#287A4C" stroke-width="2.4"/>
+        <text x="284" y="245" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">K opt alone</text>
+        <rect x="302" y="218" width="116" height="44" rx="2" fill="rgba(94,122,155,0.11948948209029431)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="360" y="245" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$2.63</text>
+        <rect x="422" y="218" width="116" height="44" rx="2" fill="rgba(94,122,155,0.5042176135938649)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="480" y="245" fill="#FFFFFF" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$17.21</text>
+        <rect x="542" y="218" width="116" height="44" rx="2" fill="rgba(94,122,155,0.4324577941648811)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="600" y="245" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$14.49</text>
+        <rect x="662" y="218" width="116" height="44" rx="2" fill="rgba(156,107,80,0.8)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="720" y="245" fill="#FFFFFF" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$28.41</text>
+        <rect x="794" y="218" width="116" height="44" rx="2" fill="rgba(94,122,155,0.08904122246226004)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="852" y="245" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$1.48</text>
+        <text x="284" y="293" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Sublist moves</text>
+        <rect x="302" y="266" width="116" height="44" rx="2" fill="rgba(94,122,155,0.11047413091398678)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="360" y="293" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$2.29</text>
+        <rect x="422" y="266" width="116" height="44" rx="2" fill="rgba(94,122,155,0.49085793232106795)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="480" y="293" fill="#FFFFFF" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$16.70</text>
+        <rect x="542" y="266" width="116" height="44" rx="2" fill="rgba(94,122,155,0.42397537827955945)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="600" y="293" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$14.17</text>
+        <rect x="662" y="266" width="116" height="44" rx="2" fill="rgba(156,107,80,0.7696688871387151)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="720" y="293" fill="#FFFFFF" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$27.26</text>
+        <rect x="794" y="266" width="116" height="44" rx="2" fill="rgba(94,122,155,0.08890963859397481)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="852" y="293" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$1.47</text>
+        <text x="284" y="341" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">Late acceptance</text>
+        <rect x="302" y="314" width="116" height="44" rx="2" fill="rgba(94,122,155,0.09865385715354257)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="360" y="341" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$1.84</text>
+        <rect x="422" y="314" width="116" height="44" rx="2" fill="rgba(94,122,155,0.45230344642487863)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="480" y="341" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$15.24</text>
+        <rect x="542" y="314" width="116" height="44" rx="2" fill="rgba(94,122,155,0.40652215998838437)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="600" y="341" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$13.51</text>
+        <rect x="662" y="314" width="116" height="44" rx="2" fill="rgba(156,107,80,0.749371147356333)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="720" y="341" fill="#FFFFFF" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">-$26.49</text>
+        <rect x="794" y="314" width="116" height="44" rx="2" fill="rgba(94,122,155,0.07702707905261814)" stroke="#FFFFFF" stroke-width="1"/>
+        <text x="852" y="341" fill="#1F2A33" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle" font-weight="700">$1.02</text>
+        <text x="40" y="394" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">Only Tabu + K opt is blue in every column: it saves money at every fleet size. The late acceptance family</text>
+        <text x="40" y="412" fill="#1F2A33" font-size="14" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="start" font-style="italic">wins on mid-size fleets and loses heavily at 50 technicians, so it could not be one default for everyone.</text>
+        <line x1="40" y1="444" x2="940" y2="444" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="470" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="460" width="18" height="12" rx="2" fill="rgba(94,122,155,0.6)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="470" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">SAVES VS TABU</text>
+        <rect x="252" y="460" width="18" height="12" rx="2" fill="rgba(156,107,80,0.6)" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="278" y="470" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">COSTS MORE THAN TABU</text>
+        <rect x="444" y="460" width="18" height="12" rx="2" fill="#FFFFFF" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="470" y="470" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">OUTLINED: CHOSEN</text>
+        <text x="940" y="470" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">$ per synthetic day, 160 days per cell</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

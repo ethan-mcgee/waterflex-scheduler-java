@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The choice held on days it had never seen</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --color-paper: #FFFFFF; --color-ink: #1F2A33; --color-muted: #444444; --color-accent: #287A4C;
+      --font-sans: 'Calibri', 'Carlito', system-ui, sans-serif; --font-serif: 'Calibri', 'Carlito', serif; --font-mono: 'Consolas', 'Liberation Mono', ui-monospace, monospace; }
+    body { font-family: var(--font-sans); background: var(--color-paper); color: var(--color-ink); min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+    .frame { max-width: 1020px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.5rem; }
+    h1 { font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem); font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink); margin-bottom: 1.5rem; }
+    svg { width: 100%; min-width: 980px; display: block; }
+    @media print { .diagram-container { overflow-x: visible; } svg { min-width: 0; } }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">WaterFlex scheduler: a briefing</p>
+    <h1>The choice held on days it had never seen</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 980 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="out_of_sample-title out_of_sample-desc">
+        <title id="out_of_sample-title">The choice held on days it had never seen</title>
+        <desc id="out_of_sample-desc">Forest plot of Tabu + K opt&#x27;s mean saving per day over Tabu with 95 percent intervals that resample whole days, by fleet size, in the study that chose it and in the follow-up on new days, with days won and lost and the sign test.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#444444"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#287A4C"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0B3A66"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#444444" stroke-width="1.2"/></marker>
+<pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#FFFFFF"/><line x1="0" y1="0" x2="0" y2="6" stroke="#444444" stroke-width="1.2"/></pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="#FFFFFF"/>
+        <line x1="304" y1="60" x2="304" y2="520" stroke="rgba(31,42,51,0.45)" stroke-width="1.2"/>
+        <text x="304" y="540" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$0</text>
+        <line x1="388" y1="60" x2="388" y2="520" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="388" y="540" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$5</text>
+        <line x1="472" y1="60" x2="472" y2="520" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="472" y="540" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$10</text>
+        <line x1="556" y1="60" x2="556" y2="520" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="556" y="540" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$15</text>
+        <line x1="640" y1="60" x2="640" y2="520" stroke="rgba(31,42,51,0.08)" stroke-width="0.8"/>
+        <text x="640" y="540" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">$20</text>
+        <text x="430" y="564" fill="#444444" font-size="12" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="middle">MEAN $ SAVED PER DAY, 95% INTERVAL</text>
+        <text x="672" y="56" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">DAYS WON-LOST</text>
+        <text x="800" y="56" fill="#5A6B7A" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">SIGN TEST</text>
+        <text x="204" y="93" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">5 techs, chose it</text>
+        <line x1="314.361" y1="88" x2="348.621" y2="88" stroke="#5e7a9b" stroke-width="2"/>
+        <line x1="314.361" y1="83" x2="314.361" y2="93" stroke="#5e7a9b" stroke-width="1.4"/>
+        <line x1="348.621" y1="83" x2="348.621" y2="93" stroke="#5e7a9b" stroke-width="1.4"/>
+        <rect x="327.117" y="83" width="10" height="10" fill="#5e7a9b" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="92" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">29-8 of 40</text>
+        <text x="800" y="92" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p = 0.0008</text>
+        <text x="204" y="133" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">5 techs, new days</text>
+        <line x1="318.168" y1="128" x2="350.732" y2="128" stroke="#287A4C" stroke-width="2"/>
+        <line x1="318.168" y1="123" x2="318.168" y2="133" stroke="#287A4C" stroke-width="1.4"/>
+        <line x1="350.732" y1="123" x2="350.732" y2="133" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="328.372" y="123" width="10" height="10" fill="#287A4C" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="132" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">16-1 of 24</text>
+        <text x="800" y="132" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p = 0.0003</text>
+        <text x="204" y="173" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">10 techs, chose it</text>
+        <line x1="412.097" y1="168" x2="510.724" y2="168" stroke="#5e7a9b" stroke-width="2"/>
+        <line x1="412.097" y1="163" x2="412.097" y2="173" stroke="#5e7a9b" stroke-width="1.4"/>
+        <line x1="510.724" y1="163" x2="510.724" y2="173" stroke="#5e7a9b" stroke-width="1.4"/>
+        <rect x="455.07" y="163" width="10" height="10" fill="#5e7a9b" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="172" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">36-3 of 40</text>
+        <text x="800" y="172" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="213" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">10 techs, new days</text>
+        <line x1="373.097" y1="208" x2="489.819" y2="208" stroke="#287A4C" stroke-width="2"/>
+        <line x1="373.097" y1="203" x2="373.097" y2="213" stroke="#287A4C" stroke-width="1.4"/>
+        <line x1="489.819" y1="203" x2="489.819" y2="213" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="425.221" y="203" width="10" height="10" fill="#287A4C" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="212" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">21-3 of 24</text>
+        <text x="800" y="212" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p = 0.0003</text>
+        <text x="204" y="253" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">20 techs, chose it</text>
+        <line x1="406.002" y1="248" x2="476.559" y2="248" stroke="#5e7a9b" stroke-width="2"/>
+        <line x1="406.002" y1="243" x2="406.002" y2="253" stroke="#5e7a9b" stroke-width="1.4"/>
+        <line x1="476.559" y1="243" x2="476.559" y2="253" stroke="#5e7a9b" stroke-width="1.4"/>
+        <rect x="435.841" y="243" width="10" height="10" fill="#5e7a9b" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="252" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">36-4 of 40</text>
+        <text x="800" y="252" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="293" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">20 techs, new days</text>
+        <line x1="386.978" y1="288" x2="461.882" y2="288" stroke="#287A4C" stroke-width="2"/>
+        <line x1="386.978" y1="283" x2="386.978" y2="293" stroke="#287A4C" stroke-width="1.4"/>
+        <line x1="461.882" y1="283" x2="461.882" y2="293" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="418.049" y="283" width="10" height="10" fill="#287A4C" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="292" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">23-1 of 24</text>
+        <text x="800" y="292" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="333" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">30 techs, new days</text>
+        <line x1="431.137" y1="328" x2="508.596" y2="328" stroke="#287A4C" stroke-width="2"/>
+        <line x1="431.137" y1="323" x2="431.137" y2="333" stroke="#287A4C" stroke-width="1.4"/>
+        <line x1="508.596" y1="323" x2="508.596" y2="333" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="463.752" y="323" width="10" height="10" fill="#287A4C" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="332" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">23-1 of 24</text>
+        <text x="800" y="332" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="373" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">50 techs, chose it</text>
+        <line x1="455.016" y1="368" x2="523.736" y2="368" stroke="#5e7a9b" stroke-width="2"/>
+        <line x1="455.016" y1="363" x2="455.016" y2="373" stroke="#5e7a9b" stroke-width="1.4"/>
+        <line x1="523.736" y1="363" x2="523.736" y2="373" stroke="#5e7a9b" stroke-width="1.4"/>
+        <rect x="485.448" y="363" width="10" height="10" fill="#5e7a9b" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="372" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">37-3 of 40</text>
+        <text x="800" y="372" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="413" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">50 techs, new days</text>
+        <line x1="500.353" y1="408" x2="614.377" y2="408" stroke="#287A4C" stroke-width="2"/>
+        <line x1="500.353" y1="403" x2="500.353" y2="413" stroke="#287A4C" stroke-width="1.4"/>
+        <line x1="614.377" y1="403" x2="614.377" y2="413" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="550.003" y="403" width="10" height="10" fill="#287A4C" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="412" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">23-1 of 24</text>
+        <text x="800" y="412" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="465" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">All, chose it</text>
+        <line x1="410.913" y1="460" x2="451.161" y2="460" stroke="#5e7a9b" stroke-width="2"/>
+        <line x1="410.913" y1="455" x2="410.913" y2="465" stroke="#5e7a9b" stroke-width="1.4"/>
+        <line x1="451.161" y1="455" x2="451.161" y2="465" stroke="#5e7a9b" stroke-width="1.4"/>
+        <rect x="425.869" y="455" width="10" height="10" fill="#5e7a9b" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="464" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">138-18 of 160</text>
+        <text x="800" y="464" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <text x="204" y="505" fill="#1F2A33" font-size="12" font-family="'Calibri', 'Carlito', system-ui, sans-serif" text-anchor="end" font-weight="700">All, new days</text>
+        <line x1="419.002" y1="500" x2="466.223" y2="500" stroke="#287A4C" stroke-width="2"/>
+        <line x1="419.002" y1="495" x2="419.002" y2="505" stroke="#287A4C" stroke-width="1.4"/>
+        <line x1="466.223" y1="495" x2="466.223" y2="505" stroke="#287A4C" stroke-width="1.4"/>
+        <rect x="437.079" y="495" width="10" height="10" fill="#287A4C" stroke="#1F2A33" stroke-width="0.8"/>
+        <text x="672" y="504" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">106-7 of 120</text>
+        <text x="800" y="504" fill="#1F2A33" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">p &lt; 0.0001</text>
+        <line x1="40" y1="444" x2="940" y2="444" stroke="rgba(31,42,51,0.15)" stroke-width="0.8"/>
+        <line x1="40" y1="584" x2="940" y2="584" stroke="rgba(31,42,51,0.1)" stroke-width="0.8"/>
+        <text x="40" y="610" fill="#444444" font-size="8" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start" font-weight="500" letter-spacing="0.14em">LEGEND</text>
+        <rect x="110" y="600" width="18" height="12" rx="2" fill="#5e7a9b" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="136" y="610" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">STUDY THAT CHOSE IT (IN SAMPLE)</text>
+        <rect x="376" y="600" width="18" height="12" rx="2" fill="#287A4C" stroke="#5A6B7A" stroke-width="0.8"/>
+        <text x="402" y="610" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="start">NEW DAYS (OUT OF SAMPLE)</text>
+        <text x="940" y="610" fill="#444444" font-size="11" font-family="'Consolas', 'Liberation Mono', ui-monospace, monospace" text-anchor="end">bootstrap of whole days, 10,000 draws</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>
