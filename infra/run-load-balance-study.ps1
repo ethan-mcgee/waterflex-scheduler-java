@@ -2,26 +2,30 @@
 # on an idle workstation (infra/load_balance_study.py describes the arms and the switching rule).
 #   b             TABU_KOPT                 production: the capacity-weighted variance of utilization
 #   load-balance  TABU_KOPT_LOAD_BALANCE    Timefold's load balance over utilization, unweighted
-# One tree, a detached worktree of -Revision under -TreeRoot (outside OneDrive), built once. Every case runs as its own
-# JVM with both arms in it, their order alternating from case to case; both budgets run in every repetition, so a slow
-# drift in the machine shows in both arms and both budgets. A JFR pass at the first budget follows, then the evidence.
+# One tree, a detached worktree of -Revision under -TreeRoot (outside OneDrive), built once: main 52339c8 plus the
+# MIXED_SHIFT fixture (4, 6 and 9 hour days), a test-only change. A case is one fleet, workload, fixture seed and solver
+# seed; the fixture seeds draw different days of the same shape, so the cases are different problems. Every case runs
+# as its own JVM with both arms in it, their order alternating from case to case; both budgets run in every repetition,
+# so a slow drift in the machine shows in both arms and both budgets. A JFR pass at the first budget follows, then the
+# evidence.
 # Run output goes to experiments/runs/<run-id>/ of the main checkout, whichever worktree this script runs from.
-# Long (about 5 hours 10 minutes with the defaults); the owner starts it:
+# Long (about 3 hours 35 minutes with the defaults); the owner starts it:
 #   powershell -ExecutionPolicy Bypass -File infra/run-load-balance-study.ps1
 # A check of about 15 minutes that writes no evidence: add -Smoke.
 param(
-    [ValidatePattern('^[0-9a-f]{40}$')][string]$Revision = '52339c8f6c1e0980c8c314e21e4a30ef0900e8b8',
+    [ValidatePattern('^[0-9a-f]{40}$')][string]$Revision = '15da8a0f0ca5802c817849f07c29b6f03921130f',
     [string]$TreeRoot = 'C:\Projects\waterflex-worktrees\load-balance-h2h-tree',
     [string]$JavaHome = 'C:\Program Files\Java\jdk-25',
     # Comma-separated, as -File passes every value as text. 15000 is the production default (10 s cost, 5 s fairness).
     [string]$Budgets = '15000,30000',
     [string]$Sizes = '5,10,20,50',
-    [string]$Workloads = 'CLUSTERED,DISPERSED,ABSENCE,TIGHT_WINDOW,NEAR_CAPACITY',
-    [string]$Seeds = '17,23,41',
-    [ValidateRange(0, 1000000)][int]$FixtureSeed = 7001,
-    [ValidateRange(1, 5)][int]$Repetitions = 3,
-    # The JFR pass: every size and workload at these seeds and the first budget, one recording per phase per solve.
-    [string]$ProfileSeeds = '17',
+    [string]$Workloads = 'CLUSTERED,DISPERSED,ABSENCE,TIGHT_WINDOW,NEAR_CAPACITY,MIXED_SHIFT',
+    # Fixture seeds give different problems; solver seeds give different searches of the same problem.
+    [string]$FixtureSeeds = '7001,7002,7003,7004,7005',
+    [string]$Seeds = '17',
+    [ValidateRange(1, 5)][int]$Repetitions = 1,
+    # The JFR pass: every size and workload at these fixture seeds and the first budget, one recording per phase per solve.
+    [string]$ProfileFixtureSeeds = '7001',
     [switch]$Smoke,
     # Compose containers compete for the CPU; the run refuses while any are up unless this is given.
     [switch]$AllowContainers
@@ -36,7 +40,7 @@ function Invoke-Native($program, [string[]]$arguments, $log) {
     return $LASTEXITCODE
 }
 
-if ($Smoke) { $Budgets = '1500,3000'; $Sizes = '5,20'; $Workloads = 'CLUSTERED,NEAR_CAPACITY'; $Seeds = '17'; $Repetitions = 2; $ProfileSeeds = '17' }
+if ($Smoke) { $Budgets = '1500,3000'; $Sizes = '5,20'; $Workloads = 'CLUSTERED,MIXED_SHIFT'; $FixtureSeeds = '7001,7002'; $Seeds = '17'; $Repetitions = 2; $ProfileFixtureSeeds = '7001' }
 $repository = Split-Path $PSScriptRoot -Parent
 # The main checkout holds every worktree's run output (experiments/runs is gitignored there).
 $common = (& git -C $repository rev-parse --path-format=absolute --git-common-dir).Trim()
@@ -91,24 +95,26 @@ $jvm = @('-Xmx1536m', '-XX:ActiveProcessorCount=2', '-XX:+UseSerialGC')
 $variants = @('TABU_KOPT', 'TABU_KOPT_LOAD_BALANCE')
 $sizeList = @($Sizes -split ',' | ForEach-Object { $_.Trim() })
 $workloadList = @($Workloads -split ',' | ForEach-Object { $_.Trim() })
+$fixtureList = @($FixtureSeeds -split ',' | ForEach-Object { $_.Trim() })
 $seedList = @($Seeds -split ',' | ForEach-Object { $_.Trim() })
-$profileSeedList = @($ProfileSeeds -split ',' | ForEach-Object { $_.Trim() })
-$cases = @(foreach ($size in $sizeList) { foreach ($workload in $workloadList) { foreach ($seed in $seedList) { , @($size, $workload, $seed) } } })
+$profileFixtureList = @($ProfileFixtureSeeds -split ',' | ForEach-Object { $_.Trim() })
+$cases = @(foreach ($size in $sizeList) { foreach ($workload in $workloadList) { foreach ($fixture in $fixtureList) { foreach ($seed in $seedList) {
+    , @($size, $workload, $fixture, $seed) } } } })
 # Each solve takes its budget and about 2.5 s more (JVM start shared, fixture, warmup, validation).
 $seconds = 0
 foreach ($budget in $budgetList) { $seconds += $cases.Count * $Repetitions * $variants.Count * ($budget / 1000 + 2.5) }
-$seconds += $sizeList.Count * $workloadList.Count * $profileSeedList.Count * $variants.Count * ($budgetList[0] / 1000 + 2.5)
+$seconds += $sizeList.Count * $workloadList.Count * $profileFixtureList.Count * $seedList.Count * $variants.Count * ($budgetList[0] / 1000 + 2.5)
 @{ study = 'load balance head to head'; startedAt = [DateTime]::UtcNow.ToString('o'); smoke = [bool]$Smoke; revision = $Revision
    tree = $TreeRoot; variants = $variants; jvm = $jvm; java = $version; processors = [Environment]::ProcessorCount; budgetsMs = $budgetList
-   sizes = $sizeList; workloads = $workloadList; seeds = $seedList; fixtureSeed = $FixtureSeed; repetitions = $Repetitions
-   profileSeeds = $profileSeedList; profileBudgetMs = $budgetList[0]
+   sizes = $sizeList; workloads = $workloadList; fixtureSeeds = $fixtureList; seeds = $seedList; repetitions = $Repetitions
+   profileFixtureSeeds = $profileFixtureList; profileBudgetMs = $budgetList[0]
    order = 'per repetition: every budget, then every case; per case: arm order alternates' } |
     ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $runs 'manifest.json') -Encoding utf8
 Write-Output "$($cases.Count) cases x $Repetitions repetitions x $($variants.Count) arms at $($budgetList -join ' and ') ms, about $([math]::Ceiling($seconds / 60)) minutes. Output: $runs"
 
 function Invoke-Benchmark($output, $log, $budget, $properties) {
     $arguments = $jvm + @("@$classpath") + $properties + @("-Dbenchmark.output=$output", "-Dbenchmark.durationMs=$budget",
-        "-Dbenchmark.fixtureSeeds=$FixtureSeed", "-Dbenchmark.revision=load-balance-study revision=$Revision",
+        "-Dbenchmark.revision=load-balance-study revision=$Revision",
         'dev.waterflex.scheduler.optimizer.SolverBenchmark')
     return Invoke-Native $java $arguments $log
 }
@@ -120,19 +126,21 @@ for ($repetition = 1; $repetition -le $Repetitions; $repetition++) {
     foreach ($budget in $budgetList) {
         foreach ($case in $cases) {
             $index++
-            $size, $workload, $seed = $case
+            $size, $workload, $fixture, $seed = $case
             $order = if (($index + $repetition) % 2 -eq 0) { $variants } else { @($variants[1], $variants[0]) }
-            $name = "rep$repetition-$($budget)ms-$size-$workload-$seed"
+            $name = "rep$repetition-$($budget)ms-$size-$workload-$fixture-$seed"
             Write-Output "[$index/$total] $name"
             $code = Invoke-Benchmark (Join-Path $runs "rows/$name.jsonl") (Join-Path $runs "logs/$name.log") $budget `
-                @("-Dbenchmark.sizes=$size", "-Dbenchmark.workloads=$workload", "-Dbenchmark.seeds=$seed", "-Dbenchmark.variants=$($order -join ',')")
+                @("-Dbenchmark.sizes=$size", "-Dbenchmark.workloads=$workload", "-Dbenchmark.fixtureSeeds=$fixture", "-Dbenchmark.seeds=$seed",
+                  "-Dbenchmark.variants=$($order -join ',')")
             if ($code -ne 0) { $failures += $name }
         }
     }
 }
 Write-Output '[profile]'
 $code = Invoke-Benchmark (Join-Path $runs 'profile-rows/profile.jsonl') (Join-Path $runs 'logs/profile.log') $budgetList[0] `
-    @("-Dbenchmark.sizes=$Sizes", "-Dbenchmark.workloads=$Workloads", "-Dbenchmark.seeds=$ProfileSeeds", "-Dbenchmark.variants=$($variants -join ',')",
+    @("-Dbenchmark.sizes=$Sizes", "-Dbenchmark.workloads=$Workloads", "-Dbenchmark.fixtureSeeds=$ProfileFixtureSeeds", "-Dbenchmark.seeds=$Seeds",
+      "-Dbenchmark.variants=$($variants -join ',')",
       "-Dbenchmark.jfr=$(Join-Path $runs 'profiles')")
 if ($code -ne 0) { $failures += 'profile' }
 [Study.Power]::SetThreadExecutionState([uint32]'0x80000000') | Out-Null
