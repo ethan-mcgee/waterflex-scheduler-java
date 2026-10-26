@@ -9,7 +9,7 @@ export const ServiceDate = z.iso.date();
 export const TenantId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/);
 
 export const ERROR_CODES = ["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMITTABLE", "HOLD_UNAVAILABLE", "INCOMPLETE_FACTS", "BUSY",
-  "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED"] as const;
+  "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED", "SERVICE_UNAVAILABLE"] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
 export const Problem = z.strictObject({ error: z.enum(ERROR_CODES), message: z.string().min(1) });
