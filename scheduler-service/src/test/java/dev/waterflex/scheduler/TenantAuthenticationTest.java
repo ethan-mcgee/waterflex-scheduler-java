@@ -126,6 +126,37 @@ class TenantAuthenticationTest {
         org.mockito.Mockito.verify(commits, org.mockito.Mockito.times(1)).commit("acme", "prop-1", body);
     }
 
+    @Test void anUnreachableTokenStoreAnswers503WithAProblemAndNeverReachesTheHandler() throws Exception {
+        TenantTokens tokens = mock(TenantTokens.class);
+        var proposals = mock(dev.waterflex.scheduler.api.DailyProposals.class);
+        MockMvc http = Required.value(MockMvcBuilders.standaloneSetup(new PublicApiController(proposals, mock(dev.waterflex.scheduler.api.DailyCommits.class), mock(dev.waterflex.scheduler.api.BookingOffers.class), mock(dev.waterflex.scheduler.api.BookingHolds.class), mock(dev.waterflex.scheduler.api.BookingConfirm.class), mock(dev.waterflex.scheduler.api.RouteEvaluations.class), mock(dev.waterflex.scheduler.api.RouteGeometries.class), new dev.waterflex.scheduler.api.RequestCancellation(new dev.waterflex.scheduler.api.RunningRequests())))
+                .addFilters(new TenantAuthentication(tokens)).build());
+        // What the pool throws when no connection comes within its timeout (the 2026-10-19 database stall probe), a
+        // statement the database cancelled, and a connection dropped mid-query.
+        for (RuntimeException unreachable : List.<RuntimeException>of(
+                new org.springframework.jdbc.CannotGetJdbcConnectionException("Failed to obtain JDBC Connection"),
+                new org.springframework.dao.QueryTimeoutException("statement timeout"),
+                new org.springframework.dao.RecoverableDataAccessException("connection reset"))) {
+            reset(tokens);
+            when(tokens.tenantFor(VECTOR)).thenThrow(unreachable);
+            http.perform(Required.value(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/daily/proposals")
+                            .header("Authorization", "Bearer " + VECTOR).contentType("application/json").content("{}")))
+                    .andExpect(status().isServiceUnavailable()).andExpect(header().string("Retry-After", "1"))
+                    .andExpect(header().doesNotExist("WWW-Authenticate"))
+                    .andExpect(content().contentType("application/json"))
+                    .andExpect(jsonPath("$.error").value("SERVICE_UNAVAILABLE")).andExpect(jsonPath("$.message").isNotEmpty());
+        }
+        verifyNoInteractions(proposals);
+        // A wrong query is a bug, not an outage: it still fails as a 500 rather than asking the host to retry.
+        reset(tokens);
+        when(tokens.tenantFor(VECTOR)).thenThrow(new org.springframework.jdbc.BadSqlGrammarException("token", "SELECT", new java.sql.SQLException("syntax")));
+        var request = new org.springframework.mock.web.MockHttpServletRequest("GET", "/api/v1/whoami");
+        request.addHeader("Authorization", "Bearer " + VECTOR);
+        var response = new org.springframework.mock.web.MockHttpServletResponse();
+        assertThrows(org.springframework.jdbc.BadSqlGrammarException.class, () -> new TenantAuthentication(tokens).doFilter(request, response, new org.springframework.mock.web.MockFilterChain()));
+        assertNotEquals(503, response.getStatus());
+    }
+
     @Test void internalRoutesAreOutsideThePublicFilterAndHandlersFailClosedWithoutIt() {
         var filter = new TenantAuthentication(mock(TenantTokens.class));
         var internal = new org.springframework.mock.web.MockHttpServletRequest("GET", "/health");
