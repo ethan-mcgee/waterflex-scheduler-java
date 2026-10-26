@@ -38,6 +38,27 @@ class RequestLoggingTest {
         assertNull(MDC.get(RequestLogging.REQUEST_ID));
     }
 
+    @Test void aCallThatThrowsIsLoggedWithTheStatusTheClientReceives() throws Exception {
+        var logger = (ch.qos.logback.classic.Logger) Required.value(org.slf4j.LoggerFactory.getLogger("dev.waterflex.scheduler.api.requests"));
+        var lines = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        lines.start();
+        logger.addAppender(lines);
+        try {
+            // The exception leaves the filter with the response at its default 200; the container then answers 500.
+            assertThrows(IllegalStateException.class, () -> new RequestLogging().doFilter(new MockHttpServletRequest("POST", "/api/v1/booking/offers"),
+                    new MockHttpServletResponse(), (_, _) -> { throw new IllegalStateException("boom"); }));
+            assertTrue(lines.list.getLast().getFormattedMessage().contains(" status=500 "), lines.list.getLast().getFormattedMessage());
+            new RequestLogging().doFilter(new MockHttpServletRequest("GET", "/api/v1/whoami"), new MockHttpServletResponse(),
+                    (_, response) -> ((jakarta.servlet.http.HttpServletResponse) response).setStatus(503));
+            assertTrue(lines.list.getLast().getFormattedMessage().contains(" status=503 "), "an answered call keeps its own status");
+        } finally { logger.detachAppender(lines); }
+        var committed = new MockHttpServletResponse();
+        committed.setStatus(202);
+        committed.setCommitted(true);
+        assertEquals(202, RequestLogging.status(true, committed), "a response already sent keeps the status the client saw");
+        assertEquals(200, RequestLogging.status(false, new MockHttpServletResponse()));
+    }
+
     @Test void healthIsNotLoggedAsAnApiCall() throws Exception {
         var request = new MockHttpServletRequest("GET", "/health");
         var operation = new AtomicReference<@Nullable String>("unset");
