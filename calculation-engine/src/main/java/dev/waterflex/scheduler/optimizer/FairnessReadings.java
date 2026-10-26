@@ -9,31 +9,21 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Every fairness measure of a plan, for studies: the production variance, the highest utilization, the utilization
  * spread and the capacity-weighted absolute deviation in DECIMAL128 from the workloads {@link SchedulingPolicy#measure}
  * counts, and Timefold's load balance exactly as its provider carries it, scored against the fairness phase's target.
  * The workstation harness (SolverBenchmark) and the service's study receipts read plans through this one definition,
- * so the two instruments report the same measures. A policy arm is accepted on the measure it searches. Nothing here
- * scores a search; production calls it only with study receipts on.
+ * so the two instruments report the same measures. Every plan is accepted on the production variance; the load balance
+ * head-to-head (PR J, 2026-10-23) kept it, so no search runs on another measure. Nothing here scores a search;
+ * production calls it only with study receipts on.
  */
 public final class FairnessReadings {
     private static final MathContext DECIMAL128 = Required.value(MathContext.DECIMAL128);
-    /** The measure each policy arm searches and is accepted on; the variance arms are accepted on the production variance. */
-    static final Map<SolverEngine.Variant, String> POLICY = Required.value(Map.of(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, "loadBalance"));
     private FairnessReadings() { }
 
-    /** The measure {@code variant} is accepted on, or null for the arms accepted on the production variance. */
-    static @Nullable String accepted(SolverEngine.Variant variant) { return POLICY.get(variant); }
-
-    /** One measure of {@code plan}; the load balance is scored against the target of {@code reference} and {@code ceiling}. */
-    static BigDecimal reading(String measure, DayPlan plan, DayPlan reference, long ceiling) {
-        return Required.value(readings(plan, reference, ceiling).get(measure), "known fairness measure " + measure);
-    }
-
-    /** Every measure of {@code plan}, in a fixed order. */
+    /** Every measure of {@code plan}, in a fixed order; the load balance is scored against the target of {@code reference} and {@code ceiling}. */
     public static Map<String, BigDecimal> readings(DayPlan plan, DayPlan reference, long ceiling) {
         SchedulingPolicy.Fairness fairness = SchedulingPolicy.measure(plan).fairness();
         List<SchedulingPolicy.Workload> work = fairness.workloads();
@@ -57,11 +47,11 @@ public final class FairnessReadings {
         return readings;
     }
 
-    /** The solver factory comes from SolverEngine's definition cache; a SolverFactory is thread-safe (Timefold docs 6.8, "Create the application"). */
+    /** The solver factory comes from SolverEngine's scorer cache; a SolverFactory is thread-safe (Timefold docs 6.8, "Create the application"). */
     private static BigDecimal loadBalance(DayPlan plan, DayPlan reference, long ceiling) {
         DayPlan copy = PlanCopies.copy(plan);
         copy.setScoringFacts(copy.getScoringFacts().withTarget(reference, ceiling));
-        SolutionManager.<DayPlan, BendableScore>create(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, 0).factory()).update(copy);
+        SolutionManager.<DayPlan, BendableScore>create(SolverEngine.scorer(FairnessMeasures.LoadBalance.class)).update(copy);
         BendableScore score = Required.value(copy.getScore(), "scored plan");
         // The objective counts the unfairness in units of 1e-6, its six places exactly (DayScores.unfairnessUnits).
         return Required.value(BigDecimal.valueOf(Math.negateExact(score.softScore(DayScores.PHASE_OBJECTIVE)), DayScores.UNFAIRNESS_SCALE));
