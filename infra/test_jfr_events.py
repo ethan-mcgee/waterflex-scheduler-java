@@ -27,7 +27,10 @@ def instant(text):
     match = INSTANT.fullmatch(text)
     whole = datetime.fromisoformat(match[1] + ('+00:00' if match[3] == 'Z' else match[3]))
     return int(whole.timestamp()) * 1_000_000_000 + int(match[2].ljust(9, '0'))
-# Calls deep enough for the 64-frame cut, allocations for the allocation samples and a collection for the GC event.
+# Calls for the execution samples, allocations for the allocation samples, a collection for the GC event and sleeps
+# below 90 frames for the 64-frame cut. The cut is checked on the sleeps: jdk.ThreadSleep is recorded for every sleep
+# over the profile threshold (10 ms), while execution sampling is not guaranteed to land in deep() (Temurin 25.0.4 on
+# Linux stopped sampling compiled frames, leaving 3 to 10 samples in two seconds, most taken before deep() compiled).
 PROGRAM = '''
 public class Busy {
     static long sink;
@@ -37,7 +40,12 @@ public class Busy {
         for (int i = 0; i < 2_000; i++) { total += new long[16 + (i & 7)].length; total ^= Long.rotateLeft(total, 7); }
         return total;
     }
-    public static void main(String[] arguments) {
+    static void sleepDeep(int depth) throws InterruptedException {
+        if (depth > 0) { sleepDeep(depth - 1); return; }
+        Thread.sleep(30);
+    }
+    public static void main(String[] arguments) throws InterruptedException {
+        for (int i = 0; i < 3; i++) sleepDeep(90);
         long until = System.nanoTime() + 2_000_000_000L;
         int round = 0;
         while (System.nanoTime() < until) { sink += deep(round++ % 90, sink); if (round % 5_000 == 0) System.gc(); }
@@ -45,6 +53,8 @@ public class Busy {
     }
 }
 '''
+# Above the reader's cut, so the recording keeps the whole sleeping stack and the cut is JfrEvents' own.
+RECORDED_STACK_DEPTH = 128
 
 
 @unittest.skipIf(JFR is None, 'a JDK with jfr is required (JAVA_HOME or PATH)')
@@ -57,7 +67,8 @@ class JfrEventsTest(unittest.TestCase):
         source, cls.recording = cls.directory / 'Busy.java', cls.directory / 'busy.jfr'
         source.write_text(PROGRAM, encoding='utf-8')
         java = jdk_tool('java')
-        subprocess.run([java, f'-XX:StartFlightRecording:filename={cls.recording},settings=profile', str(source)],
+        subprocess.run([java, f'-XX:FlightRecorderOptions:stackdepth={RECORDED_STACK_DEPTH}',
+                        f'-XX:StartFlightRecording:filename={cls.recording},settings=profile', str(source)],
                        capture_output=True, check=True, text=True, timeout=120)
 
     @classmethod
@@ -84,11 +95,19 @@ class JfrEventsTest(unittest.TestCase):
             self.assertEqual((rs.attribute(expected), other), (rs.attribute(actual), read_other), thread)
 
     def test_stacks_are_cut_at_the_depth_and_fields_keep_jfr_print_s_forms(self):
-        events = 'jdk.ExecutionSample,jdk.GarbageCollection'
+        events = 'jdk.ThreadSleep,jdk.GarbageCollection'
         printed, read = self.printed(events), rs.jfr_document(self.recording, JFR, events)
-        deepest = max(len(event['values']['stackTrace']['frames']) for event in read['recording']['events']
-                      if event['type'] == 'jdk.ExecutionSample' and event['values'].get('stackTrace'))
-        self.assertEqual(deepest, rs.STACK_DEPTH)
+
+        def sleeps(document):
+            return [[(frame['method']['type']['name'].replace('/', '.'), frame['method']['name'], frame['lineNumber'])
+                     for frame in event['values']['stackTrace']['frames']]
+                    for event in document['recording']['events'] if event['type'] == 'jdk.ThreadSleep'
+                    and any(frame['method']['name'] == 'sleepDeep' for frame in event['values']['stackTrace']['frames'])]
+
+        # The three sleeps below 90 frames: each cut at the depth, leaf first, frame for frame as jfr print keeps them.
+        self.assertEqual(len(sleeps(read)), 3)
+        self.assertEqual([len(frames) for frames in sleeps(read)], [rs.STACK_DEPTH] * 3)
+        self.assertEqual(sleeps(printed), sleeps(read))
 
         def collections(document):
             return sorted((event['values']['gcId'], instant(event['values']['startTime']), event['values']['sumOfPauses'], event['values']['name'])
