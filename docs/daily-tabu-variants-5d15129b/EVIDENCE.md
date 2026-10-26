@@ -8,7 +8,7 @@ The immutable inputs are three groups of archives under `experiments/runs/`, all
 - Contention check: sequential `20261010T024747Z-daily-contention-1-772fc235`, compared with 4, 6 and 10 at once (`...contention-4-bdad2801`, `...contention-6-df602432`, `...contention-10-575575c0`). Each parallel archive holds its saved `contention/*.json` report.
 - Sequential confirmation `20261011T070444Z-daily-tabu-confirm-tabu-kopt-3a77f220`, analysis `20261011T133321Z-7e74d4fc`. This is TABU and TABU_KOPT on seeds 17 and 23, every fleet and workload, at 120 and 240 seconds, one case at a time: 128 cases.
 
-No parallel setting met the 0.95 contention bar. The owner chose six at once on 2026-10-10. The unattended driver recorded that decision (`.scratch/bench-2026-10-09/status.json`, local only).
+No parallel setting met the 0.95 contention bar. The owner chose six at once on 2026-10-10. The unattended driver recorded that decision (`experiments/runs/bench-2026-10-09/status.json`, local only).
 
 ## Validation
 

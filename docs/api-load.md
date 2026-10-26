@@ -926,7 +926,7 @@ The table gives the median over seeds of each seed's after/before ratio of Timef
 
 The production replicas are long-lived, so a cold first call happens once per replica start, not per run as here. The reserve is still narrow at 50 technicians on two CPUs for the first calls after a start, on both images; the L+M run left 1.0 s in its slowest call, and this one crossed it twice.
 
-**Verdict:** L, M, W and A are faster than main on the stack in both phases at every fleet size, with plans of the same quality. The 503s come from cold calls at 50 technicians, where both images run close to the deadline. A warm rerun at 50 technicians would show whether they recur after warm-up: `infra/run-stack-verification.ps1 -Before 4ce1a56 -After b26d0ba -Study long-score-money-w-a-50t -Interleave -SyncOnly -Fleets 50 -Proposals 8 -RunsDirectory .scratch/stack-verification-w-a-50t` (about 24 minutes).
+**Verdict:** L, M, W and A are faster than main on the stack in both phases at every fleet size, with plans of the same quality. The 503s come from cold calls at 50 technicians, where both images run close to the deadline. A warm rerun at 50 technicians would show whether they recur after warm-up: `infra/run-stack-verification.ps1 -Before 4ce1a56 -After b26d0ba -Study long-score-money-w-a-50t -Interleave -SyncOnly -Fleets 50 -Proposals 8 -RunsDirectory experiments/runs/stack-verification-w-a-50t` (about 24 minutes).
 
 ## Repeating the measurement
 

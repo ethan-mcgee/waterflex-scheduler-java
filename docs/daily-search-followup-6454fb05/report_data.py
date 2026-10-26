@@ -19,7 +19,7 @@ LONG = RUNS / "20261013T103709Z-daily-search-long-budget-a317757e"
 LONG_ANALYSIS = LONG / "analysis/20261013T143907Z-ca1aefff"
 CONFIRM = RUNS / "20261013T143914Z-daily-search-confirm-tabu-kopt-size-3-877fd9f7"
 CONFIRM_ANALYSIS = CONFIRM / "analysis/20261013T154455Z-ee4e5912"
-DRIVER_STATUS = ROOT / ".scratch/bench-2026-10-12/status.json"
+DRIVER_STATUS = ROOT / "experiments/runs/bench-2026-10-12/status.json"
 REVISION = "c21b54b36f9c0e73ef2b17584b531a58ad74781d"
 # Case key order: fleet, workload, fixture seed, search seed, budget in ms, solver. Everything but the solver identifies a matched pair.
 KEY = ("fleet", "workload", "fixture_seed", "seed", "budget_ms", "solver")

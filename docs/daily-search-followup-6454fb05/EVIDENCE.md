@@ -8,7 +8,7 @@ The immutable inputs are three archives under `experiments/runs/`, all measured 
 - Long budget arm `20261013T103709Z-daily-search-long-budget-a317757e`, analysis `20261013T143907Z-ca1aefff`. TABU_KOPT (control), TABU, KOPT and LATE_ACCEPTANCE x fleets 30 and 50 x four workloads x fixture seed 3 x seeds 211 and 223 x 240, 480 and 600 seconds: 192 cases, six at once.
 - Sequential confirmation `20261013T143914Z-daily-search-confirm-tabu-kopt-size-3-877fd9f7`, analysis `20261013T154455Z-ee4e5912`. TABU and the driver's chosen candidate TABU_KOPT_SIZE_3 x fleets 20 and 50 x four workloads x fixture seed 1 x seeds 211 and 223 x 120 seconds: 32 cases, one at a time.
 
-Every case is `COST_ONLY`: the cost search receives the whole budget and no fairness phase runs. The driver status (`.scratch/bench-2026-10-12/status.json`, local only) records the stage order, `DONE` with no problems, and the confirmation ranking.
+Every case is `COST_ONLY`: the cost search receives the whole budget and no fairness phase runs. The driver status (`experiments/runs/bench-2026-10-12/status.json`, local only) records the stage order, `DONE` with no problems, and the confirmation ranking.
 
 The first Tabu variant study (`docs/daily-tabu-variants-5d15129b`, run 5d15129b) is loaded through its own validated loader for comparison. Its values are never pooled with this study's.
 

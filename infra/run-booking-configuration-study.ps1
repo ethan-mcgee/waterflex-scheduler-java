@@ -63,7 +63,7 @@ param(
     # Seeds are this base plus a small cell index (the tools take 0 to 1000); the variants of a cell share a seed, so
     # they search the same addresses.
     [ValidateRange(0, 700)][int]$SeedBase = 500,
-    [string]$RunsDirectory = '.scratch/configuration-study',
+    [string]$RunsDirectory = 'experiments/runs/configuration-study',
     [string]$ClientTokenDirectory = '.scratch/configuration-clients',
     # Names the evidence file, api-load-<date>-<Study>.json.
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'booking-configuration',

@@ -2,7 +2,7 @@
 
 ## Source and scope
 
-The one immutable input is `docs/evidence/solver-matrix-2026-10-20.json`. `infra/matrix_study.py` wrote it from the run `infra/run-matrix-study.ps1` made on 2026-10-20, from 15:55 UTC, in `.scratch/matrix-study-20261020T155528`. Two trees were built once each from their commits:
+The one immutable input is `docs/evidence/solver-matrix-2026-10-20.json`. `infra/matrix_study.py` wrote it from the run `infra/run-matrix-study.ps1` made on 2026-10-20, from 15:55 UTC, in `experiments/runs/matrix-study-20261020T155528`. Two trees were built once each from their commits:
 - tree o: `d571d83`, the code before the fix (the tree the fairness measure study ran);
 - tree n: `ed97d8b`, the fix.
 
@@ -20,7 +20,7 @@ The one immutable input is `docs/evidence/solver-matrix-2026-10-20.json`. `infra
 `stacks.json` is the second input. `stacks.py` wrote it once from the run's raw recordings, which stay outside git in the run folder. It holds, for the four arm and phase pairs in section 2 of the report, the share of samples at each named call site and the SHA-256 of every recording read. Rerun it with:
 
 ```
-python stacks.py --run <repository>/.scratch/matrix-study-20261020T155528 --jfr "C:/Program Files/Java/jdk-25/bin/jfr.exe"
+python stacks.py --run <repository>/experiments/runs/matrix-study-20261020T155528 --jfr "C:/Program Files/Java/jdk-25/bin/jfr.exe"
 ```
 
 The fairness measure study's evidence, `docs/evidence/solver-variance-2026-10-20.json`, is read only for this morning's figures quoted for comparison.

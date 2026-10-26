@@ -57,7 +57,7 @@ if ($running.Count -gt 0) { throw "$($running.Count) containers are running; sto
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
 $evidence = if ($Smoke) { $null } else { Join-Path $repository "docs/evidence/solver-matrix-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
 if ($evidence -and (Test-Path -LiteralPath $evidence)) { throw "Evidence already exists: $evidence" }
-$runs = Join-Path $repository ".scratch/matrix-study-$stamp"
+$runs = Join-Path $repository "experiments/runs/matrix-study-$stamp"
 foreach ($directory in @('rows', 'logs', 'profile-rows', 'profiles/o', 'profiles/n')) { New-Item -ItemType Directory -Force (Join-Path $runs $directory) | Out-Null }
 
 # Keep the machine awake for the run (the display may sleep).
