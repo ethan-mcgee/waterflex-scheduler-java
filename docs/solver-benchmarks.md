@@ -406,3 +406,5 @@ The run took 05:36 to 08:59 UTC: 480 solves and 96 flight recordings, with no vi
   - keep the Mixed Shift fixture.
 
   If load balance is revisited, filter on the target before the collector, and test a capacity-weighted form.
+
+  **Done 2026-10-26 (owner's scope):** the solver option `TABU_KOPT_LOAD_BALANCE` is removed from main by file edits, with the harness's "accepted on its own measure" path, which only it used. `FairnessMeasures.LoadBalance` stays as a measurement only: `FairnessReadings` scores plans on it through `SolverEngine.scorer` (TABU_KOPT's configuration with the provider swapped, the configuration the variant had), so study receipts and the harness still report all five measures. No variant searches on it. Main carries the arm up to commit 4241c95; the study scripts build their frozen trees from commits and are unchanged.

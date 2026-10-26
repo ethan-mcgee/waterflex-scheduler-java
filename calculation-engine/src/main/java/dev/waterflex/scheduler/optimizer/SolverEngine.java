@@ -20,17 +20,11 @@ public final class SolverEngine {
                           /** TABU tuning: entity tabu size 3 or 15 (experiment-only), or TABU with the KOPT move set (a client choice, see DailySearch). */
                           TABU_SIZE_3, TABU_SIZE_15, TABU_KOPT,
                           /** TABU_KOPT with entity tabu size 3, both improvements of the Tabu variant study combined (a client choice, see DailySearch). */
-                          TABU_KOPT_SIZE_3,
-                          /**
-                           * TABU_KOPT with Timefold's load balance as the fairness-phase objective ({@link FairnessMeasures}),
-                           * experiment-only, for the head-to-head against the production variance. Never a client choice.
-                           */
-                          TABU_KOPT_LOAD_BALANCE }
-    /** The constraint provider of each fairness measure variant; every other variant runs {@link DayConstraintProvider}. */
-    private static final java.util.Map<Variant, Class<? extends DayConstraintProvider>> MEASURES = Required.value(java.util.Map.of(
-            Variant.TABU_KOPT_LOAD_BALANCE, FairnessMeasures.LoadBalance.class));
+                          TABU_KOPT_SIZE_3 }
     private record Key(Variant variant, long seed, EnvironmentMode mode, boolean construction) { }
     private static final java.util.concurrent.ConcurrentMap<Key, Definition> DEFINITIONS = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final String PRODUCTION_PROVIDER = "<constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass>";
+    private static final java.util.concurrent.ConcurrentMap<Class<? extends DayConstraintProvider>, SolverFactory<DayPlan>> SCORERS = new java.util.concurrent.ConcurrentHashMap<>();
     public record Definition(Variant variant, long seed, EnvironmentMode environmentMode, boolean construction,
             String configurationXml, String fingerprint, @Nullable Integer stepLimit, SolverFactory<DayPlan> factory) { }
     public record Statistics(String variant, long seed, String configurationFingerprint, String termination,
@@ -98,11 +92,9 @@ public final class SolverEngine {
             } catch (java.io.IOException failure) { throw new IllegalStateException("Solver configuration unavailable", failure); }
             if (variant == Variant.CURRENT_UNCAPPED) xml = xml.replace("<stepCountLimit>1000</stepCountLimit>", "");
         } else {
-            boolean measure = MEASURES.containsKey(variant);
             boolean tabu = variant == Variant.TABU || variant == Variant.TABU_SIZE_3 || variant == Variant.TABU_SIZE_15 || variant == Variant.TABU_KOPT
-                    || variant == Variant.TABU_KOPT_SIZE_3 || measure;
-            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3
-                    || measure;
+                    || variant == Variant.TABU_KOPT_SIZE_3;
+            boolean kOpt = variant == Variant.KOPT || variant == Variant.RUIN_RECREATE || variant == Variant.TABU_KOPT || variant == Variant.TABU_KOPT_SIZE_3;
             boolean advanced = variant == Variant.SUBLIST || kOpt;
             String moves = "<listChangeMoveSelector><fixedProbabilityWeight>45</fixedProbabilityWeight></listChangeMoveSelector>";
             if (variant != Variant.LATE_ACCEPTANCE_CHANGE)
@@ -117,25 +109,30 @@ public final class SolverEngine {
             int accepted = tabu ? 1000 : 1;
             xml = "<solver xmlns=\"https://timefold.ai/xsd/solver\"><environmentMode>NO_ASSERT</environmentMode>"
                     + "<solutionClass>dev.waterflex.scheduler.optimizer.DayPlan</solutionClass><entityClass>dev.waterflex.scheduler.optimizer.TechRoute</entityClass><entityClass>dev.waterflex.scheduler.optimizer.PlanVisit</entityClass>"
-                    + "<scoreDirectorFactory><constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass></scoreDirectorFactory>"
+                    + "<scoreDirectorFactory>" + PRODUCTION_PROVIDER + "</scoreDirectorFactory>"
                     + "<termination><spentLimit>PT15S</spentLimit></termination><localSearch><unionMoveSelector><selectedCountLimit>10000</selectedCountLimit>"
                     + moves + "</unionMoveSelector><acceptor>" + acceptor + "</acceptor><forager><acceptedCountLimit>" + accepted + "</acceptedCountLimit></forager></localSearch></solver>";
         }
         xml = xml.replace("<environmentMode>NO_ASSERT</environmentMode>", "<environmentMode>" + key.mode().name() + "</environmentMode>");
         if (construction) xml = xml.replace("<localSearch>", "<constructionHeuristic/><localSearch>");
-        Class<? extends DayConstraintProvider> provider = MEASURES.get(variant);
-        if (provider != null) {
-            // Nested classes load by their binary name.
-            String replaced = xml.replace("<constraintProviderClass>dev.waterflex.scheduler.optimizer.DayConstraintProvider</constraintProviderClass>",
-                    "<constraintProviderClass>" + provider.getName() + "</constraintProviderClass>");
-            if (replaced.equals(xml)) throw new IllegalStateException("Fairness measure configuration changed shape");
-            xml = replaced;
-        }
         SolverConfig config = Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(seed));
         try {
             String fingerprint = Required.value(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest((xml + "|seed=" + seed + "|score=" + DailyDataset.SCORE_MODEL).getBytes(StandardCharsets.UTF_8))));
             return new Definition(variant, seed, key.mode(), construction, Required.value(xml), fingerprint, Required.value(config.getTerminationConfig()).getStepCountLimit(), Required.value(SolverFactory.create(config)));
         } catch (java.security.NoSuchAlgorithmException failure) { throw new IllegalStateException(failure); }
+    }
+    /**
+     * TABU_KOPT's configuration with {@code provider} in place of the production one, for scoring a plan on a study
+     * measure ({@link FairnessMeasures}) through a SolutionManager. No variant runs it, so nothing searches with it.
+     */
+    static SolverFactory<DayPlan> scorer(Class<? extends DayConstraintProvider> provider) {
+        return Required.value(SCORERS.computeIfAbsent(provider, measure -> {
+            String xml = configuration(Variant.TABU_KOPT, 0).configurationXml();
+            // Nested classes load by their binary name.
+            String replaced = xml.replace(PRODUCTION_PROVIDER, "<constraintProviderClass>" + Required.value(measure).getName() + "</constraintProviderClass>");
+            if (replaced.equals(xml)) throw new IllegalStateException("Fairness measure configuration changed shape");
+            return Required.value(SolverFactory.<DayPlan>create(Required.value(SolverConfig.createFromXmlReader(new StringReader(replaced)))));
+        }));
     }
 
     public static Result solve(Definition definition, DayPlan initial, Duration budget) {
