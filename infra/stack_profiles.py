@@ -1,6 +1,6 @@
 """Attribute a stack verification's flight recordings and add them to its evidence as a profiles block.
 
-    python infra/stack_profiles.py --evidence docs/evidence/api-load-<date>-<study>.json --profiles .scratch/stack-verification/profiles
+    python infra/stack_profiles.py --evidence docs/evidence/api-load-<date>-<study>.json --profiles experiments/runs/stack-verification/profiles
 
 With SCHEDULER_STUDY_PROFILES on, the daily replica records each phase of every proposal on the JDK's profile
 configuration (StudyProfiles), the recording the workstation harness makes around each solve, and names the files and

@@ -50,7 +50,7 @@ param(
     [ValidatePattern('^(0(\.\d+)?|1(\.0+)?)$')][string]$FairnessBudget = '0.02',
     # The development routing service's cap for the run (the VM's partition).
     [ValidateRange(1, 16)][int]$RoutingCpus = 2,
-    [string]$RunsDirectory = '.scratch/stack-verification',
+    [string]$RunsDirectory = 'experiments/runs/stack-verification',
     # Names the evidence file, api-load-<date>-<Study>.json.
     [ValidatePattern('^[a-z0-9-]+$')][string]$Study = 'binary-variance',
     # Run without flight recordings (no profiles block in the evidence), for example to measure the recording's own cost.

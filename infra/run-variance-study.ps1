@@ -55,7 +55,7 @@ if (@($budgetList | Where-Object { $_ -lt 1000 -or $_ -gt 240000 }).Count -gt 0)
 $stamp = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss')
 $evidence = if ($Smoke) { $null } else { Join-Path $repository "docs/evidence/solver-variance-$([DateTime]::UtcNow.ToString('yyyy-MM-dd')).json" }
 if ($evidence -and (Test-Path -LiteralPath $evidence)) { throw "Evidence already exists: $evidence" }
-$runs = Join-Path $repository ".scratch/variance-study-$stamp"
+$runs = Join-Path $repository "experiments/runs/variance-study-$stamp"
 foreach ($directory in @('rows', 'logs', 'profile-rows', 'profiles')) { New-Item -ItemType Directory -Force (Join-Path $runs $directory) | Out-Null }
 
 # Keep the machine awake for the run (the display may sleep).

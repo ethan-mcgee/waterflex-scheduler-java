@@ -44,7 +44,7 @@ $compose = Join-Path $repository 'docker-compose.yml'
 $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
 $evidence = Join-Path $repository "docs/evidence/api-load-$stamp-$Study.json"
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
-$runs = Join-Path $repository ".scratch/refinement-study-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
+$runs = Join-Path $repository "experiments/runs/refinement-study-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
 $token = (Resolve-Path -LiteralPath $TokenFile).Path
 
