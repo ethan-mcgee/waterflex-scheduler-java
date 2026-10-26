@@ -23,7 +23,7 @@ const skippedTechnicianDay = z.object({ technicianId: id, serviceDate, reason: z
 const technicianDayVersion = z.object({ technicianId: id, serviceDate, lastModified: instant }).strict();
 /** A refusal. Only a STALE commit carries `changed`: the technician-days whose recorded timestamp differs. */
 export const problem = z.object({ error: z.enum(["INVALID_REQUEST", "NOT_FOUND", "STALE", "NOT_COMMITTABLE", "HOLD_UNAVAILABLE",
-  "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED"]), message: z.string().min(1),
+  "INCOMPLETE_FACTS", "BUSY", "ROUTING_UNAVAILABLE", "CALCULATION_UNAVAILABLE", "CANCELLED", "SERVICE_UNAVAILABLE"]), message: z.string().min(1),
   changed: z.array(technicianDayVersion).min(1).optional() }).strict()
   .refine(value => (value.changed !== undefined) === (value.error === "STALE"), "Only a STALE problem lists changed technician-days");
 /**

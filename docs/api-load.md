@@ -756,6 +756,12 @@ without refusals. Make the authentication filter answer `503 UNAVAILABLE` with `
 cannot be reached, and make the request log record the status the client received. Both are small follow-ups, not
 part of PR #182.
 
+**Done 2026-10-26 (spec 1.8.0):** the filter answers 503 with the new code `SERVICE_UNAVAILABLE`, `Retry-After: 1` and
+a problem body when the token store fails to answer (a connection not obtained, a cancelled statement, a dropped
+connection); a wrong query still fails as a 500. The request log records 500 for a call whose exception left the chain
+before the response was committed. `TenantAuthenticationTest` and `RequestLoggingTest` cover both. The probe was not
+rerun.
+
 ### Daily solve thread
 
 Two queued daily proposals, each with a 120 s cost search and no fairness phase, ran together on a scheduler limited

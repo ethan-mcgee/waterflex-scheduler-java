@@ -81,6 +81,14 @@ public final class RequestLogging extends OncePerRequestFilter {
                 + (cpu == null ? "" : " cpuMs=" + cpu / 1_000_000);
     }
 
+    /**
+     * The status the client receives. An exception that leaves the chain before the response is committed is answered
+     * 500 by the container after this filter returns, while the response still reads its default 200.
+     */
+    static int status(boolean threw, HttpServletResponse response) {
+        return threw && !response.isCommitted() ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR : response.getStatus();
+    }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !request.getRequestURI().startsWith(TenantAuthentication.PUBLIC_PREFIX);
@@ -91,8 +99,10 @@ public final class RequestLogging extends OncePerRequestFilter {
         long started = System.nanoTime();
         MDC.put(OPERATION, request.getMethod() + " " + request.getRequestURI());
         FINISHED.remove();
+        boolean threw = true;
         try {
             chain.doFilter(request, response);
+            threw = false;
         } finally {
             // The matched route names the operation without the IDs in its path.
             Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
@@ -100,7 +110,7 @@ public final class RequestLogging extends OncePerRequestFilter {
             MDC.put(OPERATION, operation);
             SearchTelemetry.Measurements measured = FINISHED.get();
             FINISHED.remove();
-            LOG.info("api operation=\"{}\" status={} elapsedMs={}{}", operation, response.getStatus(), (System.nanoTime() - started) / 1_000_000, breakdown(measured));
+            LOG.info("api operation=\"{}\" status={} elapsedMs={}{}", operation, status(threw, response), (System.nanoTime() - started) / 1_000_000, breakdown(measured));
             recordPhases(operation, measured);
             MDC.remove(TENANT); MDC.remove(REQUEST_ID); MDC.remove(OPERATION);
         }

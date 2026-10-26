@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WaterFlex Scheduler public API
-  version: 1.7.0
+  version: 1.8.0
   summary: Stateless scheduling and booking for WaterFlex Software.
   description: |
     Version 1 of the scheduler's public contract. docs/integration-guide.md shows how to use it; the design is in
@@ -36,6 +36,11 @@ info:
     minor version before the scheduler is upgraded. A breaking change is published as /api/v2 beside v1, never in place.
 
     Version history:
+    - 1.8.0 (2026-10-26): the error code SERVICE_UNAVAILABLE. Any operation answers 503 SERVICE_UNAVAILABLE with
+      Retry-After when the scheduler cannot check the token (its token store does not answer in time); nothing was
+      decided or stored, so the same call may be sent again after Retry-After. Every operation now lists 503 (whoami,
+      commitDailyProposal, selectBookingOffer, releaseBookingOffer, getRequest and cancelRequest gain it). Before 1.8.0 this case
+      was a 500 without a problem body.
     - 1.7.0 (2026-10-20): the three cost rates narrow to the range the scheduler prices exactly in integer
       arithmetic: regularHourly and overtimeHourly at most 500, mileagePerMile at most 25, each with at most four
       decimal places (HourlyRate, MileageRate). A rate outside it is refused with 400 INVALID_REQUEST. The portal
@@ -102,6 +107,7 @@ paths:
               examples:
                 tenant: { value: { tenantId: acme-water } }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/daily/proposals:
     post:
       operationId: createDailyProposal
@@ -171,6 +177,7 @@ paths:
         '409': { $ref: '#/components/responses/CommitConflict' }
         '422': { $ref: '#/components/responses/IncompleteFacts' }
         '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/routes/evaluate:
     post:
       operationId: evaluateRoutes
@@ -301,6 +308,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/HoldUnavailable' }
         '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/offers/{offerId}/release:
     post:
       operationId: releaseBookingOffer
@@ -329,6 +337,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/Busy' }
+        '503': { $ref: '#/components/responses/Unavailable' }
   /api/v1/booking/holds/{holdId}/confirm:
     post:
       operationId: confirmBookingHold
@@ -468,6 +477,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
     delete:
       operationId: cancelRequest
       tags: [Integration]
@@ -491,6 +501,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
 components:
   securitySchemes:
     tenantToken:
@@ -650,12 +661,20 @@ components:
           examples:
             busy: { value: { error: BUSY, message: Search capacity exhausted } }
     Unavailable:
-      description: Routing or calculation was unavailable, or the deadline passed. Nothing was stored.
+      description: >-
+        Routing or calculation was unavailable, or the deadline passed (ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE);
+        or, on any operation, the scheduler could not check the token (SERVICE_UNAVAILABLE, with Retry-After). Nothing
+        was stored.
+      headers:
+        Retry-After:
+          description: Seconds to wait before sending the same call again; always present with SERVICE_UNAVAILABLE.
+          schema: { type: integer, minimum: 1 }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Problem' }
           examples:
             routing: { value: { error: ROUTING_UNAVAILABLE, message: Road routing unavailable } }
+            tokenStore: { value: { error: SERVICE_UNAVAILABLE, message: The scheduler could not check the token; retry after the Retry-After seconds } }
   schemas:
     Id:
       type: string
@@ -1250,7 +1269,7 @@ components:
       properties:
         error:
           type: string
-          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED]
+          enum: [INVALID_REQUEST, NOT_FOUND, STALE, NOT_COMMITTABLE, HOLD_UNAVAILABLE, INCOMPLETE_FACTS, BUSY, ROUTING_UNAVAILABLE, CALCULATION_UNAVAILABLE, CANCELLED, SERVICE_UNAVAILABLE]
         message: { type: string, minLength: 1 }
     StaleProblem:
       type: object
