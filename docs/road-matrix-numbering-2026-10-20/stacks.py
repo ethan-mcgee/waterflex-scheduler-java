@@ -4,7 +4,7 @@ The evidence file keeps leaf frames only. This reads the run's raw recordings (k
 and writes stacks.json: per arm and phase, the share of execution samples at each named site, and the SHA-256 of every
 recording read, so the table in the report can be traced to its inputs. Run once after the study:
 
-  python stacks.py --run <repository>/.scratch/matrix-study-20261020T155528 --jfr "C:/Program Files/Java/jdk-25/bin/jfr.exe"
+  python stacks.py --run <repository>/experiments/runs/matrix-study-20261020T155528 --jfr "C:/Program Files/Java/jdk-25/bin/jfr.exe"
 """
 import argparse
 import json

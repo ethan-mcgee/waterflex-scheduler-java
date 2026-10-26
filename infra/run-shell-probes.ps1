@@ -42,7 +42,7 @@ $stamp = [DateTime]::UtcNow.ToString('yyyy-MM-dd')
 $suffix = if ($Name -ne '') { "-$Name" } else { '' }
 $evidence = Join-Path $repository "docs/evidence/shell-probe-$stamp-$Probe$suffix.json"
 if (Test-Path -LiteralPath $evidence) { throw "Evidence already exists: $evidence" }
-$runs = Join-Path $repository ".scratch/shell-probe-$Probe-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
+$runs = Join-Path $repository "experiments/runs/shell-probe-$Probe-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmss'))"
 New-Item -ItemType Directory -Force $runs | Out-Null
 $token = (Resolve-Path -LiteralPath $TokenFile).Path
 try { Invoke-WebRequest "$Url/health" -UseBasicParsing -TimeoutSec 5 | Out-Null } catch { throw "The scheduler at $Url is not answering /health" }

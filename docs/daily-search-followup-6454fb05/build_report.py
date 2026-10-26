@@ -517,7 +517,7 @@ def build():
       "completion receipts are the primary evidence.")
     p(f"[2] Long budget arm: experiments/runs/{LONG.name}, analysis {LONG_ANALYSIS.name}.")
     p(f"[3] Sequential confirmation: experiments/runs/{CONFIRM.name}, analysis {CONFIRM_ANALYSIS.name}, one case at a time.")
-    p("[4] Driver status .scratch/bench-2026-10-12/status.json (local only): stage order, the confirmation candidate and its ranking. Each analysis-provenance.json "
+    p("[4] Driver status experiments/runs/bench-2026-10-12/status.json (local only): stage order, the confirmation candidate and its ranking. Each analysis-provenance.json "
       "supplies its input hashes.")
     p("[5] First study: docs/daily-tabu-variants-5d15129b (report and EVIDENCE.md) and experiments/runs/20261010T040557Z-daily-tabu-variants-p6-5d15129b. Its values are "
       "compared here but never pooled with this study's.")
