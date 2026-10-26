@@ -4,11 +4,8 @@ import ai.timefold.solver.core.api.score.BendableBigDecimalScore;
 import ai.timefold.solver.core.api.score.BendableScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.SolverFactory;
-import ai.timefold.solver.core.config.solver.SolverConfig;
 import dev.waterflex.scheduler.Required;
-import java.io.StringReader;
 import java.math.BigDecimal;
-import java.time.Duration;
 import java.util.*;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.Test;
@@ -19,13 +16,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * capacity-weighted variance in units of 1e-9 computed in binary64 (option b of the fairness measure study, PR 187),
  * while acceptance reads the DECIMAL128 variance. The objective must carry the decimal variance to within a unit and
  * rank every pair of plans of one scoring target as the decimal variance would, but for ties closer than the
- * tolerance. Any difference fails with the plans named. Load balance, the one experiment-only objective left, must keep
+ * tolerance. Any difference fails with the plans named. Load balance, the one study measure left, must keep
  * every other level as production has it. Every level of the long score is also checked against one rebuilt without the
  * constraint streams, on plans made to reach each level and each part of the quantitative and categorical levels.
  */
 class FairnessUnitsTest {
     private static final SolverEngine.Definition PRODUCTION = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17);
-    private static final SolverEngine.Definition LOAD_BALANCE = SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, 17);
     private static final BigDecimal UNITS = Required.value(BigDecimal.valueOf(RouteScoringFacts.FAIRNESS_UNITS));
 
     /** {@code decimal} is the production score with the fairness objective replaced by the exact DECIMAL128 variance. */
@@ -34,8 +30,13 @@ class FairnessUnitsTest {
 
     /** The plan scored by one variant, read as decimal levels with the objective at {@code objectiveScale} ({@link DecimalScores}). */
     static BendableBigDecimalScore score(SolverEngine.Definition definition, DayPlan plan, int objectiveScale) {
+        return score(definition.factory(), plan, objectiveScale);
+    }
+
+    /** The plan scored by {@code factory}: a variant's, or a study measure's scorer ({@link SolverEngine#scorer}). */
+    static BendableBigDecimalScore score(SolverFactory<DayPlan> factory, DayPlan plan, int objectiveScale) {
         DayPlan copy = PlanCopies.copy(plan);
-        SolutionManager.<DayPlan, BendableScore>create(definition.factory()).update(copy);
+        SolutionManager.<DayPlan, BendableScore>create(factory).update(copy);
         return DecimalScores.of(copy, objectiveScale);
     }
 
@@ -137,7 +138,7 @@ class FairnessUnitsTest {
                     BigDecimal[] soft = production.softScores().clone();
                     if (targeted) soft[DayScores.PHASE_OBJECTIVE] = Required.value(decimalVariance(plan).negate());
                     BendableBigDecimalScore decimal = Required.value(BendableBigDecimalScore.of(production.hardScores(), soft));
-                    plans.add(new Scored(base.getKey() + "/" + group + "#" + index, plan, targeted, production, decimal, score(LOAD_BALANCE, plan, DayScores.UNFAIRNESS_SCALE)));
+                    plans.add(new Scored(base.getKey() + "/" + group + "#" + index, plan, targeted, production, decimal, score(SolverEngine.scorer(FairnessMeasures.LoadBalance.class), plan, DayScores.UNFAIRNESS_SCALE)));
                 }
                 families.add(plans);
             }
@@ -273,30 +274,5 @@ class FairnessUnitsTest {
         List<RouteScoringFacts.@NonNull ScoredRoute> fleet = new ArrayList<>();
         for (int i = 0; i < 50; i++) fleet.add(i % 2 == 0 ? route("t" + i, 1, 0) : route("t" + i, 1, 1680));
         assertEquals(705_600L * RouteScoringFacts.FAIRNESS_UNITS, FACTS.fairnessUnits(fleet));
-    }
-
-    /** A solve capped at {@code steps}, under the variant's own constraints. */
-    private static SolverEngine.Result stepLimited(SolverEngine.Variant variant, DayPlan plan, int steps) {
-        var base = SolverEngine.configuration(variant, 17);
-        String xml = Required.value(base.configurationXml().replace("<termination><spentLimit>PT15S</spentLimit></termination>",
-                "<termination><spentLimit>PT10M</spentLimit><stepCountLimit>" + steps + "</stepCountLimit></termination>"));
-        assertNotEquals(base.configurationXml(), xml, "the generated configuration changed shape");
-        var factory = Required.value(SolverFactory.<DayPlan>create(Required.value(SolverConfig.createFromXmlReader(new StringReader(xml)).withRandomSeed(17L))));
-        var definition = new SolverEngine.Definition(variant, 17, base.environmentMode(), false, xml, base.fingerprint() + "|steps", steps, factory);
-        return SolverExperiment.solve(definition, PlanCopies.copy(plan), Required.value(Duration.ofMinutes(10)));
-    }
-    private static String moves(SolverEngine.Result result) {
-        List<String> arrangement = new ArrayList<>();
-        for (TechRoute route : result.plan().getRoutes())
-            arrangement.add(route.getId() + "=" + String.join(",", route.getVisits().stream().map(visit -> visit.getId()).toList()));
-        return "moves=" + result.statistics().moveEvaluations() + " steps=" + result.statistics().steps() + " " + arrangement;
-    }
-
-    @Test void loadBalanceTakesTheProductionCostPhaseMoves() {
-        for (Object[] fixture : new Object[][]{{20, SolverBenchmarkData.Workload.CLUSTERED, 7001L}, {20, SolverBenchmarkData.Workload.ABSENCE, 7002L}}) {
-            DayPlan base = SolverBenchmarkData.create((Integer) Required.value(fixture[0]), (SolverBenchmarkData.Workload) Required.value(fixture[1]), (Long) Required.value(fixture[2]));
-            // The cost phase has no fairness target, so the objective never changes a move there.
-            assertEquals(moves(stepLimited(SolverEngine.Variant.TABU_KOPT, base, 30)), moves(stepLimited(SolverEngine.Variant.TABU_KOPT_LOAD_BALANCE, base, 30)), "cost phase " + fixture[1]);
-        }
     }
 }

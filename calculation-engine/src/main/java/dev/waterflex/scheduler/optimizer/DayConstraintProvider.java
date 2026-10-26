@@ -12,8 +12,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**
- * List moves update affected route tuples; unchanged routes retain their metrics. Open for one reason only: the load
- * balance head-to-head ({@link FairnessMeasures}) replaces the fairness phase's objective, {@link #fairness}.
+ * List moves update affected route tuples; unchanged routes retain their metrics. Open for one reason only: a study
+ * measure ({@link FairnessMeasures}) replaces the fairness phase's objective, {@link #fairness}, to score a plan on it.
  */
 public class DayConstraintProvider implements ConstraintProvider {
     /**
