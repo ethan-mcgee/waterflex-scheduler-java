@@ -99,27 +99,18 @@ class SolverBenchmarkTest {
         assertEquals(200L, ((SolverEngine.Statistics) Required.value(legacy.get("referencePhase"))).budgetMs());
     }
 
-    /** A policy arm (load balance) is accepted on its own measure, and every row reads all five measures. */
-    @Test void aPolicyArmIsAcceptedOnItsOwnMeasureAndEveryRowReadsEveryMeasure() {
+    /** Every row reads all five measures, the load balance among them, and is accepted on the production variance. */
+    @Test void everyRowReadsEveryMeasureAndIsAcceptedOnTheVariance() {
         var fixture = SolverBenchmarkData.create(10, SolverBenchmarkData.Workload.CLUSTERED, 1);
-        var baseline = SolverBenchmark.run(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17), fixture, 600);
-        assertFalse(baseline.containsKey("acceptedOn"));
-        int improved = 0;
-        for (var entry : FairnessReadings.POLICY.entrySet()) {
-            var row = SolverBenchmark.run(SolverEngine.configuration(Required.value(entry.getKey()), 17), fixture, 600);
-            assertEquals(entry.getValue(), row.get("acceptedOn"));
-            for (String stage : List.of("before", "reference", "after"))
-                assertEquals(List.of("absoluteDeviation", "loadBalance", "maximumUtilization", "utilizationSpread", "variance"),
-                        stage(row, Required.value(stage)).keySet().stream().map(String::valueOf).sorted().toList());
-            var reference = (SchedulingPolicy.Metrics) Required.value(row.get("reference"));
-            assertEquals(0, reference.fairness().variance().compareTo(reading(row, "reference", "variance")));
-            var own = Required.value(entry.getValue());
-            if ("FAIRNESS_IMPROVEMENT".equals(row.get("acceptanceReason"))) {
-                improved++;
-                assertTrue(reading(row, "after", own).compareTo(reading(row, "before", own)) < 0);
-            }
-        }
-        assertTrue(improved > 0, "no policy arm reached a fairness improvement, so its acceptance went unchecked");
+        var row = SolverBenchmark.run(SolverEngine.configuration(SolverEngine.Variant.TABU_KOPT, 17), fixture, 600);
+        assertFalse(row.containsKey("acceptedOn"), "no arm is accepted on a measure of its own");
+        for (String stage : List.of("before", "reference", "after"))
+            assertEquals(List.of("absoluteDeviation", "loadBalance", "maximumUtilization", "utilizationSpread", "variance"),
+                    stage(row, Required.value(stage)).keySet().stream().map(String::valueOf).sorted().toList());
+        var reference = (SchedulingPolicy.Metrics) Required.value(row.get("reference"));
+        assertEquals(0, reference.fairness().variance().compareTo(reading(row, "reference", "variance")));
+        var after = (SchedulingPolicy.Metrics) Required.value(row.get("after"));
+        assertEquals(0, after.fairness().variance().compareTo(reading(row, "after", "variance")));
     }
     private static Map<?, ?> stage(Map<String, Object> row, String stage) {
         return (Map<?, ?>) Required.value(((Map<?, ?>) Required.value(row.get("measures"))).get(stage));

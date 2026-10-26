@@ -9,10 +9,13 @@ import java.util.List;
 import org.jspecify.annotations.NonNull;
 
 /**
- * Experiment-only fairness objectives, each a {@link DayConstraintProvider} that replaces only
+ * Study-only fairness measures, each a {@link DayConstraintProvider} that replaces only
  * {@link DayConstraintProvider#fairness}, with every other level the production one. It counts the technicians the
- * production variance counts (qualified for the day's demand, with regular capacity). The fairness measure study
- * (PR 187) also tested option c and three other policies; they were rejected and live on branch bench/variance-formula.
+ * production variance counts (qualified for the day's demand, with regular capacity). {@link FairnessReadings} scores
+ * plans on them through {@link SolverEngine#scorer}; no solver variant searches on them. The load balance was a
+ * searchable arm (TABU_KOPT_LOAD_BALANCE) until the head-to-head (PR J, 2026-10-23) kept the production variance; main
+ * carries the arm up to commit 4241c95, which the study scripts build from. The fairness measure study (PR 187) also tested option c and
+ * three other policies; they were rejected and live on branch bench/variance-formula.
  */
 public final class FairnessMeasures {
     /** Load balance runs on utilization in millionths: its squared deviations must stay well inside a long. */
