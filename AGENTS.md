@@ -38,7 +38,11 @@ These rules apply to every `.md` file except the frozen and generated files list
 - In new tables, put a shared unit in the header, as in `p95 (s)`, rather than in every cell.
 - Escape `|` inside a cell as `\|`, including inside code.
 - Write a missing value as `not measured` and a value that does not apply as `n/a`. Never write `0`, `-`, `none` or a blank cell for missing data.
-- Introduce a table with a sentence that says what it shows. Prefer 7 columns or fewer; split wider data or move it to the evidence JSON.
+- Introduce a table with a sentence that says what it shows.
+- Use a table for short values. Keep each aligned row within 160 characters:
+  - A results table that is too wide because of its column count splits into narrower tables that each repeat the first column, the later ones introduced as "The same rows with ...:".
+  - A table whose cells are sentences, or one with three columns or fewer that is too wide, becomes a list instead. Two columns become `- **First:** second.`; more columns become a bullet with the first column in bold and each other column as a labeled sub-bullet (`  - **Header:** value.`). A first-column value that is only a number keeps its column name (`Step 1`).
+  - Two parallel columns (such as "WaterFlex Software owns" and "The scheduler owns") become two lists.
 - No lists, line breaks or HTML inside cells.
 
 ### Diagrams
