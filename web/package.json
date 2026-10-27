@@ -2,6 +2,9 @@
   "name": "waterflex-web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "predev": "tsx scripts/copy-maplibre-worker.ts",
     "dev": "next dev",
@@ -48,7 +51,7 @@
     "@prisma/client": "^7.10.1",
     "lucide-react": "^1.61.0",
     "maplibre-gl": "^6.15.0",
-    "next": "^16.4.2",
+    "next": "^16.4.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zod": "^4.6.7"
@@ -57,14 +60,14 @@
     "@playwright/test": "^1.64.1",
     "@prisma/internals": "7.10.1",
     "@types/geojson": "7946.0.16",
-    "@types/node": "^22.20.5",
+    "@types/node": "^26.6.5",
     "@types/pg": "8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
     "eslint": "^10.13.0",
-    "eslint-config-next": "^16.4.2",
+    "eslint-config-next": "^16.4.3",
     "js-yaml": "5.5.0",
     "prisma": "^7.10.1",
     "tsx": "^4.23.15",
