@@ -28,12 +28,18 @@ The harness records one JDK Flight Recorder file per measured solve when `benchm
 
 The first such profile, `TABU_KOPT` on 20 and 50 technicians, `CLUSTERED` and `DISPERSED`, fixture seed 7001 (not one of the tuning fixtures), 10 s per case, is in [solver-profiling-2026-10-14.json](evidence/solver-profiling-2026-10-14.json). Of 3,719 samples, the engine's own methods held about a tenth; the rest was what scoring did around them, and it named one treatment of the three the audit had listed (CR07, indexed lookup and score-only timing), not the other two:
 
-| Leaf frame                                                                      |           Before | What it was                                                                                         |
-| ------------------------------------------------------------------------------- | ---------------: | --------------------------------------------------------------------------------------------------- |
-| `ImmutableCollections$MapN.probe`                                               |     13.1 percent | road lookups keyed by a `from>to` string built for every leg of every scored route                  |
-| `HashMap.putVal` and friends (`newNode`, `resize`, `Map.ofEntries`, `listCopy`) |     15.2 percent | arrival maps and a `DayPlan` built for every scored route, then copied into the result              |
-| `BigDecimal` and `MutableBigInteger`                                            | about 17 percent | buffered travel minutes computed per leg, money per route, and the bendable BigDecimal score itself |
-| `RouteTimingSearch.segments`, `RouteTimeline.evaluate`                          |      9.5 percent | the timing itself                                                                                   |
+- **`ImmutableCollections$MapN.probe`**
+  - **Before:** 13.1 percent.
+  - **What it was:** road lookups keyed by a `from>to` string built for every leg of every scored route.
+- **`HashMap.putVal` and friends (`newNode`, `resize`, `Map.ofEntries`, `listCopy`)**
+  - **Before:** 15.2 percent.
+  - **What it was:** arrival maps and a `DayPlan` built for every scored route, then copied into the result.
+- **`BigDecimal` and `MutableBigInteger`**
+  - **Before:** about 17 percent.
+  - **What it was:** buffered travel minutes computed per leg, money per route, and the bendable BigDecimal score itself.
+- **`RouteTimingSearch.segments`, `RouteTimeline.evaluate`**
+  - **Before:** 9.5 percent.
+  - **What it was:** the timing itself.
 
 The treatment keeps every number the same and removes the work around it: `RoadMatrix` gives each endpoint identity a number and holds the legs in two tables with their buffered minutes computed once per fact revision (built lazily on the first scoring lookup, so a plan evaluated once outside the solver, such as a booking candidate, pays nothing new); `RouteTimeline` and `RouteTimingSearch` evaluate a route against `PlanFacts` directly, and on the score-only path build no arrival map (the score reads minutes, meters and violations; arrivals come from `DayScoreCalculator` and `RouteEvaluator`, which still ask for them). `ScoringExactnessTest` captured a step-limited, fixed-seed solve on three fixtures before the change and asserts the same score, move count, arrangement and independent evaluation after it; the full assertion campaigns in CI exercise the same path under `FULL_ASSERT`.
 
@@ -79,18 +85,33 @@ The run is `infra/run-representation-study.ps1`, which the owner starts on an id
 
 The run took place on 2026-10-20, with the containers stopped. The evidence is [solver-representation-2026-10-20.json](evidence/solver-representation-2026-10-20.json): 24 cases, two repetitions, zero violations in every arm. The same arm's moves per second agreed between repetitions within 3.1 percent (median) and 28.7 percent at the widest.
 
-| Arm | Cost phase, moves per second against the baseline (median, 20 / 50 technicians) | Fairness phase (median, 20 / 50) | Final variance against the baseline                | Final cost against the baseline |
-| --- | ------------------------------------------------------------------------------: | -------------------------------: | -------------------------------------------------- | ------------------------------- |
-| T   |                                                           1.15x (1.13x / 1.16x) |            1.05x (1.05x / 1.05x) | median ratio 1.00 (8 fairer, 5 same, 11 less fair) | 16 cheaper, 5 ties, 3 dearer    |
-| S   |                                                           1.04x (1.04x / 1.05x) |            4.01x (3.01x / 5.62x) | median ratio 0.67 (19 fairer, 3 same, 2 less fair) | 11 cheaper, 4 ties, 9 dearer    |
-| T+S |                                                           1.19x (1.16x / 1.24x) |            4.36x (3.31x / 6.59x) | median ratio 0.64 (18 fairer, 2 same, 4 less fair) | 17 cheaper, 2 ties, 5 dearer    |
+| Arm | Cost phase, moves per second against the baseline (median, 20 / 50 technicians) | Fairness phase (median, 20 / 50) |
+| --- | ------------------------------------------------------------------------------: | -------------------------------: |
+| T   |                                                           1.15x (1.13x / 1.16x) |            1.05x (1.05x / 1.05x) |
+| S   |                                                           1.04x (1.04x / 1.05x) |            4.01x (3.01x / 5.62x) |
+| T+S |                                                           1.19x (1.16x / 1.24x) |            4.36x (3.31x / 6.59x) |
+
+The same rows with final variance against the baseline and final cost against the baseline:
+
+| Arm | Final variance against the baseline                | Final cost against the baseline |
+| --- | -------------------------------------------------- | ------------------------------- |
+| T   | median ratio 1.00 (8 fairer, 5 same, 11 less fair) | 16 cheaper, 5 ties, 3 dearer    |
+| S   | median ratio 0.67 (19 fairer, 3 same, 2 less fair) | 11 cheaper, 4 ties, 9 dearer    |
+| T+S | median ratio 0.64 (18 fairer, 2 same, 4 less fair) | 17 cheaper, 2 ties, 5 dearer    |
 
 Where the time went in the baseline profile, by stack:
 
-| Phase            |  `java.time` |                             BigDecimal in the variance | BigDecimal score impacts | BigDecimal money | Identity lookups (`MapN.probe`, leaf) |
-| ---------------- | -----------: | -----------------------------------------------------: | -----------------------: | ---------------: | ------------------------------------: |
-| cost (reference) | 18.9 percent |                                                    n/a |              6.2 percent |      4.0 percent |                          20.8 percent |
-| fairness         |  5.6 percent | 54.5 percent (and 11.8 percent more in its own frames) |              2.6 percent |      1.6 percent |                           6.6 percent |
+| Phase            |  `java.time` |                             BigDecimal in the variance | BigDecimal score impacts | BigDecimal money |
+| ---------------- | -----------: | -----------------------------------------------------: | -----------------------: | ---------------: |
+| cost (reference) | 18.9 percent |                                                    n/a |              6.2 percent |      4.0 percent |
+| fairness         |  5.6 percent | 54.5 percent (and 11.8 percent more in its own frames) |              2.6 percent |      1.6 percent |
+
+The same rows with identity lookups (`MapN.probe`, leaf):
+
+| Phase            | Identity lookups (`MapN.probe`, leaf) |
+| ---------------- | ------------------------------------: |
+| cost (reference) |                          20.8 percent |
+| fairness         |                           6.6 percent |
 
 This answers CR08's question. The decimal cost of the fairness phase is the variance formula (`SchedulingPolicy.fairness` dividing and rounding at DECIMAL128 for every technician on every move), not the score representation. The BigDecimal score impacts are 2.6 to 6.2 percent, and the long score's own gain in the cost phase, where no variance is computed, is 1.04x.
 
@@ -162,12 +183,21 @@ Options not tested, by owner decision: wider numeric types (the numeric contract
 
 Evidence: `docs/evidence/solver-variance-2026-10-20.json`. The run took 7 h 31 min on revision `773f9f6` and covered 672 solves with no violation and nothing outside a ceiling. The full report, with figures, is `docs/fairness-measures-2026-10-20/Fairness_Measures_2026-10-20_Report.docx`.
 
-| Option, budget | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) | Passes       |
-| -------------- | --------------------------------: | ---------------: | ---------------------------------------: | -----------------------------------------------: | ------------ |
-| b, 15 s        |              4.59x (2.83 to 8.01) |           0.998x |                           23 / 1 / 0 / 0 |                            +0 cents (10 / 5 / 9) | Yes          |
-| c, 15 s        |              4.38x (2.73 to 7.92) |           0.960x |                           22 / 1 / 1 / 0 |                            +3 cents (6 / 5 / 13) | No: cost     |
-| b, 60 s        |              4.16x (2.63 to 6.71) |           0.994x |                           21 / 3 / 0 / 0 |                         -18.5 cents (16 / 3 / 5) | Yes          |
-| c, 60 s        |              4.10x (2.59 to 6.66) |           0.957x |                           20 / 3 / 1 / 1 |                            -4 cents (13 / 3 / 8) | No: fairness |
+| Option, budget | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise |
+| -------------- | --------------------------------: | ---------------: | ---------------------------------------: |
+| b, 15 s        |              4.59x (2.83 to 8.01) |           0.998x |                           23 / 1 / 0 / 0 |
+| c, 15 s        |              4.38x (2.73 to 7.92) |           0.960x |                           22 / 1 / 1 / 0 |
+| b, 60 s        |              4.16x (2.63 to 6.71) |           0.994x |                           21 / 3 / 0 / 0 |
+| c, 60 s        |              4.10x (2.59 to 6.66) |           0.957x |                           20 / 3 / 1 / 1 |
+
+The same rows with median cost difference (cheaper / ties / dearer) and passes:
+
+| Option, budget | Median cost difference (cheaper / ties / dearer) | Passes       |
+| -------------- | -----------------------------------------------: | ------------ |
+| b, 15 s        |                            +0 cents (10 / 5 / 9) | Yes          |
+| c, 15 s        |                            +3 cents (6 / 5 / 13) | No: cost     |
+| b, 60 s        |                         -18.5 cents (16 / 3 / 5) | Yes          |
+| c, 60 s        |                            -4 cents (13 / 3 / 8) | No: fairness |
 
 - **b is promoted:** It passes every bar at both budgets and was never less fair than the baseline. Its median final variance is 0.68 of the baseline's at 15 s and 0.62 at 60 s.
 - **The decimal variance was the whole difference between the phases:** Production's fairness-phase profile was 56 percent decimal variance and 12 percent the surrounding collection. With b, the fairness phase evaluates a median 251k moves per second, against 54k for production and 240k for production's cost phase.
@@ -202,12 +232,22 @@ Next, in order:
 
 The fairness measure study's profiles kept only leaf frames, so naming the `MapN.probe` caller rested on the CR07 write-up. The study's recordings, read again with full stacks (seed 17, 15 s, eight recordings per arm and phase), confirm it and name the rest of the collection work:
 
-| Leaf frames                                                                                               | b, fairness phase | Production, cost phase | Caller                                                                                                                                       |
-| --------------------------------------------------------------------------------------------------------- | ----------------: | ---------------------: | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ImmutableCollections$MapN.probe`                                                                         |      17.5 percent |           20.4 percent | `RoadMatrix.number`, all of it: from `RouteTimingSearch.segments` (11.8 and 12.7 percent) and `RouteTimeline.evaluate` (5.7 and 7.6 percent) |
-| `HashMap.putVal`, `LinkedHashMap.afterNodeInsertion`, `HashMap.resize` under `RouteTimingSearch.segments` |      10.0 percent |           11.5 percent | `segments`, building its options map on every call                                                                                           |
-| `HashMap.getNode`, `IdentityHashMap.get`, `HashMap$TreeNode.getTreeNode`                                  |       5.1 percent |            4.9 percent | Timefold's own frames, not the scheduler's                                                                                                   |
-| `Set12.contains`, `Collections.disjoint`, `Arrays.copyOf`                                                 |       2.3 percent |            2.8 percent | the route's qualifications, eligibility and capacity, the same for every move                                                                |
+- **`ImmutableCollections$MapN.probe`**
+  - **b, fairness phase:** 17.5 percent.
+  - **Production, cost phase:** 20.4 percent.
+  - **Caller:** `RoadMatrix.number`, all of it: from `RouteTimingSearch.segments` (11.8 and 12.7 percent) and `RouteTimeline.evaluate` (5.7 and 7.6 percent).
+- **`HashMap.putVal`, `LinkedHashMap.afterNodeInsertion`, `HashMap.resize` under `RouteTimingSearch.segments`**
+  - **b, fairness phase:** 10.0 percent.
+  - **Production, cost phase:** 11.5 percent.
+  - **Caller:** `segments`, building its options map on every call.
+- **`HashMap.getNode`, `IdentityHashMap.get`, `HashMap$TreeNode.getTreeNode`**
+  - **b, fairness phase:** 5.1 percent.
+  - **Production, cost phase:** 4.9 percent.
+  - **Caller:** Timefold's own frames, not the scheduler's.
+- **`Set12.contains`, `Collections.disjoint`, `Arrays.copyOf`**
+  - **b, fairness phase:** 2.3 percent.
+  - **Production, cost phase:** 2.8 percent.
+  - **Caller:** the route's qualifications, eligibility and capacity, the same for every move.
 
 Every leg evaluated looked its visit up by identity. The map's keys were cut from the `from>to` road keys, so they are never the visit's own string, and each lookup compared the whole identity.
 
@@ -253,20 +293,34 @@ The fix, each variant on tree n against the same variant on tree o, median of 72
 
 b and c on the faster engine, against the fixed production:
 
-| Option | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) | Passes       |
-| ------ | --------------------------------: | ---------------: | ---------------------------------------: | -----------------------------------------------: | ------------ |
-| b      |              5.20x (2.07 to 9.24) |           0.988x |                           29 / 7 / 0 / 0 |                          +0 cents (13 / 10 / 13) | Yes          |
-| c      |              5.23x (1.92 to 9.70) |           0.944x |                           28 / 7 / 1 / 1 |                          +0 cents (11 / 10 / 15) | No: fairness |
+| Option | Fairness-phase speed (min to max) | Cost-phase speed | Fairer / same / less fair / beyond noise | Median cost difference (cheaper / ties / dearer) |
+| ------ | --------------------------------: | ---------------: | ---------------------------------------: | -----------------------------------------------: |
+| b      |              5.20x (2.07 to 9.24) |           0.988x |                           29 / 7 / 0 / 0 |                          +0 cents (13 / 10 / 13) |
+| c      |              5.23x (1.92 to 9.70) |           0.944x |                           28 / 7 / 1 / 1 |                          +0 cents (11 / 10 / 15) |
+
+The same rows with passes:
+
+| Option | Passes       |
+| ------ | ------------ |
+| b      | Yes          |
+| c      | No: fairness |
 
 - **b is promoted again:** Its fairness-phase gain grows with the fleet: 2.79x at 10 technicians, 5.20x at 30, 7.10x at 50. Its median variance is 0.74 of production's (0.99, 0.73 and 0.59 by fleet). At 10 technicians it mostly ties production.
 - **c is not promoted:** It fails the fairness bar on 30 `DISPERSED` 17: production's repetitions ended at 15.10 and 14.39 thousandths, c's second at 20.35.
 
 Load balance, as the median ratio to the fixed production on each measure (lower is fairer):
 
-| Arm          | Variance | Highest utilization | Spread | Absolute deviation | Load balance | Median cost difference | Fairness-phase speed | Cost-phase speed |
-| ------------ | -------: | ------------------: | -----: | -----------------: | -----------: | ---------------------: | -------------------: | ---------------: |
-| b            |     0.74 |                0.94 |   0.93 |               0.78 |         0.86 |               +0 cents |                5.20x |            0.99x |
-| load-balance |     0.58 |                0.93 |   0.90 |               0.68 |         0.76 |               +0 cents |                4.72x |            0.90x |
+| Arm          | Variance | Highest utilization | Spread | Absolute deviation | Load balance | Median cost difference | Fairness-phase speed |
+| ------------ | -------: | ------------------: | -----: | -----------------: | -----------: | ---------------------: | -------------------: |
+| b            |     0.74 |                0.94 |   0.93 |               0.78 |         0.86 |               +0 cents |                5.20x |
+| load-balance |     0.58 |                0.93 |   0.90 |               0.68 |         0.76 |               +0 cents |                4.72x |
+
+The same rows with cost-phase speed:
+
+| Arm          | Cost-phase speed |
+| ------------ | ---------------: |
+| b            |            0.99x |
+| load-balance |            0.90x |
 
 - **On these fleets load balance is fairer than b on all five measures:** Its variance was lower than b's in 19 cases and higher in 6 (13 lower and 3 higher beyond b's spread). By fleet its variance is 0.87, 0.59 and 0.57 of production's, against b's 0.99, 0.73 and 0.59.
 - **The lead is on 10 and 30 technicians,** sizes the fairness measure study did not run. At 50, the size both studies share, the two are close, as they were then.
@@ -287,11 +341,19 @@ Next, in order:
 
 [Archived comparison](evidence/solver-comparison-2026-09-24.json) records 294 accepted case results: eight variants across 21 datasets at seed 17, followed by the retained capped, uncapped and Tabu configurations at seeds 23 and 41. The five compressed source files retain excluded rows and provenance; the analyzer explicitly excludes the initial mislabeled capped rows and underloaded near-capacity rows. All accepted candidates passed independent validation with zero reported hard-constraint violations. Hardware and concurrent local activity limit timing comparisons; this is fixture quality evidence, not booking latency evidence.
 
-| Seed | Capped reference cost, cents | Uncapped reference cost, cents | Tabu reference cost, cents | Capped mean variance | Uncapped mean variance | Tabu mean variance |
-| ---: | ---------------------------: | -----------------------------: | -------------------------: | -------------------: | ---------------------: | -----------------: |
-|   17 |                    7,505,924 |                      7,468,333 |                  7,442,256 |             0.010111 |               0.013918 |           0.007772 |
-|   23 |                    7,502,748 |                      7,468,861 |                  7,448,680 |             0.010018 |               0.015485 |           0.009190 |
-|   41 |                    7,501,289 |                      7,470,769 |                  7,452,334 |             0.011711 |               0.014288 |           0.008942 |
+| Seed | Capped reference cost, cents | Uncapped reference cost, cents | Tabu reference cost, cents | Capped mean variance | Uncapped mean variance |
+| ---: | ---------------------------: | -----------------------------: | -------------------------: | -------------------: | ---------------------: |
+|   17 |                    7,505,924 |                      7,468,333 |                  7,442,256 |             0.010111 |               0.013918 |
+|   23 |                    7,502,748 |                      7,468,861 |                  7,448,680 |             0.010018 |               0.015485 |
+|   41 |                    7,501,289 |                      7,470,769 |                  7,452,334 |             0.011711 |               0.014288 |
+
+The same rows with tabu mean variance:
+
+| Seed | Tabu mean variance |
+| ---: | -----------------: |
+|   17 |           0.007772 |
+|   23 |           0.009190 |
+|   41 |           0.008942 |
 
 These are aggregate modeled reference costs and unweighted means of per-dataset capacity-weighted utilization variances after acceptance. Each individual case still uses the required overtime target and its own 2 percent ceiling. All three retained variants ended with zero overtime in these cases, so this matrix cannot establish a comparative overtime advantage. Tabu also had lower aggregate accepted cost than both alternatives in every seed. Advanced moves did not demonstrate a reason to adopt their added complexity in the initial comparison.
 
@@ -301,12 +363,18 @@ The daily default is now `TABU`, seed 17: single-visit relocation and swaps, ent
 
 PR #191 makes four representation changes the default. Each scores every plan exactly as before: the five pinned solves of `ScoringExactnessTest` are unchanged.
 
-| Change | What it does                                                                                                                                                                                                                               | Timefold docs           |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| L      | the long `BendableScore`, read as the decimal levels it stands for                                                                                                                                                                         | 12.2.4, 12.1.10, 15.2.1 |
-| M      | long money, with the narrowed rate contract (spec 1.7.0)                                                                                                                                                                                   | 12.1.10, 16.13          |
-| W      | each visit keeps its time window in epoch nanoseconds and its duration in nanoseconds, made by its constructor; a route builds its clock and working intervals once, when frozen; a single-interval route builds no array of return points | 16.9, 10.9.6            |
-| A      | each visit keeps its road matrix number in one field, with no hop through a separate record                                                                                                                                                | 16.9                    |
+- **L**
+  - **What it does:** the long `BendableScore`, read as the decimal levels it stands for.
+  - **Timefold docs:** 12.2.4, 12.1.10, 15.2.1.
+- **M**
+  - **What it does:** long money, with the narrowed rate contract (spec 1.7.0).
+  - **Timefold docs:** 12.1.10, 16.13.
+- **W**
+  - **What it does:** each visit keeps its time window in epoch nanoseconds and its duration in nanoseconds, made by its constructor; a route builds its clock and working intervals once, when frozen; a single-interval route builds no array of return points.
+  - **Timefold docs:** 16.9, 10.9.6.
+- **A**
+  - **What it does:** each visit keeps its road matrix number in one field, with no hop through a separate record.
+  - **Timefold docs:** 16.9.
 
 **Measured in study 3** (2026-10-21; 13 frozen trees, 60 cases, 3 repetitions, 2,340 solves with no violation; the evidence and report are on the local branch `bench/study-3`). Each value is the median of 180 paired moves-per-second ratios, cost phase / fairness phase:
 

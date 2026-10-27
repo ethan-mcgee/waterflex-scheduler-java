@@ -4,15 +4,13 @@
 
 The one immutable input is `docs/evidence/solver-load-balance-2026-10-23.json`. `infra/load_balance_study.py summarize` wrote it at the end of the run `infra/run-load-balance-study.ps1` made on 2026-10-23, from 05:36 to 08:59 UTC, on revision `15da8a0`. That revision is main `52339c8` plus the Mixed Shift fixture, a test-only change, built once into a detached worktree under `C:\Projects\waterflex-worktrees`. The raw rows, logs and 96 flight recordings stay in `experiments/runs/load-balance-h2h-20261023T053623/` of the main checkout, which is gitignored.
 
-| Block                                                                              | What it holds                                                                                                                                                                                                   |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manifest`                                                                         | Revision, JVM flags, fleets, workloads, fixture seeds, solver seed, budgets (15 s and 30 s), repetitions (1), arm order                                                                                         |
-| `budgets.<ms>.runs`                                                                | All 240 solves per budget (2 arms, 120 cases). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans |
-| `budgets.<ms>.measures`                                                            | Per measure: median per-case ratio of load balance to b, its 95 percent bootstrap interval, the cases lower and higher, and the cases higher by more than 5 percent                                             |
-| `budgets.<ms>.cost`, `speed`, `convergence`, `byFleet`, `byWorkload`, `acceptance` | Cost differences, paired speed ratios by phase and fleet, time to best over the phase budget, the same readings by group, and acceptance counts                                                                 |
-| `budgets.<ms>.rule`, `passes`                                                      | Each part of the rule written before the run, and whether all hold                                                                                                                                              |
-| `decision`                                                                         | `switch`: false                                                                                                                                                                                                 |
-| `profiles`                                                                         | One flight-recording profile per arm and phase at 15 s on fixture seed 7001, 24 recordings each, overall and by fleet                                                                                           |
+- **`manifest`:** Revision, JVM flags, fleets, workloads, fixture seeds, solver seed, budgets (15 s and 30 s), repetitions (1), arm order.
+- **`budgets.<ms>.runs`:** All 240 solves per budget (2 arms, 120 cases). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans.
+- **`budgets.<ms>.measures`:** Per measure: median per-case ratio of load balance to b, its 95 percent bootstrap interval, the cases lower and higher, and the cases higher by more than 5 percent.
+- **`budgets.<ms>.cost`, `speed`, `convergence`, `byFleet`, `byWorkload`, `acceptance`:** Cost differences, paired speed ratios by phase and fleet, time to best over the phase budget, the same readings by group, and acceptance counts.
+- **`budgets.<ms>.rule`, `passes`:** Each part of the rule written before the run, and whether all hold.
+- **`decision`:** `switch`: false.
+- **`profiles`:** One flight-recording profile per arm and phase at 15 s on fixture seed 7001, 24 recordings each, overall and by fleet.
 
 ## Validation
 

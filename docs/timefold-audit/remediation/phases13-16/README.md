@@ -8,15 +8,27 @@ This delivery adds pinned, single-factor algorithm/neighborhood/termination regi
 
 The phase 12 whole-JVM profiles include startup, generated accessors, native report generation and solving. The three recordings contain 92, 101 and 130 CPU samples; their leaf-frame summaries do not isolate scoring or booking cost. Reference, fairness and complete-policy warmup probes and outer-concurrency calibration were ambiguous. Those are measured prerequisite failures, not evidence that an optimization would be ineffective.
 
-| Candidate                                        | Disposition                                                              | Evidence and remaining condition                                                                                                                                                                                                                                                                        |
-| ------------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Indexed internal road lookup                     | Prerequisite not met; retain current map lookup                          | Indexed dataset wire correctness exists. No calibrated matched hot-path performance cohort currently exists. Do not mistake indexed wire encoding for an adopted internal lookup optimization.                                                                                                          |
-| Immutable technician timing/availability context | Prerequisite not met; retain current evaluator                           | Facts already share immutable revisions, but `RouteScoringFacts.evaluate` still creates a temporary plan and prepares capacity. Mixed whole-process profiles cannot establish the benefit of removing this work. Requires differential timing/absence/arrival tests and calibrated matched results.     |
-| Score-only timing                                | Prerequisite not met; retain explanations                                | Existing scoring emits arrivals used by independent equivalence checks. Removing them needs a separate differential path and measured benefit, preserving explanation and validation outside the hot path.                                                                                              |
-| Primitive time                                   | Reject local-time subtraction; broader optimization prerequisite not met | A real Chicago spring-forward fixture gives 120 local minutes but 60 elapsed minutes. Exclusive nanosecond boundaries remain distinct. A future epoch-based implementation must establish overflow, units, DST conversion and all boundary equivalence.                                                 |
-| Reversible fleet collectors                      | Reject rounded-per-route cents; exact collector prerequisite not met     | Two one-minute routes at $0.30/hour each round to one cent, while the fleet rounds once to one cent total. Reversal/undo must preserve aggregate resources, exact fairness and rounding order.                                                                                                          |
-| Scaled scoring                                   | Reject a uniform signed-long fairness scale over the current domain      | The executable workload counterexample combines a positive variance below the representable scale with a supported large variance that would overflow that same scale. Keep `BendableBigDecimalScore`; this does not reject every hypothetical restricted-domain or arbitrary-precision representation. |
-| Bounded/lazy expanded booking generation         | Prerequisite not met; retain current ordering and families               | Current expanded generation includes eager neighborhoods. No booking-specific profile or calibrated candidate ordering/coverage equivalence study exists. This remains explicit rather than claiming an unrun optimization passed.                                                                      |
+- **Indexed internal road lookup**
+  - **Disposition:** Prerequisite not met; retain current map lookup.
+  - **Evidence and remaining condition:** Indexed dataset wire correctness exists. No calibrated matched hot-path performance cohort currently exists. Do not mistake indexed wire encoding for an adopted internal lookup optimization.
+- **Immutable technician timing/availability context**
+  - **Disposition:** Prerequisite not met; retain current evaluator.
+  - **Evidence and remaining condition:** Facts already share immutable revisions, but `RouteScoringFacts.evaluate` still creates a temporary plan and prepares capacity. Mixed whole-process profiles cannot establish the benefit of removing this work. Requires differential timing/absence/arrival tests and calibrated matched results.
+- **Score-only timing**
+  - **Disposition:** Prerequisite not met; retain explanations.
+  - **Evidence and remaining condition:** Existing scoring emits arrivals used by independent equivalence checks. Removing them needs a separate differential path and measured benefit, preserving explanation and validation outside the hot path.
+- **Primitive time**
+  - **Disposition:** Reject local-time subtraction; broader optimization prerequisite not met.
+  - **Evidence and remaining condition:** A real Chicago spring-forward fixture gives 120 local minutes but 60 elapsed minutes. Exclusive nanosecond boundaries remain distinct. A future epoch-based implementation must establish overflow, units, DST conversion and all boundary equivalence.
+- **Reversible fleet collectors**
+  - **Disposition:** Reject rounded-per-route cents; exact collector prerequisite not met.
+  - **Evidence and remaining condition:** Two one-minute routes at $0.30/hour each round to one cent, while the fleet rounds once to one cent total. Reversal/undo must preserve aggregate resources, exact fairness and rounding order.
+- **Scaled scoring**
+  - **Disposition:** Reject a uniform signed-long fairness scale over the current domain.
+  - **Evidence and remaining condition:** The executable workload counterexample combines a positive variance below the representable scale with a supported large variance that would overflow that same scale. Keep `BendableBigDecimalScore`; this does not reject every hypothetical restricted-domain or arbitrary-precision representation.
+- **Bounded/lazy expanded booking generation**
+  - **Disposition:** Prerequisite not met; retain current ordering and families.
+  - **Evidence and remaining condition:** Current expanded generation includes eager neighborhoods. No booking-specific profile or calibrated candidate ordering/coverage equivalence study exists. This remains explicit rather than claiming an unrun optimization passed.
 
 `RemainingAuditContractTest` contains the numerical and DST counterexamples. Its short assertion fixtures also exercise TABU and LA with fixed, diminished-return and unimproved-time policies at solver and local-search scope. They verify the enclosing spent/step caps and independent scored/validated outcomes. These are compatibility tests, not production-budget performance evidence.
 
@@ -38,13 +50,21 @@ No SA temperature study, Enterprise feature, custom parallel scoring or solver f
 
 Eleven separate campaigns in five registrations requested and completed 68 cases, with no launch failures or retries. Sixty-seven are independently valid. All raw native reports, outcomes, elapsed timings, configurations and unsuccessful diagnostic outcomes remain in the pinned archives.
 
-| Cohort                 | Cases | Recorded outcome                                                                                                                                                     |
-| ---------------------- | ----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Reference              |    24 | TABU/LA comparison and separate termination treatments; all independently valid across two seeded datasets.                                                          |
-| Shared-target fairness |    12 | Same frozen target across treatments; all independently valid. One dataset supports no independent dataset interval.                                                 |
-| Repair                 |    24 | Twenty-three independently valid results; one complete but infeasible fixed-TABU control remains ineligible, with a 2,640 hard penalty and no application authority. |
-| Complete policy        |     4 | Each treatment creates its own reference and target; all retained results independently valid.                                                                       |
-| One added neighborhood |     4 | Existing TABU package plus one `subListChange` family; all independently valid. No interaction treatment or production adoption.                                     |
+- **Reference**
+  - **Cases:** 24.
+  - **Recorded outcome:** TABU/LA comparison and separate termination treatments; all independently valid across two seeded datasets.
+- **Shared-target fairness**
+  - **Cases:** 12.
+  - **Recorded outcome:** Same frozen target across treatments; all independently valid. One dataset supports no independent dataset interval.
+- **Repair**
+  - **Cases:** 24.
+  - **Recorded outcome:** Twenty-three independently valid results; one complete but infeasible fixed-TABU control remains ineligible, with a 2,640 hard penalty and no application authority.
+- **Complete policy**
+  - **Cases:** 4.
+  - **Recorded outcome:** Each treatment creates its own reference and target; all retained results independently valid.
+- **One added neighborhood**
+  - **Cases:** 4.
+  - **Recorded outcome:** Existing TABU package plus one `subListChange` family; all independently valid. No interaction treatment or production adoption.
 
 LA passes the registered reference cost/fairness screen in this short-budget two-dataset cohort. The analysis preserves that favorable result, but uncalibrated execution and absent untouched production confirmation prevent selecting a finalist. Early-stop comparisons and native cooperative overshoot are retained without declaring a termination policy superior. The repair control's `scoringMatchesValidation=false` accompanies independently infeasible work; it is not an unexplained invalid accepted result. The bounded search does not prove that the repair is impossible.
 

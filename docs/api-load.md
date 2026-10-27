@@ -22,13 +22,23 @@ How the scheduler behaves under concurrent host traffic, measured over its publi
 
 Each booking and mixed run, with its latency, lost holds, 429 waits, routing load and CPU:
 
-| Run                          | Searches per min | Offers p50 / p95 / p99 ms | Confirm p50 / p95 ms | Holds lost at confirm | Searches that waited on 429 | Routing pairs per search | Routing CPU mean / max |
-| ---------------------------- | ---------------: | ------------------------: | -------------------: | --------------------: | --------------------------: | -----------------------: | ---------------------: |
-| booking cold, 1 desk         |               76 |          701 / 987 / 3254 |              31 / 50 |               0 of 19 |                           0 |                      289 |        55 / 78 percent |
-| booking cold, 5 desks        |               97 |       1824 / 6233 / 11212 |           670 / 1093 |              14 of 38 |                          35 |                      285 |       54 / 136 percent |
-| booking cold, 10 desks       |               94 |      3442 / 12006 / 23908 |          2033 / 3133 |              23 of 39 |                          43 |                      277 |       54 / 130 percent |
-| booking warm, 5 desks        |              115 |       590 / 10207 / 14392 |            249 / 334 |               7 of 35 |                          35 |                       48 |       16 / 144 percent |
-| mixed, 5 desks and 1 planner |               85 |       1989 / 7018 / 11983 |           715 / 1983 |              10 of 30 |                          34 |                      322 |       70 / 187 percent |
+| Run                          | Searches per min | Offers p50 / p95 / p99 ms | Confirm p50 / p95 ms | Holds lost at confirm | Searches that waited on 429 |
+| ---------------------------- | ---------------: | ------------------------: | -------------------: | --------------------: | --------------------------: |
+| booking cold, 1 desk         |               76 |          701 / 987 / 3254 |              31 / 50 |               0 of 19 |                           0 |
+| booking cold, 5 desks        |               97 |       1824 / 6233 / 11212 |           670 / 1093 |              14 of 38 |                          35 |
+| booking cold, 10 desks       |               94 |      3442 / 12006 / 23908 |          2033 / 3133 |              23 of 39 |                          43 |
+| booking warm, 5 desks        |              115 |       590 / 10207 / 14392 |            249 / 334 |               7 of 35 |                          35 |
+| mixed, 5 desks and 1 planner |               85 |       1989 / 7018 / 11983 |           715 / 1983 |              10 of 30 |                          34 |
+
+The same rows with routing pairs per search and routing CPU mean / max:
+
+| Run                          | Routing pairs per search | Routing CPU mean / max |
+| ---------------------------- | -----------------------: | ---------------------: |
+| booking cold, 1 desk         |                      289 |        55 / 78 percent |
+| booking cold, 5 desks        |                      285 |       54 / 136 percent |
+| booking cold, 10 desks       |                      277 |       54 / 130 percent |
+| booking warm, 5 desks        |                       48 |       16 / 144 percent |
+| mixed, 5 desks and 1 planner |                      322 |       70 / 187 percent |
 
 Each daily run and how its proposals were answered:
 
@@ -48,13 +58,23 @@ Every search answered 201 with 4 offers, and no response broke the contract. The
 
 The booking and mixed lines of the protocol, run again on the same stack with findings 2 and 3 fixed (#152) and new seeds (21 to 25). Raw reports: [docs/evidence/api-load-2026-10-13-booking-concurrency.json](evidence/api-load-2026-10-13-booking-concurrency.json). The load tool now does what the integration guide asks of a host: a search or confirm answered 409 `STALE` is sent again from current records with a new `requestId`. Latency is per call, so a resent search counts as two calls.
 
-| Run                          | Searches per min | Offers p50 / p95 / p99 ms | Confirm p50 / p95 ms | Holds lost at confirm | Calls resent after `STALE` | Calls that waited on 429 |
-| ---------------------------- | ---------------: | ------------------------: | -------------------: | --------------------: | -------------------------: | -----------------------: |
-| booking cold, 1 desk         |              151 |           344 / 636 / 743 |              21 / 25 |               0 of 45 |                          0 |                        0 |
-| booking cold, 5 desks        |              147 |         973 / 2177 / 3905 |           709 / 1695 |               0 of 50 |                        115 |                       10 |
-| booking cold, 10 desks       |              154 |         786 / 3399 / 4616 |          1225 / 2841 |               0 of 56 |                        289 |                       14 |
-| booking warm, 5 desks        |              156 |         973 / 2660 / 5000 |           665 / 1329 |               0 of 41 |                         98 |                       17 |
-| mixed, 5 desks and 1 planner |              131 |         898 / 2722 / 3412 |           735 / 1760 |               0 of 49 |                        113 |                        3 |
+| Run                          | Searches per min | Offers p50 / p95 / p99 ms | Confirm p50 / p95 ms | Holds lost at confirm | Calls resent after `STALE` |
+| ---------------------------- | ---------------: | ------------------------: | -------------------: | --------------------: | -------------------------: |
+| booking cold, 1 desk         |              151 |           344 / 636 / 743 |              21 / 25 |               0 of 45 |                          0 |
+| booking cold, 5 desks        |              147 |         973 / 2177 / 3905 |           709 / 1695 |               0 of 50 |                        115 |
+| booking cold, 10 desks       |              154 |         786 / 3399 / 4616 |          1225 / 2841 |               0 of 56 |                        289 |
+| booking warm, 5 desks        |              156 |         973 / 2660 / 5000 |           665 / 1329 |               0 of 41 |                         98 |
+| mixed, 5 desks and 1 planner |              131 |         898 / 2722 / 3412 |           735 / 1760 |               0 of 49 |                        113 |
+
+The same rows with calls that waited on 429:
+
+| Run                          | Calls that waited on 429 |
+| ---------------------------- | -----------------------: |
+| booking cold, 1 desk         |                        0 |
+| booking cold, 5 desks        |                       10 |
+| booking cold, 10 desks       |                       14 |
+| booking warm, 5 desks        |                       17 |
+| mixed, 5 desks and 1 planner |                        3 |
 
 - **No hold was lost** in any run (before: 37 percent of selected holds at 5 desks, 59 percent at 10), and the deterministic reproduction of finding 2 now ends with desk 2's confirm answering 200.
 - **Latency improved, by less than the table shows:** Those runs were the third pass over seeds 21 to 25, so their routes were already cached. Run again on fresh seeds, as the baseline was (evidence, `coldRemeasurement`):
@@ -135,12 +155,21 @@ A host may now queue a daily or repair proposal with `Prefer: respond-async` and
 
 The same jar now runs as booking replicas (`SCHEDULER_ROLE=booking`, no queued daily work) and daily replicas (`SCHEDULER_ROLE=daily`, several daily calculations at once with `SCHEDULER_SEARCH_BACKGROUND_LIMIT`) behind one address; `deploy/vm/` puts nginx in front of the two pools. Measured on fresh seeds at **equal total search capacity (4 slots)** ([evidence](evidence/api-load-2026-10-14-replica-roles.json)): one `all` replica (capacity 4, one daily calculation at a time) against a booking replica (capacity 2) plus a daily replica (capacity 2, two at a time). Load: 5 booking desks and 5 queued daily planners (20-technician days, 5 s searches) for 60 s, as two load tool processes. Pairs ran in the order all, split, split, all.
 
-| Shape                    |  Run | Searches per minute | Offers p95 | Offers p99 | Offers waited on 429 | Confirm p50 / p95 | Daily proposals | Proposal p50 / p95 | Queue wait p50 |
-| ------------------------ | ---: | ------------------: | ---------: | ---------: | -------------------: | ----------------: | --------------: | -----------------: | -------------: |
-| One `all` replica        |    1 |                 241 |    1746 ms |    2495 ms |                   15 |      136 / 515 ms |              13 |      27.2 / 36.4 s |         20.7 s |
-| One `all` replica        |    2 |                 245 |    1804 ms |    3442 ms |                   24 |      122 / 480 ms |              14 |      27.1 / 36.4 s |         20.1 s |
-| Booking + daily replicas |    1 |                 226 |    1430 ms |    2084 ms |                    4 |      379 / 810 ms |          **25** |      15.1 / 18.3 s |          7.5 s |
-| Booking + daily replicas |    2 |                 222 |    1382 ms |    2392 ms |                    4 |      440 / 795 ms |          **25** |      15.1 / 18.3 s |          7.4 s |
+| Shape                    |  Run | Searches per minute | Offers p95 | Offers p99 | Offers waited on 429 | Confirm p50 / p95 | Daily proposals |
+| ------------------------ | ---: | ------------------: | ---------: | ---------: | -------------------: | ----------------: | --------------: |
+| One `all` replica        |    1 |                 241 |    1746 ms |    2495 ms |                   15 |      136 / 515 ms |              13 |
+| One `all` replica        |    2 |                 245 |    1804 ms |    3442 ms |                   24 |      122 / 480 ms |              14 |
+| Booking + daily replicas |    1 |                 226 |    1430 ms |    2084 ms |                    4 |      379 / 810 ms |          **25** |
+| Booking + daily replicas |    2 |                 222 |    1382 ms |    2392 ms |                    4 |      440 / 795 ms |          **25** |
+
+The same rows with proposal p50 / p95 and queue wait p50:
+
+| Shape                    | Proposal p50 / p95 | Queue wait p50 |
+| ------------------------ | -----------------: | -------------: |
+| One `all` replica        |      27.2 / 36.4 s |         20.7 s |
+| One `all` replica        |      27.1 / 36.4 s |         20.1 s |
+| Booking + daily replicas |      15.1 / 18.3 s |          7.5 s |
+| Booking + daily replicas |      15.1 / 18.3 s |          7.4 s |
 
 - **Daily throughput nearly doubles** (13 and 14 to 25 and 25 proposals), and a queued day waits a third as long (20 s to 7.5 s), because the daily replica runs two solves at once while the `all` replica runs one at a time.
 - **Bookings keep their tail:** Booking offers p95 fell from about 1.8 s to 1.4 s, and calls refused with 429 and sent again fell from 15 to 24 down to 4. No daily solve competes for the booking replica's cores or slots.
@@ -166,11 +195,19 @@ Every number above came from one 24-core machine running the scheduler, routing,
 
 The baseline said a search spends half its time waiting for cold legs from a routing service that routes a batch's pairs one after another through a flexible A* graph, with a `/health` round trip before every lookup and two leg workers in the scheduler. J changes all four: each map version now carries a contraction hierarchy graph beside the flexible one (`graph-ch-car-v1`, prepared by `infra/prepare-map.ps1`, listed in the manifest and required at activation) and the routing service serves it by default; the routing service routes a request's pairs on `ROUTING_PARALLELISM` threads at once; the scheduler trusts a fetched routing identity for `ROUTING_IDENTITY_TTL_MS` (2 s; the service still refuses a call with another identity with 409, which drops the remembered one); and the scheduler fetches leg batches on 8 workers with a queue of 64. Same stack and load as the baseline, run twice with the same scheduler image: once against the flexible graph and once against the CH graph ([evidence](evidence/api-load-2026-10-14-routing.json); the routing API alone, 132 Omaha pairs uncached on both graphs, is in [routing-ch-2026-10-14.json](evidence/routing-ch-2026-10-14.json): exact parity on every directed leg, 16-pair requests 29.6 ms to 3.7 ms p50 at concurrency 1 and 118.9 ms to 8.1 ms at concurrency 10).
 
-| Run                           | Offers in 60 s | Caller p50 / p95 | Server p50: slot wait | routing | per fetched leg | Confirm caller p50 / p95 | Routing container CPU |
-| ----------------------------- | -------------: | ---------------: | --------------------: | ------: | --------------: | -----------------------: | --------------------: |
-| Baseline (flexible, before J) |            289 |    837 / 1341 ms |                424 ms |  353 ms |         1.48 ms |             454 / 773 ms |           166 percent |
-| J, flexible graph             |            454 |     493 / 746 ms |                228 ms |  197 ms |         0.77 ms |             265 / 503 ms |          1324 percent |
-| J, CH graph (default)         |           1020 |     216 / 353 ms |                 94 ms |   65 ms |         0.23 ms |             116 / 214 ms |           261 percent |
+| Run                           | Offers in 60 s | Caller p50 / p95 | Server p50: slot wait | routing | per fetched leg | Confirm caller p50 / p95 |
+| ----------------------------- | -------------: | ---------------: | --------------------: | ------: | --------------: | -----------------------: |
+| Baseline (flexible, before J) |            289 |    837 / 1341 ms |                424 ms |  353 ms |         1.48 ms |             454 / 773 ms |
+| J, flexible graph             |            454 |     493 / 746 ms |                228 ms |  197 ms |         0.77 ms |             265 / 503 ms |
+| J, CH graph (default)         |           1020 |     216 / 353 ms |                 94 ms |   65 ms |         0.23 ms |             116 / 214 ms |
+
+The same rows with routing container CPU:
+
+| Run                           | Routing container CPU |
+| ----------------------------- | --------------------: |
+| Baseline (flexible, before J) |           166 percent |
+| J, flexible graph             |          1324 percent |
+| J, CH graph (default)         |           261 percent |
 
 - **3.5 times the searches at a quarter of the latency, with no errors and no change in what is offered:** Every search still finishes complete; the engine and database shares are unchanged (12 ms and 33 ms p50), so the whole gain is routing and the slot wait that routing was holding.
 - **CH is the lever; parallel flexible search is not:** Routing a batch's pairs in parallel on the flexible graph halves the routing time but spends 13 cores doing it (1324 percent CPU on an unlimited container); the same parallelism on the CH graph answers in a third of the time on 2.6 cores. On a VM with a routing service capped at a few cores, flexible mode would be far worse than this run shows. The CH graph costs 27 s and 2.7 million shortcuts at import on a 12-core machine and about 200 MiB more on disk per version.
@@ -187,13 +224,23 @@ After J a confirm, which does a few milliseconds of work to complete a booking t
 
 J as the baseline, then each J2 step and JVM flag variant, measured in turn:
 
-| Run                                      | JVM flags (booking / daily)          | Confirm caller p50 / p95 | Confirm server p50: slot wait | Offers caller p50 / p95 | Searches in 60 s | Booking replica CPU, heap max | Daily proposal caller p50 |
-| ---------------------------------------- | ------------------------------------ | -----------------------: | ----------------------------: | ----------------------: | ---------------: | ----------------------------- | ------------------------: |
-| J, CH graph (before)                     | default (G1)                         |             116 / 214 ms |                         98 ms |            216 / 353 ms |             1020 | 135 percent, 0.36 GiB         |                    15.1 s |
-| J2 step 1, priority                      | default                              |              89 / 122 ms |                         71 ms |            213 / 341 ms |             1086 | 135 percent, 0.38 GiB         |                    12.4 s |
-| J2 step 1, ZGC / Parallel                | `-XX:+UseZGC` / `-XX:+UseParallelGC` |              87 / 142 ms |                         65 ms |            210 / 331 ms |             1084 | 154 percent, 1.25 GiB         |                    12.4 s |
-| J2 steps 1 and 2, confirm slot (shipped) | default                              |               20 / 35 ms |                          0 ms |            226 / 307 ms |             1161 | 145 percent, 0.39 GiB         |                    12.3 s |
-| J2 steps 1 and 2, compact headers        | `-XX:+UseCompactObjectHeaders` both  |               20 / 32 ms |                          0 ms |            228 / 320 ms |             1174 | 124 percent, 0.34 GiB         |                    12.3 s |
+| Run                                      | JVM flags (booking / daily)          | Confirm caller p50 / p95 | Confirm server p50: slot wait |
+| ---------------------------------------- | ------------------------------------ | -----------------------: | ----------------------------: |
+| J, CH graph (before)                     | default (G1)                         |             116 / 214 ms |                         98 ms |
+| J2 step 1, priority                      | default                              |              89 / 122 ms |                         71 ms |
+| J2 step 1, ZGC / Parallel                | `-XX:+UseZGC` / `-XX:+UseParallelGC` |              87 / 142 ms |                         65 ms |
+| J2 steps 1 and 2, confirm slot (shipped) | default                              |               20 / 35 ms |                          0 ms |
+| J2 steps 1 and 2, compact headers        | `-XX:+UseCompactObjectHeaders` both  |               20 / 32 ms |                          0 ms |
+
+The same rows with offers caller p50 / p95, searches in 60 s, booking replica CPU, heap max and daily proposal caller p50:
+
+| Run                                      | Offers caller p50 / p95 | Searches in 60 s | Booking replica CPU, heap max | Daily proposal caller p50 |
+| ---------------------------------------- | ----------------------: | ---------------: | ----------------------------- | ------------------------: |
+| J, CH graph (before)                     |            216 / 353 ms |             1020 | 135 percent, 0.36 GiB         |                    15.1 s |
+| J2 step 1, priority                      |            213 / 341 ms |             1086 | 135 percent, 0.38 GiB         |                    12.4 s |
+| J2 step 1, ZGC / Parallel                |            210 / 331 ms |             1084 | 154 percent, 1.25 GiB         |                    12.4 s |
+| J2 steps 1 and 2, confirm slot (shipped) |            226 / 307 ms |             1161 | 145 percent, 0.39 GiB         |                    12.3 s |
+| J2 steps 1 and 2, compact headers        |            228 / 320 ms |             1174 | 124 percent, 0.34 GiB         |                    12.3 s |
 
 - **A confirm now answers in 20 ms p50 and 35 ms p95 at the caller, from 116 and 214 ms:** Priority alone took the wait from 98 to 71 ms (the confirm still waited for one of the two running searches to finish); the confirm slot took it to 0. Offers are unchanged within run-to-run variation (p50 213 to 228 ms across the five runs) and every search still completes with four offers and no errors; the replica served 14 percent more searches in the 60 s because the desks spent less time in confirms. Both steps ship as defaults.
 - **The garbage collector is not a lever here, so G1 stays:** ZGC on the booking replica is within 3 percent on offers p50 and p95 and worse on confirm p95 (142 against 122 ms), offers p99 (820 against 551 ms), CPU (154 against 135 percent) and heap (1.25 against 0.38 GiB used; 1.68 GiB resident). Parallel GC on the daily replica changes nothing the load tool can see: a queued 20-technician day is 6 s of queue wait plus a fixed 5 s search, so a GC difference of a few milliseconds per solve is below the measurement. A move-rate comparison inside the solver (study L's harness) is the right instrument for that replica, not this one.
@@ -205,12 +252,21 @@ J as the baseline, then each J2 step and JVM flag variant, measured in turn:
 
 The design's third scaling lever moves the calculation out of the scheduler into a solver pool (`SCHEDULER_CALCULATION_MODE=REMOTE`). It had never been measured. This run compares the two on the rehearsal stack with the same load as J2's runs, the solver pool at its compose shape (4 CPUs, 4 GiB) beside the booking and daily replicas at 2 CPUs each ([evidence](evidence/api-load-2026-10-14-embedded-vs-remote.json)). The acceptance set beforehand was remote p95 at most 1.05 times embedded.
 
-| Run                                               | Offers caller p50 / p95 | Offers server p50: slot wait | calculation | Searches in 60 s | Daily proposal p50 (25 queued) | Daily replica CPU | Solver pool                     |
-| ------------------------------------------------- | ----------------------: | ---------------------------: | ----------: | ---------------: | ------------------------------ | ----------------: | ------------------------------- |
-| Embedded (default)                                |            244 / 357 ms |                       124 ms |       15 ms |             1058 | 15.1 s, 25 of 25               |       185 percent | n/a                             |
-| Remote, previous pool defaults                    |            352 / 485 ms |                       187 ms |       64 ms |              748 | 15 of 18 answered 503          |        43 percent | capacity 2, one daily at a time |
-| Remote, capacity 4                                |            356 / 556 ms |                       190 ms |       63 ms |              753 | 13 of 18 answered 503          |        33 percent | capacity 4, one daily at a time |
-| Remote, capacity 4, every slot open to daily work |            374 / 504 ms |                       201 ms |       69 ms |              703 | 15.1 s, 25 of 25               |        36 percent | the new defaults                |
+| Run                                               | Offers caller p50 / p95 | Offers server p50: slot wait | calculation | Searches in 60 s |
+| ------------------------------------------------- | ----------------------: | ---------------------------: | ----------: | ---------------: |
+| Embedded (default)                                |            244 / 357 ms |                       124 ms |       15 ms |             1058 |
+| Remote, previous pool defaults                    |            352 / 485 ms |                       187 ms |       64 ms |              748 |
+| Remote, capacity 4                                |            356 / 556 ms |                       190 ms |       63 ms |              753 |
+| Remote, capacity 4, every slot open to daily work |            374 / 504 ms |                       201 ms |       69 ms |              703 |
+
+The same rows with daily proposal p50 (25 queued), daily replica CPU and solver pool:
+
+| Run                                               | Daily proposal p50 (25 queued) | Daily replica CPU | Solver pool                     |
+| ------------------------------------------------- | ------------------------------ | ----------------: | ------------------------------- |
+| Embedded (default)                                | 15.1 s, 25 of 25               |       185 percent | n/a                             |
+| Remote, previous pool defaults                    | 15 of 18 answered 503          |        43 percent | capacity 2, one daily at a time |
+| Remote, capacity 4                                | 13 of 18 answered 503          |        33 percent | capacity 4, one daily at a time |
+| Remote, capacity 4, every slot open to daily work | 15.1 s, 25 of 25               |        36 percent | the new defaults                |
 
 - **Booking fails the acceptance; the embedded solver stays the default:** A remote search costs 1.5 times the embedded one at the caller (p50 374 against 244 ms, p95 504 against 357 ms) and the replica serves two thirds of the searches. The calculation share goes from 15 to 69 ms: a search makes up to three solver calls (insertion, refinement, and the retry on a moved day), each a snapshot encoded, sent, decoded and answered, and the replica spends 20 ms more CPU per search on that encoding (`cpuMs` 37 to 57 ms). Nothing else changes: routing, the database and the confirm (16 ms, no calculation) are the same.
 - **For a daily pool, remote is the lever it was meant to be:** The proposal takes the same 15.1 s p50 (queue wait plus a fixed 5 s search) and the daily replica's CPU falls from 185 to 36 percent: the solve runs in the pool. Each pool has its own `SCHEDULER_CALCULATION_MODE`, so the daily pool can go remote while booking stays embedded; set the mode and URL on the daily replica alone (an override file next to `deploy/vm/docker-compose.yml`).
@@ -221,16 +277,29 @@ The design's third scaling lever moves the calculation out of the scheduler into
 
 A client's booking horizon can follow its schedule: through two weekdays past the furthest weekday whose route spans fill 85 percent of the technicians' open time, at most 15 weekdays (`web/lib/bookingHorizonCore.ts`). This study compares it with the fixed 10 weekdays on the local compose stack, Omaha routing, with `infra/run-horizon-study.ps1` ([evidence](evidence/api-load-2026-10-16-dynamic-horizon.json)): 120 s cold booking runs, 1 and 5 desks, 3 seeds a cell. Low volume is 6 technicians with 1 visit a day; high demand is 3 technicians with 2, the first 12 weekdays booked out at 4. Every desk confirms 30 percent of its searches, so the schedule fills as a run goes on. The kit's technicians work weekends too, so a fixed 10 weekdays is 13 dates here.
 
-| Cell                   |     Dates searched | Searches per minute | Refinement                        | Offers per search |                  Searches with no offer | Search p50 / p95 |
-| ---------------------- | -----------------: | ------------------: | --------------------------------- | ----------------: | --------------------------------------: | ---------------: |
-| Low, fixed, 1 desk     |                 13 |                 161 | SHORTENED 100 percent             |              4.00 |                                       0 |     354 / 381 ms |
-| Low, dynamic, 1 desk   |             3 to 4 |                 190 | SHORTENED 53, COMPLETE 47 percent |              3.96 |                                       0 |     303 / 332 ms |
-| High, fixed, 1 desk    |                 13 |                 155 | SHORTENED 99 percent              |              4.00 |                                       0 |     372 / 395 ms |
-| High, dynamic, 1 desk  |           18 to 19 |                 146 | SHORTENED 100 percent             |              4.00 |                                       0 |     394 / 423 ms |
-| Low, fixed, 5 desks    |                 13 |                 645 | SHED 99 percent                   |              4.00 |                                       0 |    350 / 1047 ms |
-| Low, dynamic, 5 desks  |    3 growing to 12 |                 628 | SHED 98 percent                   |              4.00 |                                       0 |    282 / 1676 ms |
-| High, fixed, 5 desks   |                 13 |                 610 | COMPLETE 54, SHED 46 percent      |              1.86 |               1892 of 3677 (51 percent) |     476 / 788 ms |
-| High, dynamic, 5 desks | 19 to 20 (the cap) |                 523 | SHED 91, COMPLETE 9 percent       |              3.66 | 195 of 3159 (6 percent), all at the cap |    416 / 1556 ms |
+| Cell                   |     Dates searched | Searches per minute | Refinement                        | Offers per search |
+| ---------------------- | -----------------: | ------------------: | --------------------------------- | ----------------: |
+| Low, fixed, 1 desk     |                 13 |                 161 | SHORTENED 100 percent             |              4.00 |
+| Low, dynamic, 1 desk   |             3 to 4 |                 190 | SHORTENED 53, COMPLETE 47 percent |              3.96 |
+| High, fixed, 1 desk    |                 13 |                 155 | SHORTENED 99 percent              |              4.00 |
+| High, dynamic, 1 desk  |           18 to 19 |                 146 | SHORTENED 100 percent             |              4.00 |
+| Low, fixed, 5 desks    |                 13 |                 645 | SHED 99 percent                   |              4.00 |
+| Low, dynamic, 5 desks  |    3 growing to 12 |                 628 | SHED 98 percent                   |              4.00 |
+| High, fixed, 5 desks   |                 13 |                 610 | COMPLETE 54, SHED 46 percent      |              1.86 |
+| High, dynamic, 5 desks | 19 to 20 (the cap) |                 523 | SHED 91, COMPLETE 9 percent       |              3.66 |
+
+The same rows with searches with no offer and search p50 / p95:
+
+| Cell                   |                  Searches with no offer | Search p50 / p95 |
+| ---------------------- | --------------------------------------: | ---------------: |
+| Low, fixed, 1 desk     |                                       0 |     354 / 381 ms |
+| Low, dynamic, 1 desk   |                                       0 |     303 / 332 ms |
+| High, fixed, 1 desk    |                                       0 |     372 / 395 ms |
+| High, dynamic, 1 desk  |                                       0 |     394 / 423 ms |
+| Low, fixed, 5 desks    |                                       0 |    350 / 1047 ms |
+| Low, dynamic, 5 desks  |                                       0 |    282 / 1676 ms |
+| High, fixed, 5 desks   |               1892 of 3677 (51 percent) |     476 / 788 ms |
+| High, dynamic, 5 desks | 195 of 3159 (6 percent), all at the cap |    416 / 1556 ms |
 
 No search failed, none answered `searchComplete: false`, no date was reported incomplete, the scheduler rejected nothing at admission and no run found a contract breach. Scheduler CPU stayed at 4 to 8 percent of the machine.
 
@@ -251,20 +320,37 @@ No search failed, none answered `searchComplete: false`, no date was reported in
 
 Offer quality for each profile and schedule at each threshold, compared with threshold 2:
 
-| Profile, schedule |  Threshold | Refinement   | Best offer adds, mean | Visits reassigned | Same offers as 2 | Earlier / later first offer | Cheaper / dearer |      Mean change | Search p50 |
-| ----------------- | ---------: | ------------ | --------------------: | ----------------: | ---------------: | --------------------------: | ---------------: | ---------------: | ---------: |
-| Low, 1            |          2 | SHORTENED 20 |                $31.81 |                 0 |              n/a |                         n/a |              n/a |              n/a |     302 ms |
-| Low, 1            | 10, 25, 50 | SHORTENED 20 |      $31.81 to $31.88 |                 0 |         19 to 20 |                  0 to 1 / 0 |       0 / 0 to 1 |  $0.00 to +$0.07 |     302 ms |
-| Low, 1            |       1000 | COMPLETE 20  |                $30.94 |                16 |               10 |                       1 / 4 |            6 / 1 |           -$0.88 |    1999 ms |
-| Low, 2            |          2 | SHORTENED 20 |                $31.74 |                 9 |              n/a |                         n/a |              n/a |              n/a |     303 ms |
-| Low, 2            | 10, 25, 50 | SHORTENED 20 |      $31.70 to $32.00 |            2 to 4 |               13 |                  3 / 1 to 2 |       1 to 3 / 2 | -$0.04 to +$0.25 |     302 ms |
-| Low, 2            |       1000 | COMPLETE 20  |                $31.42 |                24 |                5 |                       6 / 3 |            9 / 4 |           -$0.32 |    2022 ms |
-| High, 1           |          2 | SHORTENED 20 |                 $2.05 |                 2 |              n/a |                         n/a |              n/a |              n/a |     307 ms |
-| High, 1           | 10, 25, 50 | SHORTENED 20 |        $2.05 to $2.28 |            2 to 3 |         14 to 16 |                       0 / 0 |       0 / 0 to 2 |  $0.00 to +$0.23 |     306 ms |
-| High, 1           |       1000 | COMPLETE 20  |                 $1.93 |                 4 |               13 |                       0 / 1 |            2 / 0 |           -$0.12 |     567 ms |
-| High, 2           |          2 | SHORTENED 20 |                 $7.23 |                19 |              n/a |                         n/a |              n/a |              n/a |     306 ms |
-| High, 2           | 10, 25, 50 | SHORTENED 20 |        $5.17 to $6.10 |          19 to 20 |               15 |             0 to 1 / 1 to 2 |  1 to 2 / 1 to 2 | -$2.06 to -$1.13 |     307 ms |
-| High, 2           |       1000 | COMPLETE 20  |                 $6.88 |                23 |               14 |                       1 / 1 |            5 / 1 |           -$0.35 |     593 ms |
+| Profile, schedule |  Threshold | Refinement   | Best offer adds, mean | Visits reassigned | Same offers as 2 | Earlier / later first offer |
+| ----------------- | ---------: | ------------ | --------------------: | ----------------: | ---------------: | --------------------------: |
+| Low, 1            |          2 | SHORTENED 20 |                $31.81 |                 0 |              n/a |                         n/a |
+| Low, 1            | 10, 25, 50 | SHORTENED 20 |      $31.81 to $31.88 |                 0 |         19 to 20 |                  0 to 1 / 0 |
+| Low, 1            |       1000 | COMPLETE 20  |                $30.94 |                16 |               10 |                       1 / 4 |
+| Low, 2            |          2 | SHORTENED 20 |                $31.74 |                 9 |              n/a |                         n/a |
+| Low, 2            | 10, 25, 50 | SHORTENED 20 |      $31.70 to $32.00 |            2 to 4 |               13 |                  3 / 1 to 2 |
+| Low, 2            |       1000 | COMPLETE 20  |                $31.42 |                24 |                5 |                       6 / 3 |
+| High, 1           |          2 | SHORTENED 20 |                 $2.05 |                 2 |              n/a |                         n/a |
+| High, 1           | 10, 25, 50 | SHORTENED 20 |        $2.05 to $2.28 |            2 to 3 |         14 to 16 |                       0 / 0 |
+| High, 1           |       1000 | COMPLETE 20  |                 $1.93 |                 4 |               13 |                       0 / 1 |
+| High, 2           |          2 | SHORTENED 20 |                 $7.23 |                19 |              n/a |                         n/a |
+| High, 2           | 10, 25, 50 | SHORTENED 20 |        $5.17 to $6.10 |          19 to 20 |               15 |             0 to 1 / 1 to 2 |
+| High, 2           |       1000 | COMPLETE 20  |                 $6.88 |                23 |               14 |                       1 / 1 |
+
+The same rows with cheaper / dearer, mean change and search p50:
+
+| Profile, schedule | Cheaper / dearer |      Mean change | Search p50 |
+| ----------------- | ---------------: | ---------------: | ---------: |
+| Low, 1            |              n/a |              n/a |     302 ms |
+| Low, 1            |       0 / 0 to 1 |  $0.00 to +$0.07 |     302 ms |
+| Low, 1            |            6 / 1 |           -$0.88 |    1999 ms |
+| Low, 2            |              n/a |              n/a |     303 ms |
+| Low, 2            |       1 to 3 / 2 | -$0.04 to +$0.25 |     302 ms |
+| Low, 2            |            9 / 4 |           -$0.32 |    2022 ms |
+| High, 1           |              n/a |              n/a |     307 ms |
+| High, 1           |       0 / 0 to 2 |  $0.00 to +$0.23 |     306 ms |
+| High, 1           |            2 / 0 |           -$0.12 |     567 ms |
+| High, 2           |              n/a |              n/a |     306 ms |
+| High, 2           |  1 to 2 / 1 to 2 | -$2.06 to -$1.13 |     307 ms |
+| High, 2           |            5 / 1 |           -$0.35 |     593 ms |
 
 Every search answered with 4 offers, none answered `searchComplete: false`, and every best offer was priced.
 
@@ -276,20 +362,37 @@ Every search answered with 4 offers, none answered `searchComplete: false`, and 
 
 Throughput and search time for each profile and desk count at each threshold:
 
-| Profile, desks | Threshold | Searches per minute | Refinement                        | Search p50 / p95 | Confirmed | Notes                                                                                |
-| -------------- | --------: | ------------------: | --------------------------------- | ---------------: | --------: | ------------------------------------------------------------------------------------ |
-| Low, 1         |         2 |                 160 | SHORTENED 100 percent             |     362 / 380 ms |        94 | n/a                                                                                  |
-| Low, 1         |        25 |                 160 | SHORTENED 100 percent             |     356 / 380 ms |       103 | n/a                                                                                  |
-| Low, 1         |      1000 |                  29 | COMPLETE 100 percent              |   1984 / 2649 ms |        14 | n/a                                                                                  |
-| High, 1        |         2 |                 158 | SHORTENED 98 percent              |     367 / 385 ms |        96 | n/a                                                                                  |
-| High, 1        |        25 |                 158 | SHORTENED 100 percent             |     366 / 384 ms |        92 | n/a                                                                                  |
-| High, 1        |      1000 |                  99 | COMPLETE 100 percent              |     574 / 758 ms |        58 | n/a                                                                                  |
-| Low, 5         |         2 |                 638 | SHED 99 percent                   |     202 / 478 ms |       396 | n/a                                                                                  |
-| Low, 5         |        25 |                 678 | SHED 99 percent                   |     203 / 463 ms |       385 | n/a                                                                                  |
-| Low, 5         |      1000 |                  42 | COMPLETE 51, SHORTENED 49 percent |   4031 / 9044 ms |        24 | 7 searches 503 `CALCULATION_UNAVAILABLE`; 80 of 163 answered `searchComplete: false` |
-| High, 5        |         2 |                 636 | COMPLETE 58, SHED 42 percent      |     265 / 603 ms |       180 | 1409 of 2543 offered nothing (55 percent)                                            |
-| High, 5        |        25 |                 542 | COMPLETE 50, SHED 50 percent      |     261 / 925 ms |       180 | 839 of 2166 offered nothing (39 percent)                                             |
-| High, 5        |      1000 |                  77 | COMPLETE 100 percent              |   1669 / 4022 ms |        41 | none offered nothing; the schedule never filled                                      |
+| Profile, desks | Threshold | Searches per minute | Refinement                        | Search p50 / p95 | Confirmed |
+| -------------- | --------: | ------------------: | --------------------------------- | ---------------: | --------: |
+| Low, 1         |         2 |                 160 | SHORTENED 100 percent             |     362 / 380 ms |        94 |
+| Low, 1         |        25 |                 160 | SHORTENED 100 percent             |     356 / 380 ms |       103 |
+| Low, 1         |      1000 |                  29 | COMPLETE 100 percent              |   1984 / 2649 ms |        14 |
+| High, 1        |         2 |                 158 | SHORTENED 98 percent              |     367 / 385 ms |        96 |
+| High, 1        |        25 |                 158 | SHORTENED 100 percent             |     366 / 384 ms |        92 |
+| High, 1        |      1000 |                  99 | COMPLETE 100 percent              |     574 / 758 ms |        58 |
+| Low, 5         |         2 |                 638 | SHED 99 percent                   |     202 / 478 ms |       396 |
+| Low, 5         |        25 |                 678 | SHED 99 percent                   |     203 / 463 ms |       385 |
+| Low, 5         |      1000 |                  42 | COMPLETE 51, SHORTENED 49 percent |   4031 / 9044 ms |        24 |
+| High, 5        |         2 |                 636 | COMPLETE 58, SHED 42 percent      |     265 / 603 ms |       180 |
+| High, 5        |        25 |                 542 | COMPLETE 50, SHED 50 percent      |     261 / 925 ms |       180 |
+| High, 5        |      1000 |                  77 | COMPLETE 100 percent              |   1669 / 4022 ms |        41 |
+
+The same rows with notes:
+
+| Profile, desks | Notes                                                                                |
+| -------------- | ------------------------------------------------------------------------------------ |
+| Low, 1         | n/a                                                                                  |
+| Low, 1         | n/a                                                                                  |
+| Low, 1         | n/a                                                                                  |
+| High, 1        | n/a                                                                                  |
+| High, 1        | n/a                                                                                  |
+| High, 1        | n/a                                                                                  |
+| Low, 5         | n/a                                                                                  |
+| Low, 5         | n/a                                                                                  |
+| Low, 5         | 7 searches 503 `CALCULATION_UNAVAILABLE`; 80 of 163 answered `searchComplete: false` |
+| High, 5        | 1409 of 2543 offered nothing (55 percent)                                            |
+| High, 5        | 839 of 2166 offered nothing (39 percent)                                             |
+| High, 5        | none offered nothing; the schedule never filled                                      |
 
 Figures are the mean of the two repeats. The scheduler rejected nothing at admission, no run found a contract breach or host anomaly, and the scheduler's CPU stayed at 3 to 10 percent of the machine. At 5 desks the desks search the same dates, so 409 `STALE` resends count in search time, as in the horizon study.
 
@@ -305,16 +408,29 @@ The same study was repeated at 5, 10, 20 and 30 technicians per date, thresholds
 
 **Offer quality.** Both schedules of each profile together, 40 cases; the threshold 25 column is the noise floor.
 
-| Profile, technicians | Best offer adds at 2 | 1000: same offers as 2 | Earlier / later first offer | Cheaper / dearer | Mean change at 1000 | Mean change at 25 | Search p50 at 2 / 1000 | 1000 incomplete |
-| -------------------- | -------------------: | ---------------------: | --------------------------: | ---------------: | ------------------: | ----------------: | ---------------------: | --------------: |
-| Low, 5               |       $31.71, $31.82 |                     18 |                      14 / 4 |           20 / 3 |      -$0.37, -$0.85 |    -$0.38, +$0.02 |           286 / 927 ms |               0 |
-| Low, 10              |       $31.81, $31.98 |                     18 |                       6 / 6 |           17 / 2 |      -$0.47, -$0.14 |    -$0.44, +$0.04 |          309 / 2290 ms |               0 |
-| Low, 20              |       $31.66, $31.65 |                     19 |                      5 / 12 |           24 / 0 |      -$0.44, -$0.37 |    -$0.01, +$0.21 |          361 / 4054 ms |              24 |
-| Low, 30              |       $31.52, $31.71 |                     13 |                      11 / 8 |           16 / 7 |      -$0.24, -$0.12 |    -$0.02, +$0.02 |          425 / 4071 ms |              31 |
-| High, 5              |       $27.01, $25.11 |                      5 |                     16 / 14 |          19 / 11 |      -$0.60, +$0.58 |    +$0.45, +$0.73 |          314 / 1314 ms |               0 |
-| High, 10             |       $30.81, $30.01 |                      4 |                      27 / 9 |          29 / 10 |      -$1.89, -$1.77 |    -$0.30, +$0.71 |          360 / 2097 ms |               0 |
-| High, 20             |       $30.77, $29.98 |                      0 |                      31 / 7 |          30 / 10 |      -$2.34, -$1.38 |    +$0.92, +$0.19 |          461 / 2874 ms |               0 |
-| High, 30             |       $31.07, $27.08 |                     12 |                      17 / 7 |           22 / 4 |      -$1.21, -$1.27 |    +$2.40, +$1.77 |          596 / 3556 ms |               6 |
+| Profile, technicians | Best offer adds at 2 | 1000: same offers as 2 | Earlier / later first offer | Cheaper / dearer | Mean change at 1000 |
+| -------------------- | -------------------: | ---------------------: | --------------------------: | ---------------: | ------------------: |
+| Low, 5               |       $31.71, $31.82 |                     18 |                      14 / 4 |           20 / 3 |      -$0.37, -$0.85 |
+| Low, 10              |       $31.81, $31.98 |                     18 |                       6 / 6 |           17 / 2 |      -$0.47, -$0.14 |
+| Low, 20              |       $31.66, $31.65 |                     19 |                      5 / 12 |           24 / 0 |      -$0.44, -$0.37 |
+| Low, 30              |       $31.52, $31.71 |                     13 |                      11 / 8 |           16 / 7 |      -$0.24, -$0.12 |
+| High, 5              |       $27.01, $25.11 |                      5 |                     16 / 14 |          19 / 11 |      -$0.60, +$0.58 |
+| High, 10             |       $30.81, $30.01 |                      4 |                      27 / 9 |          29 / 10 |      -$1.89, -$1.77 |
+| High, 20             |       $30.77, $29.98 |                      0 |                      31 / 7 |          30 / 10 |      -$2.34, -$1.38 |
+| High, 30             |       $31.07, $27.08 |                     12 |                      17 / 7 |           22 / 4 |      -$1.21, -$1.27 |
+
+The same rows with mean change at 25, search p50 at 2 / 1000 and 1000 incomplete:
+
+| Profile, technicians | Mean change at 25 | Search p50 at 2 / 1000 | 1000 incomplete |
+| -------------------- | ----------------: | ---------------------: | --------------: |
+| Low, 5               |    -$0.38, +$0.02 |           286 / 927 ms |               0 |
+| Low, 10              |    -$0.44, +$0.04 |          309 / 2290 ms |               0 |
+| Low, 20              |    -$0.01, +$0.21 |          361 / 4054 ms |              24 |
+| Low, 30              |    -$0.02, +$0.02 |          425 / 4071 ms |              31 |
+| High, 5              |    +$0.45, +$0.73 |          314 / 1314 ms |               0 |
+| High, 10             |    -$0.30, +$0.71 |          360 / 2097 ms |               0 |
+| High, 20             |    +$0.92, +$0.19 |          461 / 2874 ms |               0 |
+| High, 30             |    +$2.40, +$1.77 |          596 / 3556 ms |               6 |
 
 Every search answered 201 with 4 offers and every best offer was priced. At 2 and 25 every refinement was SHORTENED; at 1000 it was COMPLETE except where the deadline stopped it (the incomplete column, answered `searchComplete: false`). The two figures in a cell are the two schedules; p50s are their mean.
 
@@ -434,10 +550,17 @@ At 5 desks, every arm had about 900 `409 STALE` answers, including the arm with 
 
 Two queued daily proposals, each with a 120 s cost search and no fairness phase, ran together on a scheduler limited to 2 CPUs. It had background limit 2 and 2 queue workers (`SCHEDULER_SEARCH_BACKGROUNDLIMIT=2`, `SCHEDULER_DAILY_QUEUE_WORKERS=2`), and `/health` was read once a second. With one queue worker, the default, two background lanes still run one solve at a time, so the worker count must match the limit. The run is the same on main before PR #182 (04e78e5, solve on a virtual thread) and on c826a07 (solve on a platform daemon thread).
 
-| Build                                                                                           | Proposals | Proposal p50 ms | Scheduler CPU | `/health` reads | not 200 | slowest ms |
-| ----------------------------------------------------------------------------------------------- | --------: | --------------: | ------------: | --------------: | ------: | ---------: |
-| virtual thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-virtual-thread.json))   |         6 |          120621 |           98% |             366 |       0 |        118 |
-| platform thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-platform-thread.json)) |         6 |          120668 |           98% |             366 |       0 |        120 |
+| Build                                                                                           | Proposals | Proposal p50 ms | Scheduler CPU |
+| ----------------------------------------------------------------------------------------------- | --------: | --------------: | ------------: |
+| virtual thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-virtual-thread.json))   |         6 |          120621 |           98% |
+| platform thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-platform-thread.json)) |         6 |          120668 |           98% |
+
+The same rows with `/health` reads, not 200 and slowest ms:
+
+| Build                                                                                           | `/health` reads | not 200 | slowest ms |
+| ----------------------------------------------------------------------------------------------- | --------------: | ------: | ---------: |
+| virtual thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-virtual-thread.json))   |             366 |       0 |        118 |
+| platform thread ([evidence](evidence/shell-probe-2026-10-19-daily-thread-platform-thread.json)) |             366 |       0 |        120 |
 
 The starvation this probe looked for did not happen on this stack. Two CPU-bound solves held the replica's CPU, and `/health` and the cancel watchers still ran within their 1 s checks on either build. The platform thread change is kept because it is cheap and removes the dependence on the carrier pool's size, not because a failure was measured.
 

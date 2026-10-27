@@ -4,15 +4,13 @@
 
 The one immutable input is `docs/evidence/solver-variance-2026-10-20.json`. `infra/variance_study.py summarize` wrote it from the run `infra/run-variance-study.ps1` made on 2026-10-20, 04:53 to 12:24 UTC, on revision `773f9f6`. That revision was built once into a frozen tree.
 
-| Block                     | What it holds                                                                                                                                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manifest`                | Revision, JVM flags, fleets, workloads, seeds, budgets (15 s and 60 s), repetitions (2), variant order rotation                                                                                                               |
-| `budgets.<ms>.runs`       | All 336 solves per budget (7 arms, 24 cases, 2 repetitions). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans |
-| `budgets.<ms>.pairs`      | For b and c, each case's variances and costs on both sides, production's spread between repetitions, and the mean differences                                                                                                 |
-| `budgets.<ms>.summary`    | b and c against the four bars                                                                                                                                                                                                 |
-| `budgets.<ms>.comparison` | Every arm on every measure (median, median ratio to production, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons                                                                        |
-| `decision`                | b promoted, c not, policies compared without bars                                                                                                                                                                             |
-| `profiles`                | One flight-recording profile per arm and phase at 15 s on seed 17, with eight recordings each: samples by kind of work, allocation, and the top leaf frames                                                                   |
+- **`manifest`:** Revision, JVM flags, fleets, workloads, seeds, budgets (15 s and 60 s), repetitions (2), variant order rotation.
+- **`budgets.<ms>.runs`:** All 336 solves per budget (7 arms, 24 cases, 2 repetitions). Each one records its reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans.
+- **`budgets.<ms>.pairs`:** For b and c, each case's variances and costs on both sides, production's spread between repetitions, and the mean differences.
+- **`budgets.<ms>.summary`:** b and c against the four bars.
+- **`budgets.<ms>.comparison`:** Every arm on every measure (median, median ratio to production, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons.
+- **`decision`:** b promoted, c not, policies compared without bars.
+- **`profiles`:** One flight-recording profile per arm and phase at 15 s on seed 17, with eight recordings each: samples by kind of work, allocation, and the top leaf frames.
 
 The reference and final cost and the reference plan's measures were added to `runs` after the run, by re-running `summarize` on the same rows (commit after `0154ac6`). Every other block of the regenerated file is identical to the run's own output, which was checked field by field before it was replaced.
 

@@ -26,13 +26,20 @@ The scheduler runs on its own VM and is reached only through `https://<scheduler
 
 On the VM, `scheduler-service` may run as several replicas of the same jar behind one load balancer (the address you call). Booking replicas answer booking searches, confirms and route calls; daily replicas take daily and repair proposals, synchronous or queued. Every replica answers every route, holds no state of its own, and shares the one thin store, so which replica answers a call never changes the answer; you call one address and see one API.
 
-| WaterFlex Software owns                                                                         | The scheduler owns                                                          |
-| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| Customers, addresses, jobs, appointments, technicians, qualifications, shifts, absences, depots | Booking holds and each metro-day's common arrangement                       |
-| The business record: every appointment's technician, sequence and planned times                 | Offer sets, proposals and receipts it issued, keyed by your IDs             |
-| The `lastModified` timestamp of every technician-day                                            | The road graph per metro, its route cache, and address location (Nominatim) |
-| Each client's policy choices and rates, sent with every call                                    | Nothing else: it reads no master data and holds no policy settings          |
-| Overnight schedules, time off, cancellations, depot changes                                     | n/a                                                                         |
+WaterFlex Software owns:
+
+- Customers, addresses, jobs, appointments, technicians, qualifications, shifts, absences, depots
+- The business record: every appointment's technician, sequence and planned times
+- The `lastModified` timestamp of every technician-day
+- Each client's policy choices and rates, sent with every call
+- Overnight schedules, time off, cancellations, depot changes
+
+The scheduler owns:
+
+- Booking holds and each metro-day's common arrangement
+- Offer sets, proposals and receipts it issued, keyed by your IDs
+- The road graph per metro, its route cache, and address location (Nominatim)
+- Nothing else: it reads no master data and holds no policy settings
 
 Every calculating call carries a **snapshot** of the facts it needs. The scheduler answers with time windows (booking offers) or whole timed routes (daily and repair proposals, route evaluations), and you write the result into your own records.
 
@@ -268,21 +275,58 @@ Every write carries a `requestId` (a UUID) that is its idempotency key **across 
 
 Every error is a JSON `Problem` (`{"error": "...", "message": "..."}`) except 401. Branch on `error`, never on `message`, which is for people and may change.
 
-| Status | `error`                               | Meaning                                                                                                                                                                                                                                                                                                                                                                                      | What to do                                                                                                   |
-| -----: | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-|    400 | `INVALID_REQUEST`                     | Malformed body, unknown field, duplicate key, missing value, a reference the snapshot does not hold, horizon over 21 dates, a reused `requestId`                                                                                                                                                                                                                                             | Fix the request; send it with a new `requestId`. Never retry unchanged.                                      |
-|    413 | `INVALID_REQUEST`                     | The body is larger than 8 MiB (8388608 bytes); nothing was claimed or calculated                                                                                                                                                                                                                                                                                                             | Send less in one call (fewer dates or technician-days); do not repeat it unchanged.                          |
-|    401 | (no body, `WWW-Authenticate: Bearer`) | Missing, malformed, unknown or revoked token, or a disabled tenant                                                                                                                                                                                                                                                                                                                           | Check the token; do not retry.                                                                               |
-|    404 | `NOT_FOUND`                           | No such proposal, offer, hold or running request for this tenant                                                                                                                                                                                                                                                                                                                             | Do nothing (or search again for a booking).                                                                  |
-|    409 | `STALE`                               | Commit: a technician-day changed since the proposal was computed. Booking search or confirm: the snapshot is older than records already used. `changed` lists the technician-days                                                                                                                                                                                                            | Commit: new proposal from current facts. Booking: the same call from current records with a new `requestId`. |
-|    409 | `NOT_COMMITTABLE`                     | Already committed, or not `IMPROVED`                                                                                                                                                                                                                                                                                                                                                         | Do nothing.                                                                                                  |
-|    409 | `HOLD_UNAVAILABLE`                    | Hold expired, lost, released, superseded, not selected, or the day would need overtime                                                                                                                                                                                                                                                                                                       | Search again (new `requestId`).                                                                              |
-|    409 | `CANCELLED`                           | You cancelled the call                                                                                                                                                                                                                                                                                                                                                                       | Nothing stored; repeat the same `requestId` if you still want it.                                            |
-|    422 | `INCOMPLETE_FACTS`                    | Well formed but not schedulable: a date past its 6 a.m. cutoff, an unconfigured metro, an unlocatable job, `sequence` and `plannedStart` in different orders, no road route                                                                                                                                                                                                                  | Fix the facts or the dates; retrying unchanged returns the same answer.                                      |
-|    429 | `BUSY`                                | Admission limit reached, a concurrent change to the same day, or the same `requestId` still running. A daily or repair proposal is refused at once when the calculations ahead of it would not finish within its allowance, and `Retry-After` is their estimated time (up to 300 seconds). A queued proposal: the client's queue is full, or the request waited longer than the queue allows | Retry the same `requestId` after `Retry-After`.                                                              |
-|    503 | `ROUTING_UNAVAILABLE`                 | Road routing or address lookup unavailable                                                                                                                                                                                                                                                                                                                                                   | Retry the same `requestId` with backoff.                                                                     |
-|    503 | `CALCULATION_UNAVAILABLE`             | The deadline passed with nothing found, or the remote solver is unavailable                                                                                                                                                                                                                                                                                                                  | Retry the same `requestId` with backoff.                                                                     |
-|    503 | `SERVICE_UNAVAILABLE`                 | Any operation: the scheduler could not check the token (its token store did not answer in time). Nothing was decided or stored (since 1.8.0)                                                                                                                                                                                                                                                 | Send the same call, with the same `requestId`, after `Retry-After`.                                          |
+- **Status 400**
+  - **`error`:** `INVALID_REQUEST`.
+  - **Meaning:** Malformed body, unknown field, duplicate key, missing value, a reference the snapshot does not hold, horizon over 21 dates, a reused `requestId`.
+  - **What to do:** Fix the request; send it with a new `requestId`. Never retry unchanged.
+- **Status 413**
+  - **`error`:** `INVALID_REQUEST`.
+  - **Meaning:** The body is larger than 8 MiB (8388608 bytes); nothing was claimed or calculated.
+  - **What to do:** Send less in one call (fewer dates or technician-days); do not repeat it unchanged.
+- **Status 401**
+  - **`error`:** (no body, `WWW-Authenticate: Bearer`).
+  - **Meaning:** Missing, malformed, unknown or revoked token, or a disabled tenant.
+  - **What to do:** Check the token; do not retry.
+- **Status 404**
+  - **`error`:** `NOT_FOUND`.
+  - **Meaning:** No such proposal, offer, hold or running request for this tenant.
+  - **What to do:** Do nothing (or search again for a booking).
+- **Status 409**
+  - **`error`:** `STALE`.
+  - **Meaning:** Commit: a technician-day changed since the proposal was computed. Booking search or confirm: the snapshot is older than records already used. `changed` lists the technician-days.
+  - **What to do:** Commit: new proposal from current facts. Booking: the same call from current records with a new `requestId`.
+- **Status 409**
+  - **`error`:** `NOT_COMMITTABLE`.
+  - **Meaning:** Already committed, or not `IMPROVED`.
+  - **What to do:** Do nothing.
+- **Status 409**
+  - **`error`:** `HOLD_UNAVAILABLE`.
+  - **Meaning:** Hold expired, lost, released, superseded, not selected, or the day would need overtime.
+  - **What to do:** Search again (new `requestId`).
+- **Status 409**
+  - **`error`:** `CANCELLED`.
+  - **Meaning:** You cancelled the call.
+  - **What to do:** Nothing stored; repeat the same `requestId` if you still want it.
+- **Status 422**
+  - **`error`:** `INCOMPLETE_FACTS`.
+  - **Meaning:** Well formed but not schedulable: a date past its 6 a.m. cutoff, an unconfigured metro, an unlocatable job, `sequence` and `plannedStart` in different orders, no road route.
+  - **What to do:** Fix the facts or the dates; retrying unchanged returns the same answer.
+- **Status 429**
+  - **`error`:** `BUSY`.
+  - **Meaning:** Admission limit reached, a concurrent change to the same day, or the same `requestId` still running. A daily or repair proposal is refused at once when the calculations ahead of it would not finish within its allowance, and `Retry-After` is their estimated time (up to 300 seconds). A queued proposal: the client's queue is full, or the request waited longer than the queue allows.
+  - **What to do:** Retry the same `requestId` after `Retry-After`.
+- **Status 503**
+  - **`error`:** `ROUTING_UNAVAILABLE`.
+  - **Meaning:** Road routing or address lookup unavailable.
+  - **What to do:** Retry the same `requestId` with backoff.
+- **Status 503**
+  - **`error`:** `CALCULATION_UNAVAILABLE`.
+  - **Meaning:** The deadline passed with nothing found, or the remote solver is unavailable.
+  - **What to do:** Retry the same `requestId` with backoff.
+- **Status 503**
+  - **`error`:** `SERVICE_UNAVAILABLE`.
+  - **Meaning:** Any operation: the scheduler could not check the token (its token store did not answer in time). Nothing was decided or stored (since 1.8.0).
+  - **What to do:** Send the same call, with the same `requestId`, after `Retry-After`.
 
 **Timeouts to set at the caller:** booking offers and confirm, the client's `bookingDeadlineMs` plus about 3 seconds; daily and repair proposals, `costSearchSeconds + fairnessSearchSeconds` plus about 15 seconds (a queued one answers 202 within a second; give up polling after the queue's 15 minutes plus that); everything else, 10 to 30 seconds. After a client-side timeout, repeat the same `requestId`: you get the stored answer, or a 429 while it is still running.
 

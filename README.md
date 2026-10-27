@@ -26,18 +26,16 @@ The scheduler owns its database and nothing else connects to it. On the VM it ru
 
 The top-level paths and what each holds:
 
-| Path                                | What it is                                                                                                                                                                                                        |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `calculation-engine/`               | Maven module: the Timefold model, constraints, scoring and the independent route evaluator, shared by the scheduler and the solver service.                                                                       |
-| `scheduler-service/`                | Maven module: the Spring Boot service behind `/api/v1`, its Flyway migrations (`src/main/resources/db/migration`) and its admin commands.                                                                         |
-| `solver-service/`                   | Maven module: the remote solver pool (`remote-solver` profile).                                                                                                                                                   |
-| `routing-service/`                  | Maven module: GraphHopper road matrix, legs and geometry for one metro's prepared map.                                                                                                                            |
-| `campaign-benchmark/`               | Maven module, built only with `-Pcampaign-benchmark`: the Timefold audit benchmark adapters.                                                                                                                      |
-| `web/`                              | The Next.js portal: booking, dispatch, technicians, dealerships, time off and the Solver Settings page. Prisma schema and migrations are in `web/prisma`.                                                         |
-| `infra/`                            | Map preparation and activation scripts, `map-import` image, routing fixture, experiment and study harnesses, CI helpers and their Python tests, and the [host conformance kit](infra/host-conformance/README.md). |
-| `deploy/vm/`                        | The production VM's Compose stack, `.env.example` and the local rehearsal override.                                                                                                                               |
-| `experiments/`, `run_experiment.py` | Tracked experiment configs and datasets; runs are written to `experiments/runs/` (ignored). See [docs/configurable-experiments.md](docs/configurable-experiments.md).                                             |
-| `docs/`                             | Living docs, the OpenAPI contract, evidence JSON and dated study reports (see [Documentation](#documentation)).                                                                                                   |
+- **`calculation-engine/`:** Maven module: the Timefold model, constraints, scoring and the independent route evaluator, shared by the scheduler and the solver service.
+- **`scheduler-service/`:** Maven module: the Spring Boot service behind `/api/v1`, its Flyway migrations (`src/main/resources/db/migration`) and its admin commands.
+- **`solver-service/`:** Maven module: the remote solver pool (`remote-solver` profile).
+- **`routing-service/`:** Maven module: GraphHopper road matrix, legs and geometry for one metro's prepared map.
+- **`campaign-benchmark/`:** Maven module, built only with `-Pcampaign-benchmark`: the Timefold audit benchmark adapters.
+- **`web/`:** The Next.js portal: booking, dispatch, technicians, dealerships, time off and the Solver Settings page. Prisma schema and migrations are in `web/prisma`.
+- **`infra/`:** Map preparation and activation scripts, `map-import` image, routing fixture, experiment and study harnesses, CI helpers and their Python tests, and the [host conformance kit](infra/host-conformance/README.md).
+- **`deploy/vm/`:** The production VM's Compose stack, `.env.example` and the local rehearsal override.
+- **`experiments/`, `run_experiment.py`:** Tracked experiment configs and datasets; runs are written to `experiments/runs/` (ignored). See [docs/configurable-experiments.md](docs/configurable-experiments.md).
+- **`docs/`:** Living docs, the OpenAPI contract, evidence JSON and dated study reports (see [Documentation](#documentation)).
 
 ## Requirements and versions
 

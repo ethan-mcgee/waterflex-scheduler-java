@@ -9,16 +9,14 @@ The one immutable input is `docs/evidence/solver-matrix-2026-10-20.json`. `infra
 
 The evidence file's blocks and what each holds:
 
-| Block               | What it holds                                                                                                                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manifest`          | Both revisions, JVM flags, fleets (10, 30, 50), workloads, seeds, the 15 s budget, repetitions (2), tree and arm order rotation                                                                                      |
-| `paired.runs`       | All 432 solves (6 arms, 36 cases, 2 repetitions). Each records its tree, reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans |
-| `paired.fix`        | The fix's paired speedups for production (baseline over old) and b (b over old-b), overall and by fleet, and the median cost difference                                                                              |
-| `paired.pairs`      | For b and c, each case's variances and costs on both sides, the fixed production's spread between repetitions, and the mean differences                                                                              |
-| `paired.summary`    | b and c against the four bars, with the fairness-phase speedup by fleet                                                                                                                                              |
-| `paired.comparison` | Every arm on every measure against the fixed production (median ratio, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons                                                        |
-| `paired.decision`   | The fix promoted, b promoted, c not, load balance compared without bars                                                                                                                                              |
-| `profiles`          | One flight-recording profile per arm and phase on seed 17, twelve recordings each (one per fleet and workload): samples by kind of work, allocation, and the top leaf frames                                         |
+- **`manifest`:** Both revisions, JVM flags, fleets (10, 30, 50), workloads, seeds, the 15 s budget, repetitions (2), tree and arm order rotation.
+- **`paired.runs`:** All 432 solves (6 arms, 36 cases, 2 repetitions). Each records its tree, reference and final cost, ceiling, acceptance reason, both phases' moves per second, and all five measures of its reference and final plans.
+- **`paired.fix`:** The fix's paired speedups for production (baseline over old) and b (b over old-b), overall and by fleet, and the median cost difference.
+- **`paired.pairs`:** For b and c, each case's variances and costs on both sides, the fixed production's spread between repetitions, and the mean differences.
+- **`paired.summary`:** b and c against the four bars, with the fairness-phase speedup by fleet.
+- **`paired.comparison`:** Every arm on every measure against the fixed production (median ratio, cases lower and higher), cost difference, fairness-phase speed, and acceptance reasons.
+- **`paired.decision`:** The fix promoted, b promoted, c not, load balance compared without bars.
+- **`profiles`:** One flight-recording profile per arm and phase on seed 17, twelve recordings each (one per fleet and workload): samples by kind of work, allocation, and the top leaf frames.
 
 `stacks.json` is the second input. `stacks.py` wrote it once from the run's raw recordings, which stay outside git in the run folder. It holds, for the four arm and phase pairs in section 2 of the report, the share of samples at each named call site and the SHA-256 of every recording read. Rerun it with:
 
